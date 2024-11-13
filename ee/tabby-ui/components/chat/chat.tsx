@@ -14,6 +14,7 @@ import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
+import { useChatStore } from '@/lib/stores/chat-store'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
@@ -22,7 +23,7 @@ import {
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
-import { cn, nanoid } from '@/lib/utils'
+import { cn, isUsableFileContext, nanoid } from '@/lib/utils'
 
 import { ListSkeleton } from '../skeleton'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
@@ -115,6 +116,9 @@ function ChatRenderer(
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
+  )
+  const enableActiveSelection = useChatStore(
+    state => state.enableActiveSelection
   )
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
@@ -328,26 +332,34 @@ function ChatRenderer(
   }, [error])
 
   const generateRequestPayload = (
-    userMessage: UserMessage
+    userMessage: UserMessage,
+    enableActiveSelection?: boolean
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
-    // use selectContext or activeContext for code query
-    const contextForCodeQuery: FileContext | undefined =
-      userMessage.selectContext || userMessage.activeContext
+    // use selectContext for code query by default
+    let contextForCodeQuery: FileContext | undefined = userMessage.selectContext
 
-    const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
-      ? {
-          content: contextForCodeQuery.content ?? '',
-          filepath: contextForCodeQuery.filepath,
-          language: contextForCodeQuery.filepath
-            ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
-            : 'text',
-          gitUrl: contextForCodeQuery?.git_url ?? ''
-        }
-      : null
+    // if enableActiveSelection, use selectContext or activeContext for code query
+    if (enableActiveSelection) {
+      contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
+    }
 
+    const codeQuery: InputMaybe<CodeQueryInput> =
+      contextForCodeQuery && isUsableFileContext(contextForCodeQuery)
+        ? {
+            content: contextForCodeQuery.content ?? '',
+            filepath: contextForCodeQuery.filepath,
+            language: contextForCodeQuery.filepath
+              ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
+              : 'text',
+            gitUrl: contextForCodeQuery?.git_url ?? ''
+          }
+        : null
+
+    const hasUsableActiveContext =
+      enableActiveSelection && isUsableFileContext(userMessage.activeContext)
     const fileContext: FileContext[] = uniqWith(
       compact([
-        userMessage?.activeContext,
+        hasUsableActiveContext && userMessage.activeContext,
         ...(userMessage?.relevantContext || [])
       ]),
       isEqual
@@ -391,6 +403,7 @@ function ChatRenderer(
         }\n${'```'}\n`
       }
 
+      const finalActiveContext = activeSelection || userMessage.activeContext
       const newUserMessage: UserMessage = {
         ...userMessage,
         message: userMessage.message + selectCodeSnippet,
@@ -398,7 +411,10 @@ function ChatRenderer(
         id: userMessage.id ?? nanoid(),
         selectContext: userMessage.selectContext,
         // For forward compatibility
-        activeContext: activeSelection || userMessage.activeContext
+        activeContext:
+          enableActiveSelection && isUsableFileContext(finalActiveContext)
+            ? finalActiveContext
+            : undefined
       }
 
       const nextQaPairs = [
@@ -455,9 +471,15 @@ function ChatRenderer(
     onThreadUpdates?.(qaPairs)
   }, [qaPairs])
 
-  const updateActiveSelection = (ctx: Context | null) => {
-    setActiveSelection(ctx)
-  }
+  const debouncedUpdateActiveSelection = useDebounceCallback(
+    (ctx: Context | null) => {
+      setActiveSelection(ctx)
+    },
+    100
+  )
+
+  const updateActiveSelection = (ctx: Context | null) =>
+    debouncedUpdateActiveSelection.run(ctx)
 
   React.useImperativeHandle(
     ref,

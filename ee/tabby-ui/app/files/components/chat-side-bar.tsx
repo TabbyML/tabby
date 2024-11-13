@@ -5,7 +5,6 @@ import { useClient } from 'tabby-chat-panel/react'
 
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
-import { useStore } from '@/lib/hooks/use-store'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
@@ -26,7 +25,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const [{ data }] = useMe()
   const { pendingEvent, setPendingEvent, repoMap, updateActivePath } =
     React.useContext(SourceCodeBrowserContext)
-  const activeChatId = useStore(useChatStore, state => state.activeChatId)
+  const activeChatId = useChatStore(state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const repoMapRef = useLatest(repoMap)
   const onNavigate = async (context: Context) => {

@@ -1,4 +1,5 @@
 import { uniq } from 'lodash-es'
+import { FileContext } from 'tabby-chat-panel/index'
 
 import {
   ContextInfo,
@@ -104,4 +105,14 @@ export function checkSourcesAvailability(
   }
 
   return { hasCodebaseSource, hasDocumentSource }
+}
+
+export function isFileContextContentEmpty(context: FileContext) {
+  return context.range.start === 0
+}
+
+export function isUsableFileContext(context: FileContext | null | undefined) {
+  if (!context) return false
+
+  return !!context.git_url && !isFileContextContentEmpty(context)
 }

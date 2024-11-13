@@ -1,11 +1,16 @@
 import React, { RefObject } from 'react'
 import type { UseChatHelpers } from 'ai/react'
+import { AnimatePresence, motion } from 'framer-motion'
 import type { Context } from 'tabby-chat-panel'
 
-import { cn } from '@/lib/utils'
+import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
+import { useChatStore } from '@/lib/stores/chat-store'
+import { cn, isFileContextContentEmpty } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  IconEye,
+  IconEyeOff,
   IconRefresh,
   IconRemove,
   IconStop,
@@ -54,6 +59,9 @@ function ChatPanelRenderer(
     removeRelevantContext,
     activeSelection
   } = React.useContext(ChatContext)
+  const enableActiveSelection = useChatStore(
+    state => state.enableActiveSelection
+  )
 
   React.useImperativeHandle(
     ref,
@@ -105,40 +113,81 @@ function ChatPanelRenderer(
           )}
         </div>
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
-          {(!!activeSelection || relevantContext.length > 0) && (
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            <AnimatePresence>
               {activeSelection ? (
-                <Badge
-                  variant="outline"
-                  key={`${activeSelection.filepath}_active_selection`}
-                  className="inline-flex flex-nowrap items-center gap-1.5 overflow-hidden rounded text-sm font-semibold"
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: -5 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{
+                    ease: 'easeInOut',
+                    duration: 0.1
+                  }}
+                  exit={{ opacity: 0, scale: 0.9, y: 5 }}
                 >
-                  <ContextLabel
-                    context={activeSelection}
-                    className="flex-1 truncate"
-                  />
-                  <span className="shrink-0 text-muted-foreground">
-                    Current file
-                  </span>
-                </Badge>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md pr-0 text-sm font-semibold',
+                      {
+                        'border-dashed !text-muted-foreground italic line-through':
+                          !enableActiveSelection
+                      }
+                    )}
+                  >
+                    <ContextLabel
+                      context={activeSelection}
+                      className="flex-1 truncate"
+                    />
+                    <span className="shrink-0 text-muted-foreground">
+                      Current file
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0 h-7 w-7 rounded-l-none"
+                      onClick={e => {
+                        updateEnableActiveSelection(!enableActiveSelection)
+                      }}
+                    >
+                      {enableActiveSelection ? <IconEye /> : <IconEyeOff />}
+                    </Button>
+                  </Badge>
+                </motion.div>
               ) : null}
               {relevantContext.map((item, idx) => {
                 return (
-                  <Badge
-                    variant="outline"
-                    key={item.filepath + idx}
-                    className="inline-flex flex-nowrap items-center gap-0.5 overflow-hidden rounded text-sm font-semibold"
+                  <motion.div
+                    // FIXME check the dedupe logic
+                    key={item.filepath + item.range.start + item.range.end}
+                    initial={{ opacity: 0, scale: 0.9, y: -5 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{
+                      ease: 'easeInOut',
+                      duration: 0.1
+                    }}
+                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                    layout
                   >
-                    <ContextLabel context={item} />
-                    <IconRemove
-                      className="shrink-0 cursor-pointer text-muted-foreground transition-all hover:text-red-300"
-                      onClick={removeRelevantContext.bind(null, idx)}
-                    />
-                  </Badge>
+                    <Badge
+                      variant="outline"
+                      className="inline-flex h-7 pr-0 flex-nowrap items-center gap-1 overflow-hidden rounded-md text-sm font-semibold"
+                    >
+                      <ContextLabel context={item} />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="shrink-0 h-7 w-7 rounded-l-none"
+                        onClick={removeRelevantContext.bind(null, idx)}
+                      >
+                        <IconRemove />
+                      </Button>
+                    </Badge>
+                  </motion.div>
                 )
               })}
-            </div>
-          )}
+            </AnimatePresence>
+          </div>
           <PromptForm
             ref={promptFormRef}
             onSubmit={onSubmit}
@@ -166,15 +215,16 @@ function ContextLabel({
   className?: string
 }) {
   const [fileName] = context.filepath.split('/').slice(-1)
-  const line =
-    context.range.start === context.range.end
-      ? `${context.range.start}`
-      : `${context.range.start}-${context.range.end}`
+  const line = isFileContextContentEmpty(context)
+    ? ''
+    : context.range.start === context.range.end
+    ? `:${context.range.start}`
+    : `:${context.range.start}-${context.range.end}`
 
   return (
-    <span className={cn('truncate text-foreground', className)}>
+    <span className={cn('truncate', className)}>
       {fileName}
-      <span className="text-muted-foreground">{`:${line}`}</span>
+      {!!line && <span className="text-muted-foreground">{line}</span>}
     </span>
   )
 }
