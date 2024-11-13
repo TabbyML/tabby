@@ -23,6 +23,7 @@ import {
   GitRepositoriesQueryVariables,
   ListIntegrationsQueryVariables,
   ListInvitationsQueryVariables,
+  ListThreadsQueryVariables,
   SourceIdAccessPoliciesQueryVariables,
   UpsertUserGroupMembershipInput
 } from '../gql/generates/graphql'
@@ -33,6 +34,7 @@ import {
   listInvitations,
   listRepositories,
   listSourceIdAccessPolicies,
+  listThreads,
   userGroupsQuery
 } from './query'
 import {
@@ -369,6 +371,33 @@ const client = new Client({
                           data.sourceIdAccessPolicies.read.filter(
                             o => o.id !== userGroupId
                           )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          deleteThread(result, args, cache, info) {
+            if (result.deleteThread) {
+              cache
+                .inspectFields('Query')
+                // Update the cache within the thread-feeds only
+                .filter(
+                  field =>
+                    field.fieldName === 'threads' && !field.arguments?.ids
+                )
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listThreads,
+                      variables: field.arguments as ListThreadsQueryVariables
+                    },
+                    data => {
+                      if (data?.threads) {
+                        data.threads.edges = data.threads.edges.filter(
+                          e => e.node.id !== args.id
+                        )
                       }
                       return data
                     }

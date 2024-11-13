@@ -3,7 +3,6 @@
 import {
   createContext,
   CSSProperties,
-  MouseEvent,
   useEffect,
   useMemo,
   useRef,
@@ -63,27 +62,13 @@ import {
   getThreadRunContextsFromMentions,
   getTitleFromMessages
 } from '@/lib/utils'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconCheck,
-  IconChevronLeft,
   IconFileSearch,
   IconPlus,
   IconShare,
-  IconSpinner,
-  IconStop,
-  IconTrash
+  IconStop
 } from '@/components/ui/icons'
 import {
   ResizableHandle,
@@ -93,16 +78,13 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import NotFoundPage from '@/components/not-found-page'
 import TextAreaSearch from '@/components/textarea-search'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { MyAvatar } from '@/components/user-avatar'
-import UserPanel from '@/components/user-panel'
 
 import { AssistantMessageSection } from './assistant-message-section'
 import { DevPanel } from './dev-panel'
+import { Header } from './header'
 import { MessagesSkeleton } from './messages-skeleton'
 import { UserMessageSection } from './user-message-section'
 
@@ -734,6 +716,10 @@ export function Search() {
     200
   )
 
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
+
   if (isReady && (formatedThreadError || threadMessagesError)) {
     return (
       <ThreadMessagesErrorView
@@ -760,10 +746,6 @@ export function Search() {
     return <></>
   }
 
-  const style = isShowDemoBanner
-    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
-    : { height: '100vh' }
-
   return (
     <SearchContext.Provider
       value={{
@@ -786,7 +768,7 @@ export function Search() {
           <ResizablePanel>
             <Header
               threadIdFromURL={threadIdFromURL}
-              streamingDone={answer.completed}
+              streamingDone={!isLoading}
             />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
@@ -951,103 +933,6 @@ const updateThreadMessageMutation = graphql(/* GraphQL */ `
     updateThreadMessage(input: $input)
   }
 `)
-
-type HeaderProps = {
-  threadIdFromURL?: string
-  streamingDone?: boolean
-}
-
-function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
-  const router = useRouter()
-  const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const onNavigateToHomePage = (scroll?: boolean) => {
-    if (scroll) {
-      clearHomeScrollPosition()
-    }
-    router.push('/')
-  }
-
-  const handleDeleteThread = (e: MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault()
-    setIsDeleting(true)
-    // todo call api and deal with graphcache
-    setTimeout(() => {
-      router.replace('/')
-    }, 2000)
-  }
-
-  return (
-    <header className="flex h-16 items-center justify-between px-4 lg:px-10">
-      <div className="flex items-center gap-x-6">
-        <Button
-          variant="ghost"
-          className="-ml-1 pl-0 text-sm text-muted-foreground"
-          onClick={() => onNavigateToHomePage()}
-        >
-          <IconChevronLeft className="mr-1 h-5 w-5" />
-          Home
-        </Button>
-      </div>
-      <div className="flex items-center gap-2">
-        {(streamingDone || threadIdFromURL) && (
-          <>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-              onClick={() => onNavigateToHomePage(true)}
-            >
-              <IconPlus />
-            </Button>
-            <AlertDialog
-              open={deleteAlertVisible}
-              onOpenChange={setDeleteAlertVisible}
-            >
-              <AlertDialogTrigger asChild>
-                <Button size="icon" variant="hover-destructive">
-                  <IconTrash />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this thread</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete this thread? This operation
-                    is not revertible.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className={buttonVariants({ variant: 'destructive' })}
-                    onClick={handleDeleteThread}
-                  >
-                    {isDeleting && (
-                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Yes, delete it
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </>
-        )}
-        <ClientOnly>
-          <ThemeToggle className="mr-4" />
-        </ClientOnly>
-        <UserPanel
-          showHome={false}
-          showSetting
-          beforeRouteChange={() => {
-            clearHomeScrollPosition()
-          }}
-        >
-          <MyAvatar className="h-10 w-10 border" />
-        </UserPanel>
-      </div>
-    </header>
-  )
-}
 
 interface ThreadMessagesErrorViewProps {
   error: ExtendedCombinedError
