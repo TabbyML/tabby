@@ -42,27 +42,29 @@ impl IndexAttributeBuilder<WebDocument> for DocBuilder {
     async fn build_chunk_attributes(
         &self,
         document: &WebDocument,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
+    ) -> BoxStream<JoinHandle<(Vec<String>, Vec<u8>, serde_json::Value)>> {
         let embedding = self.embedding.clone();
         let chunks: Vec<_> = TextSplitter::new(CHUNK_SIZE)
             .chunks(&document.body)
             .map(|x| x.to_owned())
             .collect();
 
-        let title_embedding_tokens = build_tokens(embedding.clone(), &document.title).await;
+        let (title_embedding_tokens, title_embedding_values) = build_tokens(embedding.clone(), &document.title).await;
         let s = stream! {
             for chunk_text in chunks {
                 let title_embedding_tokens = title_embedding_tokens.clone();
+                let title_embedding_values = title_embedding_values.clone();
                 let embedding = embedding.clone();
                 yield tokio::spawn(async move {
-                    let chunk_embedding_tokens = build_tokens(embedding.clone(), &chunk_text).await;
+                    let (chunk_embedding_tokens, chunk_embedding_values) = build_tokens(embedding.clone(), &chunk_text).await;
                     let chunk = json!({
                         doc::fields::CHUNK_TEXT: chunk_text,
                     });
 
                     // Title embedding tokens are merged with chunk embedding tokens to enhance the search results.
                     let tokens = merge_tokens(vec![title_embedding_tokens, chunk_embedding_tokens]);
-                    (tokens, chunk)
+                    // TODO: why it can be merged?
+                    (tokens, vec![], chunk)
                 });
             }
         };
@@ -71,12 +73,12 @@ impl IndexAttributeBuilder<WebDocument> for DocBuilder {
     }
 }
 
-async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> {
+async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> (Vec<String>, Vec<u8>) {
     let embedding = match embedding.embed(text).await {
         Ok(embedding) => embedding,
         Err(err) => {
             warn!("Failed to embed chunk text: {}", err);
-            return vec![];
+            return (vec![], vec![]);
         }
     };
 
@@ -85,7 +87,12 @@ async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> 
         chunk_embedding_tokens.push(token);
     }
 
-    chunk_embedding_tokens
+    let mut chunk_embedding_values = Vec::with_capacity(chunk_embedding_tokens.len());
+    for v in embedding {
+        chunk_embedding_values.push(index::approximate_embedding(v));
+    }
+
+    (chunk_embedding_tokens, chunk_embedding_values)
 }
 
 fn create_web_builder(embedding: Arc<dyn Embedding>) -> TantivyDocBuilder<WebDocument> {

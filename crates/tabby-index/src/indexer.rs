@@ -43,7 +43,7 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
     async fn build_chunk_attributes(
         &self,
         document: &T,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>>;
+    ) -> BoxStream<JoinHandle<(Vec<String>, Vec<u8>, serde_json::Value)>>;
 }
 
 pub struct TantivyDocBuilder<T> {
@@ -107,7 +107,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                 let source_id = source_id.clone();
 
                 yield tokio::spawn(async move {
-                    let Ok((tokens, chunk_attributes)) = task.await else {
+                    let Ok((tokens, token_values, chunk_attributes)) = task.await else {
                         return None;
                     };
 
@@ -118,6 +118,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                         schema.field_updated_at => updated_at,
                         schema.field_chunk_id => format!("{}-{}", id, chunk_id),
                         schema.field_chunk_attributes => chunk_attributes,
+                        schema.field_token_values => token_values,
                     };
 
                     for token in tokens {
