@@ -142,7 +142,8 @@ fn retain_at_most_two_hits_per_file(scored_hits: &mut Vec<CodeSearchHit>) {
     let mut scored_hits_by_fileid: HashMap<String, usize> = HashMap::default();
     scored_hits.retain(|x| {
         let count: usize = scored_hits_by_fileid
-            .get(&x.doc.file_id).copied()
+            .get(&x.doc.file_id)
+            .copied()
             .unwrap_or_default();
         scored_hits_by_fileid.insert(x.doc.file_id.clone(), count + 1);
         count < 2
