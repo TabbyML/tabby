@@ -500,6 +500,13 @@ mod tests {
 
         let deleted_thread = service.get(&thread_id).await.unwrap();
         assert!(deleted_thread.is_none());
+
+        // Verify that the messages were also deleted
+        let messages = service
+            .list_thread_messages(&thread_id, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(messages.len(), 0);
     }
 
     #[tokio::test]
