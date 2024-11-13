@@ -7,13 +7,13 @@ pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq, Debug)]
 pub struct CodeSearchHit {
     pub scores: CodeSearchScores,
     pub doc: CodeSearchDocument,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq, Debug)]
 pub struct CodeSearchScores {
     /// Reciprocal rank fusion score: https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html
     pub rrf: f32,
@@ -21,7 +21,7 @@ pub struct CodeSearchScores {
     pub embedding: f32,
 }
 
-#[derive(Builder, Default, Clone)]
+#[derive(Builder, Default, Clone, PartialEq, Debug)]
 pub struct CodeSearchDocument {
     /// Unique identifier for the file in the repository, stringified SourceFileKey.
     pub file_id: String,
