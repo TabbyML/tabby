@@ -45,6 +45,7 @@ type ChatContextValue = {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
+onRenderLsp?: (filepaths: string[], keywords: string[]) => void
   relevantContext: Context[]
   activeSelection: Context | null
   removeRelevantContext: (index: number) => void
@@ -83,6 +84,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
+  onRenderLsp?: (filepaths: string[], keywords: string[]) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
 }
 
@@ -103,6 +105,7 @@ function ChatRenderer(
     onCopyContent,
     onSubmitMessage,
     onApplyInEditor,
+    onRenderLsp,
     chatInputRef
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
@@ -500,6 +503,7 @@ function ChatRenderer(
         container,
         onCopyContent,
         onApplyInEditor,
+        onRenderLsp,
         relevantContext,
         removeRelevantContext,
         chatInputRef,

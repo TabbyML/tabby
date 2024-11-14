@@ -69,6 +69,7 @@ export interface ClientApi {
   onCopy: (content: string) => void
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
+  onRenderLsp: (filepaths: string[], keywords: string[]) => void
 }
 
 export interface ChatMessage {
@@ -94,6 +95,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
+      onRenderLsp: api.onRenderLsp,
     },
   })
 }

@@ -1,4 +1,11 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState
+} from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -68,6 +75,7 @@ export interface MessageMarkdownProps {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
+  onRenderLsp?: (filepaths: string[], keywords: string[]) => void
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -107,6 +115,7 @@ export function MessageMarkdown({
   fetchingContextInfo,
   className,
   canWrapLongLines,
+  onRenderLsp,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -170,6 +179,22 @@ export function MessageMarkdown({
 
     return elements
   }
+
+  // rendering keywords
+  useEffect(() => {
+    if (message && canWrapLongLines && onRenderLsp) {
+      // eslint-disable-next-line no-console
+      console.log('docs', attachmentDocs?.map(doc => doc.link).join(','))
+      // eslint-disable-next-line no-console
+      console.log('code', attachmentCode?.map(code => code.filepath).join(','))
+      const inlineCodeRegex = /`([^`]+)`/g
+      const matches = message.match(inlineCodeRegex)
+      if (matches) {
+        const inlineCodes = matches.map(match => match.replace(/`/g, '').trim())
+        onRenderLsp(inlineCodes, [attachmentCode ? attachmentCode?.map(code => code.filepath) : ...[]])
+      }
+    }
+  }, [message, canWrapLongLines, onRenderLsp])
 
   return (
     <MessageMarkdownContext.Provider

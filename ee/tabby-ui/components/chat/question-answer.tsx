@@ -252,7 +252,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     enableRegenerating,
     ...rest
   } = props
-  const { onNavigateToContext, onApplyInEditor, onCopyContent } =
+  const { onNavigateToContext, onApplyInEditor, onCopyContent, onRenderLsp } =
     React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -389,6 +389,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
               canWrapLongLines={!isLoading}
+              onRenderLsp={onRenderLsp}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>

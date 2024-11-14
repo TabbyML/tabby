@@ -10,6 +10,8 @@ import {
   Webview,
   ColorThemeKind,
   ProgressLocation,
+  commands,
+  Location,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
@@ -536,6 +538,71 @@ export class WebviewHelper {
       onKeyboardEvent: (type: string, event: KeyboardEventInit) => {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
+      },
+      onRenderLsp: async (filepaths: string[], keywords: string[]) => {
+        // filepath === 0 deal later
+        if (!keywords.length || !filepaths.length || filepaths.length === 0) {
+          this.logger.info("No keywords or filepaths provided");
+          return;
+        }
+
+        const foundLocations: Record<
+          string,
+          {
+            sourceFile: string;
+            sourceLine: number;
+            sourceChar: number;
+            targetFile: string;
+            targetLine: number;
+            targetChar: number;
+          }[]
+        > = {};
+
+        try {
+          for (const filepath of filepaths) {
+            const fileUri = Uri.file(filepath);
+            const document = await workspace.openTextDocument(fileUri);
+
+            for (const keyword of keywords) {
+              if (foundLocations[keyword]) continue;
+              foundLocations[keyword] = [];
+
+              const content = document.getText();
+              let pos = 0;
+
+              while ((pos = content.indexOf(keyword, pos)) !== -1) {
+                const position = document.positionAt(pos);
+
+                const locations = await commands.executeCommand<Location[]>(
+                  "vscode.executeDefinitionProvider",
+                  fileUri,
+                  position,
+                );
+
+                if (locations && locations.length > 0) {
+                  locations.forEach((location) => {
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    foundLocations[keyword]!.push({
+                      sourceFile: filepath,
+                      sourceLine: position.line + 1,
+                      sourceChar: position.character,
+                      targetFile: location.uri.fsPath,
+                      targetLine: location.range.start.line + 1,
+                      targetChar: location.range.start.character,
+                    });
+                  });
+                }
+                pos += keyword.length;
+              }
+            }
+          }
+
+          for (const [keyword, locations] of Object.entries(foundLocations)) {
+            this.logger.info(`Found locations for ${keyword}:`, locations);
+          }
+        } catch (error) {
+          this.logger.error("Error in onRenderLsp:", error);
+        }
       },
     });
   }

@@ -372,6 +372,7 @@ export default function ChatPage() {
         onCopyContent={isInEditor && server?.onCopy}
         onSubmitMessage={isInEditor && server?.onSubmitMessage}
         onApplyInEditor={isInEditor && server?.onApplyInEditor}
+        onRenderLsp={isInEditor && server?.onRenderLsp}
       />
     </ErrorBoundary>
   )
