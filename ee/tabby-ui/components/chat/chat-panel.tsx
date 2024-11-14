@@ -5,7 +5,7 @@ import type { Context } from 'tabby-chat-panel'
 
 import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { cn, isFileContextContentEmpty } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -215,16 +215,15 @@ function ContextLabel({
   className?: string
 }) {
   const [fileName] = context.filepath.split('/').slice(-1)
-  const line = isFileContextContentEmpty(context)
-    ? ''
-    : context.range.start === context.range.end
-    ? `:${context.range.start}`
-    : `:${context.range.start}-${context.range.end}`
+  const line =
+    context.range.start === context.range.end
+      ? `:${context.range.start}`
+      : `:${context.range.start}-${context.range.end}`
 
   return (
     <span className={cn('truncate', className)}>
       {fileName}
-      {!!line && <span className="text-muted-foreground">{line}</span>}
+      <span className="text-muted-foreground">{line}</span>
     </span>
   )
 }

@@ -23,7 +23,7 @@ import {
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
-import { cn, isValidFileContext, nanoid } from '@/lib/utils'
+import { cn, nanoid } from '@/lib/utils'
 
 import { ListSkeleton } from '../skeleton'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
@@ -175,7 +175,8 @@ function ChatRenderer(
       ]
       setQaPairs(nextQaPairs)
       const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user
+        qaPair.user,
+        enableActiveSelection
       )
 
       return regenerate({
@@ -343,20 +344,19 @@ function ChatRenderer(
       contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
     }
 
-    const codeQuery: InputMaybe<CodeQueryInput> =
-      contextForCodeQuery && isValidFileContext(contextForCodeQuery)
-        ? {
-            content: contextForCodeQuery.content ?? '',
-            filepath: contextForCodeQuery.filepath,
-            language: contextForCodeQuery.filepath
-              ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
-              : 'text',
-            gitUrl: contextForCodeQuery?.git_url ?? ''
-          }
-        : null
+    const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
+      ? {
+          content: contextForCodeQuery.content ?? '',
+          filepath: contextForCodeQuery.filepath,
+          language: contextForCodeQuery.filepath
+            ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
+            : 'text',
+          gitUrl: contextForCodeQuery?.git_url ?? ''
+        }
+      : null
 
     const hasUsableActiveContext =
-      enableActiveSelection && isValidFileContext(userMessage.activeContext)
+      enableActiveSelection && !!userMessage.activeContext
     const fileContext: FileContext[] = uniqWith(
       compact([
         hasUsableActiveContext && userMessage.activeContext,
@@ -412,7 +412,7 @@ function ChatRenderer(
         selectContext: userMessage.selectContext,
         // For forward compatibility
         activeContext:
-          enableActiveSelection && isValidFileContext(finalActiveContext)
+          enableActiveSelection && finalActiveContext
             ? finalActiveContext
             : undefined
       }
@@ -432,7 +432,9 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      sendUserMessage(...generateRequestPayload(newUserMessage))
+      sendUserMessage(
+        ...generateRequestPayload(newUserMessage, enableActiveSelection)
+      )
     }
   )
 
