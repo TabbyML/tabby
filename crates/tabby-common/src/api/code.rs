@@ -50,7 +50,7 @@ pub enum CodeSearchError {
 }
 
 pub struct CodeSearchQuery {
-    // filepath in code search query always normalize to unix style.
+    /// filepath in code search query always normalize to unix style.
     pub filepath: Option<String>,
     pub language: Option<String>,
     pub content: String,
@@ -65,7 +65,7 @@ impl CodeSearchQuery {
         source_id: String,
     ) -> Self {
         Self {
-            filepath: normalize_to_unix_path(filepath).unwrap_or(None),
+            filepath:  filepath.map(|path| normalize_to_unix_path(&path)),
             language,
             content,
             source_id,
@@ -109,8 +109,8 @@ pub trait CodeSearch: Send + Sync {
 }
 
 /// Normalize the path form different platform to unix style path
-pub fn normalize_to_unix_path(filepath: Option<String>) -> anyhow::Result<Option<String>> {
-    Ok(filepath.map(|path| path.replace('\\', "/")))
+pub fn normalize_to_unix_path(filepath: &str) -> String {
+    filepath.replace('\\', "/")
 }
 #[cfg(test)]
 mod tests {
@@ -129,8 +129,8 @@ mod tests {
 
         for (input, expected) in unix_test_cases {
             assert_eq!(
-                normalize_to_unix_path(Some(input.to_string())).unwrap(),
-                Some(expected.to_string()),
+                normalize_to_unix_path(input),
+                expected.to_string(),
                 "Failed to normalize path: {}",
                 input
             );
