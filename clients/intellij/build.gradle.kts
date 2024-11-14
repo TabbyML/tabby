@@ -48,7 +48,7 @@ tasks {
       })
       ideaVersion {
         sinceBuild.set("231")
-        untilBuild.set("242.*")
+        untilBuild.set(provider { null })
       }
     }
     pluginVerification {
