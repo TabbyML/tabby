@@ -3,8 +3,6 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::path::normalize_to_unix_path;
-
 pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
 }
@@ -108,4 +106,34 @@ pub trait CodeSearch: Send + Sync {
         query: CodeSearchQuery,
         params: CodeSearchParams,
     ) -> Result<CodeSearchResponse, CodeSearchError>;
+}
+
+/// Normalize the path form different platform to unix style path
+pub fn normalize_to_unix_path(filepath: Option<String>) -> anyhow::Result<Option<String>> {
+    Ok(filepath.map(|path| path.replace('\\', "/")))
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_relative_path_normalization() {
+        let unix_test_cases = [
+            ("./src/main.rs", "./src/main.rs"),
+            (".\\src\\main.rs", "./src/main.rs"),
+            ("../test/data.json", "../test/data.json"),
+            ("..\\test\\data.json", "../test/data.json"),
+            ("src/test/file.txt", "src/test/file.txt"),
+            ("src\\test\\file.txt", "src/test/file.txt"),
+        ];
+
+        for (input, expected) in unix_test_cases {
+            assert_eq!(
+                normalize_to_unix_path(Some(input.to_string())).unwrap(),
+                Some(expected.to_string()),
+                "Failed to normalize path: {}",
+                input
+            );
+        }
+    }
 }

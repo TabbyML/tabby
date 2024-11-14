@@ -113,7 +113,6 @@ pub struct Segments {
     suffix: Option<String>,
 
     /// The relative path of the file that is being edited.
-    /// The filepath will keep the same format as the original file path base on the platform.
     /// - When [Segments::git_url] is set, this is the path of the file in the git repository.
     /// - When [Segments::git_url] is empty, this is the path of the file in the workspace.
     filepath: Option<String>,

@@ -1,6 +1,5 @@
 use std::{cell::Cell, env, path::PathBuf, sync::Mutex};
 
-use anyhow::Result;
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -54,35 +53,4 @@ pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
 }
 
-/// Normalize the path form different platform to unix style path
-pub fn normalize_to_unix_path(filepath: Option<String>) -> Result<Option<String>> {
-    Ok(filepath.map(|path| path.replace('\\', "/")))
-}
-
 mod registry {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_relative_path_normalization() {
-        let unix_test_cases = [
-            ("./src/main.rs", "./src/main.rs"),
-            (".\\src\\main.rs", "./src/main.rs"),
-            ("../test/data.json", "../test/data.json"),
-            ("..\\test\\data.json", "../test/data.json"),
-            ("src/test/file.txt", "src/test/file.txt"),
-            ("src\\test\\file.txt", "src/test/file.txt"),
-        ];
-
-        for (input, expected) in unix_test_cases {
-            assert_eq!(
-                normalize_to_unix_path(Some(input.to_string())).unwrap(),
-                Some(expected.to_string()),
-                "Failed to normalize path: {}",
-                input
-            );
-        }
-    }
-}
