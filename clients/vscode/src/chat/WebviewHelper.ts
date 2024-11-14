@@ -22,7 +22,7 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { ChatFeature } from "../lsp/ChatFeature";
 import { isBrowser } from "../env";
-import { getFileContextFromActiveEditor, getFileContextFromSelection, showFileContext } from "./fileContext";
+import { getFileContextFromSelection, showFileContext } from "./fileContext";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -340,7 +340,7 @@ export class WebviewHelper {
       return;
     }
 
-    const fileContext = await getFileContextFromActiveEditor(editor, this.gitProvider);
+    const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
     this.syncActiveSelectionToChatPanel(fileContext);
   }
 
@@ -364,26 +364,19 @@ export class WebviewHelper {
 
   public addTextEditorEventListeners() {
     window.onDidChangeActiveTextEditor((e) => {
-      // Handle two cases here:
-      // 1. The active text editor is an empty untitled editor
-      // 2. No active text editor
-      if (e && e.document.uri.scheme !== "untitled") {
+      if (e && e.document.uri.scheme !== "file") {
+        this.syncActiveSelection(undefined)
         return;
       }
-      // this.logger.info('onDidChangeActiveTextEditor', !!e)
+
       this.syncActiveSelection(e);
     });
 
     window.onDidChangeTextEditorSelection((e) => {
-      if (e.textEditor !== window.activeTextEditor) {
-        return;
-      }
-
-      // Check if the active editor is a file editor, for example, not the output window
+      // This listener only handles text files.
       if (e.textEditor.document.uri.scheme !== "file") {
         return;
       }
-      // this.logger.info('onDidChangeTextEditorSelection')
       this.syncActiveSelection(e.textEditor);
     });
   }

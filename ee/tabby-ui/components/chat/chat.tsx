@@ -23,7 +23,7 @@ import {
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
-import { cn, isUsableFileContext, nanoid } from '@/lib/utils'
+import { cn, isValidFileContext, nanoid } from '@/lib/utils'
 
 import { ListSkeleton } from '../skeleton'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
@@ -344,7 +344,7 @@ function ChatRenderer(
     }
 
     const codeQuery: InputMaybe<CodeQueryInput> =
-      contextForCodeQuery && isUsableFileContext(contextForCodeQuery)
+      contextForCodeQuery && isValidFileContext(contextForCodeQuery)
         ? {
             content: contextForCodeQuery.content ?? '',
             filepath: contextForCodeQuery.filepath,
@@ -356,7 +356,7 @@ function ChatRenderer(
         : null
 
     const hasUsableActiveContext =
-      enableActiveSelection && isUsableFileContext(userMessage.activeContext)
+      enableActiveSelection && isValidFileContext(userMessage.activeContext)
     const fileContext: FileContext[] = uniqWith(
       compact([
         hasUsableActiveContext && userMessage.activeContext,
@@ -412,7 +412,7 @@ function ChatRenderer(
         selectContext: userMessage.selectContext,
         // For forward compatibility
         activeContext:
-          enableActiveSelection && isUsableFileContext(finalActiveContext)
+          enableActiveSelection && isValidFileContext(finalActiveContext)
             ? finalActiveContext
             : undefined
       }
@@ -475,11 +475,12 @@ function ChatRenderer(
     (ctx: Context | null) => {
       setActiveSelection(ctx)
     },
-    100
+    300
   )
 
-  const updateActiveSelection = (ctx: Context | null) =>
+  const updateActiveSelection = (ctx: Context | null) => {
     debouncedUpdateActiveSelection.run(ctx)
+  }
 
   React.useImperativeHandle(
     ref,
@@ -497,11 +498,8 @@ function ChatRenderer(
   )
 
   React.useEffect(() => {
-    if (isOnLoadExecuted.current) return
-
-    isOnLoadExecuted.current = true
-    onLoaded?.()
     setInitialzed(true)
+    onLoaded?.()
   }, [])
 
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'

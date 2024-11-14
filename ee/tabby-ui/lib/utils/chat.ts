@@ -111,8 +111,9 @@ export function isFileContextContentEmpty(context: FileContext) {
   return context.range.start === 0
 }
 
-export function isUsableFileContext(context: FileContext | null | undefined) {
+export function isValidFileContext(context: FileContext | null | undefined) {
   if (!context) return false
 
+  // FIXME: evaluate the necessity of permitting an empty git_url
   return !!context.git_url && !isFileContextContentEmpty(context)
 }

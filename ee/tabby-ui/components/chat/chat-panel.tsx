@@ -114,7 +114,7 @@ function ChatPanelRenderer(
         </div>
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
           <div className="flex flex-wrap gap-2">
-            <AnimatePresence>
+            <AnimatePresence presenceAffectsLayout>
               {activeSelection ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9, y: -5 }}

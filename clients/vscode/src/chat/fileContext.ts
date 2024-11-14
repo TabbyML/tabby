@@ -14,26 +14,16 @@ export async function getFileContextFromSelection(
   return getFileContext(editor, gitProvider, true);
 }
 
-export async function getFileContextFromActiveEditor(
-  editor: TextEditor,
-  gitProvider: GitProvider,
-): Promise<FileContext | null> {
-  return getFileContext(editor, gitProvider, true, true);
-}
-
 export async function getFileContext(
   editor: TextEditor,
   gitProvider: GitProvider,
   useSelection = false,
-  alwaysReturnContext = false,
 ): Promise<FileContext | null> {
   const uri = editor.document.uri;
   const text = editor.document.getText(useSelection ? editor.selection : undefined);
-  const isEmptyText = !text || text.trim().length < 1;
-  if (isEmptyText && !alwaysReturnContext) {
+  if (!text || text.trim().length < 1) {
     return null;
   }
-
   const content = useSelection ? alignIndent(text) : text;
   const range = useSelection
     ? {
@@ -44,11 +34,6 @@ export async function getFileContext(
         start: 1,
         end: editor.document.lineCount,
       };
-
-  if (alwaysReturnContext && isEmptyText) {
-    range.start = 0;
-    range.end = 0;
-  }
 
   const workspaceFolder = workspace.getWorkspaceFolder(uri);
   const repo = gitProvider.getRepository(uri);

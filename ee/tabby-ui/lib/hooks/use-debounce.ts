@@ -4,6 +4,8 @@ import { debounce, DebouncedFunc, type DebounceSettings } from 'lodash-es'
 import { useLatest } from './use-latest'
 import { useUnmount } from './use-unmount'
 
+// import { useUnmount } from './use-unmount'
+
 type noop = (...args: any[]) => any
 
 interface UseDebounceOptions<T extends noop> extends DebounceSettings {
@@ -32,6 +34,7 @@ function useDebounceCallback<T extends noop>(
 
   useUnmount(() => {
     options?.onUnmount?.(debounced)
+    console.log('cannnnnnnel')
     debounced.cancel()
   })
 
