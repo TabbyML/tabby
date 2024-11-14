@@ -4,8 +4,8 @@ use axum::Router;
 use tabby_common::{
     api::{
         code::CodeSearch,
-        doc::DocSearch,
         event::{ComposedLogger, EventLogger},
+        structured_doc::DocSearch,
     },
     config::Config,
 };

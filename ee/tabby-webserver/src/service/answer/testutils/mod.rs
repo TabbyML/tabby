@@ -12,7 +12,10 @@ use axum::async_trait;
 use juniper::ID;
 use tabby_common::api::{
     code::{CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery, CodeSearchResponse},
-    doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
+    structured_doc::{
+        DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse,
+        DocSearchWebDocument,
+    },
 };
 use tabby_db::DbConn;
 use tabby_inference::ChatCompletionStream;
@@ -159,43 +162,43 @@ impl DocSearch for FakeDocSearch {
         let hits = vec![
             DocSearchHit {
                 score: 1.0,
-                doc: DocSearchDocument {
+                doc: DocSearchDocument::Web(DocSearchWebDocument {
                     title: "Document 1".to_string(),
                     link: "https://example.com/doc1".to_string(),
                     snippet: "Snippet for Document 1".to_string(),
-                },
+                }),
             },
             DocSearchHit {
                 score: 0.9,
-                doc: DocSearchDocument {
+                doc: DocSearchDocument::Web(DocSearchWebDocument {
                     title: "Document 2".to_string(),
                     link: "https://example.com/doc2".to_string(),
                     snippet: "Snippet for Document 2".to_string(),
-                },
+                }),
             },
             DocSearchHit {
                 score: 0.8,
-                doc: DocSearchDocument {
+                doc: DocSearchDocument::Web(DocSearchWebDocument {
                     title: "Document 3".to_string(),
                     link: "https://example.com/doc3".to_string(),
                     snippet: "Snippet for Document 3".to_string(),
-                },
+                }),
             },
             DocSearchHit {
                 score: 0.7,
-                doc: DocSearchDocument {
+                doc: DocSearchDocument::Web(DocSearchWebDocument {
                     title: "Document 4".to_string(),
                     link: "https://example.com/doc4".to_string(),
                     snippet: "Snippet for Document 4".to_string(),
-                },
+                }),
             },
             DocSearchHit {
                 score: 0.6,
-                doc: DocSearchDocument {
+                doc: DocSearchDocument::Web(DocSearchWebDocument {
                     title: "Document 5".to_string(),
                     link: "https://example.com/doc5".to_string(),
                     snippet: "Snippet for Document 5".to_string(),
-                },
+                }),
             },
         ];
         Ok(DocSearchResponse { hits })

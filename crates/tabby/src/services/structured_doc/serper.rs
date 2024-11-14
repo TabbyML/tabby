@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use tabby_common::api::doc::{
+use tabby_common::api::structured_doc::{
     DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse,
+    DocSearchWebDocument,
 };
 use tracing::warn;
 
@@ -77,11 +78,11 @@ impl DocSearch for SerperService {
             .into_iter()
             .map(|hit| DocSearchHit {
                 score: 0.0,
-                doc: DocSearchDocument {
+                doc: DocSearchDocument::Web(DocSearchWebDocument {
                     title: hit.title,
                     link: hit.link,
                     snippet: hit.snippet,
-                },
+                }),
             })
             .collect();
 
