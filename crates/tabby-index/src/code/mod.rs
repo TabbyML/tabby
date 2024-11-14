@@ -93,13 +93,14 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
                     code::fields::CHUNK_GIT_URL: source_code.git_url,
                     code::fields::CHUNK_LANGUAGE: source_code.language,
-                    code::fields::CHUNK_BODY:  body,
+                    code::fields::CHUNK_BODY: body,
                     code::fields::CHUNK_START_LINE: start_line,
                 });
 
                 let embedding = embedding.clone();
+                let rewritten_body = format!("```{}\n{}\n```", source_code.filepath, body);
                 yield tokio::spawn(async move {
-                    let tokens = build_binarize_embedding_tokens(embedding.clone(), &body).await;
+                    let tokens = build_binarize_embedding_tokens(embedding.clone(), &rewritten_body).await;
                     (tokens, attributes)
                 });
             }

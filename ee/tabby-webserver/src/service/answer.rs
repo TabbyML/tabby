@@ -513,7 +513,7 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
     )
 }
 
-/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 200, and there are multiple hits (number of hits > 1), include the entire file.
+/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 300, and there are multiple hits (number of hits > 1), include the entire file.
 pub async fn merge_code_snippets(
     repository: Option<Repository>,
     hits: Vec<CodeSearchHit>,
@@ -532,19 +532,13 @@ pub async fn merge_code_snippets(
     let mut result = Vec::with_capacity(file_hits.len());
 
     for (_, file_hits) in file_hits {
-        if file_hits.len() > 1 {
-            // construct the full path to the file
-            let path: PathBuf = repository.dir.join(&file_hits[0].doc.filepath);
-            let file_content = match read_file_content(&path) {
-                Some(lines) => lines,
-                None => {
-                    //cannot read the file, just extend the hits
-                    result.extend(file_hits);
-                    continue;
-                }
-            };
+        // construct the full path to the file
+        let path: PathBuf = repository.dir.join(&file_hits[0].doc.filepath);
 
-            if !file_content.is_empty() {
+        if file_hits.len() > 1 && count_lines(&path).is_ok_and(|x| x < 300) {
+            let file_content = read_file_content(&path);
+
+            if let Some(file_content) = file_content {
                 debug!(
                     "file {} less than 200, it will be included whole file content",
                     file_hits[0].doc.filepath
@@ -577,12 +571,8 @@ pub async fn merge_code_snippets(
     result
 }
 
-/// Read file content and return raw file content string, it will return nothing if the file is over 200 lines
+/// Read file content and return raw file content string.
 pub fn read_file_content(path: &Path) -> Option<String> {
-    if count_lines(path).ok()? > 200 {
-        return None;
-    }
-
     let mut file = match File::open(path) {
         Ok(file) => file,
         Err(e) => {
