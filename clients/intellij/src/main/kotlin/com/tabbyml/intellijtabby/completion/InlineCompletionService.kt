@@ -233,7 +233,12 @@ class InlineCompletionService(private val project: Project) : Disposable {
       val server = getServer() ?: return@launch
       logger.debug("Request inline completion: $params")
       project.safeSyncPublisher(Listener.TOPIC)?.loadingStateChanged(true)
-      val inlineCompletionList = server.textDocumentFeature.inlineCompletion(params).await()
+      val inlineCompletionList = try {
+        server.textDocumentFeature.inlineCompletion(params).await()
+      } catch (e: Exception) {
+        logger.warn("Error while requesting inline completion", e)
+        null
+      }
       val context = current
       if (requestContext == context?.request) {
         logger.debug("Request inline completion done: $inlineCompletionList")
