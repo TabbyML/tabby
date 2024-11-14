@@ -1,3 +1,9 @@
+## 1.8.5
+
+### Fixes:
+
+- Added support for the latest IntelliJ Platform IDE versions.
+
 ## 1.8.4
 
 ### Fixes & Improvements
