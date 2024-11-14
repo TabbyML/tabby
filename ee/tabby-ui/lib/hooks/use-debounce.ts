@@ -34,7 +34,6 @@ function useDebounceCallback<T extends noop>(
 
   useUnmount(() => {
     options?.onUnmount?.(debounced)
-    console.log('cannnnnnnel')
     debounced.cancel()
   })
 
