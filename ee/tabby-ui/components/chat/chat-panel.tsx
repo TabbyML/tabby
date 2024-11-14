@@ -158,7 +158,7 @@ function ChatPanelRenderer(
               {relevantContext.map((item, idx) => {
                 return (
                   <motion.div
-                    // FIXME check the dedupe logic
+                    // `filepath + range` as unique key
                     key={item.filepath + item.range.start + item.range.end}
                     initial={{ opacity: 0, scale: 0.9, y: -5 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
