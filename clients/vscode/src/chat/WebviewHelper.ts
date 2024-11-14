@@ -365,7 +365,7 @@ export class WebviewHelper {
   public addTextEditorEventListeners() {
     window.onDidChangeActiveTextEditor((e) => {
       if (e && e.document.uri.scheme !== "file") {
-        this.syncActiveSelection(undefined)
+        this.syncActiveSelection(undefined);
         return;
       }
 
