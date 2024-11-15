@@ -54,7 +54,7 @@ export async function postCacheProcess(
     .then(applyFilter(formatIndentation))
     .then(applyFilter(dropDuplicated))
     .then(applyFilter(trimSpace))
+    .then(applyFilter(removeDuplicateSuffixLines))
     .then(applyFilter(dropMinimum))
-    .then(applyFilter(calculateReplaceRange))
-    .then(applyFilter(removeDuplicateSuffixLines));
+    .then(applyFilter(calculateReplaceRange));
 }
