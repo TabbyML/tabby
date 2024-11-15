@@ -22,32 +22,24 @@ export function normalizeIndentation(): PostprocessFilter {
     }
 
     const normalizedLines = [...lines];
-
     const firstLine = normalizedLines[0];
+    const cursorLineSpaces = getLeadingSpaces(context.currentLinePrefix);
     if (firstLine) {
       const firstLineSpaces = getLeadingSpaces(firstLine);
-      const cursorLineSpaces = getLeadingSpaces(context.currentLinePrefix);
-      console.log("firstLineSpaces", firstLineSpaces);
-      console.log("curr prefix", context.currentLinePrefix);
-      console.log("cursorLineSpaces", cursorLineSpaces);
       // deal with current cursor odd indentation
       if ((firstLineSpaces + cursorLineSpaces) % 2 !== 0 && firstLineSpaces % 2 !== 0) {
         normalizedLines[0] = firstLine.substring(firstLineSpaces);
-        console.log("after normalize:", normalizedLines[0]);
       }
     }
 
     //deal with extra space in the line indent
-    let indents = -1; // use track previous line indentations
     for (let i = 0; i < normalizedLines.length; i++) {
       const line = normalizedLines[i];
       if (!line || !line.trim()) continue;
       const lineSpaces = getLeadingSpaces(line);
-      if (indents != -1 && lineSpaces % 2 !== 0) {
+      if (lineSpaces > 0 && lineSpaces % 2 !== 0) {
         // move current line to recently close indent
-        normalizedLines[i] = " ".repeat(indents) + line.trimStart();
-      } else {
-        indents = lineSpaces;
+        normalizedLines[i] = " ".repeat(lineSpaces - 1) + line.trimStart();
       }
     }
 
