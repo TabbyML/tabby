@@ -336,6 +336,7 @@ export class WebviewHelper {
 
   public async syncActiveSelection(editor: TextEditor | undefined) {
     if (!editor) {
+      this.syncActiveSelectionToChatPanel(null);
       return;
     }
 
@@ -362,8 +363,18 @@ export class WebviewHelper {
   }
 
   public addTextEditorEventListeners() {
+    window.onDidChangeActiveTextEditor((e) => {
+      if (e && e.document.uri.scheme !== "file") {
+        this.syncActiveSelection(undefined);
+        return;
+      }
+
+      this.syncActiveSelection(e);
+    });
+
     window.onDidChangeTextEditorSelection((e) => {
-      if (e.textEditor !== window.activeTextEditor) {
+      // This listener only handles text files.
+      if (e.textEditor.document.uri.scheme !== "file") {
         return;
       }
       this.syncActiveSelection(e.textEditor);

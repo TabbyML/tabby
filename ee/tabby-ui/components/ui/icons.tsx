@@ -15,6 +15,8 @@ import {
   CircleAlert,
   CircleHelp,
   CirclePlay,
+  Eye,
+  EyeOff,
   Files,
   FileText,
   Filter,
@@ -1692,6 +1694,16 @@ function IconPanelLeft({
   return <PanelLeft className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconEye({ className, ...props }: React.ComponentProps<typeof Eye>) {
+  return <Eye className={cn('h-4 w-4', className)} {...props} />
+}
+function IconEyeOff({
+  className,
+  ...props
+}: React.ComponentProps<typeof EyeOff>) {
+  return <EyeOff className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1797,5 +1809,7 @@ export {
   IconSquareActivity,
   IconCircleAlert,
   IconCircleHelp,
-  IconPanelLeft
+  IconPanelLeft,
+  IconEye,
+  IconEyeOff
 }
