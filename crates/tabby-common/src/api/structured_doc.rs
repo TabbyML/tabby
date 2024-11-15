@@ -71,7 +71,7 @@ pub struct DocSearchPullRequest {
     pub title: String,
     pub link: String,
     pub body: String,
-    pub diff: String,
+    pub patch: String,
     pub state: String,
 }
 
@@ -180,7 +180,7 @@ impl FromTantivyDocument for DocSearchPullRequest {
         let diff = get_json_text_field(
             doc,
             schema.field_attributes,
-            structured_doc::fields::pull::DIFF,
+            structured_doc::fields::pull::PATCH,
         );
         let state = get_json_text_field(
             doc,
@@ -191,7 +191,7 @@ impl FromTantivyDocument for DocSearchPullRequest {
             title: title.into(),
             link: link.into(),
             body: body.into(),
-            diff: diff.into(),
+            patch: diff.into(),
             state: state.into(),
         })
     }

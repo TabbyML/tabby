@@ -14,7 +14,7 @@ pub struct PullRequest {
     pub link: String,
     pub title: String,
     pub body: String,
-    pub diff: String,
+    pub patch: String,
     pub state: String,
 }
 
@@ -29,7 +29,7 @@ impl BuildStructuredDoc for PullRequest {
             fields::pull::LINK: self.link,
             fields::pull::TITLE: self.title,
             fields::pull::BODY: self.body,
-            fields::pull::DIFF: self.diff,
+            fields::pull::PATCH: self.patch,
             fields::pull::STATE: self.state,
         })
     }
@@ -38,7 +38,7 @@ impl BuildStructuredDoc for PullRequest {
         &self,
         embedding: Arc<dyn Embedding>,
     ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
-        let text = format!("{}\n\n{}\n\n{}", self.title, self.body, self.diff);
+        let text = format!("{}\n\n{}\n\n{}", self.title, self.body, self.patch);
         let s = stream! {
             yield tokio::spawn(async move {
                 let tokens = build_tokens(embedding, &text).await;

@@ -148,7 +148,7 @@ pub struct MessageAttachmentPullRequest {
     pub title: String,
     pub link: String,
     pub body: String,
-    pub diff: String,
+    pub patch: String,
     pub state: String,
 }
 
@@ -173,7 +173,7 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
                     title: pull.title,
                     link: pull.link,
                     body: pull.body,
-                    diff: pull.diff,
+                    patch: pull.patch,
                     state: pull.state,
                 })
             }

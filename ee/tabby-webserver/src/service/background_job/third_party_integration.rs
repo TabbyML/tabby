@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use futures::{stream::BoxStream, StreamExt};
 use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
+use pulls::list_github_pulls;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::CodeRepository;
 use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer};
@@ -19,6 +20,7 @@ use tracing::debug;
 use super::{helper::Job, BackgroundJobEvent};
 
 mod issues;
+mod pulls;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SyncIntegrationJob {
@@ -113,6 +115,7 @@ impl SchedulerGithubGitlabJob {
             repository.display_name
         );
         let index = StructuredDocIndexer::new(embedding);
+        println!("pulling issues");
         let s = match fetch_all_issues(&integration, &repository).await {
             Ok(s) => s,
             Err(e) => {
@@ -120,6 +123,17 @@ impl SchedulerGithubGitlabJob {
                     .update_integration_sync_status(integration.id, Some(e.to_string()))
                     .await?;
                 logkit::error!("Failed to fetch issues: {}", e);
+                return Err(e);
+            }
+        };
+
+        let s = match fetch_all_pulls(&integration, &repository).await {
+            Ok(s) => s,
+            Err(e) => {
+                integration_service
+                    .update_integration_sync_status(integration.id, Some(e.to_string()))
+                    .await?;
+                logkit::error!("Failed to fetch pulls: {}", e);
                 return Err(e);
             }
         };
@@ -180,6 +194,24 @@ async fn fetch_all_issues(
         .await?
         .boxed(),
         IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => list_gitlab_issues(
+            &repository.source_id(),
+            integration.api_base(),
+            &repository.display_name,
+            &integration.access_token,
+        )
+        .await?
+        .boxed(),
+    };
+
+    Ok(s)
+}
+async fn fetch_all_pulls(
+    integration: &Integration,
+    repository: &ProvidedRepository,
+) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, StructuredDoc)>> {
+    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = match &integration.kind {
+        // IntegrationKind::Github | IntegrationKind::GithubSelfHosted => list_github_pulls(
+        _ => list_github_pulls(
             &repository.source_id(),
             integration.api_base(),
             &repository.display_name,

@@ -520,7 +520,7 @@ type MessageAttachmentPullRequest {
   title: String!
   link: String!
   body: String!
-  diff: String!
+  patch: String!
   state: String!
 }
 

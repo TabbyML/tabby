@@ -5,7 +5,8 @@ use futures::Stream;
 use gitlab::api::{issues::ProjectIssues, AsyncQuery};
 use octocrab::Octocrab;
 use serde::Deserialize;
-use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields};
+use serde_json::json;
+use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocPullRequestFields};
 
 use crate::service::create_gitlab_client;
 
@@ -49,15 +50,16 @@ pub async fn list_github_pulls(
             for pull in response.items {
                 let doc = StructuredDoc {
                     source_id: source_id.to_string(),
-                    fields: StructuredDocFields::PullRequest(StructuredDocPullFields {
-                        link: pull.html_url.to_string(),
-                        title: pull.title,
+                    fields: StructuredDocFields::Pull(StructuredDocPullRequestFields {
+                        link: pull.html_url.unwrap().to_string(),
+                        title: pull.title.unwrap(),
                         body: pull.body.unwrap_or_default(),
-                        diff: "".to_string(),
-                        state: pull.state.to_string(), //TODO(zhangwei): map to enum
+                        patch: "".to_string(),
+                        state: "Open".to_owned(), //TODO(zhangwei): map to enum
                     })
                 };
-                yield (pull.updated_at, doc);
+
+                yield (pull.updated_at.unwrap(), doc);
             }
 
             page += 1;
