@@ -178,6 +178,11 @@ export class CompletionContext {
     this.currSeg = request.autoComplete.currSeg ?? "";
     this.insertSeg = request.autoComplete.insertSeg ?? "";
 
+    // check if the completion item is the same as the insert segment
+    if (!this.completionItem.startsWith(this.insertSeg)) {
+      return;
+    }
+
     const prefixText = request.text.slice(0, request.position);
     const lastIndex = prefixText.lastIndexOf(this.currSeg);
 
