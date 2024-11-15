@@ -337,6 +337,11 @@ exts = ["md", "markdown"]
 chunk_size = 1536
 
 [[config]]
+languages = ["txt"]
+exts = ["txt"]
+chunk_size = 1536
+
+[[config]]
 languages = ["perl"]
 exts = ["pl", "pm", "pod", "perl"]
 
