@@ -10,7 +10,7 @@ function getCardVariants(delay?: number): Variants {
   return {
     initial: {
       opacity: 0,
-      y: 24,
+      y: 30,
       transition: cardTransition
     },
     onscreen: {
@@ -18,7 +18,7 @@ function getCardVariants(delay?: number): Variants {
       y: 0,
       transition: {
         ...cardTransition,
-        delay: 0.2 + (delay || 0)
+        delay: 0.3 + (delay || 0)
       }
     }
   }
