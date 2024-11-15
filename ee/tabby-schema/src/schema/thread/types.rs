@@ -125,6 +125,7 @@ impl From<CodeSearchHit> for MessageCodeSearchHit {
 pub enum MessageAttachmentDoc {
     Web(MessageAttachmentWebDoc),
     Issue(MessageAttachmentIssueDoc),
+    Pull(MessageAttachmentPullRequest),
 }
 
 #[derive(GraphQLObject, Clone)]
@@ -142,6 +143,15 @@ pub struct MessageAttachmentIssueDoc {
     pub closed: bool,
 }
 
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentPullRequest {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub diff: String,
+    pub state: String,
+}
+
 impl From<DocSearchDocument> for MessageAttachmentDoc {
     fn from(doc: DocSearchDocument) -> Self {
         match doc {
@@ -156,6 +166,15 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
                     link: issue.link,
                     body: issue.body,
                     closed: issue.closed,
+                })
+            }
+            DocSearchDocument::Pull(pull) => {
+                MessageAttachmentDoc::Pull(MessageAttachmentPullRequest {
+                    title: pull.title,
+                    link: pull.link,
+                    body: pull.body,
+                    diff: pull.diff,
+                    state: pull.state,
                 })
             }
         }

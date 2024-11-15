@@ -22,7 +22,10 @@ use tabby_common::{
             CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
             CodeSearchScores,
         },
-        structured_doc::{DocSearch, DocSearchError, DocSearchHit},
+        structured_doc::{
+            DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchIssueDocument,
+            DocSearchPullRequest,
+        },
     },
     config::AnswerConfig,
 };
@@ -33,9 +36,10 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentDoc, ThreadAssistantMessageAttachmentsCode,
-        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
-        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
+        MessageAttachmentDoc, MessageAttachmentIssueDoc, MessageAttachmentPullRequest,
+        ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
+        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
+        ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -120,13 +124,31 @@ impl AnswerService {
 
             // 2. Collect relevant docs if needed.
             if let Some(doc_query) = options.doc_query.as_ref() {
-                let hits = self.collect_relevant_docs(&context_info_helper, doc_query)
+                let mut hits = self.collect_relevant_docs(&context_info_helper, doc_query)
                     .await;
                 attachment.doc = hits.iter()
                         .map(|x| x.doc.clone().into())
                         .collect::<Vec<_>>();
+                attachment.doc.push(MessageAttachmentDoc::Pull(MessageAttachmentPullRequest{
+                    title: "Example Pull Request".to_owned(),
+                    link: "https://example.com/pull/1".to_owned(),
+                    body: "This is an example pull request".to_owned(),
+                    // closed: false,
+                    diff: "diff --git a/file1 b/file2\nindex 123456..789012 100644\n--- a/file1\n+++ b/file2\n@@ -1,2 +1,2 @@\n-Hello, World!\n+Hello, Tabby!\n".to_owned(),
+                    state: "Open".to_owned(),
+                }));
+                hits.push(DocSearchHit {
+                    doc: DocSearchDocument::Pull(DocSearchPullRequest {
+                        title: "Example Pull Request".to_owned(),
+                        link: "https://example.com/pull/1".to_owned(),
+                        body: "This is an example pull request".to_owned(),
+                        diff: "diff --git a/file1 b/file2\nindex 123456..789012 100644\n--- a/file1\n+++ b/file2\n@@ -1,2 +1,2 @@\n-Hello, World!\n+Hello, Tabby!\n".to_owned(),
+                        state: "Open".to_owned(),
+                    }),
+                    score: 10.0,
+                });
 
-                debug!("doc content: {:?}", doc_query.content);
+                debug!("doc content: {:?}: {:?}", doc_query.content, attachment.doc.len());
 
                 if !attachment.doc.is_empty() {
                     let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
@@ -603,6 +625,7 @@ fn get_content(doc: &MessageAttachmentDoc) -> &str {
     match doc {
         MessageAttachmentDoc::Web(web) => &web.content,
         MessageAttachmentDoc::Issue(issue) => &issue.body,
+        MessageAttachmentDoc::Pull(pull) => &pull.body,
     }
 }
 
@@ -711,6 +734,7 @@ mod tests {
         match doc {
             DocSearchDocument::Web(web_doc) => &web_doc.title,
             DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
+            DocSearchDocument::Pull(pull_doc) => &pull_doc.title,
         }
     }
 

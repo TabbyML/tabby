@@ -4,8 +4,9 @@ use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentWebDoc,
-    ThreadMessageDAO, UserEventDAO,
+    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
+    ThreadMessageAttachmentPullRequest, ThreadMessageAttachmentWebDoc, ThreadMessageDAO,
+    UserEventDAO,
 };
 
 use crate::{
@@ -246,6 +247,15 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                     closed: val.closed,
                 })
             }
+            ThreadMessageAttachmentDoc::Pull(val) => {
+                thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullRequest {
+                    title: val.title,
+                    link: val.link,
+                    body: val.body,
+                    diff: val.diff,
+                    state: val.state,
+                })
+            }
         }
     }
 }
@@ -266,6 +276,15 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                     link: val.link.clone(),
                     body: val.body.clone(),
                     closed: val.closed,
+                })
+            }
+            thread::MessageAttachmentDoc::Pull(val) => {
+                ThreadMessageAttachmentDoc::Pull(ThreadMessageAttachmentPullRequest {
+                    title: val.title.clone(),
+                    link: val.link.clone(),
+                    body: val.body.clone(),
+                    diff: val.diff.clone(),
+                    state: val.state.clone(),
                 })
             }
         }
