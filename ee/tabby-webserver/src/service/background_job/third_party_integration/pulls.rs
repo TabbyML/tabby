@@ -3,10 +3,12 @@ use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::Stream;
 use gitlab::api::{issues::ProjectIssues, AsyncQuery};
-use octocrab::Octocrab;
+use octocrab::{models::IssueState, Octocrab};
 use serde::Deserialize;
-use serde_json::json;
-use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocPullRequestFields};
+use tabby_index::public::{
+    StructuredDoc, StructuredDocFields, StructuredDocPullRequestFields,
+    StructuredDocPullRequestState,
+};
 
 use crate::service::create_gitlab_client;
 
@@ -48,14 +50,31 @@ pub async fn list_github_pulls(
             let pages = response.number_of_pages().unwrap_or_default();
 
             for pull in response.items {
+                let title = pull.title.unwrap_or_default();
+
+                let patch = match octocrab.pulls(&owner, &repo).get_patch(pull.number).await {
+                    Ok(x) => x,
+                    Err(e) => {
+                        println!("Failed to fetch pull request patch for {}: {}", title, e);
+                        logkit::error!("Failed to fetch pull request patch for {}: {}", title, e);
+                        continue
+                    }
+                };
+
+                let state = match (pull.state, pull.merged_at) {
+                    (Some(IssueState::Closed), Some(_)) => StructuredDocPullRequestState::Merged,
+                    (Some(IssueState::Closed), None) => StructuredDocPullRequestState::Closed,
+                    _ => StructuredDocPullRequestState::Open,
+                }.to_string();
+
                 let doc = StructuredDoc {
                     source_id: source_id.to_string(),
                     fields: StructuredDocFields::Pull(StructuredDocPullRequestFields {
-                        link: pull.html_url.unwrap().to_string(),
-                        title: pull.title.unwrap(),
+                        link: pull.url,
+                        title,
                         body: pull.body.unwrap_or_default(),
-                        patch: "".to_string(),
-                        state: "Open".to_owned(), //TODO(zhangwei): map to enum
+                        patch: patch,
+                        state,
                     })
                 };
 

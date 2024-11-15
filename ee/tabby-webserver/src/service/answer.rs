@@ -35,10 +35,9 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentDoc, MessageAttachmentIssueDoc, MessageAttachmentPullRequest,
-        ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
-        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
-        ThreadRunOptionsInput,
+        MessageAttachmentDoc, MessageAttachmentPullRequest, ThreadAssistantMessageAttachmentsCode,
+        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
+        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};

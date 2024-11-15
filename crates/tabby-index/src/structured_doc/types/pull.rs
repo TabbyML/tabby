@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
@@ -16,6 +16,23 @@ pub struct PullRequest {
     pub body: String,
     pub patch: String,
     pub state: String,
+}
+
+pub enum PullRequestState {
+    Open,
+    Closed,
+    Merged,
+}
+
+// Implement Display trait
+impl fmt::Display for PullRequestState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PullRequestState::Open => write!(f, "Open"),
+            PullRequestState::Closed => write!(f, "Closed"),
+            PullRequestState::Merged => write!(f, "Merged"),
+        }
+    }
 }
 
 #[async_trait]

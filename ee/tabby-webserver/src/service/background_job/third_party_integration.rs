@@ -115,8 +115,7 @@ impl SchedulerGithubGitlabJob {
             repository.display_name
         );
         let index = StructuredDocIndexer::new(embedding);
-        println!("pulling issues");
-        let s = match fetch_all_issues(&integration, &repository).await {
+        let issue_stream = match fetch_all_issues(&integration, &repository).await {
             Ok(s) => s,
             Err(e) => {
                 integration_service
@@ -127,7 +126,7 @@ impl SchedulerGithubGitlabJob {
             }
         };
 
-        let s = match fetch_all_pulls(&integration, &repository).await {
+        let pull_stream = match fetch_all_pulls(&integration, &repository).await {
             Ok(s) => s,
             Err(e) => {
                 integration_service
@@ -141,7 +140,7 @@ impl SchedulerGithubGitlabJob {
         stream! {
             let mut count = 0;
             let mut num_updated = 0;
-            for await (updated_at, doc) in s {
+            for await (updated_at, doc) in issue_stream.chain(pull_stream) {
                 if index.add(updated_at, doc).await {
                     num_updated += 1
                 }
