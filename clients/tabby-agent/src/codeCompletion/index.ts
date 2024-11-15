@@ -185,7 +185,6 @@ export class CompletionProvider implements Feature {
     token.onCancellationRequested(() => abortController.abort());
     try {
       const request = await this.completionParamsToCompletionRequest(params, token);
-      this.logger.info("Completion request: hjaha");
       if (!request) {
         return null;
       }
@@ -514,7 +513,7 @@ export class CompletionProvider implements Feature {
     if (solution) {
       this.completionStats.addProviderStatsEntry({ triggerMode: request.manually ? "manual" : "auto" });
       this.logger.info(`Completed processing completions, choices returned: ${solution.items.length}.`);
-      this.logger.trace("Completion solution:" + JSON.stringify({ solution: solution.toInlineCompletionList() }));
+      this.logger.trace("Completion solution:", { solution: solution.toInlineCompletionList() });
     }
     return solution ?? null;
   }

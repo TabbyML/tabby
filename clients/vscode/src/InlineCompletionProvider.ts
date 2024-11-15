@@ -73,8 +73,6 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
       return null;
     }
 
-    // we pass if autocomplete widget is visible
-
     if (token.isCancellationRequested) {
       this.logger.debug("Completion request is canceled before send request.");
       return null;

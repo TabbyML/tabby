@@ -145,6 +145,7 @@ export class CompletionContext {
 
   // Generate a CompletionContext based on this CompletionContext.
   // Simulate as if the user input new text based on this CompletionContext.
+  // FIXME: generate the context according to `selectedCompletionInfo`
   forward(delta: string) {
     return new CompletionContext({
       filepath: this.filepath,
