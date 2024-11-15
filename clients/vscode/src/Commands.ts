@@ -224,20 +224,20 @@ export class Commands {
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
     },
-    "inlineCompletion.accept": () => {
+    "inlineCompletion.accept": async () => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
       }
 
-      commands.executeCommand("editor.action.inlineSuggest.commit");
-
       const uri = editor.document.uri;
-      const range = this.inlineCompletionProvider.getCurrentDisplayRange();
-      if (!range) {
-        return;
+      const range = this.inlineCompletionProvider.calcEditedRangeAfterAccept();
+
+      await commands.executeCommand("editor.action.inlineSuggest.commit");
+
+      if (range) {
+        applyQuickFixes(uri, range);
       }
-      applyQuickFixes(uri, range);
     },
     "inlineCompletion.acceptNextWord": () => {
       this.inlineCompletionProvider.handleEvent("accept_word");

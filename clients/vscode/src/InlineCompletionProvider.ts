@@ -213,26 +213,25 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
   }
 
   /**
-   * Get current display range with the current completion item
+   * Calculate the edited range in the modified document as if the current completion item has been accepted.
    * @return {Range | undefined} - The range with the current completion item
    */
-  public getCurrentDisplayRange(): Range | undefined {
+  public calcEditedRangeAfterAccept(): Range | undefined {
     const item = this.displayedCompletion?.completions.items[this.displayedCompletion.index];
     const range = item?.range;
     if (!range) {
+      // FIXME: If the item has a null range, we can use current position and text length to calculate the result range
       return undefined;
     }
     if (!item) {
       return undefined;
     }
     const length = (item.insertText as string).split("\n").length - 1; //remove current line count;
-    const completionEnd = range.end.line + length;
     const completionRange = new Range(
       new Position(range.start.line, range.start.character),
-      new Position(completionEnd == 0 ? completionEnd : completionEnd + 1, 0),
+      new Position(range.end.line + length + 1, 0),
     );
-    this.logger.info("current range with displayed completion item:", completionRange);
-
+    this.logger.debug("Calculate edited range for displayed completion item:", completionRange);
     return completionRange;
   }
 }
