@@ -5,98 +5,89 @@ describe("postprocess", () => {
   describe("normalizeIndentation", () => {
     const filter = normalizeIndentation();
 
-    it("should normalize indentation when cursor is on empty line", async () => {
+    it("should fix first line extra indentation", async () => {
       const context = documentContext`
         function test() {
           ║
         }
       `;
       const completion = inline`
-          ├console.log("test");┤
+           ├ const x = 1;
+          const y = 2;┤
       `;
       const expected = inline`
-          ├console.log("test");┤
+          ├const x = 1;
+          const y = 2;┤
       `;
       await assertFilterResult(filter, context, completion, expected);
     });
-
-    it("should not modify indentation when cursor line has content", async () => {
-      const context = documentContext`
-        let x = ║value
-      `;
-      const completion = inline`
-                ├42┤
-      `;
-      const expected = inline`
-                ├42┤
-      `;
-      await assertFilterResult(filter, context, completion, expected);
-    });
-
-    it("should handle empty lines in nested blocks", async () => {
+    it("should remove extra indent", async () => {
       const context = documentContext`
         if (true) {
-          while (condition) {
+          if (condition) {
             ║
           }
         }
       `;
-      context.language = "javascript";
       const completion = inline`
-            ├doSomething();┤
+            ├doSomething();
+             doAnother();┤
       `;
       const expected = inline`
-            ├doSomething();┤
+            ├doSomething();
+            doAnother();┤
       `;
       await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should handle deep nested block indentation", async () => {
+    it("should handle both inappropriate first line and extra indent case 01", async () => {
       const context = documentContext`
-        if let Some(code_query) = code_query {
-            let hits = self.collect_relevant_code(
-                &context_info_helper,
-                code_query,
-            ).await?;
+        if (true) {
+          if (condition) {
             ║
+          }
         }
       `;
-      context.language = "rust";
       const completion = inline`
-            ├attachment.code_hits = Some(hits);┤
+           ├ doSomething();
+            doAnother();┤
       `;
       const expected = inline`
-            ├attachment.code_hits = Some(hits);┤
+           ├doSomething();
+           doAnother();┤
       `;
       await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should handle method arguments with object literals", async () => {
+    it("should handle both inappropriate extra indent case 02", async () => {
       const context = documentContext`
-        await client.request(
-        ║
-        );
+        {
+          "command": "test",
+          ║
+        }
       `;
-      context.language = "javascript";
       const completion = inline`
-        ├{
-            method: 'POST',
-            url: '/api/data',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          }┤
+          ├"title": "Run Test",
+           "category": "Tabby"┤
       `;
       const expected = inline`
-        ├{
-            method: 'POST',
-            url: '/api/data',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          }┤
+          ├"title": "Run Test",
+          "category": "Tabby"┤
+      `;
+      await assertFilterResult(filter, context, completion, expected);
+    });
+
+    it("should do nothing", async () => {
+      const context = documentContext`
+        function foo() {
+        ║
+        }
+      `;
+      const completion = inline`
+        ├    bar();┤
+      `;
+      const expected = inline`
+        ├    bar();┤
       `;
       await assertFilterResult(filter, context, completion, expected);
     });

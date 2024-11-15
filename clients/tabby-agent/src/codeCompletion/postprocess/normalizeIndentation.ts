@@ -22,38 +22,32 @@ export function normalizeIndentation(): PostprocessFilter {
     }
 
     const normalizedLines = [...lines];
+
     const firstLine = normalizedLines[0];
-
     if (firstLine) {
-      const cursorLineSpaces = getLeadingSpaces(context.currentLinePrefix);
       const firstLineSpaces = getLeadingSpaces(firstLine);
-
-      // check if any following line matches cursor indentation
-      let hasMatchingIndent = false;
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        if (line && line.trim() && getLeadingSpaces(line) === cursorLineSpaces) {
-          hasMatchingIndent = true;
-          break;
-        }
+      const cursorLineSpaces = getLeadingSpaces(context.currentLinePrefix);
+      console.log("firstLineSpaces", firstLineSpaces);
+      console.log("curr prefix", context.currentLinePrefix);
+      console.log("cursorLineSpaces", cursorLineSpaces);
+      // deal with current cursor odd indentation
+      if ((firstLineSpaces + cursorLineSpaces) % 2 !== 0 && firstLineSpaces % 2 !== 0) {
+        normalizedLines[0] = firstLine.substring(firstLineSpaces);
+        console.log("after normalize:", normalizedLines[0]);
       }
+    }
 
-      // if cursor line has even spaces, process indentation
-      if (cursorLineSpaces % 2 === 0 && firstLineSpaces > 0) {
-        if (hasMatchingIndent) {
-          // if matching indent found, only process first line
-          const lineSpaces = getLeadingSpaces(firstLine);
-          const spacesToRemove = Math.min(lineSpaces, firstLineSpaces);
-          normalizedLines[0] = firstLine.substring(spacesToRemove);
-        } else {
-          // otherwise process all lines
-          normalizedLines.forEach((line, index) => {
-            if (!line || !line.trim()) return; // skip empty lines
-            const lineSpaces = getLeadingSpaces(line);
-            const spacesToRemove = Math.min(lineSpaces, firstLineSpaces);
-            normalizedLines[index] = line.substring(spacesToRemove);
-          });
-        }
+    //deal with extra space in the line indent
+    let indents = -1; // use track previous line indentations
+    for (let i = 0; i < normalizedLines.length; i++) {
+      const line = normalizedLines[i];
+      if (!line || !line.trim()) continue;
+      const lineSpaces = getLeadingSpaces(line);
+      if (indents != -1 && lineSpaces % 2 !== 0) {
+        // move current line to recently close indent
+        normalizedLines[i] = " ".repeat(indents) + line.trimStart();
+      } else {
+        indents = lineSpaces;
       }
     }
 
