@@ -173,7 +173,7 @@ export function ThreadFeeds({
               }}
               style={{ width: '100%' }}
             >
-              <div className="relative flex flex-col gap-3 text-sm min-h-[40.25rem]">
+              <div className="relative flex min-h-[40.25rem] flex-col gap-3 text-sm">
                 {threads.map(t => {
                   return <ThreadItem data={t} key={t.node.id} />
                 })}
@@ -184,7 +184,7 @@ export function ThreadFeeds({
                 )}
               </div>
               {showPagination && (
-                <Pagination className={cn('flex justify-end items-center')}>
+                <Pagination className={cn('flex items-center justify-end')}>
                   <PaginationContent>
                     <span className="flex w-[64px] items-center justify-start text-sm font-medium">
                       Page {page}

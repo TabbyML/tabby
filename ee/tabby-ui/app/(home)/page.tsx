@@ -116,7 +116,7 @@ function MainPanel() {
 
       {showMainSection && (
         <main
-          className="flex-col items-center justify-center pt-16 lg:flex pb-4"
+          className="flex-col items-center justify-center pb-4 pt-16 lg:flex"
           ref={elementRef}
         >
           <div className="mx-auto flex w-full flex-col items-center gap-6 px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
