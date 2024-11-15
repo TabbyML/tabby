@@ -18,7 +18,12 @@ repositories {
 dependencies {
   intellijPlatform {
     intellijIdeaCommunity("2023.1")
-    bundledPlugins(listOf("Git4Idea"))
+    bundledPlugins(
+      listOf(
+        "Git4Idea",
+        "org.jetbrains.kotlin",
+      )
+    )
     pluginVerifier()
     zipSigner()
     instrumentationTools()
