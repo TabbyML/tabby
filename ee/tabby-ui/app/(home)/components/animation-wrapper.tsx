@@ -39,11 +39,6 @@ export function AnimationWrapper({
   style,
   delay
 }: AnimationWrapperProps) {
-  // todo use enter
-  const onViewportEnter = () => {
-    //
-  }
-
   return (
     <motion.div
       initial="initial"
@@ -51,7 +46,6 @@ export function AnimationWrapper({
       viewport={viewport}
       style={style}
       className={className}
-      onViewportEnter={onViewportEnter}
     >
       <motion.div variants={getCardVariants(delay)}>{children}</motion.div>
     </motion.div>
