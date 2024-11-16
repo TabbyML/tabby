@@ -69,7 +69,17 @@ export interface ClientApi {
   onCopy: (content: string) => void
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
-  onRenderLsp: (filepaths: string[], keywords: string[]) => void
+  onRenderLsp: (filepaths: string[], keywords: string[]) => Promise<Record<
+  string,
+  {
+    sourceFile: string
+    sourceLine: number
+    sourceChar: number
+    targetFile: string
+    targetLine: number
+    targetChar: number
+  }
+>>
 }
 
 export interface ChatMessage {
