@@ -8,7 +8,6 @@ use tabby_index::public::{
     StructuredDocPullRequestState,
 };
 
-
 pub async fn list_github_pulls(
     source_id: &str,
     api_base: &str,
