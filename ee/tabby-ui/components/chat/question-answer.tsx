@@ -390,6 +390,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
               canWrapLongLines={!isLoading}
               onRenderLsp={onRenderLsp}
+              onNavigateToContext={onNavigateToContext}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>

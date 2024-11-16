@@ -33,6 +33,8 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
+import { Context, KeywordInfo, NavigateOpts } from 'tabby-chat-panel/index'
+
 import {
   MARKDOWN_CITATION_REGEX,
   MARKDOWN_SOURCE_REGEX
@@ -75,7 +77,13 @@ export interface MessageMarkdownProps {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onRenderLsp?: (filepaths: string[], keywords: string[]) => void
+  onRenderLsp?: (
+    filepaths: string[],
+    keywords: string[]
+  ) => Promise<Record<string, KeywordInfo>>
+  onNavigateToContext?:
+    | ((context: Context, opts?: NavigateOpts) => void)
+    | undefined
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -98,6 +106,8 @@ type MessageMarkdownContextValue = {
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
   canWrapLongLines: boolean
+  keywordMap: KeywordMapType
+  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
 }
 
 const MessageMarkdownContext = createContext<MessageMarkdownContextValue>(
@@ -116,6 +126,7 @@ export function MessageMarkdown({
   className,
   canWrapLongLines,
   onRenderLsp,
+  onNavigateToContext,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -180,21 +191,26 @@ export function MessageMarkdown({
     return elements
   }
 
+  const [keywordMap, setKeywordMap] = useState<KeywordMapType>({})
   // rendering keywords
   useEffect(() => {
     if (message && canWrapLongLines && onRenderLsp) {
-      // eslint-disable-next-line no-console
-      console.log('docs', attachmentDocs?.map(doc => doc.link).join(','))
-      // eslint-disable-next-line no-console
-      console.log('code', attachmentCode?.map(code => code.filepath).join(','))
+      setKeywordMap({}) // TODO: remove htis
       const inlineCodeRegex = /`([^`]+)`/g
       const matches = message.match(inlineCodeRegex)
       if (matches) {
-        const inlineCodes = matches.map(match => match.replace(/`/g, '').trim())
-        onRenderLsp(inlineCodes, [attachmentCode ? attachmentCode?.map(code => code.filepath) : ...[]])
+        const inlineCodes = Array.from(
+          new Set(matches.map(match => match.replace(/`/g, '').trim()))
+        )
+        onRenderLsp(
+          attachmentCode ? attachmentCode?.map(code => code.filepath) : [],
+          inlineCodes
+        ).then(res => {
+          setKeywordMap(res)
+        })
       }
     }
-  }, [message, canWrapLongLines, onRenderLsp])
+  }, [message, canWrapLongLines, onRenderLsp, attachmentCode])
 
   return (
     <MessageMarkdownContext.Provider
@@ -206,7 +222,9 @@ export function MessageMarkdown({
         onCodeCitationMouseLeave: rest.onCodeCitationMouseLeave,
         contextInfo,
         fetchingContextInfo: !!fetchingContextInfo,
-        canWrapLongLines: !!canWrapLongLines
+        canWrapLongLines: !!canWrapLongLines,
+        keywordMap,
+        onNavigateToContext
       }}
     >
       <MemoizedReactMarkdown
@@ -237,7 +255,6 @@ export function MessageMarkdown({
                     if (typeof childrenItem === 'string') {
                       return processMessagePlaceholder(childrenItem)
                     }
-
                     return <span key={index}>{childrenItem}</span>
                   })}
                 </li>
@@ -246,21 +263,66 @@ export function MessageMarkdown({
             return <li>{children}</li>
           },
           code({ node, inline, className, children, ...props }) {
+            const { keywordMap, onNavigateToContext, canWrapLongLines } =
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              useContext(MessageMarkdownContext)
+
             if (children.length) {
               if (children[0] == '▍') {
                 return (
                   <span className="mt-1 animate-pulse cursor-default">▍</span>
                 )
               }
-
               children[0] = (children[0] as string).replace('`▍`', '▍')
             }
 
             const match = /language-(\w+)/.exec(className || '')
 
             if (inline) {
+              const keyword = children[0]?.toString()
+              if (!keyword) {
+                return (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                )
+              }
+
+              const info = keywordMap[keyword]
+
+              const isClickable = Boolean(
+                info && onNavigateToContext && canWrapLongLines
+              )
+
               return (
-                <code className={className} {...props}>
+                <code
+                  className={cn(
+                    className,
+                    isClickable
+                      ? 'hover:bg-muted/50 cursor-pointer transition-colors'
+                      : ''
+                  )}
+                  onClick={() => {
+                    if (!isClickable) return
+                    if (onNavigateToContext) {
+                      onNavigateToContext(
+                        {
+                          filepath: info.targetFile,
+                          content: '',
+                          git_url: '',
+                          kind: 'file',
+                          range: {
+                            start: info.targetLine,
+                            end: info.targetLine + 1
+                          }
+                        },
+                        { openInEditor: true }
+                      )
+                    }
+                  }}
+                  title={info ? `${info.targetFile}:${info.targetLine}` : ''}
+                  {...props}
+                >
                   {children}
                 </code>
               )
@@ -503,4 +565,8 @@ export function SiteFavicon({
       />
     </div>
   )
+}
+
+interface KeywordMapType {
+  [key: string]: KeywordInfo
 }

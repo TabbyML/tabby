@@ -53,7 +53,14 @@ export interface ServerApi {
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: Context | null) => void
 }
-
+export interface KeywordInfo {
+  sourceFile: string
+  sourceLine: number
+  sourceChar: number
+  targetFile: string
+  targetLine: number
+  targetChar: number
+}
 export interface ClientApi {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
@@ -71,14 +78,7 @@ export interface ClientApi {
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
   onRenderLsp: (filepaths: string[], keywords: string[]) => Promise<Record<
   string,
-  {
-    sourceFile: string
-    sourceLine: number
-    sourceChar: number
-    targetFile: string
-    targetLine: number
-    targetChar: number
-  }
+  KeywordInfo
 >>
 }
 
