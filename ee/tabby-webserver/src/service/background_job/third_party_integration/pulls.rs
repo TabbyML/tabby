@@ -2,15 +2,12 @@ use anyhow::{anyhow, Result};
 use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::Stream;
-use gitlab::api::{issues::ProjectIssues, AsyncQuery};
 use octocrab::{models::IssueState, Octocrab};
-use serde::Deserialize;
 use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocPullRequestFields,
     StructuredDocPullRequestState,
 };
 
-use crate::service::create_gitlab_client;
 
 pub async fn list_github_pulls(
     source_id: &str,
@@ -73,7 +70,7 @@ pub async fn list_github_pulls(
                         link: pull.url,
                         title,
                         body: pull.body.unwrap_or_default(),
-                        patch: patch,
+                        patch,
                         state,
                     })
                 };

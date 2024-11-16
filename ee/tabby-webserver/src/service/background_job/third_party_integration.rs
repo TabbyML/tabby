@@ -208,17 +208,14 @@ async fn fetch_all_pulls(
     integration: &Integration,
     repository: &ProvidedRepository,
 ) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, StructuredDoc)>> {
-    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = match &integration.kind {
-        // IntegrationKind::Github | IntegrationKind::GithubSelfHosted => list_github_pulls(
-        _ => list_github_pulls(
-            &repository.source_id(),
-            integration.api_base(),
-            &repository.display_name,
-            &integration.access_token,
-        )
-        .await?
-        .boxed(),
-    };
+    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = list_github_pulls(
+        &repository.source_id(),
+        integration.api_base(),
+        &repository.display_name,
+        &integration.access_token,
+    )
+    .await?
+    .boxed();
 
     Ok(s)
 }
