@@ -289,7 +289,7 @@ mod tests {
     use tabby_common::{
         api::{
             code::{CodeSearch, CodeSearchParams},
-            doc::DocSearch,
+            structured_doc::DocSearch,
         },
         config::AnswerConfig,
     };

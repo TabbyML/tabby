@@ -14,6 +14,7 @@ import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
+import { useChatStore } from '@/lib/stores/chat-store'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
@@ -119,6 +120,9 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
+  const enableActiveSelection = useChatStore(
+    state => state.enableActiveSelection
+  )
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   const {
@@ -174,7 +178,8 @@ function ChatRenderer(
       ]
       setQaPairs(nextQaPairs)
       const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user
+        qaPair.user,
+        enableActiveSelection
       )
 
       return regenerate({
@@ -331,11 +336,16 @@ function ChatRenderer(
   }, [error])
 
   const generateRequestPayload = (
-    userMessage: UserMessage
+    userMessage: UserMessage,
+    enableActiveSelection?: boolean
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
-    // use selectContext or activeContext for code query
-    const contextForCodeQuery: FileContext | undefined =
-      userMessage.selectContext || userMessage.activeContext
+    // use selectContext for code query by default
+    let contextForCodeQuery: FileContext | undefined = userMessage.selectContext
+
+    // if enableActiveSelection, use selectContext or activeContext for code query
+    if (enableActiveSelection) {
+      contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
+    }
 
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
       ? {
@@ -348,9 +358,11 @@ function ChatRenderer(
         }
       : null
 
+    const hasUsableActiveContext =
+      enableActiveSelection && !!userMessage.activeContext
     const fileContext: FileContext[] = uniqWith(
       compact([
-        userMessage?.activeContext,
+        hasUsableActiveContext && userMessage.activeContext,
         ...(userMessage?.relevantContext || [])
       ]),
       isEqual
@@ -394,6 +406,7 @@ function ChatRenderer(
         }\n${'```'}\n`
       }
 
+      const finalActiveContext = activeSelection || userMessage.activeContext
       const newUserMessage: UserMessage = {
         ...userMessage,
         message: userMessage.message + selectCodeSnippet,
@@ -401,7 +414,10 @@ function ChatRenderer(
         id: userMessage.id ?? nanoid(),
         selectContext: userMessage.selectContext,
         // For forward compatibility
-        activeContext: activeSelection || userMessage.activeContext
+        activeContext:
+          enableActiveSelection && finalActiveContext
+            ? finalActiveContext
+            : undefined
       }
 
       const nextQaPairs = [
@@ -419,7 +435,9 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      sendUserMessage(...generateRequestPayload(newUserMessage))
+      sendUserMessage(
+        ...generateRequestPayload(newUserMessage, enableActiveSelection)
+      )
     }
   )
 
@@ -458,8 +476,15 @@ function ChatRenderer(
     onThreadUpdates?.(qaPairs)
   }, [qaPairs])
 
+  const debouncedUpdateActiveSelection = useDebounceCallback(
+    (ctx: Context | null) => {
+      setActiveSelection(ctx)
+    },
+    300
+  )
+
   const updateActiveSelection = (ctx: Context | null) => {
-    setActiveSelection(ctx)
+    debouncedUpdateActiveSelection.run(ctx)
   }
 
   React.useImperativeHandle(
@@ -478,11 +503,8 @@ function ChatRenderer(
   )
 
   React.useEffect(() => {
-    if (isOnLoadExecuted.current) return
-
-    isOnLoadExecuted.current = true
-    onLoaded?.()
     setInitialzed(true)
+    onLoaded?.()
   }, [])
 
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'

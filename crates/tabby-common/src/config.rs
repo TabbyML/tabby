@@ -403,7 +403,7 @@ fn default_answer_code_search_params() -> CodeSearchParams {
         min_bm25_score: -1.0,
         min_rrf_score: -1.0,
         num_to_return: 10,
-        num_to_score: 20,
+        num_to_score: 100,
     }
 }
 
@@ -487,7 +487,7 @@ mod tests {
         }
 
         assert!(
-            matches!(Config::validate_model_config(&config.model.completion), Err(ref e) if true)
+            matches!(Config::validate_model_config(&config.model.completion), Err(ref _e) if true)
         );
         assert!(Config::validate_model_config(&config.model.chat).is_ok());
     }

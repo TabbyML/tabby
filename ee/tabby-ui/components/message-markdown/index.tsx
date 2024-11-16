@@ -22,7 +22,7 @@ import {
   MessageAttachmentDoc
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, getContent } from '@/lib/utils'
 import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
 import {
   HoverCard,
@@ -423,7 +423,7 @@ function RelevantDocumentBadge({
             {relevantDocument.title}
           </p>
           <p className="m-0 line-clamp-4 leading-none">
-            {normalizedText(relevantDocument.content)}
+            {normalizedText(getContent(relevantDocument))}
           </p>
         </div>
       </HoverCardContent>

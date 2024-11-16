@@ -3,7 +3,7 @@ use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
-    doc::{DocSearchDocument, DocSearchHit},
+    structured_doc::{DocSearchDocument, DocSearchHit},
 };
 use validator::Validate;
 
@@ -121,19 +121,43 @@ impl From<CodeSearchHit> for MessageCodeSearchHit {
     }
 }
 
+#[derive(GraphQLUnion, Clone)]
+pub enum MessageAttachmentDoc {
+    Web(MessageAttachmentWebDoc),
+    Issue(MessageAttachmentIssueDoc),
+}
+
 #[derive(GraphQLObject, Clone)]
-pub struct MessageAttachmentDoc {
+pub struct MessageAttachmentWebDoc {
     pub title: String,
     pub link: String,
     pub content: String,
 }
 
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentIssueDoc {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub closed: bool,
+}
+
 impl From<DocSearchDocument> for MessageAttachmentDoc {
     fn from(doc: DocSearchDocument) -> Self {
-        Self {
-            title: doc.title,
-            link: doc.link,
-            content: doc.snippet,
+        match doc {
+            DocSearchDocument::Web(web) => MessageAttachmentDoc::Web(MessageAttachmentWebDoc {
+                title: web.title,
+                link: web.link,
+                content: web.snippet,
+            }),
+            DocSearchDocument::Issue(issue) => {
+                MessageAttachmentDoc::Issue(MessageAttachmentIssueDoc {
+                    title: issue.title,
+                    link: issue.link,
+                    body: issue.body,
+                    closed: issue.closed,
+                })
+            }
         }
     }
 }

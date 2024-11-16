@@ -413,9 +413,18 @@ export const listThreadMessages = graphql(/* GraphQL */ `
               startLine
             }
             doc {
-              title
-              link
-              content
+              __typename
+              ... on MessageAttachmentWebDoc {
+                title
+                link
+                content
+              }
+              ... on MessageAttachmentIssueDoc {
+                title
+                link
+                body
+                closed
+              }
             }
           }
         }

@@ -22,6 +22,7 @@ import {
 import {
   cn,
   formatLineHashForCodeBrowser,
+  getContent,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
@@ -491,7 +492,7 @@ function SourceCard({
                   }
                 )}
               >
-                {normalizedText(source.content)}
+                {normalizedText(getContent(source))}
               </p>
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
