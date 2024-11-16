@@ -614,7 +614,7 @@ export class WebviewHelper {
                       sourceFile: filepath,
                       sourceLine: position.line + 1,
                       sourceChar: position.character,
-                      targetFile: location.targetUri.path,
+                      targetFile: workspace.asRelativePath(location.targetUri.path),
                       targetLine: location.targetRange.start.line,
                       targetChar: location.targetRange.start.character,
                     };
