@@ -1,4 +1,12 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  // useEffect,
+  useMemo,
+  // useRef,
+  useState
+} from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -26,13 +34,19 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
+// import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui-slim.js'
+
 import {
   MARKDOWN_CITATION_REGEX,
   MARKDOWN_SOURCE_REGEX
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
+import { Badge } from '../ui/badge'
+import { IconCircleDot, IconGitPullRequest } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
+
+import 'diff2html/bundles/css/diff2html.min.css'
 
 type RelevantDocItem = {
   type: 'doc'
@@ -371,6 +385,8 @@ function RelevantDocumentBadge({
   citationIndex: number
 }) {
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
+  const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
+  const isPR = relevantDocument?.__typename === 'MessageAttachmentPullRequest'
 
   return (
     <HoverCard>
@@ -397,6 +413,10 @@ function RelevantDocumentBadge({
           >
             {relevantDocument.title}
           </p>
+          <div className="mb-2 w-auto">
+            {isIssue && <IssueStatusBadge closed={relevantDocument.closed} />}
+            {isPR && <PRStatusBadge state={relevantDocument.state} />}
+          </div>
           <p className="m-0 line-clamp-4 leading-none">
             {normalizedText(getContent(relevantDocument))}
           </p>
@@ -451,7 +471,7 @@ export function SiteFavicon({
   }
 
   return (
-    <div className="relative h-3.5 w-3.5">
+    <div className="relative h-3.5 w-3.5 shrink-0">
       <Image
         src={defaultFavicon}
         alt={hostname}
@@ -479,3 +499,55 @@ export function SiteFavicon({
     </div>
   )
 }
+
+function IssueStatusBadge({ closed }: { closed: boolean }) {
+  return (
+    <Badge
+      className={cn('text-xs gap-1 text-white', {
+        'bg-[#7b52d7] dark:bg-[#8259dd]': closed,
+        'bg-successful': !closed
+      })}
+    >
+      <IconCircleDot className="h-3.5 w-3.5" />
+      {closed ? 'Closed' : 'Open'}
+    </Badge>
+  )
+}
+
+function PRStatusBadge({ state }: { state: string }) {
+  return (
+    <Badge
+      className={cn('text-xs gap-1 text-white', {
+        'bg-[#7b52d7] dark:bg-[#8259dd]': state === 'Merged',
+        'bg-green-700 dark:bg-green-800': state === 'Open',
+        'bg-red-600 dark:bg-red-800': state === 'Closed'
+      })}
+    >
+      <IconGitPullRequest className="h-3.5 w-3.5" />
+      {state}
+    </Badge>
+  )
+}
+
+// const PatchView = ({ patch }: { patch: string }) => {
+//   const ref = useRef<HTMLDivElement>(null)
+//   useEffect(() => {
+//     if (ref.current) {
+//       let diff2htmlUi = new Diff2HtmlUI(ref.current, patch, {
+//         drawFileList: true,
+//         fileListToggle: false,
+//         fileListStartVisible: false,
+//         fileContentToggle: false,
+//         matching: 'lines',
+//         outputFormat: 'side-by-side',
+//         synchronisedScroll: true,
+//         highlight: true,
+//         renderNothingWhenEmpty: false
+//       })
+//       diff2htmlUi.draw()
+//       diff2htmlUi.highlightCode()
+//     }
+//   }, [])
+
+//   return <div ref={ref} />
+// }
