@@ -211,4 +211,27 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
     // await not required
     this.client.telemetry.postEvent(params);
   }
+
+  /**
+   * Calculate the edited range in the modified document as if the current completion item has been accepted.
+   * @return {Range | undefined} - The range with the current completion item
+   */
+  public calcEditedRangeAfterAccept(): Range | undefined {
+    const item = this.displayedCompletion?.completions.items[this.displayedCompletion.index];
+    const range = item?.range;
+    if (!range) {
+      // FIXME: If the item has a null range, we can use current position and text length to calculate the result range
+      return undefined;
+    }
+    if (!item) {
+      return undefined;
+    }
+    const length = (item.insertText as string).split("\n").length - 1; //remove current line count;
+    const completionRange = new Range(
+      new Position(range.start.line, range.start.character),
+      new Position(range.end.line + length + 1, 0),
+    );
+    this.logger.debug("Calculate edited range for displayed completion item:", completionRange);
+    return completionRange;
+  }
 }
