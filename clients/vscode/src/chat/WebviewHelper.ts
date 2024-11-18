@@ -362,8 +362,9 @@ export class WebviewHelper {
   }
 
   public addTextEditorEventListeners() {
+    const supportSchemes = ['file', 'untitled']
     window.onDidChangeActiveTextEditor((e) => {
-      if (e && e.document.uri.scheme !== "file") {
+      if (e && !supportSchemes.includes(e.document.uri.scheme)) {
         this.syncActiveSelection(undefined);
         return;
       }
@@ -373,7 +374,7 @@ export class WebviewHelper {
 
     window.onDidChangeTextEditorSelection((e) => {
       // This listener only handles text files.
-      if (e.textEditor.document.uri.scheme !== "file") {
+      if (!supportSchemes.includes(e.textEditor.document.uri.scheme)) {
         return;
       }
       this.syncActiveSelection(e.textEditor);
