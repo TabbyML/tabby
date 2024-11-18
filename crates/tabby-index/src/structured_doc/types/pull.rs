@@ -15,9 +15,9 @@ pub struct PullDocument {
     pub title: String,
     pub body: String,
 
-    /// Code changes can be represented in two formats: diff and patch.
-    /// Since commits are not relevant, the diff format is used.
-    /// For details on the diff format, refer to:
+    /// The diff represents the code changes in this PR,
+    /// including metadata, affected line ranges, and added (+) or removed (-) lines.
+    /// For more details on the diff format, refer to:
     /// https://git-scm.com/docs/diff-format#_combined_diff_format
     pub diff: String,
     pub merged: bool,

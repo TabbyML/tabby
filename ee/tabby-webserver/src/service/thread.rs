@@ -108,7 +108,6 @@ impl ThreadService for ThreadServiceImpl {
             )
             .await?;
 
-        println!("assistant_message_id: {:?}", assistant_message_id);
         let s = answer
             .answer_v2(policy, &messages, options, attachment_input)
             .await?;
