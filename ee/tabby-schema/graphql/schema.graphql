@@ -516,7 +516,7 @@ type MessageAttachmentIssueDoc {
   closed: Boolean!
 }
 
-type MessageAttachmentPullRequest {
+type MessageAttachmentPullDoc {
   title: String!
   link: String!
   body: String!
@@ -908,7 +908,7 @@ type WebContextSource implements ContextSourceId & ContextSource {
   sourceName: String!
 }
 
-union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullRequest
+union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc
 
 """
   Schema of thread run stream.
