@@ -8,7 +8,7 @@ use tabby_inference::Embedding;
 
 pub use super::types::{
     issue::IssueDocument as StructuredDocIssueFields,
-    pull::PullRequest as StructuredDocPullRequestFields,
+    pull::PullDocument as StructuredDocPullDocumentFields,
     web::WebDocument as StructuredDocWebFields, StructuredDoc, StructuredDocFields,
 };
 use super::{create_structured_doc_builder, types::BuildStructuredDoc};

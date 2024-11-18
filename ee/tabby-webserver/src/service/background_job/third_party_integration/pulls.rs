@@ -3,7 +3,7 @@ use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::Stream;
 use octocrab::{models::IssueState, Octocrab};
-use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocPullRequestFields};
+use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields};
 
 pub async fn list_github_pulls(
     source_id: &str,
@@ -65,7 +65,7 @@ pub async fn list_github_pulls(
 
                 let doc = StructuredDoc {
                     source_id: source_id.to_string(),
-                    fields: StructuredDocFields::Pull(StructuredDocPullRequestFields {
+                    fields: StructuredDocFields::Pull(StructuredDocPullDocumentFields {
                         link: url,
                         title: pull.title.unwrap_or_default(),
                         body: pull.body.unwrap_or_default(),
@@ -86,53 +86,3 @@ pub async fn list_github_pulls(
 
     Ok(s)
 }
-
-// #[derive(Deserialize)]
-// struct GitlabIssue {
-//     title: String,
-//     description: Option<String>,
-//     web_url: String,
-//     updated_at: DateTime<Utc>,
-//     state: String,
-// }
-
-// pub async fn list_gitlab_issues(
-//     source_id: &str,
-//     api_base: &str,
-//     full_name: &str,
-//     access_token: &str,
-// ) -> Result<impl Stream<Item = (DateTime<Utc>, StructuredDoc)>> {
-//     let gitlab = create_gitlab_client(api_base, access_token).await?;
-
-//     let source_id = source_id.to_owned();
-//     let full_name = full_name.to_owned();
-//     let s = stream! {
-
-//         let issues: Vec<GitlabIssue> = match gitlab::api::paged(
-//             ProjectIssues::builder().project(&full_name).build().expect("Failed to build request"),
-//             gitlab::api::Pagination::All,
-//         )
-//         .query_async(&gitlab)
-//         .await {
-//             Ok(x) => x,
-//             Err(e) => {
-//                 logkit::error!("Failed to fetch issues: {}", e);
-//                 return;
-//             }
-//         };
-
-//         for issue in issues {
-//             let doc = StructuredDoc {
-//                 source_id: source_id.to_owned(),
-//                 fields: StructuredDocFields::Issue(StructuredDocIssueFields {
-//                 link: issue.web_url,
-//                 title: issue.title,
-//                 body: issue.description.unwrap_or_default(),
-//                 closed: issue.state == "closed",
-//             })};
-//             yield (issue.updated_at, doc);
-//         }
-//     };
-
-//     Ok(s)
-// }

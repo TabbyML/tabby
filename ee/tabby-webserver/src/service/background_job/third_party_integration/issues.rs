@@ -47,8 +47,8 @@ pub async fn list_github_issues(
             let pages = response.number_of_pages().unwrap_or_default();
 
             for issue in response.items {
-                // pull requests is also an issue in GitHub,
-                // skip it here
+                // pull request is also an issue in GitHub,
+                // skip them here
                 if issue.pull_request.is_some() {
                     continue;
                 }

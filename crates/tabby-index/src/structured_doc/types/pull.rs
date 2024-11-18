@@ -10,21 +10,21 @@ use tokio::task::JoinHandle;
 
 use super::{build_tokens, BuildStructuredDoc};
 
-/// PullRequest indexes pull requests from GitHub or GitLab.
-/// Code changes can be represented in two formats: diff and patch.
-/// Since commits are not relevant, the diff format is used.
-/// For details on the diff format, refer to:
-/// https://git-scm.com/docs/diff-format#_combined_diff_format
-pub struct PullRequest {
+pub struct PullDocument {
     pub link: String,
     pub title: String,
     pub body: String,
+
+    /// Code changes can be represented in two formats: diff and patch.
+    /// Since commits are not relevant, the diff format is used.
+    /// For details on the diff format, refer to:
+    /// https://git-scm.com/docs/diff-format#_combined_diff_format
     pub diff: String,
     pub merged: bool,
 }
 
 #[async_trait]
-impl BuildStructuredDoc for PullRequest {
+impl BuildStructuredDoc for PullDocument {
     fn should_skip(&self) -> bool {
         false
     }

@@ -58,7 +58,7 @@ pub trait BuildStructuredDoc {
 pub enum StructuredDocFields {
     Web(web::WebDocument),
     Issue(issue::IssueDocument),
-    Pull(pull::PullRequest),
+    Pull(pull::PullDocument),
 }
 
 #[async_trait]

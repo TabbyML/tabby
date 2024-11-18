@@ -20,7 +20,7 @@ pub struct DocSearchHit {
 pub enum DocSearchDocument {
     Web(DocSearchWebDocument),
     Issue(DocSearchIssueDocument),
-    Pull(DocSearchPullRequest),
+    Pull(DocSearchPullDocument),
 }
 
 #[derive(Error, Debug)]
@@ -67,7 +67,7 @@ pub struct DocSearchIssueDocument {
 }
 
 #[derive(Clone)]
-pub struct DocSearchPullRequest {
+pub struct DocSearchPullDocument {
     pub title: String,
     pub link: String,
     pub body: String,
@@ -92,9 +92,8 @@ impl FromTantivyDocument for DocSearchDocument {
             }
             "issue" => DocSearchIssueDocument::from_tantivy_document(doc, chunk)
                 .map(DocSearchDocument::Issue),
-            "pull" => {
-                DocSearchPullRequest::from_tantivy_document(doc, chunk).map(DocSearchDocument::Pull)
-            }
+            "pull" => DocSearchPullDocument::from_tantivy_document(doc, chunk)
+                .map(DocSearchDocument::Pull),
             _ => None,
         }
     }
@@ -159,7 +158,7 @@ impl FromTantivyDocument for DocSearchIssueDocument {
     }
 }
 
-impl FromTantivyDocument for DocSearchPullRequest {
+impl FromTantivyDocument for DocSearchPullDocument {
     fn from_tantivy_document(doc: &TantivyDocument, _: &TantivyDocument) -> Option<Self> {
         let schema = IndexSchema::instance();
         let title = get_json_text_field(

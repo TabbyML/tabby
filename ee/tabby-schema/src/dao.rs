@@ -4,9 +4,8 @@ use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
-    ThreadMessageAttachmentPullRequest, ThreadMessageAttachmentWebDoc, ThreadMessageDAO,
-    UserEventDAO,
+    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
+    ThreadMessageAttachmentWebDoc, ThreadMessageDAO, UserEventDAO,
 };
 
 use crate::{
@@ -248,7 +247,7 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 })
             }
             ThreadMessageAttachmentDoc::Pull(val) => {
-                thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullRequest {
+                thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
                     title: val.title,
                     link: val.link,
                     body: val.body,
@@ -279,7 +278,7 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 })
             }
             thread::MessageAttachmentDoc::Pull(val) => {
-                ThreadMessageAttachmentDoc::Pull(ThreadMessageAttachmentPullRequest {
+                ThreadMessageAttachmentDoc::Pull(ThreadMessageAttachmentPullDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
                     body: val.body.clone(),

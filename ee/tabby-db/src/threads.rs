@@ -36,7 +36,7 @@ pub struct ThreadMessageDAO {
 pub enum ThreadMessageAttachmentDoc {
     Web(ThreadMessageAttachmentWebDoc),
     Issue(ThreadMessageAttachmentIssueDoc),
-    Pull(ThreadMessageAttachmentPullRequest),
+    Pull(ThreadMessageAttachmentPullDoc),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -55,7 +55,7 @@ pub struct ThreadMessageAttachmentIssueDoc {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ThreadMessageAttachmentPullRequest {
+pub struct ThreadMessageAttachmentPullDoc {
     pub title: String,
     pub link: String,
     pub body: String,
