@@ -521,7 +521,7 @@ type MessageAttachmentPullRequest {
   link: String!
   body: String!
   patch: String!
-  state: String!
+  merged: Boolean!
 }
 
 type MessageAttachmentWebDoc {
