@@ -431,7 +431,6 @@ function SourceCard({
   onDelete?: () => void
 }) {
   const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
-  // FIXME
   const [devTooltipOpen, setDevTooltipOpen] = useState(false)
 
   const onOpenChange = (v: boolean) => {

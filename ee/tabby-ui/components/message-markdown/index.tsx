@@ -1,12 +1,4 @@
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  // useEffect,
-  useMemo,
-  // useRef,
-  useState
-} from 'react'
+import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -34,8 +26,6 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-// import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui-slim.js'
-
 import {
   MARKDOWN_CITATION_REGEX,
   MARKDOWN_SOURCE_REGEX
@@ -45,8 +35,6 @@ import { Mention } from '../mention-tag'
 import { Badge } from '../ui/badge'
 import { IconCircleDot, IconGitPullRequest } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
-
-import 'diff2html/bundles/css/diff2html.min.css'
 
 type RelevantDocItem = {
   type: 'doc'
@@ -505,7 +493,7 @@ function IssueStatusBadge({ closed }: { closed: boolean }) {
     <Badge
       className={cn('text-xs gap-1 text-white', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': closed,
-        'bg-successful': !closed
+        'bg-green-700 dark:bg-green-600': !closed
       })}
     >
       <IconCircleDot className="h-3.5 w-3.5" />
@@ -517,10 +505,10 @@ function IssueStatusBadge({ closed }: { closed: boolean }) {
 function PRStatusBadge({ state }: { state: string }) {
   return (
     <Badge
-      className={cn('text-xs gap-1 text-white', {
+      className={cn('text-xs gap-1 text-white bg-gray-500 dark:bg-gray-500', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': state === 'Merged',
-        'bg-green-700 dark:bg-green-800': state === 'Open',
-        'bg-red-600 dark:bg-red-800': state === 'Closed'
+        'bg-green-700 dark:bg-green-600': state === 'Open',
+        'bg-red-600 dark:bg-red-400': state === 'Closed'
       })}
     >
       <IconGitPullRequest className="h-3.5 w-3.5" />
@@ -528,26 +516,3 @@ function PRStatusBadge({ state }: { state: string }) {
     </Badge>
   )
 }
-
-// const PatchView = ({ patch }: { patch: string }) => {
-//   const ref = useRef<HTMLDivElement>(null)
-//   useEffect(() => {
-//     if (ref.current) {
-//       let diff2htmlUi = new Diff2HtmlUI(ref.current, patch, {
-//         drawFileList: true,
-//         fileListToggle: false,
-//         fileListStartVisible: false,
-//         fileContentToggle: false,
-//         matching: 'lines',
-//         outputFormat: 'side-by-side',
-//         synchronisedScroll: true,
-//         highlight: true,
-//         renderNothingWhenEmpty: false
-//       })
-//       diff2htmlUi.draw()
-//       diff2htmlUi.highlightCode()
-//     }
-//   }, [])
-
-//   return <div ref={ref} />
-// }
