@@ -362,7 +362,7 @@ export class WebviewHelper {
   }
 
   public addTextEditorEventListeners() {
-    const supportSchemes = ['file', 'untitled']
+    const supportSchemes = ["file", "untitled"];
     window.onDidChangeActiveTextEditor((e) => {
       if (e && !supportSchemes.includes(e.document.uri.scheme)) {
         this.syncActiveSelection(undefined);
