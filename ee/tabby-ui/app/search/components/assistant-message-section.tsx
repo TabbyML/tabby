@@ -483,8 +483,7 @@ function SourceCardContent({
   source: AttachmentDocItem
   showMore: boolean
 }) {
-  // FIXME
-  const { hostname } = new URL(source.link || window.origin)
+  const { hostname } = new URL(source.link)
 
   const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
   const isPR = source.__typename === 'MessageAttachmentPullRequest'
