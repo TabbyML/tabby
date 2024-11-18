@@ -110,6 +110,9 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                     let Ok((tokens, chunk_attributes)) = task.await else {
                         return None;
                     };
+                    if tokens.is_empty() {
+                        return None;
+                    }
 
                     let mut doc = doc! {
                         schema.field_id => id,
