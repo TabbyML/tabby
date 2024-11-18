@@ -35,6 +35,9 @@ export class CompletionItem {
   readonly currentLine: string; // first item of `lines`
   readonly isBlank: boolean; // whether the item is a blank line.
 
+  readonly processedText: string; // text to be inserted.
+  readonly processedRange: { start: number; end: number }; // range to be replaced.
+
   constructor(
     // The context which the completion was generated for.
     readonly context: CompletionContext,
@@ -54,6 +57,25 @@ export class CompletionItem {
     this.lines = splitLines(this.text);
     this.currentLine = this.lines[0] ?? "";
     this.isBlank = isBlank(this.text);
+
+    // if with auto complete item, insert the completion item with the predicted text
+    if (this.context.isWithCorrectAutoComplete()) {
+      this.processedText = this.context.insertSeg + this.fullText;
+      this.processedRange = {
+        start: this.context.insertPosition,
+        end: this.context.insertPosition,
+      };
+    } else {
+      this.processedText = this.fullText;
+      this.processedRange = {
+        start: this.context.currentLinePrefix.endsWith(this.replacePrefix)
+          ? this.context.position - this.replacePrefix.length
+          : this.context.position,
+        end: this.context.currentLineSuffix.startsWith(this.replaceSuffix)
+          ? this.context.position + this.replaceSuffix.length
+          : this.context.position,
+      };
+    }
   }
 
   static createBlankItem(context: CompletionContext): CompletionItem {
@@ -106,6 +128,7 @@ export class CompletionItem {
   forward(chars: number): CompletionItem {
     if (chars <= 0) return this;
     const delta = this.text.substring(0, chars);
+
     // Forward in the current line
     if (chars < this.currentLine.length) {
       return new CompletionItem(
@@ -141,15 +164,8 @@ export class CompletionItem {
 
   toInlineCompletionItem(): InlineCompletionItem {
     return {
-      insertText: this.fullText,
-      range: {
-        start: this.context.currentLinePrefix.endsWith(this.replacePrefix)
-          ? this.context.position - this.replacePrefix.length
-          : this.context.position,
-        end: this.context.currentLineSuffix.startsWith(this.replaceSuffix)
-          ? this.context.position + this.replaceSuffix.length
-          : this.context.position,
-      },
+      insertText: this.processedText,
+      range: this.processedRange,
       data: { eventId: this.eventId },
     };
   }
