@@ -127,7 +127,7 @@ export function getContent(item: AttachmentDocItem) {
     case 'MessageAttachmentWebDoc':
       return item.content
     case 'MessageAttachmentIssueDoc':
-    case 'MessageAttachmentPullRequest':
+    case 'MessageAttachmentPullDoc':
       return item.body
   }
 

@@ -374,7 +374,7 @@ function RelevantDocumentBadge({
 }) {
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
   const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
-  const isPR = relevantDocument?.__typename === 'MessageAttachmentPullRequest'
+  const isPR = relevantDocument?.__typename === 'MessageAttachmentPullDoc'
 
   return (
     <HoverCard>
@@ -403,7 +403,7 @@ function RelevantDocumentBadge({
           </p>
           <div className="mb-2 w-auto">
             {isIssue && <IssueStatusBadge closed={relevantDocument.closed} />}
-            {isPR && <PRStatusBadge state={relevantDocument.state} />}
+            {isPR && <PRStateBadge merged={relevantDocument.merged} />}
           </div>
           <p className="m-0 line-clamp-4 leading-none">
             {normalizedText(getContent(relevantDocument))}
@@ -493,7 +493,7 @@ function IssueStatusBadge({ closed }: { closed: boolean }) {
     <Badge
       className={cn('text-xs gap-1 text-white', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': closed,
-        'bg-green-700 dark:bg-green-600': !closed
+        'bg-gray-500 dark:bg-gray-500': !closed
       })}
     >
       <IconCircleDot className="h-3.5 w-3.5" />
@@ -502,17 +502,16 @@ function IssueStatusBadge({ closed }: { closed: boolean }) {
   )
 }
 
-function PRStatusBadge({ state }: { state: string }) {
+function PRStateBadge({ merged }: { merged: boolean }) {
   return (
     <Badge
-      className={cn('text-xs gap-1 text-white bg-gray-500 dark:bg-gray-500', {
-        'bg-[#7b52d7] dark:bg-[#8259dd]': state === 'Merged',
-        'bg-green-700 dark:bg-green-600': state === 'Open',
-        'bg-red-600 dark:bg-red-400': state === 'Closed'
+      className={cn('text-xs gap-1 text-white', {
+        'bg-[#7b52d7] dark:bg-[#8259dd]': merged,
+        'bg-gray-500 dark:bg-gray-500': !merged
       })}
     >
       <IconGitPullRequest className="h-3.5 w-3.5" />
-      {state}
+      {merged ? 'Merged' : 'Not merged'}
     </Badge>
   )
 }

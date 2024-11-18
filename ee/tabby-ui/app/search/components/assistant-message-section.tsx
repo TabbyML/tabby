@@ -485,7 +485,7 @@ function SourceCardContent({
   const { hostname } = new URL(source.link)
 
   const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
-  const isPR = source.__typename === 'MessageAttachmentPullRequest'
+  const isPR = source.__typename === 'MessageAttachmentPullDoc'
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">
@@ -517,13 +517,13 @@ function SourceCardContent({
             {isIssue && (
               <>
                 <IconCircleDot className="h-3.5 w-3.5" />
-                <span>{source.closed ? 'Closed' : 'Open'}</span>
+                <span>{source.closed ? 'Closed' : 'Not closed'}</span>
               </>
             )}
             {isPR && (
               <>
                 <IconGitPullRequest className="h-3.5 w-3.5" />
-                {source.state}
+                {source.merged ? 'Merged' : 'Not merged'}
               </>
             )}
           </div>
