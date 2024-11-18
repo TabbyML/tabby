@@ -18,7 +18,7 @@ pub mod fields {
         pub const TITLE: &str = "title";
         pub const LINK: &str = "link";
         pub const BODY: &str = "body";
-        pub const PATCH: &str = "patch";
-        pub const STATE: &str = "state";
+        pub const DIFF: &str = "diff";
+        pub const MERGED: &str = "merged";
     }
 }

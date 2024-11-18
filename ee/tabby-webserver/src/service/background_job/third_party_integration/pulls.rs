@@ -3,10 +3,7 @@ use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::Stream;
 use octocrab::{models::IssueState, Octocrab};
-use tabby_index::public::{
-    StructuredDoc, StructuredDocFields, StructuredDocPullRequestFields,
-    StructuredDocPullRequestState,
-};
+use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocPullRequestFields};
 
 pub async fn list_github_pulls(
     source_id: &str,
@@ -46,31 +43,34 @@ pub async fn list_github_pulls(
             let pages = response.number_of_pages().unwrap_or_default();
 
             for pull in response.items {
-                let title = pull.title.unwrap_or_default();
+                // skip closed but not merged pulls
+                if let Some(state) = pull.state {
+                    if state == IssueState::Closed && pull.merged_at.is_none() {
+                        continue
+                    }
+                }
 
-                let patch = match octocrab.pulls(&owner, &repo).get_patch(pull.number).await {
-                    Ok(x) => x,
+                let url = pull.html_url.map(|url| url.to_string()).unwrap_or_else(|| pull.url);
+                let diff = match octocrab.pulls(&owner, &repo).get_diff(pull.number).await {
+                    Ok(x) if x.len() < 1024*1024 => x,
+                    Ok(_) => {
+                        logkit::warn!("Pull request {} diff is larger than 1MB, skipping", url);
+                        continue
+                    }
                     Err(e) => {
-                        println!("Failed to fetch pull request patch for {}: {}", title, e);
-                        logkit::error!("Failed to fetch pull request patch for {}: {}", title, e);
+                        logkit::error!("Failed to fetch pull request patch for {}: {}", url, e);
                         continue
                     }
                 };
 
-                let state = match (pull.state, pull.merged_at) {
-                    (Some(IssueState::Closed), Some(_)) => StructuredDocPullRequestState::Merged,
-                    (Some(IssueState::Closed), None) => StructuredDocPullRequestState::Closed,
-                    _ => StructuredDocPullRequestState::Open,
-                }.to_string();
-
                 let doc = StructuredDoc {
                     source_id: source_id.to_string(),
                     fields: StructuredDocFields::Pull(StructuredDocPullRequestFields {
-                        link: pull.url,
-                        title,
+                        link: url,
+                        title: pull.title.unwrap_or_default(),
                         body: pull.body.unwrap_or_default(),
-                        patch,
-                        state,
+                        diff,
+                        merged: pull.merged_at.is_some(),
                     })
                 };
 

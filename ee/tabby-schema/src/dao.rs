@@ -253,7 +253,7 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                     link: val.link,
                     body: val.body,
                     patch: val.diff,
-                    state: val.state,
+                    merged: val.merged,
                 })
             }
         }
@@ -284,7 +284,7 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                     link: val.link.clone(),
                     body: val.body.clone(),
                     diff: val.patch.clone(),
-                    state: val.state.clone(),
+                    merged: val.merged.clone(),
                 })
             }
         }

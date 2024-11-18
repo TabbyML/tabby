@@ -71,8 +71,8 @@ pub struct DocSearchPullRequest {
     pub title: String,
     pub link: String,
     pub body: String,
-    pub patch: String,
-    pub state: String,
+    pub diff: String,
+    pub merged: bool,
 }
 
 pub trait FromTantivyDocument {
@@ -180,19 +180,19 @@ impl FromTantivyDocument for DocSearchPullRequest {
         let diff = get_json_text_field(
             doc,
             schema.field_attributes,
-            structured_doc::fields::pull::PATCH,
+            structured_doc::fields::pull::DIFF,
         );
-        let state = get_json_text_field(
+        let merged = get_json_bool_field(
             doc,
             schema.field_attributes,
-            structured_doc::fields::pull::STATE,
+            structured_doc::fields::pull::MERGED,
         );
         Some(Self {
             title: title.into(),
             link: link.into(),
             body: body.into(),
-            patch: diff.into(),
-            state: state.into(),
+            diff: diff.into(),
+            merged,
         })
     }
 }

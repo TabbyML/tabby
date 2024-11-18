@@ -60,7 +60,7 @@ pub struct ThreadMessageAttachmentPullRequest {
     pub link: String,
     pub body: String,
     pub diff: String,
-    pub state: String,
+    pub merged: bool,
 }
 
 #[derive(Serialize, Deserialize)]
