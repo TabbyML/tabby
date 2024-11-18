@@ -44,6 +44,8 @@ export interface NavigateOpts {
   openInEditor?: boolean
 }
 
+export type ClientApiMethods = keyof ClientApi
+
 export interface ServerApi {
   init: (request: InitRequest) => void
   sendMessage: (message: ChatMessage) => void
@@ -69,6 +71,8 @@ export interface ClientApi {
   onCopy: (content: string) => void
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
+
+  hasCapability?: (capability: ClientApiMethods) => Promise<boolean>
 }
 
 export interface ChatMessage {
@@ -94,6 +98,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
+      hasCapability: api.hasCapability,
     },
   })
 }
