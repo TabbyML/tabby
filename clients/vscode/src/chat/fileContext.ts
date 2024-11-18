@@ -35,15 +35,22 @@ export async function getFileContext(
         end: editor.document.lineCount,
       };
 
-  const workspaceFolder = workspace.getWorkspaceFolder(uri);
-  const repo = gitProvider.getRepository(uri);
+  const workspaceFolder =
+    workspace.getWorkspaceFolder(uri) ?? (editor.document.isUntitled ? workspace.workspaceFolders?.[0] : undefined);
+  const repo =
+    gitProvider.getRepository(uri) ?? (workspaceFolder ? gitProvider.getRepository(workspaceFolder.uri) : undefined);
   const gitRemoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
   let filePath = uri.toString(true);
   if (repo && gitRemoteUrl) {
-    gitProvider.updateRemoteUrlToLocalRoot(gitRemoteUrl, repo.rootUri);
-    filePath = path.relative(repo.rootUri.toString(true), filePath);
+    const relativeFilePath = path.relative(repo.rootUri.toString(true), filePath);
+    if (!relativeFilePath.startsWith("..")) {
+      filePath = relativeFilePath;
+    }
   } else if (workspaceFolder) {
-    filePath = path.relative(workspaceFolder.uri.toString(true), filePath);
+    const relativeFilePath = path.relative(workspaceFolder.uri.toString(true), filePath);
+    if (!relativeFilePath.startsWith("..")) {
+      filePath = relativeFilePath;
+    }
   }
 
   return {
