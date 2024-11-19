@@ -344,20 +344,25 @@ function ChatRenderer(
       contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
     }
 
+    // check context for codeQuery
+    if (!isValidContextForCodeQuery(contextForCodeQuery)) {
+      contextForCodeQuery = undefined
+    }
+
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
       ? {
           content: contextForCodeQuery.content ?? '',
           filepath: contextForCodeQuery.filepath,
           language: contextForCodeQuery.filepath
-            ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
-            : 'text',
+            ? filename2prism(contextForCodeQuery.filepath)[0] || 'plaintext'
+            : 'plaintext',
           gitUrl: contextForCodeQuery?.git_url ?? ''
         }
       : null
 
     const hasUsableActiveContext =
       enableActiveSelection && !!userMessage.activeContext
-    const fileContext: FileContext[] = uniqWith(
+    const clientSideFileContexts: FileContext[] = uniqWith(
       compact([
         hasUsableActiveContext && userMessage.activeContext,
         ...(userMessage?.relevantContext || [])
@@ -365,11 +370,12 @@ function ChatRenderer(
       isEqual
     )
 
-    const attachmentCode: MessageAttachmentCodeInput[] = fileContext.map(o => ({
-      content: o.content,
-      filepath: o.filepath,
-      startLine: o.range.start
-    }))
+    const attachmentCode: MessageAttachmentCodeInput[] =
+      clientSideFileContexts.map(o => ({
+        content: o.content,
+        filepath: o.filepath,
+        startLine: o.range.start
+      }))
 
     const content = userMessage.message
 
@@ -592,4 +598,14 @@ function formatThreadRunErrorMessage(error: ExtendedCombinedError | undefined) {
   }
 
   return error.message || 'Failed to fetch'
+}
+
+function isValidContextForCodeQuery(context: FileContext | undefined) {
+  if (!context) return false
+
+  const isUntitledFile =
+    context.filepath.startsWith('untitled:Untitled-') &&
+    !filename2prism(context.filepath)[0]
+
+  return !isUntitledFile
 }
