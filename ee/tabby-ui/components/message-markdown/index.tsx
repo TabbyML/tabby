@@ -402,7 +402,7 @@ function RelevantDocumentBadge({
             {relevantDocument.title}
           </p>
           <div className="mb-2 w-auto">
-            {isIssue && <IssueStatusBadge closed={relevantDocument.closed} />}
+            {isIssue && <IssueStateBadge closed={relevantDocument.closed} />}
             {isPR && <PRStateBadge merged={relevantDocument.merged} />}
           </div>
           <p className="m-0 line-clamp-4 leading-none">
@@ -488,16 +488,17 @@ export function SiteFavicon({
   )
 }
 
-function IssueStatusBadge({ closed }: { closed: boolean }) {
+function IssueStateBadge({ closed }: { closed: boolean }) {
   return (
     <Badge
+      variant="outline"
       className={cn('text-xs gap-1 text-white', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': closed,
         'bg-gray-500 dark:bg-gray-500': !closed
       })}
     >
       <IconCircleDot className="h-3.5 w-3.5" />
-      {closed ? 'Closed' : 'Open'}
+      {closed ? 'Closed' : 'Not closed'}
     </Badge>
   )
 }
@@ -505,6 +506,7 @@ function IssueStatusBadge({ closed }: { closed: boolean }) {
 function PRStateBadge({ merged }: { merged: boolean }) {
   return (
     <Badge
+      variant="outline"
       className={cn('text-xs gap-1 text-white', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': merged,
         'bg-gray-500 dark:bg-gray-500': !merged
