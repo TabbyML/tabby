@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use tabby_common::index::corpus;
 use tabby_inference::Embedding;
+use tantivy::TantivyDocument;
 
 pub use super::types::{
     issue::IssueDocument as StructuredDocIssueFields,
@@ -35,16 +36,32 @@ impl StructuredDocIndexer {
             return false;
         };
 
-        stream! {
+        let docs: Vec<TantivyDocument> = stream! {
             let (id, s) = self.builder.build(document).await;
             self.indexer.delete(&id);
 
-            for await doc in s.buffer_unordered(std::cmp::max(std::thread::available_parallelism().unwrap().get() * 2, 32)) {
+            for await doc in s.buffer_unordered(std::cmp::max(
+                std::thread::available_parallelism().unwrap().get() * 2,
+                32,
+            )) {
                 if let Ok(Some(doc)) = doc {
-                    self.indexer.add(doc).await;
+                    yield doc
                 }
             }
-        }.count().await;
+        }
+        .collect()
+        .await;
+
+        // If there is only one document,
+        // it means that only the doc is returned and not the chunks
+        // skip it
+        if docs.len() == 1 {
+            return false;
+        }
+
+        for doc in docs.iter() {
+            self.indexer.add(doc.clone()).await;
+        }
         true
     }
 

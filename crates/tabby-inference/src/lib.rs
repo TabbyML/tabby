@@ -8,7 +8,7 @@ mod embedding;
 pub use chat::{ChatCompletionStream, ExtendedOpenAIConfig};
 pub use code::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
 pub use completion::{CompletionOptions, CompletionOptionsBuilder, CompletionStream};
-pub use embedding::Embedding;
+pub use embedding::{tests::MockEmbedding, Embedding};
 
 fn default_seed() -> u64 {
     std::time::SystemTime::now()
