@@ -17,7 +17,7 @@ export class Config extends EventEmitter {
   constructor(private readonly context: ExtensionContext) {
     super();
     context.subscriptions.push(
-      workspace.onDidChangeConfiguration(async (event) => {        
+      workspace.onDidChangeConfiguration(async (event) => {
         if (
           event.affectsConfiguration("tabby") ||
           event.affectsConfiguration("http.proxy") ||
