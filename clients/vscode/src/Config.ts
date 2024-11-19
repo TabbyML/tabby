@@ -186,7 +186,7 @@ export class Config extends EventEmitter {
   }
 
   // To fit createProxyForUrl function's signature in agent.
-  get noProxy() : string[] {
+  get noProxy(): string[] {
     return this.httpConfig.get("noProxy", []);
   }
 
