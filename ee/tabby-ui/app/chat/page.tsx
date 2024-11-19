@@ -10,6 +10,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import {
+  clientApiKeys,
   TABBY_CHAT_PANEL_API_VERSION,
   type ChatMessage,
   type Context,
@@ -222,11 +223,27 @@ export default function ChatPage() {
     }
   }, [server, client])
 
+  const [serverCapabilities, setServerCapabilities] = useState(
+    new Map<string, boolean>()
+  )
+
   useEffect(() => {
     if (server) {
       server?.onLoaded({
         apiVersion: TABBY_CHAT_PANEL_API_VERSION
       })
+
+      const checkCapabilities = async () => {
+        const results = await Promise.all(
+          clientApiKeys.map(async key => {
+            const hasCapability = await server.hasCapability!(key)
+            return [key, hasCapability] as [string, boolean]
+          })
+        )
+        setServerCapabilities(new Map(results))
+      }
+
+      checkCapabilities()
     }
   }, [server])
 
@@ -370,6 +387,7 @@ export default function ChatPage() {
         onCopyContent={isInEditor && server?.onCopy}
         onSubmitMessage={isInEditor && server?.onSubmitMessage}
         onApplyInEditor={isInEditor && server?.onApplyInEditor}
+        serverCapabilities={serverCapabilities}
       />
     </ErrorBoundary>
   )

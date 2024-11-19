@@ -35,6 +35,7 @@ export interface CodeBlockProps {
     opts?: { languageId: string; smart: boolean }
   ) => void
   canWrapLongLines: boolean | undefined
+  serverCapabilities: Map<string, boolean>
 }
 
 interface languageMap {
@@ -78,7 +79,14 @@ export const generateRandomString = (length: number, lowercase = false) => {
 }
 
 const CodeBlock: FC<CodeBlockProps> = memo(
-  ({ language, value, onCopyContent, onApplyInEditor, canWrapLongLines }) => {
+  ({
+    language,
+    value,
+    onCopyContent,
+    onApplyInEditor,
+    canWrapLongLines,
+    serverCapabilities
+  }) => {
     const [wrapLongLines, setWrapLongLines] = useState(false)
     const { isCopied, copyToClipboard } = useCopyToClipboard({
       timeout: 2000,
@@ -115,7 +123,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                 </TooltipContent>
               </Tooltip>
             )}
-            {onApplyInEditor && (
+            {serverCapabilities.get('onApplyInEditor') && onApplyInEditor && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -138,7 +146,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                 </TooltipContent>
               </Tooltip>
             )}
-            {onApplyInEditor && (
+            {serverCapabilities.get('onApplyInEditor') && onApplyInEditor && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
