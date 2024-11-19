@@ -66,6 +66,13 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
               body
               closed
             }
+            ... on MessageAttachmentPullDoc {
+              title
+              link
+              body
+              merged
+              patch
+            }
           }
           score
         }
@@ -126,6 +133,13 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
               link
               body
               closed
+            }
+            ... on MessageAttachmentPullDoc {
+              title
+              link
+              body
+              merged
+              patch
             }
           }
           score

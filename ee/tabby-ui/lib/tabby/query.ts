@@ -425,6 +425,13 @@ export const listThreadMessages = graphql(/* GraphQL */ `
                 body
                 closed
               }
+              ... on MessageAttachmentPullDoc {
+                title
+                link
+                body
+                merged
+                patch
+              }
             }
           }
         }
