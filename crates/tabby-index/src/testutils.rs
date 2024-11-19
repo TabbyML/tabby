@@ -1,13 +1,16 @@
 mod structured_doc_tests {
-    use crate::indexer::Indexer;
-    use crate::structured_doc::public::{
-        StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
-    };
-    use std::env;
-    use std::sync::Arc;
+    use std::{env, sync::Arc};
+
     use tabby_common::index::corpus;
     use tabby_inference::MockEmbedding;
     use temp_testdir::TempDir;
+
+    use crate::{
+        indexer::Indexer,
+        structured_doc::public::{
+            StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
+        },
+    };
 
     #[test]
     fn test_structured_doc_empty_embedding() {
@@ -73,17 +76,20 @@ mod structured_doc_tests {
 }
 
 mod indexer_tests {
-    use crate::indexer::TantivyDocBuilder;
-    use crate::structured_doc::{
-        public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields},
-        StructuredDocBuilder,
-    };
+    use std::{env, sync::Arc};
+
     use futures::StreamExt;
-    use std::env;
-    use std::sync::Arc;
     use tabby_common::index::corpus;
     use tabby_inference::MockEmbedding;
     use temp_testdir::TempDir;
+
+    use crate::{
+        indexer::TantivyDocBuilder,
+        structured_doc::{
+            public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields},
+            StructuredDocBuilder,
+        },
+    };
 
     /// Test that the indexer return the document and none itself
     /// when the embedding is empty

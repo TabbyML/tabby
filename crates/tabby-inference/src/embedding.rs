@@ -6,8 +6,9 @@ pub trait Embedding: Sync + Send {
 }
 
 pub mod tests {
-    use super::*;
     use anyhow::Result;
+
+    use super::*;
 
     pub struct MockEmbedding {
         result: Vec<f32>,
