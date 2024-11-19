@@ -1,5 +1,5 @@
 import { createThread, type ThreadOptions } from "@quilted/threads";
-import type { ServerApi, ClientApi, ClientApiMethods } from "tabby-chat-panel";
+import { type ServerApi, type ClientApi } from "tabby-chat-panel";
 import { Webview } from "vscode";
 
 export function createThreadFromWebview<Self = Record<string, never>, Target = Record<string, never>>(
@@ -23,14 +23,15 @@ export function createThreadFromWebview<Self = Record<string, never>, Target = R
 }
 
 export function createClient(webview: Webview, api: ClientApi): ServerApi {
-  const hasCapability = (capability: ClientApiMethods): boolean => {
-    return capability in exposedApi && typeof exposedApi[capability as keyof typeof exposedApi] === "function";
-  };
-  const exposedApi = {
-    ...api,
-    hasCapability: hasCapability,
-  };
   return createThreadFromWebview(webview, {
-    expose: exposedApi,
+    expose: {
+      navigate: api.navigate,
+      refresh: api.refresh,
+      onSubmitMessage: api.onSubmitMessage,
+      onApplyInEditor: api.onApplyInEditor,
+      onLoaded: api.onLoaded,
+      onCopy: api.onCopy,
+      onKeyboardEvent: api.onKeyboardEvent,
+    },
   });
 }
