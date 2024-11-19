@@ -71,6 +71,7 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
               link
               body
               merged
+              patch
             }
           }
           score
@@ -138,6 +139,7 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
               link
               body
               merged
+              patch
             }
           }
           score

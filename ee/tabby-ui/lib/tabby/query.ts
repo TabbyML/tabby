@@ -430,6 +430,7 @@ export const listThreadMessages = graphql(/* GraphQL */ `
                 link
                 body
                 merged
+                patch
               }
             }
           }
