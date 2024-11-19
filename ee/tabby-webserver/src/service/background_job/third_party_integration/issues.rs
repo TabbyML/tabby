@@ -47,6 +47,12 @@ pub async fn list_github_issues(
             let pages = response.number_of_pages().unwrap_or_default();
 
             for issue in response.items {
+                // pull request is also an issue in GitHub,
+                // skip them here
+                if issue.pull_request.is_some() {
+                    continue;
+                }
+
                 let doc = StructuredDoc {
                     source_id: source_id.to_string(),
                     fields: StructuredDocFields::Issue(StructuredDocIssueFields {

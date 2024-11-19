@@ -126,7 +126,7 @@ impl AnswerService {
                         .map(|x| x.doc.clone().into())
                         .collect::<Vec<_>>();
 
-                debug!("doc content: {:?}", doc_query.content);
+                debug!("doc content: {:?}: {:?}", doc_query.content, attachment.doc.len());
 
                 if !attachment.doc.is_empty() {
                     let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
@@ -603,6 +603,7 @@ fn get_content(doc: &MessageAttachmentDoc) -> &str {
     match doc {
         MessageAttachmentDoc::Web(web) => &web.content,
         MessageAttachmentDoc::Issue(issue) => &issue.body,
+        MessageAttachmentDoc::Pull(pull) => &pull.body,
     }
 }
 
@@ -711,6 +712,7 @@ mod tests {
         match doc {
             DocSearchDocument::Web(web_doc) => &web_doc.title,
             DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
+            DocSearchDocument::Pull(pull_doc) => &pull_doc.title,
         }
     }
 

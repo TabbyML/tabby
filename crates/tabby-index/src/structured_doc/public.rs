@@ -7,8 +7,9 @@ use tabby_common::index::corpus;
 use tabby_inference::Embedding;
 
 pub use super::types::{
-    issue::IssueDocument as StructuredDocIssueFields, web::WebDocument as StructuredDocWebFields,
-    StructuredDoc, StructuredDocFields,
+    issue::IssueDocument as StructuredDocIssueFields,
+    pull::PullDocument as StructuredDocPullDocumentFields,
+    web::WebDocument as StructuredDocWebFields, StructuredDoc, StructuredDocFields,
 };
 use super::{create_structured_doc_builder, types::BuildStructuredDoc};
 use crate::{indexer::TantivyDocBuilder, Indexer};

@@ -17,7 +17,7 @@ pub mod public {
         code::CodeIndexer,
         structured_doc::public::{
             StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
-            StructuredDocWebFields,
+            StructuredDocPullDocumentFields, StructuredDocWebFields,
         },
     };
 

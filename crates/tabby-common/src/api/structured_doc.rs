@@ -20,6 +20,7 @@ pub struct DocSearchHit {
 pub enum DocSearchDocument {
     Web(DocSearchWebDocument),
     Issue(DocSearchIssueDocument),
+    Pull(DocSearchPullDocument),
 }
 
 #[derive(Error, Debug)]
@@ -65,6 +66,15 @@ pub struct DocSearchIssueDocument {
     pub closed: bool,
 }
 
+#[derive(Clone)]
+pub struct DocSearchPullDocument {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub diff: String,
+    pub merged: bool,
+}
+
 pub trait FromTantivyDocument {
     fn from_tantivy_document(doc: &TantivyDocument, chunk: &TantivyDocument) -> Option<Self>
     where
@@ -82,6 +92,8 @@ impl FromTantivyDocument for DocSearchDocument {
             }
             "issue" => DocSearchIssueDocument::from_tantivy_document(doc, chunk)
                 .map(DocSearchDocument::Issue),
+            "pull" => DocSearchPullDocument::from_tantivy_document(doc, chunk)
+                .map(DocSearchDocument::Pull),
             _ => None,
         }
     }
@@ -142,6 +154,44 @@ impl FromTantivyDocument for DocSearchIssueDocument {
             link: link.into(),
             body: body.into(),
             closed,
+        })
+    }
+}
+
+impl FromTantivyDocument for DocSearchPullDocument {
+    fn from_tantivy_document(doc: &TantivyDocument, _: &TantivyDocument) -> Option<Self> {
+        let schema = IndexSchema::instance();
+        let title = get_json_text_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::pull::TITLE,
+        );
+        let link = get_json_text_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::pull::LINK,
+        );
+        let body = get_json_text_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::pull::BODY,
+        );
+        let diff = get_json_text_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::pull::DIFF,
+        );
+        let merged = get_json_bool_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::pull::MERGED,
+        );
+        Some(Self {
+            title: title.into(),
+            link: link.into(),
+            body: body.into(),
+            diff: diff.into(),
+            merged,
         })
     }
 }

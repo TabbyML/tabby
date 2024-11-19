@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use futures::{stream::BoxStream, StreamExt};
 use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
+use pulls::list_github_pulls;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::CodeRepository;
 use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer};
@@ -19,6 +20,7 @@ use tracing::debug;
 use super::{helper::Job, BackgroundJobEvent};
 
 mod issues;
+mod pulls;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SyncIntegrationJob {
@@ -113,7 +115,7 @@ impl SchedulerGithubGitlabJob {
             repository.display_name
         );
         let index = StructuredDocIndexer::new(embedding);
-        let s = match fetch_all_issues(&integration, &repository).await {
+        let issue_stream = match fetch_all_issues(&integration, &repository).await {
             Ok(s) => s,
             Err(e) => {
                 integration_service
@@ -124,10 +126,21 @@ impl SchedulerGithubGitlabJob {
             }
         };
 
+        let pull_stream = match fetch_all_pulls(&integration, &repository).await {
+            Ok(s) => s,
+            Err(e) => {
+                integration_service
+                    .update_integration_sync_status(integration.id, Some(e.to_string()))
+                    .await?;
+                logkit::error!("Failed to fetch pulls: {}", e);
+                return Err(e);
+            }
+        };
+
         stream! {
             let mut count = 0;
             let mut num_updated = 0;
-            for await (updated_at, doc) in s {
+            for await (updated_at, doc) in issue_stream.chain(pull_stream) {
                 if index.add(updated_at, doc).await {
                     num_updated += 1
                 }
@@ -188,6 +201,21 @@ async fn fetch_all_issues(
         .await?
         .boxed(),
     };
+
+    Ok(s)
+}
+async fn fetch_all_pulls(
+    integration: &Integration,
+    repository: &ProvidedRepository,
+) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, StructuredDoc)>> {
+    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = list_github_pulls(
+        &repository.source_id(),
+        integration.api_base(),
+        &repository.display_name,
+        &integration.access_token,
+    )
+    .await?
+    .boxed();
 
     Ok(s)
 }
