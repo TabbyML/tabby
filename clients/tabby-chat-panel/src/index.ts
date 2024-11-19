@@ -1,7 +1,6 @@
 import { createThreadFromIframe } from '@quilted/threads'
 import { version } from '../package.json'
 import { createThreadFromInsideIframe } from './createThreadInsideIframe'
-import { createThread } from './createThread'
 
 export const TABBY_CHAT_PANEL_API_VERSION: string = version
 

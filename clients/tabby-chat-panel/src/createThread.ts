@@ -4,14 +4,14 @@
 /* eslint-disable style/operator-linebreak */
 /* eslint-disable ts/method-signature-style */
 /* eslint-disable sort-imports */
-/* eslint-disable no-console */
+
 /* eslint-disable style/brace-style */
 /* eslint-disable antfu/if-newline */
 /* eslint-disable style/comma-dangle */
 /* eslint-disable style/semi */
 /* eslint-disable style/member-delimiter-style */
 /* eslint-disable style/quotes */
-/* eslint-disable no-restricted-globals */
+
 /* eslint-disable unused-imports/no-unused-vars */
 
 import {
