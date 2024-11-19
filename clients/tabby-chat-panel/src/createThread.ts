@@ -34,6 +34,7 @@ const TERMINATE = 2;
 const RELEASE = 3;
 const FUNCTION_APPLY = 5;
 const FUNCTION_RESULT = 6;
+const CHECK_CAPABILITY = 7;
 export const CHECK_MESSAGE = "quilt.threads.ping";
 export const RESPONSE_MESSAGE = "quilt.threads.pong";
 
@@ -44,6 +45,7 @@ interface MessageMap {
   [RELEASE]: [string];
   [FUNCTION_APPLY]: [string, string, any];
   [FUNCTION_RESULT]: [string, Error?, any?];
+  [CHECK_CAPABILITY]: [string, string];
 }
 
 type MessageData = {
@@ -62,7 +64,7 @@ export interface ThreadOptions<
   onMethodUnavailable?: (method: string) => void;
 }
 
-export function createThread<
+export function createCustomThread<
   Self = Record<string, never>,
   Target = Record<string, never>,
 >(
@@ -250,6 +252,12 @@ export function createThread<
         resolveCall(...data[1]);
         break;
       }
+      case CHECK_CAPABILITY: {
+        const [id, methodToCheck] = data[1];
+        const hasMethod = activeApi.has(methodToCheck);
+        send(RESULT, [id, undefined, encoder.encode(hasMethod, encoderApi)[0]]);
+        break;
+      }
     }
   }
 
@@ -263,25 +271,11 @@ export function createThread<
       }
 
       if (property === "hasCapability") {
-        const methodToTest = args[0];
-        const testId = uuid();
-        const testPromise = waitForResult(testId);
-        send(CALL, [testId, methodToTest, encoder.encode([], encoderApi)[0]]);
-        return testPromise.then(
-          () => {
-            return true;
-          },
-          (error) => {
-            if (
-              error.message?.includes(
-                `No '${methodToTest}' method is exposed on this endpoint`
-              )
-            ) {
-              return false;
-            }
-            throw error;
-          }
-        );
+        const methodToCheck = args[0];
+        const id = uuid();
+        const done = waitForResult(id);
+        send(CHECK_CAPABILITY, [id, methodToCheck]);
+        return done;
       }
       const id = uuid();
       const done = waitForResult(id);

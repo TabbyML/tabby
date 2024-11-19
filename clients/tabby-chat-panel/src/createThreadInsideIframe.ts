@@ -8,7 +8,8 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable unused-imports/no-unused-vars */
 import type { ThreadOptions } from "@quilted/threads";
-import { createThread } from "./createThread";
+import { createCustomThread } from "./createThread";
+import { createThread } from ".";
 
 const CALL = 0;
 const RESULT = 1;
