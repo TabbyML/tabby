@@ -85,8 +85,8 @@ mod indexer_tests {
     use tabby_inference::MockEmbedding;
     use temp_testdir::TempDir;
 
-    /// Test that the indexer return none when the embedding is empty
-    /// meaning that the chunk is not saved at tantivy
+    /// Test that the indexer return the document and none itself
+    /// when the embedding is empty
     #[test]
     fn test_indexer_empty_embedding() {
         let temp_dir = TempDir::default();
@@ -130,12 +130,14 @@ mod indexer_tests {
         env::remove_var("TABBY_ROOT");
     }
 
+    /// Test that the indexer returns the document and the chunk
+    /// when the embedding is not empty
     #[test]
     fn test_indexer_with_embedding() {
         let temp_dir = TempDir::default();
         env::set_var("TABBY_ROOT", temp_dir.as_ref());
 
-        let embedding = MockEmbedding::new(vec![1.0, 2.0]);
+        let embedding = MockEmbedding::new(vec![1.0]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let indexer = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
 
