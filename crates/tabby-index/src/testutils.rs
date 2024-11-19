@@ -1,22 +1,16 @@
 mod structured_doc_tests {
-    use std::{env, sync::Arc};
-
+    use crate::indexer::Indexer;
+    use crate::structured_doc::public::{
+        StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
+    };
+    use serial_test::serial;
+    use std::sync::Arc;
     use tabby_common::index::corpus;
     use tabby_inference::MockEmbedding;
-    use temp_testdir::TempDir;
-
-    use crate::{
-        indexer::Indexer,
-        structured_doc::public::{
-            StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
-        },
-    };
 
     #[test]
+    #[serial(tabby_index)]
     fn test_structured_doc_empty_embedding() {
-        let temp_dir = TempDir::default();
-        env::set_var("TABBY_ROOT", temp_dir.as_ref());
-
         let embedding = MockEmbedding::new(vec![]);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
@@ -39,15 +33,11 @@ mod structured_doc_tests {
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
         assert!(!validator.is_indexed("empty_embedding"));
-
-        env::remove_var("TABBY_ROOT");
     }
 
     #[test]
+    #[serial(tabby_index)]
     fn test_structured_doc_with_embedding() {
-        let temp_dir = TempDir::default();
-        env::set_var("TABBY_ROOT", temp_dir.as_ref());
-
         let embedding = MockEmbedding::new(vec![1.0]);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
@@ -70,18 +60,15 @@ mod structured_doc_tests {
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
         assert!(validator.is_indexed("with_embedding"));
-
-        env::remove_var("TABBY_ROOT");
     }
 }
 
 mod indexer_tests {
-    use std::{env, sync::Arc};
+    use std::sync::Arc;
 
     use futures::StreamExt;
     use tabby_common::index::corpus;
     use tabby_inference::MockEmbedding;
-    use temp_testdir::TempDir;
 
     use crate::{
         indexer::TantivyDocBuilder,
@@ -95,9 +82,6 @@ mod indexer_tests {
     /// when the embedding is empty
     #[test]
     fn test_indexer_empty_embedding() {
-        let temp_dir = TempDir::default();
-        env::set_var("TABBY_ROOT", temp_dir.as_ref());
-
         let embedding = MockEmbedding::new(vec![]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let indexer = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
@@ -132,17 +116,12 @@ mod indexer_tests {
         // which is empty as the MockEmbedding returns empty
         assert!(res[1].is_ok());
         assert!(res[1].as_ref().unwrap().is_none());
-
-        env::remove_var("TABBY_ROOT");
     }
 
     /// Test that the indexer returns the document and the chunk
     /// when the embedding is not empty
     #[test]
     fn test_indexer_with_embedding() {
-        let temp_dir = TempDir::default();
-        env::set_var("TABBY_ROOT", temp_dir.as_ref());
-
         let embedding = MockEmbedding::new(vec![1.0]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let indexer = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
@@ -176,7 +155,5 @@ mod indexer_tests {
         assert_eq!(res.len(), 2);
         assert!(res[1].is_ok());
         assert!(res[1].as_ref().unwrap().is_some());
-
-        env::remove_var("TABBY_ROOT");
     }
 }
