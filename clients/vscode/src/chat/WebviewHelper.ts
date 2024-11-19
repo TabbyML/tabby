@@ -1,6 +1,5 @@
 import {
   ExtensionContext,
-  workspace,
   Uri,
   env,
   TextEditor,
@@ -550,21 +549,4 @@ export class WebviewHelper {
       },
     });
   }
-}
-
-export function resolveFilePathAndGitUrl(uri: Uri, gitProvider: GitProvider): { filepath: string; git_url: string } {
-  const workspaceFolder = workspace.getWorkspaceFolder(uri);
-  const repo = gitProvider.getRepository(uri);
-  const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-  let filePath = uri.toString(true);
-  if (repo) {
-    filePath = filePath.replace(repo.rootUri.toString(true), "");
-  } else if (workspaceFolder) {
-    filePath = filePath.replace(workspaceFolder.uri.toString(true), "");
-  }
-
-  return {
-    filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-    git_url: remoteUrl ?? "",
-  };
 }
