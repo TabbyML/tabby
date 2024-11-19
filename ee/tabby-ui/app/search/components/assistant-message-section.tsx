@@ -62,6 +62,7 @@ import {
 } from '@/components/message-markdown'
 
 import { ConversationMessage, SearchContext, SOURCE_CARD_STYLE } from './search'
+import { ChatContext } from '@/components/chat/chat'
 
 export function AssistantMessageSection({
   message,
@@ -90,6 +91,8 @@ export function AssistantMessageSection({
     isThreadOwner,
     onUpdateMessage
   } = useContext(SearchContext)
+
+  const {serverCapabilities}= useContext(ChatContext)
 
   const [isEditing, setIsEditing] = useState(false)
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -325,6 +328,7 @@ export function AssistantMessageSection({
               contextInfo={contextInfo}
               fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
+              serverCapabilities={serverCapabilities}
             />
             {/* if isEditing, do not display error message block */}
             {message.error && <ErrorMessageBlock error={message.error} />}
