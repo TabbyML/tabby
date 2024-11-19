@@ -52,13 +52,13 @@ pub async fn list_github_pulls(
 
                 let url = pull.html_url.map(|url| url.to_string()).unwrap_or_else(|| pull.url);
                 let diff = match octocrab.pulls(&owner, &repo).get_diff(pull.number).await {
-                    Ok(x) if x.len() < 1024*1024 => x,
+                    Ok(x) if x.len() < 1024*1024*10 => x,
                     Ok(_) => {
-                        logkit::warn!("Pull request {} diff is larger than 1MB, skipping", url);
+                        logkit::warn!("Pull request {} diff is larger than 10MB, skipping", url);
                         continue
                     }
                     Err(e) => {
-                        logkit::error!("Failed to fetch pull request patch for {}: {}", url, e);
+                        logkit::error!("Failed to fetch pull request diff for {}: {}", url, e);
                         continue
                     }
                 };
