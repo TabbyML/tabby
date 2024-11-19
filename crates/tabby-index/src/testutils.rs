@@ -1,12 +1,16 @@
 mod structured_doc_tests {
-    use crate::indexer::Indexer;
-    use crate::structured_doc::public::{
-        StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
-    };
-    use serial_test::serial;
     use std::sync::Arc;
+
+    use serial_test::serial;
     use tabby_common::index::corpus;
     use tabby_inference::MockEmbedding;
+
+    use crate::{
+        indexer::Indexer,
+        structured_doc::public::{
+            StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
+        },
+    };
 
     #[test]
     #[serial(tabby_index)]
