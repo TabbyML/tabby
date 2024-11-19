@@ -513,7 +513,7 @@ function SourceCardContent({
               {hostname.replace('www.', '').split('/')[0]}
             </p>
           </div>
-          <div className="shrink-0 flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             {isIssue && (
               <>
                 <IconCircleDot className="h-3.5 w-3.5" />
