@@ -51,8 +51,8 @@ import {
   listThreads
 } from '@/lib/tabby/query'
 import {
-  AttachmentCodeItem,
-  AttachmentDocItem,
+  AttachmentCode,
+  AttachmentDoc,
   ExtendedCombinedError,
   ThreadRunContexts
 } from '@/lib/types'
@@ -96,8 +96,8 @@ export type ConversationMessage = Omit<
   threadRelevantQuestions?: Maybe<string[]>
   error?: string
   attachment?: {
-    code: Maybe<Array<AttachmentCodeItem>> | undefined
-    doc: Maybe<Array<AttachmentDocItem>> | undefined
+    code: Maybe<Array<AttachmentCode>> | undefined
+    doc: Maybe<Array<AttachmentDoc>> | undefined
   }
 }
 

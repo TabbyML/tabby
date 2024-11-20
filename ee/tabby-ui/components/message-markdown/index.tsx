@@ -8,13 +8,8 @@ import { marked } from 'marked'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
-import {
-  ContextInfo,
-  Maybe,
-  MessageAttachmentCode,
-  MessageAttachmentDoc
-} from '@/lib/gql/generates/graphql'
-import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
+import { ContextInfo, Maybe } from '@/lib/gql/generates/graphql'
+import { AttachmentCode, AttachmentDoc } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
 import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
 import {
@@ -38,12 +33,12 @@ import { Skeleton } from '../ui/skeleton'
 
 type RelevantDocItem = {
   type: 'doc'
-  data: AttachmentDocItem
+  data: AttachmentDoc
 }
 
 type RelevantCodeItem = {
   type: 'code'
-  data: AttachmentCodeItem
+  data: AttachmentCode
   isClient?: boolean
 }
 
@@ -63,14 +58,14 @@ const normalizedText = (input: string) => {
 export interface MessageMarkdownProps {
   message: string
   headline?: boolean
-  attachmentDocs?: Maybe<Array<AttachmentDocItem>>
-  attachmentCode?: Maybe<Array<AttachmentCodeItem>>
+  attachmentDocs?: Maybe<Array<AttachmentDoc>>
+  attachmentCode?: Maybe<Array<AttachmentCode>>
   onCopyContent?: ((value: string) => void) | undefined
   onApplyInEditor?: (
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onCodeCitationClick?: (code: MessageAttachmentCode) => void
+  onCodeCitationClick?: (code: AttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
   contextInfo?: ContextInfo
@@ -86,7 +81,7 @@ type MessageMarkdownContextValue = {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onCodeCitationClick?: (code: MessageAttachmentCode) => void
+  onCodeCitationClick?: (code: AttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
   contextInfo: ContextInfo | undefined
@@ -369,7 +364,7 @@ function RelevantDocumentBadge({
   relevantDocument,
   citationIndex
 }: {
-  relevantDocument: MessageAttachmentDoc
+  relevantDocument: AttachmentDoc
   citationIndex: number
 }) {
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
@@ -418,7 +413,7 @@ function RelevantCodeBadge({
   relevantCode,
   citationIndex
 }: {
-  relevantCode: MessageAttachmentCode
+  relevantCode: AttachmentCode
   citationIndex: number
 }) {
   const {

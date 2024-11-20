@@ -3,7 +3,7 @@ import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
 import { twMerge } from 'tailwind-merge'
 
-import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
+import { AttachmentCode, AttachmentDoc } from '@/lib/types'
 
 export * from './chat'
 
@@ -104,7 +104,7 @@ export function formatLineHashForCodeBrowser(
   ).join('-')
 }
 
-export function getRangeFromAttachmentCode(code: AttachmentCodeItem) {
+export function getRangeFromAttachmentCode(code: AttachmentCode) {
   const startLine = code?.startLine ?? 0
   const lineCount = code?.content.split('\n').length
   const endLine = startLine + lineCount - 1
@@ -117,12 +117,12 @@ export function getRangeFromAttachmentCode(code: AttachmentCodeItem) {
   }
 }
 
-export function getRangeTextFromAttachmentCode(code: AttachmentCodeItem) {
+export function getRangeTextFromAttachmentCode(code: AttachmentCode) {
   const { startLine, endLine } = getRangeFromAttachmentCode(code)
   return formatLineHashForCodeBrowser({ start: startLine, end: endLine })
 }
 
-export function getContent(item: AttachmentDocItem) {
+export function getContent(item: AttachmentDoc) {
   switch (item.__typename) {
     case 'MessageAttachmentWebDoc':
       return item.content

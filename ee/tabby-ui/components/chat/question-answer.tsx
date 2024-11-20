@@ -12,7 +12,7 @@ import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
   AssistantMessage,
-  AttachmentCodeItem,
+  AttachmentCode,
   QuestionAnswerPair,
   UserMessage
 } from '@/lib/types/chat'
@@ -240,7 +240,7 @@ interface AssistantMessageActionProps {
   userMessageId: string
   message: AssistantMessage
   enableRegenerating?: boolean
-  attachmentCode?: Array<AttachmentCodeItem>
+  attachmentCode?: Array<AttachmentCode>
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
@@ -287,7 +287,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   const attachmentDocsLen = 0
 
-  const attachmentCode: Array<AttachmentCodeItem> = useMemo(() => {
+  const attachmentCode: Array<AttachmentCode> = useMemo(() => {
     const formatedClientAttachmentCode =
       clientCode?.map(o => ({
         content: o.content,
@@ -320,7 +320,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     setRelevantCodeHighlightIndex(undefined)
   }
 
-  const onCodeCitationClick = (code: AttachmentCodeItem) => {
+  const onCodeCitationClick = (code: AttachmentCode) => {
     const { startLine, endLine } = getRangeFromAttachmentCode(code)
     const ctx: Context = {
       git_url: code.gitUrl,
@@ -408,7 +408,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
 function getCopyContent(
   content: string,
-  attachmentCode?: Array<AttachmentCodeItem>
+  attachmentCode?: Array<AttachmentCode>
 ) {
   if (!attachmentCode || isEmpty(attachmentCode)) return content
 
