@@ -6,6 +6,7 @@ import { getLogger } from "./logger";
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
   "chatEdit.history"?: number;
+  "disableProxy"?: boolean;
 }
 
 export interface PastServerConfig {
@@ -71,6 +72,11 @@ export class Config extends EventEmitter {
       this.workspace.update("settings.advanced", updatedValue, ConfigurationTarget.Global);
       this.emit("updated");
     }
+  }
+
+  get disableProxy(): boolean {
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    return advancedSettings["disableProxy"] || true;
   }
 
   get maxChatEditHistory(): number {
@@ -168,8 +174,6 @@ export class Config extends EventEmitter {
     const https = workspace.getConfiguration("https");
     const httpsProxy = https.get("proxy", "");
     const httpProxy = this.httpConfig.get("proxy", "");
-    // noProxy bypass
-    if (this.noProxy.includes(httpsProxy) || this.noProxy.includes(httpProxy)) return "";
 
     return httpsProxy || httpProxy;
   }
@@ -185,22 +189,16 @@ export class Config extends EventEmitter {
     }
   }
 
-  // To fit createProxyForUrl function's signature in agent.
-  get noProxy(): string[] {
-    return this.httpConfig.get("noProxy", []);
-  }
-
-  set noProxy(value: string[]) {
-    this.httpConfig.update("noProxy", value);
-  }
-
   buildClientProvidedConfig(): ClientProvidedConfig {
+    const url = this.disableProxy ? "" : this.url;
+    const authorization = this.disableProxy ? "" : this.authorization;
+
     return {
       // Note: current we only support http.proxy | http.authorization
       // More properties we will land later.
       proxy: {
-        url: this.url,
-        authorization: this.authorization,
+        url,
+        authorization,
       },
       server: {
         endpoint: this.serverEndpoint,
