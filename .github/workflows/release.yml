@@ -304,7 +304,8 @@ jobs:
             fi
           }
 
-          mkdir -p dist
+          dist_dir=$(pwd)/dist
+          mkdir -p $dist_dir
 
           for llama_server in llama-server_*/llama-server_*; do
             for tabby in tabby_*/tabby_*; do
@@ -320,22 +321,29 @@ jobs:
 
               if [[ $llamav == *"$tabbyv"* ]]; then
                 echo "Creating bundle for $llamav"
-                release_dir=tabby_${llamav}
+
+                # the downloaded files may have the same folder name with release_dir
+                # put the release files in a new folder
+                build_dir=build
+                release_name=tabby_${llamav}
+                release_dir=$build_dir/$release_name
                 mkdir -p $release_dir
                 cp $llama_server $release_dir/llama-server${extname}
                 cp $tabby $release_dir/tabby${extname}
 
+                pushd $build_dir
                 # Release zip for Windows, tar.gz for macOS and Linux
                 # use `extname` to determine the platform
                 if [[ "$extname" == ".exe" ]]; then
-                  zip -r $release_dir.zip $release_dir
-                  mv $release_dir.zip dist/
+                  zip -r $release_name.zip $release_name
+                  mv $release_name.zip $dist_dir/
                 else
-                  chmod +x $release_dir/llama-server${extname} $release_dir/tabby${extname}
-                  tar zcvf $release_dir.tar.gz $release_dir
-                  mv $release_dir.tar.gz dist/
+                  chmod +x $release_name/llama-server${extname} $release_name/tabby${extname}
+                  tar zcvf $release_name.tar.gz $release_name
+                  mv $release_name.tar.gz $dist_dir/
                 fi
-                rm -rf "$release_dir"
+                rm -rf "$release_name"
+                popd
               fi
             done
           done
