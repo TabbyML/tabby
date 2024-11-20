@@ -125,14 +125,19 @@ export function ThreadFeeds({
   }, [data?.threads?.edges, page])
 
   const loadMore = () => {
-    if (pageInfo?.startCursor) {
-      setBeforeCursor(pageInfo.startCursor)
+    if (threads.length) {
+      setBeforeCursor(threads[threads.length - 1].cursor)
     }
   }
 
   const handleNavigateToThread = () => {
     onNavigateToThread({ pageNo: page })
   }
+
+  const isNextPageDisabled =
+    fetching ||
+    !threads.length ||
+    (page >= pageCount && !pageInfo?.hasPreviousPage)
 
   useEffect(() => {
     // reset pageNo store after it has been used
@@ -163,26 +168,23 @@ export function ThreadFeeds({
               Recent Activities
             </div>
             <Separator className="mb-4 w-full" />
-            <motion.div
-              initial="initial"
-              whileInView="onscreen"
-              viewport={{
-                amount: 'some',
-                // margin: '0px 0px -140px 0px',
-                once: true
-              }}
-              style={{ width: '100%' }}
-            >
-              <div className="relative flex min-h-[40.25rem] flex-col gap-3 text-sm">
-                {threads.map(t => {
-                  return <ThreadItem data={t} key={t.node.id} />
-                })}
-                {!threads.length && fetching && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative flex flex-col gap-3 text-sm min-h-[43rem]">
+              {threads.map(t => {
+                return <ThreadItem data={t} key={t.node.id} />
+              })}
+              {!threads.length && fetching && (
+                <div className="flex items-center justify-center h-[40.25rem]">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      delay: 0.3
+                    }}
+                  >
                     <IconSpinner className="h-8 w-8" />
-                  </div>
-                )}
-              </div>
+                  </motion.div>
+                </div>
+              )}
               {showPagination && (
                 <Pagination className={cn('flex items-center justify-end')}>
                   <PaginationContent>
@@ -202,14 +204,9 @@ export function ThreadFeeds({
                     </PaginationItem>
                     <PaginationItem>
                       <PaginationNext
-                        disabled={
-                          page === pageCount && !pageInfo?.hasPreviousPage
-                        }
+                        disabled={isNextPageDisabled}
                         onClick={() => {
-                          if (
-                            page === pageCount &&
-                            !pageInfo?.hasPreviousPage
-                          ) {
+                          if (isNextPageDisabled) {
                             return
                           }
 
@@ -222,7 +219,7 @@ export function ThreadFeeds({
                   </PaginationContent>
                 </Pagination>
               )}
-            </motion.div>
+            </div>
           </LoadingWrapper>
         </AnimationWrapper>
       </div>
