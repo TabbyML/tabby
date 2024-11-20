@@ -66,6 +66,13 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
+        // Wait for up to 10s for the document to be indexed.
+        for _ in 0..10 {
+            if validator.is_indexed(id) {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
         assert!(validator.is_indexed(id));
         assert_eq!(validator.failed_chunks_count(id), 1);
     }
@@ -95,6 +102,13 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
+        // Wait for up to 10s for the document to be indexed.
+        for _ in 0..10 {
+            if validator.is_indexed(id) {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
         assert!(validator.is_indexed(id));
         assert_eq!(validator.failed_chunks_count(id), 0);
     }
