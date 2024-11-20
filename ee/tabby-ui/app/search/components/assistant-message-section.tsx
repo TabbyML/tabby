@@ -15,7 +15,7 @@ import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { MessageAttachmentCode } from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
-  AttachmentDoc,
+  AttachmentDocItem,
   ExtendedCombinedError,
   RelevantCodeContext
 } from '@/lib/types'
@@ -424,7 +424,7 @@ function SourceCard({
   showDevTooltip
 }: {
   conversationId: string
-  source: AttachmentDoc
+  source: AttachmentDocItem
   showMore: boolean
   showDevTooltip?: boolean
   isDeletable?: boolean
@@ -479,7 +479,7 @@ function SourceCardContent({
   source,
   showMore
 }: {
-  source: AttachmentDoc
+  source: AttachmentDocItem
   showMore: boolean
 }) {
   const { hostname } = new URL(source.link)

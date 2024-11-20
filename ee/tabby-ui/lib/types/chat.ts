@@ -97,13 +97,13 @@ export type ThreadAssistantMessageAttachmentDocHits = ExtractHitsByType<
 >
 
 // for rendering, including scores
-export type AttachmentCode =
+export type AttachmentCodeItem =
   ArrayElementType<ThreadAssistantMessageAttachmentCodeHits>['code'] & {
     isClient?: boolean
     extra?: { scores?: MessageCodeSearchHit['scores'] }
   }
 // for rendering, including score
-export type AttachmentDoc =
+export type AttachmentDocItem =
   ArrayElementType<ThreadAssistantMessageAttachmentDocHits>['doc'] & {
     extra?: { score?: MessageDocSearchHit['score'] }
   }
