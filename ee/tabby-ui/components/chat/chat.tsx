@@ -604,7 +604,7 @@ function isValidContextForCodeQuery(context: FileContext | undefined) {
   if (!context) return false
 
   const isUntitledFile =
-    context.filepath.startsWith('untitled:Untitled-') &&
+    context.filepath.startsWith('untitled:') &&
     !filename2prism(context.filepath)[0]
 
   return !isUntitledFile
