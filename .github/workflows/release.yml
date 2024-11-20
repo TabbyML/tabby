@@ -306,7 +306,6 @@ jobs:
 
           dist_dir=$(pwd)/dist
           mkdir -p $dist_dir
-
           for llama_server in llama-server_*/llama-server_*; do
             for tabby in tabby_*/tabby_*; do
               llamab=$(basename $llama_server)
