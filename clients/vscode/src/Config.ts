@@ -6,7 +6,7 @@ import { getLogger } from "./logger";
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
   "chatEdit.history"?: number;
-  "disableProxy"?: boolean;
+  disableProxy?: boolean;
 }
 
 export interface PastServerConfig {
