@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 import tabbyLogo from '@/assets/tabby.png'
+import { HoverCardPortal } from '@radix-ui/react-hover-card'
 
 import { useMe } from '@/lib/hooks/use-me'
 import {
@@ -14,6 +15,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card'
 import {
   IconBookOpenText,
   IconChevronRight,
@@ -30,7 +36,8 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
-  SidebarMenuSubItem
+  SidebarMenuSubItem,
+  useSidebar
 } from '@/components/ui/sidebar'
 import LoadingWrapper from '@/components/loading-wrapper'
 
@@ -133,6 +140,7 @@ export default function AppSidebar() {
   const pathname = usePathname()
   const [{ data, fetching: fetchingMe }] = useMe()
   const isAdmin = data?.me.isAdmin
+  const { isMobile, state } = useSidebar()
 
   return (
     <Sidebar
@@ -186,50 +194,56 @@ export default function AppSidebar() {
                       key={`collapsible_${menu.title}`}
                     >
                       <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            key={menu.title}
-                            tooltip={{
-                              children: (
-                                <div
-                                  className="w-[theme(space.48)]"
-                                  key={menu.title}
-                                >
-                                  <div className="mb-2 ml-2 mt-1 text-sm font-medium text-muted-foreground">
-                                    {menu.title}
-                                  </div>
-                                  <div className="space-y-1">
-                                    {menu.items.map(item => {
-                                      if (isAdmin || item.allowUser) {
-                                        return (
-                                          <SidebarMenuButton
-                                            key={item.title}
-                                            asChild
-                                            isActive={pathname.startsWith(
-                                              item.href
-                                            )}
-                                          >
-                                            <Link href={item.href}>
-                                              <span>{item.title}</span>
-                                            </Link>
-                                          </SidebarMenuButton>
-                                        )
-                                      } else {
-                                        return null
-                                      }
-                                    })}
-                                  </div>
+                        <HoverCard openDelay={200} closeDelay={200}>
+                          <HoverCardTrigger asChild>
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuButton key={menu.title}>
+                                {!!menu.icon && <menu.icon />}
+                                <span>{menu.title}</span>
+                                <IconChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                              </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                          </HoverCardTrigger>
+                          <HoverCardPortal>
+                            <HoverCardContent
+                              align="start"
+                              side="right"
+                              sideOffset={4}
+                              hidden={state !== 'collapsed' || isMobile}
+                              className="py-2"
+                            >
+                              <div
+                                className="w-[theme(space.48)]"
+                                key={menu.title}
+                              >
+                                <div className="mb-2 ml-2 mt-1 text-sm font-medium text-muted-foreground">
+                                  {menu.title}
                                 </div>
-                              ),
-                              align: 'start',
-                              side: 'right'
-                            }}
-                          >
-                            {!!menu.icon && <menu.icon />}
-                            <span>{menu.title}</span>
-                            <IconChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
+                                <div className="space-y-1">
+                                  {menu.items.map(item => {
+                                    if (isAdmin || item.allowUser) {
+                                      return (
+                                        <SidebarMenuButton
+                                          key={item.title}
+                                          asChild
+                                          isActive={pathname.startsWith(
+                                            item.href
+                                          )}
+                                        >
+                                          <Link href={item.href}>
+                                            <span>{item.title}</span>
+                                          </Link>
+                                        </SidebarMenuButton>
+                                      )
+                                    } else {
+                                      return null
+                                    }
+                                  })}
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCardPortal>
+                        </HoverCard>
                         <CollapsibleContent>
                           <SidebarMenuSub>
                             {menu.items.map(item => {
@@ -259,7 +273,13 @@ export default function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         isActive={pathname.startsWith(menu.href)}
-                        tooltip={menu.title}
+                        tooltip={{
+                          children: (
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {menu.title}
+                            </span>
+                          )
+                        }}
                       >
                         <Link href={menu.href}>
                           {!!menu.icon && <menu.icon />}
