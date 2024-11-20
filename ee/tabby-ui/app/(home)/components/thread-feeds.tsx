@@ -168,12 +168,12 @@ export function ThreadFeeds({
               Recent Activities
             </div>
             <Separator className="mb-4 w-full" />
-            <div className="relative flex flex-col gap-3 text-sm min-h-[43rem]">
+            <div className="relative flex min-h-[43rem] flex-col gap-3 text-sm">
               {threads.map(t => {
                 return <ThreadItem data={t} key={t.node.id} />
               })}
               {!threads.length && fetching && (
-                <div className="flex items-center justify-center h-[40.25rem]">
+                <div className="flex h-[40.25rem] items-center justify-center">
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
