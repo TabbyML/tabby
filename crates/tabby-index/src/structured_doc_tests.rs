@@ -44,13 +44,14 @@ mod structured_doc_tests {
     #[test]
     #[serial(tabby_index)]
     fn test_structured_doc_empty_embedding() {
+        let id = "structured_doc_empty_embedding";
         let embedding = MockEmbedding::new(vec![]);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
-                link: "empty_embedding".to_owned(),
+                link: id.to_owned(),
                 title: "title".to_owned(),
                 body: "body".to_owned(),
                 closed: false,
@@ -65,20 +66,21 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        assert!(validator.is_indexed("empty_embedding"));
-        assert_eq!(validator.failed_chunks_count("empty_embedding"), 1);
+        assert!(validator.is_indexed(id));
+        assert_eq!(validator.failed_chunks_count(id), 1);
     }
 
     #[test]
     #[serial(tabby_index)]
     fn test_structured_doc_with_embedding() {
+        let id = "structured_doc_with_embedding";
         let embedding = MockEmbedding::new(vec![1.0]);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
-                link: "with_embedding".to_owned(),
+                link: id.to_owned(),
                 title: "title".to_owned(),
                 body: "body".to_owned(),
                 closed: false,
@@ -93,8 +95,8 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        assert!(validator.is_indexed("with_embedding"));
-        assert_eq!(validator.failed_chunks_count("with_embedding"), 0);
+        assert!(validator.is_indexed(id));
+        assert_eq!(validator.failed_chunks_count(id), 0);
     }
 }
 
@@ -108,7 +110,7 @@ mod builder_tests {
 
     use super::mock_embedding::MockEmbedding;
     use crate::{
-        indexer::{Indexer, TantivyDocBuilder},
+        indexer::TantivyDocBuilder,
         structured_doc::{
             public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields},
             StructuredDocBuilder,
@@ -120,6 +122,7 @@ mod builder_tests {
     #[test]
     #[serial(tabby_index)]
     fn test_builder_empty_embedding() {
+        let test_id = "builder_empty_embedding";
         let embedding = MockEmbedding::new(vec![]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let tantivy_builder = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
@@ -127,7 +130,7 @@ mod builder_tests {
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
-                link: "empty_embedding".to_owned(),
+                link: test_id.to_owned(),
                 title: "title".to_owned(),
                 body: "body".to_owned(),
                 closed: false,
@@ -137,7 +140,7 @@ mod builder_tests {
         let (id, s) = tokio::runtime::Runtime::new()
             .unwrap()
             .block_on(async { tantivy_builder.build(doc).await });
-        assert_eq!(id, "empty_embedding");
+        assert_eq!(id, test_id);
 
         let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
             s.buffer_unordered(std::cmp::max(
@@ -151,7 +154,6 @@ mod builder_tests {
         // the last element is the document itself
         // the rest are the chunks
         assert_eq!(res.len(), 2);
-        assert!(res[1].is_ok());
         let doc = res[1].as_ref().unwrap().as_ref().unwrap();
 
         let schema = IndexSchema::instance();
@@ -168,6 +170,7 @@ mod builder_tests {
     #[test]
     #[serial(tabby_index)]
     fn test_builder_with_embedding() {
+        let test_id = "builder_with_embedding";
         let embedding = MockEmbedding::new(vec![1.0]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let tantivy_builder = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
@@ -175,7 +178,7 @@ mod builder_tests {
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
-                link: "with_embedding".to_owned(),
+                link: test_id.to_owned(),
                 title: "title".to_owned(),
                 body: "body".to_owned(),
                 closed: false,
@@ -186,7 +189,7 @@ mod builder_tests {
             .unwrap()
             .block_on(async { tantivy_builder.build(doc).await });
 
-        assert_eq!(id, "with_embedding");
+        assert_eq!(id, test_id);
 
         let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
             s.buffer_unordered(std::cmp::max(
@@ -199,10 +202,14 @@ mod builder_tests {
 
         // the last element is the document itself
         assert_eq!(res.len(), 2);
-        assert!(res[1].is_ok());
-        assert!(res[1].as_ref().unwrap().is_some());
+        let doc = res[1].as_ref().unwrap().as_ref().unwrap();
 
-        let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        assert_eq!(validator.failed_chunks_count("with_embedding"), 0);
+        let schema = IndexSchema::instance();
+        let failed_count = doc
+            .get_first(schema.field_failed_chunks_count)
+            .and_then(|v| v.as_u64())
+            .unwrap();
+
+        assert_eq!(failed_count, 0);
     }
 }
