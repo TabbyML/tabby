@@ -54,18 +54,18 @@ type SubMenu = {
 
 type Menu =
   | {
-      title: string
-      icon: FunctionComponent
-      allowUser?: boolean
-      items: SubMenu[]
-    }
+    title: string
+    icon: FunctionComponent
+    allowUser?: boolean
+    items: SubMenu[]
+  }
   | {
-      title: string
-      href: string
-      icon: FunctionComponent
-      allowUser?: boolean
-      items?: never
-    }
+    title: string
+    href: string
+    icon: FunctionComponent
+    allowUser?: boolean
+    items?: never
+  }
 
 const menus: Menu[] = [
   {
@@ -210,12 +210,9 @@ export default function AppSidebar() {
                               side="right"
                               sideOffset={4}
                               hidden={state !== 'collapsed' || isMobile}
-                              className="py-2"
+                              className="py-2 w-[theme(space.48)]"
                             >
-                              <div
-                                className="w-[theme(space.48)]"
-                                key={menu.title}
-                              >
+                              <div key={menu.title}>
                                 <div className="mb-2 ml-2 mt-1 text-sm font-medium text-muted-foreground">
                                   {menu.title}
                                 </div>
