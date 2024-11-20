@@ -1,10 +1,37 @@
+mod mock_embedding {
+    use anyhow::Result;
+    use async_trait::async_trait;
+    use tabby_inference::Embedding;
+
+    pub struct MockEmbedding {
+        result: Vec<f32>,
+    }
+
+    impl MockEmbedding {
+        pub fn new(result: Vec<f32>) -> Self {
+            Self { result }
+        }
+    }
+
+    #[async_trait]
+    impl Embedding for MockEmbedding {
+        async fn embed(&self, prompt: &str) -> Result<Vec<f32>> {
+            if prompt.starts_with("error") {
+                Err(anyhow::anyhow!(prompt.to_owned()))
+            } else {
+                Ok(self.result.clone())
+            }
+        }
+    }
+}
+
 mod structured_doc_tests {
     use std::sync::Arc;
 
     use serial_test::serial;
     use tabby_common::index::corpus;
-    use tabby_inference::MockEmbedding;
 
+    use super::mock_embedding::MockEmbedding;
     use crate::{
         indexer::Indexer,
         structured_doc::public::{
@@ -12,6 +39,8 @@ mod structured_doc_tests {
         },
     };
 
+    /// the document should be indexed even no embedding is provided
+    /// the document itself could be used for search
     #[test]
     #[serial(tabby_index)]
     fn test_structured_doc_empty_embedding() {
@@ -32,11 +61,12 @@ mod structured_doc_tests {
         let res = tokio::runtime::Runtime::new()
             .unwrap()
             .block_on(async { indexer.add(updated_at, doc).await });
-        assert!(!res);
+        assert!(res);
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        assert!(!validator.is_indexed("empty_embedding"));
+        assert!(validator.is_indexed("empty_embedding"));
+        assert_eq!(validator.failed_chunks_count("empty_embedding"), 1);
     }
 
     #[test]
@@ -64,18 +94,21 @@ mod structured_doc_tests {
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
         assert!(validator.is_indexed("with_embedding"));
+        assert_eq!(validator.failed_chunks_count("with_embedding"), 0);
     }
 }
 
-mod indexer_tests {
+mod builder_tests {
     use std::sync::Arc;
 
     use futures::StreamExt;
-    use tabby_common::index::corpus;
-    use tabby_inference::MockEmbedding;
+    use serial_test::serial;
+    use tabby_common::index::{corpus, IndexSchema};
+    use tantivy::schema::Value;
 
+    use super::mock_embedding::MockEmbedding;
     use crate::{
-        indexer::TantivyDocBuilder,
+        indexer::{Indexer, TantivyDocBuilder},
         structured_doc::{
             public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields},
             StructuredDocBuilder,
@@ -85,10 +118,11 @@ mod indexer_tests {
     /// Test that the indexer return the document and none itself
     /// when the embedding is empty
     #[test]
-    fn test_indexer_empty_embedding() {
+    #[serial(tabby_index)]
+    fn test_builder_empty_embedding() {
         let embedding = MockEmbedding::new(vec![]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
-        let indexer = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
+        let tantivy_builder = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
 
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
@@ -102,7 +136,7 @@ mod indexer_tests {
 
         let (id, s) = tokio::runtime::Runtime::new()
             .unwrap()
-            .block_on(async { indexer.build(doc).await });
+            .block_on(async { tantivy_builder.build(doc).await });
         assert_eq!(id, "empty_embedding");
 
         let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
@@ -114,21 +148,29 @@ mod indexer_tests {
             .await
         });
 
-        // the first element is the document itself
+        // the last element is the document itself
+        // the rest are the chunks
         assert_eq!(res.len(), 2);
-        // the second element is the chunk,
-        // which is empty as the MockEmbedding returns empty
         assert!(res[1].is_ok());
-        assert!(res[1].as_ref().unwrap().is_none());
+        let doc = res[1].as_ref().unwrap().as_ref().unwrap();
+
+        let schema = IndexSchema::instance();
+        let failed_count = doc
+            .get_first(schema.field_failed_chunks_count)
+            .and_then(|v| v.as_u64())
+            .unwrap();
+
+        assert_eq!(failed_count, 1);
     }
 
     /// Test that the indexer returns the document and the chunk
     /// when the embedding is not empty
     #[test]
-    fn test_indexer_with_embedding() {
+    #[serial(tabby_index)]
+    fn test_builder_with_embedding() {
         let embedding = MockEmbedding::new(vec![1.0]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
-        let indexer = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
+        let tantivy_builder = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
 
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
@@ -142,7 +184,7 @@ mod indexer_tests {
 
         let (id, s) = tokio::runtime::Runtime::new()
             .unwrap()
-            .block_on(async { indexer.build(doc).await });
+            .block_on(async { tantivy_builder.build(doc).await });
 
         assert_eq!(id, "with_embedding");
 
@@ -155,9 +197,12 @@ mod indexer_tests {
             .await
         });
 
-        // the first element is the document itself
+        // the last element is the document itself
         assert_eq!(res.len(), 2);
         assert!(res[1].is_ok());
         assert!(res[1].as_ref().unwrap().is_some());
+
+        let validator = Indexer::new(corpus::STRUCTURED_DOC);
+        assert_eq!(validator.failed_chunks_count("with_embedding"), 0);
     }
 }

@@ -53,6 +53,9 @@ pub struct IndexSchema {
 
     /// Last updated time for the document in index.
     pub field_updated_at: Field,
+
+    /// Number of failed chunks during indexing.
+    pub field_failed_chunks_count: Field,
     // ==========================================
 
     // === Fields for document ===
@@ -71,6 +74,7 @@ pub struct IndexSchema {
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
 const FIELD_UPDATED_AT: &str = "updated_at";
+const FIELD_FAILED_CHUNKS_COUNT: &str = "failed_chunks_count";
 pub const FIELD_SOURCE_ID: &str = "source_id";
 
 pub mod corpus {
@@ -97,6 +101,8 @@ impl IndexSchema {
         let field_id = builder.add_text_field("id", STRING | STORED);
 
         let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED | STORED);
+        let field_failed_chunks_count =
+            builder.add_u64_field(FIELD_FAILED_CHUNKS_COUNT, INDEXED | STORED);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
@@ -123,6 +129,7 @@ impl IndexSchema {
             field_source_id,
             field_corpus,
             field_updated_at,
+            field_failed_chunks_count,
             field_attributes,
 
             field_chunk_id,
