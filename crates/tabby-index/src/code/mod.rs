@@ -19,7 +19,7 @@ use crate::{
 
 //  Modules for creating code search index.
 mod index;
-mod intelligence;
+pub mod intelligence;
 mod languages;
 mod repository;
 mod types;

@@ -1,19 +1,17 @@
 import { Metadata } from 'next'
 
-import { SidebarProvider } from '@/components/ui/sidebar'
 import { LicenseBanner } from '@/components/license-banner'
 
-import MainContent from './components/main-content'
-import AppSidebar from './components/sidebar'
+import Layout from './components/dashboard-layout'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Home',
+    default: 'Dashboard',
     template: `Tabby - %s`
   }
 }
 
-export default function RootLayout({
+export default function DashboardLayout({
   children
 }: {
   children: React.ReactNode
@@ -21,10 +19,7 @@ export default function RootLayout({
   return (
     <>
       <LicenseBanner />
-      <SidebarProvider className="relative">
-        <AppSidebar />
-        <MainContent>{children}</MainContent>
-      </SidebarProvider>
+      <Layout>{children}</Layout>
     </>
   )
 }

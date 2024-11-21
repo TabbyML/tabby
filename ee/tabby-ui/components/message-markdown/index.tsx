@@ -8,12 +8,7 @@ import { marked } from 'marked'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
-import {
-  ContextInfo,
-  Maybe,
-  MessageAttachmentCode,
-  MessageAttachmentDoc
-} from '@/lib/gql/generates/graphql'
+import { ContextInfo, Maybe } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
 import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
@@ -70,7 +65,7 @@ export interface MessageMarkdownProps {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onCodeCitationClick?: (code: MessageAttachmentCode) => void
+  onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
   contextInfo?: ContextInfo
@@ -86,7 +81,7 @@ type MessageMarkdownContextValue = {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onCodeCitationClick?: (code: MessageAttachmentCode) => void
+  onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
   contextInfo: ContextInfo | undefined
@@ -369,7 +364,7 @@ function RelevantDocumentBadge({
   relevantDocument,
   citationIndex
 }: {
-  relevantDocument: MessageAttachmentDoc
+  relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
@@ -418,7 +413,7 @@ function RelevantCodeBadge({
   relevantCode,
   citationIndex
 }: {
-  relevantCode: MessageAttachmentCode
+  relevantCode: AttachmentCodeItem
   citationIndex: number
 }) {
   const {
