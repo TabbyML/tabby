@@ -258,11 +258,13 @@ mod intelligence_tests {
     use std::path::PathBuf;
 
     use serial_test::serial;
-    use tabby_common::{config::config_index_to_id, path::set_tabby_root};
+    use tabby_common::{
+        config::{config_index_to_id, CodeRepository},
+        path::set_tabby_root,
+    };
     use tracing_test::traced_test;
 
     use crate::code::intelligence::CodeIntelligence;
-    use tabby_common::config::CodeRepository;
 
     fn get_tabby_root() -> PathBuf {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
