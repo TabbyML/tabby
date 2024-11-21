@@ -1,8 +1,12 @@
 #!/bin/bash
 
+# get current bash file directory
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LLAMA_CPP_PATH="${PROJECT_ROOT}/crates/llama-cpp-server/llama.cpp"
+
 # Input variables
-TABBY_VERSION=${TABBY_VERSION:-dev}
-LLAMA_CPP_VERSION=${LLAMA_CPP_VERSION:-b3571}
+LLAMA_CPP_VERSION=${LLAMA_CPP_VERSION:-$(cd ${LLAMA_CPP_PATH} && git fetch --tags origin >/dev/null && git describe --tags --abbrev=0)}
+echo "LLAMA_CPP_VERSION=${LLAMA_CPP_VERSION}"
 LLAMA_CPP_PLATFORM=${LLAMA_CPP_PLATFORM:-cuda-cu11.7.1-x64}
 OUTPUT_NAME=${OUTPUT_NAME:-tabby_x86_64-windows-msvc-cuda117}
 
