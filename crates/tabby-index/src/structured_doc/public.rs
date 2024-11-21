@@ -14,8 +14,14 @@ pub use super::types::{
 use super::{create_structured_doc_builder, types::BuildStructuredDoc};
 use crate::{indexer::TantivyDocBuilder, Indexer};
 
+/// StructuredDocState is used to track the state of the document source.
+/// It is used to determine whether the document should be updated or deleted.
 pub struct StructuredDocState {
+    // updated_at is the time when the document was last updated.
     pub updated_at: DateTime<Utc>,
+    // deleted indecates whether the document should be deleted in indexer
+    // for example, a closed pull request will be marked as deleted, and
+    // the indexer will remove it from the index.
     pub deleted: bool,
 }
 
