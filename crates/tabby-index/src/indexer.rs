@@ -95,14 +95,16 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                 }
             };
 
-            let doc = doc! {
+            let mut doc = doc! {
                 schema.field_id => doc_id,
                 schema.field_source_id => source_id,
                 schema.field_corpus => self.corpus,
                 schema.field_attributes => doc_attributes,
                 schema.field_updated_at => updated_at,
-                schema.field_failed_chunks_count => failed_count,
             };
+            if failed_count > 0 {
+                doc.add_u64(schema.field_failed_chunks_count, failed_count);
+            }
 
             yield tokio::spawn(async move { Some(doc) });
         };
@@ -254,25 +256,23 @@ impl Indexer {
     /// tracks the number of embedding indexing failed chunks for a document.
     ///
     /// return 0 if the field is not found.
-    pub fn failed_chunks_count(&self, id: &str) -> u64 {
+    pub fn has_failed_chunks(&self, id: &str) -> bool {
         let schema = IndexSchema::instance();
-        let query = schema.doc_query(&self.corpus, id);
-        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
-            return 0;
+        let query = schema.doc_has_failed_chunks(&self.corpus, id);
+        // let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
+        //     return false;
+        // };
+        let docs = match self.searcher.search(&query, &TopDocs::with_limit(1)) {
+            Ok(docs) => docs,
+            Err(e) => {
+                println!("error: {:?}", e);
+                return false;
+            }
         };
 
-        if let Some((_score, doc_address)) = docs.first() {
-            if let Ok(doc) = self.searcher.doc::<TantivyDocument>(*doc_address) {
-                if let Some(value) = doc
-                    .get_first(schema.field_failed_chunks_count)
-                    .and_then(|v| v.as_u64())
-                {
-                    return value;
-                }
-            }
-        }
+        println!("docs: {:?}", docs);
 
-        0
+        !docs.is_empty()
     }
 }
 

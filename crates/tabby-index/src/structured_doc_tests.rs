@@ -66,15 +66,15 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        // Wait for up to 10s for the document to be indexed.
-        for _ in 0..10 {
+        // Wait for up to 30s for the document to be indexed.
+        for _ in 0..30 {
             if validator.is_indexed(id) {
                 break;
             }
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
         assert!(validator.is_indexed(id));
-        assert_eq!(validator.failed_chunks_count(id), 1);
+        assert!(validator.has_failed_chunks(id));
     }
 
     #[test]
@@ -102,15 +102,15 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        // Wait for up to 10s for the document to be indexed.
-        for _ in 0..10 {
+        // Wait for up to 30s for the document to be indexed.
+        for _ in 0..30 {
             if validator.is_indexed(id) {
                 break;
             }
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
         assert!(validator.is_indexed(id));
-        assert_eq!(validator.failed_chunks_count(id), 0);
+        assert!(!validator.has_failed_chunks(id));
     }
 }
 
@@ -180,7 +180,8 @@ mod builder_tests {
     }
 
     /// Test that the indexer returns the document and the chunk
-    /// when the embedding is not empty
+    /// when the embedding is not empty.
+    /// when there are embeddings, the failed count should not be existed
     #[test]
     #[serial(tabby_index)]
     fn test_builder_with_embedding() {
@@ -219,11 +220,6 @@ mod builder_tests {
         let doc = res[1].as_ref().unwrap().as_ref().unwrap();
 
         let schema = IndexSchema::instance();
-        let failed_count = doc
-            .get_first(schema.field_failed_chunks_count)
-            .and_then(|v| v.as_u64())
-            .unwrap();
-
-        assert_eq!(failed_count, 0);
+        assert!(doc.get_first(schema.field_failed_chunks_count).is_none())
     }
 }

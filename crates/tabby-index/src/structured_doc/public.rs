@@ -54,7 +54,7 @@ impl StructuredDocIndexer {
         }
 
         if self.indexer.is_indexed_after(document.id(), updated_at)
-            && self.indexer.failed_chunks_count(document.id()) == 0
+            && !self.indexer.has_failed_chunks(document.id())
         {
             return false;
         };

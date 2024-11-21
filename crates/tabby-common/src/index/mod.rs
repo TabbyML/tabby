@@ -102,7 +102,7 @@ impl IndexSchema {
 
         let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED | STORED);
         let field_failed_chunks_count =
-            builder.add_u64_field(FIELD_FAILED_CHUNKS_COUNT, INDEXED | STORED);
+            builder.add_u64_field(FIELD_FAILED_CHUNKS_COUNT, INDEXED | FAST);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
@@ -191,6 +191,33 @@ impl IndexSchema {
                 Box::new(RangeQuery::new_date(
                     FIELD_UPDATED_AT.to_owned(),
                     updated_at..DateTime::MAX,
+                )),
+            ),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ])
+    }
+
+    /// Build a query to check if the document has failed chunks.
+    pub fn doc_has_failed_chunks(&self, corpus: &str, doc_id: &str) -> impl Query {
+        let doc_id_query = TermQuery::new(
+            Term::from_field_text(self.field_id, doc_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+            // Must has the failed_chunks_count field
+            (
+                Occur::Must,
+                Box::new(ExistsQuery::new_exists_query(
+                    FIELD_FAILED_CHUNKS_COUNT.into(),
                 )),
             ),
             // Exclude chunk documents
