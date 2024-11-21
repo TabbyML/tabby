@@ -26,10 +26,10 @@ mod mock_embedding {
 }
 
 mod structured_doc_tests {
-    use std::sync::Arc;
-
     use serial_test::serial;
+    use std::sync::Arc;
     use tabby_common::index::corpus;
+    use temp_testdir::TempDir;
 
     use super::mock_embedding::MockEmbedding;
     use crate::{
@@ -44,6 +44,10 @@ mod structured_doc_tests {
     #[test]
     #[serial(tabby_index)]
     fn test_structured_doc_empty_embedding() {
+        let root = tabby_common::path::tabby_root();
+        let temp_dir = TempDir::default();
+        tabby_common::path::set_tabby_root(temp_dir.to_owned());
+
         let id = "structured_doc_empty_embedding";
         let embedding = MockEmbedding::new(vec![]);
         let embedding = Arc::new(embedding);
@@ -67,7 +71,7 @@ mod structured_doc_tests {
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
         // Wait for up to 60s for the document to be indexed.
-        for _ in 0..60 {
+        for _ in 0..10 {
             if validator.is_indexed(id) {
                 break;
             }
@@ -75,6 +79,8 @@ mod structured_doc_tests {
         }
         assert!(validator.is_indexed(id));
         assert!(validator.has_failed_chunks(id));
+
+        tabby_common::path::set_tabby_root(root);
     }
 
     #[test]
@@ -103,7 +109,7 @@ mod structured_doc_tests {
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
         // Wait for up to 60s for the document to be indexed.
-        for _ in 0..60 {
+        for _ in 0..10 {
             if validator.is_indexed(id) {
                 break;
             }
