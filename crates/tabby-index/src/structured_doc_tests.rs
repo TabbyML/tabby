@@ -26,8 +26,9 @@ mod mock_embedding {
 }
 
 mod structured_doc_tests {
-    use serial_test::serial;
     use std::sync::Arc;
+
+    use serial_test::serial;
     use tabby_common::index::corpus;
     use temp_testdir::TempDir;
 
