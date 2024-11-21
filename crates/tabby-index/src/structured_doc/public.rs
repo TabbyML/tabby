@@ -14,14 +14,16 @@ pub use super::types::{
 use super::{create_structured_doc_builder, types::BuildStructuredDoc};
 use crate::{indexer::TantivyDocBuilder, Indexer};
 
-/// StructuredDocState is used to track the state of the document source.
-/// It is used to determine whether the document should be updated or deleted.
+/// StructuredDocState tracks the state of the document source.
+/// It helps determine whether the document should be updated or deleted.
 pub struct StructuredDocState {
     // updated_at is the time when the document was last updated.
+    // when the updated_at is earlier than the document's index time,
+    // the update will be skipped.
     pub updated_at: DateTime<Utc>,
-    // deleted indecates whether the document should be deleted in indexer
-    // for example, a closed pull request will be marked as deleted, and
-    // the indexer will remove it from the index.
+    // deleted indicates whether the document should be removed from the indexer.
+    // For instance, a closed pull request will be marked as deleted,
+    // prompting the indexer to remove it from the index.
     pub deleted: bool,
 }
 
@@ -37,6 +39,12 @@ impl StructuredDocIndexer {
         Self { indexer, builder }
     }
 
+    // The sync process updates the document in the indexer incrementally.
+    // It first determines whether the document requires an update.
+    //
+    // If an update is needed, it checks the deletion state of the document.
+    // If the document is marked as deleted, it will be removed.
+    // Next, the document is rebuilt, the original is deleted, and the newly indexed document is added.
     pub async fn sync(&self, state: StructuredDocState, document: StructuredDoc) -> bool {
         if !self.require_updates(state.updated_at, &document) {
             return false;
