@@ -59,7 +59,7 @@ jobs:
             binary: x86_64-manylinux2014-cuda122
             container: sameli/manylinux2014_x86_64_cuda_12.2
             build_args: --features binary,cuda
-          - os: buildjet-2vcpu-ubuntu-2204
+          - os: buildjet-4vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux_2_28-vulkan
             container: quay.io/pypa/manylinux_2_28_x86_64
