@@ -28,7 +28,7 @@ mod mock_embedding {
 mod structured_doc_tests {
     use std::sync::Arc;
 
-    use serial_test::serial;
+    use serial_test::file_serial;
     use tabby_common::index::corpus;
     use temp_testdir::TempDir;
 
@@ -43,7 +43,7 @@ mod structured_doc_tests {
     /// the document should be indexed even no embedding is provided
     /// the document itself could be used for search
     #[test]
-    #[serial(set_tabby_root)]
+    #[file_serial(set_tabby_root)]
     fn test_structured_doc_empty_embedding() {
         let root = tabby_common::path::tabby_root();
         let temp_dir = TempDir::default();
@@ -87,7 +87,7 @@ mod structured_doc_tests {
     }
 
     #[test]
-    #[serial(set_tabby_root)]
+    #[file_serial(set_tabby_root)]
     fn test_structured_doc_with_embedding() {
         let root = tabby_common::path::tabby_root();
         let temp_dir = TempDir::default();
@@ -135,7 +135,7 @@ mod builder_tests {
     use std::sync::Arc;
 
     use futures::StreamExt;
-    use serial_test::serial;
+    use serial_test::file_serial;
     use tabby_common::index::{corpus, IndexSchema};
     use tantivy::schema::Value;
     use temp_testdir::TempDir;
@@ -152,7 +152,7 @@ mod builder_tests {
     /// Test that the indexer return the document and none itself
     /// when the embedding is empty
     #[test]
-    #[serial(set_tabby_root)]
+    #[file_serial(set_tabby_root)]
     fn test_builder_empty_embedding() {
         let root = tabby_common::path::tabby_root();
         let temp_dir = TempDir::default();
@@ -207,7 +207,7 @@ mod builder_tests {
     /// when the embedding is not empty.
     /// when there are embeddings, the failed count should not be existed
     #[test]
-    #[serial(set_tabby_root)]
+    #[file_serial(set_tabby_root)]
     fn test_builder_with_embedding() {
         let root = tabby_common::path::tabby_root();
         let temp_dir = TempDir::default();
@@ -251,51 +251,5 @@ mod builder_tests {
         assert!(doc.get_first(schema.field_failed_chunks_count).is_none());
 
         tabby_common::path::set_tabby_root(root);
-    }
-}
-
-mod intelligence_tests {
-    use std::path::PathBuf;
-
-    use serial_test::serial;
-    use tabby_common::{
-        config::{config_index_to_id, CodeRepository},
-        path::set_tabby_root,
-    };
-    use tracing_test::traced_test;
-
-    use crate::code::intelligence::CodeIntelligence;
-
-    fn get_tabby_root() -> PathBuf {
-        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("testdata");
-        path
-    }
-
-    fn get_repository_config() -> CodeRepository {
-        CodeRepository::new("https://github.com/TabbyML/tabby", &config_index_to_id(0))
-    }
-
-    fn get_rust_source_file() -> PathBuf {
-        let mut path = get_tabby_root();
-        path.push("repositories");
-        path.push("https_github.com_TabbyML_tabby");
-        path.push("rust.rs");
-        path
-    }
-
-    #[test]
-    #[traced_test]
-    #[serial(set_tabby_root)]
-    fn test_create_source_file() {
-        set_tabby_root(get_tabby_root());
-        let config = get_repository_config();
-        let source_file = CodeIntelligence::compute_source_file(&config, &get_rust_source_file())
-            .expect("Failed to create source file");
-
-        // check source_file properties
-        assert_eq!(source_file.language, "rust");
-        assert_eq!(source_file.tags.len(), 3);
-        assert_eq!(source_file.filepath, "rust.rs");
     }
 }

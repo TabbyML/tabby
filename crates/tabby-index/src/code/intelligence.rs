@@ -244,3 +244,50 @@ mod metrics {
         metrics
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use serial_test::file_serial;
+    use tabby_common::{
+        config::{config_index_to_id, CodeRepository},
+        path::set_tabby_root,
+    };
+    use tracing_test::traced_test;
+
+    use super::*;
+
+    fn get_tabby_root() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("testdata");
+        path
+    }
+
+    fn get_repository_config() -> CodeRepository {
+        CodeRepository::new("https://github.com/TabbyML/tabby", &config_index_to_id(0))
+    }
+
+    fn get_rust_source_file() -> PathBuf {
+        let mut path = get_tabby_root();
+        path.push("repositories");
+        path.push("https_github.com_TabbyML_tabby");
+        path.push("rust.rs");
+        path
+    }
+
+    #[test]
+    #[traced_test]
+    #[file_serial(set_tabby_root)]
+    fn test_create_source_file() {
+        set_tabby_root(get_tabby_root());
+        let config = get_repository_config();
+        let source_file = CodeIntelligence::compute_source_file(&config, &get_rust_source_file())
+            .expect("Failed to create source file");
+
+        // check source_file properties
+        assert_eq!(source_file.language, "rust");
+        assert_eq!(source_file.tags.len(), 3);
+        assert_eq!(source_file.filepath, "rust.rs");
+    }
+}
