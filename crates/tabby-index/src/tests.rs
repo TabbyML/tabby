@@ -43,7 +43,7 @@ mod structured_doc_tests {
     /// the document should be indexed even no embedding is provided
     /// the document itself could be used for search
     #[test]
-    #[serial(tabby_index)]
+    #[serial(set_tabby_root)]
     fn test_structured_doc_empty_embedding() {
         let root = tabby_common::path::tabby_root();
         let temp_dir = TempDir::default();
@@ -64,9 +64,11 @@ mod structured_doc_tests {
         };
 
         let updated_at = chrono::Utc::now();
-        let res = tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(async { indexer.add(updated_at, doc).await });
+        let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let added = indexer.add(updated_at, doc).await;
+            println!("{}", added);
+            added
+        });
         assert!(res);
         indexer.commit();
 
@@ -85,8 +87,12 @@ mod structured_doc_tests {
     }
 
     #[test]
-    #[serial(tabby_index)]
+    #[serial(set_tabby_root)]
     fn test_structured_doc_with_embedding() {
+        let root = tabby_common::path::tabby_root();
+        let temp_dir = TempDir::default();
+        tabby_common::path::set_tabby_root(temp_dir.to_owned());
+
         let id = "structured_doc_with_embedding";
         let embedding = MockEmbedding::new(vec![1.0]);
         let embedding = Arc::new(embedding);
@@ -102,9 +108,11 @@ mod structured_doc_tests {
         };
 
         let updated_at = chrono::Utc::now();
-        let res = tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(async { indexer.add(updated_at, doc).await });
+        let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let added = indexer.add(updated_at, doc).await;
+            println!("{}", added);
+            added
+        });
         assert!(res);
         indexer.commit();
 
@@ -118,6 +126,8 @@ mod structured_doc_tests {
         }
         assert!(validator.is_indexed(id));
         assert!(!validator.has_failed_chunks(id));
+
+        tabby_common::path::set_tabby_root(root);
     }
 }
 
@@ -128,6 +138,7 @@ mod builder_tests {
     use serial_test::serial;
     use tabby_common::index::{corpus, IndexSchema};
     use tantivy::schema::Value;
+    use temp_testdir::TempDir;
 
     use super::mock_embedding::MockEmbedding;
     use crate::{
@@ -141,8 +152,12 @@ mod builder_tests {
     /// Test that the indexer return the document and none itself
     /// when the embedding is empty
     #[test]
-    #[serial(tabby_index)]
+    #[serial(set_tabby_root)]
     fn test_builder_empty_embedding() {
+        let root = tabby_common::path::tabby_root();
+        let temp_dir = TempDir::default();
+        tabby_common::path::set_tabby_root(temp_dir.to_owned());
+
         let test_id = "builder_empty_embedding";
         let embedding = MockEmbedding::new(vec![]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
@@ -184,14 +199,20 @@ mod builder_tests {
             .unwrap();
 
         assert_eq!(failed_count, 1);
+
+        tabby_common::path::set_tabby_root(root);
     }
 
     /// Test that the indexer returns the document and the chunk
     /// when the embedding is not empty.
     /// when there are embeddings, the failed count should not be existed
     #[test]
-    #[serial(tabby_index)]
+    #[serial(set_tabby_root)]
     fn test_builder_with_embedding() {
+        let root = tabby_common::path::tabby_root();
+        let temp_dir = TempDir::default();
+        tabby_common::path::set_tabby_root(temp_dir.to_owned());
+
         let test_id = "builder_with_embedding";
         let embedding = MockEmbedding::new(vec![1.0]);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
@@ -227,6 +248,52 @@ mod builder_tests {
         let doc = res[1].as_ref().unwrap().as_ref().unwrap();
 
         let schema = IndexSchema::instance();
-        assert!(doc.get_first(schema.field_failed_chunks_count).is_none())
+        assert!(doc.get_first(schema.field_failed_chunks_count).is_none());
+
+        tabby_common::path::set_tabby_root(root);
+    }
+}
+
+mod intelligence_tests {
+    use std::path::PathBuf;
+
+    use serial_test::serial;
+    use tabby_common::{config::config_index_to_id, path::set_tabby_root};
+    use tracing_test::traced_test;
+
+    use crate::code::intelligence::CodeIntelligence;
+    use tabby_common::config::CodeRepository;
+
+    fn get_tabby_root() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("testdata");
+        path
+    }
+
+    fn get_repository_config() -> CodeRepository {
+        CodeRepository::new("https://github.com/TabbyML/tabby", &config_index_to_id(0))
+    }
+
+    fn get_rust_source_file() -> PathBuf {
+        let mut path = get_tabby_root();
+        path.push("repositories");
+        path.push("https_github.com_TabbyML_tabby");
+        path.push("rust.rs");
+        path
+    }
+
+    #[test]
+    #[traced_test]
+    #[serial(set_tabby_root)]
+    fn test_create_source_file() {
+        set_tabby_root(get_tabby_root());
+        let config = get_repository_config();
+        let source_file = CodeIntelligence::compute_source_file(&config, &get_rust_source_file())
+            .expect("Failed to create source file");
+
+        // check source_file properties
+        assert_eq!(source_file.language, "rust");
+        assert_eq!(source_file.tags.len(), 3);
+        assert_eq!(source_file.filepath, "rust.rs");
     }
 }
