@@ -396,13 +396,15 @@ fn convert_messages_to_chat_completion_request(
     output.reserve(messages.len() + 1);
 
     // System message
-    output.push(ChatCompletionRequestMessage::System(
-        ChatCompletionRequestSystemMessage {
-            content: config.system_prompt.clone(),
-            role: Role::System,
-            name: None,
-        },
-    ));
+    if !config.system_prompt.is_empty() {
+        output.push(ChatCompletionRequestMessage::System(
+            ChatCompletionRequestSystemMessage {
+                content: config.system_prompt.clone(),
+                role: Role::System,
+                name: None,
+            },
+        ));
+    }
 
     for i in 0..messages.len() - 1 {
         let x = &messages[i];
