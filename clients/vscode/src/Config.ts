@@ -76,7 +76,7 @@ export class Config extends EventEmitter {
 
   get useVSCodeProxy(): boolean {
     const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
-    return advancedSettings["useVSCodeProxy"] || true;
+    return advancedSettings["useVSCodeProxy"] ?? true;
   }
 
   get maxChatEditHistory(): number {
