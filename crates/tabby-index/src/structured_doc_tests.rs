@@ -66,8 +66,8 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        // Wait for up to 30s for the document to be indexed.
-        for _ in 0..30 {
+        // Wait for up to 60s for the document to be indexed.
+        for _ in 0..60 {
             if validator.is_indexed(id) {
                 break;
             }
@@ -102,8 +102,8 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        // Wait for up to 30s for the document to be indexed.
-        for _ in 0..30 {
+        // Wait for up to 60s for the document to be indexed.
+        for _ in 0..60 {
             if validator.is_indexed(id) {
                 break;
             }

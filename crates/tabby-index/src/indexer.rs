@@ -259,18 +259,9 @@ impl Indexer {
     pub fn has_failed_chunks(&self, id: &str) -> bool {
         let schema = IndexSchema::instance();
         let query = schema.doc_has_failed_chunks(&self.corpus, id);
-        // let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
-        //     return false;
-        // };
-        let docs = match self.searcher.search(&query, &TopDocs::with_limit(1)) {
-            Ok(docs) => docs,
-            Err(e) => {
-                println!("error: {:?}", e);
-                return false;
-            }
+        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
+            return false;
         };
-
-        println!("docs: {:?}", docs);
 
         !docs.is_empty()
     }
