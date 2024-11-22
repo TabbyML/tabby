@@ -492,7 +492,7 @@ function IssueStateBadge({ closed }: { closed: boolean }) {
   return (
     <Badge
       variant="outline"
-      className={cn('border-0 py-1 gap-1 text-xs text-white', {
+      className={cn('gap-1 border-0 py-1 text-xs text-white', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': closed,
         'bg-green-600 dark:bg-green-600/80': !closed
       })}
@@ -511,7 +511,7 @@ function PRStateBadge({ merged }: { merged: boolean }) {
   return (
     <Badge
       variant="outline"
-      className={cn('border-0 py-1 gap-1 text-xs text-white', {
+      className={cn('gap-1 border-0 py-1 text-xs text-white', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': merged,
         'bg-green-600 dark:bg-green-600/80': !merged
       })}
