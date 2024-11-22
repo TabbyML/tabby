@@ -16,7 +16,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
-import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionTrigger;
+import com.tabbyml.tabby4eclipse.inlineCompletion.trigger.InlineCompletionTrigger;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 
 public class WorkbenchPartListener implements IPartListener {

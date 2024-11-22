@@ -22,7 +22,7 @@ use tabby_common::{
             CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
             CodeSearchScores,
         },
-        doc::{DocSearch, DocSearchError, DocSearchHit},
+        structured_doc::{DocSearch, DocSearchError, DocSearchHit},
     },
     config::AnswerConfig,
 };
@@ -33,9 +33,9 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
-        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
-        ThreadRunOptionsInput,
+        MessageAttachmentDoc, ThreadAssistantMessageAttachmentsCode,
+        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
+        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -126,7 +126,7 @@ impl AnswerService {
                         .map(|x| x.doc.clone().into())
                         .collect::<Vec<_>>();
 
-                debug!("doc content: {:?}", doc_query.content);
+                debug!("doc content: {:?}: {:?}", doc_query.content, attachment.doc.len());
 
                 if !attachment.doc.is_empty() {
                     let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
@@ -172,14 +172,14 @@ impl AnswerService {
                 let chunk = match chunk {
                     Ok(chunk) => chunk,
                     Err(err) => {
-                        if let OpenAIError::StreamError(content) = err {
+                        if let OpenAIError::StreamError(content) = &err {
                             if content == "Stream ended" {
                                 break;
                             }
-                        } else {
-                            error!("Failed to get chat completion chunk: {:?}", err);
                         }
-                        break;
+                        error!("Failed to get chat completion chunk: {:?}", err);
+                        yield Err(anyhow!("Failed to get chat completion chunk: {:?}", err).into());
+                        return;
                     }
                 };
 
@@ -317,7 +317,7 @@ impl AnswerService {
                 attachment
                     .doc
                     .iter()
-                    .map(|doc| format!("```\n{}\n```", doc.content)),
+                    .map(|doc| format!("```\n{}\n```", get_content(doc))),
             )
             .collect();
 
@@ -396,13 +396,15 @@ fn convert_messages_to_chat_completion_request(
     output.reserve(messages.len() + 1);
 
     // System message
-    output.push(ChatCompletionRequestMessage::System(
-        ChatCompletionRequestSystemMessage {
-            content: config.system_prompt.clone(),
-            role: Role::System,
-            name: None,
-        },
-    ));
+    if !config.system_prompt.is_empty() {
+        output.push(ChatCompletionRequestMessage::System(
+            ChatCompletionRequestSystemMessage {
+                content: config.system_prompt.clone(),
+                role: Role::System,
+                name: None,
+            },
+        ));
+    }
 
     for i in 0..messages.len() - 1 {
         let x = &messages[i];
@@ -465,7 +467,7 @@ fn build_user_prompt(
     let snippets: Vec<String> = assistant_attachment
         .doc
         .iter()
-        .map(|doc| format!("```\n{}\n```", doc.content))
+        .map(|doc| format!("```\n{}\n```", get_content(doc)))
         .chain(
             user_attachment_input
                 .map(|x| &x.code)
@@ -513,7 +515,7 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
     )
 }
 
-/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 200, and there are multiple hits (number of hits > 1), include the entire file.
+/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 300, and there are multiple hits (number of hits > 1), include the entire file.
 pub async fn merge_code_snippets(
     repository: Option<Repository>,
     hits: Vec<CodeSearchHit>,
@@ -532,19 +534,13 @@ pub async fn merge_code_snippets(
     let mut result = Vec::with_capacity(file_hits.len());
 
     for (_, file_hits) in file_hits {
-        if file_hits.len() > 1 {
-            // construct the full path to the file
-            let path: PathBuf = repository.dir.join(&file_hits[0].doc.filepath);
-            let file_content = match read_file_content(&path) {
-                Some(lines) => lines,
-                None => {
-                    //cannot read the file, just extend the hits
-                    result.extend(file_hits);
-                    continue;
-                }
-            };
+        // construct the full path to the file
+        let path: PathBuf = repository.dir.join(&file_hits[0].doc.filepath);
 
-            if !file_content.is_empty() {
+        if file_hits.len() > 1 && count_lines(&path).is_ok_and(|x| x < 300) {
+            let file_content = read_file_content(&path);
+
+            if let Some(file_content) = file_content {
                 debug!(
                     "file {} less than 200, it will be included whole file content",
                     file_hits[0].doc.filepath
@@ -577,12 +573,8 @@ pub async fn merge_code_snippets(
     result
 }
 
-/// Read file content and return raw file content string, it will return nothing if the file is over 200 lines
+/// Read file content and return raw file content string.
 pub fn read_file_content(path: &Path) -> Option<String> {
-    if count_lines(path).ok()? > 200 {
-        return None;
-    }
-
     let mut file = match File::open(path) {
         Ok(file) => file,
         Err(e) => {
@@ -609,6 +601,14 @@ fn count_lines(path: &Path) -> std::io::Result<usize> {
     Ok(count)
 }
 
+fn get_content(doc: &MessageAttachmentDoc) -> &str {
+    match doc {
+        MessageAttachmentDoc::Web(web) => &web.content,
+        MessageAttachmentDoc::Issue(issue) => &issue.body,
+        MessageAttachmentDoc::Pull(pull) => &pull.body,
+    }
+}
+
 #[cfg(test)]
 pub mod testutils;
 
@@ -623,7 +623,7 @@ mod tests {
             code::{
                 CodeSearch, CodeSearchDocument, CodeSearchHit, CodeSearchParams, CodeSearchScores,
             },
-            doc::DocSearch,
+            structured_doc::{DocSearch, DocSearchDocument},
         },
         config::AnswerConfig,
     };
@@ -710,15 +710,23 @@ mod tests {
         }
     }
 
+    fn get_title(doc: &DocSearchDocument) -> &str {
+        match doc {
+            DocSearchDocument::Web(web_doc) => &web_doc.title,
+            DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
+            DocSearchDocument::Pull(pull_doc) => &pull_doc.title,
+        }
+    }
+
     #[test]
     fn test_build_user_prompt() {
         let user_input = "What is the purpose of this code?";
         let assistant_attachment = tabby_schema::thread::MessageAttachment {
-            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(tabby_schema::thread::MessageAttachmentWebDoc {
                 title: "Documentation".to_owned(),
                 content: "This code implements a basic web server.".to_owned(),
                 link: "https://example.com/docs".to_owned(),
-            }],
+            })],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com/".to_owned(),
                 filepath: "server.py".to_owned(),
@@ -745,11 +753,13 @@ mod tests {
     fn test_convert_messages_to_chat_completion_request() {
         // Fake assistant attachment
         let attachment = tabby_schema::thread::MessageAttachment {
-            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
-                title: "1. Example Document".to_owned(),
-                content: "This is an example".to_owned(),
-                link: "https://example.com".to_owned(),
-            }],
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
+                tabby_schema::thread::MessageAttachmentWebDoc {
+                    title: "1. Example Document".to_owned(),
+                    content: "This is an example".to_owned(),
+                    link: "https://example.com".to_owned(),
+                },
+            )],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com".to_owned(),
                 filepath: "server.py".to_owned(),
@@ -929,11 +939,13 @@ mod tests {
         );
 
         let attachment = MessageAttachment {
-            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
-                title: "1. Example Document".to_owned(),
-                content: "This is an example".to_owned(),
-                link: "https://example.com".to_owned(),
-            }],
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
+                tabby_schema::thread::MessageAttachmentWebDoc {
+                    title: "1. Example Document".to_owned(),
+                    content: "This is an example".to_owned(),
+                    link: "https://example.com".to_owned(),
+                },
+            )],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com".to_owned(),
                 filepath: "server.py".to_owned(),
@@ -997,7 +1009,7 @@ mod tests {
         assert_eq!(hits.len(), 10, "Expected 10 hits from the doc search");
 
         assert!(
-            hits.iter().any(|hit| hit.doc.title == "Document 1"),
+            hits.iter().any(|hit| get_title(&hit.doc) == "Document 1"),
             "Expected to find a hit with title 'Document 1'"
         );
     }

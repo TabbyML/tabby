@@ -16,7 +16,7 @@ impl LlamaCppEngine {
 
         Self {
             client,
-            api_endpoint: format!("{}/embeddings", api_endpoint),
+            api_endpoint: format!("{}/embedding", api_endpoint),
             api_key,
         }
     }

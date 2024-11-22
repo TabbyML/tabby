@@ -103,7 +103,6 @@
 		<command
 			categoryId="com.tabbyml.tabby4eclipse.commands"
 			name="Open Tabby Settings"
-			icon="image/settings.png"
 			id="com.tabbyml.tabby4eclipse.commands.openPreferences">
 		</command>
 		<category
@@ -152,7 +151,6 @@
 		<command
 			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
 			name="Open Tabby Chat"
-			icon="images/chat.png"
 			id="com.tabbyml.tabby4eclipse.commands.chat.openChatView">
 		</command>
 		<command

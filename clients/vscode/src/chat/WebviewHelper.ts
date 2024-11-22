@@ -1,6 +1,5 @@
 import {
   ExtensionContext,
-  workspace,
   Uri,
   env,
   TextEditor,
@@ -336,6 +335,7 @@ export class WebviewHelper {
 
   public async syncActiveSelection(editor: TextEditor | undefined) {
     if (!editor) {
+      this.syncActiveSelectionToChatPanel(null);
       return;
     }
 
@@ -362,8 +362,19 @@ export class WebviewHelper {
   }
 
   public addTextEditorEventListeners() {
+    const supportSchemes = ["file", "untitled"];
+    window.onDidChangeActiveTextEditor((e) => {
+      if (e && !supportSchemes.includes(e.document.uri.scheme)) {
+        this.syncActiveSelection(undefined);
+        return;
+      }
+
+      this.syncActiveSelection(e);
+    });
+
     window.onDidChangeTextEditorSelection((e) => {
-      if (e.textEditor !== window.activeTextEditor) {
+      // This listener only handles text files.
+      if (!supportSchemes.includes(e.textEditor.document.uri.scheme)) {
         return;
       }
       this.syncActiveSelection(e.textEditor);
@@ -539,21 +550,4 @@ export class WebviewHelper {
       },
     });
   }
-}
-
-export function resolveFilePathAndGitUrl(uri: Uri, gitProvider: GitProvider): { filepath: string; git_url: string } {
-  const workspaceFolder = workspace.getWorkspaceFolder(uri);
-  const repo = gitProvider.getRepository(uri);
-  const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-  let filePath = uri.toString(true);
-  if (repo) {
-    filePath = filePath.replace(repo.rootUri.toString(true), "");
-  } else if (workspaceFolder) {
-    filePath = filePath.replace(workspaceFolder.uri.toString(true), "");
-  }
-
-  return {
-    filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-    git_url: remoteUrl ?? "",
-  };
 }

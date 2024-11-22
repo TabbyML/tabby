@@ -6,8 +6,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiManager
 import com.tabbyml.intellijtabby.events.DocumentListener
+import com.tabbyml.intellijtabby.findPsiFile
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import org.eclipse.lsp4j.*
 
@@ -48,12 +48,12 @@ class TextDocumentSync(private val project: Project) : Disposable {
 
   companion object {
     fun buildDidOpenTextDocumentParams(editor: Editor): DidOpenTextDocumentParams? {
+      val project = editor.project ?: return null
       val virtualFile = editor.virtualFile ?: return null
-      val psiManager = editor.project?.let { PsiManager.getInstance(it) } ?: return null
       return DidOpenTextDocumentParams(
         TextDocumentItem(
           virtualFile.url,
-          virtualFile.let { psiManager.findFileWithReadLock(it) }?.getLanguageId() ?: "plaintext",
+          project.findPsiFile(virtualFile)?.getLanguageId() ?: "plaintext",
           editor.document.modificationStamp.toInt(),
           editor.document.text,
         )

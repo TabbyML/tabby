@@ -10,7 +10,7 @@ public class GitProvider {
 	private static class LazyHolder {
 		private static final IGitProvider INSTANCE = createInstance();
 	}
-	
+
 	private static Logger logger = new Logger("GitProvider");
 
 	public static IGitProvider createInstance() {

@@ -20,6 +20,9 @@ pub trait ThreadService: Send + Sync {
     /// Get a thread by ID
     async fn get(&self, id: &ID) -> Result<Option<Thread>>;
 
+    /// Delete a thread.
+    async fn delete(&self, id: &ID) -> Result<()>;
+
     /// Converting a ephemeral thread to a persisted thread
     async fn set_persisted(&self, id: &ID) -> Result<()>;
 

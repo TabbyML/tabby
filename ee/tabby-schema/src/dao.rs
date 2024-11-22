@@ -4,7 +4,8 @@ use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserEventDAO,
+    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
+    ThreadMessageAttachmentWebDoc, ThreadMessageDAO, UserEventDAO,
 };
 
 use crate::{
@@ -229,20 +230,62 @@ impl From<&thread::MessageAttachmentCodeInput> for ThreadMessageAttachmentClient
 
 impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
     fn from(value: ThreadMessageAttachmentDoc) -> Self {
-        Self {
-            title: value.title,
-            link: value.link,
-            content: value.content,
+        match value {
+            ThreadMessageAttachmentDoc::Web(val) => {
+                thread::MessageAttachmentDoc::Web(thread::MessageAttachmentWebDoc {
+                    title: val.title,
+                    link: val.link,
+                    content: val.content,
+                })
+            }
+            ThreadMessageAttachmentDoc::Issue(val) => {
+                thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
+                    title: val.title,
+                    link: val.link,
+                    body: val.body,
+                    closed: val.closed,
+                })
+            }
+            ThreadMessageAttachmentDoc::Pull(val) => {
+                thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
+                    title: val.title,
+                    link: val.link,
+                    body: val.body,
+                    patch: val.diff,
+                    merged: val.merged,
+                })
+            }
         }
     }
 }
 
 impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
     fn from(val: &thread::MessageAttachmentDoc) -> Self {
-        ThreadMessageAttachmentDoc {
-            title: val.title.clone(),
-            link: val.link.clone(),
-            content: val.content.clone(),
+        match val {
+            thread::MessageAttachmentDoc::Web(val) => {
+                ThreadMessageAttachmentDoc::Web(ThreadMessageAttachmentWebDoc {
+                    title: val.title.clone(),
+                    link: val.link.clone(),
+                    content: val.content.clone(),
+                })
+            }
+            thread::MessageAttachmentDoc::Issue(val) => {
+                ThreadMessageAttachmentDoc::Issue(ThreadMessageAttachmentIssueDoc {
+                    title: val.title.clone(),
+                    link: val.link.clone(),
+                    body: val.body.clone(),
+                    closed: val.closed,
+                })
+            }
+            thread::MessageAttachmentDoc::Pull(val) => {
+                ThreadMessageAttachmentDoc::Pull(ThreadMessageAttachmentPullDoc {
+                    title: val.title.clone(),
+                    link: val.link.clone(),
+                    body: val.body.clone(),
+                    diff: val.patch.clone(),
+                    merged: val.merged,
+                })
+            }
         }
     }
 }

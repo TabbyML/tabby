@@ -3,8 +3,9 @@ use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
-    doc::{DocSearchDocument, DocSearchHit},
+    structured_doc::{DocSearchDocument, DocSearchHit},
 };
+use validator::Validate;
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -44,11 +45,12 @@ impl NodeType for Message {
     }
 }
 
-#[derive(GraphQLInputObject, Clone)]
+#[derive(GraphQLInputObject, Clone, Validate)]
 #[graphql(context = Context)]
 pub struct UpdateMessageInput {
     pub id: ID,
     pub thread_id: ID,
+    #[validate(length(min = 1, code = "content", message = "content can not be empty"))]
     pub content: String,
 }
 
@@ -119,19 +121,60 @@ impl From<CodeSearchHit> for MessageCodeSearchHit {
     }
 }
 
+#[derive(GraphQLUnion, Clone)]
+pub enum MessageAttachmentDoc {
+    Web(MessageAttachmentWebDoc),
+    Issue(MessageAttachmentIssueDoc),
+    Pull(MessageAttachmentPullDoc),
+}
+
 #[derive(GraphQLObject, Clone)]
-pub struct MessageAttachmentDoc {
+pub struct MessageAttachmentWebDoc {
     pub title: String,
     pub link: String,
     pub content: String,
 }
 
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentIssueDoc {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub closed: bool,
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentPullDoc {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub patch: String,
+    pub merged: bool,
+}
+
 impl From<DocSearchDocument> for MessageAttachmentDoc {
     fn from(doc: DocSearchDocument) -> Self {
-        Self {
-            title: doc.title,
-            link: doc.link,
-            content: doc.snippet,
+        match doc {
+            DocSearchDocument::Web(web) => MessageAttachmentDoc::Web(MessageAttachmentWebDoc {
+                title: web.title,
+                link: web.link,
+                content: web.snippet,
+            }),
+            DocSearchDocument::Issue(issue) => {
+                MessageAttachmentDoc::Issue(MessageAttachmentIssueDoc {
+                    title: issue.title,
+                    link: issue.link,
+                    body: issue.body,
+                    closed: issue.closed,
+                })
+            }
+            DocSearchDocument::Pull(pull) => MessageAttachmentDoc::Pull(MessageAttachmentPullDoc {
+                title: pull.title,
+                link: pull.link,
+                body: pull.body,
+                patch: pull.diff,
+                merged: pull.merged,
+            }),
         }
     }
 }

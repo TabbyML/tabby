@@ -29,7 +29,7 @@ public class Images {
 		}
 		return icon;
 	}
-	
+
 	private static Image createImageFromFile(String filename) {
 		String path = "images/" + filename;
 		URL url = FileLocator.find(bundle, new Path(path));

@@ -13,6 +13,8 @@ import {
   QuickPickItem,
   ViewColumn,
   Range,
+  CodeAction,
+  CodeActionKind,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -87,8 +89,11 @@ export class Commands {
         this.chatViewProvider.addRelevantContext(fileContext);
       }
     };
+    commands.executeCommand("tabby.chatView.focus");
 
-    commands.executeCommand("tabby.chatView.focus").then(addContext);
+    if (this.chatViewProvider.webview?.visible) {
+      addContext();
+    }
   }
 
   commands: Record<string, (...args: never[]) => void> = {
@@ -222,8 +227,20 @@ export class Commands {
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
     },
-    "inlineCompletion.accept": () => {
-      commands.executeCommand("editor.action.inlineSuggest.commit");
+    "inlineCompletion.accept": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+
+      const uri = editor.document.uri;
+      const range = this.inlineCompletionProvider.calcEditedRangeAfterAccept();
+
+      await commands.executeCommand("editor.action.inlineSuggest.commit");
+
+      if (range) {
+        applyQuickFixes(uri, range);
+      }
     },
     "inlineCompletion.acceptNextWord": () => {
       this.inlineCompletionProvider.handleEvent("accept_word");
@@ -451,4 +468,24 @@ export class Commands {
       quickPick.show();
     },
   };
+}
+
+async function applyQuickFixes(uri: Uri, range: Range): Promise<void> {
+  const codeActions = await commands.executeCommand<CodeAction[]>("vscode.executeCodeActionProvider", uri, range);
+  const quickFixActions = codeActions.filter(
+    (action) =>
+      action.kind && action.kind.contains(CodeActionKind.QuickFix) && action.title.toLowerCase().includes("import"),
+  );
+  quickFixActions.forEach(async (action) => {
+    try {
+      if (action.edit) {
+        await workspace.applyEdit(action.edit);
+      }
+      if (action.command) {
+        await commands.executeCommand(action.command.command, action.command.arguments);
+      }
+    } catch (error) {
+      // ignore errors
+    }
+  });
 }

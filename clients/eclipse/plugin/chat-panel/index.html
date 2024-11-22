@@ -125,13 +125,6 @@
 
       // server to client requests
       if (event.source === chat.contentWindow) {
-        // handle copy action
-        if (typeof event.data === "object" && "action" in event.data && event.data.action === "copy") {
-          if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(event.data.data);
-          }
-        }
-
         // adapter for @quilted/threads requests
         if (Array.isArray(event.data) && event.data.length >= 2) {
           const [kind, data] = event.data;

@@ -32,10 +32,35 @@ pub struct ThreadMessageDAO {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ThreadMessageAttachmentDoc {
+#[serde(untagged)] // Mark the serde serialization format as untagged for backward compatibility: https://serde.rs/enum-representations.html#untagged
+pub enum ThreadMessageAttachmentDoc {
+    Web(ThreadMessageAttachmentWebDoc),
+    Issue(ThreadMessageAttachmentIssueDoc),
+    Pull(ThreadMessageAttachmentPullDoc),
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentWebDoc {
     pub title: String,
     pub link: String,
     pub content: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentIssueDoc {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub closed: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentPullDoc {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub diff: String,
+    pub merged: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -353,6 +378,14 @@ impl DbConn {
         )
         .execute(&self.pool)
         .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_thread(&self, id: i64) -> Result<()> {
+        query!("DELETE FROM threads WHERE id = ?", id,)
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }

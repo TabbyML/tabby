@@ -167,7 +167,7 @@ export default function UpsertMembershipForm({
                     side="bottom"
                     sideOffset={-4}
                   >
-                    <Command className="transition-all">
+                    <Command>
                       <CommandInput
                         placeholder="Search repository..."
                         onValueChange={onSearchChange}

@@ -13,10 +13,16 @@ import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { MessageAttachmentCode } from '@/lib/gql/generates/graphql'
-import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
+import { makeFormErrorHandler } from '@/lib/tabby/gql'
+import {
+  AttachmentDocItem,
+  ExtendedCombinedError,
+  RelevantCodeContext
+} from '@/lib/types'
 import {
   cn,
   formatLineHashForCodeBrowser,
+  getContent,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
@@ -32,11 +38,12 @@ import {
   IconBlocks,
   IconBug,
   IconChevronRight,
+  IconCircleDot,
   IconEdit,
+  IconGitPullRequest,
   IconLayers,
   IconPlus,
   IconRefresh,
-  IconRemove,
   IconSparkles,
   IconSpinner,
   IconTrash
@@ -207,9 +214,9 @@ export function AssistantMessageSection({
   }
 
   const handleUpdateAssistantMessage = async (message: ConversationMessage) => {
-    const errorMessage = await onUpdateMessage(message)
-    if (errorMessage) {
-      return errorMessage
+    const error = await onUpdateMessage(message)
+    if (error) {
+      return error
     } else {
       setIsEditing(false)
     }
@@ -414,9 +421,7 @@ function SourceCard({
   conversationId,
   source,
   showMore,
-  showDevTooltip,
-  isDeletable,
-  onDelete
+  showDevTooltip
 }: {
   conversationId: string
   source: AttachmentDocItem
@@ -426,7 +431,6 @@ function SourceCard({
   onDelete?: () => void
 }) {
   const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
-  const { hostname } = new URL(source.link)
   const [devTooltipOpen, setDevTooltipOpen] = useState(false)
 
   const onOpenChange = (v: boolean) => {
@@ -457,47 +461,7 @@ function SourceCard({
           }}
           onClick={() => window.open(source.link)}
         >
-          {isDeletable && (
-            <div className="absolute -right-1.5 -top-2">
-              <Button
-                size="icon"
-                variant="secondary"
-                className="h-4 w-4 rounded-full border"
-                onClick={e => {
-                  e.stopPropagation()
-                  onDelete?.()
-                }}
-              >
-                <IconRemove className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-          <div className="flex flex-1 flex-col justify-between gap-y-1">
-            <div className="flex flex-col gap-y-0.5">
-              <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-                {source.title}
-              </p>
-              <p
-                className={cn(
-                  ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-                  {
-                    'line-clamp-2': showMore,
-                    'line-clamp-1': !showMore
-                  }
-                )}
-              >
-                {normalizedText(source.content)}
-              </p>
-            </div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <div className="flex w-full flex-1 items-center">
-                <SiteFavicon hostname={hostname} />
-                <p className="ml-1 overflow-hidden text-ellipsis">
-                  {hostname.replace('www.', '').split('/')[0]}
-                </p>
-              </div>
-            </div>
-          </div>
+          <SourceCardContent source={source} showMore={showMore} />
         </div>
       </TooltipTrigger>
       <TooltipContent
@@ -511,6 +475,64 @@ function SourceCard({
   )
 }
 
+function SourceCardContent({
+  source,
+  showMore
+}: {
+  source: AttachmentDocItem
+  showMore: boolean
+}) {
+  const { hostname } = new URL(source.link)
+
+  const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
+  const isPR = source.__typename === 'MessageAttachmentPullDoc'
+
+  return (
+    <div className="flex flex-1 flex-col justify-between gap-y-1">
+      <div className="flex flex-col gap-y-0.5">
+        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+          {source.title}
+        </p>
+        <p
+          className={cn(
+            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+            {
+              'line-clamp-2': showMore,
+              'line-clamp-1': !showMore
+            }
+          )}
+        >
+          {normalizedText(getContent(source))}
+        </p>
+      </div>
+      <div className="flex items-center text-xs text-muted-foreground">
+        <div className="flex w-full flex-1 items-center justify-between gap-1">
+          <div className="flex items-center">
+            <SiteFavicon hostname={hostname} />
+            <p className="ml-1 truncate">
+              {hostname.replace('www.', '').split('/')[0]}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {isIssue && (
+              <>
+                <IconCircleDot className="h-3.5 w-3.5" />
+                <span>{source.closed ? 'Closed' : 'Not closed'}</span>
+              </>
+            )}
+            {isPR && (
+              <>
+                <IconGitPullRequest className="h-3.5 w-3.5" />
+                {source.merged ? 'Merged' : 'Not merged'}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function MessageContentForm({
   message,
   onCancel,
@@ -518,7 +540,9 @@ function MessageContentForm({
 }: {
   message: ConversationMessage
   onCancel: () => void
-  onSubmit: (newMessage: ConversationMessage) => Promise<string | void>
+  onSubmit: (
+    newMessage: ConversationMessage
+  ) => Promise<ExtendedCombinedError | void>
 }) {
   const formSchema = z.object({
     content: z.string().trim()
@@ -528,17 +552,16 @@ function MessageContentForm({
     defaultValues: { content: message.content }
   })
   const { isSubmitting } = form.formState
-  const { content } = form.watch()
-  const isEmptyContent = !content || isEmpty(content.trim())
   const [draftMessage] = useState<ConversationMessage>(message)
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    const errorMessage = await onSubmit({
+    const error = await onSubmit({
       ...draftMessage,
       content: values.content
     })
-    if (errorMessage) {
-      form.setError('root', { message: errorMessage })
+
+    if (error) {
+      makeFormErrorHandler(form)(error)
     }
   }
 
@@ -576,7 +599,7 @@ function MessageContentForm({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isEmptyContent || isSubmitting}>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && (
                 <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
               )}

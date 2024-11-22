@@ -1,5 +1,5 @@
 pub mod code;
-pub mod doc;
+pub mod structured_doc;
 
 use std::borrow::Cow;
 
@@ -53,6 +53,9 @@ pub struct IndexSchema {
 
     /// Last updated time for the document in index.
     pub field_updated_at: Field,
+
+    /// Number of failed chunks during indexing.
+    pub field_failed_chunks_count: Field,
     // ==========================================
 
     // === Fields for document ===
@@ -71,10 +74,17 @@ pub struct IndexSchema {
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
 const FIELD_UPDATED_AT: &str = "updated_at";
+const FIELD_FAILED_CHUNKS_COUNT: &str = "failed_chunks_count";
 pub const FIELD_SOURCE_ID: &str = "source_id";
 
 pub mod corpus {
     pub const CODE: &str = "code";
+    pub const STRUCTURED_DOC: &str = "structured_doc";
+
+    #[deprecated(
+        since = "0.20.0",
+        note = "The web corpus is deprecated and will be removed during the version upgrade."
+    )]
     pub const WEB: &str = "web";
 }
 
@@ -91,6 +101,8 @@ impl IndexSchema {
         let field_id = builder.add_text_field("id", STRING | STORED);
 
         let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED | STORED);
+        let field_failed_chunks_count =
+            builder.add_u64_field(FIELD_FAILED_CHUNKS_COUNT, INDEXED | FAST);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
@@ -117,6 +129,7 @@ impl IndexSchema {
             field_source_id,
             field_corpus,
             field_updated_at,
+            field_failed_chunks_count,
             field_attributes,
 
             field_chunk_id,
@@ -178,6 +191,33 @@ impl IndexSchema {
                 Box::new(RangeQuery::new_date(
                     FIELD_UPDATED_AT.to_owned(),
                     updated_at..DateTime::MAX,
+                )),
+            ),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ])
+    }
+
+    /// Build a query to check if the document has failed chunks.
+    pub fn doc_has_failed_chunks(&self, corpus: &str, doc_id: &str) -> impl Query {
+        let doc_id_query = TermQuery::new(
+            Term::from_field_text(self.field_id, doc_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+            // Must has the failed_chunks_count field
+            (
+                Occur::Must,
+                Box::new(ExistsQuery::new_exists_query(
+                    FIELD_FAILED_CHUNKS_COUNT.into(),
                 )),
             ),
             // Exclude chunk documents

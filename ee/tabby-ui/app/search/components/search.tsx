@@ -41,7 +41,7 @@ import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { updateSelectedModel } from '@/lib/stores/chat-actions'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
@@ -53,6 +53,7 @@ import {
 import {
   AttachmentCodeItem,
   AttachmentDocItem,
+  ExtendedCombinedError,
   ThreadRunContexts
 } from '@/lib/types'
 import {
@@ -64,7 +65,6 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconCheck,
-  IconChevronLeft,
   IconFileSearch,
   IconPlus,
   IconShare,
@@ -78,15 +78,13 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import NotFoundPage from '@/components/not-found-page'
 import TextAreaSearch from '@/components/textarea-search'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { MyAvatar } from '@/components/user-avatar'
-import UserPanel from '@/components/user-panel'
 
 import { AssistantMessageSection } from './assistant-message-section'
 import { DevPanel } from './dev-panel'
+import { Header } from './header'
 import { MessagesSkeleton } from './messages-skeleton'
 import { UserMessageSection } from './user-message-section'
 
@@ -116,7 +114,9 @@ type SearchContextValue = {
   fetchingContextInfo: boolean
   onDeleteMessage: (id: string) => void
   isThreadOwner: boolean
-  onUpdateMessage: (message: ConversationMessage) => Promise<string | undefined>
+  onUpdateMessage: (
+    message: ConversationMessage
+  ) => Promise<ExtendedCombinedError | undefined>
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -167,7 +167,9 @@ export function Search() {
 
   const updateThreadMessage = useMutation(updateThreadMessageMutation)
 
-  const onUpdateMessage = async (message: ConversationMessage) => {
+  const onUpdateMessage = async (
+    message: ConversationMessage
+  ): Promise<ExtendedCombinedError | undefined> => {
     const messageIndex = messages.findIndex(o => o.id === message.id)
     if (messageIndex > -1 && threadId) {
       // 1. call api
@@ -186,11 +188,10 @@ export function Search() {
           return newMessages
         })
       } else {
-        // FIXME error handling
-        return result?.error?.message || 'Failed to save'
+        return result?.error || new Error('Failed to save')
       }
     } else {
-      return 'Failed to save'
+      return new Error('Failed to save')
     }
   }
 
@@ -703,7 +704,7 @@ export function Search() {
     updateSelectedModel(model)
   }
 
-  const hasThreadError = useMemo(() => {
+  const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
     if (!isReady || fetchingThread || !threadIdFromURL) return undefined
     if (threadError || !threadData?.threads?.edges?.length) {
       return threadError || new Error(ERROR_CODE_NOT_FOUND)
@@ -715,8 +716,18 @@ export function Search() {
     200
   )
 
-  if (isReady && (threadMessagesError || hasThreadError)) {
-    return <ThreadMessagesErrorView />
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
+
+  if (isReady && (formatedThreadError || threadMessagesError)) {
+    return (
+      <ThreadMessagesErrorView
+        error={
+          (formatedThreadError || threadMessagesError) as ExtendedCombinedError
+        }
+      />
+    )
   }
 
   if (!isReady && (isFetchingMessages || threadMessagesStale)) {
@@ -734,10 +745,6 @@ export function Search() {
   if (!isChatEnabled || !isReady) {
     return <></>
   }
-
-  const style = isShowDemoBanner
-    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
-    : { height: '100vh' }
 
   return (
     <SearchContext.Provider
@@ -761,7 +768,7 @@ export function Search() {
           <ResizablePanel>
             <Header
               threadIdFromURL={threadIdFromURL}
-              streamingDone={answer.completed}
+              streamingDone={!isLoading}
             />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
@@ -927,63 +934,18 @@ const updateThreadMessageMutation = graphql(/* GraphQL */ `
   }
 `)
 
-type HeaderProps = {
-  threadIdFromURL?: string
-  streamingDone?: boolean
+interface ThreadMessagesErrorViewProps {
+  error: ExtendedCombinedError
 }
+function ThreadMessagesErrorView({ error }: ThreadMessagesErrorViewProps) {
+  let title = 'Something went wrong'
+  let description =
+    'Failed to fetch the thread, please refresh the page or start a new thread'
 
-function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
-  const router = useRouter()
-
-  const onNavigateToHomePage = (scroll?: boolean) => {
-    if (scroll) {
-      clearHomeScrollPosition()
-    }
-    router.push('/')
+  if (error.message === ERROR_CODE_NOT_FOUND) {
+    return <NotFoundPage />
   }
 
-  return (
-    <header className="flex h-16 items-center justify-between px-4 lg:px-10">
-      <div className="flex items-center gap-x-6">
-        <Button
-          variant="ghost"
-          className="-ml-1 pl-0 text-sm text-muted-foreground"
-          onClick={() => onNavigateToHomePage()}
-        >
-          <IconChevronLeft className="mr-1 h-5 w-5" />
-          Home
-        </Button>
-      </div>
-      <div className="flex items-center gap-2">
-        {(streamingDone || threadIdFromURL) && (
-          <>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-              onClick={() => onNavigateToHomePage(true)}
-            >
-              <IconPlus />
-            </Button>
-          </>
-        )}
-        <ClientOnly>
-          <ThemeToggle className="mr-4" />
-        </ClientOnly>
-        <UserPanel
-          showHome={false}
-          showSetting
-          beforeRouteChange={() => {
-            clearHomeScrollPosition()
-          }}
-        >
-          <MyAvatar className="h-10 w-10 border" />
-        </UserPanel>
-      </div>
-    </header>
-  )
-}
-
-function ThreadMessagesErrorView() {
   return (
     <div className="flex h-screen flex-col">
       <Header />
@@ -991,12 +953,9 @@ function ThreadMessagesErrorView() {
         <div className="flex h-full flex-col items-center justify-center gap-2">
           <div className="flex items-center gap-2">
             <IconFileSearch className="h-6 w-6" />
-            <div className="text-xl font-semibold">Something went wrong</div>
+            <div className="text-xl font-semibold">{title}</div>
           </div>
-          <div>
-            Failed to fetch the thread, please refresh the page or start a new
-            thread
-          </div>
+          <div>{description}</div>
           <Link
             href="/"
             onClick={clearHomeScrollPosition}
@@ -1087,7 +1046,7 @@ function formatThreadRunErrorMessage(error?: ExtendedCombinedError) {
   if (
     some(error.graphQLErrors, o => o.extensions?.code === ERROR_CODE_NOT_FOUND)
   ) {
-    return `The thread has expired`
+    return `The thread has expired or does not exist.`
   }
 
   return error.message || 'Failed to fetch'

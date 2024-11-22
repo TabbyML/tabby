@@ -23,15 +23,18 @@ import {
   GitRepositoriesQueryVariables,
   ListIntegrationsQueryVariables,
   ListInvitationsQueryVariables,
+  ListThreadsQueryVariables,
   SourceIdAccessPoliciesQueryVariables,
   UpsertUserGroupMembershipInput
 } from '../gql/generates/graphql'
+import { ExtendedCombinedError } from '../types'
 import { refreshTokenMutation } from './auth'
 import {
   listIntegrations,
   listInvitations,
   listRepositories,
   listSourceIdAccessPolicies,
+  listThreads,
   userGroupsQuery
 } from './query'
 import {
@@ -88,8 +91,10 @@ function useMutation<TResult, TVariables extends AnyVariables>(
   return fn
 }
 
-function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
-  return (err: CombinedError) => {
+export function makeFormErrorHandler<T extends FieldValues>(
+  form: UseFormReturn<T>
+) {
+  return (err: ExtendedCombinedError) => {
     const { graphQLErrors = [] } = err
     for (const error of graphQLErrors) {
       if (error.extensions && error.extensions['validation-errors']) {
@@ -366,6 +371,33 @@ const client = new Client({
                           data.sourceIdAccessPolicies.read.filter(
                             o => o.id !== userGroupId
                           )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          deleteThread(result, args, cache, info) {
+            if (result.deleteThread) {
+              cache
+                .inspectFields('Query')
+                // Update the cache within the thread-feeds only
+                .filter(
+                  field =>
+                    field.fieldName === 'threads' && !field.arguments?.ids
+                )
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listThreads,
+                      variables: field.arguments as ListThreadsQueryVariables
+                    },
+                    data => {
+                      if (data?.threads) {
+                        data.threads.edges = data.threads.edges.filter(
+                          e => e.node.id !== args.id
+                        )
                       }
                       return data
                     }

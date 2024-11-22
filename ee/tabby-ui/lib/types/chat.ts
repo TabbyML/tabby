@@ -3,11 +3,12 @@ import type { components } from 'tabby-openapi'
 
 import {
   ContextSourceKind,
+  CreateThreadRunSubscription,
   MessageAttachmentCode,
-  MessageAttachmentDoc,
   MessageCodeSearchHit,
   MessageDocSearchHit
 } from '../gql/generates/graphql'
+import { ArrayElementType } from './common'
 
 export interface UserMessage extends ChatMessage {
   id: string
@@ -79,15 +80,33 @@ export interface RelevantCodeContext extends Context {
   }
 }
 
+type ExtractHitsByType<T, N> = T extends {
+  __typename: N
+  hits: infer H
+}
+  ? H
+  : never
+
+export type ThreadAssistantMessageAttachmentCodeHits = ExtractHitsByType<
+  CreateThreadRunSubscription['createThreadRun'],
+  'ThreadAssistantMessageAttachmentsCode'
+>
+export type ThreadAssistantMessageAttachmentDocHits = ExtractHitsByType<
+  CreateThreadRunSubscription['createThreadRun'],
+  'ThreadAssistantMessageAttachmentsDoc'
+>
+
 // for rendering, including scores
-export type AttachmentCodeItem = MessageAttachmentCode & {
-  isClient?: boolean
-  extra?: { scores?: MessageCodeSearchHit['scores'] }
-}
+export type AttachmentCodeItem =
+  ArrayElementType<ThreadAssistantMessageAttachmentCodeHits>['code'] & {
+    isClient?: boolean
+    extra?: { scores?: MessageCodeSearchHit['scores'] }
+  }
 // for rendering, including score
-export type AttachmentDocItem = MessageAttachmentDoc & {
-  extra?: { score?: MessageDocSearchHit['score'] }
-}
+export type AttachmentDocItem =
+  ArrayElementType<ThreadAssistantMessageAttachmentDocHits>['doc'] & {
+    extra?: { score?: MessageDocSearchHit['score'] }
+  }
 
 export type MentionAttributes = {
   id: string

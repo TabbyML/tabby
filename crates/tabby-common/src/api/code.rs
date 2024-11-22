@@ -7,13 +7,13 @@ pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq, Debug)]
 pub struct CodeSearchHit {
     pub scores: CodeSearchScores,
     pub doc: CodeSearchDocument,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq, Debug)]
 pub struct CodeSearchScores {
     /// Reciprocal rank fusion score: https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html
     pub rrf: f32,
@@ -21,7 +21,7 @@ pub struct CodeSearchScores {
     pub embedding: f32,
 }
 
-#[derive(Builder, Default, Clone)]
+#[derive(Builder, Default, Clone, PartialEq, Debug)]
 pub struct CodeSearchDocument {
     /// Unique identifier for the file in the repository, stringified SourceFileKey.
     pub file_id: String,
@@ -50,6 +50,7 @@ pub enum CodeSearchError {
 }
 
 pub struct CodeSearchQuery {
+    /// filepath in code search query always normalize to unix style.
     pub filepath: Option<String>,
     pub language: Option<String>,
     pub content: String,
@@ -64,7 +65,7 @@ impl CodeSearchQuery {
         source_id: String,
     ) -> Self {
         Self {
-            filepath,
+            filepath: filepath.map(|path| normalize_to_unix_path(&path)),
             language,
             content,
             source_id,
@@ -105,4 +106,34 @@ pub trait CodeSearch: Send + Sync {
         query: CodeSearchQuery,
         params: CodeSearchParams,
     ) -> Result<CodeSearchResponse, CodeSearchError>;
+}
+
+/// Normalize the path form different platform to unix style path
+pub fn normalize_to_unix_path(filepath: &str) -> String {
+    filepath.replace('\\', "/")
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_relative_path_normalization() {
+        let unix_test_cases = [
+            ("./src/main.rs", "./src/main.rs"),
+            (".\\src\\main.rs", "./src/main.rs"),
+            ("../test/data.json", "../test/data.json"),
+            ("..\\test\\data.json", "../test/data.json"),
+            ("src/test/file.txt", "src/test/file.txt"),
+            ("src\\test\\file.txt", "src/test/file.txt"),
+        ];
+
+        for (input, expected) in unix_test_cases {
+            assert_eq!(
+                normalize_to_unix_path(input),
+                expected.to_string(),
+                "Failed to normalize path: {}",
+                input
+            );
+        }
+    }
 }

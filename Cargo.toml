@@ -23,7 +23,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 edition = "2021"
 authors = ["TabbyML Team"]
 homepage = "https://github.com/TabbyML/tabby"
@@ -55,7 +55,7 @@ hyper = "1.1"
 juniper = "0.16"
 chrono = "0.4"
 reqwest-eventsource = "0.6"
-serial_test = "3.0.0"
+serial_test = { version = "3.0.0", features = ["file_locks"] }
 hash-ids = { path = "./crates/hash-ids" }
 ignore = "0.4.20"
 nucleo = "0.5.0"
@@ -65,7 +65,7 @@ git2 = "0.18.3"
 tower-http = "0.5"
 mime_guess = "2.0.4"
 assert_matches = "1.5"
-insta = "1.34.0" 
+insta = "1.34.0"
 logkit = "0.3"
 async-openai = "0.20"
 tracing-test = "0.2"

@@ -3,14 +3,14 @@ import { motion, Transition, UseInViewOptions, Variants } from 'framer-motion'
 
 const cardTransition: Transition = {
   ease: 'easeOut',
-  duration: 0.5
+  duration: 0.2
 }
 
 function getCardVariants(delay?: number): Variants {
   return {
     initial: {
       opacity: 0,
-      y: 24,
+      y: 30,
       transition: cardTransition
     },
     onscreen: {
@@ -18,7 +18,7 @@ function getCardVariants(delay?: number): Variants {
       y: 0,
       transition: {
         ...cardTransition,
-        delay
+        delay: 0.3 + (delay || 0)
       }
     }
   }
@@ -44,8 +44,6 @@ export function AnimationWrapper({
       initial="initial"
       whileInView="onscreen"
       viewport={viewport}
-      // onViewportEnter={handleEnterViewport}
-      // onViewportLeave={handleLeaveViewport}
       style={style}
       className={className}
     >

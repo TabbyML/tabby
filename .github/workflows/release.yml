@@ -15,8 +15,8 @@ on:
       - '.github/workflows/release.yml'
 
 concurrency:
-  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
-  
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }}
+
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
 
@@ -246,24 +246,24 @@ jobs:
           retention-days: 3
           name: tabby_${{ matrix.binary }}${{ matrix.ext }}
           path: tabby_${{ matrix.binary }}${{ matrix.ext }}
-  
+
   package-win-cuda:
     runs-on: ubuntu-latest
-    env:
-      LLAMA_CPP_VERSION: b3571
     needs: [release-binary]
     permissions:
       contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Download all artifacts
         uses: actions/download-artifact@v3
-      
+
       - name: Display structure of downloaded files
         run: ls -R
-      
+
       - name: Package CUDA 11.7
         run: >
           LLAMA_CPP_PLATFORM=cuda-cu11.7.1-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda117 ./ci/package-win.sh
@@ -293,16 +293,19 @@ jobs:
         run: ls -R
 
       - name: Creating distribution bundles
-        run: >
+        run: |
           get_file_extension() {
-              local filename="$1"
-              # Check if the file has an extension
-              if [[ "$filename" == *.* && ! "$filename" == .* ]]; then
-                echo ".${filename##*.}"
-              else
-                echo ""
-              fi
+            local filename="$1"
+            # Check if the file has an extension
+            if [[ "$filename" == *.* && ! "$filename" == .* ]]; then
+              echo ".${filename##*.}"
+            else
+              echo ""
+            fi
           }
+
+          dist_dir=$(pwd)/dist
+          mkdir -p $dist_dir
 
           for llama_server in llama-server_*/llama-server_*; do
             for tabby in tabby_*/tabby_*; do
@@ -315,18 +318,36 @@ jobs:
 
               llamav=${llaman#llama-server_}
               tabbyv=${tabbyn#tabby_}
+
               if [[ $llamav == *"$tabbyv"* ]]; then
                 echo "Creating bundle for $llamav"
-                distdir=dist/tabby_$llamav
-                mkdir -p $distdir
-                cp $llama_server $distdir/llama-server${extname}
-                cp $tabby $distdir/tabby${extname}
-                zip -r $distdir.zip $distdir
-                rm -rf $distdir
+
+                # the downloaded files may have the same folder name with release_dir
+                # put the release files in a new folder
+                build_dir=build
+                release_name=tabby_${llamav}
+                release_dir=$build_dir/$release_name
+                mkdir -p $release_dir
+                cp $llama_server $release_dir/llama-server${extname}
+                cp $tabby $release_dir/tabby${extname}
+
+                pushd $build_dir
+                # Release zip for Windows, tar.gz for macOS and Linux
+                # use `extname` to determine the platform
+                if [[ "$extname" == ".exe" ]]; then
+                  zip -r $release_name.zip $release_name
+                  mv $release_name.zip $dist_dir/
+                else
+                  chmod +x $release_name/llama-server${extname} $release_name/tabby${extname}
+                  tar zcvf $release_name.tar.gz $release_name
+                  mv $release_name.tar.gz $dist_dir/
+                fi
+                rm -rf "$release_name"
+                popd
               fi
             done
           done
-      
+
       - name: Display structure of created files
         run: ls -R dist
 
@@ -340,13 +361,13 @@ jobs:
 
       - name: Check if stable release
         run: echo "Stable Release is ${{ env.STABLE_RELEASE }}"
-  
+
       - uses: ncipollo/release-action@v1
         if: github.event_name == 'push'
         with:
           allowUpdates: true
           prerelease: ${{ env.STABLE_RELEASE == 'false' }}
           makeLatest: ${{ env.STABLE_RELEASE == 'true' }}
-          artifacts: "dist/tabby_*.zip"
+          artifacts: "dist/tabby_*.zip,dist/tabby_*.tar.gz"
           tag: ${{ github.ref_name }}
           removeArtifacts: true

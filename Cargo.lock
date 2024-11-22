@@ -41,7 +41,7 @@ dependencies = [
 
 [[package]]
 name = "aim-downloader"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "async-stream",
  "clap",
@@ -1292,6 +1292,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
 
 [[package]]
+name = "fslock"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04412b8935272e3a9bae6f48c7bfff74c2911f60525404edfdd28e49884c3bfb"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "futf"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1691,7 +1701,7 @@ dependencies = [
 
 [[package]]
 name = "hash-ids"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 
 [[package]]
 name = "hashbrown"
@@ -1875,7 +1885,7 @@ dependencies = [
 
 [[package]]
 name = "http-api-bindings"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -2538,7 +2548,7 @@ checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
 
 [[package]]
 name = "llama-cpp-server"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -3066,7 +3076,7 @@ dependencies = [
 
 [[package]]
 name = "ollama-api-bindings"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -4332,6 +4342,7 @@ version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b4b487fe2acf240a021cf57c6b2b4903b1e78ca0ecd862a71b71d2a51fed77d"
 dependencies = [
+ "fslock",
  "futures",
  "log",
  "once_cell",
@@ -4980,7 +4991,7 @@ dependencies = [
 
 [[package]]
 name = "tabby"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "assert-json-diff",
@@ -5031,7 +5042,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-common"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5059,7 +5070,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-crawler"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -5078,7 +5089,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-db"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5096,7 +5107,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-db-macros"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "quote",
  "syn 2.0.66",
@@ -5104,7 +5115,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-download"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "aim-downloader",
  "anyhow",
@@ -5116,7 +5127,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-git"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5137,7 +5148,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-index"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -5179,7 +5190,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-index-cli"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -5191,7 +5202,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-inference"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -5209,7 +5220,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-schema"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -5236,7 +5247,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-webserver"
-version = "0.20.0-dev.0"
+version = "0.21.0-dev.0"
 dependencies = [
  "anyhow",
  "argon2",

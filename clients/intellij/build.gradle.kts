@@ -18,7 +18,12 @@ repositories {
 dependencies {
   intellijPlatform {
     intellijIdeaCommunity("2023.1")
-    bundledPlugins(listOf("Git4Idea"))
+    bundledPlugins(
+      listOf(
+        "Git4Idea",
+        "org.jetbrains.kotlin",
+      )
+    )
     pluginVerifier()
     zipSigner()
     instrumentationTools()
@@ -48,7 +53,7 @@ tasks {
       })
       ideaVersion {
         sinceBuild.set("231")
-        untilBuild.set("242.*")
+        untilBuild.set(provider { null })
       }
     }
     pluginVerification {
