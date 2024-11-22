@@ -134,7 +134,7 @@ The chat panel in IntelliJ Platform IDEs is implemented using an embedded JCEF b
 Please follow the steps below to ensure that the JCEF browser is enabled in your IDE:
 
 1. Open `Search Everywhere` (Double `Shift`) or `Find Action` (`Ctrl + Shift + A`), and search for the action `Choose Boot Java Runtime for the IDE...`
-2. Select a Java Runtime that includes JCEF support
+2. Select a Java Runtime that includes JCEF support  
     ![Choose Boot Java Runtime for the IDE](./intellij-choose-boot-runtime-for-the-ide.png)
 3. Restart the IDE
 
