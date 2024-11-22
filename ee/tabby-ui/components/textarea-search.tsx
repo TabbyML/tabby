@@ -160,12 +160,12 @@ export default function TextAreaSearch({
       {showBetaBadge && <BetaBadge />}
 
       <div
-        className={cn('flex items-end px-4', {
+        className={cn('flex items-end pr-4', {
           'min-h-[5.5rem]': !isFollowup,
           'min-h-[2.5rem]': isFollowup
         })}
       >
-        <div className="mr-1 flex-1 overflow-x-hidden">
+        <div className="mr-1 flex-1 overflow-x-hidden pl-4">
           <PromptEditor
             editable
             contextInfo={contextInfo}
