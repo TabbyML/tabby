@@ -133,7 +133,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
     messageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
       override fun settingsChanged(settings: SettingsService.Settings) {
         logger.debug("TriggerMode updated: ${settings.completionTriggerMode}")
-        shouldAutoTrigger = triggerMode == SettingsState.TriggerMode.AUTOMATIC
+        shouldAutoTrigger = settings.completionTriggerMode == SettingsState.TriggerMode.AUTOMATIC
       }
     })
     messageBusConnection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
@@ -431,6 +431,10 @@ class InlineCompletionService(private val project: Project) : Disposable {
     messageBusConnection.dispose()
   }
 
+  /**
+   * @deprecated
+   * This is not used anymore and should be removed.
+   */
   interface Listener {
     fun loadingStateChanged(loading: Boolean) {}
 
