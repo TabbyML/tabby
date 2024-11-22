@@ -23,6 +23,7 @@ import {
   FileText,
   Filter,
   GitFork,
+  GitMerge,
   GitPullRequest,
   Globe,
   Hash,
@@ -1729,6 +1730,13 @@ function IconGitPullRequest({
   return <GitPullRequest className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconGitMerge({
+  className,
+  ...props
+}: React.ComponentProps<typeof GitMerge>) {
+  return <GitMerge className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1839,5 +1847,6 @@ export {
   IconEyeOff,
   IconCircleDot,
   IconGitPullRequest,
-  IconCircleCheck
+  IconCircleCheck,
+  IconGitMerge
 }

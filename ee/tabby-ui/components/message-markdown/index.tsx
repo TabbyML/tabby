@@ -28,7 +28,12 @@ import {
 
 import { Mention } from '../mention-tag'
 import { Badge } from '../ui/badge'
-import { IconCircleDot, IconGitPullRequest } from '../ui/icons'
+import {
+  IconCircleCheck,
+  IconCircleDot,
+  IconGitMerge,
+  IconGitPullRequest
+} from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 
 type RelevantDocItem = {
@@ -487,13 +492,17 @@ function IssueStateBadge({ closed }: { closed: boolean }) {
   return (
     <Badge
       variant="outline"
-      className={cn('gap-1 text-xs text-white', {
+      className={cn('border-0 py-1 gap-1 text-xs text-white', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': closed,
-        'bg-gray-500 dark:bg-gray-500': !closed
+        'bg-green-600 dark:bg-green-600/80': !closed
       })}
     >
-      <IconCircleDot className="h-3.5 w-3.5" />
-      {closed ? 'Closed' : 'Not closed'}
+      {closed ? (
+        <IconCircleCheck className="h-3.5 w-3.5" />
+      ) : (
+        <IconCircleDot className="h-3.5 w-3.5" />
+      )}
+      {closed ? 'Closed' : 'Open'}
     </Badge>
   )
 }
@@ -502,13 +511,17 @@ function PRStateBadge({ merged }: { merged: boolean }) {
   return (
     <Badge
       variant="outline"
-      className={cn('gap-1 text-xs text-white', {
+      className={cn('border-0 py-1 gap-1 text-xs text-white', {
         'bg-[#7b52d7] dark:bg-[#8259dd]': merged,
-        'bg-gray-500 dark:bg-gray-500': !merged
+        'bg-green-600 dark:bg-green-600/80': !merged
       })}
     >
-      <IconGitPullRequest className="h-3.5 w-3.5" />
-      {merged ? 'Merged' : 'Not merged'}
+      {merged ? (
+        <IconGitMerge className="h-3.5 w-3.5" />
+      ) : (
+        <IconGitPullRequest className="h-3.5 w-3.5" />
+      )}
+      {merged ? 'Merged' : 'Open'}
     </Badge>
   )
 }
