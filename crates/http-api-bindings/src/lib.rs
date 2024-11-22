@@ -2,15 +2,19 @@ mod chat;
 mod completion;
 mod embedding;
 
-use std::{env, sync::Arc, time::Duration};
-
 pub use chat::create as create_chat;
 pub use completion::{build_completion_prompt, create};
 pub use embedding::create as create_embedding;
 use reqwest::{Response, Url};
-use serde::Serialize;
+use serde_json::Value;
+use std::{env, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 use tower::{limit::rate::RateLimit, Service, ServiceBuilder, ServiceExt};
+
+#[async_trait::async_trait]
+pub trait HttpClient: Send + Sync {
+    async fn post(&self, url: &str, body: Value) -> anyhow::Result<Response>;
+}
 
 fn create_reqwest_client(api_endpoint: &str) -> reqwest::Client {
     let builder = reqwest::Client::builder();
@@ -31,8 +35,6 @@ struct RateLimitedClient {
     rate_limit: Arc<Mutex<RateLimit<reqwest::Client>>>,
 
     api_key: Option<String>,
-
-    rate_limit_enabled: bool,
 }
 
 impl RateLimitedClient {
@@ -42,11 +44,9 @@ impl RateLimitedClient {
         num_request: u64,
         per: Duration,
     ) -> anyhow::Result<Self> {
-        if (num_request == 0) != (per.as_secs() == 0) {
-            anyhow::bail!("Both num_request and per must be zero or both must be non-zero");
+        if num_request == 0 || per.as_secs() == 0 {
+            anyhow::bail!("Both num_request and per must be non-zero");
         }
-
-        let rate_limit_enabled = num_request > 0;
 
         let builder = reqwest::Client::builder();
         let is_localhost = api_endpoint.starts_with("http://localhost")
@@ -68,11 +68,13 @@ impl RateLimitedClient {
                     .service(client),
             )),
             api_key,
-            rate_limit_enabled,
         })
     }
+}
 
-    async fn post<T: Serialize>(&self, url: &str, body: T) -> anyhow::Result<Response> {
+#[async_trait::async_trait]
+impl HttpClient for RateLimitedClient {
+    async fn post(&self, url: &str, body: Value) -> anyhow::Result<Response> {
         let url = Url::parse(url)?;
         let mut builder = self.client.post(url.clone()).json(&body);
         if let Some(api_key) = &self.api_key {
@@ -80,17 +82,23 @@ impl RateLimitedClient {
         }
         let request = builder.build()?;
 
-        if self.rate_limit_enabled {
-            let future = self.rate_limit.lock().await.ready().await?.call(request);
-            future
-                .await
-                .and_then(|response| response.error_for_status())
-                .map_err(|err| anyhow::anyhow!("Error from server: {}", err))
-        } else {
-            let response = self.client.execute(request).await?;
-            response
-                .error_for_status()
-                .map_err(|err| anyhow::anyhow!("Error from server: {}", err))
-        }
+        let future = self.rate_limit.lock().await.ready().await?.call(request);
+        let response = future.await?;
+
+        response
+            .error_for_status()
+            .map_err(|err| anyhow::anyhow!("Error from server: {}", err))
+    }
+}
+
+#[async_trait::async_trait]
+impl HttpClient for reqwest::Client {
+    async fn post(&self, url: &str, body: Value) -> anyhow::Result<Response> {
+        let url = Url::parse(url)?;
+        let response = self.post(url).json(&body).send().await?;
+
+        response
+            .error_for_status()
+            .map_err(|err| anyhow::anyhow!("Error from server: {}", err))
     }
 }
