@@ -1,9 +1,8 @@
-use std::time;
+use std::{sync::Arc, time};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::sync::Arc;
 use tabby_inference::Embedding;
 
 use crate::{create_reqwest_client, HttpClient, RateLimitedClient};

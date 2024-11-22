@@ -2,12 +2,13 @@ mod chat;
 mod completion;
 mod embedding;
 
+use std::{env, sync::Arc, time::Duration};
+
 pub use chat::create as create_chat;
 pub use completion::{build_completion_prompt, create};
 pub use embedding::create as create_embedding;
 use reqwest::{Response, Url};
 use serde_json::Value;
-use std::{env, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 use tower::{limit::rate::RateLimit, Service, ServiceBuilder, ServiceExt};
 
