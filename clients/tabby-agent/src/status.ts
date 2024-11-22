@@ -40,7 +40,7 @@ export class StatusProvider extends EventEmitter implements Feature {
 
     connection.onRequest(StatusRequest.type, async (params) => {
       if (params?.recheckConnection) {
-        await this.tabbyApiClient.connect();
+        await this.tabbyApiClient.connect({ reset: true });
       }
       return this.getStatusInfo();
     });
