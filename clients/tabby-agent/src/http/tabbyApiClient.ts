@@ -278,16 +278,19 @@ export class TabbyApiClient extends EventEmitter {
       } else if (error instanceof HttpError && error.status == 405 && method !== "POST") {
         return await this.healthCheck(signal, "POST");
       } else if (isUnauthorizedError(error)) {
+        this.serverHealth = undefined;
         this.updateStatus("unauthorized");
       } else if (isTimeoutError(error)) {
         this.logger.error(`Health check request timed out. [${requestId}]`, error);
-        this.updateStatus("noConnection");
+        this.serverHealth = undefined;
         this.connectionErrorMessage = `${requestDescription} timed out.`;
+        this.updateStatus("noConnection");
       } else {
         this.logger.error(`Health check request failed. [${requestId}]`, error);
-        this.updateStatus("noConnection");
+        this.serverHealth = undefined;
         const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
         this.connectionErrorMessage = `${requestDescription} failed: \n${message}`;
+        this.updateStatus("noConnection");
       }
     } finally {
       if (this.healthCheckMutexAbortController === abortController) {
