@@ -2,12 +2,17 @@ mod llama;
 mod openai;
 mod voyage;
 
+use async_trait::async_trait;
 use core::panic;
-use std::sync::Arc;
-
+use futures::future::BoxFuture;
 use llama::LlamaCppEngine;
+use std::task::{Context, Poll};
+use std::{sync::Arc, time::Duration};
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
+use tokio::sync::Mutex;
+use tower::{Service, ServiceBuilder, ServiceExt};
+use tracing::debug;
 
 use self::{openai::OpenAIEmbeddingEngine, voyage::VoyageEmbeddingEngine};
 
@@ -17,7 +22,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
         _ => (0, 0),
     };
 
-    match config.kind.as_str() {
+    let embedding = match config.kind.as_str() {
         "llama.cpp/embedding" => {
             let engine = LlamaCppEngine::create(
                 config
@@ -25,11 +30,10 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
                     .as_deref()
                     .expect("api_endpoint is required"),
                 config.api_key.clone(),
-                num_request,
-                per,
             );
             Arc::new(engine)
         }
+        "ollama/embedding" => ollama_api_bindings::create_embedding(config).await,
         "openai/embedding" => {
             let engine = OpenAIEmbeddingEngine::create(
                 config
@@ -41,7 +45,6 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             );
             Arc::new(engine)
         }
-        "ollama/embedding" => ollama_api_bindings::create_embedding(config).await,
         "voyage/embedding" => {
             let engine = VoyageEmbeddingEngine::create(
                 config.api_endpoint.as_deref(),
@@ -60,5 +63,72 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             "Unsupported kind for http embedding model: {}",
             unsupported_kind
         ),
+    };
+
+    if num_request > 0 {
+        debug!(
+            "Creating rate limited embedding with {} requests per {}s",
+            num_request, per,
+        );
+        Arc::new(
+            RateLimitedEmbedding::new(embedding, num_request, Duration::from_secs(per))
+                .expect("Failed to create rate limited embedding"),
+        )
+    } else {
+        embedding
+    }
+}
+
+struct EmbeddingService {
+    embedding: Arc<dyn Embedding>,
+}
+
+impl Service<String> for EmbeddingService {
+    type Response = Vec<f32>;
+    type Error = anyhow::Error;
+    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn call(&mut self, prompt: String) -> Self::Future {
+        let embedding = self.embedding.clone();
+        Box::pin(async move { embedding.embed(&prompt).await })
+    }
+}
+
+pub struct RateLimitedEmbedding {
+    embedding: Arc<Mutex<tower::util::BoxService<String, Vec<f32>, anyhow::Error>>>,
+}
+
+impl RateLimitedEmbedding {
+    pub fn new(
+        embedding: Arc<dyn Embedding>,
+        num_request: u64,
+        per: Duration,
+    ) -> anyhow::Result<Self> {
+        if num_request == 0 || per.as_secs() == 0 {
+            anyhow::bail!("Both num_request and per must be non-zero");
+        }
+
+        let service = ServiceBuilder::new()
+            .rate_limit(num_request, per)
+            .service(EmbeddingService { embedding })
+            .boxed();
+
+        Ok(Self {
+            embedding: Arc::new(Mutex::new(service)),
+        })
+    }
+}
+
+#[async_trait]
+impl Embedding for RateLimitedEmbedding {
+    async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
+        let mut service = self.embedding.lock().await;
+        let prompt_owned = prompt.to_string();
+        let response = service.ready().await?.call(prompt_owned).await?;
+        Ok(response)
     }
 }

@@ -14,7 +14,7 @@ pub struct VoyageEmbeddingEngine {
 }
 
 impl VoyageEmbeddingEngine {
-    pub fn create(api_endpoint: Option<&str>, model_name: &str, api_key: String) -> Self {
+    pub fn create(api_endpoint: Option<&str>, model_name: &str, api_key: String) -> impl Embedding {
         let api_endpoint = api_endpoint.unwrap_or(DEFAULT_VOYAGE_API_ENDPOINT);
         let client = Client::new();
         Self {

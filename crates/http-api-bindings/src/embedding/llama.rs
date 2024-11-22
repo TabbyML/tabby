@@ -1,37 +1,23 @@
-use std::{sync::Arc, time};
-
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use tabby_inference::Embedding;
 
-use crate::{create_reqwest_client, HttpClient, RateLimitedClient};
+use crate::create_reqwest_client;
 
 pub struct LlamaCppEngine {
-    client: Arc<dyn HttpClient>,
+    client: reqwest::Client,
     api_endpoint: String,
+    api_key: Option<String>,
 }
 
 impl LlamaCppEngine {
-    pub fn create(api_endpoint: &str, api_key: Option<String>, num_request: u64, per: u64) -> Self {
-        if num_request > 0 {
-            let client = RateLimitedClient::new(
-                api_endpoint,
-                api_key,
-                num_request,
-                time::Duration::from_secs(per),
-            )
-            .unwrap();
-            Self {
-                client: Arc::new(client),
-                api_endpoint: format!("{}/embedding", api_endpoint),
-            }
-        } else {
-            let client = create_reqwest_client(api_endpoint);
-            Self {
-                client: Arc::new(client),
-                api_endpoint: format!("{}/embedding", api_endpoint),
-            }
+    pub fn create(api_endpoint: &str, api_key: Option<String>) -> impl Embedding {
+        let client = create_reqwest_client(api_endpoint);
+
+        Self {
+            client: client,
+            api_endpoint: format!("{}/embedding", api_endpoint),
+            api_key,
         }
     }
 }
@@ -53,7 +39,12 @@ impl Embedding for LlamaCppEngine {
             content: prompt.to_owned(),
         };
 
-        let response = self.client.post(&self.api_endpoint, json!(request)).await?;
+        let mut request = self.client.post(&self.api_endpoint).json(&request);
+        if let Some(api_key) = &self.api_key {
+            request = request.bearer_auth(api_key);
+        }
+
+        let response = request.send().await?;
         if response.status().is_server_error() {
             let error = response.text().await?;
             return Err(anyhow::anyhow!(
@@ -77,8 +68,8 @@ mod tests {
     /// ./server -m ./models/nomic.gguf --port 8000 --embedding
     #[tokio::test]
     #[ignore]
-    async fn test_embedding_no_limit() {
-        let engine = LlamaCppEngine::create("http://localhost:8000", None, 0, 0);
+    async fn test_embedding() {
+        let engine = LlamaCppEngine::create("http://localhost:8000", None);
         let embedding = engine.embed("hello").await.unwrap();
         assert_eq!(embedding.len(), 768);
     }

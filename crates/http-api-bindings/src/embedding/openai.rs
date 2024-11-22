@@ -12,7 +12,7 @@ pub struct OpenAIEmbeddingEngine {
 }
 
 impl OpenAIEmbeddingEngine {
-    pub fn create(api_endpoint: &str, model_name: &str, api_key: Option<&str>) -> Self {
+    pub fn create(api_endpoint: &str, model_name: &str, api_key: Option<&str>) -> impl Embedding {
         let config = OpenAIConfig::default()
             .with_api_base(api_endpoint)
             .with_api_key(api_key.unwrap_or_default());
