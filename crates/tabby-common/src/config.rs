@@ -289,6 +289,9 @@ pub struct HttpModelConfig {
     #[builder(default)]
     pub api_key: Option<String>,
 
+    #[builder(default)]
+    pub request_limit: Option<RequestLimit>,
+
     /// Used by OpenAI style API for model name.
     #[builder(default)]
     pub model_name: Option<String>,
@@ -307,6 +310,14 @@ pub struct HttpModelConfig {
 
     #[builder(default)]
     pub additional_stop_words: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize, Builder, Debug, Clone)]
+pub struct RequestLimit {
+    // The limited number of requests can be made in following `per` time period.
+    pub num_request: u64,
+    // The time period in seconds to limit the number of requests.
+    pub per: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

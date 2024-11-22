@@ -12,6 +12,11 @@ use tabby_inference::Embedding;
 use self::{openai::OpenAIEmbeddingEngine, voyage::VoyageEmbeddingEngine};
 
 pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
+    let (num_request, per) = match &config.request_limit {
+        Some(limit) => (limit.num_request, limit.per),
+        _ => (0, 0),
+    };
+
     match config.kind.as_str() {
         "llama.cpp/embedding" => {
             let engine = LlamaCppEngine::create(
@@ -20,6 +25,8 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
                     .as_deref()
                     .expect("api_endpoint is required"),
                 config.api_key.clone(),
+                num_request,
+                per,
             );
             Arc::new(engine)
         }
