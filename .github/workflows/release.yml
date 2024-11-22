@@ -353,7 +353,7 @@ jobs:
 
       - name: Determine is stable release
         run: |
-          if [[ ${{ github.ref_name }} =~ ^v@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ${{ github.ref_name }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "STABLE_RELEASE=true" >> $GITHUB_ENV
           else
             echo "STABLE_RELEASE=false" >> $GITHUB_ENV
