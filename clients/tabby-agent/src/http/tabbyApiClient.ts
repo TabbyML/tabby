@@ -273,29 +273,27 @@ export class TabbyApiClient extends EventEmitter {
       this.serverHealth = response.data;
       this.updateStatus("ready");
     } catch (error) {
-      this.serverHealth = undefined;
-      if (error instanceof HttpError && error.status == 405 && method !== "POST") {
+      if (isCanceledError(error)) {
+        this.logger.debug(`Health check request canceled. [${requestId}]`);
+      } else if (error instanceof HttpError && error.status == 405 && method !== "POST") {
         return await this.healthCheck(signal, "POST");
       } else if (isUnauthorizedError(error)) {
         this.updateStatus("unauthorized");
-      } else {
-        if (isCanceledError(error)) {
-          this.logger.debug(`Health check request canceled. [${requestId}]`);
-          this.connectionErrorMessage = `${requestDescription} canceled.`;
-        } else if (isTimeoutError(error)) {
-          this.logger.error(`Health check request timed out. [${requestId}]`, error);
-          this.connectionErrorMessage = `${requestDescription} timed out.`;
-        } else {
-          this.logger.error(`Health check request failed. [${requestId}]`, error);
-          const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
-          this.connectionErrorMessage = `${requestDescription} failed: \n${message}`;
-        }
+      } else if (isTimeoutError(error)) {
+        this.logger.error(`Health check request timed out. [${requestId}]`, error);
         this.updateStatus("noConnection");
+        this.connectionErrorMessage = `${requestDescription} timed out.`;
+      } else {
+        this.logger.error(`Health check request failed. [${requestId}]`, error);
+        this.updateStatus("noConnection");
+        const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
+        this.connectionErrorMessage = `${requestDescription} failed: \n${message}`;
       }
-    }
-    if (this.healthCheckMutexAbortController === abortController) {
-      this.healthCheckMutexAbortController = undefined;
-      this.updateIsConnecting(false);
+    } finally {
+      if (this.healthCheckMutexAbortController === abortController) {
+        this.healthCheckMutexAbortController = undefined;
+        this.updateIsConnecting(false);
+      }
     }
   }
 
