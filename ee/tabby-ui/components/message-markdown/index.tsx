@@ -491,11 +491,8 @@ export function SiteFavicon({
 function IssueStateBadge({ closed }: { closed: boolean }) {
   return (
     <Badge
-      variant="outline"
-      className={cn('gap-1 border-0 py-1 text-xs text-white', {
-        'bg-[#7b52d7] dark:bg-[#8259dd]': closed,
-        'bg-green-600 dark:bg-green-600/80': !closed
-      })}
+      variant={closed ? 'default' : 'secondary'}
+      className="gap-1 py-1 text-xs"
     >
       {closed ? (
         <IconCheckCircled className="h-3.5 w-3.5" />
@@ -510,11 +507,8 @@ function IssueStateBadge({ closed }: { closed: boolean }) {
 function PRStateBadge({ merged }: { merged: boolean }) {
   return (
     <Badge
-      variant="outline"
-      className={cn('gap-1 border-0 py-1 text-xs text-white', {
-        'bg-[#7b52d7] dark:bg-[#8259dd]': merged,
-        'bg-green-600 dark:bg-green-600/80': !merged
-      })}
+      variant={merged ? 'default' : 'secondary'}
+      className="gap-1 py-1 text-xs"
     >
       {merged ? (
         <IconGitMerge className="h-3.5 w-3.5" />
