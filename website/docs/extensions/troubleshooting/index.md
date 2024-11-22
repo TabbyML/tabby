@@ -137,6 +137,7 @@ Please follow the steps below to ensure that the JCEF browser is enabled in your
 2. Select a Java Runtime that includes JCEF support
     ![Choose Boot Java Runtime for the IDE](./intellij-choose-boot-runtime-for-the-ide.png)
 3. Restart the IDE
+
 ## Want to Deep Dive via Logs?
 
 If you cannot solve the issue using the previous steps, you may want to 
