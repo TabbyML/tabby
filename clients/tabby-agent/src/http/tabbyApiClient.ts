@@ -251,11 +251,7 @@ export class TabbyApiClient extends EventEmitter {
     const requestPath = "/v1/health";
     const requestDescription = `${method} ${this.endpoint + requestPath}`;
     const requestOptions = {
-      signal: abortSignalFromAnyOf([
-        signal,
-        abortController.signal,
-        this.createTimeOutAbortSignal(),
-      ]),
+      signal: abortSignalFromAnyOf([signal, abortController.signal, this.createTimeOutAbortSignal()]),
     };
     try {
       if (!this.api) {
