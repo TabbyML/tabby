@@ -13,7 +13,6 @@ import {
   CaseSensitive,
   ChevronsDownUp,
   CircleAlert,
-  CircleCheck,
   CircleDot,
   CircleHelp,
   CirclePlay,
@@ -23,6 +22,7 @@ import {
   FileText,
   Filter,
   GitFork,
+  GitMerge,
   GitPullRequest,
   Globe,
   Hash,
@@ -1715,18 +1715,18 @@ function IconCircleDot({
   return <CircleDot className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconCircleCheck({
-  className,
-  ...props
-}: React.ComponentProps<typeof CircleCheck>) {
-  return <CircleCheck className={cn('h-4 w-4', className)} {...props} />
-}
-
 function IconGitPullRequest({
   className,
   ...props
 }: React.ComponentProps<typeof GitPullRequest>) {
   return <GitPullRequest className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconGitMerge({
+  className,
+  ...props
+}: React.ComponentProps<typeof GitMerge>) {
+  return <GitMerge className={cn('h-4 w-4', className)} {...props} />
 }
 
 export {
@@ -1839,5 +1839,5 @@ export {
   IconEyeOff,
   IconCircleDot,
   IconGitPullRequest,
-  IconCircleCheck
+  IconGitMerge
 }

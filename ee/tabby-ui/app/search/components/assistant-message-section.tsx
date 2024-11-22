@@ -37,9 +37,11 @@ import {
 import {
   IconBlocks,
   IconBug,
+  IconCheckCircled,
   IconChevronRight,
   IconCircleDot,
   IconEdit,
+  IconGitMerge,
   IconGitPullRequest,
   IconLayers,
   IconPlus,
@@ -516,14 +518,22 @@ function SourceCardContent({
           <div className="flex shrink-0 items-center gap-1">
             {isIssue && (
               <>
-                <IconCircleDot className="h-3.5 w-3.5" />
-                <span>{source.closed ? 'Closed' : 'Not closed'}</span>
+                {source.closed ? (
+                  <IconCheckCircled className="h-3.5 w-3.5" />
+                ) : (
+                  <IconCircleDot className="h-3.5 w-3.5" />
+                )}
+                <span>{source.closed ? 'Closed' : 'Open'}</span>
               </>
             )}
             {isPR && (
               <>
-                <IconGitPullRequest className="h-3.5 w-3.5" />
-                {source.merged ? 'Merged' : 'Not merged'}
+                {source.merged ? (
+                  <IconGitMerge className="h-3.5 w-3.5" />
+                ) : (
+                  <IconGitPullRequest className="h-3.5 w-3.5" />
+                )}
+                {source.merged ? 'Merged' : 'Open'}
               </>
             )}
           </div>
