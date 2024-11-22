@@ -2,12 +2,16 @@ mod llama;
 mod openai;
 mod voyage;
 
-use async_trait::async_trait;
 use core::panic;
+use std::{
+    sync::Arc,
+    task::{Context, Poll},
+    time::Duration,
+};
+
+use async_trait::async_trait;
 use futures::future::BoxFuture;
 use llama::LlamaCppEngine;
-use std::task::{Context, Poll};
-use std::{sync::Arc, time::Duration};
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
 use tokio::sync::Mutex;

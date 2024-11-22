@@ -15,7 +15,7 @@ impl LlamaCppEngine {
         let client = create_reqwest_client(api_endpoint);
 
         Self {
-            client: client,
+            client,
             api_endpoint: format!("{}/embedding", api_endpoint),
             api_key,
         }
