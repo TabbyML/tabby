@@ -29,7 +29,7 @@ import {
 import { Mention } from '../mention-tag'
 import { Badge } from '../ui/badge'
 import {
-  IconCircleCheck,
+  IconCheckCircled,
   IconCircleDot,
   IconGitMerge,
   IconGitPullRequest
@@ -498,7 +498,7 @@ function IssueStateBadge({ closed }: { closed: boolean }) {
       })}
     >
       {closed ? (
-        <IconCircleCheck className="h-3.5 w-3.5" />
+        <IconCheckCircled className="h-3.5 w-3.5" />
       ) : (
         <IconCircleDot className="h-3.5 w-3.5" />
       )}

@@ -37,8 +37,8 @@ import {
 import {
   IconBlocks,
   IconBug,
+  IconCheckCircled,
   IconChevronRight,
-  IconCircleCheck,
   IconCircleDot,
   IconEdit,
   IconGitMerge,
@@ -519,7 +519,7 @@ function SourceCardContent({
             {isIssue && (
               <>
                 {source.closed ? (
-                  <IconCircleCheck className="h-3.5 w-3.5" />
+                  <IconCheckCircled className="h-3.5 w-3.5" />
                 ) : (
                   <IconCircleDot className="h-3.5 w-3.5" />
                 )}

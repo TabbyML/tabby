@@ -13,7 +13,6 @@ import {
   CaseSensitive,
   ChevronsDownUp,
   CircleAlert,
-  CircleCheck,
   CircleDot,
   CircleHelp,
   CirclePlay,
@@ -1716,13 +1715,6 @@ function IconCircleDot({
   return <CircleDot className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconCircleCheck({
-  className,
-  ...props
-}: React.ComponentProps<typeof CircleCheck>) {
-  return <CircleCheck className={cn('h-4 w-4', className)} {...props} />
-}
-
 function IconGitPullRequest({
   className,
   ...props
@@ -1847,6 +1839,5 @@ export {
   IconEyeOff,
   IconCircleDot,
   IconGitPullRequest,
-  IconCircleCheck,
   IconGitMerge
 }
