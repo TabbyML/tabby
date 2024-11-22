@@ -1,6 +1,7 @@
+use std::time;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::time;
 use tabby_inference::Embedding;
 
 use crate::RateLimitedClient;
