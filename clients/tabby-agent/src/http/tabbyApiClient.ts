@@ -74,12 +74,7 @@ export class TabbyApiClient extends EventEmitter {
       );
       if (isServerConnectionChanged) {
         this.logger.debug("Server configurations updated, reconnecting...");
-        this.updateStatus("noConnection");
-        this.updateCompletionResponseIssue(undefined);
-        this.connectionErrorMessage = undefined;
-        this.serverHealth = undefined;
-        this.completionRequestStats.reset();
-        this.api = this.createApiClient();
+        this.reset();
         this.connect(); // no await
       }
     });
@@ -97,6 +92,15 @@ export class TabbyApiClient extends EventEmitter {
     if (this.reconnectTimer) {
       clearInterval(this.reconnectTimer);
     }
+  }
+
+  private reset() {
+    this.updateStatus("noConnection");
+    this.updateCompletionResponseIssue(undefined);
+    this.connectionErrorMessage = undefined;
+    this.serverHealth = undefined;
+    this.completionRequestStats.reset();
+    this.api = this.createApiClient();
   }
 
   private buildUserAgentString(clientInfo: ClientInfo | undefined): string {
@@ -154,6 +158,7 @@ export class TabbyApiClient extends EventEmitter {
     }
   }
 
+  // FIXME(icycodes): move fetchingCompletion status to completion provider
   private updateIsFetchingCompletion(isFetchingCompletion: boolean) {
     if (this.fetchingCompletion != isFetchingCompletion) {
       this.fetchingCompletion = isFetchingCompletion;
@@ -223,7 +228,10 @@ export class TabbyApiClient extends EventEmitter {
     return !!(health && health["chat_model"]);
   }
 
-  async connect(): Promise<void> {
+  async connect(options: { reset?: boolean } = {}): Promise<void> {
+    if (options.reset) {
+      this.reset();
+    }
     await this.healthCheck();
     if (this.status === "ready") {
       await this.updateServerProvidedConfig();
@@ -235,19 +243,16 @@ export class TabbyApiClient extends EventEmitter {
     if (this.healthCheckMutexAbortController && !this.healthCheckMutexAbortController.signal.aborted) {
       this.healthCheckMutexAbortController.abort(new MutexAbortError());
     }
-    this.healthCheckMutexAbortController = new AbortController();
+    const abortController = new AbortController();
+    this.healthCheckMutexAbortController = abortController;
+    this.updateIsConnecting(true);
 
     const requestId = uuid();
     const requestPath = "/v1/health";
     const requestDescription = `${method} ${this.endpoint + requestPath}`;
     const requestOptions = {
-      signal: abortSignalFromAnyOf([
-        signal,
-        this.healthCheckMutexAbortController?.signal,
-        this.createTimeOutAbortSignal(),
-      ]),
+      signal: abortSignalFromAnyOf([signal, abortController.signal, this.createTimeOutAbortSignal()]),
     };
-    this.updateIsConnecting(true);
     try {
       if (!this.api) {
         throw new Error("http client not initialized");
@@ -288,7 +293,10 @@ export class TabbyApiClient extends EventEmitter {
         this.updateStatus("noConnection");
       }
     }
-    this.updateIsConnecting(false);
+    if (this.healthCheckMutexAbortController === abortController) {
+      this.healthCheckMutexAbortController = undefined;
+      this.updateIsConnecting(false);
+    }
   }
 
   private async updateServerProvidedConfig(): Promise<void> {
