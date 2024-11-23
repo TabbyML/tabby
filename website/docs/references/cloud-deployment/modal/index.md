@@ -148,4 +148,4 @@ If you encounter any issues, particularly related to caching, you can force a re
 ![App Running](./app-running.png)
 
 Now it can be used as tabby server url in tabby editor extensions!
-See [app.py](https://github.com/TabbyML/tabby/blob/main/website/docs/quick-start/installation/modal/app.py) for the full code used in this tutorial.
+See [app.py](https://github.com/TabbyML/tabby/blob/main/website/docs/references/cloud-deployment/modal/app.py) for the full code used in this tutorial.
