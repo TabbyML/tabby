@@ -7,6 +7,7 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsListener
@@ -22,11 +23,16 @@ import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.tabbyml.intellijtabby.events.CombinedState
 import com.tabbyml.intellijtabby.git.GitProvider
-import com.tabbyml.intellijtabby.lsp.protocol.ServerInfo
-import com.tabbyml.intellijtabby.lsp.protocol.Status
+import com.tabbyml.intellijtabby.lsp.ConnectionService
+import com.tabbyml.intellijtabby.lsp.protocol.Config
+import com.tabbyml.intellijtabby.lsp.protocol.StatusInfo
+import com.tabbyml.intellijtabby.lsp.protocol.StatusRequestParams
 import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.constraints.Constraint
 import io.github.z4kn4fein.semver.constraints.satisfiedBy
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.cef.browser.CefBrowser
 import org.cef.handler.CefLoadHandlerAdapter
 import java.awt.Color
@@ -53,10 +59,13 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
   private val gitProvider = project.service<GitProvider>()
   private val messageBusConnection = project.messageBus.connect()
 
+  private val scope = CoroutineScope(Dispatchers.IO)
+  private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
+
   private val reloadHandler = JBCefJSQuery.create(this as JBCefBrowserBase)
   private val chatPanelRequestHandler = JBCefJSQuery.create(this as JBCefBrowserBase)
 
-  private var currentConfig: ServerInfo.ServerInfoConfig? = null
+  private var currentConfig: Config.ServerConfig? = null
   private var isChatPanelLoaded = false
   private val pendingScripts: MutableList<String> = mutableListOf()
 
@@ -249,42 +258,49 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private fun reloadContent(force: Boolean = false) {
     if (force) {
-      // FIXME(@icycodes): force reload requires await reconnection then get server health
-      reloadContentInternal(true)
+      scope.launch {
+        val server = getServer() ?: return@launch
+        server.statusFeature.getStatus(StatusRequestParams(recheckConnection = true)).thenAccept {
+          reloadContentInternal(it, true)
+        }
+      }
     } else {
-      reloadContentInternal(false)
+      reloadContentInternal(combinedState.state.agentStatus)
     }
   }
 
-  private fun reloadContentInternal(force: Boolean = false) {
-    val status = combinedState.state.agentStatus
-    when (status) {
-      Status.NOT_INITIALIZED, Status.FINALIZED -> {
-        showContent("Initializing...")
-      }
+  private fun reloadContentInternal(statusInfo: StatusInfo?, force: Boolean = false) {
+    if (statusInfo == null) {
+      showContent("Initializing...")
+    } else {
+      when (statusInfo.status) {
+        StatusInfo.Status.CONNECTING -> {
+          showContent("Connecting to Tabby server...")
+        }
 
-      Status.DISCONNECTED -> {
-        showContent("Cannot connect to Tabby server, please check your settings.")
-      }
+        StatusInfo.Status.UNAUTHORIZED -> {
+          showContent("Authorization required, please set your token in settings.")
+        }
 
-      Status.UNAUTHORIZED -> {
-        showContent("Authorization required, please set your token in settings.")
-      }
+        StatusInfo.Status.DISCONNECTED -> {
+          showContent("Cannot connect to Tabby server, please check your settings.")
+        }
 
-      else -> {
-        val health = combinedState.state.agentServerInfo?.health
-        val error = checkServerHealth(health)
-        if (error != null) {
-          showContent(error)
-        } else {
-          val config = combinedState.state.agentServerInfo?.config
-          if (config == null) {
-            showContent("Initializing...")
-          } else if (force || currentConfig != config) {
-            showContent("Loading chat panel...")
-            isChatPanelLoaded = false
-            currentConfig = config
-            jsLoadChatPanel()
+        else -> {
+          val health = statusInfo.serverHealth
+          val error = checkServerHealth(health)
+          if (error != null) {
+            showContent(error)
+          } else {
+            val config = combinedState.state.agentConfig?.server
+            if (config == null) {
+              showContent("Initializing...")
+            } else if (force || currentConfig != config) {
+              showContent("Loading chat panel...")
+              isChatPanelLoaded = false
+              currentConfig = config
+              jsLoadChatPanel()
+            }
           }
         }
       }
