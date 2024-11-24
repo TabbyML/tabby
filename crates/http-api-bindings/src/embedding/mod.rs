@@ -2,11 +2,10 @@ mod llama;
 mod openai;
 mod voyage;
 
-use core::panic;
+use core::{panic, time};
 use std::{
     sync::Arc,
     task::{Context, Poll},
-    time::Duration,
 };
 
 use async_trait::async_trait;
@@ -21,9 +20,10 @@ use tracing::debug;
 use self::{openai::OpenAIEmbeddingEngine, voyage::VoyageEmbeddingEngine};
 
 pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
-    let (num_request, per) = match &config.request_limit {
-        Some(limit) => (limit.num_request, limit.per),
-        _ => (0, 0),
+    let rpm = if let Some(limit) = &config.request_limit {
+        limit.request_per_minute
+    } else {
+        0
     };
 
     let embedding = match config.kind.as_str() {
@@ -69,13 +69,13 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
         ),
     };
 
-    if num_request > 0 {
+    if rpm > 0 {
         debug!(
-            "Creating rate limited embedding with {} requests per {}s",
-            num_request, per,
+            "Creating rate limited embedding with {} requests per minute",
+            rpm,
         );
         Arc::new(
-            RateLimitedEmbedding::new(embedding, num_request, Duration::from_secs(per))
+            RateLimitedEmbedding::new(embedding, rpm)
                 .expect("Failed to create rate limited embedding"),
         )
     } else {
@@ -107,17 +107,15 @@ pub struct RateLimitedEmbedding {
 }
 
 impl RateLimitedEmbedding {
-    pub fn new(
-        embedding: Arc<dyn Embedding>,
-        num_request: u64,
-        per: Duration,
-    ) -> anyhow::Result<Self> {
-        if num_request == 0 || per.as_secs() == 0 {
-            anyhow::bail!("Both num_request and per must be non-zero");
+    pub fn new(embedding: Arc<dyn Embedding>, rpm: u64) -> anyhow::Result<Self> {
+        if rpm == 0 {
+            anyhow::bail!(
+                "Can not create rate limited embedding client with 0 requests per minute"
+            );
         }
 
         let service = ServiceBuilder::new()
-            .rate_limit(num_request, per)
+            .rate_limit(rpm, time::Duration::from_secs(60))
             .service(EmbeddingService { embedding })
             .boxed();
 

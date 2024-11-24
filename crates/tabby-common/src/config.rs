@@ -314,10 +314,8 @@ pub struct HttpModelConfig {
 
 #[derive(Serialize, Deserialize, Builder, Debug, Clone)]
 pub struct RequestLimit {
-    // The limited number of requests can be made in following `per` time period.
-    pub num_request: u64,
-    // The time period in seconds to limit the number of requests.
-    pub per: u64,
+    // The limited number of requests can be made in one minute.
+    pub request_per_minute: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
