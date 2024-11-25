@@ -55,7 +55,7 @@ impl WebCrawlerJob {
 
             num_docs += 1;
             indexer
-                .add(
+                .sync(
                     StructuredDocState {
                         updated_at: Utc::now(),
                         deleted: false,

@@ -31,7 +31,7 @@ impl StructuredDocIndexer {
         Self { indexer, builder }
     }
 
-    pub async fn add(&self, state: StructuredDocState, document: StructuredDoc) -> bool {
+    pub async fn sync(&self, state: StructuredDocState, document: StructuredDoc) -> bool {
         if !self.require_updates(state.updated_at, &document) {
             return false;
         }
