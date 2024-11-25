@@ -548,7 +548,9 @@ mod tests {
     async fn test_create_run() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = create_user(&db).await.as_id();
-        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
+            return_error: false,
+        });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
