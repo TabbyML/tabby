@@ -5,7 +5,9 @@ use futures::Stream;
 use gitlab::api::{issues::ProjectIssues, AsyncQuery};
 use octocrab::Octocrab;
 use serde::Deserialize;
-use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields};
+use tabby_index::public::{
+    StructuredDoc, StructuredDocFields, StructuredDocIssueFields, StructuredDocState,
+};
 
 use crate::service::create_gitlab_client;
 
@@ -14,7 +16,7 @@ pub async fn list_github_issues(
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<impl Stream<Item = (DateTime<Utc>, StructuredDoc)>> {
+) -> Result<impl Stream<Item = (StructuredDocState, StructuredDoc)>> {
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?
@@ -62,7 +64,10 @@ pub async fn list_github_issues(
                         closed: issue.state == octocrab::models::IssueState::Closed,
                     })
                 };
-                yield (issue.updated_at, doc);
+                yield (StructuredDocState {
+                    updated_at: issue.updated_at,
+                    deleted: false,
+                }, doc);
             }
 
             page += 1;
@@ -89,7 +94,7 @@ pub async fn list_gitlab_issues(
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<impl Stream<Item = (DateTime<Utc>, StructuredDoc)>> {
+) -> Result<impl Stream<Item = (StructuredDocState, StructuredDoc)>> {
     let gitlab = create_gitlab_client(api_base, access_token).await?;
 
     let source_id = source_id.to_owned();
@@ -118,7 +123,10 @@ pub async fn list_gitlab_issues(
                 body: issue.description.unwrap_or_default(),
                 closed: issue.state == "closed",
             })};
-            yield (issue.updated_at, doc);
+            yield (StructuredDocState {
+                updated_at: issue.updated_at,
+                deleted: false,
+            }, doc);
         }
     };
 
