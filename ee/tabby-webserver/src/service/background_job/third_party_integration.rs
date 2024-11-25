@@ -147,7 +147,7 @@ impl SchedulerGithubGitlabJob {
                     num_updated += 1
                 }
                 if state.should_clean {
-                    index.delete(&id).await;
+                    index.delete(id).await;
                     num_deleted += 1;
                 }
 

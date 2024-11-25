@@ -1,10 +1,10 @@
-use super::FetchState;
-
 use anyhow::{anyhow, Result};
 use async_stream::stream;
 use futures::Stream;
 use octocrab::{models::IssueState, Octocrab};
 use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields};
+
+use super::FetchState;
 
 pub async fn list_github_pulls(
     source_id: &str,

@@ -1,5 +1,3 @@
-use super::FetchState;
-
 use anyhow::{anyhow, Result};
 use async_stream::stream;
 use chrono::{DateTime, Utc};
@@ -9,6 +7,7 @@ use octocrab::Octocrab;
 use serde::Deserialize;
 use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields};
 
+use super::FetchState;
 use crate::service::create_gitlab_client;
 
 pub async fn list_github_issues(
