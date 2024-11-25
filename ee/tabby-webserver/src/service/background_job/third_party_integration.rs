@@ -146,8 +146,7 @@ impl SchedulerGithubGitlabJob {
                 if index.add(state.updated_at, doc).await {
                     num_updated += 1
                 }
-                if state.should_clean {
-                    index.delete(id).await;
+                if state.should_clean && index.delete(id).await {
                     num_deleted += 1;
                 }
 

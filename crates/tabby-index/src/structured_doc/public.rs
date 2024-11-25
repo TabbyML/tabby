@@ -44,8 +44,13 @@ impl StructuredDocIndexer {
         true
     }
 
-    pub async fn delete(&self, id: &str) {
-        self.indexer.delete(id);
+    pub async fn delete(&self, id: &str) -> bool {
+        if self.indexer.is_indexed(id) {
+            self.indexer.delete(id);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn commit(self) {
