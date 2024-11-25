@@ -6,6 +6,7 @@ import { LetterCaseCapitalizeIcon } from '@radix-ui/react-icons'
 import {
   AlignJustify,
   AtSign,
+  Bell,
   Blocks,
   BookOpenText,
   Box,
@@ -1729,6 +1730,10 @@ function IconGitMerge({
   return <GitMerge className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconBell({ className, ...props }: React.ComponentProps<typeof Bell>) {
+  return <Bell className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1839,5 +1844,6 @@ export {
   IconEyeOff,
   IconCircleDot,
   IconGitPullRequest,
-  IconGitMerge
+  IconGitMerge,
+  IconBell
 }
