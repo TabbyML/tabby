@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import { NotificationBox } from '@/components/notification-box'
 import SlackDialog from '@/components/slack-dialog'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -110,6 +111,7 @@ function MainPanel() {
           <ClientOnly>
             <ThemeToggle />
           </ClientOnly>
+          <NotificationBox />
           <UserPanel showHome={false} showSetting>
             <MyAvatar className="h-10 w-10 border" />
           </UserPanel>
