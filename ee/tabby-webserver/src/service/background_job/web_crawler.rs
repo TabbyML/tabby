@@ -5,7 +5,8 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tabby_crawler::crawl_pipeline;
 use tabby_index::public::{
-    StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocWebFields,
+    StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocState,
+    StructuredDocWebFields,
 };
 use tabby_inference::Embedding;
 
@@ -53,7 +54,15 @@ impl WebCrawlerJob {
             };
 
             num_docs += 1;
-            indexer.add(Utc::now(), source_doc).await;
+            indexer
+                .add(
+                    StructuredDocState {
+                        updated_at: Utc::now(),
+                        deleted: false,
+                    },
+                    source_doc,
+                )
+                .await;
         }
         logkit::info!("Crawled {} documents from '{}'", num_docs, self.url);
         indexer.commit();

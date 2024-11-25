@@ -14,6 +14,11 @@ pub use super::types::{
 use super::{create_structured_doc_builder, types::BuildStructuredDoc};
 use crate::{indexer::TantivyDocBuilder, Indexer};
 
+pub struct StructuredDocState {
+    pub updated_at: DateTime<Utc>,
+    pub deleted: bool,
+}
+
 pub struct StructuredDocIndexer {
     builder: TantivyDocBuilder<StructuredDoc>,
     indexer: Indexer,
@@ -26,9 +31,13 @@ impl StructuredDocIndexer {
         Self { indexer, builder }
     }
 
-    pub async fn add(&self, updated_at: DateTime<Utc>, document: StructuredDoc) -> bool {
-        if !self.require_updates(updated_at, &document) {
+    pub async fn add(&self, state: StructuredDocState, document: StructuredDoc) -> bool {
+        if !self.require_updates(state.updated_at, &document) {
             return false;
+        }
+
+        if state.deleted {
+            return self.delete(document.id()).await;
         }
 
         stream! {

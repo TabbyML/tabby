@@ -2,16 +2,16 @@ use anyhow::{anyhow, Result};
 use async_stream::stream;
 use futures::Stream;
 use octocrab::{models::IssueState, Octocrab};
-use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields};
-
-use super::FetchState;
+use tabby_index::public::{
+    StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields, StructuredDocState,
+};
 
 pub async fn list_github_pulls(
     source_id: &str,
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<impl Stream<Item = (FetchState, StructuredDoc)>> {
+) -> Result<impl Stream<Item = (StructuredDocState, StructuredDoc)>> {
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?
@@ -61,9 +61,9 @@ pub async fn list_github_pulls(
                 // skip closed but not merged pulls
                 if let Some(state) = pull.state {
                     if state == IssueState::Closed && pull.merged_at.is_none() {
-                        yield (FetchState{
+                        yield (StructuredDocState{
                             updated_at: pull.updated_at.unwrap(),
-                            should_clean: true,
+                            deleted: true,
                         }, doc);
                         continue;
                     }
@@ -93,9 +93,9 @@ pub async fn list_github_pulls(
                 })};
 
 
-                yield (FetchState{
+                yield (StructuredDocState{
                     updated_at: pull.updated_at.unwrap(),
-                    should_clean: false,
+                    deleted: false,
                 }, doc);
             }
 
