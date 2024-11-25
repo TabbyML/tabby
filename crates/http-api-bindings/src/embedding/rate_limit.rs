@@ -1,15 +1,14 @@
-use async_trait::async_trait;
-use futures::future::BoxFuture;
-use tokio::sync::Mutex;
-use tower::{Service, ServiceBuilder, ServiceExt};
-
 use core::time;
 use std::{
     sync::Arc,
     task::{Context, Poll},
 };
 
+use async_trait::async_trait;
+use futures::future::BoxFuture;
 use tabby_inference::Embedding;
+use tokio::sync::Mutex;
+use tower::{Service, ServiceBuilder, ServiceExt};
 
 struct EmbeddingService {
     embedding: Arc<dyn Embedding>,
