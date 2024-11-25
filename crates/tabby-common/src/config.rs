@@ -290,7 +290,7 @@ pub struct HttpModelConfig {
     pub api_key: Option<String>,
 
     #[builder(default)]
-    pub request_limit: Option<RequestLimit>,
+    pub rate_limit: Option<RateLimit>,
 
     /// Used by OpenAI style API for model name.
     #[builder(default)]
@@ -313,9 +313,17 @@ pub struct HttpModelConfig {
 }
 
 #[derive(Serialize, Deserialize, Builder, Debug, Clone)]
-pub struct RequestLimit {
+pub struct RateLimit {
     // The limited number of requests can be made in one minute.
     pub request_per_minute: u64,
+}
+
+impl Default for RateLimit {
+    fn default() -> Self {
+        Self {
+            request_per_minute: 600,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
