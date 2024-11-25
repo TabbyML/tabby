@@ -11,7 +11,7 @@ pub struct LlamaCppEngine {
 }
 
 impl LlamaCppEngine {
-    pub fn create(api_endpoint: &str, api_key: Option<String>) -> impl Embedding {
+    pub fn create(api_endpoint: &str, api_key: Option<String>) -> Self {
         let client = create_reqwest_client(api_endpoint);
 
         Self {
