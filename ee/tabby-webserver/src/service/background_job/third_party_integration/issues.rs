@@ -65,7 +65,7 @@ pub async fn list_github_issues(
                 };
                 yield (FetchState {
                     updated_at: issue.updated_at,
-                     should_clean: false,
+                    should_clean: false,
                 }, doc);
             }
 

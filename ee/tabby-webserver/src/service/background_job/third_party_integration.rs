@@ -143,7 +143,7 @@ impl SchedulerGithubGitlabJob {
             let mut num_deleted = 0;
             for await (state, doc) in issue_stream.chain(pull_stream) {
                 let id = &doc.id().to_owned();
-                if index.add(state.updated_at, doc).await {
+                if !state.should_clean && index.add(state.updated_at, doc).await {
                     num_updated += 1
                 }
                 if state.should_clean && index.delete(id).await {

@@ -65,6 +65,7 @@ pub async fn list_github_pulls(
                             updated_at: pull.updated_at.unwrap(),
                             should_clean: true,
                         }, doc);
+                        continue;
                     }
                 }
 
