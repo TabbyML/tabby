@@ -290,7 +290,8 @@ pub struct HttpModelConfig {
     pub api_key: Option<String>,
 
     #[builder(default)]
-    pub rate_limit: Option<RateLimit>,
+    #[serde(default)]
+    pub rate_limit: RateLimit,
 
     /// Used by OpenAI style API for model name.
     #[builder(default)]

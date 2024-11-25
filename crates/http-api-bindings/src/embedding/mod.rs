@@ -8,16 +8,13 @@ use std::sync::Arc;
 
 use llama::LlamaCppEngine;
 use rate_limit::RateLimitedEmbedding;
-use tabby_common::config::{HttpModelConfig, RateLimit};
+use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
 
 use self::{openai::OpenAIEmbeddingEngine, voyage::VoyageEmbeddingEngine};
 
 pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
-    let rpm = config.rate_limit.as_ref().map_or_else(
-        || RateLimit::default().request_per_minute,
-        |rl| rl.request_per_minute,
-    );
+    let rpm = config.rate_limit.request_per_minute;
 
     let embedding: Arc<dyn Embedding> = match config.kind.as_str() {
         "llama.cpp/embedding" => {
