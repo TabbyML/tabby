@@ -140,18 +140,24 @@ impl SchedulerGithubGitlabJob {
         stream! {
             let mut count = 0;
             let mut num_updated = 0;
-            for await (updated_at, doc) in issue_stream.chain(pull_stream) {
-                if index.add(updated_at, doc).await {
+            let mut num_deleted = 0;
+            for await (state, doc) in issue_stream.chain(pull_stream) {
+                let id = &doc.id().to_owned();
+                if index.add(state.updated_at, doc).await {
                     num_updated += 1
+                }
+                if state.should_clean {
+                    index.delete(&id).await;
+                    num_deleted += 1;
                 }
 
                 count += 1;
                 if count % 100 == 0 {
-                    logkit::info!("{} docs seen, {} docs updated", count, num_updated);
+                    logkit::info!("{} docs seen, {} docs updated, {} docs deleted", count, num_updated, num_deleted);
                 };
             }
 
-            logkit::info!("{} docs seen, {} docs updated", count, num_updated);
+            logkit::info!("{} docs seen, {} docs updated, {} docs deleted", count, num_updated, num_deleted);
             index.commit();
         }
         .count()
@@ -179,11 +185,16 @@ impl SchedulerGithubGitlabJob {
     }
 }
 
+pub struct FetchState {
+    updated_at: DateTime<Utc>,
+    should_clean: bool,
+}
+
 async fn fetch_all_issues(
     integration: &Integration,
     repository: &ProvidedRepository,
-) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, StructuredDoc)>> {
-    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = match &integration.kind {
+) -> tabby_schema::Result<BoxStream<'static, (FetchState, StructuredDoc)>> {
+    let s: BoxStream<(FetchState, StructuredDoc)> = match &integration.kind {
         IntegrationKind::Github | IntegrationKind::GithubSelfHosted => list_github_issues(
             &repository.source_id(),
             integration.api_base(),
@@ -207,8 +218,8 @@ async fn fetch_all_issues(
 async fn fetch_all_pulls(
     integration: &Integration,
     repository: &ProvidedRepository,
-) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, StructuredDoc)>> {
-    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = list_github_pulls(
+) -> tabby_schema::Result<BoxStream<'static, (FetchState, StructuredDoc)>> {
+    let s: BoxStream<(FetchState, StructuredDoc)> = list_github_pulls(
         &repository.source_id(),
         integration.api_base(),
         &repository.display_name,

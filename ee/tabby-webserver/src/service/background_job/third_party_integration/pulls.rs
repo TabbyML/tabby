@@ -1,6 +1,7 @@
+use super::FetchState;
+
 use anyhow::{anyhow, Result};
 use async_stream::stream;
-use chrono::{DateTime, Utc};
 use futures::Stream;
 use octocrab::{models::IssueState, Octocrab};
 use tabby_index::public::{StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields};
@@ -10,7 +11,7 @@ pub async fn list_github_pulls(
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<impl Stream<Item = (DateTime<Utc>, StructuredDoc)>> {
+) -> Result<impl Stream<Item = (FetchState, StructuredDoc)>> {
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?
@@ -43,14 +44,31 @@ pub async fn list_github_pulls(
             let pages = response.number_of_pages().unwrap_or_default();
 
             for pull in response.items {
+                let url = pull.html_url.map(|url| url.to_string()).unwrap_or_else(|| pull.url);
+                let title = pull.title.clone().unwrap_or_default();
+                let body = pull.body.clone().unwrap_or_default();
+                let doc = StructuredDoc {
+                    source_id: source_id.to_string(),
+                    fields: StructuredDocFields::Pull(StructuredDocPullDocumentFields {
+                        link: url.clone(),
+                        title,
+                        body,
+                        merged: pull.merged_at.is_some(),
+                        diff: String::new(),
+                    }),
+                };
+
                 // skip closed but not merged pulls
                 if let Some(state) = pull.state {
                     if state == IssueState::Closed && pull.merged_at.is_none() {
-                        continue
+                        yield (FetchState{
+                            updated_at: pull.updated_at.unwrap(),
+                            should_clean: true,
+                        }, doc);
                     }
                 }
 
-                let url = pull.html_url.map(|url| url.to_string()).unwrap_or_else(|| pull.url);
+
                 let diff = match octocrab.pulls(&owner, &repo).get_diff(pull.number).await {
                     Ok(x) if x.len() < 1024*1024*10 => x,
                     Ok(_) => {
@@ -71,10 +89,13 @@ pub async fn list_github_pulls(
                         body: pull.body.unwrap_or_default(),
                         diff,
                         merged: pull.merged_at.is_some(),
-                    })
-                };
+                })};
 
-                yield (pull.updated_at.unwrap(), doc);
+
+                yield (FetchState{
+                    updated_at: pull.updated_at.unwrap(),
+                    should_clean: false,
+                }, doc);
             }
 
             page += 1;
