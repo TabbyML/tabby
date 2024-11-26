@@ -1,11 +1,11 @@
 mod llama;
 mod openai;
+mod rate_limit;
 mod voyage;
 
 use core::panic;
 use std::{sync::Arc, time::Duration};
 
-use async_trait::async_trait;
 use llama::LlamaCppEngine;
 use ratelimit::Ratelimiter;
 use tabby_common::config::HttpModelConfig;
@@ -55,31 +55,6 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
     .max_tokens(config.rate_limit.request_per_minute)
     .build()
     .expect("Failed to create ratelimiter, please check the rate limit configuration");
-    let engine = RateLimiter {
-        embedding: engine,
-        rate_limiter: ratelimiter,
-    };
 
-    Arc::new(engine)
-}
-
-pub struct RateLimiter {
-    embedding: Box<dyn Embedding>,
-    rate_limiter: Ratelimiter,
-}
-
-#[async_trait]
-impl Embedding for RateLimiter {
-    async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
-        for _ in 0..5 {
-            if let Err(sleep) = self.rate_limiter.try_wait() {
-                std::thread::sleep(sleep);
-                continue;
-            }
-
-            return self.embedding.embed(prompt).await;
-        }
-
-        anyhow::bail!("Rate limit exceeded for OpenAI embedding");
-    }
+    Arc::new(rate_limit::RateLimitedEmbedding::new(engine, ratelimiter))
 }
