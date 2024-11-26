@@ -1,6 +1,7 @@
 mod chat;
 mod completion;
 mod embedding;
+mod rate_limit;
 
 pub use chat::create as create_chat;
 pub use completion::{build_completion_prompt, create};

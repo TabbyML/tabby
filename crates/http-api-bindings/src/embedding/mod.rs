@@ -1,17 +1,16 @@
 mod llama;
 mod openai;
-mod rate_limit;
 mod voyage;
 
 use core::panic;
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use llama::LlamaCppEngine;
-use ratelimit::Ratelimiter;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
 
 use self::{openai::OpenAIEmbeddingEngine, voyage::VoyageEmbeddingEngine};
+use super::rate_limit;
 
 pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
     let engine = match config.kind.as_str() {
@@ -48,13 +47,8 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
         ),
     };
 
-    let ratelimiter = Ratelimiter::builder(
+    Arc::new(rate_limit::new_embedding(
+        engine,
         config.rate_limit.request_per_minute,
-        Duration::from_secs(60),
-    )
-    .max_tokens(config.rate_limit.request_per_minute)
-    .build()
-    .expect("Failed to create ratelimiter, please check the rate limit configuration");
-
-    Arc::new(rate_limit::RateLimitedEmbedding::new(engine, ratelimiter))
+    ))
 }
