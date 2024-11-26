@@ -1,4 +1,4 @@
-import { createThread, type ThreadOptions } from "@quilted/threads";
+import { createThread, type ThreadOptions } from "tabby-threads";
 import type { ServerApi, ClientApi } from "tabby-chat-panel";
 import { Webview } from "vscode";
 
