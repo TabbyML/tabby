@@ -1,0 +1,27 @@
+{
+  "name": "@quilted/threads",
+  "type": "module",
+  "version": "2.2.0",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.mjs",
+      "require": "./dist/cjs/index.cjs"
+    }
+  },
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "scripts": {
+    "build": "tsc --emitDeclarationOnly && rollup -c rollup.config.js"
+  },
+  "dependencies": {
+    "@quilted/signals": "0.2.1",
+    "@quilted/events": "2.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^12.1.1",
+    "rollup": "^4.27.3",
+    "typescript": "^5.3.3"
+  }
+}
