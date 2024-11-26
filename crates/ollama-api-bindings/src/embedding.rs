@@ -1,4 +1,3 @@
-
 use async_trait::async_trait;
 use ollama_rs::Ollama;
 use tabby_common::config::HttpModelConfig;

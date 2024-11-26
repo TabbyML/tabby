@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use ratelimit::Ratelimiter;
 use tabby_inference::Embedding;
-use tokio;
 
 pub struct RateLimitedEmbedding {
     embedding: Box<dyn Embedding>,
