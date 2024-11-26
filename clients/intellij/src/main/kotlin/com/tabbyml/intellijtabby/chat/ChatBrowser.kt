@@ -20,9 +20,6 @@ import com.intellij.openapi.progress.util.BackgroundTaskUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.openapi.util.io.toNioPath
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.TokenType
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
@@ -646,7 +643,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       return URLBuilder(this).appendPathSegments(path).toString()
     }
 
-    private fun buildCodeBrowserUrl(config: Config.ServerConfig, context: FileContext): String? {
+    private fun buildCodeBrowserUrl(config: Config.ServerConfig, context: FileContext): String {
       return URLBuilder(config.endpoint).apply {
         appendPathSegments("files")
         parameters.append("redirect_git_url", context.gitUrl)

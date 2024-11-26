@@ -16,7 +16,9 @@ import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.tabbyml.intellijtabby.lsp.ConnectionService
-import com.tabbyml.intellijtabby.lsp.protocol.*
+import com.tabbyml.intellijtabby.lsp.protocol.StatusIgnoredIssuesEditParams
+import com.tabbyml.intellijtabby.lsp.protocol.StatusInfo
+import com.tabbyml.intellijtabby.lsp.protocol.StatusRequestParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
