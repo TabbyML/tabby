@@ -38,7 +38,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
             .with_http_client(create_reqwest_client(api_endpoint)),
     );
 
-    Arc::new(rate_limit::RateLimitedChatStream::new(
+    Arc::new(rate_limit::new_chat(
         engine,
         model.rate_limit.request_per_minute,
     ))

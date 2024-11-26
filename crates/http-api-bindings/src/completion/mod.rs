@@ -51,7 +51,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
         ),
     };
 
-    Arc::new(rate_limit::RateLimitedCompletion::new(
+    Arc::new(rate_limit::new_completion(
         engine,
         model.rate_limit.request_per_minute,
     ))

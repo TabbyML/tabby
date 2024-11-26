@@ -29,12 +29,10 @@ pub struct RateLimitedEmbedding {
     rate_limiter: Ratelimiter,
 }
 
-impl RateLimitedEmbedding {
-    pub fn new(embedding: Box<dyn Embedding>, rpm: u64) -> Self {
-        Self {
-            embedding,
-            rate_limiter: new_rate_limiter(rpm).unwrap(),
-        }
+pub fn new_embedding(embedding: Box<dyn Embedding>, rpm: u64) -> impl Embedding {
+    RateLimitedEmbedding {
+        embedding,
+        rate_limiter: new_rate_limiter(rpm).unwrap(),
     }
 }
 
@@ -59,12 +57,10 @@ pub struct RateLimitedCompletion {
     rate_limiter: Ratelimiter,
 }
 
-impl RateLimitedCompletion {
-    pub fn new(completion: Box<dyn CompletionStream>, rpm: u64) -> Self {
-        Self {
-            completion,
-            rate_limiter: new_rate_limiter(rpm).unwrap(),
-        }
+pub fn new_completion(completion: Box<dyn CompletionStream>, rpm: u64) -> impl CompletionStream {
+    RateLimitedCompletion {
+        completion,
+        rate_limiter: new_rate_limiter(rpm).unwrap(),
     }
 }
 
@@ -90,12 +86,10 @@ pub struct RateLimitedChatStream {
     rate_limiter: Ratelimiter,
 }
 
-impl RateLimitedChatStream {
-    pub fn new(completion: Box<dyn ChatCompletionStream>, rpm: u64) -> Self {
-        Self {
-            completion,
-            rate_limiter: new_rate_limiter(rpm).unwrap(),
-        }
+pub fn new_chat(completion: Box<dyn ChatCompletionStream>, rpm: u64) -> impl ChatCompletionStream {
+    RateLimitedChatStream {
+        completion,
+        rate_limiter: new_rate_limiter(rpm).unwrap(),
     }
 }
 
