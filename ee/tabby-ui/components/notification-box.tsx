@@ -105,21 +105,21 @@ export function NotificationBox({ className, ...rest }: Props) {
         <DropdownMenuContent
           side="bottom"
           align="end"
-          className="p-0 w-96 flex flex-col overflow-hidden"
+          className="flex w-96 flex-col overflow-hidden p-0"
           style={{ maxHeight: 'calc(100vh - 6rem)' }}
         >
-          <div className="flex items-center justify-between py-2 px-4">
+          <div className="flex items-center justify-between px-4 py-2">
             <div className="text-sm font-medium">Nofitications</div>
-            <Button size="sm" className="text-xs py-1 h-6">
+            <Button size="sm" className="h-6 py-1 text-xs">
               Mark all as read
             </Button>
           </div>
           <Separator />
           <Tabs
-            className="relative my-2 px-4 flex-1 overflow-y-auto"
+            className="relative my-2 flex-1 overflow-y-auto px-4"
             defaultValue="unread"
           >
-            <TabsList className="w-full grid grid-cols-2 sticky top-0 z-10">
+            <TabsList className="sticky top-0 z-10 grid w-full grid-cols-2">
               <TabsTrigger value="unread">Unread</TabsTrigger>
               <TabsTrigger value="all">All</TabsTrigger>
             </TabsList>
@@ -168,16 +168,16 @@ interface NotificationItemProps extends HTMLAttributes<HTMLDivElement> {
 
 function NotificationItem({ data }: NotificationItemProps) {
   return (
-    <div className="space-y-1.5 group">
-      <div className="cursor-pointer text-sm font-medium flex items-center overflow-hidden gap-1.5">
+    <div className="group space-y-1.5">
+      <div className="flex cursor-pointer items-center gap-1.5 overflow-hidden text-sm font-medium">
         {!data.read && (
-          <span className="shrink-0 h-2 w-2 rounded-full bg-red-400"></span>
+          <span className="h-2 w-2 shrink-0 rounded-full bg-red-400"></span>
         )}
         <span className="flex-1 truncate group-hover:opacity-70">
           {data.title}
         </span>
       </div>
-      <div className="cursor-pointer text-sm text-muted-foreground line-clamp-3 group-hover:opacity-70">
+      <div className="line-clamp-3 cursor-pointer text-sm text-muted-foreground group-hover:opacity-70">
         {data.content}
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -187,7 +187,7 @@ function NotificationItem({ data }: NotificationItemProps) {
         <div className="flex items-center gap-1.5">
           <Link
             href="/"
-            className="hover:underline p-1 underline-offset-4 font-medium flex items-center gap-0.5"
+            className="flex items-center gap-0.5 p-1 font-medium underline-offset-4 hover:underline"
           >
             <IconArrowRight className="h-3 w-3" />
             Detail
@@ -195,7 +195,7 @@ function NotificationItem({ data }: NotificationItemProps) {
           {!data.read && (
             <Button
               variant="link"
-              className="p-1 text-xs text-muted-foreground h-auto flex items-center gap-0.5"
+              className="flex h-auto items-center gap-0.5 p-1 text-xs text-muted-foreground"
             >
               <IconCheck className="h-3 w-3" />
               Mark as read
