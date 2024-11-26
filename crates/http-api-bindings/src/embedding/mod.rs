@@ -3,12 +3,11 @@ mod openai;
 mod voyage;
 
 use core::panic;
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use llama::LlamaCppEngine;
 use ratelimit::Ratelimiter;
-use std::time::Duration;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
 
