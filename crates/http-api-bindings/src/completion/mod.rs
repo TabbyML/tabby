@@ -1,16 +1,16 @@
 mod llama;
 mod mistral;
 mod openai;
-mod rate_limit;
 
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use llama::LlamaCppEngine;
 use mistral::MistralFIMEngine;
 use openai::OpenAICompletionEngine;
-use ratelimit::Ratelimiter;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::CompletionStream;
+
+use super::rate_limit;
 
 pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
     let engine = match model.kind.as_str() {
@@ -51,13 +51,10 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
         ),
     };
 
-    let ratelimiter =
-        Ratelimiter::builder(model.rate_limit.request_per_minute, Duration::from_secs(60))
-            .max_tokens(model.rate_limit.request_per_minute)
-            .build()
-            .expect("Failed to create ratelimiter, please check the rate limit configuration");
-
-    Arc::new(rate_limit::RateLimitedCompletion::new(engine, ratelimiter))
+    Arc::new(rate_limit::RateLimitedCompletion::new(
+        engine,
+        model.rate_limit.request_per_minute,
+    ))
 }
 
 const FIM_TOKEN: &str = "<|FIM|>";
