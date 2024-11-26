@@ -11,14 +11,14 @@ pub struct LlamaCppEngine {
 }
 
 impl LlamaCppEngine {
-    pub fn create(api_endpoint: &str, api_key: Option<String>) -> Self {
+    pub fn create(api_endpoint: &str, api_key: Option<String>) -> Box<dyn Embedding> {
         let client = create_reqwest_client(api_endpoint);
 
-        Self {
+        Box::new(Self {
             client,
             api_endpoint: format!("{}/embedding", api_endpoint),
             api_key,
-        }
+        })
     }
 }
 

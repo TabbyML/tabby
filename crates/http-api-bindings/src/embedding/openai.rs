@@ -12,17 +12,21 @@ pub struct OpenAIEmbeddingEngine {
 }
 
 impl OpenAIEmbeddingEngine {
-    pub fn create(api_endpoint: &str, model_name: &str, api_key: Option<&str>) -> Self {
+    pub fn create(
+        api_endpoint: &str,
+        model_name: &str,
+        api_key: Option<&str>,
+    ) -> Box<dyn Embedding> {
         let config = OpenAIConfig::default()
             .with_api_base(api_endpoint)
             .with_api_key(api_key.unwrap_or_default());
 
         let client = async_openai::Client::with_config(config);
 
-        Self {
+        Box::new(Self {
             client,
             model_name: model_name.to_owned(),
-        }
+        })
     }
 }
 
