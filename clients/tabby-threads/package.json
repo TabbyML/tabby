@@ -1,7 +1,7 @@
 {
-  "name": "@quilted/threads",
+  "name": "tabby-threads",
   "type": "module",
-  "version": "2.2.0",
+  "version": "1.0.0",
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",

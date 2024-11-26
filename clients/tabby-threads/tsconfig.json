@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "composite": true,
-    "declaration": true, // 必须开启
+    "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly": false, // 必须关闭
+    "emitDeclarationOnly": false,
     "pretty": true,
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": false,
