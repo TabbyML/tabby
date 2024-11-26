@@ -1,1 +1,2 @@
--- Add down migration script here
+DROP TABLE notifications;
+DROP TABLE readed_notifications;
