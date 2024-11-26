@@ -258,7 +258,10 @@ export function Search() {
     if (!meData) return false
     if (!threadIdFromURL) return true
 
-    return meData.me.id === threadData?.threads.edges[0].node.userId
+    const thread = threadData?.threads.edges[0]
+    if (!thread) return false
+
+    return meData.me.id === thread.node.userId
   }, [meData, threadData, threadIdFromURL])
 
   // Compute title
@@ -286,7 +289,7 @@ export function Search() {
       // FIXME error view?
       setIsReady(true)
     }
-  }, [threadMessagesError])
+  }, [threadMessagesError])  
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateThreadURL = (threadId: string) => {
