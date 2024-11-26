@@ -35,6 +35,7 @@ mod structured_doc_tests {
     use super::mock_embedding::MockEmbedding;
     use crate::{
         indexer::Indexer,
+        public::StructuredDocState,
         structured_doc::public::{
             StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
         },
@@ -65,9 +66,17 @@ mod structured_doc_tests {
 
         let updated_at = chrono::Utc::now();
         let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            let added = indexer.add(updated_at, doc).await;
-            println!("{}", added);
-            added
+            let updated = indexer
+                .sync(
+                    StructuredDocState {
+                        updated_at,
+                        deleted: false,
+                    },
+                    doc,
+                )
+                .await;
+            println!("{}", updated);
+            updated
         });
         assert!(res);
         indexer.commit();
@@ -109,9 +118,17 @@ mod structured_doc_tests {
 
         let updated_at = chrono::Utc::now();
         let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            let added = indexer.add(updated_at, doc).await;
-            println!("{}", added);
-            added
+            let updated = indexer
+                .sync(
+                    StructuredDocState {
+                        updated_at,
+                        deleted: false,
+                    },
+                    doc,
+                )
+                .await;
+            println!("{}", updated);
+            updated
         });
         assert!(res);
         indexer.commit();

@@ -21,12 +21,12 @@ impl MistralFIMEngine {
         api_endpoint: Option<&str>,
         api_key: Option<String>,
         model_name: Option<String>,
-    ) -> Self {
+    ) -> Box<dyn CompletionStream> {
         let client = reqwest::Client::new();
         let model_name = model_name.unwrap_or("codestral-latest".into());
         let api_key = api_key.expect("API key is required for mistral/completion");
 
-        Self {
+        Box::new(Self {
             client,
             model_name,
             api_endpoint: format!(
@@ -34,7 +34,7 @@ impl MistralFIMEngine {
                 api_endpoint.unwrap_or(DEFAULT_API_ENDPOINT)
             ),
             api_key,
-        }
+        })
     }
 }
 

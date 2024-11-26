@@ -8,7 +8,7 @@ use juniper::ID;
 use pulls::list_github_pulls;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::CodeRepository;
-use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer};
+use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer, StructuredDocState};
 use tabby_inference::Embedding;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
@@ -140,8 +140,8 @@ impl SchedulerGithubGitlabJob {
         stream! {
             let mut count = 0;
             let mut num_updated = 0;
-            for await (updated_at, doc) in issue_stream.chain(pull_stream) {
-                if index.add(updated_at, doc).await {
+            for await (state, doc) in issue_stream.chain(pull_stream) {
+                if index.sync(state, doc).await {
                     num_updated += 1
                 }
 
@@ -182,8 +182,8 @@ impl SchedulerGithubGitlabJob {
 async fn fetch_all_issues(
     integration: &Integration,
     repository: &ProvidedRepository,
-) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, StructuredDoc)>> {
-    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = match &integration.kind {
+) -> tabby_schema::Result<BoxStream<'static, (StructuredDocState, StructuredDoc)>> {
+    let s: BoxStream<(StructuredDocState, StructuredDoc)> = match &integration.kind {
         IntegrationKind::Github | IntegrationKind::GithubSelfHosted => list_github_issues(
             &repository.source_id(),
             integration.api_base(),
@@ -207,8 +207,8 @@ async fn fetch_all_issues(
 async fn fetch_all_pulls(
     integration: &Integration,
     repository: &ProvidedRepository,
-) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, StructuredDoc)>> {
-    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = list_github_pulls(
+) -> tabby_schema::Result<BoxStream<'static, (StructuredDocState, StructuredDoc)>> {
+    let s: BoxStream<(StructuredDocState, StructuredDoc)> = list_github_pulls(
         &repository.source_id(),
         integration.api_base(),
         &repository.display_name,

@@ -25,17 +25,17 @@ impl OpenAICompletionEngine {
         api_endpoint: &str,
         api_key: Option<String>,
         support_fim: bool,
-    ) -> Self {
+    ) -> Box<dyn CompletionStream> {
         let model_name = model_name.expect("model_name is required for openai/completion");
         let client = reqwest::Client::new();
 
-        Self {
+        Box::new(Self {
             client,
             model_name,
             api_endpoint: format!("{}/completions", api_endpoint),
             api_key,
             support_fim,
-        }
+        })
     }
 }
 
