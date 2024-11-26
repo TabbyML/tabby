@@ -1,6 +1,9 @@
-use std::sync::Arc;
+mod rate_limit;
+
+use std::{sync::Arc, time::Duration};
 
 use async_openai::config::OpenAIConfig;
+use ratelimit::Ratelimiter;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::{ChatCompletionStream, ExtendedOpenAIConfig};
 
@@ -31,8 +34,16 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
 
     let config = builder.build().expect("Failed to build config");
 
-    Arc::new(
+    let engine = Box::new(
         async_openai::Client::with_config(config)
             .with_http_client(create_reqwest_client(api_endpoint)),
-    )
+    );
+
+    let ratelimiter =
+        Ratelimiter::builder(model.rate_limit.request_per_minute, Duration::from_secs(60))
+            .max_tokens(model.rate_limit.request_per_minute)
+            .build()
+            .expect("Failed to create ratelimiter, please check the rate limit configuration");
+
+    Arc::new(rate_limit::RateLimitedChatStream::new(engine, ratelimiter))
 }
