@@ -286,10 +286,9 @@ export function Search() {
 
   useEffect(() => {
     if (threadMessagesError && !isReady) {
-      // FIXME error view?
       setIsReady(true)
     }
-  }, [threadMessagesError])  
+  }, [threadMessagesError])
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateThreadURL = (threadId: string) => {
