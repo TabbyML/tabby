@@ -7,7 +7,7 @@ CREATE TABLE notifications (
   -- enum of ADMIN, ALL_USERS
   kind: TEXT NOT NULL,
 
-  message: TEXT NOT NULL,
+  content: TEXT NOT NULL,
 )
 
 CREATE TABLE readed_notifications (
