@@ -62,7 +62,11 @@ export interface ClientApi {
 
   onSubmitMessage: (msg: string, relevantContext?: Context[]) => Promise<void>
 
-  onApplyInEditor: (
+  // apply content into active editor, version 1, not support smart apply
+  onApplyInEditor: (content: string) => void
+
+  // version 2, support smart apply and normal apply
+  onApplyInEditorV2: (
     content: string,
     opts?: { languageId: string, smart: boolean }
   ) => void
@@ -125,12 +129,14 @@ export function createServer(api: ServerApi): ClientApi {
   })
 }
 // TODO: remove later
-export const clientApiKeys: ClientApiMethods[] = [
+export const clientApiKeys = [
   'navigate',
   'refresh',
   'onSubmitMessage',
   'onApplyInEditor',
+  'onApplyInEditorV2',
   'onLoaded',
   'onCopy',
   'onKeyboardEvent',
-]
+  'hasCapability',
+] as const satisfies (keyof ClientApi)[]
