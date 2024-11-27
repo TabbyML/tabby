@@ -124,7 +124,7 @@ impl Downloader {
         download_model(&registry, model_name, prefer_local_file).await
     }
 
-    async fn download_model_with_validation(
+    async fn download_model_with_validation_if_needed(
         &mut self,
         model_id: &str,
         validation: fn(&ModelInfo) -> Result<()>,
@@ -141,7 +141,7 @@ impl Downloader {
     }
 
     pub async fn download_completion(&mut self, model_id: &str) -> Result<()> {
-        self.download_model_with_validation(model_id, |info| {
+        self.download_model_with_validation_if_needed(model_id, |info| {
             if info.prompt_template.is_none() {
                 bail!("Model doesn't support completion");
             }
@@ -151,7 +151,7 @@ impl Downloader {
     }
 
     pub async fn download_chat(&mut self, model_id: &str) -> Result<()> {
-        self.download_model_with_validation(model_id, |info| {
+        self.download_model_with_validation_if_needed(model_id, |info| {
             if info.chat_template.is_none() {
                 bail!("Model doesn't support chat");
             }
@@ -161,7 +161,7 @@ impl Downloader {
     }
 
     pub async fn download_embedding(&mut self, model_id: &str) -> Result<()> {
-        self.download_model_with_validation(model_id, |_| Ok(()))
+        self.download_model_with_validation_if_needed(model_id, |_| Ok(()))
             .await
     }
 }
