@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use ollama_rs::Ollama;
 use tabby_common::config::HttpModelConfig;
@@ -26,11 +24,11 @@ impl Embedding for OllamaCompletion {
     }
 }
 
-pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
+pub async fn create(config: &HttpModelConfig) -> Box<dyn Embedding> {
     let connection = Ollama::try_new(config.api_endpoint.as_deref().unwrap().to_owned())
         .expect("Failed to create connection to Ollama, URL invalid");
 
     let model = connection.select_model_or_default(config).await.unwrap();
 
-    Arc::new(OllamaCompletion { connection, model })
+    Box::new(OllamaCompletion { connection, model })
 }

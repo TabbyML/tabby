@@ -249,8 +249,11 @@ mod metrics {
 mod tests {
     use std::path::PathBuf;
 
-    use serial_test::serial;
-    use tabby_common::{config::config_index_to_id, path::set_tabby_root};
+    use serial_test::file_serial;
+    use tabby_common::{
+        config::{config_index_to_id, CodeRepository},
+        path::set_tabby_root,
+    };
     use tracing_test::traced_test;
 
     use super::*;
@@ -275,7 +278,7 @@ mod tests {
 
     #[test]
     #[traced_test]
-    #[serial(set_tabby_root)]
+    #[file_serial(set_tabby_root)]
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();

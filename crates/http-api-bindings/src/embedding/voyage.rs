@@ -14,15 +14,19 @@ pub struct VoyageEmbeddingEngine {
 }
 
 impl VoyageEmbeddingEngine {
-    pub fn create(api_endpoint: Option<&str>, model_name: &str, api_key: String) -> Self {
+    pub fn create(
+        api_endpoint: Option<&str>,
+        model_name: &str,
+        api_key: String,
+    ) -> Box<dyn Embedding> {
         let api_endpoint = api_endpoint.unwrap_or(DEFAULT_VOYAGE_API_ENDPOINT);
         let client = Client::new();
-        Self {
+        Box::new(Self {
             client,
             api_endpoint: format!("{}/v1/embeddings", api_endpoint),
             api_key,
             model_name: model_name.to_owned(),
-        }
+        })
     }
 }
 

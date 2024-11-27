@@ -37,12 +37,15 @@ import {
 import {
   IconBlocks,
   IconBug,
+  IconCheckCircled,
   IconChevronRight,
+  IconCircleDot,
   IconEdit,
+  IconGitMerge,
+  IconGitPullRequest,
   IconLayers,
   IconPlus,
   IconRefresh,
-  IconRemove,
   IconSparkles,
   IconSpinner,
   IconTrash
@@ -420,9 +423,7 @@ function SourceCard({
   conversationId,
   source,
   showMore,
-  showDevTooltip,
-  isDeletable,
-  onDelete
+  showDevTooltip
 }: {
   conversationId: string
   source: AttachmentDocItem
@@ -432,7 +433,6 @@ function SourceCard({
   onDelete?: () => void
 }) {
   const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
-  const { hostname } = new URL(source.link)
   const [devTooltipOpen, setDevTooltipOpen] = useState(false)
 
   const onOpenChange = (v: boolean) => {
@@ -463,47 +463,7 @@ function SourceCard({
           }}
           onClick={() => window.open(source.link)}
         >
-          {isDeletable && (
-            <div className="absolute -right-1.5 -top-2">
-              <Button
-                size="icon"
-                variant="secondary"
-                className="h-4 w-4 rounded-full border"
-                onClick={e => {
-                  e.stopPropagation()
-                  onDelete?.()
-                }}
-              >
-                <IconRemove className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-          <div className="flex flex-1 flex-col justify-between gap-y-1">
-            <div className="flex flex-col gap-y-0.5">
-              <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-                {source.title}
-              </p>
-              <p
-                className={cn(
-                  ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-                  {
-                    'line-clamp-2': showMore,
-                    'line-clamp-1': !showMore
-                  }
-                )}
-              >
-                {normalizedText(getContent(source))}
-              </p>
-            </div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <div className="flex w-full flex-1 items-center">
-                <SiteFavicon hostname={hostname} />
-                <p className="ml-1 overflow-hidden text-ellipsis">
-                  {hostname.replace('www.', '').split('/')[0]}
-                </p>
-              </div>
-            </div>
-          </div>
+          <SourceCardContent source={source} showMore={showMore} />
         </div>
       </TooltipTrigger>
       <TooltipContent
@@ -514,6 +474,72 @@ function SourceCard({
         <p>Score: {source?.extra?.score ?? '-'}</p>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+function SourceCardContent({
+  source,
+  showMore
+}: {
+  source: AttachmentDocItem
+  showMore: boolean
+}) {
+  const { hostname } = new URL(source.link)
+
+  const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
+  const isPR = source.__typename === 'MessageAttachmentPullDoc'
+
+  return (
+    <div className="flex flex-1 flex-col justify-between gap-y-1">
+      <div className="flex flex-col gap-y-0.5">
+        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+          {source.title}
+        </p>
+        <p
+          className={cn(
+            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+            {
+              'line-clamp-2': showMore,
+              'line-clamp-1': !showMore
+            }
+          )}
+        >
+          {normalizedText(getContent(source))}
+        </p>
+      </div>
+      <div className="flex items-center text-xs text-muted-foreground">
+        <div className="flex w-full flex-1 items-center justify-between gap-1">
+          <div className="flex items-center">
+            <SiteFavicon hostname={hostname} />
+            <p className="ml-1 truncate">
+              {hostname.replace('www.', '').split('/')[0]}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {isIssue && (
+              <>
+                {source.closed ? (
+                  <IconCheckCircled className="h-3.5 w-3.5" />
+                ) : (
+                  <IconCircleDot className="h-3.5 w-3.5" />
+                )}
+                <span>{source.closed ? 'Closed' : 'Open'}</span>
+              </>
+            )}
+            {isPR && (
+              <>
+                {source.merged ? (
+                  <IconGitMerge className="h-3.5 w-3.5" />
+                ) : (
+                  <IconGitPullRequest className="h-3.5 w-3.5" />
+                )}
+                {source.merged ? 'Merged' : 'Open'}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

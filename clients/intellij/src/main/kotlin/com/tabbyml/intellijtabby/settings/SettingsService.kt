@@ -38,11 +38,6 @@ class SettingsService : SimplePersistentStateComponent<SettingsState>(SettingsSt
     set(value) {
       state.isAnonymousUsageTrackingDisabled = value
     }
-  var notificationsMuted
-    get() = state.notificationsMuted
-    set(value) {
-      state.notificationsMuted = value
-    }
 
   fun notifyChanges(project: Project) {
     project.safeSyncPublisher(Listener.TOPIC)?.settingsChanged(settings())
@@ -54,7 +49,6 @@ class SettingsService : SimplePersistentStateComponent<SettingsState>(SettingsSt
     val serverToken: String,
     val nodeBinary: String,
     val isAnonymousUsageTrackingDisabled: Boolean,
-    val notificationsMuted: List<String>,
   )
 
   fun settings(): Settings {
@@ -64,7 +58,6 @@ class SettingsService : SimplePersistentStateComponent<SettingsState>(SettingsSt
       serverToken,
       nodeBinary,
       isAnonymousUsageTrackingDisabled,
-      notificationsMuted,
     )
   }
 

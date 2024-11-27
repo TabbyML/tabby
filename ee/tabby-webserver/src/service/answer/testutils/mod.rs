@@ -30,13 +30,25 @@ use tabby_schema::{
 
 use crate::{integration, job, repository};
 
-pub struct FakeChatCompletionStream;
+pub struct FakeChatCompletionStream {
+    pub return_error: bool,
+}
+
 #[async_trait]
 impl ChatCompletionStream for FakeChatCompletionStream {
     async fn chat(
         &self,
         _request: CreateChatCompletionRequest,
     ) -> Result<CreateChatCompletionResponse, OpenAIError> {
+        if self.return_error {
+            return Err(OpenAIError::ApiError(async_openai::error::ApiError {
+                message: "error".to_string(),
+                code: None,
+                param: None,
+                r#type: None,
+            }));
+        }
+
         Ok(CreateChatCompletionResponse {
             id: "test-response".to_owned(),
             created: 0,

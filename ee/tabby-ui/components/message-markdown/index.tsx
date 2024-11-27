@@ -8,12 +8,7 @@ import { marked } from 'marked'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
-import {
-  ContextInfo,
-  Maybe,
-  MessageAttachmentCode,
-  MessageAttachmentDoc
-} from '@/lib/gql/generates/graphql'
+import { ContextInfo, Maybe } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
 import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
@@ -32,6 +27,13 @@ import {
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
+import { Badge } from '../ui/badge'
+import {
+  IconCheckCircled,
+  IconCircleDot,
+  IconGitMerge,
+  IconGitPullRequest
+} from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 
 type RelevantDocItem = {
@@ -68,7 +70,7 @@ export interface MessageMarkdownProps {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onCodeCitationClick?: (code: MessageAttachmentCode) => void
+  onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
   contextInfo?: ContextInfo
@@ -84,7 +86,7 @@ type MessageMarkdownContextValue = {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onCodeCitationClick?: (code: MessageAttachmentCode) => void
+  onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
   contextInfo: ContextInfo | undefined
@@ -367,10 +369,12 @@ function RelevantDocumentBadge({
   relevantDocument,
   citationIndex
 }: {
-  relevantDocument: MessageAttachmentDoc
+  relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
+  const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
+  const isPR = relevantDocument?.__typename === 'MessageAttachmentPullDoc'
 
   return (
     <HoverCard>
@@ -397,6 +401,10 @@ function RelevantDocumentBadge({
           >
             {relevantDocument.title}
           </p>
+          <div className="mb-2 w-auto">
+            {isIssue && <IssueStateBadge closed={relevantDocument.closed} />}
+            {isPR && <PRStateBadge merged={relevantDocument.merged} />}
+          </div>
           <p className="m-0 line-clamp-4 leading-none">
             {normalizedText(getContent(relevantDocument))}
           </p>
@@ -410,7 +418,7 @@ function RelevantCodeBadge({
   relevantCode,
   citationIndex
 }: {
-  relevantCode: MessageAttachmentCode
+  relevantCode: AttachmentCodeItem
   citationIndex: number
 }) {
   const {
@@ -451,7 +459,7 @@ export function SiteFavicon({
   }
 
   return (
-    <div className="relative h-3.5 w-3.5">
+    <div className="relative h-3.5 w-3.5 shrink-0">
       <Image
         src={defaultFavicon}
         alt={hostname}
@@ -477,5 +485,37 @@ export function SiteFavicon({
         onLoad={handleImageLoad}
       />
     </div>
+  )
+}
+
+function IssueStateBadge({ closed }: { closed: boolean }) {
+  return (
+    <Badge
+      variant={closed ? 'default' : 'secondary'}
+      className="gap-1 py-1 text-xs"
+    >
+      {closed ? (
+        <IconCheckCircled className="h-3.5 w-3.5" />
+      ) : (
+        <IconCircleDot className="h-3.5 w-3.5" />
+      )}
+      {closed ? 'Closed' : 'Open'}
+    </Badge>
+  )
+}
+
+function PRStateBadge({ merged }: { merged: boolean }) {
+  return (
+    <Badge
+      variant={merged ? 'default' : 'secondary'}
+      className="gap-1 py-1 text-xs"
+    >
+      {merged ? (
+        <IconGitMerge className="h-3.5 w-3.5" />
+      ) : (
+        <IconGitPullRequest className="h-3.5 w-3.5" />
+      )}
+      {merged ? 'Merged' : 'Open'}
+    </Badge>
   )
 }

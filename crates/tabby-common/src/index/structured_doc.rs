@@ -13,4 +13,12 @@ pub mod fields {
         pub const BODY: &str = "body";
         pub const CLOSED: &str = "closed";
     }
+
+    pub mod pull {
+        pub const TITLE: &str = "title";
+        pub const LINK: &str = "link";
+        pub const BODY: &str = "body";
+        pub const DIFF: &str = "diff";
+        pub const MERGED: &str = "merged";
+    }
 }

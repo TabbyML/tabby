@@ -13,6 +13,8 @@ import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 import { dropDuplicated } from "./dropDuplicated";
 import { dropMinimum } from "./dropMinimum";
 import { calculateReplaceRange } from "./calculateReplaceRange";
+import { removeDuplicateSuffixLines } from "./removeDuplicateSuffixLines";
+import { normalizeIndentation } from "./normalizeIndentation";
 
 type ItemListFilter = (items: CompletionItem[]) => Promise<CompletionItem[]>;
 
@@ -51,8 +53,10 @@ export async function postCacheProcess(
     .then(applyFilter(limitScope))
     .then(applyFilter(removeDuplicatedBlockClosingLine))
     .then(applyFilter(formatIndentation))
+    .then(applyFilter(normalizeIndentation))
     .then(applyFilter(dropDuplicated))
     .then(applyFilter(trimSpace))
+    .then(applyFilter(removeDuplicateSuffixLines))
     .then(applyFilter(dropMinimum))
     .then(applyFilter(calculateReplaceRange));
 }

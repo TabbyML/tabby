@@ -125,6 +125,7 @@ impl From<CodeSearchHit> for MessageCodeSearchHit {
 pub enum MessageAttachmentDoc {
     Web(MessageAttachmentWebDoc),
     Issue(MessageAttachmentIssueDoc),
+    Pull(MessageAttachmentPullDoc),
 }
 
 #[derive(GraphQLObject, Clone)]
@@ -140,6 +141,15 @@ pub struct MessageAttachmentIssueDoc {
     pub link: String,
     pub body: String,
     pub closed: bool,
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentPullDoc {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub patch: String,
+    pub merged: bool,
 }
 
 impl From<DocSearchDocument> for MessageAttachmentDoc {
@@ -158,6 +168,13 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
                     closed: issue.closed,
                 })
             }
+            DocSearchDocument::Pull(pull) => MessageAttachmentDoc::Pull(MessageAttachmentPullDoc {
+                title: pull.title,
+                link: pull.link,
+                body: pull.body,
+                patch: pull.diff,
+                merged: pull.merged,
+            }),
         }
     }
 }

@@ -4,8 +4,10 @@ import com.tabbyml.intellijtabby.lsp.protocol.ClientProvidedConfig.InlineComplet
 import com.tabbyml.intellijtabby.lsp.protocol.ClientProvidedConfig.Keybindings
 import com.tabbyml.intellijtabby.lsp.protocol.EventParams.EventType
 import com.tabbyml.intellijtabby.lsp.protocol.EventParams.SelectKind
-import com.tabbyml.intellijtabby.lsp.protocol.IssueDetailParams.HelpMessageFormat
 import com.tabbyml.intellijtabby.lsp.protocol.ReadFileParams.Format
+import com.tabbyml.intellijtabby.lsp.protocol.StatusIgnoredIssuesEditParams.Operation
+import com.tabbyml.intellijtabby.lsp.protocol.StatusIgnoredIssuesEditParams.StatusIssuesName
+import com.tabbyml.intellijtabby.lsp.protocol.StatusInfo.Status
 import org.eclipse.lsp4j.*
 
 data class InitializeParams(
@@ -51,7 +53,8 @@ data class TextDocumentClientCapabilities(
 typealias InlineCompletionCapabilities = DynamicRegistrationCapabilities
 
 data class TabbyClientCapabilities(
-  val agent: Boolean? = null,
+  val configDidChangeListener: Boolean? = null,
+  val statusDidChangeListener: Boolean? = null,
   val workspaceFileSystem: Boolean? = null,
   val dataStore: Boolean? = null,
   val languageSupport: Boolean? = null,
@@ -59,31 +62,9 @@ data class TabbyClientCapabilities(
   val editorOptions: Boolean? = null,
 )
 
-data class InitializeResult(
-  val capabilities: ServerCapabilities,
-  val serverInfo: ServerInfo? = null,
-) {
-  data class ServerInfo(
-    val name: String,
-    val version: String? = null,
-  )
-}
-
-data class ServerCapabilities(
-  val workspace: WorkspaceServerCapabilities? = null,
-  val textDocumentSync: TextDocumentSyncOptions? = null,
-  val notebookDocumentSync: NotebookDocumentSyncOptions? = null,
-  val completionProvider: CompletionOptions? = null,
-  val inlineCompletionProvider: Boolean? = null,
-  val tabby: TabbyServerCapabilities? = null,
-)
-
-data class TabbyServerCapabilities(
-  val chat: Boolean? = null
-)
-
 data class ClientProvidedConfig(
   val server: ServerConfig? = null,
+  val proxy: ProxyConfig? = null,
   val inlineCompletion: InlineCompletionConfig? = null,
   /**
    * [Keybindings]
@@ -94,6 +75,11 @@ data class ClientProvidedConfig(
   data class ServerConfig(
     val endpoint: String? = null,
     val token: String? = null,
+  )
+
+  data class ProxyConfig(
+    val url: String? = null,
+    val authorization: String? = null,
   )
 
   data class InlineCompletionConfig(
@@ -199,6 +185,11 @@ data class CompletionEventId(
   val choiceIndex: Int,
 )
 
+data class DidChangeActiveEditorParams(
+  val activeEditor: Location,
+  val visibleEditors: List<Location>? = null,
+)
+
 data class EventParams(
   /**
    * [EventType]
@@ -227,80 +218,68 @@ data class EventParams(
   }
 }
 
-data class DidUpdateServerInfoParams(
-  val serverInfo: ServerInfo
-)
-
-data class ServerInfo(
-  val config: ServerInfoConfig,
-  val health: Map<String, Any>?,
+data class Config(
+  val server: ServerConfig,
 ) {
-  data class ServerInfoConfig(
+  data class ServerConfig(
     val endpoint: String,
-    val token: String?,
-    val requestHeaders: Map<String, Any>?,
+    val token: String,
+    val requestHeaders: Map<String, Any>,
   )
 }
 
-data class DidChangeStatusParams(
+data class StatusRequestParams(
+  val recheckConnection: Boolean? = null,
+)
+
+data class StatusInfo(
   /**
    * [Status]
    */
   val status: String,
-)
-
-sealed class Status {
-  companion object {
-    const val NOT_INITIALIZED = "notInitialized"
-    const val READY = "ready"
-    const val DISCONNECTED = "disconnected"
-    const val UNAUTHORIZED = "unauthorized"
-    const val FINALIZED = "finalized"
-  }
-}
-
-typealias DidUpdateIssueParams = IssueList
-
-data class IssueList(
-  /**
-   * List of [IssueName]
-   */
-  val issues: List<String>
-)
-
-sealed class IssueName {
-  companion object {
-    const val SLOW_COMPLETION_RESPONSE_TIME = "slowCompletionResponseTime"
-    const val HIGH_COMPLETION_TIMEOUT_RATE = "highCompletionTimeoutRate"
-    const val CONNECTION_FAILED = "connectionFailed"
-  }
-}
-
-data class IssueDetailParams(
-  /**
-   * [IssueName]
-   */
-  val name: String,
-  /**
-   * [HelpMessageFormat]
-   */
-  val helpMessageFormat: String? = null,
+  val tooltip: String? = null,
+  val serverHealth: Map<String, Any>? = null,
+  val command: Command? = null,
+  val helpMessage: String? = null,
 ) {
-  sealed class HelpMessageFormat {
+  sealed class Status {
     companion object {
-      const val MARKDOWN = "markdown"
-      const val HTML = "html"
+      const val CONNECTING = "connecting"
+      const val UNAUTHORIZED = "unauthorized"
+      const val DISCONNECTED = "disconnected"
+      const val READY = "ready"
+      const val READY_FOR_AUTO_TRIGGER = "readyForAutoTrigger"
+      const val READY_FOR_MANUAL_TRIGGER = "readyForManualTrigger"
+      const val FETCHING = "fetching"
+      const val COMPLETION_RESPONSE_SLOW = "completionResponseSlow"
     }
   }
 }
 
-data class IssueDetailResult(
+data class StatusIgnoredIssuesEditParams(
   /**
-   * [IssueName]
+   * [Operation]
    */
-  val name: String,
-  val helpMessage: String? = null,
-)
+  val operation: String,
+  /**
+   * [StatusIssuesName]
+   */
+  val issues: List<String>? = null,
+) {
+  sealed class Operation {
+    companion object {
+      const val ADD = "add"
+      const val REMOVE = "remove"
+      const val REMOVE_ALL = "removeAll"
+    }
+  }
+
+  sealed class StatusIssuesName {
+    companion object {
+      const val COMPLETION_RESPONSE_SLOW = "completionResponseSlow"
+    }
+  }
+}
 
 data class ReadFileParams(
   val uri: String,
@@ -319,14 +298,6 @@ data class ReadFileParams(
 
 data class ReadFileResult(
   val text: String? = null
-)
-
-data class DataStoreGetParams(
-  val key: String
-)
-
-data class DataStoreSetParams(
-  val key: String, val value: Any? = null
 )
 
 data class SemanticTokensRangeResult(
