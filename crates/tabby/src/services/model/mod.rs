@@ -1,6 +1,6 @@
 use std::{collections::hash_map, fs, sync::Arc};
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 pub use llama_cpp_server::PromptInfo;
 use tabby_common::{
     config::ModelConfig,
@@ -124,39 +124,44 @@ impl Downloader {
         download_model(&registry, model_name, prefer_local_file).await
     }
 
-    pub async fn download_completion(&mut self, model_id: &str) -> Result<()> {
+    async fn download_model_with_validation(
+        &mut self,
+        model_id: &str,
+        validation: fn(&ModelInfo) -> Result<()>,
+    ) -> Result<()> {
         if fs::metadata(model_id).is_ok() {
-            info!("Loading model from local path {}", model_id)
+            info!("Loading model from local path {}", model_id);
+            return Ok(());
         }
 
         let (registry, info) = self.get_model_registry_and_info(model_id).await?;
-        if info.prompt_template.is_none() {
-            bail!("Model '{}' doesn't support completion", model_id);
-        }
+        validation(&info).map_err(|err| anyhow!("Fail to load model {}: {}", model_id, err))?;
 
         self.download_model(&registry, model_id, true).await
+    }
+
+    pub async fn download_completion(&mut self, model_id: &str) -> Result<()> {
+        self.download_model_with_validation(model_id, |info| {
+            if info.prompt_template.is_none() {
+                bail!("Model doesn't support completion");
+            }
+            Ok(())
+        })
+        .await
     }
 
     pub async fn download_chat(&mut self, model_id: &str) -> Result<()> {
-        if fs::metadata(model_id).is_ok() {
-            info!("Loading model from local path {}", model_id)
-        }
-
-        let (registry, info) = self.get_model_registry_and_info(model_id).await?;
-        if info.chat_template.is_none() {
-            bail!("Model '{}' doesn't support chat", model_id);
-        }
-
-        self.download_model(&registry, model_id, true).await
+        self.download_model_with_validation(model_id, |info| {
+            if info.chat_template.is_none() {
+                bail!("Model doesn't support chat");
+            }
+            Ok(())
+        })
+        .await
     }
 
     pub async fn download_embedding(&mut self, model_id: &str) -> Result<()> {
-        if fs::metadata(model_id).is_ok() {
-            info!("Loading model from local path {}", model_id)
-        }
-
-        let (registry, _) = self.get_model_registry_and_info(model_id).await?;
-
-        self.download_model(&registry, model_id, true).await
+        self.download_model_with_validation(model_id, |_| Ok(()))
+            .await
     }
 }
