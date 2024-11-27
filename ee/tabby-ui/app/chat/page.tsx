@@ -386,7 +386,12 @@ export default function ChatPage() {
         maxWidth={client === 'vscode' ? '5xl' : undefined}
         onCopyContent={isInEditor && server?.onCopy}
         onSubmitMessage={isInEditor && server?.onSubmitMessage}
-        onApplyInEditor={isInEditor && server?.onApplyInEditor}
+        onApplyInEditor={
+          isInEditor &&
+          (serverCapabilities.get('onApplyInEditorV2')
+            ? server?.onApplyInEditorV2
+            : server?.onApplyInEditor)
+        }
         serverCapabilities={serverCapabilities}
       />
     </ErrorBoundary>

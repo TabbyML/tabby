@@ -123,7 +123,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                 </TooltipContent>
               </Tooltip>
             )}
-            {serverCapabilities.get('onApplyInEditor') && onApplyInEditor && (
+            {serverCapabilities.get('onApplyInEditorV2') && onApplyInEditor && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

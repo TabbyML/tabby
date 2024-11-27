@@ -42,10 +42,9 @@ type ChatContextValue = {
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
-  onApplyInEditor?: (
-    content: string,
-    opts?: { languageId: string; smart: boolean }
-  ) => void
+  onApplyInEditor?:
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   relevantContext: Context[]
   activeSelection: Context | null
   removeRelevantContext: (index: number) => void
@@ -81,10 +80,9 @@ interface ChatProps extends React.ComponentProps<'div'> {
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
-  onApplyInEditor?: (
-    content: string,
-    opts?: { languageId: string; smart: boolean }
-  ) => void
+  onApplyInEditor?:
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   chatInputRef: RefObject<HTMLTextAreaElement>
   serverCapabilities: Map<string, boolean>
 }
