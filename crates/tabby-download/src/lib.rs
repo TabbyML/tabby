@@ -3,7 +3,7 @@ use std::{fs, io};
 
 use aim_downloader::{bar::WrappedBar, error::DownloadError, hash::HashChecker, https};
 use anyhow::{anyhow, bail, Result};
-use tabby_common::registry::{parse_model_id, ModelInfo, ModelRegistry};
+use tabby_common::registry::{ModelInfo, ModelRegistry};
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
@@ -192,7 +192,7 @@ pub async fn download_model(
     model: &str,
     prefer_local_file: bool,
 ) -> Result<()> {
-    download_model_impl(&registry, model, prefer_local_file)
+    download_model_impl(registry, model, prefer_local_file)
         .await
         .map_err(|err| anyhow!("Failed to fetch model '{}' due to '{}'", model, err))
 }

@@ -103,7 +103,7 @@ impl Downloader {
         let registry = if let Some(registry) = self.registries.get(registry_name) {
             registry.clone()
         } else {
-            let registry = ModelRegistry::new(&registry_name).await;
+            let registry = ModelRegistry::new(registry_name).await;
             self.registries
                 .insert(registry_name.to_owned(), registry.clone());
             registry
@@ -121,7 +121,7 @@ impl Downloader {
         prefer_local_file: bool,
     ) -> Result<()> {
         let (_, model_name) = parse_model_id(model_id)?;
-        download_model(&registry, model_name, prefer_local_file).await
+        download_model(registry, model_name, prefer_local_file).await
     }
 
     async fn download_model_with_validation_if_needed(

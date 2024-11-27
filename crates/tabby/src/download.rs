@@ -1,7 +1,7 @@
-use crate::services::model::Downloader;
-
 use clap::Args;
 use tracing::info;
+
+use crate::services::model::Downloader;
 
 #[derive(Args)]
 pub struct DownloadArgs {
