@@ -5,6 +5,9 @@ import com.tabbyml.intellijtabby.lsp.protocol.ClientProvidedConfig.Keybindings
 import com.tabbyml.intellijtabby.lsp.protocol.EventParams.EventType
 import com.tabbyml.intellijtabby.lsp.protocol.EventParams.SelectKind
 import com.tabbyml.intellijtabby.lsp.protocol.ReadFileParams.Format
+import com.tabbyml.intellijtabby.lsp.protocol.StatusIgnoredIssuesEditParams.Operation
+import com.tabbyml.intellijtabby.lsp.protocol.StatusIgnoredIssuesEditParams.StatusIssuesName
+import com.tabbyml.intellijtabby.lsp.protocol.StatusInfo.Status
 import org.eclipse.lsp4j.*
 
 data class InitializeParams(

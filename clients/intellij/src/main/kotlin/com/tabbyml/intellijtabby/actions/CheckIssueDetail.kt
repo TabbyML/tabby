@@ -26,10 +26,12 @@ class CheckIssueDetail : AnAction() {
       val server = connectionService.getServerAsync() ?: return@launch
       val command = combinedState.state.agentStatus?.command ?: return@launch
 
-      server.workspaceFeature.executeCommand(ExecuteCommandParams(
-        command.command,
-        command.arguments,
-      ))
+      server.workspaceFeature.executeCommand(
+        ExecuteCommandParams(
+          command.command,
+          command.arguments,
+        )
+      )
     }
   }
 

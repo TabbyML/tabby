@@ -3,6 +3,7 @@ package com.tabbyml.intellijtabby.chat
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
@@ -14,6 +15,7 @@ import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.progress.util.BackgroundTaskUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
@@ -22,6 +24,7 @@ import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.tabbyml.intellijtabby.events.CombinedState
+import com.tabbyml.intellijtabby.findVirtualFile
 import com.tabbyml.intellijtabby.git.GitProvider
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.Config
@@ -30,6 +33,7 @@ import com.tabbyml.intellijtabby.lsp.protocol.StatusRequestParams
 import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.constraints.Constraint
 import io.github.z4kn4fein.semver.constraints.satisfiedBy
+import io.ktor.http.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -210,9 +214,20 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
           ),
           filepath = relativePath ?: "",
           content = context.first,
-          gitUrl = gitRepo?.remotes?.firstOrNull()?.url ?: "",
+          gitUrl = gitRepo?.let { getDefaultRemoteUrl(it) } ?: "",
         )
       }
+    }
+  }
+
+  private fun navigateToFileContext(fileContext: FileContext) {
+    val virtualFile = project.findVirtualFile(fileContext.filepath)
+      ?: gitRemoteUrlToLocalRoot[fileContext.gitUrl]?.let { project.findVirtualFile(it.appendUrlPathSegments(fileContext.filepath)) }
+      ?: project.guessProjectDir()?.url?.let { project.findVirtualFile(it.appendUrlPathSegments(fileContext.filepath)) }
+      ?: return
+    invokeLater {
+      val descriptor = OpenFileDescriptor(project, virtualFile, fileContext.range.start, 0)
+      FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
     }
   }
 
@@ -321,7 +336,15 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     when (request.method) {
       "navigate" -> {
         logger.debug("navigate: request: ${request.params}")
-        // FIXME(@icycodes): not implemented yet
+        val context = request.params.getOrNull(0)?.let {
+          gson.fromJson(gson.toJson(it), FileContext::class.java)
+        } ?: return
+        val options = request.params.getOrNull(1) as Map<*, *>?
+        if (options?.get("openInEditor") == true) {
+          navigateToFileContext(context)
+        } else {
+          currentConfig?.let { buildCodeBrowserUrl(it, context) }?.let { BrowserUtil.browse(it) }
+        }
       }
 
       "refresh" -> {
@@ -599,6 +622,34 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       l *= 100
 
       return String.format("%.0f, %.0f%%, %.0f%%", h, s, l)
+    }
+
+    private val gitRemoteUrlToLocalRoot = mutableMapOf<String, String>()
+
+    private fun getDefaultRemoteUrl(repo: GitProvider.Repository): String? {
+      if (repo.remotes.isNullOrEmpty()) {
+        return null
+      }
+      val remoteUrl = repo.remotes.firstOrNull { it.name == "origin" }?.url
+        ?: repo.remotes.firstOrNull { it.name == "upstream" }?.url
+        ?: repo.remotes.firstOrNull()?.url
+      if (remoteUrl != null) {
+        gitRemoteUrlToLocalRoot[remoteUrl] = repo.root
+      }
+      return remoteUrl
+    }
+
+    private fun String.appendUrlPathSegments(path: String): String {
+      return URLBuilder(this).appendPathSegments(path).toString()
+    }
+
+    private fun buildCodeBrowserUrl(config: Config.ServerConfig, context: FileContext): String {
+      return URLBuilder(config.endpoint).apply {
+        appendPathSegments("files")
+        parameters.append("redirect_git_url", context.gitUrl)
+        parameters.append("redirect_filepath", context.filepath)
+        fragment = "L${context.range.start}-L${context.range.end}"
+      }.buildString()
     }
 
     private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.2.0"
