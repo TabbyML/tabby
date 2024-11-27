@@ -1,5 +1,5 @@
-import { type ThreadOptions } from "@quilted/threads";
-import { type ServerApi, type ClientApi, createThread } from "tabby-chat-panel";
+import { createThread, type ThreadOptions } from "tabby-threads";
+import type { ServerApi, ClientApi } from "tabby-chat-panel";
 import { Webview } from "vscode";
 
 export function createThreadFromWebview<Self = Record<string, never>, Target = Record<string, never>>(

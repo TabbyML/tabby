@@ -1,11 +1,8 @@
-import { createThreadFromIframe } from '@quilted/threads'
+import { createThreadFromIframe, createThreadFromInsideIframe } from 'tabby-threads'
 import { version } from '../package.json'
-import { createThreadFromInsideIframe } from './createThreadInsideIframe'
-import { createCustomThread } from './createThread'
 
 export const TABBY_CHAT_PANEL_API_VERSION: string = version
 
-export const createThread = createCustomThread
 export interface LineRange {
   start: number
   end: number
@@ -47,8 +44,6 @@ export interface NavigateOpts {
   openInEditor?: boolean
 }
 
-export type ClientApiMethods = keyof ClientApi
-
 export interface ServerApi {
   init: (request: InitRequest) => void
   sendMessage: (message: ChatMessage) => void
@@ -58,6 +53,8 @@ export interface ServerApi {
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: Context | null) => void
 }
+
+export type ClientApiMethods = keyof ClientApi
 
 export interface ClientApi {
   navigate: (context: Context, opts?: NavigateOpts) => void
@@ -76,11 +73,10 @@ export interface ClientApi {
   // On user copy content to clipboard.
   onCopy: (content: string) => void
 
-  onKeyboardEvent: (
-    type: 'keydown' | 'keyup' | 'keypress',
-    event: KeyboardEventInit
-  ) => void
+  onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
 
+  // this is inner function cover by tabby-threads
+  // the function doesn't need to expose to client but can call by client
   hasCapability?: (capability: ClientApiMethods) => Promise<boolean>
 }
 
