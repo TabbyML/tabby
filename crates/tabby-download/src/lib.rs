@@ -2,7 +2,7 @@
 use std::{fs, io};
 
 use aim_downloader::{bar::WrappedBar, error::DownloadError, hash::HashChecker, https};
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use tabby_common::registry::{parse_model_id, ModelInfo, ModelRegistry};
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
@@ -72,7 +72,7 @@ async fn download_model_impl(
     name: &str,
     prefer_local_file: bool,
 ) -> Result<()> {
-    let model_info = registry.get_model_info(name);
+    let model_info = registry.get_model_info(name)?;
     registry.migrate_legacy_model_path(name)?;
 
     let urls = filter_download_address(model_info);
@@ -187,15 +187,14 @@ async fn download_file(
     Ok(())
 }
 
-pub async fn download_model(model_id: &str, prefer_local_file: bool) {
-    let (registry, name) = parse_model_id(model_id);
-
-    let registry = ModelRegistry::new(registry).await;
-
-    let handler = |err| panic!("Failed to fetch model '{}' due to '{}'", model_id, err);
-    download_model_impl(&registry, name, prefer_local_file)
+pub async fn download_model(
+    registry: &ModelRegistry,
+    model: &str,
+    prefer_local_file: bool,
+) -> Result<()> {
+    download_model_impl(&registry, model, prefer_local_file)
         .await
-        .unwrap_or_else(handler)
+        .map_err(|err| anyhow!("Failed to fetch model '{}' due to '{}'", model, err))
 }
 
 #[cfg(test)]

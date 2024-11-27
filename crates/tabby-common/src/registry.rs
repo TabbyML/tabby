@@ -1,12 +1,12 @@
 use std::{fs, path::PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 use crate::path::models_dir;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ModelInfo {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -29,7 +29,7 @@ pub struct ModelInfo {
     pub partition_urls: Option<Vec<PartitionModelUrl>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PartitionModelUrl {
     pub urls: Vec<String>,
     pub sha256: String,
@@ -65,7 +65,7 @@ fn load_local_registry(registry: &str) -> Result<Vec<ModelInfo>> {
     Ok(serdeconv::from_json_file(models_json_file(registry))?)
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ModelRegistry {
     pub name: String,
     pub models: Vec<ModelInfo>,
@@ -155,29 +155,34 @@ impl ModelRegistry {
         Ok(())
     }
 
-    pub fn save_model_info(&self, name: &str) {
-        let model_info = self.get_model_info(name);
+    pub fn save_model_info(&self, name: &str) -> Result<()> {
+        let model_info = self.get_model_info(name)?;
         let path = self.get_model_dir(name).join("tabby.json");
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        serdeconv::to_json_file(model_info, path).unwrap();
+        fs::create_dir_all(
+            path.parent()
+                .ok_or_else(|| anyhow!("Fail to create model directory"))?,
+        )?;
+        serdeconv::to_json_file(model_info, path)?;
+
+        Ok(())
     }
 
-    pub fn get_model_info(&self, name: &str) -> &ModelInfo {
+    pub fn get_model_info(&self, name: &str) -> Result<&ModelInfo> {
         self.models
             .iter()
             .find(|x| x.name == name)
-            .unwrap_or_else(|| panic!("Invalid model_id <{}/{}>", self.name, name))
+            .ok_or_else(|| anyhow!("Invalid model_id <{}/{}>", self.name, name))
     }
 }
 
-pub fn parse_model_id(model_id: &str) -> (&str, &str) {
+pub fn parse_model_id(model_id: &str) -> Result<(&str, &str)> {
     let parts: Vec<_> = model_id.split('/').collect();
     if parts.len() == 1 {
-        ("TabbyML", parts[0])
+        Ok(("TabbyML", parts[0]))
     } else if parts.len() == 2 {
-        (parts[0], parts[1])
+        Ok((parts[0], parts[1]))
     } else {
-        panic!("Invalid model id {}", model_id);
+        Err(anyhow!("Invalid model id {}", model_id))
     }
 }
 

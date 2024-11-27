@@ -284,7 +284,7 @@ async fn resolve_model_path(model_id: &str) -> String {
             GGML_MODEL_PARTITIONED_PREFIX.to_owned()
         ))
     } else {
-        let (registry, name) = parse_model_id(model_id);
+        let (registry, name) = parse_model_id(model_id).unwrap();
         let registry = ModelRegistry::new(registry).await;
         registry
             .get_model_entry_path(name)
@@ -311,9 +311,9 @@ async fn resolve_prompt_info(model_id: &str) -> PromptInfo {
     if path.exists() {
         PromptInfo::read(path.join("tabby.json"))
     } else {
-        let (registry, name) = parse_model_id(model_id);
+        let (registry, name) = parse_model_id(model_id).unwrap();
         let registry = ModelRegistry::new(registry).await;
-        let model_info = registry.get_model_info(name);
+        let model_info = registry.get_model_info(name).unwrap();
         PromptInfo {
             prompt_template: model_info.prompt_template.to_owned(),
             chat_template: model_info.chat_template.to_owned(),
