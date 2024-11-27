@@ -1,10 +1,10 @@
 import type { RefObject } from 'react'
 import { useEffect, useState } from 'react'
 
-import type { ClientApi, ServerApi } from './index'
+import type { ClientApi, ClientApiMethods, ServerApi } from './index'
 import { createClient, createServer } from './index'
 
-function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApi) {
+function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApiMethods) {
   const [client, setClient] = useState<ServerApi | null>(null)
   let isCreated = false
 

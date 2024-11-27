@@ -91,7 +91,7 @@ export interface ChatMessage {
   activeContext?: Context
 }
 
-export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
+export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
   return createThreadFromIframe(target, {
     expose: {
       navigate: api.navigate,
@@ -101,7 +101,6 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
-      hasCapability: api.hasCapability,
     },
   })
 }
