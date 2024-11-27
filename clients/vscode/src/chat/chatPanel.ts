@@ -1,5 +1,5 @@
 import { createThread, type ThreadOptions } from "tabby-threads";
-import type { ServerApi, ClientApi } from "tabby-chat-panel";
+import type { ServerApi, ClientApiMethods } from "tabby-chat-panel";
 import { Webview } from "vscode";
 
 export function createThreadFromWebview<Self = Record<string, never>, Target = Record<string, never>>(
@@ -22,7 +22,7 @@ export function createThreadFromWebview<Self = Record<string, never>, Target = R
   );
 }
 
-export function createClient(webview: Webview, api: ClientApi): ServerApi {
+export function createClient(webview: Webview, api: ClientApiMethods): ServerApi {
   return createThreadFromWebview(webview, {
     expose: {
       navigate: api.navigate,

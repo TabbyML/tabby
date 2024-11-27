@@ -54,9 +54,7 @@ export interface ServerApi {
   updateActiveSelection: (context: Context | null) => void
 }
 
-export type ClientApiMethods = keyof ClientApi
-
-export interface ClientApi {
+export interface ClientApiMethods {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
 
@@ -72,9 +70,12 @@ export interface ClientApi {
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
 
+}
+
+export interface ClientApi extends ClientApiMethods {
   // this is inner function cover by tabby-threads
   // the function doesn't need to expose to client but can call by client
-  hasCapability?: (capability: ClientApiMethods) => Promise<boolean>
+  hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 }
 
 export interface ChatMessage {
