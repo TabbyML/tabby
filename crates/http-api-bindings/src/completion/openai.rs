@@ -4,6 +4,7 @@ use futures::{stream::BoxStream, StreamExt};
 use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
+use tracing::warn;
 
 use super::split_fim_prompt;
 
@@ -100,8 +101,14 @@ impl CompletionStream for OpenAICompletionEngine {
                             }
                         }
                     }
-                    Err(_) => {
-                        // StreamEnd
+                    Err(e) => {
+                        match e {
+                            reqwest_eventsource::Error::StreamEnded => {},
+                            reqwest_eventsource::Error::InvalidStatusCode(code, resp) =>
+                                warn!("Error in completion event source: {}, {}",
+                                      code, resp.text().await.unwrap_or_default().replace('\n', "")),
+                            _ => warn!("Error in completion event source: {}", e),
+                        }
                         break;
                     }
                 }
