@@ -234,7 +234,7 @@ jobs:
         run: ./ci/prepare_build_environment.ps1
         if: runner.os == 'Windows'
 
-      - name: Bulid release binary
+      - name: Build release binary
         run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
@@ -319,7 +319,8 @@ jobs:
               llamav=${llaman#llama-server_}
               tabbyv=${tabbyn#tabby_}
 
-              if [[ $llamav == *"$tabbyv"* ]]; then
+              # TODO: fix this after all builds migrate to manylinux_2_28
+              if [[ $llamav == *"$tabbyv"* ]] || [[ $llamav == "x86_64-manylinux_2_28-vulkan" ]]; then
                 echo "Creating bundle for $llamav"
 
                 # the downloaded files may have the same folder name with release_dir
