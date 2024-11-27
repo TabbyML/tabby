@@ -20,6 +20,7 @@ ollama-api-bindings = { path = "../ollama-api-bindings" }
 async-openai.workspace = true
 ratelimit = "0.10"
 tokio.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }

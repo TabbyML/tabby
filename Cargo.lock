@@ -1912,6 +1912,7 @@ dependencies = [
  "tabby-common",
  "tabby-inference",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
