@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import tabbyUrl from '@/assets/tabby.png'
@@ -275,6 +275,23 @@ export default function ChatPage() {
     server?.navigate(context, opts)
   }
 
+  const onOpenExternal = useMemo(() => {
+    // FIXME check capability
+    const hasCapability = true
+    if (isInEditor && !hasCapability) {
+      return undefined
+    }
+
+    return async (url: string) => {
+      if (isInEditor) {
+        return server?.onOpenExternal(url)
+      } else {
+        const success = window.open(url, '_blank')
+        return !!success
+      }
+    }
+  }, [isInEditor, server])
+
   const refresh = async () => {
     setIsRefreshLoading(true)
     await server?.refresh()
@@ -388,6 +405,7 @@ export default function ChatPage() {
             : server?.onApplyInEditor)
         }
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+        onOpenExternal={onOpenExternal}
       />
     </ErrorBoundary>
   )

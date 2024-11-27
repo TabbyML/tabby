@@ -1,11 +1,18 @@
-import React, { RefObject } from 'react'
+import React, { RefObject, useMemo } from 'react'
+import slugify from '@sindresorhus/slugify'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { compact } from 'lodash-es'
+import { toast } from 'sonner'
 import type { Context } from 'tabby-chat-panel'
 
+import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { cn } from '@/lib/utils'
+import { useMutation } from '@/lib/tabby/gql'
+import { setThreadPersistedMutation } from '@/lib/tabby/query'
+import { cn, getTitleFromMessages } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,6 +20,7 @@ import {
   IconEyeOff,
   IconRefresh,
   IconRemove,
+  IconShare,
   IconStop,
   IconTrash
 } from '@/components/ui/icons'
@@ -51,17 +59,56 @@ function ChatPanelRenderer(
 ) {
   const promptFormRef = React.useRef<PromptFormRef>(null)
   const {
+    threadId,
     container,
     onClearMessages,
     qaPairs,
     isLoading,
     relevantContext,
     removeRelevantContext,
-    activeSelection
+    activeSelection,
+    onOpenExternal
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
+
+  const slugWithThreadId = useMemo(() => {
+    if (!threadId) return ''
+    const content = qaPairs[0]?.user.message
+    if (!content) return threadId
+
+    const title = getTitleFromMessages([], content, {
+      maxLength: SLUG_TITLE_MAX_LENGTH
+    })
+    const slug = slugify(title)
+    const slugWithThreadId = compact([slug, threadId]).join('-')
+    return slugWithThreadId
+  }, [qaPairs[0]?.user.message, threadId])
+
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+
+  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
+
+  const handleShareThread = async () => {
+    if (!threadId) return
+
+    const result = await setThreadPersisted({ threadId })
+    if (!result?.data?.setThreadPersisted) return
+
+    let url = new URL(window.location.origin)
+    url.pathname = `/search/${slugWithThreadId}`
+
+    if (onOpenExternal) {
+      await onOpenExternal(url.toString())
+    }
+  }
 
   React.useImperativeHandle(
     ref,
@@ -91,14 +138,26 @@ function ChatPanelRenderer(
             </Button>
           ) : (
             qaPairs?.length > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => reload()}
-                className="bg-background"
-              >
-                <IconRefresh className="mr-2" />
-                Regenerate response
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => reload()}
+                  className="bg-background"
+                >
+                  <IconRefresh className="mr-2" />
+                  Regenerate
+                </Button>
+                {!!onOpenExternal && (
+                  <Button
+                    variant="outline"
+                    className="bg-background"
+                    onClick={handleShareThread}
+                  >
+                    <IconShare className="mr-2" />
+                    Share
+                  </Button>
+                )}
+              </>
             )
           )}
           {qaPairs?.length > 0 && (

@@ -32,6 +32,7 @@ import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
+  threadId: string | undefined
   isLoading: boolean
   qaPairs: QuestionAnswerPair[]
   handleMessageAction: (
@@ -50,6 +51,7 @@ type ChatContextValue = {
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+  onOpenExternal?: (url: string) => Promise<boolean | undefined>
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -85,6 +87,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+  onOpenExternal?: (url: string) => Promise<boolean | undefined>
 }
 
 function ChatRenderer(
@@ -105,7 +108,8 @@ function ChatRenderer(
     onSubmitMessage,
     onApplyInEditor,
     chatInputRef,
-    supportsOnApplyInEditorV2
+    supportsOnApplyInEditorV2,
+    onOpenExternal
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -521,6 +525,7 @@ function ChatRenderer(
   return (
     <ChatContext.Provider
       value={{
+        threadId,
         isLoading,
         qaPairs,
         onNavigateToContext,
@@ -533,7 +538,8 @@ function ChatRenderer(
         removeRelevantContext,
         chatInputRef,
         activeSelection,
-        supportsOnApplyInEditorV2
+        supportsOnApplyInEditorV2,
+        onOpenExternal
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

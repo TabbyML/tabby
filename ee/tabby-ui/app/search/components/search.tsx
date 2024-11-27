@@ -48,7 +48,8 @@ import { useMutation } from '@/lib/tabby/gql'
 import {
   contextInfoQuery,
   listThreadMessages,
-  listThreads
+  listThreads,
+  setThreadPersistedMutation
 } from '@/lib/tabby/query'
 import {
   AttachmentCodeItem,
@@ -948,12 +949,6 @@ export function Search() {
     </SearchContext.Provider>
   )
 }
-
-const setThreadPersistedMutation = graphql(/* GraphQL */ `
-  mutation SetThreadPersisted($threadId: ID!) {
-    setThreadPersisted(threadId: $threadId)
-  }
-`)
 
 const updateThreadMessageMutation = graphql(/* GraphQL */ `
   mutation UpdateThreadMessage($input: UpdateMessageInput!) {
