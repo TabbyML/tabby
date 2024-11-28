@@ -25,6 +25,7 @@ impl UserRateLimiter {
         let rate_limiter = rate_limiters.cache_get_or_set_with(user_id.to_string(), || {
             // Create a new rate limiter for this user.
             ratelimit::Ratelimiter::builder(USER_REQUEST_LIMIT_PER_MINUTE, Duration::from_secs(60))
+                .initial_available(USER_REQUEST_LIMIT_PER_MINUTE)
                 .build()
                 .expect("Failed to create rate limiter")
         });
