@@ -55,7 +55,7 @@ async-stream.workspace = true
 logkit.workspace = true
 async-openai.workspace = true
 ratelimit.workspace = true
-cached = { workspace = true, features = ["async"] }
+cached.workspace = true
 
 [dev-dependencies]
 assert_matches.workspace = true
