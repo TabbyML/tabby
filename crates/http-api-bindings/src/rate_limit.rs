@@ -11,17 +11,12 @@ use futures::stream::BoxStream;
 use ratelimit::Ratelimiter;
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
 
-fn new_rate_limiter(rpm: u64) -> anyhow::Result<Ratelimiter> {
+fn new_rate_limiter(rpm: u64) -> Ratelimiter {
     Ratelimiter::builder(rpm, Duration::from_secs(60))
         .max_tokens(rpm)
         .initial_available(rpm)
         .build()
-        .map_err(|e| {
-            anyhow::anyhow!(
-                "Failed to create ratelimiter, please check the rate limit configuration: {}",
-                e,
-            )
-        })
+        .expect("Failed to create RateLimiter, please check the HttpModelConfig.rate_limit configuration")
 }
 
 pub struct RateLimitedEmbedding {
@@ -29,10 +24,10 @@ pub struct RateLimitedEmbedding {
     rate_limiter: Ratelimiter,
 }
 
-pub fn new_embedding(embedding: Box<dyn Embedding>, rpm: u64) -> impl Embedding {
+pub fn new_embedding(embedding: Box<dyn Embedding>, request_per_minute: u64) -> impl Embedding {
     RateLimitedEmbedding {
         embedding,
-        rate_limiter: new_rate_limiter(rpm).unwrap(),
+        rate_limiter: new_rate_limiter(request_per_minute),
     }
 }
 
@@ -57,10 +52,13 @@ pub struct RateLimitedCompletion {
     rate_limiter: Ratelimiter,
 }
 
-pub fn new_completion(completion: Box<dyn CompletionStream>, rpm: u64) -> impl CompletionStream {
+pub fn new_completion(
+    completion: Box<dyn CompletionStream>,
+    request_per_minute: u64,
+) -> impl CompletionStream {
     RateLimitedCompletion {
         completion,
-        rate_limiter: new_rate_limiter(rpm).unwrap(),
+        rate_limiter: new_rate_limiter(request_per_minute),
     }
 }
 
@@ -86,10 +84,13 @@ pub struct RateLimitedChatStream {
     rate_limiter: Ratelimiter,
 }
 
-pub fn new_chat(completion: Box<dyn ChatCompletionStream>, rpm: u64) -> impl ChatCompletionStream {
+pub fn new_chat(
+    completion: Box<dyn ChatCompletionStream>,
+    request_per_minute: u64,
+) -> impl ChatCompletionStream {
     RateLimitedChatStream {
         completion,
-        rate_limiter: new_rate_limiter(rpm).unwrap(),
+        rate_limiter: new_rate_limiter(request_per_minute),
     }
 }
 

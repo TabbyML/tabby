@@ -9,7 +9,7 @@ use futures::stream::BoxStream;
 use serde::Deserialize;
 use supervisor::LlamaCppSupervisor;
 use tabby_common::{
-    config::{HttpModelConfigBuilder, LocalModelConfig, ModelConfig},
+    config::{HttpModelConfigBuilder, LocalModelConfig, ModelConfig, RateLimit, RateLimitBuilder},
     registry::{parse_model_id, ModelRegistry, GGML_MODEL_PARTITIONED_PREFIX},
 };
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
@@ -46,6 +46,7 @@ impl EmbeddingServer {
 
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(Some(api_endpoint(server.port())))
+            .rate_limit(build_rate_limit_config())
             .kind("llama.cpp/embedding".to_string())
             .build()
             .expect("Failed to create HttpModelConfig");
@@ -95,6 +96,7 @@ impl CompletionServer {
     async fn new_with_supervisor(server: Arc<LlamaCppSupervisor>) -> Self {
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(Some(api_endpoint(server.port())))
+            .rate_limit(build_rate_limit_config())
             .kind("llama.cpp/completion".to_string())
             .build()
             .expect("Failed to create HttpModelConfig");
@@ -142,6 +144,7 @@ impl ChatCompletionServer {
     async fn new_with_supervisor(server: Arc<LlamaCppSupervisor>) -> Self {
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(Some(api_endpoint(server.port())))
+            .rate_limit(build_rate_limit_config())
             .kind("openai/chat".to_string())
             .model_name(Some("local".into()))
             .build()
@@ -319,4 +322,11 @@ async fn resolve_prompt_info(model_id: &str) -> PromptInfo {
             chat_template: model_info.chat_template.to_owned(),
         }
     }
+}
+
+fn build_rate_limit_config() -> RateLimit {
+    RateLimitBuilder::default()
+        .request_per_minute(6000)
+        .build()
+        .expect("Failed to create RateLimit")
 }
