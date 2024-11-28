@@ -13,5 +13,4 @@ class SettingsState : BaseState() {
   var serverToken by string()
   var nodeBinary by string()
   var isAnonymousUsageTrackingDisabled by property(false)
-  var notificationsMuted by list<String>()
 }

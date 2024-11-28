@@ -255,11 +255,14 @@ export function Search() {
   }, [threadMessages])
 
   const isThreadOwner = useMemo(() => {
-    if (!threadId) return true
+    if (!meData) return false
+    if (!threadIdFromURL) return true
 
-    if (!meData || !threadData?.threads?.edges?.length) return false
-    return meData.me.id === threadData.threads.edges[0].node.userId
-  }, [meData, threadData, threadId])
+    const thread = threadData?.threads.edges[0]
+    if (!thread) return false
+
+    return meData.me.id === thread.node.userId
+  }, [meData, threadData, threadIdFromURL])
 
   // Compute title
   const sources = contextInfoData?.contextInfo.sources
@@ -283,7 +286,6 @@ export function Search() {
 
   useEffect(() => {
     if (threadMessagesError && !isReady) {
-      // FIXME error view?
       setIsReady(true)
     }
   }, [threadMessagesError])

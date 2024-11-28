@@ -1,4 +1,5 @@
 pub mod issue;
+pub mod pull;
 pub mod web;
 
 use std::sync::Arc;
@@ -21,6 +22,7 @@ impl StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(web) => &web.link,
             StructuredDocFields::Issue(issue) => &issue.link,
+            StructuredDocFields::Pull(pull) => &pull.link,
         }
     }
 
@@ -28,6 +30,7 @@ impl StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(_) => "web",
             StructuredDocFields::Issue(_) => "issue",
+            StructuredDocFields::Pull(_) => "pull",
         }
     }
 }
@@ -55,6 +58,7 @@ pub trait BuildStructuredDoc {
 pub enum StructuredDocFields {
     Web(web::WebDocument),
     Issue(issue::IssueDocument),
+    Pull(pull::PullDocument),
 }
 
 #[async_trait]
@@ -63,6 +67,7 @@ impl BuildStructuredDoc for StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(doc) => doc.should_skip(),
             StructuredDocFields::Issue(doc) => doc.should_skip(),
+            StructuredDocFields::Pull(doc) => doc.should_skip(),
         }
     }
 
@@ -70,6 +75,7 @@ impl BuildStructuredDoc for StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(doc) => doc.build_attributes().await,
             StructuredDocFields::Issue(doc) => doc.build_attributes().await,
+            StructuredDocFields::Pull(doc) => doc.build_attributes().await,
         }
     }
 
@@ -80,6 +86,7 @@ impl BuildStructuredDoc for StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(doc) => doc.build_chunk_attributes(embedding).await,
             StructuredDocFields::Issue(doc) => doc.build_chunk_attributes(embedding).await,
+            StructuredDocFields::Pull(doc) => doc.build_chunk_attributes(embedding).await,
         }
     }
 }

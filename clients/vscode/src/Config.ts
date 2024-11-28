@@ -6,6 +6,7 @@ import { getLogger } from "./logger";
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
   "chatEdit.history"?: number;
+  useVSCodeProxy?: boolean;
 }
 
 export interface PastServerConfig {
@@ -71,6 +72,11 @@ export class Config extends EventEmitter {
       this.workspace.update("settings.advanced", updatedValue, ConfigurationTarget.Global);
       this.emit("updated");
     }
+  }
+
+  get useVSCodeProxy(): boolean {
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    return advancedSettings["useVSCodeProxy"] ?? true;
   }
 
   get maxChatEditHistory(): number {
@@ -184,12 +190,15 @@ export class Config extends EventEmitter {
   }
 
   buildClientProvidedConfig(): ClientProvidedConfig {
+    const url = this.useVSCodeProxy ? this.url : "";
+    const authorization = this.useVSCodeProxy ? this.authorization : "";
+
     return {
       // Note: current we only support http.proxy | http.authorization
       // More properties we will land later.
       proxy: {
-        url: this.url,
-        authorization: this.authorization,
+        url,
+        authorization,
       },
       server: {
         endpoint: this.serverEndpoint,

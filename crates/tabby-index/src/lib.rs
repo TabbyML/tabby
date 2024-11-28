@@ -9,6 +9,9 @@ use indexer::{IndexAttributeBuilder, Indexer};
 
 mod structured_doc;
 
+#[cfg(test)]
+mod structured_doc_tests;
+
 pub mod public {
     use indexer::IndexGarbageCollector;
 
@@ -17,7 +20,7 @@ pub mod public {
         code::CodeIndexer,
         structured_doc::public::{
             StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
-            StructuredDocWebFields,
+            StructuredDocPullDocumentFields, StructuredDocState, StructuredDocWebFields,
         },
     };
 

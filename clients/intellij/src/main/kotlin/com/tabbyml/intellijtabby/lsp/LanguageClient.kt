@@ -3,12 +3,14 @@ package com.tabbyml.intellijtabby.lsp
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.util.messages.Topic
@@ -22,22 +24,15 @@ import com.tabbyml.intellijtabby.lsp.protocol.*
 import com.tabbyml.intellijtabby.lsp.protocol.ClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.ClientInfo
 import com.tabbyml.intellijtabby.lsp.protocol.InitializeParams
-import com.tabbyml.intellijtabby.lsp.protocol.InitializeResult
-import com.tabbyml.intellijtabby.lsp.protocol.ServerInfo
 import com.tabbyml.intellijtabby.lsp.protocol.TextDocumentClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import com.tabbyml.intellijtabby.safeSyncPublisher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.future.await
-import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.*
 import java.util.concurrent.CompletableFuture
 
 class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.lsp.protocol.client.LanguageClient(),
   Disposable {
   private val logger = Logger.getInstance(LanguageClient::class.java)
-  private val scope = CoroutineScope(Dispatchers.IO)
   private val gitProvider = project.serviceOrNull<GitProvider>()
   private val languageSupportService = project.serviceOrNull<LanguageSupportService>()
   private val configurationSync = ConfigurationSync(project)
@@ -70,7 +65,8 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
           didChangeConfiguration = DidChangeConfigurationCapabilities()
         },
         tabby = TabbyClientCapabilities(
-          agent = true,
+          configDidChangeListener = true,
+          statusDidChangeListener = true,
           gitProvider = gitProvider?.isSupported(),
           workspaceFileSystem = true,
           languageSupport = languageSupportService != null,
@@ -85,23 +81,14 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   override fun processInitializeResult(server: LanguageServer, result: InitializeResult?) {
     configurationSync.startSync(server)
     textDocumentSync.startSync(server)
-    scope.launch {
-      project.safeSyncPublisher(AgentListener.TOPIC)?.agentStatusChanged(server.agentFeature.status().await())
-      project.safeSyncPublisher(AgentListener.TOPIC)?.agentIssueUpdated(server.agentFeature.issues().await())
-      project.safeSyncPublisher(AgentListener.TOPIC)?.agentServerInfoUpdated(server.agentFeature.serverInfo().await())
-    }
   }
 
-  override fun didChangeStatus(params: DidChangeStatusParams) {
-    project.safeSyncPublisher(AgentListener.TOPIC)?.agentStatusChanged(params.status)
+  override fun configDidChange(params: Config) {
+    project.safeSyncPublisher(ConfigListener.TOPIC)?.configChanged(params)
   }
 
-  override fun didUpdateIssues(params: DidUpdateIssueParams) {
-    project.safeSyncPublisher(AgentListener.TOPIC)?.agentIssueUpdated(params)
-  }
-
-  override fun didUpdateServerInfo(params: DidUpdateServerInfoParams) {
-    project.safeSyncPublisher(AgentListener.TOPIC)?.agentServerInfoUpdated(params.serverInfo)
+  override fun statusDidChange(params: StatusInfo) {
+    project.safeSyncPublisher(StatusListener.TOPIC)?.statusChanged(params)
   }
 
   override fun editorOptions(params: EditorOptionsParams): CompletableFuture<EditorOptions?> {
@@ -229,6 +216,26 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     }
   }
 
+  override fun showMessageRequest(params: ShowMessageRequestParams): CompletableFuture<MessageActionItem?> {
+    return CompletableFuture<MessageActionItem?>().apply {
+      invokeLater {
+        val actions = params.actions.map { it.title }.toTypedArray()
+        val selected = Messages.showDialog(
+          params.message,
+          "Tabby",
+          actions,
+          0,
+          when (params.type) {
+            MessageType.Error -> Messages.getErrorIcon()
+            MessageType.Warning -> Messages.getWarningIcon()
+            else -> Messages.getInformationIcon()
+          },
+        )
+        complete(actions.getOrNull(selected)?.let { MessageActionItem(it) })
+      }
+    }
+  }
+
   override fun logMessage(params: MessageParams) {
     when (params.type) {
       MessageType.Error -> logger.warn(params.message)
@@ -306,14 +313,21 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     )
   }
 
-  interface AgentListener {
-    fun agentStatusChanged(status: String) {}
-    fun agentIssueUpdated(issueList: IssueList) {}
-    fun agentServerInfoUpdated(serverInfo: ServerInfo) {}
+  interface ConfigListener {
+    fun configChanged(config: Config) {}
 
     companion object {
       @Topic.ProjectLevel
-      val TOPIC = Topic(AgentListener::class.java, Topic.BroadcastDirection.NONE)
+      val TOPIC = Topic(ConfigListener::class.java, Topic.BroadcastDirection.NONE)
+    }
+  }
+
+  interface StatusListener {
+    fun statusChanged(status: StatusInfo) {}
+
+    companion object {
+      @Topic.ProjectLevel
+      val TOPIC = Topic(StatusListener::class.java, Topic.BroadcastDirection.NONE)
     }
   }
 }

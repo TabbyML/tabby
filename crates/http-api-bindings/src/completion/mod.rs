@@ -10,56 +10,51 @@ use openai::OpenAICompletionEngine;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::CompletionStream;
 
+use super::rate_limit;
+
 pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
-    match model.kind.as_str() {
-        "llama.cpp/completion" => {
-            let engine = LlamaCppEngine::create(
-                model
-                    .api_endpoint
-                    .as_deref()
-                    .expect("api_endpoint is required"),
-                model.api_key.clone(),
-            );
-            Arc::new(engine)
-        }
+    let engine = match model.kind.as_str() {
+        "llama.cpp/completion" => LlamaCppEngine::create(
+            model
+                .api_endpoint
+                .as_deref()
+                .expect("api_endpoint is required"),
+            model.api_key.clone(),
+        ),
         "ollama/completion" => ollama_api_bindings::create_completion(model).await,
-        "mistral/completion" => {
-            let engine = MistralFIMEngine::create(
-                model.api_endpoint.as_deref(),
-                model.api_key.clone(),
-                model.model_name.clone(),
-            );
-            Arc::new(engine)
-        }
-        x if OPENAI_LEGACY_COMPLETION_FIM_ALIASES.contains(&x) => {
-            let engine = OpenAICompletionEngine::create(
-                model.model_name.clone(),
-                model
-                    .api_endpoint
-                    .as_deref()
-                    .expect("api_endpoint is required"),
-                model.api_key.clone(),
-                true,
-            );
-            Arc::new(engine)
-        }
-        "openai/legacy_completion_no_fim" | "vllm/completion" => {
-            let engine = OpenAICompletionEngine::create(
-                model.model_name.clone(),
-                model
-                    .api_endpoint
-                    .as_deref()
-                    .expect("api_endpoint is required"),
-                model.api_key.clone(),
-                false,
-            );
-            Arc::new(engine)
-        }
+        "mistral/completion" => MistralFIMEngine::create(
+            model.api_endpoint.as_deref(),
+            model.api_key.clone(),
+            model.model_name.clone(),
+        ),
+        x if OPENAI_LEGACY_COMPLETION_FIM_ALIASES.contains(&x) => OpenAICompletionEngine::create(
+            model.model_name.clone(),
+            model
+                .api_endpoint
+                .as_deref()
+                .expect("api_endpoint is required"),
+            model.api_key.clone(),
+            true,
+        ),
+        "openai/legacy_completion_no_fim" | "vllm/completion" => OpenAICompletionEngine::create(
+            model.model_name.clone(),
+            model
+                .api_endpoint
+                .as_deref()
+                .expect("api_endpoint is required"),
+            model.api_key.clone(),
+            false,
+        ),
         unsupported_kind => panic!(
             "Unsupported model kind for http completion: {}",
             unsupported_kind
         ),
-    }
+    };
+
+    Arc::new(rate_limit::new_completion(
+        engine,
+        model.rate_limit.request_per_minute,
+    ))
 }
 
 const FIM_TOKEN: &str = "<|FIM|>";

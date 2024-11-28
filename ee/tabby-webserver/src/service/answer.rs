@@ -126,7 +126,7 @@ impl AnswerService {
                         .map(|x| x.doc.clone().into())
                         .collect::<Vec<_>>();
 
-                debug!("doc content: {:?}", doc_query.content);
+                debug!("doc content: {:?}: {:?}", doc_query.content, attachment.doc.len());
 
                 if !attachment.doc.is_empty() {
                     let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
@@ -140,12 +140,18 @@ impl AnswerService {
             if options.generate_relevant_questions {
                 // Rewrite [[source:${id}]] tags to the actual source name for generate relevant questions.
                 let content = context_info_helper.rewrite_tag(&query.content);
-                let questions = self
+                match self
                     .generate_relevant_questions_v2(&attachment, &content)
-                    .await;
-                yield Ok(ThreadRunItem::ThreadRelevantQuestions(ThreadRelevantQuestions{
-                    questions
-                }));
+                    .await{
+                    Ok(questions) => {
+                        yield Ok(ThreadRunItem::ThreadRelevantQuestions(ThreadRelevantQuestions{
+                            questions
+                        }));
+                    }
+                    Err(err) => {
+                        warn!("Failed to generate relevant questions: {}", err);
+                    }
+                }
             }
 
             // 4. Prepare requesting LLM
@@ -299,9 +305,9 @@ impl AnswerService {
         &self,
         attachment: &MessageAttachment,
         question: &str,
-    ) -> Vec<String> {
+    ) -> anyhow::Result<Vec<String>> {
         if attachment.code.is_empty() && attachment.doc.is_empty() {
-            return vec![];
+            return Ok(vec![]);
         }
 
         let snippets: Vec<String> = attachment
@@ -343,24 +349,20 @@ Remember, based on the original question and related contexts, suggest three suc
                     .build()
                     .expect("Failed to create ChatCompletionRequestUserMessage"),
             )])
-            .build()
-            .expect("Failed to create ChatCompletionRequest");
+            .build()?;
 
         let chat = self.chat.clone();
-        let s = chat
-            .chat(request)
-            .await
-            .expect("Failed to create chat completion stream");
+        let s = chat.chat(request).await?;
         let content = s.choices[0]
             .message
             .content
             .as_deref()
-            .expect("Failed to get content from chat completion");
-        content
+            .ok_or_else(|| anyhow!("Failed to get content from chat completion"))?;
+        Ok(content
             .lines()
             .map(trim_bullet)
             .filter(|x| !x.is_empty())
-            .collect()
+            .collect())
     }
 }
 
@@ -396,13 +398,15 @@ fn convert_messages_to_chat_completion_request(
     output.reserve(messages.len() + 1);
 
     // System message
-    output.push(ChatCompletionRequestMessage::System(
-        ChatCompletionRequestSystemMessage {
-            content: config.system_prompt.clone(),
-            role: Role::System,
-            name: None,
-        },
-    ));
+    if !config.system_prompt.is_empty() {
+        output.push(ChatCompletionRequestMessage::System(
+            ChatCompletionRequestSystemMessage {
+                content: config.system_prompt.clone(),
+                role: Role::System,
+                name: None,
+            },
+        ));
+    }
 
     for i in 0..messages.len() - 1 {
         let x = &messages[i];
@@ -603,6 +607,7 @@ fn get_content(doc: &MessageAttachmentDoc) -> &str {
     match doc {
         MessageAttachmentDoc::Web(web) => &web.content,
         MessageAttachmentDoc::Issue(issue) => &issue.body,
+        MessageAttachmentDoc::Pull(pull) => &pull.body,
     }
 }
 
@@ -711,6 +716,7 @@ mod tests {
         match doc {
             DocSearchDocument::Web(web_doc) => &web_doc.title,
             DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
+            DocSearchDocument::Pull(pull_doc) => &pull_doc.title,
         }
     }
 
@@ -816,7 +822,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_collect_relevant_code() {
-        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
+            return_error: false,
+        });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
@@ -915,7 +923,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_relevant_questions_v2() {
-        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
+            return_error: false,
+        });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
@@ -968,11 +978,67 @@ mod tests {
             "Can you explain how the Flask app works in this context?".to_string(),
         ];
 
-        assert_eq!(result, expected);
+        assert_eq!(result.unwrap(), expected);
     }
+
+    #[tokio::test]
+    async fn test_generate_relevant_questions_v2_error() {
+        let chat: Arc<dyn ChatCompletionStream> =
+            Arc::new(FakeChatCompletionStream { return_error: true });
+        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+        let config = make_answer_config();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+
+        let service = AnswerService::new(
+            &config,
+            chat.clone(),
+            code.clone(),
+            doc.clone(),
+            context.clone(),
+            serper,
+            repo,
+        );
+
+        let attachment = MessageAttachment {
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
+                tabby_schema::thread::MessageAttachmentWebDoc {
+                    title: "1. Example Document".to_owned(),
+                    content: "This is an example".to_owned(),
+                    link: "https://example.com".to_owned(),
+                },
+            )],
+            code: vec![tabby_schema::thread::MessageAttachmentCode {
+                git_url: "https://github.com".to_owned(),
+                filepath: "server.py".to_owned(),
+                language: "python".to_owned(),
+                content: "print('Hello, server!')".to_owned(),
+                start_line: 1,
+            }],
+            client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
+                filepath: Some("client.py".to_owned()),
+                content: "print('Hello, client!')".to_owned(),
+                start_line: Some(1),
+            }],
+        };
+
+        let question = "What is the purpose of this code?";
+
+        let result = service
+            .generate_relevant_questions_v2(&attachment, question)
+            .await;
+
+        assert!(result.is_err());
+    }
+
     #[tokio::test]
     async fn test_collect_relevant_docs() {
-        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
+            return_error: false,
+        });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
@@ -1039,7 +1105,9 @@ mod tests {
         use futures::StreamExt;
         use tabby_schema::{policy::AccessPolicy, thread::ThreadRunOptionsInput};
 
-        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
+            return_error: false,
+        });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);

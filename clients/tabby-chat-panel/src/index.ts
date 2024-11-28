@@ -54,9 +54,7 @@ export interface ServerApi {
   updateActiveSelection: (context: Context | null) => void
 }
 
-export type ClientApiMethods = keyof ClientApi
-
-export interface ClientApi {
+export interface ClientApiMethods {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
 
@@ -79,9 +77,12 @@ export interface ClientApi {
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
 
+}
+
+export interface ClientApi extends ClientApiMethods {
   // this is inner function cover by tabby-threads
   // the function doesn't need to expose to client but can call by client
-  hasCapability?: (capability: ClientApiMethods) => Promise<boolean>
+  hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 }
 
 export interface ChatMessage {
@@ -97,10 +98,7 @@ export interface ChatMessage {
   activeContext?: Context
 }
 
-export function createClient(
-  target: HTMLIFrameElement,
-  api: ClientApi,
-): ServerApi {
+export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
   return createThreadFromIframe(target, {
     expose: {
       navigate: api.navigate,
@@ -110,7 +108,6 @@ export function createClient(
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
-      hasCapability: api.hasCapability,
     },
   })
 }
@@ -128,15 +125,3 @@ export function createServer(api: ServerApi): ClientApi {
     },
   })
 }
-// TODO: remove later
-export const clientApiKeys = [
-  'navigate',
-  'refresh',
-  'onSubmitMessage',
-  'onApplyInEditor',
-  'onApplyInEditorV2',
-  'onLoaded',
-  'onCopy',
-  'onKeyboardEvent',
-  'hasCapability',
-] as const satisfies (keyof ClientApi)[]

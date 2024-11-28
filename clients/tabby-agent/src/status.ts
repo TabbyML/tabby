@@ -40,9 +40,9 @@ export class StatusProvider extends EventEmitter implements Feature {
 
     connection.onRequest(StatusRequest.type, async (params) => {
       if (params?.recheckConnection) {
-        await this.tabbyApiClient.connect();
+        await this.tabbyApiClient.connect({ reset: true });
       }
-      return this.getStatusInfo();
+      return this.buildStatusInfo({ includeHelpMessage: true });
     });
     connection.onRequest(StatusShowHelpMessageRequest.type, async () => {
       return this.showStatusHelpMessage();
@@ -83,18 +83,14 @@ export class StatusProvider extends EventEmitter implements Feature {
 
   async initialized(connection: Connection): Promise<void> {
     if (this.clientCapabilities?.tabby?.statusDidChangeListener) {
-      const statusInfo = await this.getStatusInfo();
+      const statusInfo = await this.buildStatusInfo();
       connection.sendNotification(StatusDidChangeNotification.type, statusInfo);
     }
   }
 
   private async notify() {
-    const statusInfo = await this.getStatusInfo();
+    const statusInfo = await this.buildStatusInfo();
     this.emit("updated", statusInfo);
-  }
-
-  getStatusInfo(): StatusInfo {
-    return this.buildStatusInfo();
   }
 
   async showStatusHelpMessage(): Promise<boolean | null> {
@@ -186,7 +182,7 @@ export class StatusProvider extends EventEmitter implements Feature {
     return false;
   }
 
-  private buildStatusInfo(): StatusInfo {
+  private buildStatusInfo(options: { includeHelpMessage?: boolean } = {}): StatusInfo {
     let statusInfo: StatusInfo;
     const apiClientStatus = this.tabbyApiClient.getStatus();
     switch (apiClientStatus) {
@@ -221,13 +217,16 @@ export class StatusProvider extends EventEmitter implements Feature {
     }
     this.fillToolTip(statusInfo);
     statusInfo.serverHealth = this.tabbyApiClient.getServerHealth();
-    statusInfo.command = this.tabbyApiClient.hasHelpMessage()
+    const hasHelpMessage = this.tabbyApiClient.hasHelpMessage();
+    statusInfo.command = hasHelpMessage
       ? {
           title: "Detail",
           command: "tabby/status/showHelpMessage",
           arguments: [{}],
         }
       : undefined;
+    statusInfo.helpMessage =
+      hasHelpMessage && options.includeHelpMessage ? this.tabbyApiClient.getHelpMessage() : undefined;
     return statusInfo;
   }
 
