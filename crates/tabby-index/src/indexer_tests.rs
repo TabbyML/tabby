@@ -159,12 +159,62 @@ mod builder_tests {
 
     use super::mock_embedding::MockEmbedding;
     use crate::{
-        indexer::TantivyDocBuilder,
+        code::{
+            create_code_builder,
+            intelligence::{
+                tests::{get_repository_config, get_rust_source_file, get_tabby_root},
+                CodeIntelligence,
+            },
+        },
+        indexer::{Indexer, TantivyDocBuilder, ToIndexId},
         structured_doc::{
             public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields},
             StructuredDocBuilder,
         },
     };
+
+    #[test]
+    #[file_serial(set_tabby_root)]
+    fn test_builder_code_empty_embedding() {
+        let origin_root = tabby_common::path::tabby_root();
+        tabby_common::path::set_tabby_root(get_tabby_root());
+
+        let embedding = MockEmbedding::new(vec![]);
+        let builder = Arc::new(create_code_builder(Some(Arc::new(embedding))));
+
+        let repo = get_repository_config();
+        let code = CodeIntelligence::compute_source_file(&repo, &get_rust_source_file()).unwrap();
+        let index_id = code.to_index_id();
+
+        let (id, s) = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async { builder.build(code).await });
+        assert_eq!(id, index_id.id);
+
+        let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            s.buffer_unordered(std::cmp::max(
+                std::thread::available_parallelism().unwrap().get() * 2,
+                32,
+            ))
+            .collect::<Vec<_>>()
+            .await
+        });
+
+        assert_eq!(res.len(), 4);
+        let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
+
+        let schema = IndexSchema::instance();
+        let failed_count = doc
+            .get_first(schema.field_failed_chunks_count)
+            .and_then(|v| v.as_u64())
+            .unwrap();
+
+        // the last element is the document itself
+        // the first three are the chunks and should be failed as no embedding is provided
+        assert_eq!(failed_count, 3);
+
+        tabby_common::path::set_tabby_root(origin_root);
+    }
 
     /// Test that the indexer return the document and none itself
     /// when the embedding is empty

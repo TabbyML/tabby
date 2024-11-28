@@ -127,7 +127,7 @@ async fn build_binarize_embedding_tokens(embedding: Arc<dyn Embedding>, body: &s
     tokens
 }
 
-fn create_code_builder(embedding: Option<Arc<dyn Embedding>>) -> TantivyDocBuilder<SourceCode> {
+pub fn create_code_builder(embedding: Option<Arc<dyn Embedding>>) -> TantivyDocBuilder<SourceCode> {
     let builder = CodeBuilder::new(embedding);
     TantivyDocBuilder::new(corpus::CODE, builder)
 }

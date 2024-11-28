@@ -10,7 +10,7 @@ use indexer::{IndexAttributeBuilder, Indexer};
 mod structured_doc;
 
 #[cfg(test)]
-mod structured_doc_tests;
+mod indexer_tests;
 
 pub mod public {
     use indexer::IndexGarbageCollector;
