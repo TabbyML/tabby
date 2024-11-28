@@ -101,13 +101,27 @@ impl StructuredDocIndexer {
     fn should_reindex(&self, document: &StructuredDoc) -> bool {
         // v0.22.0 add the author field to the issue and pull documents.
         match &document.fields {
-            StructuredDocFields::Issue(_) => self
-                .indexer
-                .has_attribute_field(document.id(), StructuredDocIndexFields::issue::AUTHOR),
-            StructuredDocFields::Pull(_) => self
-                .indexer
-                .has_attribute_field(document.id(), StructuredDocIndexFields::pull::AUTHOR),
-            _ => false,
+            StructuredDocFields::Issue(issue) => {
+                if !issue.author.is_empty()
+                    && !self
+                        .indexer
+                        .has_attribute_field(document.id(), StructuredDocIndexFields::issue::AUTHOR)
+                {
+                    return true;
+                }
+            }
+            StructuredDocFields::Pull(pull) => {
+                if !pull.author.is_empty()
+                    && !self
+                        .indexer
+                        .has_attribute_field(document.id(), StructuredDocIndexFields::pull::AUTHOR)
+                {
+                    return true;
+                }
+            }
+            _ => (),
         }
+
+        false
     }
 }

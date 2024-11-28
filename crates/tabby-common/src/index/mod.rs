@@ -76,7 +76,7 @@ const FIELD_CHUNK_ID: &str = "chunk_id";
 const FIELD_UPDATED_AT: &str = "updated_at";
 const FIELD_FAILED_CHUNKS_COUNT: &str = "failed_chunks_count";
 pub const FIELD_SOURCE_ID: &str = "source_id";
-pub const FIELD_CHUNK_ATTRIBUTES: &str = "chunk_attributes";
+pub const FIELD_ATTRIBUTES: &str = "attributes";
 
 pub mod corpus {
     pub const CODE: &str = "code";
@@ -104,11 +104,11 @@ impl IndexSchema {
         let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED | STORED);
         let field_failed_chunks_count =
             builder.add_u64_field(FIELD_FAILED_CHUNKS_COUNT, INDEXED | FAST | STORED);
-        let field_attributes = builder.add_text_field("attributes", STORED);
+        let field_attributes = builder.add_text_field(FIELD_ATTRIBUTES, STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
         let field_chunk_attributes = builder.add_json_field(
-            FIELD_CHUNK_ATTRIBUTES,
+            "chunk_attributes",
             JsonObjectOptions::default()
                 .set_stored()
                 .set_indexing_options(
@@ -245,7 +245,7 @@ impl IndexSchema {
             (
                 Occur::Must,
                 Box::new(ExistsQuery::new_exists_query(
-                    format!("{}.{}", FIELD_CHUNK_ATTRIBUTES, field).into(),
+                    format!("{}.{}", FIELD_ATTRIBUTES, field).into(),
                 )),
             ),
             // Exclude chunk documents
