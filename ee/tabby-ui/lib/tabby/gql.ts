@@ -404,6 +404,23 @@ const client = new Client({
                   )
                 })
             }
+          },
+          setThreadPersisted(result, args, cache, info) {
+            if (result.setThreadPersisted) {
+              const key = 'Query'
+              cache
+                .inspectFields(key)
+                .filter(field => {
+                  return (
+                    field.fieldName === 'threads' &&
+                    !field.arguments?.ids &&
+                    !!field.arguments?.before
+                  )
+                })
+                .forEach(field => {
+                  cache.invalidate(key, field.fieldName, field.arguments)
+                })
+            }
           }
         }
       },

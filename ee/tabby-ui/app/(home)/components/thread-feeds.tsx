@@ -136,8 +136,15 @@ export function ThreadFeeds({
   }, [data?.threads?.edges, page, fetching])
 
   const loadMore = () => {
-    if (pageInfo?.startCursor) {
-      setBeforeCursor(pageInfo.startCursor)
+    const startCursor = pageInfo?.startCursor
+    if (
+      startCursor &&
+      data?.threads.edges.length &&
+      data.threads.edges.findIndex(o => o.cursor === startCursor) > -1
+    ) {
+      setBeforeCursor(startCursor)
+    } else {
+      setBeforeCursor(data?.threads.edges[0]?.cursor)
     }
   }
 
