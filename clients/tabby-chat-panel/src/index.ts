@@ -85,6 +85,17 @@ export interface ClientApi extends ClientApiMethods {
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 }
 
+export const clientApiKeys: (keyof ClientApiMethods)[] = [
+  'navigate',
+  'refresh',
+  'onSubmitMessage',
+  'onApplyInEditor',
+  'onApplyInEditorV2',
+  'onLoaded',
+  'onCopy',
+  'onKeyboardEvent',
+]
+
 export interface ChatMessage {
   message: string
 
