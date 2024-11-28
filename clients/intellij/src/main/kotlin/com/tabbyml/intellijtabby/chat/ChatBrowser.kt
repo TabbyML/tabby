@@ -226,7 +226,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       ?: project.guessProjectDir()?.url?.let { project.findVirtualFile(it.appendUrlPathSegments(fileContext.filepath)) }
       ?: return
     invokeLater {
-      val descriptor = OpenFileDescriptor(project, virtualFile, fileContext.range.start, 0)
+      val lineNumber = (fileContext.range.start - 1).coerceAtLeast(0)
+      val descriptor = OpenFileDescriptor(project, virtualFile, lineNumber, 0)
       FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
     }
   }
