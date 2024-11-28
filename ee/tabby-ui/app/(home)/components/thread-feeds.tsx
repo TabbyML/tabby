@@ -16,11 +16,14 @@ import {
 } from '@/lib/stores/answer-engine-store'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
 import { cn, getTitleFromMessages } from '@/lib/utils'
+import { getPaginationItem } from '@/lib/utils/pagination'
 import { IconFiles, IconSpinner } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
+  PaginationLink,
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination'
@@ -29,8 +32,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { Mention } from '@/components/mention-tag'
 import { UserAvatar } from '@/components/user-avatar'
-
-import { AnimationWrapper } from './animation-wrapper'
 
 interface ThreadFeedsProps {
   className?: string
@@ -49,7 +50,7 @@ export const ThreadFeedsContext = createContext<ThreadFeedsContextValue>(
   {} as ThreadFeedsContextValue
 )
 
-const PAGE_SIZE = 8
+const PAGE_SIZE = 25
 
 const listThreads = graphql(/* GraphQL */ `
   query ListThreads(
@@ -112,17 +113,27 @@ export function ThreadFeeds({
   const pageCount = Math.ceil((threadCount || 0) / PAGE_SIZE)
   const showPagination =
     pageCount > 1 || (pageCount === 1 && pageInfo?.hasPreviousPage)
+  const paginationPages = getPaginationItem(threadCount || 0, page, PAGE_SIZE)
 
   // threads for current page
   const threads = useMemo(() => {
     const _threads = data?.threads?.edges
     if (!_threads?.length) return []
 
+    if (fetching && page >= 2) {
+      // if fetching next page, keep previous page
+      const previousPage = _threads
+        .slice()
+        .reverse()
+        .slice((page - 2) * PAGE_SIZE, (page - 1) * PAGE_SIZE)
+      return previousPage || []
+    }
+
     return _threads
       .slice()
       .reverse()
       .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  }, [data?.threads?.edges, page])
+  }, [data?.threads?.edges, page, fetching])
 
   const loadMore = () => {
     if (threads.length) {
@@ -155,7 +166,17 @@ export function ThreadFeeds({
       }}
     >
       <div className={cn('w-full', className)}>
-        <AnimationWrapper style={{ width: '100%' }} viewport={{ once: true }}>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{
+            once: true
+          }}
+          transition={{
+            ease: 'easeOut',
+            delay: 0.3
+          }}
+        >
           <LoadingWrapper
             loading={fetching || fetchingUsers}
             fallback={
@@ -163,27 +184,18 @@ export function ThreadFeeds({
                 <IconSpinner className="h-8 w-8" />
               </div>
             }
+            delay={800}
           >
             <div className="mb-2.5 w-full text-lg font-semibold">
               Recent Activities
             </div>
             <Separator className="mb-4 w-full" />
-            <div className="relative flex min-h-[43rem] flex-col gap-3 text-sm">
+            <div className="relative flex flex-col gap-3 text-sm">
               {threads.map(t => {
                 return <ThreadItem data={t} key={t.node.id} />
               })}
-              {!threads.length && fetching && (
-                <div className="flex h-[40.25rem] items-center justify-center">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{
-                      delay: 0.3
-                    }}
-                  >
-                    <IconSpinner className="h-8 w-8" />
-                  </motion.div>
-                </div>
+              {fetching && (
+                <div className="absolute inset-0 bottom-10 z-10 flex items-center justify-center backdrop-blur-sm" />
               )}
               {showPagination && (
                 <Pagination className={cn('flex items-center justify-end')}>
@@ -202,6 +214,29 @@ export function ThreadFeeds({
                         }}
                       />
                     </PaginationItem>
+                    {paginationPages.map((item, index) => {
+                      return (
+                        <PaginationItem
+                          key={`${item}-${index}`}
+                          onClick={() => {
+                            if (typeof item === 'number') {
+                              setPage(item)
+                            }
+                          }}
+                        >
+                          {typeof item === 'number' ? (
+                            <PaginationLink
+                              className="cursor-pointer"
+                              isActive={item === page}
+                            >
+                              {item}
+                            </PaginationLink>
+                          ) : (
+                            <PaginationEllipsis />
+                          )}
+                        </PaginationItem>
+                      )
+                    })}
                     <PaginationItem>
                       <PaginationNext
                         disabled={isNextPageDisabled}
@@ -221,7 +256,7 @@ export function ThreadFeeds({
               )}
             </div>
           </LoadingWrapper>
-        </AnimationWrapper>
+        </motion.div>
       </div>
     </ThreadFeedsContext.Provider>
   )

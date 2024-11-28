@@ -37,6 +37,8 @@ import { AnimationWrapper } from './components/animation-wrapper'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
 
+// const ThreadFeeds = lazy(() => import('./components/thread-feeds').then(module => ({ default: module.ThreadFeeds })))
+
 function MainPanel() {
   const resettingScroller = useRef(false)
   const scroller = useRef<HTMLDivElement>(null)
@@ -122,7 +124,7 @@ function MainPanel() {
           <div className="mx-auto flex w-full flex-col items-center gap-6 px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
             <AnimationWrapper
               viewport={{
-                margin: '-70px 0px 0px 0px'
+                amount: 0.1
               }}
             >
               <Image
@@ -137,7 +139,9 @@ function MainPanel() {
             </AnimationWrapper>
             {isChatEnabled && (
               <AnimationWrapper
-                viewport={{ margin: '-140px 0px 0px 0px' }}
+                viewport={{
+                  amount: 0.1
+                }}
                 style={{ width: '100%' }}
                 delay={0.05}
               >

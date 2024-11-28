@@ -170,7 +170,7 @@ export default function Stats() {
     <>
       <AnimationWrapper
         viewport={{
-          margin: '-140px 0px 0px 0px'
+          amount: 0.1
         }}
         style={{ width: '100%' }}
         delay={0.1}
