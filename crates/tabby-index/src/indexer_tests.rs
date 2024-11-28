@@ -33,7 +33,7 @@ mod structured_doc_tests {
     use std::sync::Arc;
 
     use serial_test::file_serial;
-    use tabby_common::index::corpus;
+    use tabby_common::index::{corpus, structured_doc::fields as StructuredDocIndexFields};
     use temp_testdir::TempDir;
 
     use super::mock_embedding::MockEmbedding;
@@ -63,6 +63,7 @@ mod structured_doc_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: id.to_owned(),
                 title: "title".to_owned(),
+                author: "author".to_owned(),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -86,13 +87,7 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        // Wait for up to 60s for the document to be indexed.
-        for _ in 0..10 {
-            if validator.is_indexed(id) {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
+
         assert!(validator.is_indexed(id));
         assert!(validator.has_failed_chunks(id));
 
@@ -115,6 +110,7 @@ mod structured_doc_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: id.to_owned(),
                 title: "title".to_owned(),
+                author: "author".to_owned(),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -138,15 +134,56 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        // Wait for up to 60s for the document to be indexed.
-        for _ in 0..10 {
-            if validator.is_indexed(id) {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
+
         assert!(validator.is_indexed(id));
         assert!(!validator.has_failed_chunks(id));
+
+        tabby_common::path::set_tabby_root(root);
+    }
+
+    #[test]
+    #[file_serial(set_tabby_root)]
+    fn test_structured_doc_has_attribute_field() {
+        let root = tabby_common::path::tabby_root();
+        let temp_dir = TempDir::default();
+        tabby_common::path::set_tabby_root(temp_dir.to_owned());
+
+        let id = "structured_doc_empty_embedding";
+        let embedding = MockEmbedding::new(vec![]);
+        let embedding = Arc::new(embedding);
+        let indexer = StructuredDocIndexer::new(embedding.clone());
+        let doc = StructuredDoc {
+            source_id: "source".to_owned(),
+            fields: StructuredDocFields::Issue(StructuredDocIssueFields {
+                link: id.to_owned(),
+                title: "title".to_owned(),
+                author: "author".to_owned(),
+                body: "body".to_owned(),
+                closed: false,
+            }),
+        };
+
+        let updated_at = chrono::Utc::now();
+        let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let updated = indexer
+                .sync(
+                    StructuredDocState {
+                        updated_at,
+                        deleted: false,
+                    },
+                    doc,
+                )
+                .await;
+            println!("{}", updated);
+            updated
+        });
+        assert!(res);
+        indexer.commit();
+
+        let validator = Indexer::new(corpus::STRUCTURED_DOC);
+
+        assert!(validator.is_indexed(id));
+        assert!(validator.has_attribute_field(id, StructuredDocIndexFields::issue::AUTHOR));
 
         tabby_common::path::set_tabby_root(root);
     }
@@ -239,6 +276,7 @@ mod builder_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: test_id.to_owned(),
                 title: "title".to_owned(),
+                author: "author".to_owned(),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -300,6 +338,7 @@ mod builder_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: test_id.to_owned(),
                 title: "title".to_owned(),
+                author: "author".to_owned(),
                 body: "body".to_owned(),
                 closed: false,
             }),

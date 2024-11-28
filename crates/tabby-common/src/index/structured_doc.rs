@@ -10,6 +10,7 @@ pub mod fields {
     pub mod issue {
         pub const TITLE: &str = "title";
         pub const LINK: &str = "link";
+        pub const AUTHOR: &str = "author";
         pub const BODY: &str = "body";
         pub const CLOSED: &str = "closed";
     }
@@ -17,6 +18,7 @@ pub mod fields {
     pub mod pull {
         pub const TITLE: &str = "title";
         pub const LINK: &str = "link";
+        pub const AUTHOR: &str = "author";
         pub const BODY: &str = "body";
         pub const DIFF: &str = "diff";
         pub const MERGED: &str = "merged";

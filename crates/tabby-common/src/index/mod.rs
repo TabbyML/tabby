@@ -76,6 +76,7 @@ const FIELD_CHUNK_ID: &str = "chunk_id";
 const FIELD_UPDATED_AT: &str = "updated_at";
 const FIELD_FAILED_CHUNKS_COUNT: &str = "failed_chunks_count";
 pub const FIELD_SOURCE_ID: &str = "source_id";
+pub const FIELD_CHUNK_ATTRIBUTES: &str = "chunk_attributes";
 
 pub mod corpus {
     pub const CODE: &str = "code";
@@ -107,7 +108,7 @@ impl IndexSchema {
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
         let field_chunk_attributes = builder.add_json_field(
-            "chunk_attributes",
+            FIELD_CHUNK_ATTRIBUTES,
             JsonObjectOptions::default()
                 .set_stored()
                 .set_indexing_options(
@@ -218,6 +219,33 @@ impl IndexSchema {
                 Occur::Must,
                 Box::new(ExistsQuery::new_exists_query(
                     FIELD_FAILED_CHUNKS_COUNT.into(),
+                )),
+            ),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ])
+    }
+
+    /// Build a query to check if the document has specific attribute field.
+    pub fn doc_has_attribute_field(&self, corpus: &str, doc_id: &str, field: &str) -> impl Query {
+        let doc_id_query = TermQuery::new(
+            Term::from_field_text(self.field_id, doc_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+            // Must has the failed_chunks_count field
+            (
+                Occur::Must,
+                Box::new(ExistsQuery::new_exists_query(
+                    format!("{}.{}", FIELD_CHUNK_ATTRIBUTES, field).into(),
                 )),
             ),
             // Exclude chunk documents

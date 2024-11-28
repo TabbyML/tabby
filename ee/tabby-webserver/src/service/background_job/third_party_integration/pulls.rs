@@ -49,11 +49,17 @@ pub async fn list_github_pulls(
                 let url = pull.html_url.map(|url| url.to_string()).unwrap_or_else(|| pull.url);
                 let title = pull.title.clone().unwrap_or_default();
                 let body = pull.body.clone().unwrap_or_default();
+                let author = if let Some(user) = pull.user {
+                    user.email.unwrap_or_default()
+                } else {
+                    String::new()
+                };
                 let doc = StructuredDoc {
                     source_id: source_id.to_string(),
                     fields: StructuredDocFields::Pull(StructuredDocPullDocumentFields {
                         link: url.clone(),
                         title,
+                        author: author.clone(),
                         body,
                         merged: pull.merged_at.is_some(),
                         diff: String::new(),
@@ -92,6 +98,7 @@ pub async fn list_github_pulls(
                     fields: StructuredDocFields::Pull(StructuredDocPullDocumentFields {
                         link: url,
                         title: pull.title.unwrap_or_default(),
+                        author: author,
                         body: pull.body.unwrap_or_default(),
                         diff,
                         merged: pull.merged_at.is_some(),

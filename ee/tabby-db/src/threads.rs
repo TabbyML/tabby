@@ -50,6 +50,7 @@ pub struct ThreadMessageAttachmentWebDoc {
 pub struct ThreadMessageAttachmentIssueDoc {
     pub title: String,
     pub link: String,
+    pub author: String,
     pub body: String,
     pub closed: bool,
 }
@@ -58,6 +59,7 @@ pub struct ThreadMessageAttachmentIssueDoc {
 pub struct ThreadMessageAttachmentPullDoc {
     pub title: String,
     pub link: String,
+    pub author: String,
     pub body: String,
     pub diff: String,
     pub merged: bool,

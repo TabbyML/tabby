@@ -265,13 +265,23 @@ impl Indexer {
         !docs.is_empty()
     }
 
-    /// Get the failed_chunks_count field for a document.
-    /// tracks the number of embedding indexing failed chunks for a document.
+    /// Check whether the document has failed chunks.
     ///
-    /// return 0 if the field is not found.
+    /// failed chunks tracks the number of embedding indexing failed chunks for a document.
     pub fn has_failed_chunks(&self, id: &str) -> bool {
         let schema = IndexSchema::instance();
         let query = schema.doc_has_failed_chunks(&self.corpus, id);
+        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
+            return false;
+        };
+
+        !docs.is_empty()
+    }
+
+    // Check whether the document has attribute field.
+    pub fn has_attribute_field(&self, id: &str, field: &str) -> bool {
+        let schema = IndexSchema::instance();
+        let query = schema.doc_has_attribute_field(&self.corpus, id, field);
         let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
             return false;
         };

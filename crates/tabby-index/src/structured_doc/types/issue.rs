@@ -14,6 +14,7 @@ use super::{build_tokens, BuildStructuredDoc};
 pub struct IssueDocument {
     pub link: String,
     pub title: String,
+    pub author: String,
     pub body: String,
     pub closed: bool,
 }
@@ -28,6 +29,7 @@ impl BuildStructuredDoc for IssueDocument {
         json!({
             fields::issue::LINK: self.link,
             fields::issue::TITLE: self.title,
+            fields::issue::AUTHOR: self.author,
             fields::issue::BODY: self.body,
             fields::issue::CLOSED: self.closed,
         })
