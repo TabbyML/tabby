@@ -58,11 +58,10 @@ use tabby_schema::{
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
 
-use crate::rate_limit::UserRateLimiter;
-
 use self::{
     analytic::new_analytic_service, email::new_email_service, license::new_license_service,
 };
+use crate::rate_limit::UserRateLimiter;
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
