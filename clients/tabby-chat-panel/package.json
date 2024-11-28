@@ -1,7 +1,7 @@
 {
   "name": "tabby-chat-panel",
   "type": "module",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "keywords": [],
   "sideEffects": false,
   "exports": {
@@ -44,8 +44,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@quilted/threads": "^2.2.0",
-    "react": "18.2.0"
+    "react": "18.2.0",
+    "tabby-threads": "workspace:*"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^2.16.0",

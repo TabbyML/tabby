@@ -218,12 +218,12 @@ importers:
 
   clients/tabby-chat-panel:
     dependencies:
-      '@quilted/threads':
-        specifier: ^2.2.0
-        version: 2.4.0(@preact/signals-core@1.8.0)
       react:
         specifier: 18.2.0
         version: 18.2.0
+      tabby-threads:
+        specifier: workspace:*
+        version: link:../tabby-threads
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^2.16.0
@@ -298,9 +298,6 @@ importers:
 
   clients/vscode:
     devDependencies:
-      '@quilted/threads':
-        specifier: ^2.2.0
-        version: 2.4.0(@preact/signals-core@1.8.0)
       '@types/deep-equal':
         specifier: ^1.0.4
         version: 1.0.4
@@ -388,6 +385,9 @@ importers:
       tabby-chat-panel:
         specifier: workspace:*
         version: link:../tabby-chat-panel
+      tabby-threads:
+        specifier: workspace:*
+        version: link:../tabby-threads
       tsc-watch:
         specifier: ^6.2.0
         version: 6.2.0(typescript@5.4.5)
@@ -2546,15 +2546,6 @@ packages:
   '@quilted/signals@0.2.1':
     resolution: {integrity: sha512-uA3fFqJ/uSvk7h/zdPG0RkO/JO7R5smAkb5vdL1LQJa0oH9udLIVGw8T913dhy0KGxQx4W4NVyPnNVdlHaYe9g==}
     engines: {node: '>=14.0.0'}
-
-  '@quilted/threads@2.4.0':
-    resolution: {integrity: sha512-YIjgV+kLsssruF9+ymzTS3HKmzt6YS1k3LSxhl24+KAyTEFQdzHjPO6PKhlrp1LR8dEtPGn9plqhK4A7eKWqSw==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      '@preact/signals-core': ^1.6.0
-    peerDependenciesMeta:
-      '@preact/signals-core':
-        optional: true
 
   '@radix-ui/colors@1.0.1':
     resolution: {integrity: sha512-xySw8f0ZVsAEP+e7iLl3EvcBXX7gsIlC1Zso/sPBW9gIWerBTgz6axrjU+MZ39wD+WFi5h5zdWpsg3+hwt2Qsg==}
@@ -12758,12 +12749,6 @@ snapshots:
     dependencies:
       '@preact/signals-core': 1.8.0
       '@quilted/events': 2.0.0
-
-  '@quilted/threads@2.4.0(@preact/signals-core@1.8.0)':
-    dependencies:
-      '@quilted/events': 2.0.0
-    optionalDependencies:
-      '@preact/signals-core': 1.8.0
 
   '@radix-ui/colors@1.0.1': {}
 

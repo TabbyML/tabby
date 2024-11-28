@@ -459,7 +459,7 @@
     "publish-prerelease": "pnpm run vscode:publish-prerelease && pnpm run ovsx:publish-prerelease"
   },
   "devDependencies": {
-    "@quilted/threads": "^2.2.0",
+    "tabby-threads": "workspace:*",
     "@types/deep-equal": "^1.0.4",
     "@types/diff": "^5.2.1",
     "@types/fs-extra": "^11.0.1",
