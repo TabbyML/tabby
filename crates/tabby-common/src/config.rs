@@ -289,7 +289,6 @@ pub struct HttpModelConfig {
     #[builder(default)]
     pub api_key: Option<String>,
 
-    #[builder(default)]
     #[serde(default)]
     pub rate_limit: RateLimit,
 
@@ -354,7 +353,7 @@ pub struct RateLimit {
 impl Default for RateLimit {
     fn default() -> Self {
         Self {
-            request_per_minute: 600,
+            request_per_minute: 1200,
         }
     }
 }
