@@ -42,7 +42,6 @@ impl UserRateLimiter {
 
 #[cfg(test)]
 mod tests {
-    
 
     use super::*;
 
