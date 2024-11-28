@@ -1,115 +1,123 @@
-import { createThreadFromIframe, createThreadFromInsideIframe } from 'tabby-threads'
-import { version } from '../package.json'
+import {
+  createThreadFromIframe,
+  createThreadFromInsideIframe,
+} from "tabby-threads";
+import { version } from "../package.json";
 
-export const TABBY_CHAT_PANEL_API_VERSION: string = version
+export const TABBY_CHAT_PANEL_API_VERSION: string = version;
 
 export interface LineRange {
-  start: number
-  end: number
+  start: number;
+  end: number;
 }
 
 export interface FileContext {
-  kind: 'file'
-  range: LineRange
-  filepath: string
-  content: string
-  git_url: string
+  kind: "file";
+  range: LineRange;
+  filepath: string;
+  content: string;
+  git_url: string;
 }
 
-export type Context = FileContext
+export type Context = FileContext;
 
 export interface FetcherOptions {
-  authorization: string
-  headers?: Record<string, unknown>
+  authorization: string;
+  headers?: Record<string, unknown>;
 }
 
 export interface InitRequest {
-  fetcherOptions: FetcherOptions
+  fetcherOptions: FetcherOptions;
   // Workaround for vscode webview issue:
   // shortcut (cmd+a, cmd+c, cmd+v, cmd+x) not work in nested iframe in vscode webview
   // see https://github.com/microsoft/vscode/issues/129178
-  useMacOSKeyboardEventHandler?: boolean
+  useMacOSKeyboardEventHandler?: boolean;
 }
 
 export interface OnLoadedParams {
-  apiVersion: string
+  apiVersion: string;
 }
 
 export interface ErrorMessage {
-  title?: string
-  content: string
+  title?: string;
+  content: string;
 }
 
 export interface NavigateOpts {
-  openInEditor?: boolean
+  openInEditor?: boolean;
 }
 
 export interface ServerApi {
-  init: (request: InitRequest) => void
-  sendMessage: (message: ChatMessage) => void
-  showError: (error: ErrorMessage) => void
-  cleanError: () => void
-  addRelevantContext: (context: Context) => void
-  updateTheme: (style: string, themeClass: string) => void
-  updateActiveSelection: (context: Context | null) => void
+  init: (request: InitRequest) => void;
+  sendMessage: (message: ChatMessage) => void;
+  showError: (error: ErrorMessage) => void;
+  cleanError: () => void;
+  addRelevantContext: (context: Context) => void;
+  updateTheme: (style: string, themeClass: string) => void;
+  updateActiveSelection: (context: Context | null) => void;
 }
 
 export interface ClientApiMethods {
-  navigate: (context: Context, opts?: NavigateOpts) => void
-  refresh: () => Promise<void>
+  navigate: (context: Context, opts?: NavigateOpts) => void;
+  refresh: () => Promise<void>;
 
-  onSubmitMessage: (msg: string, relevantContext?: Context[]) => Promise<void>
+  onSubmitMessage: (msg: string, relevantContext?: Context[]) => Promise<void>;
 
   // apply content into active editor, version 1, not support smart apply
-  onApplyInEditor: (content: string) => void
+  onApplyInEditor: (content: string) => void;
 
   // version 2, support smart apply and normal apply
   onApplyInEditorV2?: (
     content: string,
-    opts?: { languageId: string, smart: boolean }
-  ) => void
+    opts?: { languageId: string; smart: boolean }
+  ) => void;
 
   // On current page is loaded.
-  onLoaded: (params?: OnLoadedParams | undefined) => void
+  onLoaded: (params?: OnLoadedParams | undefined) => void;
 
   // On user copy content to clipboard.
-  onCopy: (content: string) => void
+  onCopy: (content: string) => void;
 
-  onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
-
+  onKeyboardEvent: (
+    type: "keydown" | "keyup" | "keypress",
+    event: KeyboardEventInit
+  ) => void;
 }
 
 export interface ClientApi extends ClientApiMethods {
   // this is inner function cover by tabby-threads
   // the function doesn't need to expose to client but can call by client
-  hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
+  hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>;
 }
 
 export const clientApiKeys: (keyof ClientApiMethods)[] = [
-  'navigate',
-  'refresh',
-  'onSubmitMessage',
-  'onApplyInEditor',
-  'onApplyInEditorV2',
-  'onLoaded',
-  'onCopy',
-  'onKeyboardEvent',
-]
+  "navigate",
+  "refresh",
+  "onSubmitMessage",
+  "onApplyInEditor",
+  "onApplyInEditorV2",
+  "onLoaded",
+  "onCopy",
+  "onKeyboardEvent",
+];
 
 export interface ChatMessage {
-  message: string
+  message: string;
 
   // Client side context - displayed in user message
-  selectContext?: Context
+  selectContext?: Context;
 
   // Client side contexts - displayed in assistant message
-  relevantContext?: Array<Context>
+  relevantContext?: Array<Context>;
 
   // Client side active selection context - displayed in assistant message
-  activeContext?: Context
+  activeContext?: Context;
 }
 
-export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
+export function createClient(
+  target: HTMLIFrameElement,
+  api: ClientApiMethods
+): ServerApi {
   return createThreadFromIframe(target, {
     expose: {
       navigate: api.navigate,
@@ -120,7 +128,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
     },
-  })
+  });
 }
 
 export function createServer(api: ServerApi): ClientApi {
@@ -134,5 +142,5 @@ export function createServer(api: ServerApi): ClientApi {
       updateTheme: api.updateTheme,
       updateActiveSelection: api.updateActiveSelection,
     },
-  })
+  });
 }

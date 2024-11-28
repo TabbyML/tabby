@@ -3,7 +3,7 @@ import { motion, Transition, UseInViewOptions, Variants } from 'framer-motion'
 
 const cardTransition: Transition = {
   ease: 'easeOut',
-  duration: 0.2
+  duration: 0.1
 }
 
 function getCardVariants(delay?: number): Variants {
@@ -18,7 +18,7 @@ function getCardVariants(delay?: number): Variants {
       y: 0,
       transition: {
         ...cardTransition,
-        delay: 0.3 + (delay || 0)
+        delay: 0.2 + (delay || 0)
       }
     }
   }
