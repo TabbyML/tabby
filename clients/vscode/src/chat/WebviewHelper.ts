@@ -118,7 +118,7 @@ export class WebviewHelper {
       const styleUri = this.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"));
 
       const logoUri = this.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"));
-
+      
       this.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
@@ -387,7 +387,7 @@ export class WebviewHelper {
     const serverInfo = await this.agent.fetchServerInfo();
     if (serverInfo.health && serverInfo.health["webserver"]) {
       const serverInfo = await this.agent.fetchServerInfo();
-      this.displayChatPage(serverInfo.config.endpoint);
+      this.displayChatPage(serverInfo.config.endpoint, { force: true });
     } else {
       this.displayDisconnectedPage();
     }
