@@ -118,7 +118,7 @@ export class WebviewHelper {
       const styleUri = this.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"));
 
       const logoUri = this.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"));
-      
+
       this.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
