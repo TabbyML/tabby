@@ -1,3 +1,24 @@
+## 1.9.0
+
+### Features
+
+- Added a list of actions in the editor's right-click context menu to interact with the Tabby chat panel.
+
+### Fixes & Improvements
+
+- Added support for collecting declaration code snippets to improve the code completion context.
+- Fixed the "Test Connection" button in the settings page to wait for the response correctly.
+- Fixed the bug where changing the completion trigger mode did not take effect immediately.
+- Fixed the chat panel theme syncing issue when switching between light and dark themes.
+- Added a help message when failing to create the chat panel.
+
+## 1.8.6
+
+### Fixes & Improvements
+
+- Fixed unhandled exception for requests when the completion API is not available on the server.
+- Added support for the latest IntelliJ Platform IDE versions.
+
 ## 1.8.4
 
 ### Fixes & Improvements
