@@ -218,7 +218,6 @@ impl WorkerService for ServerContext {
         let (auth, user) = self
             .authorize_request(request.uri(), request.headers())
             .await;
-
         let unauthorized = axum::response::Response::builder()
             .status(StatusCode::UNAUTHORIZED)
             .body(Body::empty())
