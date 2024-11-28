@@ -5,19 +5,23 @@ mod mock_embedding {
 
     pub struct MockEmbedding {
         result: Vec<f32>,
+        error: bool,
     }
 
     impl MockEmbedding {
-        pub fn new(result: Vec<f32>) -> Self {
-            Self { result }
+        pub fn new(result: Vec<f32>, error: bool) -> Self {
+            Self { result, error }
         }
     }
 
     #[async_trait]
     impl Embedding for MockEmbedding {
         async fn embed(&self, prompt: &str) -> Result<Vec<f32>> {
-            if prompt.starts_with("error") {
-                Err(anyhow::anyhow!(prompt.to_owned()))
+            if self.error {
+                Err(anyhow::anyhow!(
+                    "Mock error, prompt length {}",
+                    prompt.len()
+                ))
             } else {
                 Ok(self.result.clone())
             }
@@ -51,7 +55,7 @@ mod structured_doc_tests {
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
         let id = "structured_doc_empty_embedding";
-        let embedding = MockEmbedding::new(vec![]);
+        let embedding = MockEmbedding::new(vec![], true);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
@@ -103,7 +107,7 @@ mod structured_doc_tests {
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
         let id = "structured_doc_with_embedding";
-        let embedding = MockEmbedding::new(vec![1.0]);
+        let embedding = MockEmbedding::new(vec![1.0], false);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
@@ -179,7 +183,7 @@ mod builder_tests {
         let origin_root = tabby_common::path::tabby_root();
         tabby_common::path::set_tabby_root(get_tabby_root());
 
-        let embedding = MockEmbedding::new(vec![]);
+        let embedding = MockEmbedding::new(vec![], true);
         let builder = Arc::new(create_code_builder(Some(Arc::new(embedding))));
 
         let repo = get_repository_config();
@@ -226,7 +230,7 @@ mod builder_tests {
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
         let test_id = "builder_empty_embedding";
-        let embedding = MockEmbedding::new(vec![]);
+        let embedding = MockEmbedding::new(vec![], true);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let tantivy_builder = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
 
@@ -281,7 +285,7 @@ mod builder_tests {
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
         let test_id = "builder_with_embedding";
-        let embedding = MockEmbedding::new(vec![1.0]);
+        let embedding = MockEmbedding::new(vec![1.0], false);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let tantivy_builder = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
 

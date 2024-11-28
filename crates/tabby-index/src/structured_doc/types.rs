@@ -4,6 +4,7 @@ pub mod web;
 
 use std::sync::Arc;
 
+use anyhow::{bail, Result};
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use tabby_inference::Embedding;
@@ -52,7 +53,7 @@ pub trait BuildStructuredDoc {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>>;
+    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>>;
 }
 
 pub enum StructuredDocFields {
@@ -82,7 +83,7 @@ impl BuildStructuredDoc for StructuredDoc {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
+    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         match &self.fields {
             StructuredDocFields::Web(doc) => doc.build_chunk_attributes(embedding).await,
             StructuredDocFields::Issue(doc) => doc.build_chunk_attributes(embedding).await,
@@ -91,12 +92,12 @@ impl BuildStructuredDoc for StructuredDoc {
     }
 }
 
-async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> {
+async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Result<Vec<String>> {
     let embedding = match embedding.embed(text).await {
         Ok(embedding) => embedding,
         Err(err) => {
             warn!("Failed to embed chunk text: {}", err);
-            return vec![];
+            bail!("Failed to embed chunk text: {}", err);
         }
     };
 
@@ -105,5 +106,5 @@ async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> 
         chunk_embedding_tokens.push(token);
     }
 
-    chunk_embedding_tokens
+    Ok(chunk_embedding_tokens)
 }
