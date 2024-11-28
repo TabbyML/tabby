@@ -170,7 +170,7 @@ mod builder_tests {
                 CodeIntelligence,
             },
         },
-        indexer::{Indexer, TantivyDocBuilder, ToIndexId},
+        indexer::{TantivyDocBuilder, ToIndexId},
         structured_doc::{
             public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields},
             StructuredDocBuilder,
