@@ -71,17 +71,20 @@ pub async fn list_github_pulls(
                     }
                 }
 
-
-                let diff = match octocrab.pulls(&owner, &repo).get_diff(pull.number).await {
-                    Ok(x) if x.len() < 1024*1024*10 => x,
-                    Ok(_) => {
-                        continue
+                // Fetch the diff only if the number of changed lines is fewer than 100,000,
+                // assuming 80 characters per line,
+                // and the size of the diff is less than 8MB.
+                let diff = if pull.additions.unwrap_or_default() + pull.deletions.unwrap_or_default()  < 100*1024 {
+                    match octocrab.pulls(&owner, &repo).get_diff(pull.number).await {
+                        Ok(x) => x,
+                        Err(e) => {
+                            logkit::error!("Failed to fetch pull request diff for {}: {}",
+                                url, octocrab_error_message(e));
+                            continue
+                        }
                     }
-                    Err(e) => {
-                        logkit::error!("Failed to fetch pull request diff for {}: {}",
-                            url, octocrab_error_message(e));
-                        continue
-                    }
+                } else {
+                    String::new()
                 };
 
                 let doc = StructuredDoc {
