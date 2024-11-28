@@ -54,6 +54,8 @@ cron = "0.12.1"
 async-stream.workspace = true
 logkit.workspace = true
 async-openai.workspace = true
+ratelimit.workspace = true
+cached = { workspace = true, features = ["async"] }
 
 [dev-dependencies]
 assert_matches.workspace = true

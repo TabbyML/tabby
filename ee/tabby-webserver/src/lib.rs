@@ -7,6 +7,7 @@ mod path;
 mod routes;
 mod service;
 mod webserver;
+mod rate_limit;
 
 #[cfg(test)]
 pub use service::*;

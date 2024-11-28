@@ -18,7 +18,7 @@ tabby-common = { path = "../tabby-common" }
 tabby-inference = { path = "../tabby-inference" }
 ollama-api-bindings = { path = "../ollama-api-bindings" }
 async-openai.workspace = true
-ratelimit = "0.10"
+ratelimit.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 
