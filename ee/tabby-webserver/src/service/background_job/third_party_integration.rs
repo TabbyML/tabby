@@ -19,6 +19,7 @@ use tracing::debug;
 
 use super::{helper::Job, BackgroundJobEvent};
 
+mod error;
 mod issues;
 mod pulls;
 

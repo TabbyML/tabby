@@ -6,6 +6,8 @@ use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields, StructuredDocState,
 };
 
+use super::error::octocrab_error_message;
+
 pub async fn list_github_pulls(
     source_id: &str,
     api_base: &str,
@@ -36,7 +38,7 @@ pub async fn list_github_pulls(
                 .await {
                     Ok(x) => x,
                     Err(e) => {
-                        logkit::error!("Failed to fetch pull requests: {}", e);
+                        logkit::error!("Failed to fetch pull requests: {}", octocrab_error_message(e));
                         break;
                     }
             };
@@ -73,11 +75,11 @@ pub async fn list_github_pulls(
                 let diff = match octocrab.pulls(&owner, &repo).get_diff(pull.number).await {
                     Ok(x) if x.len() < 1024*1024*10 => x,
                     Ok(_) => {
-                        logkit::warn!("Pull request {} diff is larger than 10MB, skipping", url);
                         continue
                     }
                     Err(e) => {
-                        logkit::error!("Failed to fetch pull request diff for {}: {}", url, e);
+                        logkit::error!("Failed to fetch pull request diff for {}: {}",
+                            url, octocrab_error_message(e));
                         continue
                     }
                 };
