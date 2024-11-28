@@ -192,7 +192,7 @@ export function ThreadFeeds({
                 <IconSpinner className="h-8 w-8" />
               </div>
             }
-            delay={800}
+            delay={600}
           >
             <div className="mb-2.5 w-full text-lg font-semibold">
               Recent Activities
