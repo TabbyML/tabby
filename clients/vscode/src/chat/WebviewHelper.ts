@@ -387,7 +387,7 @@ export class WebviewHelper {
     const serverInfo = await this.agent.fetchServerInfo();
     if (serverInfo.health && serverInfo.health["webserver"]) {
       const serverInfo = await this.agent.fetchServerInfo();
-      this.displayChatPage(serverInfo.config.endpoint);
+      this.displayChatPage(serverInfo.config.endpoint, { force: true });
     } else {
       this.displayDisconnectedPage();
     }
