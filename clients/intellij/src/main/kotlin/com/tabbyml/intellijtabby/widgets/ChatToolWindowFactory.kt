@@ -29,7 +29,7 @@ class ChatToolWindowFactory : ToolWindowFactory, DumbAware {
         """
           <html>
           Failed to create the chat panel.<br/>
-          Please check the <a href=\"https://tabby.tabbyml.com/docs/extensions/troubleshooting/#check-browser-compatibility-in-intellij-platform-ides\">online documentation</a> for trouble shooting.
+          Please check the <a href="https://tabby.tabbyml.com/docs/extensions/troubleshooting/#check-browser-compatibility-in-intellij-platform-ides">online documentation</a> for trouble shooting.
           </html>
         """.trimIndent()
       val label = JBLabel(helpMessage).apply {
