@@ -158,7 +158,8 @@ export function CompletionCharts({
     <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
       <AnimationWrapper
         viewport={{
-          margin: '-140px 0px 0px 0px'
+          // margin: '-70px 0px 0px 0px'
+          amount: 0.1
         }}
         delay={0.15}
         className="flex-1 self-stretch"
@@ -199,7 +200,8 @@ export function CompletionCharts({
 
       <AnimationWrapper
         viewport={{
-          margin: '-140px 0px 0px 0px'
+          // margin: '-70px 0px 0px 0px'
+          amount: 0.1
         }}
         delay={0.2}
         className="flex-1 self-stretch"
@@ -250,7 +252,8 @@ export function CompletionCharts({
       </AnimationWrapper>
       <AnimationWrapper
         viewport={{
-          margin: '-140px 0px 0px 0px'
+          // margin: '-70px 0px 0px 0px'
+          amount: 0.1
         }}
         delay={0.25}
         className="flex-1 self-stretch"

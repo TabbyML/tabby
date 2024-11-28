@@ -37,6 +37,8 @@ import { AnimationWrapper } from './components/animation-wrapper'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
 
+// const ThreadFeeds = lazy(() => import('./components/thread-feeds').then(module => ({ default: module.ThreadFeeds })))
+
 function MainPanel() {
   const resettingScroller = useRef(false)
   const scroller = useRef<HTMLDivElement>(null)

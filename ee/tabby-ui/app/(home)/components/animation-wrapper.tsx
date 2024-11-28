@@ -18,7 +18,7 @@ function getCardVariants(delay?: number): Variants {
       y: 0,
       transition: {
         ...cardTransition,
-        delay: 0.3 + (delay || 0)
+        delay: 0.2 + (delay || 0)
       }
     }
   }
