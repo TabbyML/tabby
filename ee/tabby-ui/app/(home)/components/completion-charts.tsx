@@ -158,7 +158,6 @@ export function CompletionCharts({
     <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
       <AnimationWrapper
         viewport={{
-          // margin: '-70px 0px 0px 0px'
           amount: 0.1
         }}
         delay={0.15}
@@ -200,7 +199,6 @@ export function CompletionCharts({
 
       <AnimationWrapper
         viewport={{
-          // margin: '-70px 0px 0px 0px'
           amount: 0.1
         }}
         delay={0.2}
@@ -252,7 +250,6 @@ export function CompletionCharts({
       </AnimationWrapper>
       <AnimationWrapper
         viewport={{
-          // margin: '-70px 0px 0px 0px'
           amount: 0.1
         }}
         delay={0.25}
