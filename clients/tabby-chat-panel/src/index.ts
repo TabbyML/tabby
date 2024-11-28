@@ -64,7 +64,7 @@ export interface ClientApiMethods {
   onApplyInEditor: (content: string) => void
 
   // version 2, support smart apply and normal apply
-  onApplyInEditorV2: (
+  onApplyInEditorV2?: (
     content: string,
     opts?: { languageId: string, smart: boolean }
   ) => void
