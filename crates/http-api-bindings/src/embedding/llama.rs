@@ -48,9 +48,9 @@ impl Embedding for LlamaCppEngine {
         if response.status().is_server_error() {
             let error = response.text().await?;
             return Err(anyhow::anyhow!(
-                "Error from server: {}, prompt: {}",
+                "Error from server: {}, prompt length: {}",
                 error,
-                prompt
+                prompt.len()
             ));
         }
 

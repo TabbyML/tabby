@@ -9,6 +9,7 @@ use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocIssueFields, StructuredDocState,
 };
 
+use super::error::octocrab_error_message;
 use crate::service::create_gitlab_client;
 
 pub async fn list_github_issues(
@@ -41,7 +42,7 @@ pub async fn list_github_issues(
                 .await {
                     Ok(x) => x,
                     Err(e) => {
-                        logkit::error!("Failed to fetch issues: {}", e);
+                        logkit::error!("Failed to fetch issues: {}",  octocrab_error_message(e));
                         break;
                     }
             };
