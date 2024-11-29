@@ -411,8 +411,18 @@ function RelevantDocumentBadge({
             {relevantDocument.title}
           </p>
           <div className="mb-2 w-auto">
-            {isIssue && <IssueStateBadge closed={relevantDocument.closed} />}
-            {isPR && <PRStateBadge merged={relevantDocument.merged} />}
+            {isIssue && (
+              <IssueStateBadge
+                closed={relevantDocument.closed}
+                author={relevantDocument.author}
+              />
+            )}
+            {isPR && (
+              <PRStateBadge
+                merged={relevantDocument.merged}
+                author={relevantDocument.author}
+              />
+            )}
           </div>
           <p className="m-0 line-clamp-4 leading-none">
             {normalizedText(getContent(relevantDocument))}
@@ -497,34 +507,55 @@ export function SiteFavicon({
   )
 }
 
-function IssueStateBadge({ closed }: { closed: boolean }) {
+// todo rename
+function IssueStateBadge({
+  closed,
+  author
+}: {
+  closed: boolean
+  author: string
+}) {
   return (
-    <Badge
-      variant={closed ? 'default' : 'secondary'}
-      className="gap-1 py-1 text-xs"
-    >
-      {closed ? (
-        <IconCheckCircled className="h-3.5 w-3.5" />
-      ) : (
-        <IconCircleDot className="h-3.5 w-3.5" />
+    <div className="flex items-center gap-2">
+      <Badge
+        variant={closed ? 'default' : 'secondary'}
+        className="gap-1 py-1 text-xs"
+      >
+        {closed ? (
+          <IconCheckCircled className="h-3.5 w-3.5" />
+        ) : (
+          <IconCircleDot className="h-3.5 w-3.5" />
+        )}
+        {closed ? 'Closed' : 'Open'}
+      </Badge>
+      {!!author && (
+        <span className="text-muted-foreground font-semibold text-sm">
+          {author}
+        </span>
       )}
-      {closed ? 'Closed' : 'Open'}
-    </Badge>
+    </div>
   )
 }
 
-function PRStateBadge({ merged }: { merged: boolean }) {
+function PRStateBadge({ merged, author }: { merged: boolean; author: string }) {
   return (
-    <Badge
-      variant={merged ? 'default' : 'secondary'}
-      className="gap-1 py-1 text-xs"
-    >
-      {merged ? (
-        <IconGitMerge className="h-3.5 w-3.5" />
-      ) : (
-        <IconGitPullRequest className="h-3.5 w-3.5" />
+    <div className="flex items-center gap-2">
+      <Badge
+        variant={merged ? 'default' : 'secondary'}
+        className="gap-1 py-1 text-xs"
+      >
+        {merged ? (
+          <IconGitMerge className="h-3.5 w-3.5" />
+        ) : (
+          <IconGitPullRequest className="h-3.5 w-3.5" />
+        )}
+        {merged ? 'Merged' : 'Open'}
+      </Badge>
+      {!!author && (
+        <span className="text-muted-foreground font-semibold text-sm">
+          {author}
+        </span>
       )}
-      {merged ? 'Merged' : 'Open'}
-    </Badge>
+    </div>
   )
 }
