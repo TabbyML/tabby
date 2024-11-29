@@ -875,7 +875,7 @@ export function Search() {
                       <TooltipTrigger asChild>
                         <span tabIndex={0}>
                           <Button
-                            className="bg-background gap-2"
+                            className="gap-2 bg-background"
                             variant="outline"
                             onClick={onClickShare}
                             disabled={persistenceDisabled}
