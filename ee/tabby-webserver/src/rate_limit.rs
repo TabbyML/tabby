@@ -13,7 +13,7 @@ static USER_REQUEST_LIMIT_PER_MINUTE: u64 = 30;
 impl Default for UserRateLimiter {
     fn default() -> Self {
         Self {
-            // User rate limiter is hardcoded to 200 requests per minute, thus the timespan is 60 seconds.
+            // User rate limiter is hardcoded to 30 requests per minute, thus the timespan is 60 seconds.
             rate_limiters: Mutex::new(TimedCache::with_lifespan(60)),
         }
     }
