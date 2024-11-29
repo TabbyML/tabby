@@ -12,9 +12,10 @@ use ratelimit::Ratelimiter;
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
 
 fn new_rate_limiter(rpm: u64) -> Ratelimiter {
-    Ratelimiter::builder(rpm, Duration::from_secs(60))
-        .max_tokens(rpm)
-        .initial_available(rpm)
+    let rps = rpm / 60;
+    Ratelimiter::builder(rps, Duration::from_secs(1))
+        .max_tokens(rps)
+        .initial_available(rps)
         .build()
         .expect("Failed to create RateLimiter, please check the HttpModelConfig.rate_limit configuration")
 }
