@@ -66,6 +66,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconCheck,
   IconFileSearch,
+  IconInfoCircled,
   IconPlus,
   IconShare,
   IconStop
@@ -77,6 +78,11 @@ import {
 } from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import NotFoundPage from '@/components/not-found-page'
@@ -405,12 +411,18 @@ export function Search() {
     }
   }, [isReady])
 
-  const { isCopied: isShareLinkCopied, onCopy: onClickShare } = useShareThread({
-    threadIdFromURL,
-    threadIdFromStreaming: threadId,
-    streamingDone: !isLoading,
-    updateThreadURL
-  })
+  const persistenceDisabled = useMemo(() => {
+    return !threadIdFromURL && some(messages, message => !!message.error)
+  }, [threadIdFromURL, messages])
+
+  const { isCopied: isShareLinkCopied, onShare: onClickShare } = useShareThread(
+    {
+      threadIdFromURL,
+      threadIdFromStreaming: threadId,
+      streamingDone: !isLoading,
+      updateThreadURL
+    }
+  )
 
   // Handling the stream response from useThreadRun
   useEffect(() => {
@@ -859,18 +871,31 @@ export function Search() {
                     </Button>
                   )}
                   {!stopButtonVisible && (
-                    <Button
-                      className="bg-background"
-                      variant="outline"
-                      onClick={onClickShare}
-                    >
-                      {isShareLinkCopied ? (
-                        <IconCheck className="mr-2 text-green-600" />
-                      ) : (
-                        <IconShare className="mr-2" />
-                      )}
-                      Share Link
-                    </Button>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button
+                            className="gap-2 bg-background"
+                            variant="outline"
+                            onClick={onClickShare}
+                            disabled={persistenceDisabled}
+                          >
+                            {persistenceDisabled ? (
+                              <IconInfoCircled />
+                            ) : isShareLinkCopied ? (
+                              <IconCheck className="text-green-600" />
+                            ) : (
+                              <IconShare />
+                            )}
+                            Share Link
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent hidden={!persistenceDisabled}>
+                        Please resolve errors in messages before sharing this
+                        thread.
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
                 {isThreadOwner && (
@@ -1020,7 +1045,7 @@ function useShareThread({
     threadIdFromStreaming &&
     updateThreadURL
 
-  const onCopy = async () => {
+  const onShare = async () => {
     if (isCopied) return
 
     let url = window.location.href
@@ -1033,7 +1058,7 @@ function useShareThread({
   }
 
   return {
-    onCopy,
+    onShare,
     isCopied
   }
 }
