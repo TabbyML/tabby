@@ -4,6 +4,7 @@ mod hub;
 mod jwt;
 mod oauth;
 mod path;
+mod rate_limit;
 mod routes;
 mod service;
 mod webserver;

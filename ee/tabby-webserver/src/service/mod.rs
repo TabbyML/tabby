@@ -61,6 +61,7 @@ use tabby_schema::{
 use self::{
     analytic::new_analytic_service, email::new_email_service, license::new_license_service,
 };
+use crate::rate_limit::UserRateLimiter;
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
@@ -83,6 +84,8 @@ struct ServerContext {
     code: Arc<dyn CodeSearch>,
 
     setting: Arc<dyn SettingService>,
+
+    user_rate_limiter: UserRateLimiter,
 }
 
 impl ServerContext {
@@ -153,6 +156,7 @@ impl ServerContext {
             user_group,
             access_policy,
             db_conn,
+            user_rate_limiter: UserRateLimiter::default(),
         }
     }
 
@@ -223,6 +227,15 @@ impl WorkerService for ServerContext {
         }
 
         if let Some(user) = user {
+            // Apply rate limiting when `user` is not none.
+            if !self.user_rate_limiter.is_allowed(&user).await {
+                return axum::response::Response::builder()
+                    .status(StatusCode::TOO_MANY_REQUESTS)
+                    .body(Body::empty())
+                    .unwrap()
+                    .into_response();
+            }
+
             request.headers_mut().append(
                 HeaderName::from_static(USER_HEADER_FIELD_NAME),
                 HeaderValue::from_str(&user).expect("User must be valid header"),
