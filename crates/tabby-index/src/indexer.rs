@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use anyhow::bail;
+use anyhow::{bail, Result};
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
 use serde_json::json;
@@ -43,7 +43,7 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
     async fn build_chunk_attributes<'a>(
         &self,
         document: &'a T,
-    ) -> BoxStream<'a, JoinHandle<(Vec<String>, serde_json::Value)>>;
+    ) -> BoxStream<'a, JoinHandle<Result<(Vec<String>, serde_json::Value)>>>;
 }
 
 pub struct TantivyDocBuilder<T> {
@@ -79,17 +79,15 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
             let mut failed_count: u64 = 0;
             for await chunk_doc in self.build_chunks(cloned_id, source_id.clone(), updated_at, document).await {
                 match chunk_doc.await {
-                    Ok((Some(doc), ok)) => {
-                        if !ok {
-                            failed_count += 1;
-                        }
+                    Ok(Ok(doc)) => {
                         yield tokio::spawn(async move { Some(doc) });
                     }
-                    Ok((None, _)) => {
+                    Ok(Err(e)) => {
+                        warn!("Failed to build chunk for document '{}': {}", doc_id, e);
                         failed_count += 1;
                     }
                     Err(e) => {
-                        warn!("Failed to build chunk for document '{}': {}", doc_id, e);
+                        warn!("Failed to call build chunk '{}': {}", doc_id, e);
                         failed_count += 1;
                     }
                 }
@@ -118,7 +116,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
         source_id: String,
         updated_at: tantivy::DateTime,
         document: T,
-    ) -> impl Stream<Item = JoinHandle<(Option<TantivyDocument>, bool)>> + '_ {
+    ) -> impl Stream<Item = JoinHandle<Result<TantivyDocument>>> + '_ {
         let kind = self.corpus;
         stream! {
             let schema = IndexSchema::instance();
@@ -126,15 +124,9 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                 let id = id.clone();
                 let source_id = source_id.clone();
 
-                // The tokens may be empty if the embedding call fails,
-                // but the attributes remain useful.
-                // Therefore, we return:
-                // the document, and
-                // a flag indicating whether the tokens were created successfully.
                 yield tokio::spawn(async move {
-                    let Ok((tokens, chunk_attributes)) = task.await else {
-                        return (None, false);
-                    };
+                    let built_chunk_attributes_result = task.await?;
+                    let (tokens, chunk_attributes) = built_chunk_attributes_result?;
 
                     let mut doc = doc! {
                         schema.field_id => id,
@@ -149,7 +141,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                         doc.add_text(schema.field_chunk_tokens, token);
                     }
 
-                    (Some(doc), !tokens.is_empty())
+                    Ok(doc)
                 });
             }
         }
