@@ -50,7 +50,7 @@ mod tests {
         let user_id = "test_user";
         let rate_limiter = UserRateLimiter::default();
 
-        // Test that the first 200 requests are allowed
+        // Test that the first `USER_REQUEST_LIMIT_PER_MINUTE` requests are allowed
         for _ in 0..USER_REQUEST_LIMIT_PER_MINUTE {
             assert!(rate_limiter.is_allowed(user_id).await);
         }
