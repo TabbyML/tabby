@@ -129,7 +129,6 @@ async fn build_binarize_embedding_tokens(
     let embedding = match embedding.embed(body).await {
         Ok(x) => x,
         Err(err) => {
-            warn!("Failed to embed chunk text: {}", err);
             bail!("Failed to embed chunk text: {}", err);
         }
     };

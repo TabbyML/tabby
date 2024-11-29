@@ -163,18 +163,13 @@ mod builder_tests {
 
     use super::mock_embedding::MockEmbedding;
     use crate::{
-        code::{
-            create_code_builder,
-            intelligence::{
-                tests::{get_repository_config, get_rust_source_file, get_tabby_root},
-                CodeIntelligence,
-            },
-        },
+        code::{create_code_builder, intelligence::CodeIntelligence},
         indexer::{TantivyDocBuilder, ToIndexId},
         structured_doc::{
             public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields},
             StructuredDocBuilder,
         },
+        testutils::{get_repository_config, get_rust_source_file, get_tabby_root},
     };
 
     #[test]
@@ -204,7 +199,9 @@ mod builder_tests {
             .await
         });
 
-        assert_eq!(res.len(), 4);
+        // the chunks should be failed as no embedding is provided
+        // the last element is the document itself
+        assert_eq!(res.len(), 1);
         let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
 
         let schema = IndexSchema::instance();
@@ -213,8 +210,7 @@ mod builder_tests {
             .and_then(|v| v.as_u64())
             .unwrap();
 
-        // the last element is the document itself
-        // the first three are the chunks and should be failed as no embedding is provided
+        // the first three are the chunks and failed, counted as 3
         assert_eq!(failed_count, 3);
 
         tabby_common::path::set_tabby_root(origin_root);
@@ -258,10 +254,12 @@ mod builder_tests {
             .await
         });
 
-        // the last element is the document itself
-        // the rest are the chunks
-        assert_eq!(res.len(), 2);
-        let doc = res[1].as_ref().unwrap().as_ref().unwrap();
+        // The last element is the document itself,
+        // while the preceding elements are the chunks.
+        // Given that the embedding is empty,
+        // all chunks should be considered failed and skipped.
+        assert_eq!(res.len(), 1);
+        let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
 
         let schema = IndexSchema::instance();
         let failed_count = doc

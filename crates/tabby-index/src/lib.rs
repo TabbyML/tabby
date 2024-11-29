@@ -5,6 +5,9 @@ mod code;
 mod indexer;
 mod tantivy_utils;
 
+#[cfg(test)]
+mod testutils;
+
 use indexer::{IndexAttributeBuilder, Indexer};
 
 mod structured_doc;
