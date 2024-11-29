@@ -5,19 +5,23 @@ mod mock_embedding {
 
     pub struct MockEmbedding {
         result: Vec<f32>,
+        error: bool,
     }
 
     impl MockEmbedding {
-        pub fn new(result: Vec<f32>) -> Self {
-            Self { result }
+        pub fn new(result: Vec<f32>, error: bool) -> Self {
+            Self { result, error }
         }
     }
 
     #[async_trait]
     impl Embedding for MockEmbedding {
         async fn embed(&self, prompt: &str) -> Result<Vec<f32>> {
-            if prompt.starts_with("error") {
-                Err(anyhow::anyhow!(prompt.to_owned()))
+            if self.error {
+                Err(anyhow::anyhow!(
+                    "Mock error, prompt length {}",
+                    prompt.len()
+                ))
             } else {
                 Ok(self.result.clone())
             }
@@ -51,7 +55,7 @@ mod structured_doc_tests {
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
         let id = "structured_doc_empty_embedding";
-        let embedding = MockEmbedding::new(vec![]);
+        let embedding = MockEmbedding::new(vec![], true);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
@@ -103,7 +107,7 @@ mod structured_doc_tests {
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
         let id = "structured_doc_with_embedding";
-        let embedding = MockEmbedding::new(vec![1.0]);
+        let embedding = MockEmbedding::new(vec![1.0], false);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
@@ -159,12 +163,58 @@ mod builder_tests {
 
     use super::mock_embedding::MockEmbedding;
     use crate::{
-        indexer::TantivyDocBuilder,
+        code::{create_code_builder, intelligence::CodeIntelligence},
+        indexer::{TantivyDocBuilder, ToIndexId},
         structured_doc::{
             public::{StructuredDoc, StructuredDocFields, StructuredDocIssueFields},
             StructuredDocBuilder,
         },
+        testutils::{get_repository_config, get_rust_source_file, get_tabby_root},
     };
+
+    #[test]
+    #[file_serial(set_tabby_root)]
+    fn test_builder_code_empty_embedding() {
+        let origin_root = tabby_common::path::tabby_root();
+        tabby_common::path::set_tabby_root(get_tabby_root());
+
+        let embedding = MockEmbedding::new(vec![], true);
+        let builder = Arc::new(create_code_builder(Some(Arc::new(embedding))));
+
+        let repo = get_repository_config();
+        let code = CodeIntelligence::compute_source_file(&repo, &get_rust_source_file()).unwrap();
+        let index_id = code.to_index_id();
+
+        let (id, s) = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async { builder.build(code).await });
+        assert_eq!(id, index_id.id);
+
+        let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            s.buffer_unordered(std::cmp::max(
+                std::thread::available_parallelism().unwrap().get() * 2,
+                32,
+            ))
+            .collect::<Vec<_>>()
+            .await
+        });
+
+        // the chunks should be failed as no embedding is provided
+        // the last element is the document itself
+        assert_eq!(res.len(), 1);
+        let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
+
+        let schema = IndexSchema::instance();
+        let failed_count = doc
+            .get_first(schema.field_failed_chunks_count)
+            .and_then(|v| v.as_u64())
+            .unwrap();
+
+        // the first three are the chunks and failed, counted as 3
+        assert_eq!(failed_count, 3);
+
+        tabby_common::path::set_tabby_root(origin_root);
+    }
 
     /// Test that the indexer return the document and none itself
     /// when the embedding is empty
@@ -176,7 +226,7 @@ mod builder_tests {
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
         let test_id = "builder_empty_embedding";
-        let embedding = MockEmbedding::new(vec![]);
+        let embedding = MockEmbedding::new(vec![], true);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let tantivy_builder = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
 
@@ -204,10 +254,12 @@ mod builder_tests {
             .await
         });
 
-        // the last element is the document itself
-        // the rest are the chunks
-        assert_eq!(res.len(), 2);
-        let doc = res[1].as_ref().unwrap().as_ref().unwrap();
+        // The last element is the document itself,
+        // while the preceding elements are the chunks.
+        // Given that the embedding is empty,
+        // all chunks should be considered failed and skipped.
+        assert_eq!(res.len(), 1);
+        let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
 
         let schema = IndexSchema::instance();
         let failed_count = doc
@@ -231,7 +283,7 @@ mod builder_tests {
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
         let test_id = "builder_with_embedding";
-        let embedding = MockEmbedding::new(vec![1.0]);
+        let embedding = MockEmbedding::new(vec![1.0], false);
         let builder = StructuredDocBuilder::new(Arc::new(embedding));
         let tantivy_builder = TantivyDocBuilder::new(corpus::STRUCTURED_DOC, builder);
 

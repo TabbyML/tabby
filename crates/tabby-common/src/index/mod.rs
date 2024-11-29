@@ -102,7 +102,7 @@ impl IndexSchema {
 
         let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED | STORED);
         let field_failed_chunks_count =
-            builder.add_u64_field(FIELD_FAILED_CHUNKS_COUNT, INDEXED | FAST);
+            builder.add_u64_field(FIELD_FAILED_CHUNKS_COUNT, INDEXED | FAST | STORED);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
