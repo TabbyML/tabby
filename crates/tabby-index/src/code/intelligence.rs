@@ -246,7 +246,7 @@ mod metrics {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use serial_test::file_serial;
     use tabby_common::path::set_tabby_root;
     use tracing_test::traced_test;
