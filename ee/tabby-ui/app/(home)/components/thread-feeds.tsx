@@ -136,8 +136,15 @@ export function ThreadFeeds({
   }, [data?.threads?.edges, page, fetching])
 
   const loadMore = () => {
-    if (threads.length) {
-      setBeforeCursor(threads[threads.length - 1].cursor)
+    const startCursor = pageInfo?.startCursor
+    if (
+      startCursor &&
+      data?.threads.edges.length &&
+      data.threads.edges.findIndex(o => o.cursor === startCursor) > -1
+    ) {
+      setBeforeCursor(startCursor)
+    } else {
+      setBeforeCursor(data?.threads.edges[0]?.cursor)
     }
   }
 
@@ -145,6 +152,7 @@ export function ThreadFeeds({
     onNavigateToThread({ pageNo: page })
   }
 
+  const hasNextPage = !!pageInfo?.hasPreviousPage
   const isNextPageDisabled =
     fetching ||
     !threads.length ||
@@ -184,7 +192,7 @@ export function ThreadFeeds({
                 <IconSpinner className="h-8 w-8" />
               </div>
             }
-            delay={800}
+            delay={600}
           >
             <div className="mb-2.5 w-full text-lg font-semibold">
               Recent Activities
@@ -200,9 +208,6 @@ export function ThreadFeeds({
               {showPagination && (
                 <Pagination className={cn('flex items-center justify-end')}>
                   <PaginationContent>
-                    <span className="flex w-[64px] items-center justify-start text-sm font-medium">
-                      Page {page}
-                    </span>
                     <PaginationItem>
                       <PaginationPrevious
                         disabled={page === 1}
@@ -237,6 +242,11 @@ export function ThreadFeeds({
                         </PaginationItem>
                       )
                     })}
+                    {hasNextPage && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
                     <PaginationItem>
                       <PaginationNext
                         disabled={isNextPageDisabled}
@@ -247,7 +257,9 @@ export function ThreadFeeds({
 
                           const _page = page + 1
                           setPage(_page)
-                          loadMore()
+                          if (_page > pageCount) {
+                            loadMore()
+                          }
                         }}
                       />
                     </PaginationItem>
