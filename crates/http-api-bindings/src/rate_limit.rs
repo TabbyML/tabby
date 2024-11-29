@@ -12,7 +12,7 @@ use ratelimit::Ratelimiter;
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
 
 fn new_rate_limiter(rpm: u64) -> Ratelimiter {
-    Ratelimiter::builder(rpm, Duration::from_secs(60))
+    Ratelimiter::builder(rpm/60, Duration::from_secs(1))
         .max_tokens(rpm)
         .initial_available(rpm)
         .build()
