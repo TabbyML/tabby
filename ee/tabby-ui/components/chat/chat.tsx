@@ -1,6 +1,11 @@
 import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
-import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
+import type {
+  Context,
+  FileContext,
+  NavigateOpts,
+  SymbolInfo
+} from 'tabby-chat-panel'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import {
@@ -46,6 +51,10 @@ type ChatContextValue = {
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onNavigateSymbol?: (filepaths: string[], keywords: string) => void
+  onHoverSymbol?: (
+    filepaths: string[],
+    keyword: string
+  ) => Promise<SymbolInfo | undefined>
   relevantContext: Context[]
   activeSelection: Context | null
   removeRelevantContext: (index: number) => void
@@ -85,6 +94,10 @@ interface ChatProps extends React.ComponentProps<'div'> {
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onNavigateSymbol?: (filepaths: string[], keywords: string) => void
+  onHoverSymbol?: (
+    filepaths: string[],
+    keyword: string
+  ) => Promise<SymbolInfo | undefined>
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
 }
@@ -107,6 +120,7 @@ function ChatRenderer(
     onSubmitMessage,
     onApplyInEditor,
     onNavigateSymbol,
+    onHoverSymbol,
     chatInputRef,
     supportsOnApplyInEditorV2
   }: ChatProps,
@@ -533,6 +547,7 @@ function ChatRenderer(
         onCopyContent,
         onApplyInEditor,
         onNavigateSymbol,
+        onHoverSymbol,
         relevantContext,
         removeRelevantContext,
         chatInputRef,

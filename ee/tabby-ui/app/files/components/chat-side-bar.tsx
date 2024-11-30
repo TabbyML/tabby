@@ -80,7 +80,10 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     onLoaded() {},
     onCopy(_content) {},
     onKeyboardEvent() {},
-    onNavigateSymbol(_filepath, _keywords) {}
+    onNavigateSymbol(_filepath, _keywords) {},
+    async onHoverSymbol(_filepath, _keyword) {
+      return undefined
+    }
   })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {

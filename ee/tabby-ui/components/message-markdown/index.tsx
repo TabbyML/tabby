@@ -1,4 +1,11 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -73,6 +80,10 @@ export interface MessageMarkdownProps {
     opts?: { languageId: string; smart: boolean }
   ) => void
   onNavigateSymbol?: (filepaths: string[], keywords: string) => void
+  onHoverSymbol?: (
+    filepaths: string[],
+    keyword: string
+  ) => Promise<SymbolInfo | undefined>
   onNavigateToContext?:
     | ((context: Context, opts?: NavigateOpts) => void)
     | undefined
@@ -101,6 +112,10 @@ type MessageMarkdownContextValue = {
   canWrapLongLines: boolean
   onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   onNavigateSymbol?: (filepaths: string[], keywords: string) => void
+  onHoverSymbol?: (
+    filepaths: string[],
+    keyword: string
+  ) => Promise<SymbolInfo | undefined>
   supportsOnApplyInEditorV2: boolean
 }
 
@@ -120,6 +135,7 @@ export function MessageMarkdown({
   className,
   canWrapLongLines,
   onNavigateSymbol,
+  onHoverSymbol,
   onNavigateToContext,
   supportsOnApplyInEditorV2,
   ...rest
@@ -199,7 +215,8 @@ export function MessageMarkdown({
         canWrapLongLines: !!canWrapLongLines,
         onNavigateToContext,
         supportsOnApplyInEditorV2,
-        onNavigateSymbol
+        onNavigateSymbol,
+        onHoverSymbol
       }}
     >
       <MemoizedReactMarkdown
@@ -238,10 +255,13 @@ export function MessageMarkdown({
             return <li>{children}</li>
           },
           code({ node, inline, className, children, ...props }) {
+            const { onNavigateSymbol, canWrapLongLines, onHoverSymbol } =
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              useContext(MessageMarkdownContext)
             // eslint-disable-next-line react-hooks/rules-of-hooks
-            const { onNavigateSymbol, canWrapLongLines } = useContext(
-              MessageMarkdownContext
-            )
+            const [title, setTitle] = useState('')
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const hoverTimeoutRef = useRef<number | null>(null)
 
             if (children.length) {
               if (children[0] === '▍') {
@@ -278,6 +298,30 @@ export function MessageMarkdown({
                 }
               }
 
+              const handleMouseEnter = () => {
+                if (hoverTimeoutRef.current) {
+                  clearTimeout(hoverTimeoutRef.current)
+                }
+                hoverTimeoutRef.current = window.setTimeout(async () => {
+                  if (onHoverSymbol) {
+                    const res = await onHoverSymbol(
+                      attachmentCode
+                        ? attachmentCode.map(code => code.filepath)
+                        : [],
+                      keyword
+                    )
+                    setTitle(res ? 'Go to definition' : '')
+                  }
+                }, 100)
+              }
+
+              const handleMouseLeave = () => {
+                if (hoverTimeoutRef.current) {
+                  clearTimeout(hoverTimeoutRef.current)
+                  hoverTimeoutRef.current = null
+                }
+              }
+
               return (
                 <code
                   className={cn(
@@ -287,8 +331,9 @@ export function MessageMarkdown({
                       : ''
                   )}
                   onClick={handleClick}
-                  // TODO(Sma1lboy): use onHover to lazy load this part
-                  title={isClickable ? '' : ''}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                  title={title}
                   {...props}
                 >
                   {children}
