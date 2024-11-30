@@ -19,6 +19,11 @@ const useServerInfo = () => {
   return data?.serverInfo
 }
 
+const useIsFetchingServerInfo = () => {
+  const [{ fetching }] = useQuery({ query: getServerInfo })
+  return fetching
+}
+
 const useIsChatEnabled = () => {
   return useServerInfo()?.isChatEnabled
 }
@@ -44,5 +49,6 @@ export {
   useIsAdminInitialized,
   useIsEmailConfigured,
   useAllowSelfSignup,
-  useIsDemoMode
+  useIsDemoMode,
+  useIsFetchingServerInfo
 }

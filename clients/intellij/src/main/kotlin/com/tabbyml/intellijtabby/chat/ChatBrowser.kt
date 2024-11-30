@@ -3,16 +3,19 @@ package com.tabbyml.intellijtabby.chat
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.progress.util.BackgroundTaskUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
@@ -21,12 +24,19 @@ import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.tabbyml.intellijtabby.events.CombinedState
+import com.tabbyml.intellijtabby.findVirtualFile
 import com.tabbyml.intellijtabby.git.GitProvider
-import com.tabbyml.intellijtabby.lsp.protocol.ServerInfo
-import com.tabbyml.intellijtabby.lsp.protocol.Status
+import com.tabbyml.intellijtabby.lsp.ConnectionService
+import com.tabbyml.intellijtabby.lsp.protocol.Config
+import com.tabbyml.intellijtabby.lsp.protocol.StatusInfo
+import com.tabbyml.intellijtabby.lsp.protocol.StatusRequestParams
 import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.constraints.Constraint
 import io.github.z4kn4fein.semver.constraints.satisfiedBy
+import io.ktor.http.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.cef.browser.CefBrowser
 import org.cef.handler.CefLoadHandlerAdapter
 import java.awt.Color
@@ -53,10 +63,13 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
   private val gitProvider = project.service<GitProvider>()
   private val messageBusConnection = project.messageBus.connect()
 
+  private val scope = CoroutineScope(Dispatchers.IO)
+  private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
+
   private val reloadHandler = JBCefJSQuery.create(this as JBCefBrowserBase)
   private val chatPanelRequestHandler = JBCefJSQuery.create(this as JBCefBrowserBase)
 
-  private var currentConfig: ServerInfo.ServerInfoConfig? = null
+  private var currentConfig: Config.ServerConfig? = null
   private var isChatPanelLoaded = false
   private val pendingScripts: MutableList<String> = mutableListOf()
 
@@ -201,9 +214,21 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
           ),
           filepath = relativePath ?: "",
           content = context.first,
-          gitUrl = gitRepo?.remotes?.firstOrNull()?.url ?: "",
+          gitUrl = gitRepo?.let { getDefaultRemoteUrl(it) } ?: "",
         )
       }
+    }
+  }
+
+  private fun navigateToFileContext(fileContext: FileContext) {
+    val virtualFile = project.findVirtualFile(fileContext.filepath)
+      ?: gitRemoteUrlToLocalRoot[fileContext.gitUrl]?.let { project.findVirtualFile(it.appendUrlPathSegments(fileContext.filepath)) }
+      ?: project.guessProjectDir()?.url?.let { project.findVirtualFile(it.appendUrlPathSegments(fileContext.filepath)) }
+      ?: return
+    invokeLater {
+      val lineNumber = (fileContext.range.start - 1).coerceAtLeast(0)
+      val descriptor = OpenFileDescriptor(project, virtualFile, lineNumber, 0)
+      FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
     }
   }
 
@@ -249,42 +274,49 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private fun reloadContent(force: Boolean = false) {
     if (force) {
-      // FIXME(@icycodes): force reload requires await reconnection then get server health
-      reloadContentInternal(true)
+      scope.launch {
+        val server = getServer() ?: return@launch
+        server.statusFeature.getStatus(StatusRequestParams(recheckConnection = true)).thenAccept {
+          reloadContentInternal(it, true)
+        }
+      }
     } else {
-      reloadContentInternal(false)
+      reloadContentInternal(combinedState.state.agentStatus)
     }
   }
 
-  private fun reloadContentInternal(force: Boolean = false) {
-    val status = combinedState.state.agentStatus
-    when (status) {
-      Status.NOT_INITIALIZED, Status.FINALIZED -> {
-        showContent("Initializing...")
-      }
+  private fun reloadContentInternal(statusInfo: StatusInfo?, force: Boolean = false) {
+    if (statusInfo == null) {
+      showContent("Initializing...")
+    } else {
+      when (statusInfo.status) {
+        StatusInfo.Status.CONNECTING -> {
+          showContent("Connecting to Tabby server...")
+        }
 
-      Status.DISCONNECTED -> {
-        showContent("Cannot connect to Tabby server, please check your settings.")
-      }
+        StatusInfo.Status.UNAUTHORIZED -> {
+          showContent("Authorization required, please set your token in settings.")
+        }
 
-      Status.UNAUTHORIZED -> {
-        showContent("Authorization required, please set your token in settings.")
-      }
+        StatusInfo.Status.DISCONNECTED -> {
+          showContent("Cannot connect to Tabby server, please check your settings.")
+        }
 
-      else -> {
-        val health = combinedState.state.agentServerInfo?.health
-        val error = checkServerHealth(health)
-        if (error != null) {
-          showContent(error)
-        } else {
-          val config = combinedState.state.agentServerInfo?.config
-          if (config == null) {
-            showContent("Initializing...")
-          } else if (force || currentConfig != config) {
-            showContent("Loading chat panel...")
-            isChatPanelLoaded = false
-            currentConfig = config
-            jsLoadChatPanel()
+        else -> {
+          val health = statusInfo.serverHealth
+          val error = checkServerHealth(health)
+          if (error != null) {
+            showContent(error)
+          } else {
+            val config = combinedState.state.agentConfig?.server
+            if (config == null) {
+              showContent("Initializing...")
+            } else if (force || currentConfig != config) {
+              showContent("Loading chat panel...")
+              isChatPanelLoaded = false
+              currentConfig = config
+              jsLoadChatPanel()
+            }
           }
         }
       }
@@ -305,7 +337,15 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     when (request.method) {
       "navigate" -> {
         logger.debug("navigate: request: ${request.params}")
-        // FIXME(@icycodes): not implemented yet
+        val context = request.params.getOrNull(0)?.let {
+          gson.fromJson(gson.toJson(it), FileContext::class.java)
+        } ?: return
+        val options = request.params.getOrNull(1) as Map<*, *>?
+        if (options?.get("openInEditor") == true) {
+          navigateToFileContext(context)
+        } else {
+          currentConfig?.let { buildCodeBrowserUrl(it, context) }?.let { BrowserUtil.browse(it) }
+        }
       }
 
       "refresh" -> {
@@ -583,6 +623,34 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       l *= 100
 
       return String.format("%.0f, %.0f%%, %.0f%%", h, s, l)
+    }
+
+    private val gitRemoteUrlToLocalRoot = mutableMapOf<String, String>()
+
+    private fun getDefaultRemoteUrl(repo: GitProvider.Repository): String? {
+      if (repo.remotes.isNullOrEmpty()) {
+        return null
+      }
+      val remoteUrl = repo.remotes.firstOrNull { it.name == "origin" }?.url
+        ?: repo.remotes.firstOrNull { it.name == "upstream" }?.url
+        ?: repo.remotes.firstOrNull()?.url
+      if (remoteUrl != null) {
+        gitRemoteUrlToLocalRoot[remoteUrl] = repo.root
+      }
+      return remoteUrl
+    }
+
+    private fun String.appendUrlPathSegments(path: String): String {
+      return URLBuilder(this).appendPathSegments(path).toString()
+    }
+
+    private fun buildCodeBrowserUrl(config: Config.ServerConfig, context: FileContext): String {
+      return URLBuilder(config.endpoint).apply {
+        appendPathSegments("files")
+        parameters.append("redirect_git_url", context.gitUrl)
+        parameters.append("redirect_filepath", context.filepath)
+        fragment = "L${context.range.start}-L${context.range.end}"
+      }.buildString()
     }
 
     private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.2.0"

@@ -108,7 +108,8 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext } = React.useContext(ChatContext)
+  const { onNavigateToContext, supportsOnApplyInEditorV2 } =
+    React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -162,7 +163,11 @@ function UserMessageCard(props: { message: UserMessage }) {
 
       <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
-          <MessageMarkdown message={message.message} canWrapLongLines />
+          <MessageMarkdown
+            message={message.message}
+            canWrapLongLines
+            supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+          />
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
           </div>
@@ -252,8 +257,13 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     enableRegenerating,
     ...rest
   } = props
-  const { onNavigateToContext, onApplyInEditor, onCopyContent, onRenderLsp } =
-    React.useContext(ChatContext)
+  const {
+    onNavigateToContext,
+    onApplyInEditor,
+    onCopyContent,
+    onRenderLsp,
+    supportsOnApplyInEditorV2
+  } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
   const serverCode: Array<Context> = React.useMemo(() => {
@@ -391,6 +401,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               canWrapLongLines={!isLoading}
               onRenderLsp={onRenderLsp}
               onNavigateToContext={onNavigateToContext}
+              supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>

@@ -1,7 +1,7 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { motion, Variants } from 'framer-motion'
+import { motion } from 'framer-motion'
 import moment from 'moment'
 import { useQuery } from 'urql'
 
@@ -10,36 +10,32 @@ import { MARKDOWN_SOURCE_REGEX } from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
 import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
+import {
+  resetThreadsPageNo,
+  useAnswerEngineStore
+} from '@/lib/stores/answer-engine-store'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
 import { cn, getTitleFromMessages } from '@/lib/utils'
+import { getPaginationItem } from '@/lib/utils/pagination'
 import { IconFiles, IconSpinner } from '@/components/ui/icons'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '@/components/ui/pagination'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { LoadMoreIndicator } from '@/components/load-more-indicator'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { Mention } from '@/components/mention-tag'
 import { UserAvatar } from '@/components/user-avatar'
 
-import { AnimationWrapper } from './animation-wrapper'
-
-const threadItemVariants: Variants = {
-  initial: {
-    opacity: 0,
-    y: 40
-  },
-  onscreen: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: 'easeOut'
-    }
-  }
-}
-
 interface ThreadFeedsProps {
   className?: string
-  onNavigateToThread: () => void
+  onNavigateToThread: (params: { pageNo: number }) => void
 }
 
 type ThreadFeedsContextValue = {
@@ -54,7 +50,7 @@ export const ThreadFeedsContext = createContext<ThreadFeedsContextValue>(
   {} as ThreadFeedsContextValue
 )
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 25
 
 const listThreads = graphql(/* GraphQL */ `
   query ListThreads(
@@ -96,8 +92,10 @@ export function ThreadFeeds({
   className,
   onNavigateToThread
 }: ThreadFeedsProps) {
+  const storedPageNo = useAnswerEngineStore(state => state.threadsPageNo)
   const [allUsers, fetchingUsers] = useAllMembers()
   const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
+  const [page, setPage] = useState(storedPageNo)
   const [{ data, fetching }] = useQuery({
     query: listThreads,
     variables: {
@@ -110,21 +108,60 @@ export function ThreadFeeds({
   const [{ data: contextInfoData, fetching: fetchingSources }] = useQuery({
     query: contextInfoQuery
   })
+  const pageInfo = data?.threads.pageInfo
+  const threadCount = data?.threads?.edges?.length
+  const pageCount = Math.ceil((threadCount || 0) / PAGE_SIZE)
+  const showPagination =
+    pageCount > 1 || (pageCount === 1 && pageInfo?.hasPreviousPage)
+  const paginationPages = getPaginationItem(threadCount || 0, page, PAGE_SIZE)
 
+  // threads for current page
   const threads = useMemo(() => {
     const _threads = data?.threads?.edges
     if (!_threads?.length) return []
 
-    return _threads.slice().reverse()
-  }, [data?.threads?.edges])
+    if (fetching && page >= 2) {
+      // if fetching next page, keep previous page
+      const previousPage = _threads
+        .slice()
+        .reverse()
+        .slice((page - 2) * PAGE_SIZE, (page - 1) * PAGE_SIZE)
+      return previousPage || []
+    }
 
-  const pageInfo = data?.threads.pageInfo
+    return _threads
+      .slice()
+      .reverse()
+      .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  }, [data?.threads?.edges, page, fetching])
 
   const loadMore = () => {
-    if (pageInfo?.startCursor) {
-      setBeforeCursor(pageInfo.startCursor)
+    const startCursor = pageInfo?.startCursor
+    if (
+      startCursor &&
+      data?.threads.edges.length &&
+      data.threads.edges.findIndex(o => o.cursor === startCursor) > -1
+    ) {
+      setBeforeCursor(startCursor)
+    } else {
+      setBeforeCursor(data?.threads.edges[0]?.cursor)
     }
   }
+
+  const handleNavigateToThread = () => {
+    onNavigateToThread({ pageNo: page })
+  }
+
+  const hasNextPage = !!pageInfo?.hasPreviousPage
+  const isNextPageDisabled =
+    fetching ||
+    !threads.length ||
+    (page >= pageCount && !pageInfo?.hasPreviousPage)
+
+  useEffect(() => {
+    // reset pageNo store after it has been used
+    resetThreadsPageNo()
+  }, [])
 
   return (
     <ThreadFeedsContext.Provider
@@ -133,11 +170,21 @@ export function ThreadFeeds({
         fetchingUsers,
         sources: contextInfoData?.contextInfo.sources,
         fetchingSources,
-        onNavigateToThread
+        onNavigateToThread: handleNavigateToThread
       }}
     >
       <div className={cn('w-full', className)}>
-        <AnimationWrapper delay={0.4} style={{ width: '100%' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{
+            once: true
+          }}
+          transition={{
+            ease: 'easeOut',
+            delay: 0.3
+          }}
+        >
           <LoadingWrapper
             loading={fetching || fetchingUsers}
             fallback={
@@ -145,44 +192,83 @@ export function ThreadFeeds({
                 <IconSpinner className="h-8 w-8" />
               </div>
             }
+            delay={600}
           >
             <div className="mb-2.5 w-full text-lg font-semibold">
               Recent Activities
             </div>
             <Separator className="mb-4 w-full" />
-            <motion.div
-              initial="initial"
-              whileInView="onscreen"
-              viewport={{
-                margin: '0px 0px -140px 0px',
-                once: true
-              }}
-              transition={{
-                delay: 0.5,
-                delayChildren: 0.3,
-                staggerChildren: 0.2
-              }}
-              style={{ width: '100%', paddingBottom: '1rem' }}
-            >
-              <div className="flex flex-col gap-3 text-sm">
-                {threads.map(t => {
-                  return <ThreadItem data={t} key={t.node.id} />
-                })}
-              </div>
-              {!!pageInfo?.hasPreviousPage && (
-                <LoadMoreIndicator
-                  onLoad={loadMore}
-                  isFetching={fetching}
-                  intersectionOptions={{ rootMargin: '0px 0px 200px 0px' }}
-                >
-                  <div className="mt-8 flex justify-center">
-                    <IconSpinner className="h-8 w-8" />
-                  </div>
-                </LoadMoreIndicator>
+            <div className="relative flex flex-col gap-3 text-sm">
+              {threads.map(t => {
+                return <ThreadItem data={t} key={t.node.id} />
+              })}
+              {fetching && (
+                <div className="absolute inset-0 bottom-10 z-10 flex items-center justify-center backdrop-blur-sm" />
               )}
-            </motion.div>
+              {showPagination && (
+                <Pagination className={cn('flex items-center justify-end')}>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        disabled={page === 1}
+                        onClick={() => {
+                          if (page === 1) return
+
+                          const _page = page - 1
+                          setPage(_page)
+                        }}
+                      />
+                    </PaginationItem>
+                    {paginationPages.map((item, index) => {
+                      return (
+                        <PaginationItem
+                          key={`${item}-${index}`}
+                          onClick={() => {
+                            if (typeof item === 'number') {
+                              setPage(item)
+                            }
+                          }}
+                        >
+                          {typeof item === 'number' ? (
+                            <PaginationLink
+                              className="cursor-pointer"
+                              isActive={item === page}
+                            >
+                              {item}
+                            </PaginationLink>
+                          ) : (
+                            <PaginationEllipsis />
+                          )}
+                        </PaginationItem>
+                      )
+                    })}
+                    {hasNextPage && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        disabled={isNextPageDisabled}
+                        onClick={() => {
+                          if (isNextPageDisabled) {
+                            return
+                          }
+
+                          const _page = page + 1
+                          setPage(_page)
+                          if (_page > pageCount) {
+                            loadMore()
+                          }
+                        }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </div>
           </LoadingWrapper>
-        </AnimationWrapper>
+        </motion.div>
       </div>
     </ThreadFeedsContext.Provider>
   )
@@ -226,7 +312,7 @@ function ThreadItem({ data }: ThreadItemProps) {
 
   return (
     <Link
-      href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}
+      href={title ? `/search/${titleSlug}-${threadId}` : ''}
       onClick={onNavigateToThread}
     >
       <div className="transform-bg group flex-1 overflow-hidden rounded-lg px-3 py-2 hover:bg-accent">

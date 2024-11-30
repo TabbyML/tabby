@@ -482,7 +482,7 @@ export type ChatEditResolveParams = {
 };
 
 /**
- * [Tabby] Apply workspace edit request(↩️)
+ * [Tabby] Apply workspace edit request(↪️)
  *
  * This method is sent from the server to client to apply edit in workspace with options.
  * - method: `tabby/workspace/applyEdit`
@@ -851,8 +851,22 @@ export type StatusInfo = {
     | "fetching"
     | "completionResponseSlow";
   tooltip?: string;
+  /**
+   * The health information of the server if available.
+   */
   serverHealth?: Record<string, unknown>;
+  /**
+   * The action to take for this status.
+   * - `disconnected` or `completionResponseSlow` -> StatusShowHelpMessageCommand
+   * - others -> undefined
+   */
   command?: StatusShowHelpMessageCommand | LspCommand;
+  /**
+   * The help message if available.
+   * Only available when this status info is returned from {@link StatusRequest}, not provided in {@link StatusDidChangeNotification}.
+   * Only available when the status is `disconnected` or `completionResponseSlow`.
+   */
+  helpMessage?: string;
 };
 
 /**

@@ -1,8 +1,10 @@
 pub mod issue;
+pub mod pull;
 pub mod web;
 
 use std::sync::Arc;
 
+use anyhow::{bail, Result};
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use tabby_inference::Embedding;
@@ -21,6 +23,7 @@ impl StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(web) => &web.link,
             StructuredDocFields::Issue(issue) => &issue.link,
+            StructuredDocFields::Pull(pull) => &pull.link,
         }
     }
 
@@ -28,6 +31,7 @@ impl StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(_) => "web",
             StructuredDocFields::Issue(_) => "issue",
+            StructuredDocFields::Pull(_) => "pull",
         }
     }
 }
@@ -49,12 +53,13 @@ pub trait BuildStructuredDoc {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>>;
+    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>>;
 }
 
 pub enum StructuredDocFields {
     Web(web::WebDocument),
     Issue(issue::IssueDocument),
+    Pull(pull::PullDocument),
 }
 
 #[async_trait]
@@ -63,6 +68,7 @@ impl BuildStructuredDoc for StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(doc) => doc.should_skip(),
             StructuredDocFields::Issue(doc) => doc.should_skip(),
+            StructuredDocFields::Pull(doc) => doc.should_skip(),
         }
     }
 
@@ -70,26 +76,28 @@ impl BuildStructuredDoc for StructuredDoc {
         match &self.fields {
             StructuredDocFields::Web(doc) => doc.build_attributes().await,
             StructuredDocFields::Issue(doc) => doc.build_attributes().await,
+            StructuredDocFields::Pull(doc) => doc.build_attributes().await,
         }
     }
 
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
+    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         match &self.fields {
             StructuredDocFields::Web(doc) => doc.build_chunk_attributes(embedding).await,
             StructuredDocFields::Issue(doc) => doc.build_chunk_attributes(embedding).await,
+            StructuredDocFields::Pull(doc) => doc.build_chunk_attributes(embedding).await,
         }
     }
 }
 
-async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> {
+async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Result<Vec<String>> {
     let embedding = match embedding.embed(text).await {
         Ok(embedding) => embedding,
         Err(err) => {
             warn!("Failed to embed chunk text: {}", err);
-            return vec![];
+            bail!("Failed to embed chunk text: {}", err);
         }
     };
 
@@ -98,5 +106,5 @@ async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> 
         chunk_embedding_tokens.push(token);
     }
 
-    chunk_embedding_tokens
+    Ok(chunk_embedding_tokens)
 }

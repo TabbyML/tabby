@@ -638,6 +638,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 
 [[package]]
+name = "clocksource"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "129026dd5a8a9592d96916258f3a5379589e513ea5e86aeb0bd2530286e44e9e"
+dependencies = [
+ "libc",
+ "time",
+ "winapi",
+]
+
+[[package]]
 name = "cmake"
 version = "0.1.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1292,6 +1303,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
 
 [[package]]
+name = "fslock"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04412b8935272e3a9bae6f48c7bfff74c2911f60525404edfdd28e49884c3bfb"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "futf"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1883,6 +1904,7 @@ dependencies = [
  "async-trait",
  "futures",
  "ollama-api-bindings",
+ "ratelimit",
  "reqwest",
  "reqwest-eventsource",
  "serde",
@@ -1890,6 +1912,7 @@ dependencies = [
  "tabby-common",
  "tabby-inference",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -3730,6 +3753,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ratelimit"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36ea961700fd7260e7fa3701c8287d901b2172c51f9c1421fa0f21d7f7e184b7"
+dependencies = [
+ "clocksource",
+ "parking_lot",
+ "thiserror",
+]
+
+[[package]]
 name = "raw-cpuid"
 version = "11.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4332,6 +4366,7 @@ version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b4b487fe2acf240a021cf57c6b2b4903b1e78ca0ecd862a71b71d2a51fed77d"
 dependencies = [
+ "fslock",
  "futures",
  "log",
  "once_cell",
@@ -5247,6 +5282,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "bincode",
+ "cached",
  "chrono",
  "cron",
  "fs_extra",
@@ -5265,6 +5301,7 @@ dependencies = [
  "octocrab",
  "pin-project",
  "querystring",
+ "ratelimit",
  "reqwest",
  "rust-embed",
  "serde",

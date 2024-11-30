@@ -96,8 +96,8 @@ async fn add_changed_documents(
 
             let id = SourceCode::to_index_id(&repository.source_id, &key).id;
 
-            if cloned_index.is_indexed(&id) {
-                // Skip if already indexed
+            // Skip if already indexed and has no failed chunks
+            if !require_updates(cloned_index.clone(), &id) {
                 continue;
             }
 
@@ -110,6 +110,8 @@ async fn add_changed_documents(
             }
 
             let (_, s) = builder.build(code).await;
+            // must delete before adding, otherwise the some fields like failed_chunks_count will remain
+            cloned_index.delete(&id);
             for await task in s {
                 yield task;
             }
@@ -131,6 +133,14 @@ async fn add_changed_documents(
     };
 
     count_docs
+}
+
+fn require_updates(indexer: Arc<Indexer>, id: &str) -> bool {
+    if indexer.is_indexed(id) && !indexer.has_failed_chunks(id) {
+        return false;
+    };
+
+    true
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {

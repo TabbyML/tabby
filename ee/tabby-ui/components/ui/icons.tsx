@@ -13,6 +13,7 @@ import {
   CaseSensitive,
   ChevronsDownUp,
   CircleAlert,
+  CircleDot,
   CircleHelp,
   CirclePlay,
   Eye,
@@ -21,6 +22,8 @@ import {
   FileText,
   Filter,
   GitFork,
+  GitMerge,
+  GitPullRequest,
   Globe,
   Hash,
   IndentIncrease,
@@ -1697,11 +1700,33 @@ function IconPanelLeft({
 function IconEye({ className, ...props }: React.ComponentProps<typeof Eye>) {
   return <Eye className={cn('h-4 w-4', className)} {...props} />
 }
+
 function IconEyeOff({
   className,
   ...props
 }: React.ComponentProps<typeof EyeOff>) {
   return <EyeOff className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconCircleDot({
+  className,
+  ...props
+}: React.ComponentProps<typeof CircleDot>) {
+  return <CircleDot className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconGitPullRequest({
+  className,
+  ...props
+}: React.ComponentProps<typeof GitPullRequest>) {
+  return <GitPullRequest className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconGitMerge({
+  className,
+  ...props
+}: React.ComponentProps<typeof GitMerge>) {
+  return <GitMerge className={cn('h-4 w-4', className)} {...props} />
 }
 
 export {
@@ -1811,5 +1836,8 @@ export {
   IconCircleHelp,
   IconPanelLeft,
   IconEye,
-  IconEyeOff
+  IconEyeOff,
+  IconCircleDot,
+  IconGitPullRequest,
+  IconGitMerge
 }

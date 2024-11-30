@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Editor } from '@tiptap/react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 
@@ -74,15 +74,9 @@ export default function TextAreaSearch({
   onValueChange?: (value: string | undefined) => void
   models: Maybe<Array<string>> | undefined
 }) {
-  const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
   const editorRef = useRef<PromptEditorRef>(null)
-
-  useEffect(() => {
-    // Ensure the textarea height remains consistent during rendering
-    setIsShow(true)
-  }, [])
 
   const focusTextarea = () => {
     editorRef.current?.editor?.commands.focus()
@@ -166,12 +160,12 @@ export default function TextAreaSearch({
       {showBetaBadge && <BetaBadge />}
 
       <div
-        className={cn('flex items-end px-4', {
+        className={cn('flex items-end pr-4', {
           'min-h-[5.5rem]': !isFollowup,
           'min-h-[2.5rem]': isFollowup
         })}
       >
-        <div className="mr-1 flex-1">
+        <div className="mr-1 flex-1 overflow-x-hidden pl-4">
           <PromptEditor
             editable
             contextInfo={contextInfo}
@@ -187,8 +181,6 @@ export default function TextAreaSearch({
             className={cn(
               'text-area-autosize resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
               {
-                '!h-[48px]': !isShow && !isFollowup,
-                '!h-[24px]': !isShow && isFollowup,
                 'py-3': !showBetaBadge,
                 'py-4': showBetaBadge
               }
@@ -247,7 +239,7 @@ export default function TextAreaSearch({
             delay={0}
             fallback={
               <div className="flex h-8 w-[40%] items-center">
-                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-4 w-full" />
               </div>
             }
           >

@@ -8,10 +8,13 @@ import { useQuery } from 'urql'
 import { useStore } from 'zustand'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
-import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
+import {
+  useIsChatEnabled,
+  useIsFetchingServerInfo
+} from '@/lib/hooks/use-server-info'
+import { setThreadsPageNo } from '@/lib/stores/answer-engine-store'
 import { updateSelectedModel } from '@/lib/stores/chat-actions'
 import {
   clearHomeScrollPosition,
@@ -34,11 +37,13 @@ import { AnimationWrapper } from './components/animation-wrapper'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
 
+// const ThreadFeeds = lazy(() => import('./components/thread-feeds').then(module => ({ default: module.ThreadFeeds })))
+
 function MainPanel() {
   const resettingScroller = useRef(false)
   const scroller = useRef<HTMLDivElement>(null)
-  const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
+  const isFetchingServerInfo = useIsFetchingServerInfo()
   const isChatEnabled = useIsChatEnabled()
   const [isShowDemoBanner] = useShowDemoBanner()
   const elementRef = useRef<HTMLDivElement | null>(null)
@@ -50,6 +55,8 @@ function MainPanel() {
   const scrollY = useStore(useScrollStore, state => state.homePage)
 
   const { selectedModel, isModelLoading, models } = useSelectedModel()
+
+  const showMainSection = !!data?.me || !isFetchingServerInfo
 
   // Prefetch the search page
   useEffect(() => {
@@ -76,8 +83,6 @@ function MainPanel() {
   const handleSelectModel = (model: string) => {
     updateSelectedModel(model)
   }
-
-  if (!healthInfo || !data?.me) return <></>
 
   const onSearch = (question: string, ctx?: ThreadRunContexts) => {
     setIsLoading(true)
@@ -111,58 +116,63 @@ function MainPanel() {
         </div>
       </header>
 
-      <main
-        className="flex-col items-center justify-center pt-16 lg:flex"
-        ref={elementRef}
-      >
-        <div className="mx-auto flex w-full flex-col items-center gap-6 px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
-          <AnimationWrapper
-            viewport={{
-              margin: '-70px 0px 0px 0px'
-            }}
-          >
-            <Image
-              src={tabbyUrl}
-              alt="logo"
-              width={192}
-              className={cn('mt-4 invert dark:invert-0', {
-                'mb-4': isChatEnabled,
-                'mb-2': !isChatEnabled
-              })}
-            />
-          </AnimationWrapper>
-          {isChatEnabled && (
+      {showMainSection && (
+        <main
+          className="flex-col items-center justify-center pb-4 pt-16 lg:flex"
+          ref={elementRef}
+        >
+          <div className="mx-auto flex w-full flex-col items-center gap-6 px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
             <AnimationWrapper
-              viewport={{ margin: '-140px 0px 0px 0px' }}
-              style={{ width: '100%' }}
-              delay={0.05}
+              viewport={{
+                amount: 0.1
+              }}
             >
-              <TextAreaSearch
-                onSearch={onSearch}
-                showBetaBadge
-                autoFocus
-                loadingWithSpinning
-                isLoading={isLoading}
-                cleanAfterSearch={false}
-                contextInfo={contextInfoData?.contextInfo}
-                fetchingContextInfo={fetchingContextInfo}
-                modelName={selectedModel}
-                onModelSelect={handleSelectModel}
-                isModelLoading={isModelLoading}
-                models={models}
+              <Image
+                src={tabbyUrl}
+                alt="logo"
+                width={192}
+                className={cn('mt-4 invert dark:invert-0', {
+                  'mb-4': isChatEnabled,
+                  'mb-2': !isChatEnabled
+                })}
               />
             </AnimationWrapper>
-          )}
-          <Stats />
-          <ThreadFeeds
-            className="lg:mt-8"
-            onNavigateToThread={() => {
-              if (!scroller.current) return
-              setHomeScrollPosition(scroller.current.scrollTop)
-            }}
-          />
-        </div>
-      </main>
+            {isChatEnabled && (
+              <AnimationWrapper
+                viewport={{
+                  amount: 0.1
+                }}
+                style={{ width: '100%' }}
+                delay={0.05}
+              >
+                <TextAreaSearch
+                  onSearch={onSearch}
+                  showBetaBadge
+                  autoFocus
+                  loadingWithSpinning
+                  isLoading={isLoading}
+                  cleanAfterSearch={false}
+                  contextInfo={contextInfoData?.contextInfo}
+                  fetchingContextInfo={fetchingContextInfo}
+                  modelName={selectedModel}
+                  onModelSelect={handleSelectModel}
+                  isModelLoading={isModelLoading}
+                  models={models}
+                />
+              </AnimationWrapper>
+            )}
+            <Stats />
+            <ThreadFeeds
+              className="lg:mt-8"
+              onNavigateToThread={({ pageNo }) => {
+                if (!scroller.current) return
+                setHomeScrollPosition(scroller.current.scrollTop)
+                setThreadsPageNo(pageNo)
+              }}
+            />
+          </div>
+        </main>
+      )}
     </ScrollArea>
   )
 }

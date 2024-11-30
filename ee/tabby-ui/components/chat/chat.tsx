@@ -47,10 +47,9 @@ type ChatContextValue = {
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
-  onApplyInEditor?: (
-    content: string,
-    opts?: { languageId: string; smart: boolean }
-  ) => void
+  onApplyInEditor?:
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onRenderLsp?: (
     filepaths: string[],
     keywords: string[]
@@ -59,6 +58,7 @@ type ChatContextValue = {
   activeSelection: Context | null
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
+  supportsOnApplyInEditorV2: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -89,15 +89,15 @@ interface ChatProps extends React.ComponentProps<'div'> {
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
-  onApplyInEditor?: (
-    content: string,
-    opts?: { languageId: string; smart: boolean }
-  ) => void
+  onApplyInEditor?:
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onRenderLsp?: (
     filepaths: string[],
     keywords: string[]
   ) => Promise<Record<string, KeywordInfo>>
   chatInputRef: RefObject<HTMLTextAreaElement>
+  supportsOnApplyInEditorV2: boolean
 }
 
 function ChatRenderer(
@@ -118,7 +118,8 @@ function ChatRenderer(
     onSubmitMessage,
     onApplyInEditor,
     onRenderLsp,
-    chatInputRef
+    chatInputRef,
+    supportsOnApplyInEditorV2
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -358,20 +359,25 @@ function ChatRenderer(
       contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
     }
 
+    // check context for codeQuery
+    if (!isValidContextForCodeQuery(contextForCodeQuery)) {
+      contextForCodeQuery = undefined
+    }
+
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
       ? {
           content: contextForCodeQuery.content ?? '',
           filepath: contextForCodeQuery.filepath,
           language: contextForCodeQuery.filepath
-            ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
-            : 'text',
+            ? filename2prism(contextForCodeQuery.filepath)[0] || 'plaintext'
+            : 'plaintext',
           gitUrl: contextForCodeQuery?.git_url ?? ''
         }
       : null
 
     const hasUsableActiveContext =
       enableActiveSelection && !!userMessage.activeContext
-    const fileContext: FileContext[] = uniqWith(
+    const clientSideFileContexts: FileContext[] = uniqWith(
       compact([
         hasUsableActiveContext && userMessage.activeContext,
         ...(userMessage?.relevantContext || [])
@@ -379,11 +385,12 @@ function ChatRenderer(
       isEqual
     )
 
-    const attachmentCode: MessageAttachmentCodeInput[] = fileContext.map(o => ({
-      content: o.content,
-      filepath: o.filepath,
-      startLine: o.range.start
-    }))
+    const attachmentCode: MessageAttachmentCodeInput[] =
+      clientSideFileContexts.map(o => ({
+        content: o.content,
+        filepath: o.filepath,
+        startLine: o.range.start
+      }))
 
     const content = userMessage.message
 
@@ -540,7 +547,8 @@ function ChatRenderer(
         relevantContext,
         removeRelevantContext,
         chatInputRef,
-        activeSelection
+        activeSelection,
+        supportsOnApplyInEditorV2
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
@@ -607,4 +615,14 @@ function formatThreadRunErrorMessage(error: ExtendedCombinedError | undefined) {
   }
 
   return error.message || 'Failed to fetch'
+}
+
+function isValidContextForCodeQuery(context: FileContext | undefined) {
+  if (!context) return false
+
+  const isUntitledFile =
+    context.filepath.startsWith('untitled:') &&
+    !filename2prism(context.filepath)[0]
+
+  return !isUntitledFile
 }

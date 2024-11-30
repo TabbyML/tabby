@@ -5,9 +5,15 @@ mod code;
 mod indexer;
 mod tantivy_utils;
 
+#[cfg(test)]
+mod testutils;
+
 use indexer::{IndexAttributeBuilder, Indexer};
 
 mod structured_doc;
+
+#[cfg(test)]
+mod indexer_tests;
 
 pub mod public {
     use indexer::IndexGarbageCollector;
@@ -17,7 +23,7 @@ pub mod public {
         code::CodeIndexer,
         structured_doc::public::{
             StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
-            StructuredDocWebFields,
+            StructuredDocPullDocumentFields, StructuredDocState, StructuredDocWebFields,
         },
     };
 

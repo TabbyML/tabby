@@ -72,11 +72,11 @@ export class GitProvider {
       repository.state.remotes.find((remote) => remote.name === "origin") ||
       repository.state.remotes.find((remote) => remote.name === "upstream") ||
       repository.state.remotes[0];
-    return remote?.fetchUrl ?? remote?.pushUrl;
-  }
-
-  updateRemoteUrlToLocalRoot(remoteUrl: string, localRootUri: Uri): void {
-    this.remoteUrlToLocalRoot.set(remoteUrl, localRootUri);
+    const remoteUrl = remote?.fetchUrl ?? remote?.pushUrl;
+    if (remoteUrl) {
+      this.remoteUrlToLocalRoot.set(remoteUrl, repository.rootUri);
+    }
+    return remoteUrl;
   }
 
   findLocalRootUriByRemoteUrl(remoteUrl: string): Uri | undefined {

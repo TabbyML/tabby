@@ -4,13 +4,15 @@ import { graphql } from '@/lib/gql/generates'
 
 import {
   CreateMessageInput,
-  MessageCodeSearchHit,
-  MessageDocSearchHit,
-  ThreadRunItem,
+  CreateThreadRunSubscription as CreateThreadRunSubscriptionResponse,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
 import { client, useMutation } from '../tabby/gql'
-import { ExtendedCombinedError } from '../types'
+import {
+  ExtendedCombinedError,
+  ThreadAssistantMessageAttachmentCodeHits,
+  ThreadAssistantMessageAttachmentDocHits
+} from '../types'
 import { useLatest } from './use-latest'
 
 interface UseThreadRunOptions {
@@ -65,6 +67,12 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
               link
               body
               closed
+            }
+            ... on MessageAttachmentPullDoc {
+              title
+              link
+              body
+              merged
             }
           }
           score
@@ -127,6 +135,12 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
               body
               closed
             }
+            ... on MessageAttachmentPullDoc {
+              title
+              link
+              body
+              merged
+            }
           }
           score
         }
@@ -162,8 +176,8 @@ export interface AnswerStream {
   userMessageId?: ID
   assistantMessageId?: ID
   relevantQuestions?: Array<string>
-  attachmentsCode?: Array<MessageCodeSearchHit>
-  attachmentsDoc?: Array<MessageDocSearchHit>
+  attachmentsCode?: ThreadAssistantMessageAttachmentCodeHits
+  attachmentsDoc?: ThreadAssistantMessageAttachmentDocHits
   content: string
   completed: boolean
 }
@@ -219,7 +233,7 @@ export function useThreadRun({
   const [error, setError] = React.useState<ExtendedCombinedError | undefined>()
   const combineAnswerStream = (
     existingData: AnswerStream,
-    data: ThreadRunItem
+    data: CreateThreadRunSubscriptionResponse['createThreadRun']
   ): AnswerStream => {
     const x: AnswerStream = {
       ...existingData

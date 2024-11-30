@@ -1,0 +1,3 @@
+kind: Fixed and Improvements
+body: Fixed a panic that occurred when specifying a local model ([#3464](https://github.com/TabbyML/tabby/issues/3464))
+time: 2024-11-26T15:19:03.863207+08:00
