@@ -602,10 +602,6 @@ export function SiteFavicon({
   )
 }
 
-interface SymbolMapType {
-  [key: string]: SymbolInfo
-}
-
 function IssueStateBadge({ closed }: { closed: boolean }) {
   return (
     <Badge
