@@ -16,7 +16,7 @@ import {
   Position,
   TextEditorRevealType,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams, SymbolInfo } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
@@ -401,6 +401,9 @@ export class WebviewHelper {
   }
 
   public createChatClient(webview: Webview) {
+    /*
+      utility functions for createClient
+    */
     const getIndentInfo = (document: TextDocument, selection: Selection) => {
       // Determine the indentation for the content
       // The calculation is based solely on the indentation of the first line
@@ -429,6 +432,61 @@ export class WebviewHelper {
       editor.edit((editBuilder) => {
         editBuilder.replace(selection, indentedContent);
       });
+    };
+
+    const findSymbolInfo = async (filepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
+      if (!keyword || !filepaths.length) {
+        this.logger.info("No keyword or filepaths provided");
+        return undefined;
+      }
+
+      try {
+        const workspaceRoot = workspace.workspaceFolders?.[0];
+        if (!workspaceRoot) {
+          this.logger.error("No workspace folder found");
+          return undefined;
+        }
+        const rootPath = workspaceRoot.uri;
+
+        for (const filepath of filepaths) {
+          const normalizedPath = filepath.startsWith("/") ? filepath.slice(1) : filepath;
+          const fullPath = path.join(rootPath.path, normalizedPath);
+          const fileUri = Uri.file(fullPath);
+          const document = await workspace.openTextDocument(fileUri);
+
+          const content = document.getText();
+          let pos = 0;
+
+          while ((pos = content.indexOf(keyword, pos)) !== -1) {
+            const position = document.positionAt(pos);
+            const locations = await commands.executeCommand<LocationLink[]>(
+              "vscode.executeDefinitionProvider",
+              fileUri,
+              position,
+            );
+
+            if (locations && locations.length > 0) {
+              const location = locations[0];
+              if (location) {
+                return {
+                  sourceFile: filepath,
+                  sourceLine: position.line + 1,
+                  sourceCol: position.character,
+                  targetFile: location.targetUri.fsPath,
+                  targetLine: location.targetRange.start.line + 1,
+                  targetCol: location.targetRange.start.character,
+                };
+              }
+            }
+
+            pos += keyword.length;
+          }
+        }
+      } catch (error) {
+        this.logger.error("Error in findSymbolInfo:", error);
+      }
+
+      return undefined;
     };
 
     return createClient(webview, {
@@ -565,64 +623,35 @@ export class WebviewHelper {
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
       onNavigateSymbol: async (filepath: string[], keyword: string) => {
-        if (!keyword || !filepath.length) {
-          this.logger.info("No keyword or filepaths provided");
-          return;
-        }
-        keyword = keyword.replaceAll("(", "").replaceAll(")", "");
+        const symbolInfo = await findSymbolInfo(filepath, keyword);
 
-        try {
-          const workspaceRoot = workspace.workspaceFolders?.[0];
-          if (!workspaceRoot) {
-            this.logger.error("No workspace folder found");
-            return;
+        if (symbolInfo) {
+          try {
+            const targetUri = Uri.file(symbolInfo.targetFile);
+            const targetDocument = await workspace.openTextDocument(targetUri);
+            const editor = await window.showTextDocument(targetDocument);
+            editor.revealRange(
+              new Range(
+                new Position(symbolInfo.targetLine - 1, symbolInfo.targetCol),
+                new Position(symbolInfo.targetLine - 1, symbolInfo.targetCol),
+              ),
+              TextEditorRevealType.InCenter,
+            );
+
+            this.logger.info(`Navigated to symbol: ${keyword}`);
+          } catch (error) {
+            this.logger.error("Error navigating to symbol:", error);
           }
-          const rootPath = workspaceRoot.uri;
-
-          for (const file of filepath) {
-            const normalizedPath = file.startsWith("/") ? file.slice(1) : file;
-            const fullPath = path.join(rootPath.path, normalizedPath);
-            const fileUri = Uri.file(fullPath);
-            const document = await workspace.openTextDocument(fileUri);
-
-            const content = document.getText();
-            const pos = content.indexOf(keyword);
-
-            if (pos !== -1) {
-              const position = document.positionAt(pos);
-              const locations = await commands.executeCommand<LocationLink[]>(
-                "vscode.executeDefinitionProvider",
-                fileUri,
-                position,
-              );
-
-              if (locations && locations.length > 0) {
-                const location = locations[0];
-                if (location) {
-                  const targetUri = location.targetUri;
-                  const targetRange = location.targetRange.start;
-
-                  const targetDocument = await workspace.openTextDocument(targetUri);
-                  const editor = await window.showTextDocument(targetDocument);
-                  editor.revealRange(
-                    new Range(
-                      new Position(targetRange.line, targetRange.character),
-                      new Position(targetRange.line, targetRange.character),
-                    ),
-                    TextEditorRevealType.InCenter,
-                  );
-
-                  this.logger.info(`Navigated to symbol: ${keyword}`);
-                  return;
-                }
-              }
-            }
-          }
-
+        } else {
           this.logger.info(`Keyword "${keyword}" not found in provided filepaths`);
-        } catch (error) {
-          this.logger.error("Error in onNavigateSymbol:", error);
         }
+      },
+      onHoverSymbol: async (filepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
+        const symbolInfo = await findSymbolInfo(filepaths, keyword);
+        if (!symbolInfo) {
+          this.logger.info(`Keyword "${keyword}" not found in provided filepaths`);
+        }
+        return symbolInfo;
       },
     });
   }
