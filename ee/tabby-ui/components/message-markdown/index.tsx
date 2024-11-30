@@ -79,7 +79,7 @@ export interface MessageMarkdownProps {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onNavigateSymbol?: (filepaths: string[], keywords: string) => void
+  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
   onHoverSymbol?: (
     filepaths: string[],
     keyword: string
@@ -111,7 +111,7 @@ type MessageMarkdownContextValue = {
   fetchingContextInfo: boolean
   canWrapLongLines: boolean
   onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
-  onNavigateSymbol?: (filepaths: string[], keywords: string) => void
+  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
   onHoverSymbol?: (
     filepaths: string[],
     keyword: string

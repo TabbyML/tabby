@@ -50,7 +50,7 @@ type ChatContextValue = {
   onApplyInEditor?:
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
-  onNavigateSymbol?: (filepaths: string[], keywords: string) => void
+  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
   onHoverSymbol?: (
     filepaths: string[],
     keyword: string
@@ -93,7 +93,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   onApplyInEditor?:
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
-  onNavigateSymbol?: (filepaths: string[], keywords: string) => void
+  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
   onHoverSymbol?: (
     filepaths: string[],
     keyword: string
