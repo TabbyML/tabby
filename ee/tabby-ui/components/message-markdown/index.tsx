@@ -275,6 +275,14 @@ export function MessageMarkdown({
             const match = /language-(\w+)/.exec(className || '')
 
             if (inline) {
+              if (!onNavigateSymbol) {
+                return (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                )
+              }
+
               const keyword = children[0]?.toString()
               if (!keyword) {
                 return (
@@ -284,7 +292,7 @@ export function MessageMarkdown({
                 )
               }
 
-              const isClickable = Boolean(onNavigateSymbol && canWrapLongLines)
+              const isClickable = Boolean(canWrapLongLines)
 
               const handleClick = () => {
                 if (!isClickable) return
@@ -299,19 +307,18 @@ export function MessageMarkdown({
               }
 
               const handleMouseEnter = () => {
+                if (!onHoverSymbol) return
                 if (hoverTimeoutRef.current) {
                   clearTimeout(hoverTimeoutRef.current)
                 }
                 hoverTimeoutRef.current = window.setTimeout(async () => {
-                  if (onHoverSymbol) {
-                    const res = await onHoverSymbol(
-                      attachmentCode
-                        ? attachmentCode.map(code => code.filepath)
-                        : [],
-                      keyword
-                    )
-                    setTitle(res ? 'Go to definition' : '')
-                  }
+                  const res = await onHoverSymbol(
+                    attachmentCode
+                      ? attachmentCode.map(code => code.filepath)
+                      : [],
+                    keyword
+                  )
+                  setTitle(res ? 'Go to definition' : '')
                 }, 100)
               }
 
@@ -331,9 +338,9 @@ export function MessageMarkdown({
                       : ''
                   )}
                   onClick={handleClick}
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                  title={title}
+                  onMouseEnter={onHoverSymbol ? handleMouseEnter : undefined}
+                  onMouseLeave={onHoverSymbol ? handleMouseLeave : undefined}
+                  title={onHoverSymbol ? title : ''}
                   {...props}
                 >
                   {children}

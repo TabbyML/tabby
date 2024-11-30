@@ -74,6 +74,9 @@ export default function ChatPage() {
   // server feature support check
   const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
     useState(false)
+  const [supportsOnNavigateSymbol, setSupportsOnNavigateSymbol] =
+    useState(false)
+  const [supportsOnHoverSymbol, setSupportsOnHoverSymbol] = useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -236,6 +239,10 @@ export default function ChatPage() {
         server
           ?.hasCapability('onApplyInEditorV2')
           .then(setSupportsOnApplyInEditorV2)
+        server
+          ?.hasCapability('onNavigateSymbol')
+          .then(setSupportsOnNavigateSymbol)
+        server?.hasCapability('onHoverSymbol').then(setSupportsOnHoverSymbol)
       }
 
       checkCapabilities()
@@ -388,8 +395,14 @@ export default function ChatPage() {
             : server?.onApplyInEditor)
         }
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-        // TODO: adding capability check for onRenderLsp
-        onNavigateSymbol={isInEditor && server?.onNavigateSymbol}
+        onNavigateSymbol={
+          isInEditor &&
+          (supportsOnNavigateSymbol ? server?.onNavigateSymbol : undefined)
+        }
+        onHoverSymbol={
+          isInEditor &&
+          (supportsOnHoverSymbol ? server?.onHoverSymbol : undefined)
+        }
       />
     </ErrorBoundary>
   )
