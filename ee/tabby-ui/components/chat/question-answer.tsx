@@ -108,7 +108,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext, serverCapabilities } =
+  const { onNavigateToContext, supportsOnApplyInEditorV2 } =
     React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
@@ -166,7 +166,7 @@ function UserMessageCard(props: { message: UserMessage }) {
           <MessageMarkdown
             message={message.message}
             canWrapLongLines
-            serverCapabilities={serverCapabilities}
+            supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
           />
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
@@ -261,7 +261,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     onNavigateToContext,
     onApplyInEditor,
     onCopyContent,
-    serverCapabilities
+    supportsOnApplyInEditorV2
   } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -398,7 +398,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
               canWrapLongLines={!isLoading}
-              serverCapabilities={serverCapabilities}
+              supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>

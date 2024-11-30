@@ -35,7 +35,7 @@ export interface CodeBlockProps {
     opts?: { languageId: string; smart: boolean }
   ) => void
   canWrapLongLines: boolean | undefined
-  serverCapabilities: Map<string, boolean>
+  supportsOnApplyInEditorV2: boolean
 }
 
 interface languageMap {
@@ -85,7 +85,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
     onCopyContent,
     onApplyInEditor,
     canWrapLongLines,
-    serverCapabilities
+    supportsOnApplyInEditorV2
   }) => {
     const [wrapLongLines, setWrapLongLines] = useState(false)
     const { isCopied, copyToClipboard } = useCopyToClipboard({
@@ -123,7 +123,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                 </TooltipContent>
               </Tooltip>
             )}
-            {serverCapabilities.get('onApplyInEditorV2') && onApplyInEditor && (
+            {supportsOnApplyInEditorV2 && onApplyInEditor && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -146,7 +146,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                 </TooltipContent>
               </Tooltip>
             )}
-            {serverCapabilities.get('onApplyInEditor') && onApplyInEditor && (
+            {onApplyInEditor && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

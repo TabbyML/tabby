@@ -16,13 +16,13 @@ export function UserMessageSection({
   ...props
 }: QuestionBlockProps) {
   const { contextInfo, fetchingContextInfo } = useContext(SearchContext)
-  const { serverCapabilities } = useContext(ChatContext)
+  const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
   return (
     <div className={cn('font-semibold', className)} {...props}>
       <MessageMarkdown
         message={message.content}
         contextInfo={contextInfo}
-        serverCapabilities={serverCapabilities}
+        supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
         fetchingContextInfo={fetchingContextInfo}
         className="text-xl prose-p:mb-2 prose-p:mt-0"
         headline

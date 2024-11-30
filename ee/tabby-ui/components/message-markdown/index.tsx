@@ -78,7 +78,7 @@ export interface MessageMarkdownProps {
   className?: string
   // wrapLongLines for code block
   canWrapLongLines?: boolean
-  serverCapabilities: Map<string, boolean>
+  supportsOnApplyInEditorV2: boolean
 }
 
 type MessageMarkdownContextValue = {
@@ -93,7 +93,7 @@ type MessageMarkdownContextValue = {
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
   canWrapLongLines: boolean
-  serverCapabilities: Map<string, boolean>
+  supportsOnApplyInEditorV2: boolean
 }
 
 const MessageMarkdownContext = createContext<MessageMarkdownContextValue>(
@@ -111,7 +111,7 @@ export function MessageMarkdown({
   fetchingContextInfo,
   className,
   canWrapLongLines,
-  serverCapabilities,
+  supportsOnApplyInEditorV2,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -187,7 +187,7 @@ export function MessageMarkdown({
         contextInfo,
         fetchingContextInfo: !!fetchingContextInfo,
         canWrapLongLines: !!canWrapLongLines,
-        serverCapabilities: serverCapabilities
+        supportsOnApplyInEditorV2
       }}
     >
       <MemoizedReactMarkdown
@@ -255,7 +255,7 @@ export function MessageMarkdown({
                 onApplyInEditor={onApplyInEditor}
                 onCopyContent={onCopyContent}
                 canWrapLongLines={canWrapLongLines}
-                serverCapabilities={serverCapabilities}
+                supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
                 {...props}
               />
             )
@@ -305,7 +305,7 @@ export function ErrorMessageBlock({
 }
 
 function CodeBlockWrapper(props: CodeBlockProps) {
-  const { canWrapLongLines, serverCapabilities } = useContext(
+  const { canWrapLongLines, supportsOnApplyInEditorV2 } = useContext(
     MessageMarkdownContext
   )
 
@@ -313,7 +313,7 @@ function CodeBlockWrapper(props: CodeBlockProps) {
     <CodeBlock
       {...props}
       canWrapLongLines={canWrapLongLines}
-      serverCapabilities={serverCapabilities}
+      supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
     />
   )
 }

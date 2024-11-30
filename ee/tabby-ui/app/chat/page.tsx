@@ -10,7 +10,6 @@ import { ErrorBoundary } from 'react-error-boundary'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import {
-  clientApiKeys,
   TABBY_CHAT_PANEL_API_VERSION,
   type ChatMessage,
   type Context,
@@ -71,6 +70,10 @@ export default function ChatPage() {
   const client = searchParams.get('client') as ClientType
   const isInEditor = !!client || undefined
   const useMacOSKeyboardEventHandler = useRef<boolean>()
+
+  // server feature support check
+  const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
+    useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -223,10 +226,6 @@ export default function ChatPage() {
     }
   }, [server, client])
 
-  const [serverCapabilities, setServerCapabilities] = useState(
-    new Map<string, boolean>()
-  )
-
   useEffect(() => {
     if (server) {
       server?.onLoaded({
@@ -234,13 +233,9 @@ export default function ChatPage() {
       })
 
       const checkCapabilities = async () => {
-        const results = await Promise.all(
-          clientApiKeys.map(async key => {
-            const hasCapability = await server.hasCapability!(key)
-            return [key, hasCapability] as [string, boolean]
-          })
-        )
-        setServerCapabilities(new Map(results))
+        server
+          ?.hasCapability('onApplyInEditorV2')
+          .then(setSupportsOnApplyInEditorV2)
       }
 
       checkCapabilities()
@@ -388,11 +383,11 @@ export default function ChatPage() {
         onSubmitMessage={isInEditor && server?.onSubmitMessage}
         onApplyInEditor={
           isInEditor &&
-          (serverCapabilities.get('onApplyInEditorV2')
+          (supportsOnApplyInEditorV2
             ? server?.onApplyInEditorV2
             : server?.onApplyInEditor)
         }
-        serverCapabilities={serverCapabilities}
+        supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
       />
     </ErrorBoundary>
   )
