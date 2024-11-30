@@ -78,6 +78,7 @@ export interface MessageMarkdownProps {
   className?: string
   // wrapLongLines for code block
   canWrapLongLines?: boolean
+  supportsOnApplyInEditorV2: boolean
 }
 
 type MessageMarkdownContextValue = {
@@ -92,6 +93,7 @@ type MessageMarkdownContextValue = {
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
   canWrapLongLines: boolean
+  supportsOnApplyInEditorV2: boolean
 }
 
 const MessageMarkdownContext = createContext<MessageMarkdownContextValue>(
@@ -109,6 +111,7 @@ export function MessageMarkdown({
   fetchingContextInfo,
   className,
   canWrapLongLines,
+  supportsOnApplyInEditorV2,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -183,7 +186,8 @@ export function MessageMarkdown({
         onCodeCitationMouseLeave: rest.onCodeCitationMouseLeave,
         contextInfo,
         fetchingContextInfo: !!fetchingContextInfo,
-        canWrapLongLines: !!canWrapLongLines
+        canWrapLongLines: !!canWrapLongLines,
+        supportsOnApplyInEditorV2
       }}
     >
       <MemoizedReactMarkdown
@@ -251,6 +255,7 @@ export function MessageMarkdown({
                 onApplyInEditor={onApplyInEditor}
                 onCopyContent={onCopyContent}
                 canWrapLongLines={canWrapLongLines}
+                supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
                 {...props}
               />
             )
@@ -300,9 +305,17 @@ export function ErrorMessageBlock({
 }
 
 function CodeBlockWrapper(props: CodeBlockProps) {
-  const { canWrapLongLines } = useContext(MessageMarkdownContext)
+  const { canWrapLongLines, supportsOnApplyInEditorV2 } = useContext(
+    MessageMarkdownContext
+  )
 
-  return <CodeBlock {...props} canWrapLongLines={canWrapLongLines} />
+  return (
+    <CodeBlock
+      {...props}
+      canWrapLongLines={canWrapLongLines}
+      supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+    />
+  )
 }
 
 function CitationTag({
