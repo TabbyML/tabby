@@ -389,7 +389,7 @@ export default function ChatPage() {
         }
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
         // TODO: adding capability check for onRenderLsp
-        onRenderLsp={isInEditor && server?.onRenderLsp}
+        onNavigateSymbol={isInEditor && server?.onNavigateSymbol}
       />
     </ErrorBoundary>
   )

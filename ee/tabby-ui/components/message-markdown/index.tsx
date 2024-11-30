@@ -1,11 +1,4 @@
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useMemo,
-  useState
-} from 'react'
+import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -28,7 +21,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-import { Context, KeywordInfo, NavigateOpts } from 'tabby-chat-panel/index'
+import { Context, NavigateOpts, SymbolInfo } from 'tabby-chat-panel/index'
 
 import {
   MARKDOWN_CITATION_REGEX,
@@ -79,10 +72,7 @@ export interface MessageMarkdownProps {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onRenderLsp?: (
-    filepaths: string[],
-    keywords: string[]
-  ) => Promise<Record<string, KeywordInfo>>
+  onNavigateSymbol?: (filepaths: string[], keywords: string) => void
   onNavigateToContext?:
     | ((context: Context, opts?: NavigateOpts) => void)
     | undefined
@@ -109,8 +99,8 @@ type MessageMarkdownContextValue = {
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
   canWrapLongLines: boolean
-  keywordMap: KeywordMapType
   onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
+  onNavigateSymbol?: (filepaths: string[], keywords: string) => void
   supportsOnApplyInEditorV2: boolean
 }
 
@@ -129,7 +119,7 @@ export function MessageMarkdown({
   fetchingContextInfo,
   className,
   canWrapLongLines,
-  onRenderLsp,
+  onNavigateSymbol,
   onNavigateToContext,
   supportsOnApplyInEditorV2,
   ...rest
@@ -196,27 +186,6 @@ export function MessageMarkdown({
     return elements
   }
 
-  const [keywordMap, setKeywordMap] = useState<KeywordMapType>({})
-  // rendering keywords
-  useEffect(() => {
-    if (message && canWrapLongLines && onRenderLsp) {
-      setKeywordMap({}) // TODO: remove htis
-      const inlineCodeRegex = /`([^`]+)`/g
-      const matches = message.match(inlineCodeRegex)
-      if (matches) {
-        const inlineCodes = Array.from(
-          new Set(matches.map(match => match.replace(/`/g, '').trim()))
-        )
-        onRenderLsp(
-          attachmentCode ? attachmentCode?.map(code => code.filepath) : [],
-          inlineCodes
-        ).then(res => {
-          setKeywordMap(res)
-        })
-      }
-    }
-  }, [message, canWrapLongLines, onRenderLsp, attachmentCode])
-
   return (
     <MessageMarkdownContext.Provider
       value={{
@@ -228,9 +197,9 @@ export function MessageMarkdown({
         contextInfo,
         fetchingContextInfo: !!fetchingContextInfo,
         canWrapLongLines: !!canWrapLongLines,
-        keywordMap,
         onNavigateToContext,
-        supportsOnApplyInEditorV2
+        supportsOnApplyInEditorV2,
+        onNavigateSymbol
       }}
     >
       <MemoizedReactMarkdown
@@ -269,12 +238,13 @@ export function MessageMarkdown({
             return <li>{children}</li>
           },
           code({ node, inline, className, children, ...props }) {
-            const { keywordMap, onNavigateToContext, canWrapLongLines } =
-              // eslint-disable-next-line react-hooks/rules-of-hooks
-              useContext(MessageMarkdownContext)
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const { onNavigateSymbol, canWrapLongLines } = useContext(
+              MessageMarkdownContext
+            )
 
             if (children.length) {
-              if (children[0] == '▍') {
+              if (children[0] === '▍') {
                 return (
                   <span className="mt-1 animate-pulse cursor-default">▍</span>
                 )
@@ -294,39 +264,31 @@ export function MessageMarkdown({
                 )
               }
 
-              const info = keywordMap[keyword]
+              const isClickable = Boolean(onNavigateSymbol && canWrapLongLines)
 
-              const isClickable = Boolean(
-                info && onNavigateToContext && canWrapLongLines
-              )
+              const handleClick = () => {
+                if (!isClickable) return
+                if (onNavigateSymbol) {
+                  onNavigateSymbol(
+                    attachmentCode
+                      ? attachmentCode.map(code => code.filepath)
+                      : [],
+                    keyword
+                  )
+                }
+              }
 
               return (
                 <code
                   className={cn(
                     className,
                     isClickable
-                      ? 'hover:bg-muted/50 cursor-pointer transition-colors'
+                      ? 'cursor-pointer transition-colors hover:bg-muted/50'
                       : ''
                   )}
-                  onClick={() => {
-                    if (!isClickable) return
-                    if (onNavigateToContext) {
-                      onNavigateToContext(
-                        {
-                          filepath: info.targetFile,
-                          content: '',
-                          git_url: '',
-                          kind: 'file',
-                          range: {
-                            start: info.targetLine,
-                            end: info.targetLine + 1
-                          }
-                        },
-                        { openInEditor: true }
-                      )
-                    }
-                  }}
-                  title={info ? `${info.targetFile}:${info.targetLine}` : ''}
+                  onClick={handleClick}
+                  // TODO(Sma1lboy): use onHover to lazy load this part
+                  title={isClickable ? '' : ''}
                   {...props}
                 >
                   {children}
@@ -588,8 +550,8 @@ export function SiteFavicon({
   )
 }
 
-interface KeywordMapType {
-  [key: string]: KeywordInfo
+interface SymbolMapType {
+  [key: string]: SymbolInfo
 }
 
 function IssueStateBadge({ closed }: { closed: boolean }) {
