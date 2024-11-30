@@ -27,6 +27,7 @@ import {
   IconTrash
 } from '@/components/ui/icons'
 import { ClientOnly } from '@/components/client-only'
+import { NotificationBox } from '@/components/notification-box'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
@@ -136,8 +137,9 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
           </AlertDialog>
         )}
         <ClientOnly>
-          <ThemeToggle className="mr-4" />
+          <ThemeToggle />
         </ClientOnly>
+        <NotificationBox className="mr-4" />
         <UserPanel
           showHome={false}
           showSetting

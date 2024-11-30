@@ -85,7 +85,7 @@ export default function UserPanel({
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
       <DropdownMenuContent
         side="bottom"
