@@ -11,6 +11,10 @@ import {
   ProgressLocation,
   commands,
   LocationLink,
+  workspace,
+  Range,
+  Position,
+  TextEditorRevealType,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
@@ -560,88 +564,65 @@ export class WebviewHelper {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
-      onRenderLsp: async (filepaths: string[], keywords: string[]) => {
-        const foundLocations: Record<
-          string,
-          {
-            sourceFile: string;
-            sourceLine: number;
-            sourceChar: number;
-            targetFile: string;
-            targetLine: number;
-            targetChar: number;
-          }
-        > = {};
-
-        if (!keywords.length || !filepaths.length || filepaths.length === 0) {
-          this.logger.info("No keywords or filepaths provided");
-          return foundLocations;
+      onNavigateSymbol: async (filepath: string[], keyword: string) => {
+        if (!keyword || !filepath.length) {
+          this.logger.info("No keyword or filepaths provided");
+          return;
         }
-
-        const foundKeywords = new Set<string>();
+        keyword = keyword.replaceAll("(", "").replaceAll(")", "");
 
         try {
           const workspaceRoot = workspace.workspaceFolders?.[0];
           if (!workspaceRoot) {
             this.logger.error("No workspace folder found");
-            return foundLocations;
+            return;
           }
           const rootPath = workspaceRoot.uri;
 
-          for (const filepath of filepaths) {
-            if (foundKeywords.size === keywords.length) {
-              this.logger.info("All keywords found, stopping search");
-              break;
-            }
-
-            const normalizedPath = filepath.startsWith("/") ? filepath.slice(1) : filepath;
+          for (const file of filepath) {
+            const normalizedPath = file.startsWith("/") ? file.slice(1) : file;
             const fullPath = path.join(rootPath.path, normalizedPath);
             const fileUri = Uri.file(fullPath);
             const document = await workspace.openTextDocument(fileUri);
 
-            const remainingKeywords = keywords.filter((kw) => !foundKeywords.has(kw));
+            const content = document.getText();
+            const pos = content.indexOf(keyword);
 
-            for (const keyword of remainingKeywords) {
-              if (foundLocations[keyword]) continue;
+            if (pos !== -1) {
+              const position = document.positionAt(pos);
+              const locations = await commands.executeCommand<LocationLink[]>(
+                "vscode.executeDefinitionProvider",
+                fileUri,
+                position,
+              );
 
-              const content = document.getText();
-              const pos = content.indexOf(keyword);
+              if (locations && locations.length > 0) {
+                const location = locations[0];
+                if (location) {
+                  const targetUri = location.targetUri;
+                  const targetRange = location.targetRange.start;
 
-              if (pos !== -1) {
-                const position = document.positionAt(pos);
-                const locations = await commands.executeCommand<LocationLink[]>(
-                  "vscode.executeDefinitionProvider",
-                  fileUri,
-                  position,
-                );
+                  const targetDocument = await workspace.openTextDocument(targetUri);
+                  const editor = await window.showTextDocument(targetDocument);
+                  editor.revealRange(
+                    new Range(
+                      new Position(targetRange.line, targetRange.character),
+                      new Position(targetRange.line, targetRange.character),
+                    ),
+                    TextEditorRevealType.InCenter,
+                  );
 
-                if (locations && locations.length > 0) {
-                  // TODO: handle multiple locations
-                  const location = locations[0];
-                  if (location) {
-                    foundLocations[keyword] = {
-                      sourceFile: filepath,
-                      sourceLine: position.line + 1,
-                      sourceChar: position.character,
-                      targetFile: workspace.asRelativePath(location.targetUri.path),
-                      targetLine: location.targetRange.start.line,
-                      targetChar: location.targetRange.start.character,
-                    };
-                    foundKeywords.add(keyword);
-                  }
+                  this.logger.info(`Navigated to symbol: ${keyword}`);
+                  return;
                 }
               }
             }
           }
 
-          // TODO: test
-          for (const [keyword, location] of Object.entries(foundLocations)) {
-            this.logger.info(`Found locations for ${keyword}:`, location);
-          }
+          this.logger.info(`Keyword "${keyword}" not found in provided filepaths`);
         } catch (error) {
-          this.logger.error("Error in onRenderLsp:", error);
+          this.logger.error("Error in onNavigateSymbol:", error);
         }
-        return foundLocations;
       },
     });
   }
