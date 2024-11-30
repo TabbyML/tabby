@@ -53,13 +53,13 @@ export interface ServerApi {
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: Context | null) => void
 }
-export interface KeywordInfo {
+export interface SymbolInfo {
   sourceFile: string
   sourceLine: number
-  sourceChar: number
+  sourceCol: number
   targetFile: string
   targetLine: number
-  targetChar: number
+  targetCol: number
 }
 export interface ClientApiMethods {
   navigate: (context: Context, opts?: NavigateOpts) => void
@@ -83,11 +83,13 @@ export interface ClientApiMethods {
   onCopy: (content: string) => void
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
-  onRenderLsp: (filepaths: string[], keywords: string[]) => Promise<Record<
-  string,
-  KeywordInfo
->>
+  // navigate to lsp definition by symbol
+  onNavigateSymbol: (filepaths: string[], keywords: string) => void
 
+  // onNavigateSymbol: (filepaths: string[], keywords: string) => Promise<Record<
+  // string,
+  // KeywordInfo
+  // >>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -130,7 +132,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
-      onRenderLsp: api.onRenderLsp,
+      onNavigateSymbol: api.onNavigateSymbol,
     },
   })
 }
