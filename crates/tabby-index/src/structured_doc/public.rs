@@ -17,10 +17,15 @@ use crate::{indexer::TantivyDocBuilder, Indexer};
 /// StructuredDocState tracks the state of the document source.
 /// It helps determine whether the document should be updated or deleted.
 pub struct StructuredDocState {
+    // id is the unique identifier of the document.
+    // It is used to track the document in the indexer.
+    pub id: String,
+
     // updated_at is the time when the document was last updated.
     // when the updated_at is earlier than the document's index time,
     // the update will be skipped.
     pub updated_at: DateTime<Utc>,
+
     // deleted indicates whether the document should be removed from the indexer.
     // For instance, a closed pull request will be marked as deleted,
     // prompting the indexer to remove it from the index.
@@ -39,19 +44,32 @@ impl StructuredDocIndexer {
         Self { indexer, builder }
     }
 
+    // Runs pre-sync checks to determine if the document needs to be updated.
+    // Returns false if `sync` is not required to be called.
+    pub async fn presync(&self, state: StructuredDocState) -> bool {
+        if state.deleted {
+            self.indexer.delete(&state.id);
+            return false;
+        }
+
+        if self.indexer.is_indexed_after(&state.id, state.updated_at)
+            && !self.indexer.has_failed_chunks(&state.id)
+        {
+            return false;
+        };
+
+        true
+    }
+
     // The sync process updates the document in the indexer incrementally.
     // It first determines whether the document requires an update.
     //
     // If an update is needed, it checks the deletion state of the document.
     // If the document is marked as deleted, it will be removed.
     // Next, the document is rebuilt, the original is deleted, and the newly indexed document is added.
-    pub async fn sync(&self, state: StructuredDocState, document: StructuredDoc) -> bool {
-        if !self.require_updates(state.updated_at, &document) {
+    pub async fn sync(&self, document: StructuredDoc) -> bool {
+        if !self.require_updates(&document) {
             return false;
-        }
-
-        if state.deleted {
-            return self.delete(document.id()).await;
         }
 
         stream! {
@@ -80,7 +98,7 @@ impl StructuredDocIndexer {
         self.indexer.commit();
     }
 
-    fn require_updates(&self, updated_at: DateTime<Utc>, document: &StructuredDoc) -> bool {
+    fn require_updates(&self, document: &StructuredDoc) -> bool {
         if document.should_skip() {
             return false;
         }
@@ -88,12 +106,6 @@ impl StructuredDocIndexer {
         if self.should_backfill(document) {
             return true;
         }
-
-        if self.indexer.is_indexed_after(document.id(), updated_at)
-            && !self.indexer.has_failed_chunks(document.id())
-        {
-            return false;
-        };
 
         true
     }
