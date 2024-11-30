@@ -84,7 +84,7 @@ export interface ClientApiMethods {
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
   // navigate to lsp definition by symbol
-  onNavigateSymbol: (filepaths: string[], keywords: string) => void
+  onNavigateSymbol: (filepaths: string[], keyword: string) => void
 
   // on hover symbol return symbol info if exist
   onHoverSymbol: (filepaths: string[], keyword: string) => Promise<SymbolInfo | undefined>
