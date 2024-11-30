@@ -29,8 +29,9 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       refresh: api.refresh,
       onSubmitMessage: api.onSubmitMessage,
       onApplyInEditor: api.onApplyInEditor,
-      onCopy: api.onCopy,
+      onApplyInEditorV2: api.onApplyInEditorV2,
       onLoaded: api.onLoaded,
+      onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
     },
   });

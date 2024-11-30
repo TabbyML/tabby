@@ -60,7 +60,14 @@ export interface ClientApiMethods {
 
   onSubmitMessage: (msg: string, relevantContext?: Context[]) => Promise<void>
 
-  onApplyInEditor: (content: string, opts?: { languageId: string, smart: boolean }) => void
+  // apply content into active editor, version 1, not support smart apply
+  onApplyInEditor: (content: string) => void
+
+  // version 2, support smart apply and normal apply
+  onApplyInEditorV2?: (
+    content: string,
+    opts?: { languageId: string, smart: boolean }
+  ) => void
 
   // On current page is loaded.
   onLoaded: (params?: OnLoadedParams | undefined) => void
@@ -77,6 +84,17 @@ export interface ClientApi extends ClientApiMethods {
   // the function doesn't need to expose to client but can call by client
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 }
+
+export const clientApiKeys: (keyof ClientApiMethods)[] = [
+  'navigate',
+  'refresh',
+  'onSubmitMessage',
+  'onApplyInEditor',
+  'onApplyInEditorV2',
+  'onLoaded',
+  'onCopy',
+  'onKeyboardEvent',
+]
 
 export interface ChatMessage {
   message: string

@@ -56,6 +56,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { ChatContext } from '@/components/chat/chat'
 import { CodeReferences } from '@/components/chat/code-references'
 import { CopyButton } from '@/components/copy-button'
 import {
@@ -93,6 +94,8 @@ export function AssistantMessageSection({
     isThreadOwner,
     onUpdateMessage
   } = useContext(SearchContext)
+
+  const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
 
   const [isEditing, setIsEditing] = useState(false)
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -328,6 +331,7 @@ export function AssistantMessageSection({
               contextInfo={contextInfo}
               fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
+              supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             />
             {/* if isEditing, do not display error message block */}
             {message.error && <ErrorMessageBlock error={message.error} />}

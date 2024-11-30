@@ -76,7 +76,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       })
     },
     async onSubmitMessage(_msg, _relevantContext) {},
-    onApplyInEditor(_content, _args) {},
+    onApplyInEditor(_content) {},
     onLoaded() {},
     onCopy(_content) {},
     onKeyboardEvent() {}
