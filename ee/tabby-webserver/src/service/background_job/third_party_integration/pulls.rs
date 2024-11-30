@@ -64,6 +64,7 @@ pub async fn list_github_pulls(
                 if let Some(state) = pull.state {
                     if state == IssueState::Closed && pull.merged_at.is_none() {
                         yield (StructuredDocState{
+                            id: doc.id().to_string(),
                             updated_at: pull.updated_at.unwrap(),
                             deleted: true,
                         }, doc);
@@ -99,6 +100,7 @@ pub async fn list_github_pulls(
 
 
                 yield (StructuredDocState{
+                    id: doc.id().to_string(),
                     updated_at: pull.updated_at.unwrap(),
                     deleted: false,
                 }, doc);

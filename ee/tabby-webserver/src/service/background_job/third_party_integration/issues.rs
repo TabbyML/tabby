@@ -66,6 +66,7 @@ pub async fn list_github_issues(
                     })
                 };
                 yield (StructuredDocState {
+                    id: doc.id().to_string(),
                     updated_at: issue.updated_at,
                     deleted: false,
                 }, doc);
@@ -125,6 +126,7 @@ pub async fn list_gitlab_issues(
                 closed: issue.state == "closed",
             })};
             yield (StructuredDocState {
+                id: doc.id().to_string(),
                 updated_at: issue.updated_at,
                 deleted: false,
             }, doc);
