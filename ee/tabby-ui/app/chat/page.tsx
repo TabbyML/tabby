@@ -74,6 +74,7 @@ export default function ChatPage() {
   // server feature support check
   const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
     useState(false)
+  const [supportsOnOpenExternal, setSupportsOnOpenExternal] = useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -236,6 +237,8 @@ export default function ChatPage() {
         server
           ?.hasCapability('onApplyInEditorV2')
           .then(setSupportsOnApplyInEditorV2)
+
+        server?.hasCapability('onOpenExternal').then(setSupportsOnOpenExternal)
       }
 
       checkCapabilities()
@@ -276,9 +279,7 @@ export default function ChatPage() {
   }
 
   const onOpenExternal = useMemo(() => {
-    // FIXME check capability
-    const hasCapability = true
-    if (isInEditor && !hasCapability) {
+    if (isInEditor && !supportsOnOpenExternal) {
       return undefined
     }
 
@@ -290,7 +291,7 @@ export default function ChatPage() {
         return !!success
       }
     }
-  }, [isInEditor, server])
+  }, [isInEditor, server, supportsOnOpenExternal])
 
   const refresh = async () => {
     setIsRefreshLoading(true)
