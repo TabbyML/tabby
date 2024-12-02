@@ -158,7 +158,7 @@ function ChatPanelRenderer(
                 </Button>
                 <Button
                   variant="outline"
-                  className="bg-background gap-2"
+                  className="gap-2 bg-background"
                   onClick={handleShareThread}
                 >
                   {isCopied ? <IconCheck /> : <IconShare />}
