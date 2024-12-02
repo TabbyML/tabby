@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import tabbyUrl from '@/assets/tabby.png'
@@ -74,7 +74,6 @@ export default function ChatPage() {
   // server feature support check
   const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
     useState(false)
-  const [supportsOnOpenExternal, setSupportsOnOpenExternal] = useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -237,8 +236,6 @@ export default function ChatPage() {
         server
           ?.hasCapability('onApplyInEditorV2')
           .then(setSupportsOnApplyInEditorV2)
-
-        server?.hasCapability('onOpenExternal').then(setSupportsOnOpenExternal)
       }
 
       checkCapabilities()
@@ -277,21 +274,6 @@ export default function ChatPage() {
   const onNavigateToContext = (context: Context, opts?: NavigateOpts) => {
     server?.navigate(context, opts)
   }
-
-  const onOpenExternal = useMemo(() => {
-    if (isInEditor && !supportsOnOpenExternal) {
-      return undefined
-    }
-
-    return async (url: string) => {
-      if (isInEditor) {
-        return server?.onOpenExternal(url)
-      } else {
-        const success = window.open(url, '_blank')
-        return !!success
-      }
-    }
-  }, [isInEditor, server, supportsOnOpenExternal])
 
   const refresh = async () => {
     setIsRefreshLoading(true)
@@ -406,7 +388,6 @@ export default function ChatPage() {
             : server?.onApplyInEditor)
         }
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-        onOpenExternal={onOpenExternal}
       />
     </ErrorBoundary>
   )

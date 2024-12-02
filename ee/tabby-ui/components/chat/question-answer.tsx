@@ -374,7 +374,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       <div className="w-full flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
         <CodeReferences
           contexts={serverCode}
-          userContexts={clientCode}
+          clientContexts={clientCode}
           onContextClick={(ctx, isInWorkspace) => {
             onNavigateToContext?.(ctx, {
               openInEditor: isInWorkspace
@@ -382,6 +382,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           }}
           // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
           showExternalLink={!!onApplyInEditor}
+          showClientCode={!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
         />

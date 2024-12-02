@@ -76,8 +76,6 @@ export interface ClientApiMethods {
   onCopy: (content: string) => void
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
-
-  onOpenExternal: (url: string) => Promise<boolean>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -120,7 +118,6 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
-      onOpenExternal: api.onOpenExternal,
     },
   })
 }

@@ -15,11 +15,12 @@ import {
   AccordionItem,
   AccordionTrigger
 } from '../ui/accordion'
-import { IconExternalLink, IconFile } from '../ui/icons'
+import { IconExternalLink, IconFile, IconFileSearch2 } from '../ui/icons'
 
 interface ContextReferencesProps {
+  isInEditor?: boolean
   contexts: RelevantCodeContext[]
-  userContexts?: RelevantCodeContext[]
+  clientContexts?: RelevantCodeContext[]
   className?: string
   triggerClassname?: string
   onContextClick?: (
@@ -30,6 +31,7 @@ interface ContextReferencesProps {
   onTooltipClick?: () => void
   highlightIndex?: number | undefined
   showExternalLink: boolean
+  showClientCode: boolean
 }
 
 export const CodeReferences = forwardRef<
@@ -39,21 +41,23 @@ export const CodeReferences = forwardRef<
   (
     {
       contexts,
-      userContexts,
+      clientContexts,
       className,
       triggerClassname,
       onContextClick,
       enableTooltip,
       onTooltipClick,
       highlightIndex,
-      showExternalLink
+      showExternalLink,
+      showClientCode,
+      isInEditor
     },
     ref
   ) => {
-    const totalContextLength = (userContexts?.length || 0) + contexts.length
+    const totalContextLength = (clientContexts?.length || 0) + contexts.length
     const isMultipleReferences = totalContextLength > 1
     const serverCtxLen = contexts?.length ?? 0
-    const clientCtxLen = userContexts?.length ?? 0
+    const clientCtxLen = clientContexts?.length ?? 0
     const ctxLen = serverCtxLen + clientCtxLen
     const [accordionValue, setAccordionValue] = useState<string | undefined>(
       ctxLen <= 5 ? 'references' : undefined
@@ -86,13 +90,15 @@ export const CodeReferences = forwardRef<
             }`}</span>
           </AccordionTrigger>
           <AccordionContent className="space-y-2">
-            {userContexts?.map((item, index) => {
+            {clientContexts?.map((item, index) => {
               return (
                 <ContextItem
                   key={`user-${index}`}
                   context={item}
                   onContextClick={ctx => onContextClick?.(ctx, true)}
                   isHighlighted={highlightIndex === index}
+                  clickable={isInEditor || !!item.git_url}
+                  showClientCodeIcon={showClientCode}
                 />
               )
             })}
@@ -106,7 +112,7 @@ export const CodeReferences = forwardRef<
                   onTooltipClick={onTooltipClick}
                   showExternalLinkIcon={showExternalLink}
                   isHighlighted={
-                    highlightIndex === index + (userContexts?.length || 0)
+                    highlightIndex === index + (clientContexts?.length || 0)
                   }
                 />
               )
@@ -126,6 +132,7 @@ function ContextItem({
   enableTooltip,
   onTooltipClick,
   showExternalLinkIcon,
+  showClientCodeIcon,
   isHighlighted
 }: {
   context: RelevantCodeContext
@@ -134,6 +141,7 @@ function ContextItem({
   enableTooltip?: boolean
   onTooltipClick?: () => void
   showExternalLinkIcon?: boolean
+  showClientCodeIcon?: boolean
   isHighlighted?: boolean
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
@@ -182,6 +190,9 @@ function ContextItem({
               )}
               <span className="ml-2 text-xs text-muted-foreground">{path}</span>
             </div>
+            {showClientCodeIcon && (
+              <IconFileSearch2 className="shrink-0 text-muted-foreground" />
+            )}
             {showExternalLinkIcon && (
               <IconExternalLink className="shrink-0 text-muted-foreground" />
             )}

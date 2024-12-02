@@ -1,4 +1,4 @@
-import React, { RefObject, useMemo } from 'react'
+import React, { RefObject, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -16,6 +16,7 @@ import { cn, getTitleFromMessages } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  IconCheck,
   IconEye,
   IconEyeOff,
   IconRefresh,
@@ -67,12 +68,12 @@ function ChatPanelRenderer(
     relevantContext,
     removeRelevantContext,
     activeSelection,
-    onOpenExternal
+    onCopyContent
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
-
+  const [persisting, setPerisiting] = useState(false)
   const slugWithThreadId = useMemo(() => {
     if (!threadId) return ''
     const content = qaPairs[0]?.user.message
@@ -86,27 +87,35 @@ function ChatPanelRenderer(
     return slugWithThreadId
   }, [qaPairs[0]?.user.message, threadId])
 
-  const { isCopied, copyToClipboard } = useCopyToClipboard({
-    timeout: 2000
-  })
-
   const setThreadPersisted = useMutation(setThreadPersistedMutation, {
     onError(err) {
       toast.error(err.message)
     }
   })
 
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000,
+    onCopyContent
+  })
+
   const handleShareThread = async () => {
     if (!threadId) return
+    if (isCopied || persisting) return
 
-    const result = await setThreadPersisted({ threadId })
-    if (!result?.data?.setThreadPersisted) return
+    try {
+      setPerisiting(true)
+      const result = await setThreadPersisted({ threadId })
+      if (!result?.data?.setThreadPersisted) {
+        toast.error(result?.error?.message || 'Failed to share')
+      } else {
+        let url = new URL(window.location.origin)
+        url.pathname = `/search/${slugWithThreadId}`
 
-    let url = new URL(window.location.origin)
-    url.pathname = `/search/${slugWithThreadId}`
-
-    if (onOpenExternal) {
-      await onOpenExternal(url.toString())
+        copyToClipboard(url.toString())
+      }
+    } catch (e) {
+    } finally {
+      setPerisiting(false)
     }
   }
 
@@ -147,16 +156,14 @@ function ChatPanelRenderer(
                   <IconRefresh className="mr-2" />
                   Regenerate
                 </Button>
-                {!!onOpenExternal && (
-                  <Button
-                    variant="outline"
-                    className="bg-background"
-                    onClick={handleShareThread}
-                  >
-                    <IconShare className="mr-2" />
-                    Share
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  className="bg-background gap-2"
+                  onClick={handleShareThread}
+                >
+                  {isCopied ? <IconCheck /> : <IconShare />}
+                  Share
+                </Button>
               </>
             )
           )}

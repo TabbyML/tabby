@@ -51,7 +51,6 @@ type ChatContextValue = {
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
-  onOpenExternal?: (url: string) => Promise<boolean | undefined>
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -87,7 +86,6 @@ interface ChatProps extends React.ComponentProps<'div'> {
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
-  onOpenExternal?: (url: string) => Promise<boolean | undefined>
 }
 
 function ChatRenderer(
@@ -108,8 +106,7 @@ function ChatRenderer(
     onSubmitMessage,
     onApplyInEditor,
     chatInputRef,
-    supportsOnApplyInEditorV2,
-    onOpenExternal
+    supportsOnApplyInEditorV2
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -538,8 +535,7 @@ function ChatRenderer(
         removeRelevantContext,
         chatInputRef,
         activeSelection,
-        supportsOnApplyInEditorV2,
-        onOpenExternal
+        supportsOnApplyInEditorV2
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

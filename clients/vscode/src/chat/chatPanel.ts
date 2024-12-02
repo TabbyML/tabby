@@ -33,7 +33,6 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
-      onOpenExternal: api.onOpenExternal,
     },
   });
 }

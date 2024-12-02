@@ -557,11 +557,6 @@ export class WebviewHelper {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
-      onOpenExternal: async (url: string) => {
-        this.logger.info("Open external", url);
-        const success = await env.openExternal(Uri.parse(url));
-        return success;
-      },
     });
   }
 }
