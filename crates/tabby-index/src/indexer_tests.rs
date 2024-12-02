@@ -195,14 +195,18 @@ mod builder_tests {
                 std::thread::available_parallelism().unwrap().get() * 2,
                 32,
             ))
+            .map(|handler| handler.unwrap())
             .collect::<Vec<_>>()
             .await
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
         });
 
         // the chunks should be failed as no embedding is provided
         // the last element is the document itself
         assert_eq!(res.len(), 1);
-        let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
+        let doc = res.last().unwrap();
 
         let schema = IndexSchema::instance();
         let failed_count = doc
@@ -250,8 +254,12 @@ mod builder_tests {
                 std::thread::available_parallelism().unwrap().get() * 2,
                 32,
             ))
+            .map(|handler| handler.unwrap())
             .collect::<Vec<_>>()
             .await
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
         });
 
         // The last element is the document itself,
@@ -259,7 +267,7 @@ mod builder_tests {
         // Given that the embedding is empty,
         // all chunks should be considered failed and skipped.
         assert_eq!(res.len(), 1);
-        let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
+        let doc = res.last().unwrap();
 
         let schema = IndexSchema::instance();
         let failed_count = doc
