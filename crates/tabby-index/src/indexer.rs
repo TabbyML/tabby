@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::mpsc::sync_channel};
 
 use anyhow::{bail, Result};
 use async_stream::stream;
@@ -76,22 +76,33 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
         let doc_id = id.clone();
         let doc_attributes = self.builder.build_attributes(&document).await;
         let s = stream! {
-            let mut failed_count: u64 = 0;
+            let (tx, rx) = sync_channel(32);
+
             for await chunk_doc in self.build_chunks(cloned_id, source_id.clone(), updated_at, document).await {
-                match chunk_doc.await {
-                    Ok(Ok(doc)) => {
-                        yield tokio::spawn(async move { Some(doc) });
+                let tx = tx.clone();
+                let doc_id = doc_id.clone();
+                yield tokio::spawn(async move {
+                    match chunk_doc.await {
+                        Ok(Ok(doc)) => {
+                           Some(doc)
+                        }
+                        Ok(Err(e)) => {
+                            warn!("Failed to build chunk for document '{}': {}", doc_id, e);
+                            tx.send(1).unwrap();
+                            None
+                        }
+                        Err(e) => {
+                            warn!("Failed to call build chunk '{}': {}", doc_id, e);
+                            tx.send(1).unwrap();
+                            None
+                        }
                     }
-                    Ok(Err(e)) => {
-                        warn!("Failed to build chunk for document '{}': {}", doc_id, e);
-                        failed_count += 1;
-                    }
-                    Err(e) => {
-                        warn!("Failed to call build chunk '{}': {}", doc_id, e);
-                        failed_count += 1;
-                    }
-                }
+                });
             };
+
+            // drop tx to signal the end of the stream
+            // the cloned is dropped in its own thread
+            drop(tx);
 
             let mut doc = doc! {
                 schema.field_id => doc_id,
@@ -100,11 +111,14 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                 schema.field_attributes => doc_attributes,
                 schema.field_updated_at => updated_at,
             };
-            if failed_count > 0 {
-                doc.add_u64(schema.field_failed_chunks_count, failed_count);
-            }
 
-            yield tokio::spawn(async move { Some(doc) });
+            yield tokio::spawn(async move {
+                let failed_count = rx.iter().count();
+                if failed_count > 0 {
+                    doc.add_u64(schema.field_failed_chunks_count, failed_count as u64);
+                }
+                Some(doc)
+             });
         };
 
         (id, s)
