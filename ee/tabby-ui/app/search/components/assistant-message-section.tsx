@@ -197,8 +197,8 @@ export function AssistantMessageSection({
 
   const totalHeightInRem = messageAttachmentDocs?.length
     ? Math.ceil(messageAttachmentDocs.length / 4) * SOURCE_CARD_STYLE.expand +
-    0.5 * Math.floor(messageAttachmentDocs.length / 4) +
-    0.5
+      0.5 * Math.floor(messageAttachmentDocs.length / 4) +
+      0.5
     : 0
 
   const onCodeContextClick = (ctx: Context) => {
