@@ -558,10 +558,10 @@ export class WebviewHelper {
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
       onOpenExternal: async (url: string) => {
-        this.logger.info('Open external', url)
+        this.logger.info("Open external", url);
         const success = await env.openExternal(Uri.parse(url));
         return success;
-      }
+      },
     });
   }
 }
