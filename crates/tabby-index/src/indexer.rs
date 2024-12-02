@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::mpsc::sync_channel};
+use std::collections::HashSet;
 
 use anyhow::{bail, Result};
 use async_stream::stream;
@@ -20,7 +20,7 @@ use tantivy::{
     schema::{self, Value},
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
-use tokio::task::JoinHandle;
+use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::{debug, warn};
 
 use crate::tantivy_utils::open_or_create_index;
@@ -76,7 +76,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
         let doc_id = id.clone();
         let doc_attributes = self.builder.build_attributes(&document).await;
         let s = stream! {
-            let (tx, rx) = sync_channel(32);
+            let (tx, mut rx) = mpsc::channel(32);
 
             for await chunk_doc in self.build_chunks(cloned_id, source_id.clone(), updated_at, document).await {
                 let tx = tx.clone();
@@ -88,12 +88,16 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                         }
                         Ok(Err(e)) => {
                             warn!("Failed to build chunk for document '{}': {}", doc_id, e);
-                            tx.send(1).unwrap();
+                            tx.send(()).await.unwrap_or_else(|e| {
+                                warn!("Failed to send error signal for document '{}': {}", doc_id, e);
+                            });
                             None
                         }
                         Err(e) => {
                             warn!("Failed to call build chunk '{}': {}", doc_id, e);
-                            tx.send(1).unwrap();
+                            tx.send(()).await.unwrap_or_else(|e| {
+                                warn!("Failed to send error signal for document '{}': {}", doc_id, e);
+                            });
                             None
                         }
                     }
@@ -113,7 +117,10 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
             };
 
             yield tokio::spawn(async move {
-                let failed_count = rx.iter().count();
+                let mut failed_count = 0;
+                while let Some(_) = rx.recv().await {
+                    failed_count += 1;
+                }
                 if failed_count > 0 {
                     doc.add_u64(schema.field_failed_chunks_count, failed_count as u64);
                 }
