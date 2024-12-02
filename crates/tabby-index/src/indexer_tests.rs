@@ -199,7 +199,7 @@ mod builder_tests {
             .collect::<Vec<_>>()
             .await
             .into_iter()
-            .filter_map(|x| x)
+            .flatten()
             .collect::<Vec<_>>()
         });
 
@@ -258,7 +258,7 @@ mod builder_tests {
             .collect::<Vec<_>>()
             .await
             .into_iter()
-            .filter_map(|x| x)
+            .flatten()
             .collect::<Vec<_>>()
         });
 
