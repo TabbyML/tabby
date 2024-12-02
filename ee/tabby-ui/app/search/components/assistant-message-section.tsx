@@ -4,7 +4,7 @@ import { MouseEventHandler, useContext, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import DOMPurify from 'dompurify'
 import he from 'he'
-import { compact, isEmpty, merge } from 'lodash-es'
+import { compact, isEmpty } from 'lodash-es'
 import { marked } from 'marked'
 import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
@@ -183,20 +183,22 @@ export function AssistantMessageSection({
     )
   }, [clientCode, message?.attachment?.code])
 
-  const messageAttachmentCode = useMemo(() => {
-    return merge(
-      [],
-      clientCode?.map(o => ({ ...o, gitUrl: relevantCodeGitURL })),
-      message?.attachment?.code
-    )
-  }, [clientCode, message?.attachment?.code, relevantCodeGitURL])
+  const messageAttachmentClientCode = useMemo(() => {
+    return clientCode?.map(o => ({
+      ...o,
+      gitUrl: relevantCodeGitURL
+    }))
+  }, [clientCode, relevantCodeGitURL])
 
   const messageAttachmentDocs = message?.attachment?.doc
+  const messageAttachmentCodeLen =
+    (messageAttachmentClientCode?.length || 0) +
+    (message.attachment?.code?.length || 0)
 
   const totalHeightInRem = messageAttachmentDocs?.length
     ? Math.ceil(messageAttachmentDocs.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(messageAttachmentDocs.length / 4) +
-      0.5
+    0.5 * Math.floor(messageAttachmentDocs.length / 4) +
+    0.5
     : 0
 
   const onCodeContextClick = (ctx: Context) => {
@@ -250,7 +252,9 @@ export function AssistantMessageSection({
   }
 
   const onCodeCitationClick = (code: MessageAttachmentCode) => {
-    openCodeBrowserTab(code)
+    if (code.gitUrl) {
+      openCodeBrowserTab(code)
+    }
   }
 
   const handleUpdateAssistantMessage = async (message: ConversationMessage) => {
@@ -330,10 +334,10 @@ export function AssistantMessageSection({
         </div>
 
         {/* code search hits */}
-        {messageAttachmentCode.length > 0 && (
+        {messageAttachmentCodeLen > 0 && (
           <CodeReferences
-            contexts={serverCodeContexts}
             clientContexts={clientCodeContexts}
+            contexts={serverCodeContexts}
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
             enableTooltip={enableDeveloperMode}
@@ -361,7 +365,8 @@ export function AssistantMessageSection({
             <MessageMarkdown
               message={message.content}
               attachmentDocs={messageAttachmentDocs}
-              attachmentCode={messageAttachmentCode}
+              attachmentClientCode={messageAttachmentClientCode}
+              attachmentCode={message.attachment?.code}
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}

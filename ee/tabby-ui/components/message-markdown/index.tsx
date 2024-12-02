@@ -8,7 +8,11 @@ import { marked } from 'marked'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
-import { ContextInfo, Maybe } from '@/lib/gql/generates/graphql'
+import {
+  ContextInfo,
+  Maybe,
+  MessageAttachmentClientCode
+} from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
 import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
@@ -43,7 +47,7 @@ type RelevantDocItem = {
 
 type RelevantCodeItem = {
   type: 'code'
-  data: AttachmentCodeItem
+  data: AttachmentCodeItem | MessageAttachmentClientCode
   isClient?: boolean
 }
 
@@ -65,6 +69,7 @@ export interface MessageMarkdownProps {
   headline?: boolean
   attachmentDocs?: Maybe<Array<AttachmentDocItem>>
   attachmentCode?: Maybe<Array<AttachmentCodeItem>>
+  attachmentClientCode?: Maybe<Array<MessageAttachmentClientCode>>
   onCopyContent?: ((value: string) => void) | undefined
   onApplyInEditor?: (
     content: string,
@@ -104,6 +109,7 @@ export function MessageMarkdown({
   message,
   headline = false,
   attachmentDocs,
+  attachmentClientCode,
   attachmentCode,
   onApplyInEditor,
   onCopyContent,
@@ -120,13 +126,20 @@ export function MessageMarkdown({
         type: 'doc',
         data: item
       })) ?? []
+
+    const clientCode: MessageAttachments =
+      attachmentClientCode?.map(item => ({
+        type: 'code',
+        data: item
+      })) ?? []
+
     const code: MessageAttachments =
       attachmentCode?.map(item => ({
         type: 'code',
         data: item
       })) ?? []
-    return compact([...docs, ...code])
-  }, [attachmentDocs, attachmentCode])
+    return compact([...docs, ...clientCode, ...code])
+  }, [attachmentDocs, attachmentClientCode, attachmentCode])
 
   const processMessagePlaceholder = (text: string) => {
     const elements: React.ReactNode[] = []
