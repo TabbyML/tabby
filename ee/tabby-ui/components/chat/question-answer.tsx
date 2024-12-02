@@ -382,7 +382,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           }}
           // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
           showExternalLink={!!onApplyInEditor}
-          showClientCode={!onApplyInEditor}
+          showClientCodeIcon={!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
         />

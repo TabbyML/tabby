@@ -338,7 +338,7 @@ export function AssistantMessageSection({
             onContextClick={onCodeContextClick}
             enableTooltip={enableDeveloperMode}
             showExternalLink={false}
-            showClientCode
+            showClientCodeIcon
             onTooltipClick={() => {
               setConversationIdForDev(message.id)
               setDevPanelOpen(true)

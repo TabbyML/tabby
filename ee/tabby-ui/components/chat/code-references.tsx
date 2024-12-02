@@ -31,7 +31,7 @@ interface ContextReferencesProps {
   onTooltipClick?: () => void
   highlightIndex?: number | undefined
   showExternalLink: boolean
-  showClientCode: boolean
+  showClientCodeIcon: boolean
 }
 
 export const CodeReferences = forwardRef<
@@ -49,7 +49,7 @@ export const CodeReferences = forwardRef<
       onTooltipClick,
       highlightIndex,
       showExternalLink,
-      showClientCode,
+      showClientCodeIcon,
       isInEditor
     },
     ref
@@ -98,7 +98,7 @@ export const CodeReferences = forwardRef<
                   onContextClick={ctx => onContextClick?.(ctx, true)}
                   isHighlighted={highlightIndex === index}
                   clickable={isInEditor || !!item.git_url}
-                  showClientCodeIcon={showClientCode}
+                  showClientCodeIcon={showClientCodeIcon}
                 />
               )
             })}
