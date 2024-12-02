@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use futures::stream::BoxStream;
 use ratelimit::Ratelimiter;
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
+use tracing::warn;
 
 fn new_rate_limiter(rpm: u64) -> Ratelimiter {
     Ratelimiter::builder(rpm/60, Duration::from_secs(1))
@@ -43,7 +44,7 @@ impl Embedding for RateLimitedEmbedding {
             return self.embedding.embed(prompt).await;
         }
 
-        anyhow::bail!("Rate limit exceeded for embedding computation");
+        anyhow::bail!("Failed to acquire request quota for embedding");
     }
 }
 
@@ -74,7 +75,7 @@ impl CompletionStream for RateLimitedCompletion {
             return self.completion.generate(prompt, options).await;
         }
 
-        // Return an empty stream if the rate limit is exceeded
+        warn!("Failed to acquire request quota for completion");
         Box::pin(futures::stream::empty())
     }
 }
@@ -110,7 +111,7 @@ impl ChatCompletionStream for RateLimitedChatStream {
         }
 
         Err(OpenAIError::ApiError(ApiError {
-            message: "Rate limit exceeded for chat completion".to_owned(),
+            message: "Failed to acquire request quota for chat".to_owned(),
             r#type: None,
             param: None,
             code: None,
@@ -131,7 +132,7 @@ impl ChatCompletionStream for RateLimitedChatStream {
         }
 
         Err(OpenAIError::ApiError(ApiError {
-            message: "Rate limit exceeded for chat completion".to_owned(),
+            message: "Failed to acquire request quota for chat stream".to_owned(),
             r#type: None,
             param: None,
             code: None,
