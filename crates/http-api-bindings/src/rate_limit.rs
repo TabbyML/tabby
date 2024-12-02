@@ -34,7 +34,7 @@ pub fn new_embedding(embedding: Box<dyn Embedding>, request_per_minute: u64) -> 
 #[async_trait]
 impl Embedding for RateLimitedEmbedding {
     async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
-        for _ in 0..5 {
+        for _ in 0..60 {
             if let Err(sleep) = self.rate_limiter.try_wait() {
                 tokio::time::sleep(sleep).await;
                 continue;
@@ -65,7 +65,7 @@ pub fn new_completion(
 #[async_trait]
 impl CompletionStream for RateLimitedCompletion {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
-        for _ in 0..5 {
+        for _ in 0..60 {
             if let Err(sleep) = self.rate_limiter.try_wait() {
                 tokio::time::sleep(sleep).await;
                 continue;
@@ -100,7 +100,7 @@ impl ChatCompletionStream for RateLimitedChatStream {
         &self,
         request: CreateChatCompletionRequest,
     ) -> Result<CreateChatCompletionResponse, OpenAIError> {
-        for _ in 0..5 {
+        for _ in 0..60 {
             if let Err(sleep) = self.rate_limiter.try_wait() {
                 tokio::time::sleep(sleep).await;
                 continue;
@@ -121,7 +121,7 @@ impl ChatCompletionStream for RateLimitedChatStream {
         &self,
         request: CreateChatCompletionRequest,
     ) -> Result<ChatCompletionResponseStream, OpenAIError> {
-        for _ in 0..5 {
+        for _ in 0..60 {
             if let Err(sleep) = self.rate_limiter.try_wait() {
                 tokio::time::sleep(sleep).await;
                 continue;
