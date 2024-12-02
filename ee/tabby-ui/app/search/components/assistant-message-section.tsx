@@ -333,7 +333,7 @@ export function AssistantMessageSection({
           )}
         </div>
 
-        {/* code search hits */}
+        {/* attachment clientCode & code */}
         {messageAttachmentCodeLen > 0 && (
           <CodeReferences
             clientContexts={clientCodeContexts}
