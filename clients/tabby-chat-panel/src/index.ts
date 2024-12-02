@@ -76,6 +76,7 @@ export interface ClientApiMethods {
   onCopy: (content: string) => void
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
+
 }
 
 export interface ClientApi extends ClientApiMethods {
