@@ -771,6 +771,7 @@ export function Search() {
         error={
           (formatedThreadError || threadMessagesError) as ExtendedCombinedError
         }
+        threadIdFromURL={threadIdFromURL}
       />
     )
   }
@@ -987,8 +988,12 @@ const updateThreadMessageMutation = graphql(/* GraphQL */ `
 
 interface ThreadMessagesErrorViewProps {
   error: ExtendedCombinedError
+  threadIdFromURL?: string
 }
-function ThreadMessagesErrorView({ error }: ThreadMessagesErrorViewProps) {
+function ThreadMessagesErrorView({
+  error,
+  threadIdFromURL
+}: ThreadMessagesErrorViewProps) {
   let title = 'Something went wrong'
   let description =
     'Failed to fetch the thread, please refresh the page or start a new thread'
@@ -999,7 +1004,7 @@ function ThreadMessagesErrorView({ error }: ThreadMessagesErrorViewProps) {
 
   return (
     <div className="flex h-screen flex-col">
-      <Header />
+      <Header threadIdFromURL={threadIdFromURL} />
       <div className="flex-1">
         <div className="flex h-full flex-col items-center justify-center gap-2">
           <div className="flex items-center gap-2">

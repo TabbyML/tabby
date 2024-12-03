@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 const HoverCard = HoverCardPrimitive.Root
 
 const HoverCardTrigger = HoverCardPrimitive.Trigger
-
+const HoverCardPortal = HoverCardPrimitive.Portal
 const HoverCardContent = React.forwardRef<
   React.ElementRef<typeof HoverCardPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content>
@@ -26,4 +26,4 @@ const HoverCardContent = React.forwardRef<
 ))
 HoverCardContent.displayName = HoverCardPrimitive.Content.displayName
 
-export { HoverCard, HoverCardTrigger, HoverCardContent }
+export { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardPortal }
