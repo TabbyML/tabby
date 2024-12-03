@@ -1,11 +1,6 @@
 import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
-import type {
-  Context,
-  FileContext,
-  NavigateOpts,
-  SymbolInfo
-} from 'tabby-chat-panel'
+import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import {
@@ -37,6 +32,7 @@ import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
+  threadId: string | undefined
   isLoading: boolean
   qaPairs: QuestionAnswerPair[]
   handleMessageAction: (
@@ -529,6 +525,7 @@ function ChatRenderer(
   return (
     <ChatContext.Provider
       value={{
+        threadId,
         isLoading,
         qaPairs,
         onNavigateToContext,
