@@ -84,10 +84,7 @@ export interface ClientApiMethods {
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
   // navigate to lsp definition by symbol
-  onNavigateSymbol: (filepaths: string[], keyword: string) => void
-
-  // on hover symbol return symbol info if exist
-  onHoverSymbol: (filepaths: string[], keyword: string) => Promise<SymbolInfo | undefined>
+  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -131,7 +128,6 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
       onNavigateSymbol: api.onNavigateSymbol,
-      onHoverSymbol: api.onHoverSymbol,
     },
   })
 }

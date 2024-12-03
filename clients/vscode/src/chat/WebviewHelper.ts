@@ -646,13 +646,6 @@ export class WebviewHelper {
           this.logger.info(`Keyword "${keyword}" not found in provided filepaths`);
         }
       },
-      onHoverSymbol: async (filepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
-        const symbolInfo = await findSymbolInfo(filepaths, keyword);
-        if (!symbolInfo) {
-          this.logger.info(`Keyword "${keyword}" not found in provided filepaths`);
-        }
-        return symbolInfo;
-      },
     });
   }
 }
