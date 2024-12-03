@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   Files,
+  FileSearch2,
   FileText,
   Filter,
   GitFork,
@@ -1729,6 +1730,13 @@ function IconGitMerge({
   return <GitMerge className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconFileSearch2({
+  className,
+  ...props
+}: React.ComponentProps<typeof FileSearch2>) {
+  return <FileSearch2 className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1839,5 +1847,6 @@ export {
   IconEyeOff,
   IconCircleDot,
   IconGitPullRequest,
-  IconGitMerge
+  IconGitMerge,
+  IconFileSearch2
 }

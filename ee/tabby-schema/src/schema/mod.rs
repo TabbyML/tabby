@@ -1178,7 +1178,7 @@ impl Mutation {
 
     /// Turn on persisted status for a thread.
     async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
-        let user = check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
         let svc = ctx.locator.thread();
         let Some(thread) = svc.get(&thread_id).await? else {
             return Err(CoreError::NotFound("Thread not found"));

@@ -5,6 +5,8 @@ import { twMerge } from 'tailwind-merge'
 
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 
+import { Maybe } from '../gql/generates/graphql'
+
 export * from './chat'
 
 export function cn(...inputs: ClassValue[]) {
@@ -104,7 +106,10 @@ export function formatLineHashForCodeBrowser(
   ).join('-')
 }
 
-export function getRangeFromAttachmentCode(code: AttachmentCodeItem) {
+export function getRangeFromAttachmentCode(code: {
+  startLine?: Maybe<number>
+  content: string
+}) {
   const startLine = code?.startLine ?? 0
   const lineCount = code?.content.split('\n').length
   const endLine = startLine + lineCount - 1

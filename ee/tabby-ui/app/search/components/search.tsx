@@ -3,6 +3,7 @@
 import {
   createContext,
   CSSProperties,
+  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -31,6 +32,7 @@ import {
   InputMaybe,
   Maybe,
   Message,
+  MessageAttachmentClientCode,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -48,7 +50,8 @@ import { useMutation } from '@/lib/tabby/gql'
 import {
   contextInfoQuery,
   listThreadMessages,
-  listThreads
+  listThreads,
+  setThreadPersistedMutation
 } from '@/lib/tabby/query'
 import {
   AttachmentCodeItem,
@@ -96,9 +99,15 @@ export type ConversationMessage = Omit<
   threadRelevantQuestions?: Maybe<string[]>
   error?: string
   attachment?: {
+    clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
     code: Maybe<Array<AttachmentCodeItem>> | undefined
     doc: Maybe<Array<AttachmentDocItem>> | undefined
   }
+}
+
+type ConversationPair = {
+  question: ConversationMessage | null
+  answer: ConversationMessage | null
 }
 
 type SearchContextValue = {
@@ -440,6 +449,7 @@ export function Search() {
     // get and format scores from streaming answer
     if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
       currentAssistantMessage.attachment = {
+        clientCode: null,
         doc: currentAssistantMessage.attachment?.doc || null,
         code:
           answer.attachmentsCode.map(hit => ({
@@ -454,6 +464,7 @@ export function Search() {
     // get and format scores from streaming answer
     if (!currentAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
       currentAssistantMessage.attachment = {
+        clientCode: null,
         doc:
           answer.attachmentsDoc.map(hit => ({
             ...hit.doc,
@@ -606,7 +617,8 @@ export function Search() {
       content: '',
       attachment: {
         code: null,
-        doc: null
+        doc: null,
+        clientCode: null
       },
       error: undefined
     }
@@ -718,6 +730,25 @@ export function Search() {
     200
   )
 
+  const qaPairs = useMemo(() => {
+    const pairs: Array<ConversationPair> = []
+    let currentPair: ConversationPair = { question: null, answer: null }
+    messages.forEach(message => {
+      if (message.role === Role.User) {
+        currentPair.question = message
+      } else if (message.role === Role.Assistant) {
+        if (!currentPair.answer) {
+          // Take the first answer
+          currentPair.answer = message
+          pairs.push(currentPair)
+          currentPair = { question: null, answer: null }
+        }
+      }
+    })
+
+    return pairs
+  }, [messages])
+
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
@@ -776,35 +807,34 @@ export function Search() {
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
-                    {/* messages */}
-                    {messages.map((message, index) => {
-                      const isLastMessage = index === messages.length - 1
-                      if (message.role === Role.User) {
-                        return (
-                          <UserMessageSection
-                            className="pb-2 pt-8"
-                            key={message.id}
-                            message={message}
-                          />
-                        )
-                      } else if (message.role === Role.Assistant) {
-                        return (
-                          <>
+                    {qaPairs.map((pair, index) => {
+                      const isLastMessage = index === qaPairs.length - 1
+                      if (!pair.question) return null
+
+                      return (
+                        <Fragment key={pair.question.id}>
+                          {!!pair.question && (
+                            <UserMessageSection
+                              className="pb-2 pt-8"
+                              key={pair.question.id}
+                              message={pair.question}
+                            />
+                          )}
+                          {!!pair.answer && (
                             <AssistantMessageSection
-                              key={message.id}
+                              key={pair.answer.id}
                               className="pb-8 pt-2"
-                              message={message}
+                              message={pair.answer}
+                              clientCode={pair.question?.attachment?.clientCode}
                               isLoading={isLoading && isLastMessage}
                               isLastAssistantMessage={isLastMessage}
                               showRelatedQuestion={isLastMessage}
                               isDeletable={!isLoading && messages.length > 2}
                             />
-                            {!isLastMessage && <Separator />}
-                          </>
-                        )
-                      } else {
-                        return null
-                      }
+                          )}
+                          {!isLastMessage && <Separator />}
+                        </Fragment>
+                      )
                     })}
                   </div>
                 </div>
@@ -923,12 +953,6 @@ export function Search() {
     </SearchContext.Provider>
   )
 }
-
-const setThreadPersistedMutation = graphql(/* GraphQL */ `
-  mutation SetThreadPersisted($threadId: ID!) {
-    setThreadPersisted(threadId: $threadId)
-  }
-`)
 
 const updateThreadMessageMutation = graphql(/* GraphQL */ `
   mutation UpdateThreadMessage($input: UpdateMessageInput!) {
