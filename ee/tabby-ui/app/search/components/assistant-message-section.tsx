@@ -305,7 +305,7 @@ export function AssistantMessageSection({
                     showDevTooltip={enableDeveloperMode}
                   />
                 </HoverCardTrigger>
-                <HoverCardContent className="bg-background text-foreground w-96 text-sm">
+                <HoverCardContent className="bg-background text-foreground w-96 text-sm dark:border-muted-foreground/60">
                   <DocDetailView relevantDocument={source} />
                 </HoverCardContent>
               </HoverCard>

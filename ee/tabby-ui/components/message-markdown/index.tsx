@@ -374,7 +374,7 @@ function RelevantDocumentBadge({
           {citationIndex}
         </span>
       </HoverCardTrigger>
-      <HoverCardContent className="w-96 text-sm bg-background text-foreground">
+      <HoverCardContent className="w-96 text-sm bg-background text-foreground dark:border-muted-foreground/60">
         <DocDetailView relevantDocument={relevantDocument} />
       </HoverCardContent>
     </HoverCard>
