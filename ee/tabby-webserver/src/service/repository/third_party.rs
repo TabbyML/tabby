@@ -70,7 +70,7 @@ impl RepositoryProvider for ThirdPartyRepositoryServiceImpl {
     }
 
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
-        let repo = self.get_provided_repository(id.clone()).await?;
+        let repo = self.get_provided_repository(id).await?;
         let provider = self
             .integration
             .get_integration(repo.integration_id.clone())
@@ -119,10 +119,10 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(converted_repositories)
     }
 
-    async fn get_provided_repository(&self, id: ID) -> Result<ProvidedRepository> {
+    async fn get_provided_repository(&self, id: &ID) -> Result<ProvidedRepository> {
         let repo = self.db.get_provided_repository(id.as_rowid()?).await?;
 
-        let event = BackgroundJobEvent::SchedulerGithubGitlabRepository(id);
+        let event = BackgroundJobEvent::SchedulerGithubGitlabRepository(id.clone());
         let last_job_run = self.job.get_job_info(event.to_command()).await?;
 
         Ok(to_provided_repository(repo, last_job_run))

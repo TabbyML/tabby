@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use futures::{stream::BoxStream, StreamExt};
 use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
-use pulls::list_github_pulls;
+use pulls::{get_github_pull_doc, list_github_pull_states};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::CodeRepository;
 use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer, StructuredDocState};
@@ -89,7 +89,7 @@ impl SchedulerGithubGitlabJob {
         integration_service: Arc<dyn IntegrationService>,
     ) -> tabby_schema::Result<()> {
         let repository = repository_service
-            .get_provided_repository(self.repository_id)
+            .get_provided_repository(&self.repository_id)
             .await?;
         let integration = integration_service
             .get_integration(repository.integration_id.clone())
@@ -115,7 +115,7 @@ impl SchedulerGithubGitlabJob {
             "Indexing documents for repository {}",
             repository.display_name
         );
-        let index = StructuredDocIndexer::new(embedding);
+        let index = StructuredDocIndexer::new(embedding.clone());
         let issue_stream = match fetch_all_issues(&integration, &repository).await {
             Ok(s) => s,
             Err(e) => {
@@ -127,21 +127,10 @@ impl SchedulerGithubGitlabJob {
             }
         };
 
-        let pull_stream = match fetch_all_pulls(&integration, &repository).await {
-            Ok(s) => s,
-            Err(e) => {
-                integration_service
-                    .update_integration_sync_status(integration.id, Some(e.to_string()))
-                    .await?;
-                logkit::error!("Failed to fetch pulls: {}", e);
-                return Err(e);
-            }
-        };
-
         stream! {
             let mut count = 0;
             let mut num_updated = 0;
-            for await (state, doc) in issue_stream.chain(pull_stream) {
+            for await (state, doc) in issue_stream {
                 if index.presync(state).await && index.sync(doc).await {
                     num_updated += 1
                 }
@@ -157,6 +146,66 @@ impl SchedulerGithubGitlabJob {
         }
         .count()
         .await;
+
+        self.sync_pulls(&integration, integration_service, &repository, embedding)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn sync_pulls(
+        &self,
+        integration: &Integration,
+        integration_service: Arc<dyn IntegrationService>,
+        repository: &ProvidedRepository,
+        embedding: Arc<dyn Embedding>,
+    ) -> tabby_schema::Result<()> {
+        let mut pull_state_stream = match fetch_all_pull_states(&integration, &repository).await {
+            Ok(s) => s,
+            Err(e) => {
+                integration_service
+                    .update_integration_sync_status(integration.id.clone(), Some(e.to_string()))
+                    .await?;
+                logkit::error!("Failed to fetch pulls: {}", e);
+                return Err(e);
+            }
+        };
+
+        let mut count = 0;
+        let mut num_updated = 0;
+
+        let index = StructuredDocIndexer::new(embedding);
+        while let Some((id, state)) = pull_state_stream.next().await {
+            count += 1;
+            if count % 100 == 0 {
+                logkit::info!(
+                    "{} pull docs seen, {} pull docs updated",
+                    count,
+                    num_updated
+                );
+            }
+
+            if !index.presync(state).await {
+                continue;
+            }
+            let pull = get_github_pull_doc(
+                &repository.source_id(),
+                id,
+                integration.api_base(),
+                &repository.display_name,
+                &integration.access_token,
+            )
+            .await?;
+
+            index.sync(pull).await;
+            num_updated += 1;
+        }
+        logkit::info!(
+            "{} pull docs seen, {} pull docs updated",
+            count,
+            num_updated
+        );
+        index.commit();
 
         Ok(())
     }
@@ -205,12 +254,11 @@ async fn fetch_all_issues(
 
     Ok(s)
 }
-async fn fetch_all_pulls(
+async fn fetch_all_pull_states(
     integration: &Integration,
     repository: &ProvidedRepository,
-) -> tabby_schema::Result<BoxStream<'static, (StructuredDocState, StructuredDoc)>> {
-    let s: BoxStream<(StructuredDocState, StructuredDoc)> = list_github_pulls(
-        &repository.source_id(),
+) -> tabby_schema::Result<BoxStream<'static, (u64, StructuredDocState)>> {
+    let s: BoxStream<(u64, StructuredDocState)> = list_github_pull_states(
         integration.api_base(),
         &repository.display_name,
         &integration.access_token,
