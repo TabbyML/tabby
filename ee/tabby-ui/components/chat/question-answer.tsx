@@ -296,30 +296,33 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   const attachmentDocsLen = 0
 
-  const attachmentCode: Array<AttachmentCodeItem> = useMemo(() => {
-    const formatedClientAttachmentCode =
-      clientCode?.map(o => ({
-        content: o.content,
-        filepath: o.filepath,
-        gitUrl: o.git_url,
-        startLine: o.range.start,
-        language: filename2prism(o.filepath ?? '')[0],
-        isClient: true
-      })) ?? []
-    const formatedServerAttachmentCode =
-      serverCode?.map(o => ({
-        content: o.content,
-        filepath: o.filepath,
-        gitUrl: o.git_url,
-        startLine: o.range.start,
-        language: filename2prism(o.filepath ?? '')[0],
-        isClient: false
-      })) ?? []
-    return compact([
-      ...formatedClientAttachmentCode,
-      ...formatedServerAttachmentCode
-    ])
-  }, [clientCode, serverCode])
+  const attachmentClientCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
+    useMemo(() => {
+      const formatedAttachmentClientCode =
+        clientCode?.map(o => ({
+          content: o.content,
+          filepath: o.filepath,
+          gitUrl: o.git_url,
+          startLine: o.range.start,
+          language: filename2prism(o.filepath ?? '')[0],
+          isClient: true
+        })) ?? []
+      return formatedAttachmentClientCode
+    }, [clientCode])
+
+  const attachmentCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
+    useMemo(() => {
+      const formatedServerAttachmentCode =
+        serverCode?.map(o => ({
+          content: o.content,
+          filepath: o.filepath,
+          gitUrl: o.git_url,
+          startLine: o.range.start,
+          language: filename2prism(o.filepath ?? '')[0],
+          isClient: false
+        })) ?? []
+      return compact([...formatedServerAttachmentCode])
+    }, [serverCode])
 
   const onCodeCitationMouseEnter = (index: number) => {
     setRelevantCodeHighlightIndex(index - 1 - (attachmentDocsLen || 0))
@@ -374,7 +377,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       <div className="w-full flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
         <CodeReferences
           contexts={serverCode}
-          userContexts={clientCode}
+          clientContexts={clientCode}
           onContextClick={(ctx, isInWorkspace) => {
             onNavigateToContext?.(ctx, {
               openInEditor: isInWorkspace
@@ -382,6 +385,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           }}
           // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
           showExternalLink={!!onApplyInEditor}
+          showClientCodeIcon={!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
         />
@@ -393,6 +397,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               message={message.message}
               onApplyInEditor={onApplyInEditor}
               onCopyContent={onCopyContent}
+              attachmentClientCode={attachmentClientCode}
               attachmentCode={attachmentCode}
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
