@@ -203,6 +203,10 @@ export default {
             from: '/blog/running-tabby-as-a-language-server'
           },
           {
+            to: '/blog/2023/09/05/deploy-tabby-to-huggingface-space',
+            from: '/blog/2023/09/05/deploy-tabby-to-huggingface-space.md',
+          },
+          {
             to: '/docs/quick-start/installation/docker',
             from: '/docs/self-hosting/docker'
           },
