@@ -102,9 +102,9 @@ function IssueDocInfoView({
           {/* mock */}
           {/* <MyAvatar className='w-5 h-5 shrink-0 not-prose' />
           <span className='text-muted-foreground font-semibold'>liang</span> */}
-          <span className="text-muted-foreground font-semibold">
+          {/* <span className="text-muted-foreground font-semibold">
             Not-in-server@tabbyml.com
-          </span>
+          </span> */}
         </div>
       </div>
     </LoadingWrapper>
