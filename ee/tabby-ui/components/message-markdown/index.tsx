@@ -1,11 +1,4 @@
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -28,7 +21,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-import { Context, NavigateOpts, SymbolInfo } from 'tabby-chat-panel/index'
+import { Context, NavigateOpts } from 'tabby-chat-panel/index'
 
 import {
   MARKDOWN_CITATION_REGEX,
@@ -80,10 +73,6 @@ export interface MessageMarkdownProps {
     opts?: { languageId: string; smart: boolean }
   ) => void
   onNavigateSymbol?: (filepaths: string[], keyword: string) => void
-  onHoverSymbol?: (
-    filepaths: string[],
-    keyword: string
-  ) => Promise<SymbolInfo | undefined>
   onNavigateToContext?:
     | ((context: Context, opts?: NavigateOpts) => void)
     | undefined
@@ -112,10 +101,6 @@ type MessageMarkdownContextValue = {
   canWrapLongLines: boolean
   onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   onNavigateSymbol?: (filepaths: string[], keyword: string) => void
-  onHoverSymbol?: (
-    filepaths: string[],
-    keyword: string
-  ) => Promise<SymbolInfo | undefined>
   supportsOnApplyInEditorV2: boolean
 }
 
@@ -135,7 +120,6 @@ export function MessageMarkdown({
   className,
   canWrapLongLines,
   onNavigateSymbol,
-  onHoverSymbol,
   onNavigateToContext,
   supportsOnApplyInEditorV2,
   ...rest
@@ -215,8 +199,7 @@ export function MessageMarkdown({
         canWrapLongLines: !!canWrapLongLines,
         onNavigateToContext,
         supportsOnApplyInEditorV2,
-        onNavigateSymbol,
-        onHoverSymbol
+        onNavigateSymbol
       }}
     >
       <MemoizedReactMarkdown
@@ -255,13 +238,9 @@ export function MessageMarkdown({
             return <li>{children}</li>
           },
           code({ node, inline, className, children, ...props }) {
-            const { onNavigateSymbol, canWrapLongLines, onHoverSymbol } =
+            const { onNavigateSymbol, canWrapLongLines } =
               // eslint-disable-next-line react-hooks/rules-of-hooks
               useContext(MessageMarkdownContext)
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const [title, setTitle] = useState('')
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const hoverTimeoutRef = useRef<number | null>(null)
 
             if (children.length) {
               if (children[0] === '▍') {
@@ -306,29 +285,6 @@ export function MessageMarkdown({
                 }
               }
 
-              const handleMouseEnter = () => {
-                if (!onHoverSymbol) return
-                if (hoverTimeoutRef.current) {
-                  clearTimeout(hoverTimeoutRef.current)
-                }
-                hoverTimeoutRef.current = window.setTimeout(async () => {
-                  const res = await onHoverSymbol(
-                    attachmentCode
-                      ? attachmentCode.map(code => code.filepath)
-                      : [],
-                    keyword
-                  )
-                  setTitle(res ? 'Go to definition' : '')
-                }, 100)
-              }
-
-              const handleMouseLeave = () => {
-                if (hoverTimeoutRef.current) {
-                  clearTimeout(hoverTimeoutRef.current)
-                  hoverTimeoutRef.current = null
-                }
-              }
-
               return (
                 <code
                   className={cn(
@@ -338,9 +294,6 @@ export function MessageMarkdown({
                       : ''
                   )}
                   onClick={handleClick}
-                  onMouseEnter={onHoverSymbol ? handleMouseEnter : undefined}
-                  onMouseLeave={onHoverSymbol ? handleMouseLeave : undefined}
-                  title={onHoverSymbol ? title : ''}
                   {...props}
                 >
                   {children}

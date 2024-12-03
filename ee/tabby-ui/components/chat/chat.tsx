@@ -51,10 +51,6 @@ type ChatContextValue = {
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onNavigateSymbol?: (filepaths: string[], keyword: string) => void
-  onHoverSymbol?: (
-    filepaths: string[],
-    keyword: string
-  ) => Promise<SymbolInfo | undefined>
   relevantContext: Context[]
   activeSelection: Context | null
   removeRelevantContext: (index: number) => void
@@ -94,10 +90,6 @@ interface ChatProps extends React.ComponentProps<'div'> {
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onNavigateSymbol?: (filepaths: string[], keyword: string) => void
-  onHoverSymbol?: (
-    filepaths: string[],
-    keyword: string
-  ) => Promise<SymbolInfo | undefined>
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
 }
@@ -120,7 +112,6 @@ function ChatRenderer(
     onSubmitMessage,
     onApplyInEditor,
     onNavigateSymbol,
-    onHoverSymbol,
     chatInputRef,
     supportsOnApplyInEditorV2
   }: ChatProps,
@@ -547,7 +538,6 @@ function ChatRenderer(
         onCopyContent,
         onApplyInEditor,
         onNavigateSymbol,
-        onHoverSymbol,
         relevantContext,
         removeRelevantContext,
         chatInputRef,

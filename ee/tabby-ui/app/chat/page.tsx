@@ -76,7 +76,6 @@ export default function ChatPage() {
     useState(false)
   const [supportsOnNavigateSymbol, setSupportsOnNavigateSymbol] =
     useState(false)
-  const [supportsOnHoverSymbol, setSupportsOnHoverSymbol] = useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -242,7 +241,6 @@ export default function ChatPage() {
         server
           ?.hasCapability('onNavigateSymbol')
           .then(setSupportsOnNavigateSymbol)
-        server?.hasCapability('onHoverSymbol').then(setSupportsOnHoverSymbol)
       }
 
       checkCapabilities()
@@ -398,10 +396,6 @@ export default function ChatPage() {
         onNavigateSymbol={
           isInEditor &&
           (supportsOnNavigateSymbol ? server?.onNavigateSymbol : undefined)
-        }
-        onHoverSymbol={
-          isInEditor &&
-          (supportsOnHoverSymbol ? server?.onHoverSymbol : undefined)
         }
       />
     </ErrorBoundary>
