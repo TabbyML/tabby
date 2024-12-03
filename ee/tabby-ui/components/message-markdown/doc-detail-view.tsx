@@ -27,7 +27,7 @@ export function DocDetailView({
 
   return (
     <div className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0">
-      <div className="flex w-full flex-col gap-y-1 ">
+      <div className="flex w-full flex-col gap-y-1 text-sm">
         <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
           <SiteFavicon
             hostname={sourceUrl!.hostname}
