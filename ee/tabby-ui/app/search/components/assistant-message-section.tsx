@@ -74,6 +74,7 @@ import {
 } from '@/components/message-markdown'
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
+import { MyAvatar } from '@/components/user-avatar'
 
 import { ConversationMessage, SearchContext, SOURCE_CARD_STYLE } from './search'
 
@@ -552,6 +553,9 @@ function SourceCardContent({
 
   const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
   const isPR = source.__typename === 'MessageAttachmentPullDoc'
+  // const showAvatar = (isIssue || isPR) && !!source.author
+  // FIXME for mock
+  const showAvatar = isPR
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">
@@ -559,17 +563,28 @@ function SourceCardContent({
         <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
           {source.title}
         </p>
-        <p
-          className={cn(
-            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-            {
-              'line-clamp-2': showMore,
-              'line-clamp-1': !showMore
-            }
-          )}
-        >
-          {normalizedText(getContent(source))}
-        </p>
+        {showAvatar && (
+          <div className="overflow-x-hidden flex items-center gap-1">
+            <MyAvatar className="h-3.5 w-3.5 shrink-0" />
+            <p className="truncate text-xs text-muted-foreground font-medium">
+              liang
+            </p>
+          </div>
+        )}
+        {(!showAvatar || showMore) && (
+          <p
+            className={cn(
+              ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+              !showAvatar && showMore ? 'line-clamp-2' : 'line-clamp-1'
+              // {
+              //   'line-clamp-2': showMore,
+              //   'line-clamp-1': !showMore
+              // }
+            )}
+          >
+            {normalizedText(getContent(source))}
+          </p>
+        )}
       </div>
       <div className="flex items-center text-xs text-muted-foreground">
         <div className="flex w-full flex-1 items-center justify-between gap-1">
