@@ -287,6 +287,20 @@ impl Query {
         .await
     }
 
+    async fn user(ctx: &Context, email: Option<String>) -> Result<UserValue> {
+        check_user(ctx).await?;
+
+        if email.is_none() {
+            return Err(CoreError::InvalidInput(ValidationErrors::new()));
+        }
+
+        ctx.locator
+            .auth()
+            .get_user_by_email(email.unwrap().as_str())
+            .await
+            .map(UserValue::UserSecured)
+    }
+
     async fn invitations(
         ctx: &Context,
         after: Option<String>,

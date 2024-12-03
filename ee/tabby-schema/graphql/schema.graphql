@@ -681,6 +681,7 @@ type Query {
   me: UserSecured!
   "List users, accessible for all login users."
   users(after: String, before: String, first: Int, last: Int): UserConnection!
+  user(email: String): User!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
