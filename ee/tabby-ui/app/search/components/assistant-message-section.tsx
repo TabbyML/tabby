@@ -39,6 +39,11 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card'
+import {
   IconBlocks,
   IconBug,
   IconCheckCircled,
@@ -65,9 +70,10 @@ import { CodeReferences } from '@/components/chat/code-references'
 import { CopyButton } from '@/components/copy-button'
 import {
   ErrorMessageBlock,
-  MessageMarkdown,
-  SiteFavicon
+  MessageMarkdown
 } from '@/components/message-markdown'
+import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
+import { SiteFavicon } from '@/components/site-favicon'
 
 import { ConversationMessage, SearchContext, SOURCE_CARD_STYLE } from './search'
 
@@ -286,13 +292,23 @@ export function AssistantMessageSection({
             }}
           >
             {messageAttachmentDocs.map((source, index) => (
-              <SourceCard
+              <HoverCard
                 key={source.link + index}
-                conversationId={message.id}
-                source={source}
-                showMore={showMoreSource}
-                showDevTooltip={enableDeveloperMode}
-              />
+                openDelay={100}
+                closeDelay={100}
+              >
+                <HoverCardTrigger>
+                  <SourceCard
+                    conversationId={message.id}
+                    source={source}
+                    showMore={showMoreSource}
+                    showDevTooltip={enableDeveloperMode}
+                  />
+                </HoverCardTrigger>
+                <HoverCardContent className="bg-background text-foreground w-96 text-sm">
+                  <DocDetailView relevantDocument={source} />
+                </HoverCardContent>
+              </HoverCard>
             ))}
           </div>
           <Button
