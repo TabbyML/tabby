@@ -3,8 +3,9 @@ import he from 'he'
 import { marked } from 'marked'
 import { useQuery } from 'urql'
 
+import { ListUsersQuery } from '@/lib/gql/generates/graphql'
 import { listSecuredUsers } from '@/lib/tabby/query'
-import type { AttachmentDocItem } from '@/lib/types'
+import type { ArrayElementType, AttachmentDocItem } from '@/lib/types'
 import { getContent } from '@/lib/utils'
 
 import LoadingWrapper from '../loading-wrapper'
@@ -19,9 +20,13 @@ import {
 import { UserAvatar } from '../user-avatar'
 
 export function DocDetailView({
-  relevantDocument
+  relevantDocument,
+  user,
+  fetchingUser
 }: {
   relevantDocument: AttachmentDocItem
+  user?: ArrayElementType<ListUsersQuery['users']['edges']>['node']
+  fetchingUser?: boolean
 }) {
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
   const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
@@ -82,17 +87,20 @@ function PullDocInfoView({
   })
 
   const user = data?.users?.edges[0]?.node
-  if (!user || fetching) return null
 
   return (
     <LoadingWrapper>
       <div className="flex items-center gap-3">
         <PRStateBadge merged={merged} />
         <div className="flex items-center gap-1.5 flex-1">
-          <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
-          <span className="text-muted-foreground font-semibold">
-            {user.name || user.email}
-          </span>
+          {!user || fetching ? null : (
+            <>
+              <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
+              <span className="text-muted-foreground font-semibold">
+                {user.name || user.email}
+              </span>
+            </>
+          )}
         </div>
       </div>
     </LoadingWrapper>
@@ -115,21 +123,21 @@ function IssueDocInfoView({
   })
 
   const user = data?.users?.edges[0]?.node
-  if (!user || fetching) return null
 
-  // todo skeleton?
   return (
-    // <LoadingWrapper loading={fetching}>
     <div className="flex items-center gap-3">
       <IssueStateBadge closed={closed} />
       <div className="flex items-center gap-1.5 flex-1">
-        <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
-        <span className="text-muted-foreground font-semibold">
-          {user.name || user.email}
-        </span>
+        {!user || fetching ? null : (
+          <>
+            <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
+            <span className="text-muted-foreground font-semibold">
+              {user.name || user.email}
+            </span>
+          </>
+        )}
       </div>
     </div>
-    // </LoadingWrapper>
   )
 }
 
@@ -137,7 +145,7 @@ function IssueStateBadge({ closed }: { closed: boolean }) {
   return (
     <Badge
       variant={closed ? 'default' : 'secondary'}
-      className="gap-1 py-1 text-xs"
+      className="gap-1 py-1 text-xs shrink-0"
     >
       {closed ? (
         <IconCheckCircled className="h-3.5 w-3.5" />
@@ -153,7 +161,7 @@ function PRStateBadge({ merged }: { merged: boolean }) {
   return (
     <Badge
       variant={merged ? 'default' : 'secondary'}
-      className="gap-1 py-1 text-xs"
+      className="gap-1 py-1 text-xs shrink-0"
     >
       {merged ? (
         <IconGitMerge className="h-3.5 w-3.5" />
