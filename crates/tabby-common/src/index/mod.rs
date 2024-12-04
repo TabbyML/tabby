@@ -250,7 +250,7 @@ impl IndexSchema {
             (
                 Occur::Must,
                 Box::new(ExistsQuery::new_exists_query(
-                    format!("{}.{}", FIELD_ATTRIBUTES, field).into(),
+                    format!("{}.{}", FIELD_ATTRIBUTES, field),
                 )),
             ),
         ])

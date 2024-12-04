@@ -225,7 +225,7 @@ fn get_json_field<'a>(
 
 fn get_json_bool_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> bool {
     if let Some(field) = get_json_field(doc, field, name) {
-        return field.as_bool().unwrap_or_default();
+        field.as_bool().unwrap_or_default()
     } else {
         false
     }
