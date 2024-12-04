@@ -97,11 +97,7 @@ export const CodeReferences = forwardRef<
                   context={item}
                   onContextClick={ctx => onContextClick?.(ctx, true)}
                   isHighlighted={highlightIndex === index}
-                  clickable={
-                    isInEditor ||
-                    !!item.git_url ||
-                    item.filepath.startsWith('output:')
-                  }
+                  clickable={isInEditor || !!item.git_url}
                   showClientCodeIcon={showClientCodeIcon}
                 />
               )

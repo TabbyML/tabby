@@ -261,7 +261,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     onNavigateToContext,
     onApplyInEditor,
     onCopyContent,
-    supportsOnApplyInEditorV2
+    supportsOnApplyInEditorV2,
+    isInEditor
   } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -388,6 +389,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           showClientCodeIcon={!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
+          isInEditor={isInEditor}
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
