@@ -365,7 +365,7 @@ function RelevantDocumentBadge({
   citationIndex: number
 }) {
   return (
-    <HoverCard>
+    <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger>
         <span
           className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
