@@ -21,8 +21,8 @@ import { UserAvatar } from '../user-avatar'
 
 export function DocDetailView({
   relevantDocument,
-  user,
-  fetchingUser
+  user: propsUser,
+  fetchingUser: propsFetchingUser
 }: {
   relevantDocument: AttachmentDocItem
   user?: ArrayElementType<ListUsersQuery['users']['edges']>['node']
@@ -31,6 +31,21 @@ export function DocDetailView({
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
   const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
   const isPR = relevantDocument?.__typename === 'MessageAttachmentPullDoc'
+  const author =
+    relevantDocument.__typename === 'MessageAttachmentWebDoc'
+      ? undefined
+      : relevantDocument.author
+
+  const [{ data, fetching }] = useQuery({
+    query: listSecuredUsers,
+    variables: {
+      emails: [author as string]
+    },
+    pause: !!propsUser || !author
+  })
+
+  const user = propsUser || data?.users?.edges[0]?.node
+  const fetchingUser = propsFetchingUser || fetching
 
   return (
     <div className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0">
@@ -52,13 +67,15 @@ export function DocDetailView({
           {isIssue && (
             <IssueDocInfoView
               closed={relevantDocument.closed}
-              author={relevantDocument.author}
+              user={user}
+              fetchingUser={fetchingUser}
             />
           )}
           {isPR && (
             <PullDocInfoView
               merged={relevantDocument.merged}
-              author={relevantDocument.author}
+              user={user}
+              fetchingUser={fetchingUser}
             />
           )}
         </div>
@@ -72,28 +89,19 @@ export function DocDetailView({
 
 function PullDocInfoView({
   merged,
-  author
+  user,
+  fetchingUser
 }: {
   merged: boolean
-  author: string
+  user?: ArrayElementType<ListUsersQuery['users']['edges']>['node']
+  fetchingUser?: boolean
 }) {
-  // FIXME me: if a user data pass, no need to query
-  const [{ data, fetching }] = useQuery({
-    query: listSecuredUsers,
-    variables: {
-      emails: [author]
-    },
-    pause: !author
-  })
-
-  const user = data?.users?.edges[0]?.node
-
   return (
     <LoadingWrapper>
       <div className="flex items-center gap-3">
         <PRStateBadge merged={merged} />
         <div className="flex items-center gap-1.5 flex-1">
-          {!user || fetching ? null : (
+          {!user || fetchingUser ? null : (
             <>
               <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
               <span className="text-muted-foreground font-semibold">
@@ -109,26 +117,18 @@ function PullDocInfoView({
 
 function IssueDocInfoView({
   closed,
-  author
+  user,
+  fetchingUser
 }: {
   closed: boolean
-  author: string
+  user?: ArrayElementType<ListUsersQuery['users']['edges']>['node']
+  fetchingUser?: boolean
 }) {
-  const [{ data, fetching }] = useQuery({
-    query: listSecuredUsers,
-    variables: {
-      emails: [author]
-    },
-    pause: !author
-  })
-
-  const user = data?.users?.edges[0]?.node
-
   return (
     <div className="flex items-center gap-3">
       <IssueStateBadge closed={closed} />
       <div className="flex items-center gap-1.5 flex-1">
-        {!user || fetching ? null : (
+        {!user || fetchingUser ? null : (
           <>
             <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
             <span className="text-muted-foreground font-semibold">
