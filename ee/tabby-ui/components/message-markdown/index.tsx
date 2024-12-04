@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
+import { ReactNode, useContext, useMemo, useState } from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -37,6 +37,8 @@ import {
   IconGitPullRequest
 } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
+import { CodeElement } from './code'
+import { MessageMarkdownContext } from './markdown-context'
 
 type RelevantDocItem = {
   type: 'doc'
@@ -87,27 +89,6 @@ export interface MessageMarkdownProps {
   supportsOnApplyInEditorV2: boolean
   activeSelection?: FileContext
 }
-
-type MessageMarkdownContextValue = {
-  onCopyContent?: ((value: string) => void) | undefined
-  onApplyInEditor?: (
-    content: string,
-    opts?: { languageId: string; smart: boolean }
-  ) => void
-  onCodeCitationClick?: (code: AttachmentCodeItem) => void
-  onCodeCitationMouseEnter?: (index: number) => void
-  onCodeCitationMouseLeave?: (index: number) => void
-  contextInfo: ContextInfo | undefined
-  fetchingContextInfo: boolean
-  canWrapLongLines: boolean
-  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
-  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
-  supportsOnApplyInEditorV2: boolean
-}
-
-const MessageMarkdownContext = createContext<MessageMarkdownContextValue>(
-  {} as MessageMarkdownContextValue
-)
 
 export function MessageMarkdown({
   message,
@@ -201,7 +182,8 @@ export function MessageMarkdown({
         canWrapLongLines: !!canWrapLongLines,
         onNavigateToContext,
         supportsOnApplyInEditorV2,
-        onNavigateSymbol
+        onNavigateSymbol,
+        activeSelection
       }}
     >
       <MemoizedReactMarkdown
@@ -240,80 +222,15 @@ export function MessageMarkdown({
             return <li>{children}</li>
           },
           code({ node, inline, className, children, ...props }) {
-            const { onNavigateSymbol, canWrapLongLines } =
-              // eslint-disable-next-line react-hooks/rules-of-hooks
-              useContext(MessageMarkdownContext)
-
-            if (children.length) {
-              if (children[0] === '▍') {
-                return (
-                  <span className="mt-1 animate-pulse cursor-default">▍</span>
-                )
-              }
-              children[0] = (children[0] as string).replace('`▍`', '▍')
-            }
-
-            const match = /language-(\w+)/.exec(className || '')
-
-            if (inline) {
-              if (!onNavigateSymbol) {
-                return (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                )
-              }
-
-              const keyword = children[0]?.toString()
-              if (!keyword) {
-                return (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                )
-              }
-
-              const isClickable = Boolean(canWrapLongLines)
-
-              const handleClick = () => {
-                if (!isClickable) return
-                if (onNavigateSymbol) {
-                  onNavigateSymbol(
-                    activeSelection?.filepath
-                      ? [activeSelection?.filepath]
-                      : [],
-                    keyword
-                  )
-                }
-              }
-
-              return (
-                <code
-                  className={cn(
-                    className,
-                    isClickable
-                      ? 'cursor-pointer transition-colors hover:bg-muted/50'
-                      : ''
-                  )}
-                  onClick={handleClick}
-                  {...props}
-                >
-                  {children}
-                </code>
-              )
-            }
-
             return (
-              <CodeBlockWrapper
-                key={Math.random()}
-                language={(match && match[1]) || ''}
-                value={String(children).replace(/\n$/, '')}
-                onApplyInEditor={onApplyInEditor}
-                onCopyContent={onCopyContent}
-                canWrapLongLines={canWrapLongLines}
-                supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+              <CodeElement
+                node={node}
+                inline={inline}
+                className={className}
                 {...props}
-              />
+              >
+                {children}
+              </CodeElement>
             )
           }
         }}
@@ -357,20 +274,6 @@ export function ErrorMessageBlock({
     >
       {errorMessage}
     </MemoizedReactMarkdown>
-  )
-}
-
-function CodeBlockWrapper(props: CodeBlockProps) {
-  const { canWrapLongLines, supportsOnApplyInEditorV2 } = useContext(
-    MessageMarkdownContext
-  )
-
-  return (
-    <CodeBlock
-      {...props}
-      canWrapLongLines={canWrapLongLines}
-      supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-    />
   )
 }
 
