@@ -402,6 +402,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onNavigateSymbol={onNavigateSymbol}
               onNavigateToContext={onNavigateToContext}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+              activeSelection={userMessage.activeContext}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>

@@ -21,7 +21,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-import { Context, NavigateOpts } from 'tabby-chat-panel/index'
+import { Context, FileContext, NavigateOpts } from 'tabby-chat-panel/index'
 
 import {
   MARKDOWN_CITATION_REGEX,
@@ -85,6 +85,7 @@ export interface MessageMarkdownProps {
   // wrapLongLines for code block
   canWrapLongLines?: boolean
   supportsOnApplyInEditorV2: boolean
+  activeSelection?: FileContext
 }
 
 type MessageMarkdownContextValue = {
@@ -122,6 +123,7 @@ export function MessageMarkdown({
   onNavigateSymbol,
   onNavigateToContext,
   supportsOnApplyInEditorV2,
+  activeSelection,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -277,8 +279,8 @@ export function MessageMarkdown({
                 if (!isClickable) return
                 if (onNavigateSymbol) {
                   onNavigateSymbol(
-                    attachmentCode
-                      ? attachmentCode.map(code => code.filepath)
+                    activeSelection?.filepath
+                      ? [activeSelection?.filepath]
                       : [],
                     keyword
                   )
