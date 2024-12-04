@@ -2,6 +2,7 @@
 authors: [ meng, gyxlucy ]
 
 tags: [release]
+slug: /2023/10/14/seed-round-release-0-3-0
 
 ---
 # Announcing our $3.2M seed round, and the long-awaited RAG release in Tabby v0.3.0
