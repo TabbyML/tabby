@@ -400,7 +400,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
               canWrapLongLines={!isLoading}
               onNavigateSymbol={onNavigateSymbol}
-              onNavigateToContext={onNavigateToContext}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
               activeSelection={userMessage.activeContext}
             />

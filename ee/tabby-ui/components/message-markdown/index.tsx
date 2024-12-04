@@ -11,7 +11,6 @@ import remarkMath from 'remark-math'
 import { ContextInfo, Maybe } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
-import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
 import {
   HoverCard,
   HoverCardContent,
@@ -21,7 +20,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-import { Context, FileContext, NavigateOpts } from 'tabby-chat-panel/index'
+import { FileContext } from 'tabby-chat-panel/index'
 
 import {
   MARKDOWN_CITATION_REGEX,
@@ -75,9 +74,6 @@ export interface MessageMarkdownProps {
     opts?: { languageId: string; smart: boolean }
   ) => void
   onNavigateSymbol?: (filepaths: string[], keyword: string) => void
-  onNavigateToContext?:
-    | ((context: Context, opts?: NavigateOpts) => void)
-    | undefined
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -102,7 +98,6 @@ export function MessageMarkdown({
   className,
   canWrapLongLines,
   onNavigateSymbol,
-  onNavigateToContext,
   supportsOnApplyInEditorV2,
   activeSelection,
   ...rest
@@ -180,7 +175,6 @@ export function MessageMarkdown({
         contextInfo,
         fetchingContextInfo: !!fetchingContextInfo,
         canWrapLongLines: !!canWrapLongLines,
-        onNavigateToContext,
         supportsOnApplyInEditorV2,
         onNavigateSymbol,
         activeSelection

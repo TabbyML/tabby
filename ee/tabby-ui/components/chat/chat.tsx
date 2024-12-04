@@ -32,7 +32,6 @@ import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
-  threadId: string | undefined
   isLoading: boolean
   qaPairs: QuestionAnswerPair[]
   handleMessageAction: (
@@ -525,7 +524,6 @@ function ChatRenderer(
   return (
     <ChatContext.Provider
       value={{
-        threadId,
         isLoading,
         qaPairs,
         onNavigateToContext,
