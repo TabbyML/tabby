@@ -125,10 +125,20 @@ impl DbConn {
 
     pub async fn list_users_with_filter(
         &self,
+        emails: Option<Vec<String>>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<UserDAO>> {
+        let email_condition = emails.map(|emails| {
+            let emails = emails
+                .into_iter()
+                .map(|e| format!("'{}'", e))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("email in ({emails})")
+        });
+
         let users = query_paged_as!(
             UserDAO,
             "users",
@@ -145,7 +155,8 @@ impl DbConn {
             ],
             limit,
             skip_id,
-            backwards
+            backwards,
+            email_condition
         )
         .fetch_all(&self.pool)
         .await?;

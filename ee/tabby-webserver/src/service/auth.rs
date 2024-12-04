@@ -450,6 +450,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn list_users(
         &self,
+        emails: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -459,7 +460,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         Ok(self
             .db
-            .list_users_with_filter(skip_id, limit, backwards)
+            .list_users_with_filter(emails, skip_id, limit, backwards)
             .await?
             .into_iter()
             .map(|x| UserSecured::new(self.db.clone(), x))

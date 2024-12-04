@@ -265,6 +265,7 @@ impl Query {
     /// List users, accessible for all login users.
     async fn users(
         ctx: &Context,
+        emails: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -279,26 +280,12 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .auth()
-                    .list_users(after, before, first, last)
+                    .list_users(emails, after, before, first, last)
                     .await
                     .map(|users| users.into_iter().map(UserValue::UserSecured).collect())
             },
         )
         .await
-    }
-
-    async fn user(ctx: &Context, email: Option<String>) -> Result<UserValue> {
-        check_user(ctx).await?;
-
-        if email.is_none() {
-            return Err(CoreError::InvalidInput(ValidationErrors::new()));
-        }
-
-        ctx.locator
-            .auth()
-            .get_user_by_email(email.unwrap().as_str())
-            .await
-            .map(UserValue::UserSecured)
     }
 
     async fn invitations(

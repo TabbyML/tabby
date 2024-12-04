@@ -50,12 +50,11 @@ pub async fn list_github_pulls(
                 let url = pull.html_url.map(|url| url.to_string()).unwrap_or_else(|| pull.url);
                 let title = pull.title.clone().unwrap_or_default();
                 let body = pull.body.clone().unwrap_or_default();
+
                 let author = pull.user.as_ref().map(|user| user.login.clone()).unwrap_or_default();
-                println!("author: {}", author);
                 let email = if !author.is_empty() {
                     match octocrab.users(&author).profile().await {
                         Ok(profile) => {
-                            println!("profile: {:?}", profile);
                             profile.email.unwrap_or_default()
                         }
                         Err(e) => {
