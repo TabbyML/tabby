@@ -148,8 +148,8 @@ mod structured_doc_tests {
         let temp_dir = TempDir::default();
         tabby_common::path::set_tabby_root(temp_dir.to_owned());
 
-        let id = "structured_doc_empty_embedding";
-        let embedding = MockEmbedding::new(vec![]);
+        let id = "structured_doc_has_attribute_field";
+        let embedding = MockEmbedding::new(vec![1.0], false);
         let embedding = Arc::new(embedding);
         let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
@@ -174,7 +174,6 @@ mod structured_doc_tests {
                     doc,
                 )
                 .await;
-            println!("{}", updated);
             updated
         });
         assert!(res);

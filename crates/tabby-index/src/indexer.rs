@@ -282,11 +282,13 @@ impl Indexer {
     pub fn has_attribute_field(&self, id: &str, field: &str) -> bool {
         let schema = IndexSchema::instance();
         let query = schema.doc_has_attribute_field(&self.corpus, id, field);
-        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
-            return false;
-        };
-
-        !docs.is_empty()
+        match self.searcher.search(&query, &TopDocs::with_limit(1)) {
+            Ok(docs) => !docs.is_empty(),
+            Err(e) => {
+                debug!("query tantivy error: {}", e);
+                false
+            }
+        }
     }
 }
 
