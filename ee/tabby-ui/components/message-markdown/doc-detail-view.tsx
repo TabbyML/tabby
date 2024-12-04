@@ -1,7 +1,9 @@
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
+import { useQuery } from 'urql'
 
+import { listSecuredUsers } from '@/lib/tabby/query'
 import type { AttachmentDocItem } from '@/lib/types'
 import { getContent } from '@/lib/utils'
 
@@ -14,7 +16,7 @@ import {
   IconGitMerge,
   IconGitPullRequest
 } from '../ui/icons'
-import { MyAvatar } from '../user-avatar'
+import { UserAvatar } from '../user-avatar'
 
 export function DocDetailView({
   relevantDocument
@@ -70,15 +72,27 @@ function PullDocInfoView({
   merged: boolean
   author: string
 }) {
-  // use author as a userId for now
+  // FIXME me: if a user data pass, no need to query
+  const [{ data, fetching }] = useQuery({
+    query: listSecuredUsers,
+    variables: {
+      emails: [author]
+    },
+    pause: !author
+  })
+
+  const user = data?.users?.edges[0]?.node
+  if (!user || fetching) return null
 
   return (
     <LoadingWrapper>
       <div className="flex items-center gap-3">
         <PRStateBadge merged={merged} />
         <div className="flex items-center gap-1.5 flex-1">
-          <MyAvatar className="w-5 h-5 shrink-0 not-prose" />
-          <span className="text-muted-foreground font-semibold">liang</span>
+          <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
+          <span className="text-muted-foreground font-semibold">
+            {user.name || user.email}
+          </span>
         </div>
       </div>
     </LoadingWrapper>
@@ -92,22 +106,30 @@ function IssueDocInfoView({
   closed: boolean
   author: string
 }) {
-  // use author as a userId for now
+  const [{ data, fetching }] = useQuery({
+    query: listSecuredUsers,
+    variables: {
+      emails: [author]
+    },
+    pause: !author
+  })
 
+  const user = data?.users?.edges[0]?.node
+  if (!user || fetching) return null
+
+  // todo skeleton?
   return (
-    <LoadingWrapper>
-      <div className="flex items-center gap-3">
-        <IssueStateBadge closed={closed} />
-        <div className="flex items-center gap-1.5 flex-1">
-          {/* mock */}
-          {/* <MyAvatar className='w-5 h-5 shrink-0 not-prose' />
-          <span className='text-muted-foreground font-semibold'>liang</span> */}
-          {/* <span className="text-muted-foreground font-semibold">
-            Not-in-server@tabbyml.com
-          </span> */}
-        </div>
+    // <LoadingWrapper loading={fetching}>
+    <div className="flex items-center gap-3">
+      <IssueStateBadge closed={closed} />
+      <div className="flex items-center gap-1.5 flex-1">
+        <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
+        <span className="text-muted-foreground font-semibold">
+          {user.name || user.email}
+        </span>
       </div>
-    </LoadingWrapper>
+    </div>
+    // </LoadingWrapper>
   )
 }
 
