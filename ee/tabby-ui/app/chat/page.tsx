@@ -388,7 +388,6 @@ export default function ChatPage() {
             : server?.onApplyInEditor)
         }
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-        isInEditor={isInEditor}
       />
     </ErrorBoundary>
   )

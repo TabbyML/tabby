@@ -261,8 +261,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     onNavigateToContext,
     onApplyInEditor,
     onCopyContent,
-    supportsOnApplyInEditorV2,
-    isInEditor
+    supportsOnApplyInEditorV2
   } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -386,10 +385,10 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           }}
           // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
           showExternalLink={!!onApplyInEditor}
+          isInEditor={!!onApplyInEditor}
           showClientCodeIcon={!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
-          isInEditor={isInEditor}
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
