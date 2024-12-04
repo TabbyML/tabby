@@ -622,8 +622,8 @@ export class WebviewHelper {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
-      onNavigateSymbol: async (filepath: string[], keyword: string) => {
-        const symbolInfo = await findSymbolInfo(filepath, keyword);
+      onNavigateSymbol: async (hintFilepaths: string[], keyword: string) => {
+        const symbolInfo = await findSymbolInfo(hintFilepaths, keyword);
 
         if (symbolInfo) {
           try {

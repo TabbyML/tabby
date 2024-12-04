@@ -83,8 +83,9 @@ export interface ClientApiMethods {
   onCopy: (content: string) => void
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
+
   // navigate to lsp definition by symbol
-  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
+  onNavigateSymbol?: (hintFilepaths: string[], keyword: string) => void
 }
 
 export interface ClientApi extends ClientApiMethods {
