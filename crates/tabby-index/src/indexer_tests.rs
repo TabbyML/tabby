@@ -165,7 +165,6 @@ mod structured_doc_tests {
 
         let updated_at = chrono::Utc::now();
         let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            
             indexer
                 .sync(
                     StructuredDocState {

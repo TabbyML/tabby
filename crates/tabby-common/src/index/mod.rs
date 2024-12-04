@@ -249,9 +249,10 @@ impl IndexSchema {
             // Must has the failed_chunks_count field
             (
                 Occur::Must,
-                Box::new(ExistsQuery::new_exists_query(
-                    format!("{}.{}", FIELD_ATTRIBUTES, field),
-                )),
+                Box::new(ExistsQuery::new_exists_query(format!(
+                    "{}.{}",
+                    FIELD_ATTRIBUTES, field
+                ))),
             ),
         ])
     }
