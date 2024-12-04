@@ -1,7 +1,7 @@
 import type { TextEditor, TextDocument } from "vscode";
 import type { FileContext } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
-import { workspace, window, Position, Range, Selection, TextEditorRevealType, Uri, ViewColumn } from "vscode";
+import { workspace, window, Position, Range, Selection, TextEditorRevealType, Uri, ViewColumn, commands } from "vscode";
 import path from "path";
 import { getLogger } from "../logger";
 
@@ -63,6 +63,12 @@ export async function getFileContext(
 }
 
 export async function showFileContext(fileContext: FileContext, gitProvider: GitProvider): Promise<void> {
+  if (fileContext.filepath.startsWith("output:")) {
+    const channelId = Uri.parse(fileContext.filepath).fsPath;
+    await commands.executeCommand(`workbench.action.output.show.${channelId}`);
+    return;
+  }
+
   const document = await openTextDocument(fileContext, gitProvider);
   if (!document) {
     throw new Error(`File not found: ${fileContext.filepath}`);
