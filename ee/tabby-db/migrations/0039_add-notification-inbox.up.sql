@@ -4,7 +4,7 @@ CREATE TABLE notifications (
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
 
-  -- enum of ADMIN, ALL_USERS
+  -- enum of admin, all_user
   kind VARCHAR(255) NOT NULL DEFAULT 'admin',
 
   -- content of notification, in markdown format.
