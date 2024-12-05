@@ -84,7 +84,7 @@ export interface ClientApiMethods {
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
 
-  // find symbol definition location by hint filepaths and keyword 
+  // find symbol definition location by hint filepaths and keyword
   onLookupSymbol?: (hintFilepaths: string[], keyword: string) => Promise<SymbolInfo | undefined>
 }
 

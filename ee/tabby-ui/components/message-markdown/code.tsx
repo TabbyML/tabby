@@ -88,7 +88,7 @@ export function CodeElement({
         className={cn(
           className,
           isClickable
-            ? 'hover:bg-muted/50 cursor-pointer transition-colors'
+            ? 'cursor-pointer transition-colors hover:bg-muted/50'
             : ''
         )}
         onClick={handleClick}
