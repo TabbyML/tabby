@@ -19,6 +19,8 @@ CREATE TABLE readed_notifications (
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
 
+  CONSTRAINT idx_unique_user_id_notification_id UNIQUE (user_id, notification_id),
+
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE
 )
