@@ -14,6 +14,7 @@ use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::JobService,
     repository::{ProvidedRepository, ThirdPartyRepositoryService},
+    CoreError,
 };
 use tracing::debug;
 
@@ -128,28 +129,34 @@ impl SchedulerGithubGitlabJob {
         };
 
         let pull_stream = match fetch_all_pulls(&integration, &repository).await {
-            Ok(s) => s,
+            Ok(s) => Some(s),
             Err(e) => {
                 integration_service
                     .update_integration_sync_status(integration.id, Some(e.to_string()))
                     .await?;
-                logkit::error!("Failed to fetch pulls: {}", e);
-                return Err(e);
+                logkit::warn!("Failed to fetch pulls: {}", e);
+                None
             }
         };
 
         stream! {
             let mut count = 0;
             let mut num_updated = 0;
-            for await (state, doc) in issue_stream.chain(pull_stream) {
-                if index.sync(state, doc).await {
-                    num_updated += 1
-                }
+            let combined_stream = if let Some(pull_stream) = pull_stream {
+                issue_stream.chain(pull_stream).boxed()
+            } else {
+                issue_stream.boxed()
+            };
 
-                count += 1;
-                if count % 100 == 0 {
-                    logkit::info!("{} docs seen, {} docs updated", count, num_updated);
-                };
+            for await (state, doc) in combined_stream {
+            if index.sync(state, doc).await {
+                num_updated += 1
+            }
+
+            count += 1;
+            if count % 100 == 0 {
+                logkit::info!("{} docs seen, {} docs updated", count, num_updated);
+            };
             }
 
             logkit::info!("{} docs seen, {} docs updated", count, num_updated);
@@ -209,14 +216,17 @@ async fn fetch_all_pulls(
     integration: &Integration,
     repository: &ProvidedRepository,
 ) -> tabby_schema::Result<BoxStream<'static, (StructuredDocState, StructuredDoc)>> {
-    let s: BoxStream<(StructuredDocState, StructuredDoc)> = list_github_pulls(
-        &repository.source_id(),
-        integration.api_base(),
-        &repository.display_name,
-        &integration.access_token,
-    )
-    .await?
-    .boxed();
-
-    Ok(s)
+    match &integration.kind {
+        IntegrationKind::Github | IntegrationKind::GithubSelfHosted => Ok(list_github_pulls(
+            &repository.source_id(),
+            integration.api_base(),
+            &repository.display_name,
+            &integration.access_token,
+        )
+        .await?
+        .boxed()),
+        IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => Err(CoreError::Other(
+            anyhow::anyhow!("Gitlab does not support pull requests yet"),
+        )),
+    }
 }
