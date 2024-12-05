@@ -1318,19 +1318,10 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
 
     error.errors().iter().for_each(|(field, kind)| match kind {
         validator::ValidationErrorsKind::Struct(e) => {
-            for (_, error) in e.0.iter() {
-                if let validator::ValidationErrorsKind::Field(field_errors) = error {
-                    for error in field_errors {
-                        let mut obj = Object::with_capacity(2);
-                        obj.add_field("path", Value::scalar(field.to_string()));
-                        obj.add_field(
-                            "message",
-                            Value::scalar(error.message.clone().unwrap_or_default().to_string()),
-                        );
-                        errors.push(obj.into());
-                    }
-                }
-            }
+            let mut obj = Object::with_capacity(2);
+            obj.add_field("path", field.to_string().into());
+            obj.add_field("message", Value::scalar(e.to_string()));
+            errors.push(obj.into());
         }
         validator::ValidationErrorsKind::List(_) => {
             warn!("List errors are not handled");
