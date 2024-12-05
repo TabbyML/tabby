@@ -151,7 +151,7 @@ export default function AddRepositoryForm({
                     align="start"
                     side="bottom"
                   >
-                    <Command className="transition-all">
+                    <Command>
                       <CommandInput
                         placeholder="Search repository..."
                         onValueChange={onSearchChange}

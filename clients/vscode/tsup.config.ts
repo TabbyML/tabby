@@ -1,4 +1,5 @@
-import { defineConfig } from "tsup";
+import { defineConfig, Options } from "tsup";
+import fs from "fs-extra";
 import path from "path";
 import { getInstalledPath } from "get-installed-path";
 import { copy } from "esbuild-plugin-copy";
@@ -13,58 +14,78 @@ const banner = dedent`
    * Licensed under the Apache License 2.0.
    */`;
 
-export default defineConfig(async () => {
+export default defineConfig(async (options: Options): Promise<Options[]> => {
   const tabbyAgentDist = path.join(await getInstalledPath("tabby-agent", { local: true }), "dist");
-  return [
-    {
-      name: "node",
-      entry: ["src/extension.ts"],
-      outDir: "dist/node",
-      platform: "node",
-      target: "node18",
-      sourcemap: true,
-      clean: true,
-      define: {
-        "process.env.IS_BROWSER": "false",
-      },
-      treeshake: {
-        preset: "smallest",
-        moduleSideEffects: "no-external",
-      },
-      external: ["vscode", "vscode-languageserver/browser"],
-      esbuildPlugins: [
-        copy({
-          assets: { from: `${tabbyAgentDist}/**`, to: "dist/tabby-agent" },
-          resolveFrom: "cwd",
-        }),
-      ],
-      banner: {
-        js: banner,
-      },
+  const copyTabbyAgentTask: Options = {
+    name: "copy-tabby-agent",
+    entry: ["scripts/dummy.js"],
+    clean: true,
+    esbuildPlugins: [
+      copy({
+        assets: { from: `${tabbyAgentDist}/**`, to: "dist/tabby-agent" },
+        resolveFrom: "cwd",
+      }),
+    ],
+    onSuccess: async () => {
+      await fs.remove(path.join(__dirname, "dist/dummy.js"));
     },
-    {
-      name: "browser",
-      entry: ["src/extension.ts"],
-      outDir: "dist/browser",
-      platform: "browser",
-      sourcemap: true,
-      clean: true,
-      define: {
-        "process.env.IS_BROWSER": "true",
-      },
-      treeshake: {
-        preset: "smallest",
-        moduleSideEffects: "no-external",
-      },
-      external: ["vscode", "vscode-languageserver/node"],
-      esbuildPlugins: [
-        polyfillNode({
-          polyfills: {},
-        }),
-      ],
-      banner: {
-        js: banner,
-      },
+  };
+  const buildNodeTask: Options = {
+    name: "node",
+    entry: ["src/extension.ts"],
+    outDir: "dist/node",
+    platform: "node",
+    target: "node18",
+    sourcemap: true,
+    define: {
+      "process.env.IS_BROWSER": "false",
     },
-  ];
+    treeshake: {
+      preset: "smallest",
+      moduleSideEffects: "no-external",
+    },
+    external: ["vscode", "vscode-languageserver/browser"],
+    banner: {
+      js: banner,
+    },
+    onSuccess: options.env?.["LAUNCH_ON_SUCCESS"]
+      ? "code --extensionDevelopmentPath=$PWD --disable-extensions"
+      : undefined,
+  };
+  const buildBrowserTask: Options = {
+    name: "browser",
+    entry: ["src/extension.ts"],
+    outDir: "dist/browser",
+    platform: "browser",
+    sourcemap: true,
+    define: {
+      "process.env.IS_BROWSER": "true",
+    },
+    treeshake: {
+      preset: "smallest",
+      moduleSideEffects: "no-external",
+    },
+    external: ["vscode", "vscode-languageserver/node"],
+    esbuildPlugins: [
+      polyfillNode({
+        polyfills: {},
+      }),
+    ],
+    banner: {
+      js: banner,
+    },
+    onSuccess: options.env?.["LAUNCH_ON_SUCCESS"]
+      ? "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000"
+      : undefined,
+  };
+
+  if (!options.platform) {
+    return [copyTabbyAgentTask, buildNodeTask, buildBrowserTask];
+  } else if (options.platform == "node") {
+    return [copyTabbyAgentTask, buildNodeTask];
+  } else if (options.platform == "browser") {
+    return [copyTabbyAgentTask, buildBrowserTask];
+  } else {
+    throw new Error("Invalid platform.");
+  }
 });

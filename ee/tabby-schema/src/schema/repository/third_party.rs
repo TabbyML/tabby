@@ -1,15 +1,14 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use juniper::{GraphQLObject, ID};
-use tabby_common::config::RepositoryConfig;
+use juniper::{graphql_object, ID};
+use tabby_common::config::CodeRepository;
 
-use super::RepositoryProvider;
+use super::{GitReference, RepositoryProvider};
 use crate::{
-    integration::IntegrationKind, job::JobInfo, juniper::relay::NodeType, schema::Result, Context,
+    context::ContextSourceIdValue, integration::IntegrationKind, job::JobInfo,
+    juniper::relay::NodeType, schema::Result, Context,
 };
 
-#[derive(GraphQLObject)]
-#[graphql(context = Context)]
 pub struct ProvidedRepository {
     pub id: ID,
     pub integration_id: ID,
@@ -19,18 +18,61 @@ pub struct ProvidedRepository {
     pub vendor_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub refs: Vec<String>,
+    pub refs: Vec<GitReference>,
 
     pub job_info: JobInfo,
 }
 
 impl ProvidedRepository {
-    pub fn source_id(&self) -> String {
-        Self::format_source_id(&self.id)
-    }
-
     pub fn format_source_id(id: &ID) -> String {
         format!("provided_repository:{}", id)
+    }
+}
+
+#[graphql_object(context = Context, impl = [ContextSourceIdValue])]
+impl ProvidedRepository {
+    fn id(&self) -> &ID {
+        &self.id
+    }
+
+    fn integration_id(&self) -> &ID {
+        &self.integration_id
+    }
+
+    fn active(&self) -> bool {
+        self.active
+    }
+
+    fn display_name(&self) -> &String {
+        &self.display_name
+    }
+
+    fn git_url(&self) -> &String {
+        &self.git_url
+    }
+
+    fn vendor_id(&self) -> &String {
+        &self.vendor_id
+    }
+
+    fn created_at(&self) -> &DateTime<Utc> {
+        &self.created_at
+    }
+
+    fn updated_at(&self) -> &DateTime<Utc> {
+        &self.updated_at
+    }
+
+    fn refs(&self) -> &Vec<GitReference> {
+        &self.refs
+    }
+
+    fn job_info(&self) -> &JobInfo {
+        &self.job_info
+    }
+
+    pub fn source_id(&self) -> String {
+        Self::format_source_id(&self.id)
     }
 }
 
@@ -79,5 +121,5 @@ pub trait ThirdPartyRepositoryService: Send + Sync + RepositoryProvider {
         integration_id: ID,
         before: DateTime<Utc>,
     ) -> Result<usize>;
-    async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>>;
+    async fn list_code_repositories(&self) -> Result<Vec<CodeRepository>>;
 }

@@ -1,14 +1,18 @@
 import { isNil, keyBy, map, trimEnd } from 'lodash-es'
 
 import {
+  GitReference,
   RepositoryKind,
   RepositoryListQuery
 } from '@/lib/gql/generates/graphql'
 
-export type ViewMode = 'tree' | 'blob'
+import { RepositoryRefKind } from './types'
+
+export type ViewMode = 'tree' | 'blob' | 'search'
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
 export enum CodeBrowserError {
+  FAILED_TO_FETCH = 'FAILED_TO_FETCH',
   INVALID_URL = 'INVALID_URL',
   NOT_FOUND = 'NOT_FOUND',
   REPOSITORY_NOT_FOUND = 'REPOSITORY_NOT_FOUND',
@@ -28,7 +32,7 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   repositoryName?: string
   basename?: string
   repositorySpecifier?: string
-  viewMode?: string
+  viewMode?: ViewMode
   rev?: string
 } {
   const emptyResult = {}
@@ -61,6 +65,8 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
       break
     case 'gitlabselfhosted':
       kind = RepositoryKind.GitlabSelfHosted
+    case 'gitconfig':
+      kind = RepositoryKind.GitConfig
       break
   }
   let basename: string | undefined
@@ -69,6 +75,7 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
 
   const treeSeparatorIndex = path.indexOf('/-/tree/')
   const blobSeparatorIndex = path.indexOf('/-/blob/')
+  const searchSeparatorIndex = path.indexOf('/-/search/')
 
   if (treeSeparatorIndex > -1) {
     viewMode = 'tree'
@@ -86,6 +93,14 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
     basename = trimEnd(tempSegments.slice(1).join('/'), '/')
   }
 
+  if (searchSeparatorIndex > -1) {
+    viewMode = 'search'
+    const temp = path.slice(searchSeparatorIndex + '/-/search/'.length)
+    const tempSegments = temp.split('/')
+    rev = tempSegments[0]
+    basename = ''
+  }
+
   const repositorySpecifier = path.split('/-/')[0]
   const repositoryName = repositorySpecifier.split('/').slice(1).join('/')
 
@@ -93,9 +108,9 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
     repositorySpecifier: path.split('/-/')[0],
     repositoryName,
     repositoryKind: kind,
-    rev,
+    rev: !isNil(rev) ? decodeURIComponent(rev) : undefined,
     viewMode,
-    basename
+    basename: !isNil(basename) ? decodeURIComponent(basename) : undefined
   }
 }
 
@@ -154,24 +169,35 @@ function encodeURIComponentIgnoringSlash(str: string) {
     .join('/')
 }
 
-function resolveRepoRef(ref: string | undefined): {
-  kind?: 'branch' | 'tag'
+function resolveRepoRef(
+  ref: GitReference | undefined,
+  targetKind?: RepositoryRefKind
+): {
+  kind?: RepositoryRefKind
   name: string
-  ref: string
+  ref: GitReference | undefined
 } {
-  if (!ref)
+  if (!ref) {
     return {
       name: '',
-      ref: ''
+      ref: undefined
     }
+  }
 
   const regx = /refs\/(\w+)\/(.*)/
-  const match = ref.match(regx)
+  const match = ref.name.match(regx)
   if (match) {
     const kind = match[1] === 'tags' ? 'tag' : 'branch'
     return {
-      kind,
-      name: encodeURIComponent(match[2]),
+      kind: targetKind ?? kind,
+      name: match[2],
+      ref
+    }
+  }
+  if (targetKind === 'commit') {
+    return {
+      kind: targetKind,
+      name: ref.commit,
       ref
     }
   }
@@ -181,23 +207,35 @@ function resolveRepoRef(ref: string | undefined): {
   }
 }
 
-function getDefaultRepoRef(refs: string[]) {
-  let mainRef: string | undefined
-  let masterRef: string | undefined
-  let firstHeadRef: string | undefined
-  let firstTagRef: string | undefined
+function getDefaultRepoRef(refs: GitReference[]) {
+  let mainRef: GitReference | undefined
+  let masterRef: GitReference | undefined
+  let firstHeadRef: GitReference | undefined
+  let firstTagRef: GitReference | undefined
   for (const ref of refs) {
-    if (ref === 'refs/heads/main') {
+    const { name } = ref
+    if (name === 'refs/heads/main') {
       mainRef = ref
-    } else if (ref === 'refs/heads/master') {
+    } else if (name === 'refs/heads/master') {
       masterRef = ref
-    } else if (!firstHeadRef && ref.startsWith('refs/heads/')) {
+    } else if (!firstHeadRef && name.startsWith('refs/heads/')) {
       firstHeadRef = ref
-    } else if (!firstTagRef && ref.startsWith('refs/tags/')) {
+    } else if (!firstTagRef && name.startsWith('refs/tags/')) {
       firstTagRef = ref
     }
   }
   return mainRef || masterRef || firstHeadRef || firstTagRef
+}
+
+function viewModelToKind(viewMode: ViewMode | undefined) {
+  if (viewMode === 'blob') return 'file'
+  return 'dir'
+}
+
+function kindToViewModel(kind: 'dir' | 'file' | 'search') {
+  if (kind === 'search') return 'search'
+  if (kind === 'file') return 'blob'
+  return 'tree'
 }
 
 function generateEntryPath(
@@ -206,12 +244,13 @@ function generateEntryPath(
     | undefined,
   rev: string | undefined,
   basename: string,
-  kind: 'dir' | 'file'
+  kind: 'dir' | 'file' | 'search'
 ) {
+  const viewModeStr = kindToViewModel(kind)
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-  return `${specifier}/-/${kind === 'file' ? 'blob' : 'tree'}/${
+  return `${specifier}/-/${viewModeStr}/${encodeURIComponent(
     rev ?? ''
-  }/${encodeURIComponentIgnoringSlash(basename ?? '')}`
+  )}/${encodeURIComponentIgnoringSlash(basename ?? '')}`
 }
 
 function toEntryRequestUrl(
@@ -225,7 +264,9 @@ function toEntryRequestUrl(
 
   const activeRepoIdentity = `${getProviderVariantFromKind(kind)}/${repoId}`
 
-  return `/repositories/${activeRepoIdentity}/rev/${rev}/${basename ?? ''}`
+  return `/repositories/${activeRepoIdentity}/rev/${encodeURIComponent(
+    rev
+  )}/${encodeURIComponentIgnoringSlash(basename ?? '')}`
 }
 
 function parseLineFromSearchParam(line: string | undefined): {
@@ -261,6 +302,10 @@ function parseLineNumberFromHash(hash: string | undefined): {
   }
 }
 
+function isValidLineHash(hash: string | undefined) {
+  return parseLineNumberFromHash(hash)?.start !== undefined
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
@@ -275,5 +320,8 @@ export {
   generateEntryPath,
   toEntryRequestUrl,
   parseLineFromSearchParam,
-  parseLineNumberFromHash
+  parseLineNumberFromHash,
+  viewModelToKind,
+  kindToViewModel,
+  isValidLineHash
 }

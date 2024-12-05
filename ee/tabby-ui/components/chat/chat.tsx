@@ -1,13 +1,22 @@
-import React from 'react'
-import { Message } from 'ai'
-import { findIndex } from 'lodash-es'
-import type { Context } from 'tabby-chat-panel'
+import React, { RefObject } from 'react'
+import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
+import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
+import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
+import {
+  CodeQueryInput,
+  CreateMessageInput,
+  InputMaybe,
+  MessageAttachmentCodeInput,
+  ThreadRunOptionsInput
+} from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
+import { useChatStore } from '@/lib/stores/chat-store'
+import { ExtendedCombinedError } from '@/lib/types'
 import {
-  AnswerRequest,
   AssistantMessage,
   MessageActionType,
   QuestionAnswerPair,
@@ -16,103 +25,54 @@ import {
 } from '@/lib/types/chat'
 import { cn, nanoid } from '@/lib/utils'
 
-import { useTabbyAnswer } from '../../lib/hooks/use-tabby-answer'
 import { ListSkeleton } from '../skeleton'
-import { ChatPanel } from './chat-panel'
+import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
+  threadId: string | undefined
   isLoading: boolean
   qaPairs: QuestionAnswerPair[]
   handleMessageAction: (
     userMessageId: string,
     action: MessageActionType
   ) => void
-  onNavigateToContext?: (context: Context) => void
+  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
-  isReferenceClickable: boolean
-  from?: string
+  onApplyInEditor?:
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
+  relevantContext: Context[]
+  activeSelection: Context | null
+  removeRelevantContext: (index: number) => void
+  chatInputRef: RefObject<HTMLTextAreaElement>
+  supportsOnApplyInEditorV2: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
   {} as ChatContextValue
 )
 
-function toMessages(qaPairs: QuestionAnswerPair[] | undefined): Message[] {
-  if (!qaPairs?.length) return []
-  let result: Message[] = []
-
-  const len = qaPairs.length
-  for (let i = 0; i < qaPairs.length; i++) {
-    const pair = qaPairs[i]
-    let { user, assistant } = pair
-    if (user) {
-      result.push(
-        userMessageToMessage(user, {
-          // if it's not the latest user prompt, the message should include the fileContext converted into a code block.
-          includeTransformedSelectContext: len > 1 && i !== len - 1
-        })
-      )
-    }
-    if (assistant) {
-      result.push({
-        role: 'assistant',
-        id: assistant.id,
-        content: assistant.message
-      })
-    }
-  }
-  return result
-}
-
-function userMessageToMessage(
-  userMessage: UserMessage,
-  {
-    includeTransformedSelectContext
-  }: {
-    includeTransformedSelectContext?: boolean
-  }
-): Message {
-  const { message, id } = userMessage
-  return {
-    id,
-    role: 'user',
-    content: includeTransformedSelectContext
-      ? message + selectContextToMessageContent(userMessage.selectContext)
-      : message
-  }
-}
-
-function selectContextToMessageContent(
-  context: UserMessage['selectContext']
-): string {
-  if (!context || !context.content) return ''
-  const { content, filepath } = context
-  const language = filename2prism(filepath)?.[0]
-  return `\n${'```'}${language ?? ''}\n${content ?? ''}\n${'```'}\n`
-}
-
 export interface ChatRef {
-  sendUserChat: (
-    message: UserMessageWithOptionalId
-  ) => Promise<string | null | undefined>
+  sendUserChat: (message: UserMessageWithOptionalId) => void
   stop: () => void
   isLoading: boolean
+  addRelevantContext: (context: Context) => void
+  focus: () => void
+  updateActiveSelection: (context: Context | null) => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
-  fetcher?: typeof fetch
-  headers?: Record<string, string> | Headers
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
-  onThreadUpdates: (messages: QuestionAnswerPair[]) => void
-  onNavigateToContext: (context: Context) => void
+  onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
+  onNavigateToContext: (context: Context, opts?: NavigateOpts) => void
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
@@ -120,8 +80,12 @@ interface ChatProps extends React.ComponentProps<'div'> {
   welcomeMessage?: string
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
-  isReferenceClickable?: boolean
-  from?: string
+  onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
+  onApplyInEditor?:
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
+  chatInputRef: RefObject<HTMLTextAreaElement>
+  supportsOnApplyInEditorV2: boolean
 }
 
 function ChatRenderer(
@@ -129,64 +93,131 @@ function ChatRenderer(
     className,
     chatId,
     initialMessages,
-    headers,
-    api = '/v1beta/answer',
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
     container,
-    fetcher,
     docQuery,
     generateRelevantQuestions,
     maxWidth,
     welcomeMessage,
     promptFormClassname,
     onCopyContent,
-    isReferenceClickable = true,
-    from
+    onSubmitMessage,
+    onApplyInEditor,
+    chatInputRef,
+    supportsOnApplyInEditorV2
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
   const [initialized, setInitialzed] = React.useState(false)
+  const [threadId, setThreadId] = React.useState<string | undefined>()
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
+  const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
+  const [activeSelection, setActiveSelection] = React.useState<Context | null>(
+    null
+  )
+  const enableActiveSelection = useChatStore(
+    state => state.enableActiveSelection
+  )
+  const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
-  const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
-    api,
-    headers,
-    fetcher
+  const {
+    sendUserMessage,
+    isLoading,
+    error,
+    answer,
+    stop,
+    regenerate,
+    deleteThreadMessagePair
+  } = useThreadRun({
+    threadId
   })
 
   const onDeleteMessage = async (userMessageId: string) => {
+    if (!threadId) return
+
     // Stop generating first.
     stop()
+    const qaPair = qaPairs.find(o => o.user.id === userMessageId)
+    if (!qaPair?.user || !qaPair.assistant) return
 
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
+
+    deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
 
-  const onRegenerateResponse = async (userMessageid: string) => {
-    const qaPairIndex = findIndex(qaPairs, o => o.user.id === userMessageid)
+  const onRegenerateResponse = async (userMessageId: string) => {
+    if (!threadId) return
+
+    const qaPairIndex = findIndex(qaPairs, o => o.user.id === userMessageId)
     if (qaPairIndex > -1) {
       const qaPair = qaPairs[qaPairIndex]
+
+      if (!qaPair.assistant) return
+
+      const newUserMessageId = nanoid()
+      const newAssistantMessgaeid = nanoid()
       let nextQaPairs: QuestionAnswerPair[] = [
         ...qaPairs.slice(0, qaPairIndex),
         {
-          ...qaPair,
+          user: {
+            ...qaPair.user,
+            id: newUserMessageId
+          },
           assistant: {
-            ...qaPair.assistant,
-            id: qaPair.assistant?.id || nanoid(),
-            // clear assistant message
+            id: newAssistantMessgaeid,
             message: '',
-            // clear error
             error: undefined
           }
         }
       ]
       setQaPairs(nextQaPairs)
-      return triggerRequest(generateRequestPayloadFromQaPairs(nextQaPairs))
+      const [userMessage, threadRunOptions] = generateRequestPayload(
+        qaPair.user,
+        enableActiveSelection
+      )
+
+      return regenerate({
+        threadId,
+        userMessageId: qaPair.user.id,
+        assistantMessageId: qaPair.assistant.id,
+        userMessage,
+        threadRunOptions
+      })
     }
+  }
+
+  const onEditMessage = async (userMessageId: string) => {
+    if (!threadId) return
+
+    const qaPair = qaPairs.find(o => o.user.id === userMessageId)
+    if (!qaPair?.user || !qaPair.assistant) return
+
+    const userMessage = qaPair.user
+    let nextClientContext: Context[] = []
+
+    // restore client context
+    if (userMessage.relevantContext?.length) {
+      nextClientContext = nextClientContext.concat(userMessage.relevantContext)
+    }
+
+    setRelevantContext(uniqWith(nextClientContext, isEqual))
+
+    // delete message pair
+    const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
+    setQaPairs(nextQaPairs)
+    setInput(userMessage.message)
+    if (userMessage.activeContext) {
+      onNavigateToContext(userMessage.activeContext, {
+        openInEditor: true
+      })
+    }
+
+    deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
 
   // Reload the last AI chat response
@@ -201,13 +232,14 @@ function ChatRenderer(
   }
 
   const onClearMessages = () => {
-    stop()
+    stop(true)
     setQaPairs([])
+    setThreadId(undefined)
   }
 
   const handleMessageAction = (
     userMessageId: string,
-    actionType: 'delete' | 'regenerate'
+    actionType: MessageActionType
   ) => {
     switch (actionType) {
       case 'delete':
@@ -215,6 +247,9 @@ function ChatRenderer(
         break
       case 'regenerate':
         onRegenerateResponse(userMessageId)
+        break
+      case 'edit':
+        onEditMessage(userMessageId)
         break
       default:
         break
@@ -225,21 +260,29 @@ function ChatRenderer(
     if (!isLoading || !qaPairs?.length || !answer) return
 
     const lastQaPairs = qaPairs[qaPairs.length - 1]
-    const lastMessage = answer
+
+    // update threadId
+    if (answer.threadId && !threadId) {
+      setThreadId(answer.threadId)
+    }
+
     setQaPairs(prev => {
       const assisatntMessage = prev[prev.length - 1].assistant
       const nextAssistantMessage: AssistantMessage = {
         ...assisatntMessage,
-        id: assisatntMessage?.id || nanoid(),
-        message: lastMessage.answer_delta ?? '',
+        id: answer.assistantMessageId || assisatntMessage?.id || nanoid(),
+        message: answer.content,
         error: undefined,
-        relevant_code: answer?.relevant_code
+        relevant_code: answer.attachmentsCode?.map(o => o.code) ?? []
       }
       // merge assistantMessage
       return [
         ...prev.slice(0, prev.length - 1),
         {
-          ...lastQaPairs,
+          user: {
+            ...lastQaPairs.user,
+            id: answer?.userMessageId || lastQaPairs.user.id
+          },
           assistant: nextAssistantMessage
         }
       ]
@@ -279,46 +322,107 @@ function ChatRenderer(
               ...lastQaPairs.assistant,
               id: lastQaPairs.assistant?.id || nanoid(),
               message: lastQaPairs.assistant?.message ?? '',
-              error: error?.message === '401' ? 'Unauthorized' : 'Fail to fetch'
+              error: formatThreadRunErrorMessage(error)
             }
           }
         ]
       })
     }
+
+    if (error?.message === 'Thread not found' && !qaPairs?.length) {
+      onClearMessages()
+    }
   }, [error])
 
-  const generateRequestPayloadFromQaPairs = (
-    qaPairs: QuestionAnswerPair[]
-  ): AnswerRequest => {
-    const userMessage = qaPairs[qaPairs.length - 1].user
-    const selectContext = userMessage?.selectContext
-    const code_query: AnswerRequest['code_query'] | undefined = selectContext
-      ? {
-          content: selectContext.content ?? '',
-          filepath: selectContext.filepath,
-          language: selectContext.filepath
-            ? filename2prism(selectContext.filepath)[0] || 'text'
-            : 'text',
-          git_url: selectContext?.git_url ?? ''
-        }
-      : undefined
+  const generateRequestPayload = (
+    userMessage: UserMessage,
+    enableActiveSelection?: boolean
+  ): [CreateMessageInput, ThreadRunOptionsInput] => {
+    // use selectContext for code query by default
+    let contextForCodeQuery: FileContext | undefined = userMessage.selectContext
 
-    return {
-      messages: toMessages(qaPairs).slice(0, -1),
-      code_query,
-      doc_query: !!docQuery,
-      generate_relevant_questions: !!generateRelevantQuestions
+    // if enableActiveSelection, use selectContext or activeContext for code query
+    if (enableActiveSelection) {
+      contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
     }
+
+    // check context for codeQuery
+    if (!isValidContextForCodeQuery(contextForCodeQuery)) {
+      contextForCodeQuery = undefined
+    }
+
+    const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
+      ? {
+          content: contextForCodeQuery.content ?? '',
+          filepath: contextForCodeQuery.filepath,
+          language: contextForCodeQuery.filepath
+            ? filename2prism(contextForCodeQuery.filepath)[0] || 'plaintext'
+            : 'plaintext',
+          gitUrl: contextForCodeQuery?.git_url ?? ''
+        }
+      : null
+
+    const hasUsableActiveContext =
+      enableActiveSelection && !!userMessage.activeContext
+    const clientSideFileContexts: FileContext[] = uniqWith(
+      compact([
+        hasUsableActiveContext && userMessage.activeContext,
+        ...(userMessage?.relevantContext || [])
+      ]),
+      isEqual
+    )
+
+    const attachmentCode: MessageAttachmentCodeInput[] =
+      clientSideFileContexts.map(o => ({
+        content: o.content,
+        filepath: o.filepath,
+        startLine: o.range.start
+      }))
+
+    const content = userMessage.message
+
+    return [
+      {
+        content,
+        attachments: {
+          code: attachmentCode
+        }
+      },
+      {
+        docQuery: docQuery ? { content, searchPublic: false } : null,
+        generateRelevantQuestions: !!generateRelevantQuestions,
+        codeQuery
+      }
+    ]
   }
 
   const handleSendUserChat = useLatest(
     async (userMessage: UserMessageWithOptionalId) => {
       if (isLoading) return
 
-      // If no id is provided, set a fallback id.
-      const newUserMessage = {
+      let selectCodeSnippet = ''
+      const selectCodeContextContent = userMessage?.selectContext?.content
+      if (selectCodeContextContent) {
+        const language = userMessage?.selectContext?.filepath
+          ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
+          : ''
+        selectCodeSnippet = `\n${'```'}${language}\n${
+          selectCodeContextContent ?? ''
+        }\n${'```'}\n`
+      }
+
+      const finalActiveContext = activeSelection || userMessage.activeContext
+      const newUserMessage: UserMessage = {
         ...userMessage,
-        id: userMessage.id ?? nanoid()
+        message: userMessage.message + selectCodeSnippet,
+        // If no id is provided, set a fallback id.
+        id: userMessage.id ?? nanoid(),
+        selectContext: userMessage.selectContext,
+        // For forward compatibility
+        activeContext:
+          enableActiveSelection && finalActiveContext
+            ? finalActiveContext
+            : undefined
       }
 
       const nextQaPairs = [
@@ -336,24 +440,57 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      return triggerRequest(generateRequestPayloadFromQaPairs(nextQaPairs))
+      sendUserMessage(
+        ...generateRequestPayload(newUserMessage, enableActiveSelection)
+      )
     }
   )
 
-  const sendUserChat = async (userMessage: UserMessageWithOptionalId) => {
+  const sendUserChat = (userMessage: UserMessageWithOptionalId) => {
     return handleSendUserChat.current?.(userMessage)
   }
 
   const handleSubmit = async (value: string) => {
-    return sendUserChat({
-      message: value
-    })
+    if (onSubmitMessage) {
+      onSubmitMessage(value, relevantContext)
+    } else {
+      sendUserChat({
+        message: value,
+        relevantContext: relevantContext
+      })
+    }
+    setRelevantContext([])
+  }
+
+  const handleAddRelevantContext = useLatest((context: Context) => {
+    setRelevantContext(oldValue => appendContextAndDedupe(oldValue, context))
+  })
+
+  const addRelevantContext = (context: Context) => {
+    handleAddRelevantContext.current?.(context)
+  }
+
+  const removeRelevantContext = (index: number) => {
+    const newRelevantContext = [...relevantContext]
+    newRelevantContext.splice(index, 1)
+    setRelevantContext(newRelevantContext)
   }
 
   React.useEffect(() => {
     if (!isOnLoadExecuted.current) return
-    onThreadUpdates(qaPairs)
+    onThreadUpdates?.(qaPairs)
   }, [qaPairs])
+
+  const debouncedUpdateActiveSelection = useDebounceCallback(
+    (ctx: Context | null) => {
+      setActiveSelection(ctx)
+    },
+    300
+  )
+
+  const updateActiveSelection = (ctx: Context | null) => {
+    debouncedUpdateActiveSelection.run(ctx)
+  }
 
   React.useImperativeHandle(
     ref,
@@ -361,29 +498,31 @@ function ChatRenderer(
       return {
         sendUserChat,
         stop,
-        isLoading
+        isLoading,
+        addRelevantContext,
+        focus: () => chatPanelRef.current?.focus(),
+        updateActiveSelection
       }
     },
     []
   )
 
   React.useEffect(() => {
-    if (isOnLoadExecuted.current) return
-
-    isOnLoadExecuted.current = true
-    onLoaded?.()
     setInitialzed(true)
+    onLoaded?.()
   }, [])
 
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
-  if (!initialized)
+  if (!initialized) {
     return (
       <ListSkeleton className={`${chatMaxWidthClass} mx-auto pt-4 md:pt-10`} />
     )
+  }
 
   return (
     <ChatContext.Provider
       value={{
+        threadId,
         isLoading,
         qaPairs,
         onNavigateToContext,
@@ -391,12 +530,19 @@ function ChatRenderer(
         onClearMessages,
         container,
         onCopyContent,
-        isReferenceClickable,
-        from
+        onApplyInEditor,
+        relevantContext,
+        removeRelevantContext,
+        chatInputRef,
+        activeSelection,
+        supportsOnApplyInEditorV2
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
-        <div className={`w-full px-4 ${chatMaxWidthClass}`}>
+        <div
+          className={`w-full px-4 md:pl-10 md:pr-[3.75rem] ${chatMaxWidthClass}`}
+        >
+          {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
               <QuestionAnswerList
@@ -421,6 +567,8 @@ function ChatRenderer(
             input={input}
             setInput={setInput}
             chatMaxWidthClass={chatMaxWidthClass}
+            ref={chatPanelRef}
+            chatInputRef={chatInputRef}
           />
         </div>
       </div>
@@ -428,4 +576,40 @@ function ChatRenderer(
   )
 }
 
+function appendContextAndDedupe(
+  ctxList: Context[],
+  newCtx: Context
+): Context[] {
+  if (!ctxList.some(ctx => isEqual(ctx, newCtx))) {
+    return ctxList.concat([newCtx])
+  }
+  return ctxList
+}
+
 export const Chat = React.forwardRef<ChatRef, ChatProps>(ChatRenderer)
+
+function formatThreadRunErrorMessage(error: ExtendedCombinedError | undefined) {
+  if (!error) return 'Failed to fetch'
+
+  if (error.message === '401') {
+    return 'Unauthorized'
+  }
+
+  if (
+    some(error.graphQLErrors, o => o.extensions?.code === ERROR_CODE_NOT_FOUND)
+  ) {
+    return `The thread has expired, please click ${"'"}Clear${"'"} and try again.`
+  }
+
+  return error.message || 'Failed to fetch'
+}
+
+function isValidContextForCodeQuery(context: FileContext | undefined) {
+  if (!context) return false
+
+  const isUntitledFile =
+    context.filepath.startsWith('untitled:') &&
+    !filename2prism(context.filepath)[0]
+
+  return !isUntitledFile
+}

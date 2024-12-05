@@ -35,10 +35,7 @@ impl HealthState {
     ) -> Self {
         let (cpu_info, cpu_count) = read_cpu_info();
 
-        let cuda_devices = match read_cuda_devices() {
-            Ok(s) => s,
-            Err(_) => vec![],
-        };
+        let cuda_devices = read_cuda_devices().unwrap_or_default();
 
         Self {
             model: to_model_name(&model_config.completion),

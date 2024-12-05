@@ -70,7 +70,7 @@ export function DemoBanner() {
   return (
     <div
       className={cn(
-        'flex items-center justify-between bg-primary px-4 text-primary-foreground transition-all md:px-5',
+        'flex items-center justify-between bg-primary px-4 text-primary-foreground transition-[opacity,height] md:px-5',
         {
           'opacity-100 pointer-events-auto': isShowDemoBanner,
           'opacity-0 pointer-events-none': !isShowDemoBanner
@@ -86,6 +86,13 @@ export function DemoBanner() {
         <span>📆</span>
         <span>Book a 30-minute product demo.</span>
       </a>
+
+      {isShowDemoBanner && (
+        <img
+          referrerPolicy="no-referrer-when-downgrade"
+          src="https://static.scarf.sh/a.png?x-pxid=b1d0308a-b3c5-425a-972a-378d883a2bca"
+        />
+      )}
 
       <div className="flex items-center gap-x-4 md:gap-x-8">
         <a

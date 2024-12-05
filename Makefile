@@ -17,11 +17,11 @@ update-db-schema:
 	dot -Tsvg schema.dot > ee/tabby-db/schema/schema.svg
 	rm schema.dot
 
-caddy:
-	caddy run --watch --config ee/tabby-webserver/development/Caddyfile
-
+dev:
+	tmuxinator start -p .tmuxinator/tabby.yml
+		
 bump-version:
-	cargo ws version --no-git-tag --force "*"
+	cargo ws version --force "*" --no-individual-tags --allow-branch "main"
 
 bump-release-version:
 	cargo ws version --allow-branch "r*" --no-individual-tags --force "*"

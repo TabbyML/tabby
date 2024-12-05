@@ -6,21 +6,24 @@ members = [
     "crates/tabby-download",
     "crates/tabby-git",
     "crates/tabby-inference",
-    "crates/tabby-scheduler",
+    "crates/tabby-index",
+    "crates/tabby-crawler",
 
     "crates/aim-downloader",
     "crates/http-api-bindings",
     "crates/llama-cpp-server",
     "crates/ollama-api-bindings",
+    "crates/tabby-index-cli",
 
     "ee/tabby-webserver",
     "ee/tabby-db",
     "ee/tabby-db-macros",
     "ee/tabby-schema",
+    "crates/hash-ids",
 ]
 
 [workspace.package]
-version = "0.13.0-dev.0"
+version = "0.21.0-dev.0"
 edition = "2021"
 authors = ["TabbyML Team"]
 homepage = "https://github.com/TabbyML/tabby"
@@ -39,7 +42,7 @@ anyhow = "1.0.71"
 tantivy = { git = "https://github.com/quickwit-oss/tantivy", rev = "4143d31" }
 async-trait = "0.1.72"
 reqwest = { version = "0.12" }
-derive_builder = "0.12.0"
+derive_builder = "0.20"
 futures = "0.3.30"
 async-stream = "0.3.5"
 regex = "1.10.0"
@@ -52,8 +55,8 @@ hyper = "1.1"
 juniper = "0.16"
 chrono = "0.4"
 reqwest-eventsource = "0.6"
-serial_test = "3.0.0"
-hash-ids = "0.2.1"
+serial_test = { version = "3.0.0", features = ["file_locks"] }
+hash-ids = { path = "./crates/hash-ids" }
 ignore = "0.4.20"
 nucleo = "0.5.0"
 url = "2.5.0"
@@ -62,8 +65,12 @@ git2 = "0.18.3"
 tower-http = "0.5"
 mime_guess = "2.0.4"
 assert_matches = "1.5"
-insta = "1.34.0" 
+insta = "1.34.0"
 logkit = "0.3"
+async-openai = "0.20"
+tracing-test = "0.2"
+clap = "4.3.0"
+ratelimit = "0.10"
 
 [workspace.dependencies.uuid]
 version = "1.3.3"

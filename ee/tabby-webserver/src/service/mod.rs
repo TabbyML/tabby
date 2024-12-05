@@ -1,18 +1,26 @@
+mod access_policy;
 mod analytic;
+pub mod answer;
 mod auth;
 pub mod background_job;
+pub mod context;
 mod email;
 pub mod event_logger;
 pub mod integration;
 pub mod job;
 mod license;
+mod preset_web_documents_data;
 pub mod repository;
 mod setting;
+mod thread;
 mod user_event;
-pub mod web_crawler;
+mod user_group;
+pub mod web_documents;
 
 use std::sync::Arc;
 
+use answer::AnswerService;
+use anyhow::Context;
 use async_trait::async_trait;
 use axum::{
     body::Body,
@@ -26,19 +34,26 @@ use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
 };
-use tabby_db::DbConn;
+use tabby_db::{DbConn, UserDAO, UserGroupDAO};
+use tabby_inference::{ChatCompletionStream, CompletionStream, Embedding as EmbeddingService};
 use tabby_schema::{
+    access_policy::AccessPolicyService,
     analytic::AnalyticService,
-    auth::AuthenticationService,
+    auth::{AuthenticationService, UserSecured},
+    context::ContextService,
     email::EmailService,
     integration::IntegrationService,
+    interface::UserValue,
     is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
+    policy,
     repository::RepositoryService,
     setting::SettingService,
+    thread::ThreadService,
     user_event::UserEventService,
-    web_crawler::WebCrawlerService,
+    user_group::{UserGroup, UserGroupMembership, UserGroupService},
+    web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
@@ -46,35 +61,47 @@ use tabby_schema::{
 use self::{
     analytic::new_analytic_service, email::new_email_service, license::new_license_service,
 };
+use crate::rate_limit::UserRateLimiter;
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
+    embedding: Arc<dyn EmbeddingService>,
+    chat: Option<Arc<dyn ChatCompletionStream>>,
+    completion: Option<Arc<dyn CompletionStream>>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
+    web_documents: Arc<dyn WebDocumentService>,
+    thread: Arc<dyn ThreadService>,
+    context: Arc<dyn ContextService>,
+    user_group: Arc<dyn UserGroupService>,
+    access_policy: Arc<dyn AccessPolicyService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
 
     setting: Arc<dyn SettingService>,
 
-    is_chat_enabled_locally: bool,
+    user_rate_limiter: UserRateLimiter,
 }
 
 impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
+        chat: Option<Arc<dyn ChatCompletionStream>>,
+        completion: Option<Arc<dyn CompletionStream>>,
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
-        web_crawler: Arc<dyn WebCrawlerService>,
         job: Arc<dyn JobService>,
+        answer: Option<Arc<AnswerService>>,
+        context: Arc<dyn ContextService>,
+        web_documents: Arc<dyn WebDocumentService>,
         db_conn: DbConn,
-        is_chat_enabled_locally: bool,
+        embedding: Arc<dyn EmbeddingService>,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -88,16 +115,36 @@ impl ServerContext {
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let setting = Arc::new(setting::create(db_conn.clone()));
+        let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
+        let user_group = Arc::new(user_group::create(db_conn.clone()));
+        let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
+
+        background_job::start(
+            db_conn.clone(),
+            job.clone(),
+            repository.git(),
+            repository.third_party(),
+            integration.clone(),
+            repository.clone(),
+            context.clone(),
+            embedding.clone(),
+        )
+        .await;
 
         Self {
             mail: mail.clone(),
+            embedding,
+            chat,
+            completion,
             auth: Arc::new(auth::create(
                 db_conn.clone(),
                 mail,
                 license.clone(),
                 setting.clone(),
             )),
-            web_crawler,
+            web_documents,
+            thread,
+            context,
             license,
             repository,
             integration,
@@ -106,8 +153,10 @@ impl ServerContext {
             logger,
             code,
             setting,
+            user_group,
+            access_policy,
             db_conn,
-            is_chat_enabled_locally,
+            user_rate_limiter: UserRateLimiter::default(),
         }
     }
 
@@ -168,26 +217,48 @@ impl WorkerService for ServerContext {
         let (auth, user) = self
             .authorize_request(request.uri(), request.headers())
             .await;
+        let unauthorized = axum::response::Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .body(Body::empty())
+            .unwrap()
+            .into_response();
         if !auth {
-            return axum::response::Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body(Body::empty())
-                .unwrap()
-                .into_response();
+            return unauthorized;
         }
 
         if let Some(user) = user {
+            // Apply rate limiting when `user` is not none.
+            if !self.user_rate_limiter.is_allowed(&user).await {
+                return axum::response::Response::builder()
+                    .status(StatusCode::TOO_MANY_REQUESTS)
+                    .body(Body::empty())
+                    .unwrap()
+                    .into_response();
+            }
+
             request.headers_mut().append(
                 HeaderName::from_static(USER_HEADER_FIELD_NAME),
                 HeaderValue::from_str(&user).expect("User must be valid header"),
             );
+
+            let Ok(user) = self.auth.get_user(&user).await else {
+                return unauthorized;
+            };
+
+            let Ok(context_info) = self.context.read(Some(&user.policy)).await else {
+                return unauthorized;
+            };
+
+            request
+                .extensions_mut()
+                .insert(context_info.allowed_code_repository());
         }
 
         next.run(request).await
     }
 
     async fn is_chat_enabled(&self) -> Result<bool> {
-        Ok(self.is_chat_enabled_locally)
+        Ok(self.chat.is_some())
     }
 }
 
@@ -204,12 +275,20 @@ impl ServiceLocator for ArcServerContext {
         self.0.auth.clone()
     }
 
+    fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>> {
+        self.0.chat.clone()
+    }
+
     fn worker(&self) -> Arc<dyn WorkerService> {
         self.0.clone()
     }
 
     fn code(&self) -> Arc<dyn CodeSearch> {
         self.0.code.clone()
+    }
+
+    fn completion(&self) -> Option<Arc<dyn CompletionStream>> {
+        self.0.completion.clone()
     }
 
     fn logger(&self) -> Arc<dyn EventLogger> {
@@ -226,6 +305,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn email(&self) -> Arc<dyn EmailService> {
         self.0.mail.clone()
+    }
+
+    fn embedding(&self) -> Arc<dyn EmbeddingService> {
+        self.0.embedding.clone()
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {
@@ -248,31 +331,55 @@ impl ServiceLocator for ArcServerContext {
         self.0.integration.clone()
     }
 
-    fn web_crawler(&self) -> Arc<dyn WebCrawlerService> {
-        self.0.web_crawler.clone()
+    fn web_documents(&self) -> Arc<dyn WebDocumentService> {
+        self.0.web_documents.clone()
+    }
+
+    fn thread(&self) -> Arc<dyn ThreadService> {
+        self.0.thread.clone()
+    }
+
+    fn context(&self) -> Arc<dyn ContextService> {
+        self.0.context.clone()
+    }
+
+    fn user_group(&self) -> Arc<dyn UserGroupService> {
+        self.0.user_group.clone()
+    }
+
+    fn access_policy(&self) -> Arc<dyn AccessPolicyService> {
+        self.0.access_policy.clone()
     }
 }
 
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
+    chat: Option<Arc<dyn ChatCompletionStream>>,
+    completion: Option<Arc<dyn CompletionStream>>,
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     job: Arc<dyn JobService>,
+    answer: Option<Arc<AnswerService>>,
+    context: Arc<dyn ContextService>,
+    web_documents: Arc<dyn WebDocumentService>,
     db: DbConn,
-    is_chat_enabled: bool,
+    embedding: Arc<dyn EmbeddingService>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(
             logger,
+            chat,
+            completion,
             code,
             repository,
             integration,
-            web_crawler,
             job,
+            answer,
+            context,
+            web_documents,
             db,
-            is_chat_enabled,
+            embedding,
         )
         .await,
     ))
@@ -315,4 +422,62 @@ pub async fn create_gitlab_client(
         builder.insecure();
     };
     Ok(builder.build_async().await?)
+}
+
+trait UserSecuredExt {
+    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::UserSecured;
+}
+
+impl UserSecuredExt for tabby_schema::auth::UserSecured {
+    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::UserSecured {
+        let is_owner = val.is_owner();
+        let id = val.id.as_id();
+        tabby_schema::auth::UserSecured {
+            policy: policy::AccessPolicy::new(db, &id, val.is_admin),
+            id,
+            email: val.email,
+            name: val.name.unwrap_or_default(),
+            is_owner,
+            is_admin: val.is_admin,
+            auth_token: val.auth_token,
+            created_at: val.created_at,
+            active: val.active,
+            is_password_set: val.password_encrypted.is_some(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+trait UserGroupExt {
+    async fn new(db: DbConn, val: UserGroupDAO) -> Result<UserGroup>;
+}
+
+#[async_trait::async_trait]
+impl UserGroupExt for UserGroup {
+    async fn new(db: DbConn, val: UserGroupDAO) -> Result<UserGroup> {
+        let mut members = Vec::new();
+        for x in db.list_user_group_memberships(val.id, None).await? {
+            members.push(UserGroupMembership {
+                is_group_admin: x.is_group_admin,
+                created_at: x.created_at,
+                updated_at: x.updated_at,
+                user: UserValue::UserSecured(UserSecured::new(
+                    db.clone(),
+                    db.get_user(x.user_id)
+                        .await?
+                        .context("User doesn't exists")?,
+                )),
+            });
+        }
+
+        members.sort_by_key(|x| (!x.is_group_admin, x.updated_at));
+
+        Ok(UserGroup {
+            id: val.id.as_id(),
+            name: val.name,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+            members,
+        })
+    }
 }

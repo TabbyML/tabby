@@ -10,7 +10,7 @@ use futures::Stream;
 use git2::TreeWalkResult;
 pub use query::GrepQuery;
 use searcher::GrepSearcher;
-use tracing::warn;
+use tracing::{debug, warn};
 
 use super::{bytes2path, rev_to_commit};
 
@@ -53,6 +53,7 @@ pub fn grep(
 
     let rev = rev.map(|s| s.to_owned());
     let query = query.clone();
+    debug!("{:?}", query);
     let searcher = query.searcher()?;
     let task =
         tokio::task::spawn_blocking(move || grep_impl(repository, rev.as_deref(), searcher, tx));
@@ -108,7 +109,11 @@ fn grep_file(
 
     let mut output = output::GrepOutput::new(path.clone(), tx.clone());
     searcher.search(content, &mut output)?;
-    output.flush(searcher.require_file_match, searcher.require_content_match);
+    output.flush(
+        searcher.require_file_match,
+        searcher.require_content_match,
+        content,
+    );
 
     Ok(())
 }

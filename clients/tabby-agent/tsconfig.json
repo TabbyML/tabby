@@ -15,5 +15,9 @@
     "noUnusedParameters": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["./src"]
+  "include": ["./src"],
+  "ts-node": {
+    "files": true,
+    "require": ["./register-loader.js"]
+  }
 }

@@ -10,8 +10,9 @@ fn main() {
 
     let mut config = Config::new("./llama.cpp");
     config.profile("Release");
-    config.define("LLAMA_NATIVE", "OFF");
-    config.define("INS_ENB", "ON");
+    config.define("GGML_NATIVE", "OFF");
+    config.define("GGML_NATIVE_DEFAULT", "OFF");
+    config.define("BUILD_SHARED_LIBS", "OFF");
 
     if cfg!(target_os = "macos") {
         config.define("LLAMA_METAL", "ON");
@@ -22,7 +23,7 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=MetalKit");
     }
     if cfg!(feature = "cuda") {
-        config.define("LLAMA_CUBLAS", "ON");
+        config.define("GGML_CUDA", "ON");
         config.define("CMAKE_POSITION_INDEPENDENT_CODE", "ON");
     }
     if cfg!(feature = "rocm") {
@@ -47,7 +48,7 @@ fn main() {
         ];
 
         let rocm_root = env::var("ROCM_ROOT").unwrap_or("/opt/rocm".to_string());
-        config.define("LLAMA_HIPBLAS", "ON");
+        config.define("GGML_HIPBLAS", "ON");
         config.define("CMAKE_C_COMPILER", format!("{}/llvm/bin/clang", rocm_root));
         config.define(
             "CMAKE_CXX_COMPILER",
@@ -56,7 +57,7 @@ fn main() {
         config.define("AMDGPU_TARGETS", amd_gpu_targets.join(";"));
     }
     if cfg!(feature = "vulkan") {
-        config.define("LLAMA_VULKAN", "ON");
+        config.define("GGML_VULKAN", "ON");
     }
 
     let out = config.build();

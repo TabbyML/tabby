@@ -11,11 +11,14 @@ use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{CodeRepository, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
-use super::Result;
-use crate::{juniper::relay::NodeType, Context};
+use super::{
+    context::{ContextSourceIdValue, ContextSourceKind, ContextSourceValue},
+    Result,
+};
+use crate::{juniper::relay::NodeType, policy::AccessPolicy, Context};
 
 #[derive(GraphQLObject)]
 pub struct FileEntrySearchResult {
@@ -34,114 +37,84 @@ pub enum RepositoryKind {
     Gitlab,
     GithubSelfHosted,
     GitlabSelfHosted,
+    GitConfig,
 }
 
-#[derive(GraphQLObject, Debug)]
+#[derive(Debug)]
 pub struct Repository {
     pub id: ID,
+
+    pub source_id: String,
+
     pub name: String,
     pub kind: RepositoryKind,
 
-    #[graphql(skip)]
     pub dir: PathBuf,
 
     pub git_url: String,
-    pub refs: Vec<String>,
+    pub refs: Vec<GitReference>,
+}
+
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
+impl Repository {
+    fn id(&self) -> &ID {
+        &self.id
+    }
+
+    pub fn source_id(&self) -> &str {
+        &self.source_id
+    }
+
+    fn source_kind(&self) -> ContextSourceKind {
+        match self.kind {
+            RepositoryKind::Git | RepositoryKind::GitConfig => ContextSourceKind::Git,
+            RepositoryKind::Github | RepositoryKind::GithubSelfHosted => ContextSourceKind::Github,
+            RepositoryKind::Gitlab | RepositoryKind::GitlabSelfHosted => ContextSourceKind::Gitlab,
+        }
+    }
+
+    pub fn source_name(&self) -> &str {
+        match self.kind {
+            RepositoryKind::Git
+            | RepositoryKind::GitConfig
+            | RepositoryKind::GithubSelfHosted
+            | RepositoryKind::GitlabSelfHosted => &self.git_url,
+            RepositoryKind::Github | RepositoryKind::Gitlab => &self.name,
+        }
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn kind(&self) -> RepositoryKind {
+        self.kind
+    }
+
+    fn git_url(&self) -> &str {
+        &self.git_url
+    }
+
+    fn refs(&self) -> &[GitReference] {
+        &self.refs
+    }
+}
+
+#[derive(GraphQLObject, Debug)]
+pub struct GitReference {
+    pub name: String,
+    pub commit: String,
 }
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
         Self {
-            id: value.id,
+            source_id: value.source_id(),
+            id: ID::new(value.source_id()),
             name: value.name,
             kind: RepositoryKind::Git,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
-            refs: value.refs,
-        }
-    }
-}
-
-#[derive(GraphQLObject, Debug)]
-#[graphql(context = Context)]
-pub struct GithubProvidedRepository {
-    pub id: ID,
-    pub vendor_id: String,
-    pub github_repository_provider_id: ID,
-    pub name: String,
-    pub git_url: String,
-    pub active: bool,
-    pub refs: Vec<String>,
-}
-
-impl NodeType for GithubProvidedRepository {
-    type Cursor = String;
-
-    fn cursor(&self) -> Self::Cursor {
-        self.id.to_string()
-    }
-
-    fn connection_type_name() -> &'static str {
-        "GithubProvidedRepositoryConnection"
-    }
-
-    fn edge_type_name() -> &'static str {
-        "GithubProvidedRepositoryEdge"
-    }
-}
-
-#[derive(GraphQLObject, Debug)]
-#[graphql(context = Context)]
-pub struct GitlabProvidedRepository {
-    pub id: ID,
-    pub vendor_id: String,
-    pub gitlab_repository_provider_id: ID,
-    pub name: String,
-    pub git_url: String,
-    pub active: bool,
-    pub refs: Vec<String>,
-}
-
-impl NodeType for GitlabProvidedRepository {
-    type Cursor = String;
-
-    fn cursor(&self) -> Self::Cursor {
-        self.id.to_string()
-    }
-
-    fn connection_type_name() -> &'static str {
-        "GitlabProvidedRepositoryConnection"
-    }
-
-    fn edge_type_name() -> &'static str {
-        "GitlabProvidedRepositoryEdge"
-    }
-}
-
-impl From<GithubProvidedRepository> for Repository {
-    fn from(value: GithubProvidedRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
-        Self {
-            id: value.id,
-            name: value.name,
-            kind: RepositoryKind::Github,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
-            refs: value.refs,
-        }
-    }
-}
-
-impl From<GitlabProvidedRepository> for Repository {
-    fn from(value: GitlabProvidedRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
-        Self {
-            id: value.id,
-            name: value.name,
-            kind: RepositoryKind::Gitlab,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
+            dir: RepositoryConfig::resolve_dir(&value.git_url),
+            git_url: RepositoryConfig::canonicalize_url(&value.git_url),
             refs: value.refs,
         }
     }
@@ -208,6 +181,14 @@ impl NodeType for GithubRepositoryProvider {
 }
 
 #[derive(GraphQLObject)]
+pub struct RepositoryGrepOutput {
+    pub files: Vec<GrepFile>,
+
+    /// Elapsed time in milliseconds for grep search.
+    pub elapsed_ms: i32,
+}
+
+#[derive(GraphQLObject)]
 pub struct GrepFile {
     pub path: String,
     pub lines: Vec<GrepLine>,
@@ -265,10 +246,18 @@ pub trait RepositoryProvider {
 
 #[async_trait]
 pub trait RepositoryService: Send + Sync {
-    async fn repository_list(&self) -> Result<Vec<Repository>>;
-    async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository>;
+    /// Read repositories. If `policy` is `None`, this retrieves all repositories without applying any access policy.
+    async fn repository_list(&self, policy: Option<&AccessPolicy>) -> Result<Vec<Repository>>;
+    async fn resolve_repository(
+        &self,
+        policy: &AccessPolicy,
+        kind: &RepositoryKind,
+        id: &ID,
+    ) -> Result<Repository>;
+
     async fn search_files(
         &self,
+        policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
         rev: Option<&str>,
@@ -278,6 +267,7 @@ pub trait RepositoryService: Send + Sync {
 
     async fn grep(
         &self,
+        policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
         rev: Option<&str>,
@@ -288,6 +278,7 @@ pub trait RepositoryService: Send + Sync {
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
 
-    async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>>;
-    async fn list_all_sources(&self) -> Result<Vec<(String, String)>>;
+    async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>>;
+
+    async fn resolve_source_id_by_git_url(&self, git_url: &str) -> Result<String>;
 }

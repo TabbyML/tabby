@@ -1,18 +1,42 @@
 pub mod code;
-pub mod doc;
+pub mod structured_doc;
 
 use std::borrow::Cow;
 
 use lazy_static::lazy_static;
 use tantivy::{
-    query::{BooleanQuery, ConstScoreQuery, ExistsQuery, Occur, Query, TermQuery},
+    query::{BooleanQuery, ConstScoreQuery, ExistsQuery, Occur, Query, RangeQuery, TermQuery},
     schema::{
         Field, IndexRecordOption, JsonObjectOptions, Schema, TextFieldIndexing, FAST, INDEXED,
         STORED, STRING,
     },
-    Term,
+    DateTime, Term,
 };
 
+/// On a high level, the index schema is structured as follows:
+///
+/// ```text
+///
+///           +----------------+
+///           |     corpus     | <--- A group of documents, each document has a unique
+///           +----------------+      identifier (id) within the corpus.
+///                   |
+///                   v
+///           +----------------+
+///           |    document    | <--- A document is a group of chunks, each document has a
+///           |      (id)      |      unique identifier (id) across corpus, document's
+///           +----------------+      attributes are stored but not indexed.
+///                   |
+///                   v
+///           +----------------+
+///           |     chunk      | <--- Each chunk has a unique identifier (chunk_id) within
+///           |   (chunk_id)   |      the document. Chunk is the unit being retrieved during
+///           +----------------+      the search process.
+///
+/// ```
+///
+/// Across the corpus, there is a concept of source_id, which identifies a group of documents.
+/// It is usually used to identify the source of the document, such as a Github connection or a web document crawl.
 pub struct IndexSchema {
     pub schema: Schema,
 
@@ -21,7 +45,7 @@ pub struct IndexSchema {
     /// See ./doc or ./code as an example
     pub field_corpus: Field,
 
-    /// Unique identifier (within corpus) for a group of documents.
+    /// Unique identifier (across corpus) for a group of documents.
     pub field_source_id: Field,
 
     /// Unique identifier (within corpus) for the document, each document could have multiple chunks indexed.
@@ -29,6 +53,9 @@ pub struct IndexSchema {
 
     /// Last updated time for the document in index.
     pub field_updated_at: Field,
+
+    /// Number of failed chunks during indexing.
+    pub field_failed_chunks_count: Field,
     // ==========================================
 
     // === Fields for document ===
@@ -46,9 +73,18 @@ pub struct IndexSchema {
 }
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
+const FIELD_UPDATED_AT: &str = "updated_at";
+const FIELD_FAILED_CHUNKS_COUNT: &str = "failed_chunks_count";
+pub const FIELD_SOURCE_ID: &str = "source_id";
 
 pub mod corpus {
     pub const CODE: &str = "code";
+    pub const STRUCTURED_DOC: &str = "structured_doc";
+
+    #[deprecated(
+        since = "0.20.0",
+        note = "The web corpus is deprecated and will be removed during the version upgrade."
+    )]
     pub const WEB: &str = "web";
 }
 
@@ -60,11 +96,13 @@ impl IndexSchema {
     fn new() -> Self {
         let mut builder = Schema::builder();
 
-        let field_corpus = builder.add_text_field("corpus", STRING | FAST);
-        let field_source_id = builder.add_text_field("source_id", STRING | FAST);
+        let field_corpus = builder.add_text_field("corpus", STRING | FAST | STORED);
+        let field_source_id = builder.add_text_field(FIELD_SOURCE_ID, STRING | FAST | STORED);
         let field_id = builder.add_text_field("id", STRING | STORED);
 
-        let field_updated_at = builder.add_date_field("updated_at", INDEXED);
+        let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED | STORED);
+        let field_failed_chunks_count =
+            builder.add_u64_field(FIELD_FAILED_CHUNKS_COUNT, INDEXED | FAST | STORED);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
@@ -81,6 +119,7 @@ impl IndexSchema {
                 ),
         );
 
+        // Chunks are only indexed for search; their size is usually large, so we don't store them.
         let field_chunk_tokens = builder.add_text_field("chunk_tokens", STRING);
         let schema = builder.build();
 
@@ -90,6 +129,7 @@ impl IndexSchema {
             field_source_id,
             field_corpus,
             field_updated_at,
+            field_failed_chunks_count,
             field_attributes,
 
             field_chunk_id,
@@ -98,18 +138,11 @@ impl IndexSchema {
         }
     }
 
-    pub fn source_query(&self, corpus: &str, source_id: &str) -> impl Query {
-        let source_id_query = TermQuery::new(
+    pub fn source_id_query(&self, source_id: &str) -> impl Query {
+        TermQuery::new(
             Term::from_field_text(self.field_source_id, source_id),
             tantivy::schema::IndexRecordOption::Basic,
-        );
-
-        BooleanQuery::new(vec![
-            // Must match the corpus
-            (Occur::Must, self.corpus_query(corpus)),
-            // Must match the source id
-            (Occur::Must, Box::new(source_id_query)),
-        ])
+        )
     }
 
     /// Build a query to find the document with the given `doc_id`.
@@ -124,6 +157,69 @@ impl IndexSchema {
             (Occur::Must, self.corpus_query(corpus)),
             // Must match the doc id
             (Occur::Must, Box::new(doc_id_query)),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ])
+    }
+
+    pub fn doc_indexed_after(
+        &self,
+        corpus: &str,
+        doc_id: &str,
+        updated_at: chrono::DateTime<chrono::Utc>,
+    ) -> impl Query {
+        let doc_id_query = TermQuery::new(
+            Term::from_field_text(self.field_id, doc_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        let updated_at = DateTime::from_timestamp_nanos(
+            updated_at.timestamp_nanos_opt().expect("valid timestamp"),
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+            // Must match the updated_at
+            (
+                Occur::Must,
+                Box::new(RangeQuery::new_date(
+                    FIELD_UPDATED_AT.to_owned(),
+                    updated_at..DateTime::MAX,
+                )),
+            ),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ])
+    }
+
+    /// Build a query to check if the document has failed chunks.
+    pub fn doc_has_failed_chunks(&self, corpus: &str, doc_id: &str) -> impl Query {
+        let doc_id_query = TermQuery::new(
+            Term::from_field_text(self.field_id, doc_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+            // Must has the failed_chunks_count field
+            (
+                Occur::Must,
+                Box::new(ExistsQuery::new_exists_query(
+                    FIELD_FAILED_CHUNKS_COUNT.into(),
+                )),
+            ),
             // Exclude chunk documents
             (
                 Occur::MustNot,
@@ -152,6 +248,23 @@ impl IndexSchema {
             Term::from_field_text(self.field_corpus, corpus),
             tantivy::schema::IndexRecordOption::Basic,
         ))
+    }
+
+    pub fn source_ids_query(&self, source_ids: &[String]) -> impl Query {
+        BooleanQuery::new(
+            source_ids
+                .iter()
+                .map(|source_id| -> (Occur, Box<(dyn Query)>) {
+                    (
+                        Occur::Should,
+                        Box::new(TermQuery::new(
+                            Term::from_field_text(self.field_source_id, source_id),
+                            tantivy::schema::IndexRecordOption::Basic,
+                        )),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        )
     }
 }
 

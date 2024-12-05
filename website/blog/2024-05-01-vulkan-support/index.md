@@ -43,13 +43,13 @@ Once you've installed the appropriate binary, you can simply run it from the com
 For Windows, open a command prompt and navigate to the download folder, then run:
 
 ```
-tabby_x84_64-windows-msvc-vulkan serve --model StarCoder-1B --device vulkan
+tabby_x86_64-windows-msvc-vulkan serve --model StarCoder-1B --device vulkan
 ```
 
 For Linux:
 
 ```
-./tabby_x64_64-manylinux2014-vulkan serve --model StarCoder-1B --device vulkan
+./tabby_x86_64-manylinux2014-vulkan serve --model StarCoder-1B --device vulkan
 ```
 
 When it starts, you should see a printout indicating that Vulkan has found your card and is working properly:

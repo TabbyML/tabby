@@ -1,9 +1,8 @@
 import { EventEmitter } from "events";
-import { CancellationToken } from "vscode";
+import { Disposable, CancellationToken } from "vscode";
 import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData } from "vscode-languageclient";
 import {
-  ServerCapabilities,
-  ChatFeatureRegistration,
+  ChatFeatures,
   GenerateCommitMessageRequest,
   GenerateCommitMessageParams,
   GenerateCommitMessageResult,
@@ -15,15 +14,19 @@ import {
   ChatEditToken,
   ChatEditResolveRequest,
   ChatEditResolveParams,
+  SmartApplyParams,
+  SmartApplyRequest,
 } from "tabby-agent";
 
 export class ChatFeature extends EventEmitter implements DynamicFeature<unknown> {
   private registration: string | undefined = undefined;
+  private disposables: Disposable[] = [];
+
   constructor(private readonly client: BaseLanguageClient) {
     super();
   }
 
-  readonly registrationType = ChatFeatureRegistration.type;
+  readonly registrationType = ChatFeatures.type;
 
   getState(): FeatureState {
     return { kind: "workspace", id: this.registrationType.method, registrations: this.isAvailable };
@@ -41,10 +44,8 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     // nothing
   }
 
-  initialize(capabilities: ServerCapabilities): void {
-    if (capabilities.tabby?.chat) {
-      this.register({ id: this.registrationType.method, registerOptions: {} });
-    }
+  initialize(): void {
+    // nothing
   }
 
   register(data: RegistrationData<unknown>): void {
@@ -60,7 +61,8 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
   }
 
   clear(): void {
-    // nothing
+    this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposables = [];
   }
 
   get isAvailable(): boolean {
@@ -104,6 +106,13 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     return this.client.sendRequest(ChatEditRequest.method, params, token);
+  }
+
+  async provideSmartApplyEdit(params: SmartApplyParams, token?: CancellationToken): Promise<boolean | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+    return this.client.sendRequest(SmartApplyRequest.method, params, token);
   }
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {

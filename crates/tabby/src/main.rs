@@ -8,7 +8,7 @@ mod serve;
 use std::os::unix::fs::PermissionsExt;
 
 use clap::{Parser, Subcommand};
-use tabby_common::config::{Config, LocalModelConfig, ModelConfig};
+use tabby_common::config::{Config, ModelConfig};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
@@ -129,11 +129,8 @@ fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig
             .flatten()
             .unwrap_or(9999)
     } else {
-        9999
+        0
     };
-    ModelConfig::Local(LocalModelConfig {
-        model_id: model.to_owned(),
-        parallelism,
-        num_gpu_layers,
-    })
+
+    ModelConfig::new_local(model, parallelism, num_gpu_layers)
 }

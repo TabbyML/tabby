@@ -6,25 +6,31 @@ import {
   ExtensionContext,
   CancellationTokenSource,
   Uri,
-  Position,
-  Selection,
   Disposable,
   InputBoxValidationSeverity,
   ProgressLocation,
   ThemeIcon,
   QuickPickItem,
-  QuickPickItemKind,
+  ViewColumn,
+  Range,
+  CodeAction,
+  CodeActionKind,
 } from "vscode";
 import os from "os";
 import path from "path";
 import { strict as assert } from "assert";
-import { ChatEditCommand } from "tabby-agent";
 import { Client } from "./lsp/Client";
-import { Config } from "./Config";
+import { Config, PastServerConfig } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
-import { ChatViewProvider } from "./chat/ChatViewProvider";
+import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
+import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
+import { getFileContextFromSelection, getFileContext } from "./chat/fileContext";
 import { GitProvider, Repository } from "./git/GitProvider";
+import CommandPalette from "./CommandPalette";
+import { showOutputPanel } from "./logger";
+import { Issues } from "./Issues";
+import { InlineEditController } from "./inline-edit";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -33,9 +39,10 @@ export class Commands {
     private readonly context: ExtensionContext,
     private readonly client: Client,
     private readonly config: Config,
+    private readonly issues: Issues,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
-    private readonly chatViewProvider: ChatViewProvider,
+    private readonly chatViewProvider: ChatSideViewProvider,
     private readonly gitProvider: GitProvider,
   ) {
     const registrations = Object.keys(this.commands).map((key) => {
@@ -48,6 +55,45 @@ export class Commands {
     });
     const notNullRegistrations = registrations.filter((disposable): disposable is Disposable => disposable !== null);
     this.context.subscriptions.push(...notNullRegistrations);
+  }
+
+  private async sendMessageToChatPanel(msg: string) {
+    const editor = window.activeTextEditor;
+    if (editor) {
+      commands.executeCommand("tabby.chatView.focus");
+      const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
+      if (!fileContext) {
+        window.showInformationMessage("No selected codes");
+        return;
+      }
+
+      this.chatViewProvider.sendMessage({
+        message: msg,
+        selectContext: fileContext,
+      });
+    } else {
+      window.showInformationMessage("No active editor");
+    }
+  }
+
+  private addRelevantContext() {
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      window.showInformationMessage("No active editor");
+      return;
+    }
+
+    const addContext = async () => {
+      const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
+      if (fileContext) {
+        this.chatViewProvider.addRelevantContext(fileContext);
+      }
+    };
+    commands.executeCommand("tabby.chatView.focus");
+
+    if (this.chatViewProvider.webview?.visible) {
+      addContext();
+    }
   }
 
   commands: Record<string, (...args: never[]) => void> = {
@@ -132,25 +178,20 @@ export class Commands {
       window
         .showQuickPick([
           {
-            label: "Online Documentation",
+            label: "Website",
             iconPath: new ThemeIcon("book"),
             alwaysShow: true,
-          },
-          {
-            label: "Model Registry",
-            description: "Explore more recommend models from Tabby's model registry",
-            iconPath: new ThemeIcon("library"),
-            alwaysShow: true,
+            description: "Visit Tabby's website to learn more about features and use cases",
           },
           {
             label: "Tabby Slack Community",
-            description: "Join Tabby's Slack community to get help or feed back",
+            description: "Join Tabby's Slack community to get help or share feedback",
             iconPath: new ThemeIcon("comment-discussion"),
             alwaysShow: true,
           },
           {
             label: "Tabby GitHub Repository",
-            description: "View the source code for Tabby, and open issues",
+            description: "Open issues for bugs or feature requests",
             iconPath: new ThemeIcon("github"),
             alwaysShow: true,
           },
@@ -158,11 +199,8 @@ export class Commands {
         .then((selection) => {
           if (selection) {
             switch (selection.label) {
-              case "Online Documentation":
+              case "Website":
                 env.openExternal(Uri.parse("https://tabby.tabbyml.com/"));
-                break;
-              case "Model Registry":
-                env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
                 break;
               case "Tabby Slack Community":
                 env.openExternal(Uri.parse("https://links.tabbyml.com/join-slack-extensions/"));
@@ -180,11 +218,29 @@ export class Commands {
     gettingStarted: () => {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
     },
+    "commandPalette.trigger": () => {
+      new CommandPalette(this.client, this.config, this.issues);
+    },
+    "outputPanel.focus": () => {
+      showOutputPanel();
+    },
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
     },
-    "inlineCompletion.accept": () => {
-      commands.executeCommand("editor.action.inlineSuggest.commit");
+    "inlineCompletion.accept": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+
+      const uri = editor.document.uri;
+      const range = this.inlineCompletionProvider.calcEditedRangeAfterAccept();
+
+      await commands.executeCommand("editor.action.inlineSuggest.commit");
+
+      if (range) {
+        applyQuickFixes(uri, range);
+      }
     },
     "inlineCompletion.acceptNextWord": () => {
       this.inlineCompletionProvider.handleEvent("accept_word");
@@ -215,178 +271,76 @@ export class Commands {
         this.config.mutedNotifications = [];
       }
     },
-    "chat.explainCodeBlock": async () => {
+    "chat.explainCodeBlock": async (userCommand?: string) => {
+      this.sendMessageToChatPanel("Explain the selected code:".concat(userCommand ? `\n${userCommand}` : ""));
+    },
+    "chat.addRelevantContext": async () => {
+      this.addRelevantContext();
+    },
+    "chat.addFileContext": async () => {
       const editor = window.activeTextEditor;
       if (editor) {
-        commands.executeCommand("tabby.chatView.focus");
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        this.chatViewProvider.sendMessage({
-          message: "Explain the selected code:",
-          selectContext: fileContext,
-        });
+        const fileContext = await getFileContext(editor, this.gitProvider);
+        if (fileContext) {
+          commands.executeCommand("tabby.chatView.focus").then(async () => {
+            this.chatViewProvider.addRelevantContext(fileContext);
+          });
+        }
       } else {
         window.showInformationMessage("No active editor");
       }
     },
     "chat.fixCodeBlock": async () => {
-      const editor = window.activeTextEditor;
-      if (editor) {
-        commands.executeCommand("tabby.chatView.focus");
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        this.chatViewProvider.sendMessage({
-          message: "Identify and fix potential bugs in the selected code:",
-          selectContext: fileContext,
-        });
-      } else {
-        window.showInformationMessage("No active editor");
-      }
+      this.sendMessageToChatPanel("Identify and fix potential bugs in the selected code:");
     },
     "chat.generateCodeBlockDoc": async () => {
-      const editor = window.activeTextEditor;
-      if (editor) {
-        commands.executeCommand("tabby.chatView.focus");
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        this.chatViewProvider.sendMessage({
-          message: "Generate documentation for the selected code:",
-          selectContext: fileContext,
-        });
-      } else {
-        window.showInformationMessage("No active editor");
-      }
+      this.sendMessageToChatPanel("Generate documentation for the selected code:");
     },
     "chat.generateCodeBlockTest": async () => {
-      const editor = window.activeTextEditor;
-      if (editor) {
-        commands.executeCommand("tabby.chatView.focus");
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        this.chatViewProvider.sendMessage({
-          message: "Generate a unit test for the selected code:",
-          selectContext: fileContext,
-        });
-      } else {
-        window.showInformationMessage("No active editor");
-      }
+      this.sendMessageToChatPanel("Generate a unit test for the selected code:");
     },
-    "chat.edit.start": async () => {
+    "chat.createPanel": async () => {
+      const panel = window.createWebviewPanel("tabby.chatView", "Tabby", ViewColumn.One, {
+        retainContextWhenHidden: true,
+      });
+
+      const chatPanelViewProvider = new ChatPanelViewProvider(
+        this.context,
+        this.client.agent,
+        this.gitProvider,
+        this.client.chat,
+      );
+
+      chatPanelViewProvider.resolveWebviewView(panel);
+    },
+    "chat.edit.start": async (userCommand?: string, range?: Range) => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
       }
-      const startPosition = new Position(editor.selection.start.line, 0);
+
+      const editRange = range || editor.selection;
+
       const editLocation = {
         uri: editor.document.uri.toString(),
         range: {
-          start: { line: editor.selection.start.line, character: 0 },
+          start: { line: editRange.start.line, character: 0 },
           end: {
-            line: editor.selection.end.character === 0 ? editor.selection.end.line : editor.selection.end.line + 1,
+            line: editRange.end.character === 0 ? editRange.end.line : editRange.end.line + 1,
             character: 0,
           },
         },
       };
-      const recentlyCommand = this.config.chatEditRecentlyCommand;
-      const suggestedCommand: ChatEditCommand[] = [];
-      const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
-      const updateQuickPickList = () => {
-        const input = quickPick.value;
-        const list: (QuickPickItem & { value: string })[] = [];
-        list.push(
-          ...suggestedCommand.map((item) => {
-            return {
-              label: item.label,
-              value: item.command,
-              iconPath: item.source === "preset" ? new ThemeIcon("edit") : new ThemeIcon("spark"),
-              description: item.source === "preset" ? item.command : "Suggested",
-            };
-          }),
-        );
-        if (list.length > 0) {
-          list.push({
-            label: "",
-            value: "",
-            kind: QuickPickItemKind.Separator,
-            alwaysShow: true,
-          });
-        }
-        const recentlyCommandToAdd = recentlyCommand.filter((item) => !list.find((i) => i.value === item));
-        list.push(
-          ...recentlyCommandToAdd.map((item) => {
-            return {
-              label: item,
-              value: item,
-              iconPath: new ThemeIcon("history"),
-              description: "History",
-            };
-          }),
-        );
-        if (input.length > 0 && !list.find((i) => i.value === input)) {
-          list.unshift({
-            label: input,
-            value: input,
-            iconPath: new ThemeIcon("run"),
-            description: "",
-            alwaysShow: true,
-          });
-        }
-        quickPick.items = list;
-      };
-      const fetchingSuggestedCommandCancellationTokenSource = new CancellationTokenSource();
-      this.client.chat.provideEditCommands(
-        { location: editLocation },
-        { commands: suggestedCommand, callback: () => updateQuickPickList() },
-        fetchingSuggestedCommandCancellationTokenSource.token,
+
+      const inlineEditController = new InlineEditController(
+        this.client,
+        this.config,
+        this.contextVariables,
+        editor,
+        editLocation,
+        userCommand,
       );
-      quickPick.placeholder = "Enter the command for editing";
-      quickPick.matchOnDescription = true;
-      quickPick.onDidChangeValue(() => updateQuickPickList());
-      quickPick.onDidHide(() => {
-        fetchingSuggestedCommandCancellationTokenSource.cancel();
-      });
-      quickPick.onDidAccept(() => {
-        quickPick.hide();
-        const command = quickPick.selectedItems[0]?.value;
-        if (command) {
-          this.config.chatEditRecentlyCommand = [command]
-            .concat(recentlyCommand.filter((item) => item !== command))
-            .slice(0, 20);
-          window.withProgress(
-            {
-              location: ProgressLocation.Notification,
-              title: "Editing in progress...",
-              cancellable: true,
-            },
-            async (_, token) => {
-              editor.selection = new Selection(startPosition, startPosition);
-              this.contextVariables.chatEditInProgress = true;
-              if (token.isCancellationRequested) {
-                return;
-              }
-              this.chatEditCancellationTokenSource = new CancellationTokenSource();
-              token.onCancellationRequested(() => {
-                this.chatEditCancellationTokenSource?.cancel();
-              });
-              try {
-                await this.client.chat.provideEdit(
-                  {
-                    location: editLocation,
-                    command,
-                    format: "previewChanges",
-                  },
-                  this.chatEditCancellationTokenSource.token,
-                );
-              } catch (error) {
-                if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
-                  window.showErrorMessage(error["message"]);
-                }
-              }
-              this.chatEditCancellationTokenSource.dispose();
-              this.chatEditCancellationTokenSource = null;
-              this.contextVariables.chatEditInProgress = false;
-              editor.selection = new Selection(startPosition, startPosition);
-            },
-          );
-        }
-      });
-      quickPick.show();
+      inlineEditController.start();
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
@@ -419,42 +373,43 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
-    "chat.generateCommitMessage": async () => {
+    "chat.generateCommitMessage": async (repository?: Repository) => {
       const repos = this.gitProvider.getRepositories() ?? [];
       if (repos.length < 1) {
         window.showInformationMessage("No Git repositories found.");
         return;
       }
-      // Select repo
-      let selectedRepo: Repository | undefined = undefined;
-      if (repos.length == 1) {
-        selectedRepo = repos[0];
-      } else {
-        const selected = await window.showQuickPick(
-          repos
-            .map((repo) => {
-              const repoRoot = repo.rootUri.fsPath;
-              return {
-                label: path.basename(repoRoot),
-                detail: repoRoot,
-                iconPath: new ThemeIcon("repo"),
-                picked: repo.ui.selected,
-                alwaysShow: true,
-                value: repo,
-              };
-            })
-            .sort((a, b) => {
-              if (a.detail.startsWith(b.detail)) {
-                return 1;
-              } else if (b.detail.startsWith(a.detail)) {
-                return -1;
-              } else {
-                return a.label.localeCompare(b.label);
-              }
-            }),
-          { placeHolder: "Select a Git repository" },
-        );
-        selectedRepo = selected?.value;
+      let selectedRepo = repository;
+      if (!selectedRepo) {
+        if (repos.length == 1) {
+          selectedRepo = repos[0];
+        } else {
+          const selected = await window.showQuickPick(
+            repos
+              .map((repo) => {
+                const repoRoot = repo.rootUri.fsPath;
+                return {
+                  label: path.basename(repoRoot),
+                  detail: repoRoot,
+                  iconPath: new ThemeIcon("repo"),
+                  picked: repo.ui.selected,
+                  alwaysShow: true,
+                  value: repo,
+                };
+              })
+              .sort((a, b) => {
+                if (a.detail.startsWith(b.detail)) {
+                  return 1;
+                } else if (b.detail.startsWith(a.detail)) {
+                  return -1;
+                } else {
+                  return a.label.localeCompare(b.label);
+                }
+              }),
+            { placeHolder: "Select a Git repository" },
+          );
+          selectedRepo = selected?.value;
+        }
       }
       if (!selectedRepo) {
         return;
@@ -472,11 +427,65 @@ export class Commands {
             { repository: selectedRepo.rootUri.toString() },
             token,
           );
-          if (result) {
+          if (result && selectedRepo.inputBox) {
             selectedRepo.inputBox.value = result.commitMessage;
           }
         },
       );
     },
+    "server.selectPastServerConfig": () => {
+      const configs = this.config.pastServerConfigs;
+      if (configs.length <= 0) return;
+
+      const quickPick = window.createQuickPick<QuickPickItem & PastServerConfig>();
+
+      quickPick.items = configs.map((x) => ({
+        ...x,
+        label: x.endpoint,
+        buttons: [
+          {
+            iconPath: new ThemeIcon("settings-remove"),
+          },
+        ],
+      }));
+
+      quickPick.onDidAccept(() => {
+        const item = quickPick.activeItems[0];
+        if (item) {
+          this.config.restoreServerConfig(item);
+        }
+
+        quickPick.hide();
+      });
+
+      quickPick.onDidTriggerItemButton((e) => {
+        if (!(e.button.iconPath instanceof ThemeIcon)) return;
+        if (e.button.iconPath.id === "settings-remove") {
+          this.config.removePastServerConfigByApiEndpoint(e.item.endpoint);
+        }
+      });
+
+      quickPick.show();
+    },
   };
+}
+
+async function applyQuickFixes(uri: Uri, range: Range): Promise<void> {
+  const codeActions = await commands.executeCommand<CodeAction[]>("vscode.executeCodeActionProvider", uri, range);
+  const quickFixActions = codeActions.filter(
+    (action) =>
+      action.kind && action.kind.contains(CodeActionKind.QuickFix) && action.title.toLowerCase().includes("import"),
+  );
+  quickFixActions.forEach(async (action) => {
+    try {
+      if (action.edit) {
+        await workspace.applyEdit(action.edit);
+      }
+      if (action.command) {
+        await commands.executeCommand(action.command.command, action.command.arguments);
+      }
+    } catch (error) {
+      // ignore errors
+    }
+  });
 }

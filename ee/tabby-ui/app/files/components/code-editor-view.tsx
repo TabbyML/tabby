@@ -1,11 +1,11 @@
 import React from 'react'
 import { foldGutter } from '@codemirror/language'
-import { Extension } from '@codemirror/state'
+import { openSearchPanel } from '@codemirror/search'
+import { Extension, Line } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { isNaN, isNil } from 'lodash-es'
+import { isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
-import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useHash } from '@/lib/hooks/use-hash'
 import { TCodeTag } from '@/lib/types'
@@ -22,16 +22,32 @@ import {
   setSelectedLines
 } from './line-menu-extension/line-menu-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { parseLineNumberFromHash } from './utils'
+import {
+  generateEntryPath,
+  isValidLineHash,
+  parseLineNumberFromHash,
+  viewModelToKind
+} from './utils'
 
 import './line-menu-extension/line-menu.css'
+
+import { useLatest } from '@/lib/hooks/use-latest'
+import { filename2prism } from '@/lib/language-utils'
+
+import { search } from './editor-search-extension/search'
+import { SearchPanel } from './editor-search-extension/search-panel'
 
 interface CodeEditorViewProps {
   value: string
   language: string
+  className?: string
 }
 
-const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
+const CodeEditorView: React.FC<CodeEditorViewProps> = ({
+  value,
+  language,
+  className
+}) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = React.useMemo(() => {
     return []
@@ -39,29 +55,34 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { copyToClipboard } = useCopyToClipboard({})
   const [hash, updateHash] = useHash()
   const lineNumber = parseLineNumberFromHash(hash)?.start
+  const endLineNumber = parseLineNumberFromHash(hash)?.end
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
-  const { isChatEnabled, activePath, activeEntryInfo, activeRepo } =
-    React.useContext(SourceCodeBrowserContext)
+  const {
+    isChatEnabled,
+    activePath,
+    activeEntryInfo,
+    activeRepo,
+    activeRepoRef
+  } = React.useContext(SourceCodeBrowserContext)
   const { basename } = activeEntryInfo
   const gitUrl = activeRepo?.gitUrl ?? ''
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
-      EditorView.baseTheme({
-        '.cm-scroller': {
-          fontSize: '14px'
-        },
-        '.cm-gutters': {
-          backgroundColor: 'transparent',
-          borderRight: 'none'
-        }
-      }),
       selectLinesGutter({
-        onSelectLine: v => {
-          if (v === -1 || isNaN(v)) return
-          // todo support multi lines
-          updateHash(formatLineHashForCodeBrowser({ start: v }))
+        onSelectLine: range => {
+          if (!range) {
+            updateHash('')
+            return
+          }
+
+          updateHash(
+            formatLineHashForCodeBrowser({
+              start: range.line,
+              end: range.endLine
+            })
+          )
         }
       }),
       foldGutter({
@@ -78,14 +99,12 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
           return dom
         }
       }),
-      drawSelection()
+      drawSelection(),
+      search({
+        createPanel: config => new SearchPanel(config)
+      })
     ]
-    if (
-      EXP_enable_code_browser_quick_action_bar.value &&
-      isChatEnabled &&
-      activePath &&
-      basename
-    ) {
+    if (isChatEnabled && activePath && basename) {
       result.push(
         ActionBarWidgetExtension({ language, path: basename, gitUrl })
       )
@@ -105,13 +124,50 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     const onClickLineMenu = (data: LineMenuActionEventPayload) => {
       if (typeof lineNumber !== 'number') return
       if (data.action === 'copy_permalink') {
-        copyToClipboard(window.location.href)
+        const _link = generateEntryPath(
+          activeRepo,
+          activeRepoRef?.ref?.commit ?? activeRepoRef?.name,
+          activeEntryInfo.basename ?? '',
+          viewModelToKind(activeEntryInfo.viewMode)
+        )
+        const link = new URL(`${window.location.origin}/files/${_link}`)
+
+        // set hash
+        if (isValidLineHash(window.location.hash)) {
+          link.hash = window.location.hash
+        }
+
+        // set search
+        const detectedLanguage = activeEntryInfo.basename
+          ? filename2prism(activeEntryInfo.basename)[0]
+          : undefined
+        const isMarkdown = detectedLanguage === 'markdown'
+        if (isMarkdown) {
+          link.searchParams.set('plain', '1')
+        }
+
+        copyToClipboard(link.toString())
         return
       }
       if (data.action === 'copy_line') {
-        const lineObject = editorView?.state?.doc?.line(lineNumber)
-        if (lineObject) {
-          copyToClipboard(lineObject.text)
+        if (!editorView) return
+        const line = editorView.state.doc.line(lineNumber)
+        let endLine: Line | undefined = undefined
+        let content: string | undefined
+
+        if (endLineNumber) {
+          endLine = editorView.state.doc.line(endLineNumber)
+        }
+        // check if line and endLine are valid
+        if (line && endLine && line.number <= endLine.number) {
+          const startPos = line.from
+          const endPos = endLine.to
+          content = editorView.state.doc.slice(startPos, endPos).toString()
+        } else if (line) {
+          content = line.text
+        }
+        if (content) {
+          copyToClipboard(content)
         }
       }
     }
@@ -120,21 +176,28 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     return () => {
       emitter.off('line_menu_action', onClickLineMenu)
     }
-  }, [value, lineNumber])
+  }, [value, lineNumber, endLineNumber, editorView])
 
   React.useEffect(() => {
     if (!isNil(lineNumber) && editorView && value) {
       try {
         const lineInfo = editorView?.state?.doc?.line(lineNumber)
+        const endLineInfo = !isNil(endLineNumber)
+          ? editorView?.state?.doc?.line(endLineNumber)
+          : null
 
         if (lineInfo) {
-          const pos = lineInfo.from
-          setSelectedLines(editorView, pos)
-          if (isPositionInView(editorView, pos, 90)) {
+          const lineNumber = lineInfo.number
+          const endLineNumber = endLineInfo?.number
+          setSelectedLines(editorView, {
+            line: lineNumber,
+            endLine: endLineNumber
+          })
+          if (isPositionInView(editorView, lineInfo.from, 90)) {
             return
           }
           editorView.dispatch({
-            effects: EditorView.scrollIntoView(pos, {
+            effects: EditorView.scrollIntoView(lineInfo.from, {
               y: 'start',
               yMargin: 200
             })
@@ -142,10 +205,43 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
         }
       } catch (e) {}
     }
+
+    return () => {
+      if (editorView) {
+        setSelectedLines(editorView, null)
+      }
+    }
   }, [value, lineNumber, editorView])
+
+  const openSearch = useLatest(() => {
+    if (editorView) {
+      openSearchPanel(editorView)
+    }
+  })
+
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!editorView) return
+
+      const isMac = navigator.userAgent.toUpperCase().indexOf('MAC') >= 0
+      const isFindInPageShortcut =
+        (isMac ? event.metaKey : event.ctrlKey) && event.key === 'f'
+      if (isFindInPageShortcut) {
+        event.preventDefault()
+        openSearch.current()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [editorView])
 
   return (
     <CodeEditor
+      className="pb-2"
       value={value}
       theme={theme}
       language={language}

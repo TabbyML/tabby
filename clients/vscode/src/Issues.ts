@@ -40,20 +40,18 @@ export class Issues extends EventEmitter {
   }
 
   async fetchDetail(issue: IssueName): Promise<IssueDetail> {
-    return await this.client.agent.fetchIssueDetail({ name: issue, helpMessageFormat: "markdown" });
+    return await this.client.agent.fetchIssueDetail({ name: issue, helpMessageFormat: "plaintext" });
   }
 
-  async showHelpMessage(issue?: IssueName | undefined, modal = false) {
+  // FIXME(meng): Remove codepath for `modal = false`, which is no longer used.
+  async showHelpMessage(issue?: IssueName | undefined, modal = true) {
     const name = issue ?? this.first;
     if (!name) {
       return;
     }
     if (name === "connectionFailed") {
       if (modal) {
-        const detail = await this.client.agent.fetchIssueDetail({
-          name: "connectionFailed",
-          helpMessageFormat: "markdown",
-        });
+        const detail = await this.fetchDetail("connectionFailed");
         window
           .showWarningMessage(
             `Cannot connect to Tabby Server.`,
@@ -89,10 +87,7 @@ export class Issues extends EventEmitter {
     }
     if (name === "highCompletionTimeoutRate") {
       if (modal) {
-        const detail = await this.client.agent.fetchIssueDetail({
-          name: "connectionFailed",
-          helpMessageFormat: "markdown",
-        });
+        const detail = await this.fetchDetail("highCompletionTimeoutRate");
         window
           .showWarningMessage(
             "Most completion requests timed out.",
@@ -133,10 +128,7 @@ export class Issues extends EventEmitter {
     }
     if (name === "slowCompletionResponseTime") {
       if (modal) {
-        const detail = await this.client.agent.fetchIssueDetail({
-          name: "slowCompletionResponseTime",
-          helpMessageFormat: "markdown",
-        });
+        const detail = await this.fetchDetail("slowCompletionResponseTime");
         window
           .showWarningMessage(
             "Completion requests appear to take too much time.",

@@ -8,11 +8,12 @@
   ],
   "types": "./lib/index.d.ts",
   "scripts": {
-    "update-schema": "wget http://localhost:8080/api-docs/openapi.json -O ./openapi.json",
-    "codegen": "openapi-typescript ./openapi.json -o ./lib/index.d.ts"
+    "codegen": "node scripts/codegen.js",
+    "codegen:fetch": "node scripts/codegen.js --fetch"
   },
   "devDependencies": {
-    "openapi-typescript": "^6.6.1",
-    "wget": "^0.0.1"
+    "openai": "^4.52.7",
+    "openapi-typescript": "^7.0.2",
+    "typescript": "^5.3.2"
   }
 }

@@ -2,14 +2,11 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use cached::{CachedAsync, TimedCache};
-use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{
-        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchQuery,
-        CodeSearchResponse, CodeSearchScores,
+        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
+        CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
     },
-    config::{ConfigAccess, RepositoryConfig},
     index::{
         self,
         code::{self, tokenize_code},
@@ -22,23 +19,16 @@ use tantivy::{
     schema::{self, Value},
     IndexReader, TantivyDocument,
 };
-use tokio::sync::Mutex;
 
 use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
-    config_access: Arc<dyn ConfigAccess>,
     embedding: Arc<dyn Embedding>,
-    repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
-    fn new(config_access: Arc<dyn ConfigAccess>, embedding: Arc<dyn Embedding>) -> Self {
-        Self {
-            config_access,
-            embedding,
-            repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
-        }
+    fn new(embedding: Arc<dyn Embedding>) -> Self {
+        Self { embedding }
     }
 
     async fn search_with_query(
@@ -62,24 +52,9 @@ impl CodeSearchImpl {
     async fn search_in_language(
         &self,
         reader: &IndexReader,
-        mut query: CodeSearchQuery,
-        limit: usize,
+        query: CodeSearchQuery,
+        params: CodeSearchParams,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
-        let mut cache = self.repo_cache.lock().await;
-
-        let repos = cache
-            .try_get_or_set_with((), || async {
-                let repos = self.config_access.repositories().await?;
-                Ok::<_, anyhow::Error>(repos)
-            })
-            .await?;
-
-        let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
-            return Ok(CodeSearchResponse::default());
-        };
-
-        query.git_url = git_url.to_owned();
-
         let docs_from_embedding = {
             let embedding = self.embedding.embed(&query.content).await?;
             let embedding_tokens_query = Box::new(index::embedding_tokens_query(
@@ -88,7 +63,8 @@ impl CodeSearchImpl {
             ));
 
             let query = code::code_search_query(&query, embedding_tokens_query);
-            self.search_with_query(reader, &query, limit * 2).await?
+            self.search_with_query(reader, &query, params.num_to_score)
+                .await?
         };
 
         let docs_from_bm25 = {
@@ -96,26 +72,24 @@ impl CodeSearchImpl {
             let body_query = code::body_query(&body_tokens);
 
             let query = code::code_search_query(&query, body_query);
-            self.search_with_query(reader, &query, limit * 2).await?
+            self.search_with_query(reader, &query, params.num_to_score)
+                .await?
         };
 
         Ok(merge_code_responses_by_rank(
+            &params,
             docs_from_embedding,
             docs_from_bm25,
-            limit,
         ))
     }
 }
 
 const RANK_CONSTANT: f32 = 60.0;
-const EMBEDDING_SCORE_THRESHOLD: f32 = 0.75;
-const BM25_SCORE_THRESHOLD: f32 = 8.0;
-const RRF_SCORE_THRESHOLD: f32 = 0.028;
 
 fn merge_code_responses_by_rank(
+    params: &CodeSearchParams,
     embedding_resp: Vec<(f32, TantivyDocument)>,
     bm25_resp: Vec<(f32, TantivyDocument)>,
-    limit: usize,
 ) -> CodeSearchResponse {
     let mut scored_hits: HashMap<String, (CodeSearchScores, TantivyDocument)> = HashMap::default();
 
@@ -131,10 +105,16 @@ fn merge_code_responses_by_rank(
 
     for (rank, bm25, doc) in compute_rank_score(bm25_resp).into_iter() {
         let chunk_id = get_chunk_id(&doc);
-        // Only keep items with embedding score > 0.
         if let Some((score, _)) = scored_hits.get_mut(chunk_id) {
             score.rrf += rank;
             score.bm25 = bm25;
+        } else {
+            let scores = CodeSearchScores {
+                rrf: rank,
+                bm25,
+                ..Default::default()
+            };
+            scored_hits.insert(chunk_id.to_owned(), (scores, doc));
         }
     }
 
@@ -143,17 +123,31 @@ fn merge_code_responses_by_rank(
         .map(|(scores, doc)| create_hit(scores, doc))
         .collect();
     scored_hits.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
+    retain_at_most_two_hits_per_file(&mut scored_hits);
+
     CodeSearchResponse {
         hits: scored_hits
             .into_iter()
             .filter(|hit| {
-                hit.scores.bm25 > BM25_SCORE_THRESHOLD
-                    && hit.scores.embedding > EMBEDDING_SCORE_THRESHOLD
-                    && hit.scores.rrf > RRF_SCORE_THRESHOLD
+                hit.scores.bm25 > params.min_bm25_score
+                    && hit.scores.embedding > params.min_embedding_score
+                    && hit.scores.rrf > params.min_rrf_score
             })
-            .take(limit)
+            .take(params.num_to_return)
             .collect(),
     }
+}
+
+fn retain_at_most_two_hits_per_file(scored_hits: &mut Vec<CodeSearchHit>) {
+    let mut scored_hits_by_fileid: HashMap<String, usize> = HashMap::default();
+    scored_hits.retain(|x| {
+        let count: usize = scored_hits_by_fileid
+            .get(&x.doc.file_id)
+            .copied()
+            .unwrap_or_default();
+        scored_hits_by_fileid.insert(x.doc.file_id.clone(), count + 1);
+        count < 2
+    });
 }
 
 fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(f32, f32, TantivyDocument)> {
@@ -234,44 +228,25 @@ fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name:
         .unwrap()
 }
 
-fn closest_match<'a>(
-    search_term: &'a str,
-    search_input: impl IntoIterator<Item = &'a RepositoryConfig>,
-) -> Option<&'a str> {
-    let git_search = GitUrl::parse(search_term).ok()?;
-
-    search_input
-        .into_iter()
-        .filter(|elem| GitUrl::parse(&elem.git_url).is_ok_and(|x| x.name == git_search.name))
-        // If there're multiple matches, we pick the one with highest alphabetical order
-        .min_by_key(|elem| elem.canonical_git_url())
-        .map(|x| x.git_url.as_str())
-}
-
 struct CodeSearchService {
     imp: CodeSearchImpl,
     provider: Arc<IndexReaderProvider>,
 }
 
 impl CodeSearchService {
-    pub fn new(
-        config_access: Arc<dyn ConfigAccess>,
-        embedding: Arc<dyn Embedding>,
-        provider: Arc<IndexReaderProvider>,
-    ) -> Self {
+    pub fn new(embedding: Arc<dyn Embedding>, provider: Arc<IndexReaderProvider>) -> Self {
         Self {
-            imp: CodeSearchImpl::new(config_access, embedding),
+            imp: CodeSearchImpl::new(embedding),
             provider,
         }
     }
 }
 
 pub fn create_code_search(
-    config_access: Arc<dyn ConfigAccess>,
     embedding: Arc<dyn Embedding>,
     provider: Arc<IndexReaderProvider>,
 ) -> impl CodeSearch {
-    CodeSearchService::new(config_access, embedding, provider)
+    CodeSearchService::new(embedding, provider)
 }
 
 #[async_trait]
@@ -279,10 +254,10 @@ impl CodeSearch for CodeSearchService {
     async fn search_in_language(
         &self,
         query: CodeSearchQuery,
-        limit: usize,
+        params: CodeSearchParams,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
         if let Some(reader) = self.provider.reader().await.as_ref() {
-            self.imp.search_in_language(reader, query, limit).await
+            self.imp.search_in_language(reader, query, params).await
         } else {
             Err(CodeSearchError::NotReady)
         }
@@ -293,98 +268,89 @@ impl CodeSearch for CodeSearchService {
 mod tests {
     use super::*;
 
-    macro_rules! assert_match_first {
-        ($query:literal, $candidates:expr) => {
-            let candidates: Vec<_> = $candidates
-                .into_iter()
-                .map(|x| RepositoryConfig::new(x.to_string()))
-                .collect();
-            let expect = &candidates[0];
-            assert_eq!(
-                closest_match($query, &candidates),
-                Some(expect.git_url.as_ref())
-            );
-        };
-    }
-
-    macro_rules! assert_match_none {
-        ($query:literal, $candidates:expr) => {
-            let candidates: Vec<_> = $candidates
-                .into_iter()
-                .map(|x| RepositoryConfig::new(x.to_string()))
-                .collect();
-            assert_eq!(closest_match($query, &candidates), None);
-        };
-    }
-
     #[test]
-    fn test_closest_match() {
-        // Test .git suffix should still match
-        assert_match_first!(
-            "https://github.com/example/test.git",
-            ["https://github.com/example/test"]
-        );
+    fn test_retain_at_most_two_hits_per_file() {
+        let new_hit = |file: &str, body: &str| CodeSearchHit {
+            scores: Default::default(),
+            doc: CodeSearchDocument {
+                file_id: file.to_string(),
+                chunk_id: "chunk1".to_owned(),
+                body: body.to_string(),
+                filepath: "".to_owned(),
+                git_url: "".to_owned(),
+                language: "".to_owned(),
+                start_line: 0,
+            },
+        };
 
-        // Test auth in URL should still match
-        assert_match_first!(
-            "https://creds@github.com/example/test",
-            ["https://github.com/example/test"]
-        );
+        let cases = vec![
+            (vec![], vec![]),
+            (
+                vec![new_hit("file1", "body1")],
+                vec![new_hit("file1", "body1")],
+            ),
+            (
+                vec![new_hit("file1", "body1"), new_hit("file1", "body2")],
+                vec![new_hit("file1", "body1"), new_hit("file1", "body2")],
+            ),
+            (
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file1", "body3"),
+                ],
+                vec![new_hit("file1", "body1"), new_hit("file1", "body2")],
+            ),
+            (
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file1", "body3"),
+                    new_hit("file2", "body4"),
+                ],
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file2", "body4"),
+                ],
+            ),
+            (
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file1", "body3"),
+                    new_hit("file2", "body4"),
+                    new_hit("file2", "body5"),
+                ],
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file2", "body4"),
+                    new_hit("file2", "body5"),
+                ],
+            ),
+            (
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file1", "body3"),
+                    new_hit("file2", "body4"),
+                    new_hit("file2", "body5"),
+                    new_hit("file2", "body6"),
+                ],
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file2", "body4"),
+                    new_hit("file2", "body5"),
+                ],
+            ),
+        ];
 
-        // Test name must be exact match
-        assert_match_none!(
-            "https://github.com/example/another-repo",
-            ["https://github.com/example/anoth-repo"]
-        );
-
-        // Test different repositories with a common prefix should not match
-        assert_match_none!(
-            "https://github.com/TabbyML/tabby",
-            ["https://github.com/TabbyML/registry-tabby"]
-        );
-
-        // Test entirely different repository names should not match
-        assert_match_none!(
-            "https://github.com/TabbyML/tabby",
-            ["https://github.com/TabbyML/uptime"]
-        );
-
-        assert_match_none!("https://github.com", ["https://github.com/TabbyML/tabby"]);
-
-        // Test different host
-        assert_match_first!(
-            "https://bitbucket.com/TabbyML/tabby",
-            ["https://github.com/TabbyML/tabby"]
-        );
-
-        // Test multiple close matches
-        assert_match_none!(
-            "git@github.com:TabbyML/tabby",
-            [
-                "https://bitbucket.com/CrabbyML/crabby",
-                "https://gitlab.com/TabbyML/registry-tabby",
-            ]
-        );
-    }
-
-    #[test]
-    fn test_closest_match_url_format_differences() {
-        // Test different protocol and suffix should still match
-        assert_match_first!(
-            "git@github.com:TabbyML/tabby.git",
-            ["https://github.com/TabbyML/tabby"]
-        );
-
-        // Test different protocol should still match
-        assert_match_first!(
-            "git@github.com:TabbyML/tabby",
-            ["https://github.com/TabbyML/tabby"]
-        );
-
-        // Test URL without organization should still match
-        assert_match_first!(
-            "https://custom-git.com/tabby",
-            ["https://custom-git.com/TabbyML/tabby"]
-        );
+        for (input, expected) in cases {
+            let mut input = input;
+            retain_at_most_two_hits_per_file(&mut input);
+            assert_eq!(input, expected);
+        }
     }
 }

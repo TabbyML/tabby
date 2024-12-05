@@ -16,18 +16,22 @@ export class InitializationFeature implements StaticFeature {
   }
 
   fillInitializeParams(params: InitializeParams) {
-    params.clientInfo = {
-      ...params.clientInfo,
-      name: `${env.appName} ${env.appHost}`,
-      version: version,
-      tabbyPlugin: {
-        name: this.context.extension.id,
-        version: this.context.extension.packageJSON.version,
-      },
-    };
     params.initializationOptions = {
       ...params.initializationOptions,
       config: this.config.buildClientProvidedConfig(),
+      clientInfo: {
+        name: `${env.appName} ${env.appHost}`,
+        version: version,
+        tabbyPlugin: {
+          name: this.context.extension.id,
+          version: this.context.extension.packageJSON.version,
+        },
+      },
+      clientCapabilities: {
+        textDocument: {
+          completion: false,
+        },
+      },
     };
     params.trace = this.getCurrentTraceValue();
   }

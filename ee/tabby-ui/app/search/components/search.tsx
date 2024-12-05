@@ -3,177 +3,413 @@
 import {
   createContext,
   CSSProperties,
-  useContext,
+  Fragment,
   useEffect,
   useMemo,
   useRef,
   useState
 } from 'react'
-import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import defaultFavicon from '@/assets/default-favicon.png'
-import { Message } from 'ai'
-import DOMPurify from 'dompurify'
-import he from 'he'
-import { marked } from 'marked'
+import slugify from '@sindresorhus/slugify'
+import { compact, pick, some, uniq, uniqBy } from 'lodash-es'
 import { nanoid } from 'nanoid'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
+import { ImperativePanelHandle } from 'react-resizable-panels'
+import { toast } from 'sonner'
+import { useQuery } from 'urql'
 
-import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { useEnableSearch } from '@/lib/experiment-flags'
+import {
+  ERROR_CODE_NOT_FOUND,
+  SESSION_STORAGE_KEY,
+  SLUG_TITLE_MAX_LENGTH
+} from '@/lib/constants'
+import { useEnableDeveloperMode } from '@/lib/experiment-flags'
+import { graphql } from '@/lib/gql/generates'
+import {
+  CodeQueryInput,
+  ContextInfo,
+  DocQueryInput,
+  InputMaybe,
+  Maybe,
+  Message,
+  MessageAttachmentClientCode,
+  Role
+} from '@/lib/gql/generates/graphql'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
+import { useMe } from '@/lib/hooks/use-me'
+import { useSelectedModel } from '@/lib/hooks/use-models'
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
-import fetcher from '@/lib/tabby/fetcher'
-import { AnswerRequest } from '@/lib/types'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { CodeBlock } from '@/components/ui/codeblock'
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
+import { updateSelectedModel } from '@/lib/stores/chat-actions'
+import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
+import { useMutation } from '@/lib/tabby/gql'
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger
-} from '@/components/ui/hover-card'
+  contextInfoQuery,
+  listThreadMessages,
+  listThreads,
+  setThreadPersistedMutation
+} from '@/lib/tabby/query'
 import {
-  IconBlocks,
-  IconChevronLeft,
-  IconChevronRight,
-  IconLayers,
+  AttachmentCodeItem,
+  AttachmentDocItem,
+  ExtendedCombinedError,
+  ThreadRunContexts
+} from '@/lib/types'
+import {
+  cn,
+  getMentionsFromText,
+  getThreadRunContextsFromMentions,
+  getTitleFromMessages
+} from '@/lib/utils'
+import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  IconCheck,
+  IconFileSearch,
+  IconInfoCircled,
   IconPlus,
-  IconRefresh,
-  IconSparkles,
-  IconSpinner,
+  IconShare,
   IconStop
 } from '@/components/ui/icons'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup
+} from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-import { ClientOnly } from '@/components/client-only'
-import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
-import { MemoizedReactMarkdown } from '@/components/markdown'
+import NotFoundPage from '@/components/not-found-page'
 import TextAreaSearch from '@/components/textarea-search'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { UserAvatar } from '@/components/user-avatar'
-import UserPanel from '@/components/user-panel'
 
-import './search.css'
+import { AssistantMessageSection } from './assistant-message-section'
+import { DevPanel } from './dev-panel'
+import { Header } from './header'
+import { MessagesSkeleton } from './messages-skeleton'
+import { UserMessageSection } from './user-message-section'
 
-interface Source {
-  title: string
-  link: string
-  snippet: string
+export type ConversationMessage = Omit<
+  Message,
+  '__typename' | 'updatedAt' | 'createdAt' | 'attachment' | 'threadId'
+> & {
+  threadId?: string
+  threadRelevantQuestions?: Maybe<string[]>
+  error?: string
+  attachment?: {
+    clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
+    code: Maybe<Array<AttachmentCodeItem>> | undefined
+    doc: Maybe<Array<AttachmentDocItem>> | undefined
+  }
 }
 
-type ConversationMessage = Message & {
-  relevant_documents?: {
-    title: string
-    link: string
-    snippet: string
-  }[]
-  relevant_questions?: string[]
-  isLoading?: boolean
-  error?: string
+type ConversationPair = {
+  question: ConversationMessage | null
+  answer: ConversationMessage | null
 }
 
 type SearchContextValue = {
+  // flag for initialize the pathname
+  isPathnameInitialized: boolean
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
+  setDevPanelOpen: (v: boolean) => void
+  setConversationIdForDev: (v: string | undefined) => void
+  enableDeveloperMode: boolean
+  contextInfo: ContextInfo | undefined
+  fetchingContextInfo: boolean
+  onDeleteMessage: (id: string) => void
+  isThreadOwner: boolean
+  onUpdateMessage: (
+    message: ConversationMessage
+  ) => Promise<ExtendedCombinedError | undefined>
 }
 
 export const SearchContext = createContext<SearchContextValue>(
   {} as SearchContextValue
 )
 
-const tabbyFetcher = ((url: string, init?: RequestInit) => {
-  return fetcher(url, {
-    ...init,
-    responseFormatter(response) {
-      return response
-    },
-    errorHandler(response) {
-      throw new Error(response ? String(response.status) : 'Fail to fetch')
-    }
-  })
-}) as typeof fetch
-
-const SOURCE_CARD_STYLE = {
+export const SOURCE_CARD_STYLE = {
   compress: 5.3,
   expand: 6.3
 }
 
+const PAGE_SIZE = 30
+
+const TEMP_MSG_ID_PREFIX = '_temp_msg_'
+const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
+
 export function Search() {
+  const [{ data: meData }] = useMe()
+  const { updateUrlComponents, pathname } = useRouterStuff()
+  const [activePathname, setActivePathname] = useState<string | undefined>()
+  const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
-  const [searchFlag] = useEnableSearch()
-  const [conversation, setConversation] = useState<ConversationMessage[]>([])
-  const [showStop, setShowStop] = useState(true)
-  const [container, setContainer] = useState<HTMLDivElement | null>(null)
-  const [title, setTitle] = useState('')
+  const [messages, setMessages] = useState<ConversationMessage[]>([])
+  const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
-  const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
+  const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
+  const [currentAssistantMessageId, setCurrentAssistantMessageId] =
+    useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [showSearchInput, setShowSearchInput] = useState(false)
   const [isShowDemoBanner] = useShowDemoBanner()
   const router = useRouter()
-  const initCheckRef = useRef(false)
+  const initializing = useRef(false)
   const { theme } = useCurrentTheme()
+  const [devPanelOpen, setDevPanelOpen] = useState(false)
+  const [messageIdForDev, setMessageIdForDev] = useState<string | undefined>()
+  const devPanelRef = useRef<ImperativePanelHandle>(null)
+  const [devPanelSize, setDevPanelSize] = useState(45)
+  const prevDevPanelSize = useRef(devPanelSize)
+  const [enableDeveloperMode] = useEnableDeveloperMode()
+  const [threadId, setThreadId] = useState<string | undefined>()
+  const threadIdFromURL = useMemo(() => {
+    const regex = /^\/search\/(.*)/
+    if (!activePathname) return undefined
 
-  const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
-    fetcher: tabbyFetcher
+    return activePathname.match(regex)?.[1]?.split('-').pop()
+  }, [activePathname])
+
+  const updateThreadMessage = useMutation(updateThreadMessageMutation)
+
+  const onUpdateMessage = async (
+    message: ConversationMessage
+  ): Promise<ExtendedCombinedError | undefined> => {
+    const messageIndex = messages.findIndex(o => o.id === message.id)
+    if (messageIndex > -1 && threadId) {
+      // 1. call api
+      const result = await updateThreadMessage({
+        input: {
+          threadId,
+          id: message.id,
+          content: message.content
+        }
+      })
+      if (result?.data?.updateThreadMessage) {
+        // 2. set messages
+        await setMessages(prev => {
+          const newMessages = [...prev]
+          newMessages[messageIndex] = message
+          return newMessages
+        })
+      } else {
+        return result?.error || new Error('Failed to save')
+      }
+    } else {
+      return new Error('Failed to save')
+    }
+  }
+
+  useEffect(() => {
+    if (threadIdFromURL) {
+      setThreadId(threadIdFromURL)
+    }
+  }, [threadIdFromURL])
+
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
+  })
+
+  const [afterCursor, setAfterCursor] = useState<string | undefined>()
+
+  const [{ data: threadData, fetching: fetchingThread, error: threadError }] =
+    useQuery({
+      query: listThreads,
+      variables: {
+        ids: [threadId as string]
+      },
+      pause: !threadId
+    })
+
+  const [
+    {
+      data: threadMessages,
+      error: threadMessagesError,
+      fetching: fetchingMessages,
+      stale: threadMessagesStale
+    }
+  ] = useQuery({
+    query: listThreadMessages,
+    variables: {
+      threadId: threadId as string,
+      first: PAGE_SIZE,
+      after: afterCursor
+    },
+    pause: !threadId || isReady
+  })
+
+  useEffect(() => {
+    if (threadMessagesStale) return
+
+    if (threadMessages?.threadMessages?.edges?.length) {
+      const messages = threadMessages.threadMessages.edges
+        .map(o => o.node)
+        .slice()
+      setMessages(prev => uniqBy([...prev, ...messages], 'id'))
+    }
+
+    if (threadMessages?.threadMessages) {
+      const hasNextPage = threadMessages?.threadMessages?.pageInfo?.hasNextPage
+      const endCursor = threadMessages?.threadMessages.pageInfo.endCursor
+      if (hasNextPage && endCursor) {
+        setAfterCursor(endCursor)
+      } else {
+        setIsReady(true)
+      }
+    }
+  }, [threadMessages])
+
+  const isThreadOwner = useMemo(() => {
+    if (!meData) return false
+    if (!threadIdFromURL) return true
+
+    const thread = threadData?.threads.edges[0]
+    if (!thread) return false
+
+    return meData.me.id === thread.node.userId
+  }, [meData, threadData, threadIdFromURL])
+
+  // Compute title
+  const sources = contextInfoData?.contextInfo.sources
+  const content = messages?.[0]?.content
+  const title = useMemo(() => {
+    if (sources && content) {
+      return getTitleFromMessages(sources, content, {
+        maxLength: SLUG_TITLE_MAX_LENGTH
+      })
+    } else {
+      return ''
+    }
+  }, [sources, content])
+
+  // Update title
+  useEffect(() => {
+    if (title) {
+      document.title = title
+    }
+  }, [title])
+
+  useEffect(() => {
+    if (threadMessagesError && !isReady) {
+      setIsReady(true)
+    }
+  }, [threadMessagesError])
+
+  // `/search` -> `/search/{slug}-{threadId}`
+  const updateThreadURL = (threadId: string) => {
+    const slug = slugify(title)
+    const slugWithThreadId = compact([slug, threadId]).join('-')
+
+    const path = updateUrlComponents({
+      pathname: `/search/${slugWithThreadId}`,
+      searchParams: {
+        del: ['q']
+      },
+      replace: true
+    })
+
+    return location.origin + path
+  }
+
+  const {
+    sendUserMessage,
+    isLoading,
+    error,
+    answer,
+    stop,
+    regenerate,
+    deleteThreadMessagePair
+  } = useThreadRun({
+    threadId
   })
 
   const isLoadingRef = useLatest(isLoading)
 
+  const { selectedModel, isModelLoading, models } = useSelectedModel()
+
+  const currentMessageForDev = useMemo(() => {
+    return messages.find(item => item.id === messageIdForDev)
+  }, [messageIdForDev, messages])
+
+  const valueForDev = useMemo(() => {
+    if (currentMessageForDev) {
+      return pick(currentMessageForDev?.attachment, 'doc', 'code')
+    }
+    return {
+      answers: messages
+        .filter(o => o.role === Role.Assistant)
+        .map(o => pick(o, 'doc', 'code'))
+    }
+  }, [
+    messageIdForDev,
+    currentMessageForDev?.attachment?.code,
+    currentMessageForDev?.attachment?.doc
+  ])
+
+  const onPanelLayout = (sizes: number[]) => {
+    if (sizes?.[1]) {
+      setDevPanelSize(sizes[1])
+    }
+  }
+
+  // for synchronizing the active pathname
+  useEffect(() => {
+    setActivePathname(pathname)
+
+    if (!isPathnameInitialized) {
+      setIsPathnameInitialized(true)
+    }
+  }, [pathname])
+
   // Check sessionStorage for initial message or most recent conversation
   useEffect(() => {
-    if (initCheckRef.current) return
+    const init = () => {
+      if (initializing.current) return
 
-    initCheckRef.current = true
+      initializing.current = true
 
-    const initialMessage = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
-    )
-    if (initialMessage) {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-      setIsReady(true)
-      onSubmitSearch(initialMessage)
-      return
-    }
+      // initial UserMessage from home page
+      const initialMessage = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
+      )
+      // initial extra context from home page
+      const initialThreadRunContextStr = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS
+      )
 
-    const latesConversation = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_MSG
-    )
-    if (latesConversation) {
-      const conversation = JSON.parse(
-        latesConversation
-      ) as ConversationMessage[]
-      setConversation(conversation)
+      const initialThreadRunContext = initialThreadRunContextStr
+        ? JSON.parse(initialThreadRunContextStr)
+        : undefined
 
-      // Set title
-      if (conversation[0]) setTitle(conversation[0].content)
+      if (initialMessage) {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
 
-      // Check if any answer is loading
-      const loadingIndex = conversation.findIndex(item => item.isLoading)
-      if (loadingIndex !== -1) {
-        const loadingAnswer = conversation[loadingIndex]
-        if (loadingAnswer) onRegenerateResponse(loadingAnswer.id, conversation)
+        setIsReady(true)
+        onSubmitSearch(initialMessage, initialThreadRunContext)
+        return
       }
 
-      setIsReady(true)
-      return
+      if (!threadId) {
+        clearHomeScrollPosition()
+        router.replace('/')
+      }
     }
 
-    router.replace('/')
-  }, [])
-
-  // Set page title to the value of the first quesiton
-  useEffect(() => {
-    if (title) document.title = title
-  }, [title])
+    if (isPathnameInitialized && !threadIdFromURL) {
+      init()
+    }
+  }, [isPathnameInitialized])
 
   // Display the input field with a delayed animatio
   useEffect(() => {
@@ -184,718 +420,685 @@ export function Search() {
     }
   }, [isReady])
 
-  // Initialize the reference to the ScrollArea used for scrolling to the bottom
-  useEffect(() => {
-    setContainer(
-      contentContainerRef?.current?.children[1] as HTMLDivElement | null
-    )
-  }, [contentContainerRef?.current])
+  const persistenceDisabled = useMemo(() => {
+    return !threadIdFromURL && some(messages, message => !!message.error)
+  }, [threadIdFromURL, messages])
 
-  // Handling the stream response from useTabbyAnswer
-  useEffect(() => {
-    const newConversation = [...conversation]
-    const currentAnswer = newConversation.find(
-      item => item.id === currentLoadindId
-    )
+  const { isCopied: isShareLinkCopied, onShare: onClickShare } = useShareThread(
+    {
+      threadIdFromURL,
+      threadIdFromStreaming: threadId,
+      streamingDone: !isLoading,
+      updateThreadURL
+    }
+  )
 
-    if (!currentAnswer) return
-    currentAnswer.content = answer?.answer_delta || ''
-    currentAnswer.relevant_documents = answer?.relevant_documents
-    currentAnswer.relevant_questions = answer?.relevant_questions
-    currentAnswer.isLoading = isLoading
-    setConversation(newConversation)
+  // Handling the stream response from useThreadRun
+  useEffect(() => {
+    // update threadId
+    if (answer.threadId && answer.threadId !== threadId) {
+      setThreadId(answer.threadId)
+    }
+
+    let newMessages = [...messages]
+
+    const currentUserMessageIdx = newMessages.findIndex(
+      o => o.id === currentUserMessageId
+    )
+    const currentAssistantMessageIdx = newMessages.findIndex(
+      o => o.id === currentAssistantMessageId
+    )
+    if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
+      return
+    }
+
+    const currentUserMessage = newMessages[currentUserMessageIdx]
+    const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
+
+    // update assistant message
+    currentAssistantMessage.content = answer.content
+
+    // get and format scores from streaming answer
+    if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
+      currentAssistantMessage.attachment = {
+        clientCode: null,
+        doc: currentAssistantMessage.attachment?.doc || null,
+        code:
+          answer.attachmentsCode.map(hit => ({
+            ...hit.code,
+            extra: {
+              scores: hit.scores
+            }
+          })) || null
+      }
+    }
+
+    // get and format scores from streaming answer
+    if (!currentAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
+      currentAssistantMessage.attachment = {
+        clientCode: null,
+        doc:
+          answer.attachmentsDoc.map(hit => ({
+            ...hit.doc,
+            extra: {
+              score: hit.score
+            }
+          })) || null,
+        code: currentAssistantMessage.attachment?.code || null
+      }
+    }
+
+    currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
+
+    // update message pair ids
+    const newUserMessageId = answer.userMessageId
+    const newAssistantMessageId = answer.assistantMessageId
+    if (
+      newUserMessageId &&
+      newAssistantMessageId &&
+      newUserMessageId !== currentUserMessage.id &&
+      newAssistantMessageId !== currentAssistantMessage.id
+    ) {
+      currentUserMessage.id = newUserMessageId
+      currentAssistantMessage.id = newAssistantMessageId
+      setCurrentUserMessageId(newUserMessageId)
+      setCurrentAssistantMessageId(newAssistantMessageId)
+    }
+
+    // update messages
+    setMessages(newMessages)
   }, [isLoading, answer])
 
-  // Handling the error response from useTabbyAnswer
+  // Handling the error response from useThreadRun
   useEffect(() => {
     if (error) {
-      const newConversation = [...conversation]
+      const newConversation = [...messages]
       const currentAnswer = newConversation.find(
-        item => item.id === currentLoadindId
+        item => item.id === currentAssistantMessageId
       )
       if (currentAnswer) {
-        currentAnswer.error =
-          error.message === '401' ? 'Unauthorized' : 'Fail to fetch'
-        currentAnswer.isLoading = false
+        currentAnswer.error = formatThreadRunErrorMessage(error)
       }
     }
   }, [error])
 
   // Delay showing the stop button
-  let showStopTimeoutId: number
+  const showStopTimeoutId = useRef<number>()
+
   useEffect(() => {
     if (isLoadingRef.current) {
-      showStopTimeoutId = window.setTimeout(() => {
+      showStopTimeoutId.current = window.setTimeout(() => {
         if (!isLoadingRef.current) return
-        setShowStop(true)
+        setStopButtonVisible(true)
 
         // Scroll to the bottom
+        const container = contentContainerRef?.current
         if (container) {
-          const isLastAnswerLoading =
-            currentLoadindId === conversation[conversation.length - 1].id
-          if (isLastAnswerLoading) {
-            container.scrollTo({
-              top: container.scrollHeight,
-              behavior: 'smooth'
-            })
-          }
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+          })
         }
       }, 300)
     }
 
     if (!isLoadingRef.current) {
-      setShowStop(false)
+      setStopButtonVisible(false)
     }
 
     return () => {
-      window.clearTimeout(showStopTimeoutId)
+      window.clearTimeout(showStopTimeoutId.current)
     }
   }, [isLoading])
 
-  // Stop stream before closing the page
   useEffect(() => {
-    return () => {
-      if (isLoadingRef.current) stop()
+    if (devPanelOpen) {
+      devPanelRef.current?.expand()
+      devPanelRef.current?.resize(devPanelSize)
+    } else {
+      devPanelRef.current?.collapse()
     }
-  }, [])
+  }, [devPanelOpen])
 
-  // Save conversation into sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_MSG,
-      JSON.stringify(conversation)
-    )
-  }, [conversation])
-
-  const onSubmitSearch = (question: string) => {
-    // FIXME: code query? extra from user's input?
-    const previousMessages = conversation.map(message => ({
-      role: message.role,
-      id: message.id,
-      content: message.content
-    }))
-    const previousUserId = previousMessages.length > 0 && previousMessages[0].id
-    const newAssistantId = nanoid()
+  const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
+    const newUserMessageId = tempNanoId()
+    const newAssistantMessageId = tempNanoId()
     const newUserMessage: ConversationMessage = {
-      id: previousUserId || nanoid(),
-      role: 'user',
+      id: newUserMessageId,
+      role: Role.User,
       content: question
     }
     const newAssistantMessage: ConversationMessage = {
-      id: newAssistantId,
-      role: 'assistant',
-      content: '',
-      isLoading: true
+      id: newAssistantMessageId,
+      role: Role.Assistant,
+      content: ''
     }
 
-    const answerRequest: AnswerRequest = {
-      messages: [...previousMessages, newUserMessage],
-      doc_query: true,
-      generate_relevant_questions: true
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(ctx)
+
+    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
+      ? { sourceId: sourceIdForCodeQuery, content: question }
+      : null
+
+    const docQuery: InputMaybe<DocQueryInput> = {
+      sourceIds: sourceIdsForDocQuery,
+      content: question,
+      searchPublic: !!searchPublic
     }
 
-    setCurrentLoadingId(newAssistantId)
-    setConversation(
-      [...conversation].concat([newUserMessage, newAssistantMessage])
+    setCurrentUserMessageId(newUserMessageId)
+    setCurrentAssistantMessageId(newAssistantMessageId)
+    setMessages([...messages].concat([newUserMessage, newAssistantMessage]))
+
+    sendUserMessage(
+      {
+        content: question
+      },
+      {
+        generateRelevantQuestions: true,
+        codeQuery,
+        docQuery,
+        modelName: ctx?.modelName
+      }
     )
-    triggerRequest(answerRequest)
-
-    // Update HTML page title
-    if (!title) setTitle(question)
   }
 
-  const onRegenerateResponse = (
-    id: string,
-    conversationData?: ConversationMessage[]
-  ) => {
-    const data = conversationData || conversation
-    const targetAnswerIdx = data.findIndex(item => item.id === id)
-    if (targetAnswerIdx < 1) return
-    const targetQuestionIdx = targetAnswerIdx - 1
-    const targetQuestion = data[targetQuestionIdx]
+  // regenerate ths last assistant message
+  const onRegenerateResponse = () => {
+    if (!threadId) return
+    // need to get the sources from contextInfo
+    if (fetchingContextInfo) return
 
-    const previousMessages = data.slice(0, targetQuestionIdx).map(message => ({
-      role: message.role,
-      id: message.id,
-      content: message.content
-    }))
-    const newUserMessage = {
-      role: 'user',
-      id: targetQuestion.id,
-      content: targetQuestion.content
+    const assistantMessageIndex = messages.length - 1
+    const userMessageIndex = assistantMessageIndex - 1
+    if (assistantMessageIndex === -1 || userMessageIndex <= -1) return
+
+    const prevUserMessageId = messages[userMessageIndex].id
+    const prevAssistantMessageId = messages[assistantMessageIndex].id
+
+    const newMessages = messages.slice(0, -2)
+    const userMessage = messages[userMessageIndex]
+    const newUserMessage: ConversationMessage = {
+      ...userMessage,
+      id: tempNanoId()
     }
-    const answerRequest: AnswerRequest = {
-      messages: [...previousMessages, newUserMessage],
-      doc_query: true,
-      generate_relevant_questions: true
+    const newAssistantMessage: ConversationMessage = {
+      id: tempNanoId(),
+      role: Role.Assistant,
+      content: '',
+      attachment: {
+        code: null,
+        doc: null,
+        clientCode: null
+      },
+      error: undefined
     }
 
-    const newConversation = [...data]
-    let newTargetAnswer = newConversation[targetAnswerIdx]
-    newTargetAnswer.content = ''
-    newTargetAnswer.relevant_documents = undefined
-    newTargetAnswer.error = undefined
-    newTargetAnswer.isLoading = true
+    const mentions = getMentionsFromText(
+      newUserMessage.content,
+      contextInfoData?.contextInfo?.sources
+    )
 
-    setCurrentLoadingId(newTargetAnswer.id)
-    setConversation(newConversation)
-    triggerRequest(answerRequest)
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(getThreadRunContextsFromMentions(mentions))
+
+    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
+      ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }
+      : null
+
+    const docQuery: InputMaybe<DocQueryInput> = {
+      sourceIds: sourceIdsForDocQuery,
+      content: newUserMessage.content,
+      searchPublic
+    }
+
+    setCurrentUserMessageId(newUserMessage.id)
+    setCurrentAssistantMessageId(newAssistantMessage.id)
+    setMessages([...newMessages, newUserMessage, newAssistantMessage])
+
+    regenerate({
+      threadId,
+      userMessageId: prevUserMessageId,
+      assistantMessageId: prevAssistantMessageId,
+      userMessage: {
+        content: newUserMessage.content
+      },
+      threadRunOptions: {
+        generateRelevantQuestions: true,
+        codeQuery,
+        docQuery,
+        modelName: selectedModel
+      }
+    })
   }
 
-  if (!searchFlag.value || !isChatEnabled || !isReady) {
-    return <></>
+  const onToggleFullScreen = (fullScreen: boolean) => {
+    let nextSize = prevDevPanelSize.current
+    if (fullScreen) {
+      nextSize = 100
+    } else if (nextSize === 100) {
+      nextSize = 45
+    }
+    devPanelRef.current?.resize(nextSize)
+    setDevPanelSize(nextSize)
+    prevDevPanelSize.current = devPanelSize
   }
+
+  const onDeleteMessage = (asistantMessageId: string) => {
+    if (!threadId) return
+    // find userMessageId by assistantMessageId
+    const assistantMessageIndex = messages.findIndex(
+      message => message.id === asistantMessageId
+    )
+    const userMessageIndex = assistantMessageIndex - 1
+    const userMessage = messages[assistantMessageIndex - 1]
+
+    if (assistantMessageIndex === -1 || userMessage?.role !== Role.User) {
+      return
+    }
+
+    // message pair not successfully created in threadrun
+    if (
+      userMessage.id.startsWith(TEMP_MSG_ID_PREFIX) &&
+      asistantMessageId.startsWith(TEMP_MSG_ID_PREFIX)
+    ) {
+      const newMessages = messages
+        .slice(0, userMessageIndex)
+        .concat(messages.slice(assistantMessageIndex + 1))
+      setMessages(newMessages)
+      return
+    }
+
+    deleteThreadMessagePair(threadId, userMessage.id, asistantMessageId).then(
+      errorMessage => {
+        if (errorMessage) {
+          toast.error(errorMessage)
+          return
+        }
+
+        // remove userMessage and assistantMessage
+        const newMessages = messages
+          .slice(0, userMessageIndex)
+          .concat(messages.slice(assistantMessageIndex + 1))
+        setMessages(newMessages)
+      }
+    )
+  }
+
+  const onModelSelect = (model: string) => {
+    updateSelectedModel(model)
+  }
+
+  const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
+    if (!isReady || fetchingThread || !threadIdFromURL) return undefined
+    if (threadError || !threadData?.threads?.edges?.length) {
+      return threadError || new Error(ERROR_CODE_NOT_FOUND)
+    }
+  }, [threadData, fetchingThread, threadError, isReady, threadIdFromURL])
+
+  const [isFetchingMessages] = useDebounceValue(
+    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage,
+    200
+  )
+
+  const qaPairs = useMemo(() => {
+    const pairs: Array<ConversationPair> = []
+    let currentPair: ConversationPair = { question: null, answer: null }
+    messages.forEach(message => {
+      if (message.role === Role.User) {
+        currentPair.question = message
+      } else if (message.role === Role.Assistant) {
+        if (!currentPair.answer) {
+          // Take the first answer
+          currentPair.answer = message
+          pairs.push(currentPair)
+          currentPair = { question: null, answer: null }
+        }
+      }
+    })
+
+    return pairs
+  }, [messages])
 
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
+
+  if (isReady && (formatedThreadError || threadMessagesError)) {
+    return (
+      <ThreadMessagesErrorView
+        error={
+          (formatedThreadError || threadMessagesError) as ExtendedCombinedError
+        }
+      />
+    )
+  }
+
+  if (!isReady && (isFetchingMessages || threadMessagesStale)) {
+    return (
+      <div>
+        <Header />
+        <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
+          <MessagesSkeleton />
+          <MessagesSkeleton />
+        </div>
+      </div>
+    )
+  }
+
+  if (!isChatEnabled || !isReady) {
+    return <></>
+  }
+
   return (
     <SearchContext.Provider
       value={{
-        isLoading: isLoading,
-        onRegenerateResponse: onRegenerateResponse,
-        onSubmitSearch: onSubmitSearch
+        isLoading,
+        onRegenerateResponse,
+        onSubmitSearch,
+        setDevPanelOpen,
+        setConversationIdForDev: setMessageIdForDev,
+        isPathnameInitialized,
+        enableDeveloperMode: enableDeveloperMode.value,
+        contextInfo: contextInfoData?.contextInfo,
+        fetchingContextInfo,
+        onDeleteMessage,
+        isThreadOwner,
+        onUpdateMessage
       }}
     >
       <div className="transition-all" style={style}>
-        <header className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-x-6">
-            <Button
-              variant="ghost"
-              className="-ml-1 pl-0 text-sm text-muted-foreground"
-              onClick={() => router.back()}
-            >
-              <IconChevronLeft className="mr-1 h-5 w-5" />
-              Home
-            </Button>
-          </div>
-          <div className="flex items-center gap-x-6">
-            <ClientOnly>
-              <ThemeToggle />
-            </ClientOnly>
-            <UserPanel showHome={false} showSetting>
-              <UserAvatar className="h-10 w-10 border" />
-            </UserPanel>
-          </div>
-        </header>
-
-        <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
-          <ScrollArea className="h-full" ref={contentContainerRef}>
-            <div className="mx-auto px-4 pb-24 lg:max-w-4xl lg:px-0">
-              <div className="flex flex-col">
-                {conversation.map((item, idx) => {
-                  if (item.role === 'user') {
-                    return (
-                      <div key={item.id + idx}>
-                        {idx !== 0 && <Separator />}
-                        <div className="pb-2 pt-8">
-                          <MessageMarkdown message={item.content} headline />
-                        </div>
-                      </div>
-                    )
-                  }
-                  if (item.role === 'assistant') {
-                    return (
-                      <div key={item.id + idx} className="pb-8 pt-2">
-                        <AnswerBlock
-                          answer={item}
-                          showRelatedQuestion={idx === conversation.length - 1}
-                        />
-                      </div>
-                    )
-                  }
-                  return <></>
-                })}
-              </div>
-            </div>
-          </ScrollArea>
-
-          {container && (
-            <ButtonScrollToBottom
-              className="!fixed !bottom-[5.4rem] !right-4 !top-auto border-muted-foreground lg:!bottom-[2.85rem]"
-              container={container}
-              offset={100}
-              // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
-              // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
-              style={
-                theme === 'dark'
-                  ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                  : {}
-              }
+        <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
+          <ResizablePanel>
+            <Header
+              threadIdFromURL={threadIdFromURL}
+              streamingDone={!isLoading}
             />
-          )}
+            <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
+              <ScrollArea className="h-full" ref={contentContainerRef}>
+                <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
+                  <div className="flex flex-col">
+                    {qaPairs.map((pair, index) => {
+                      const isLastMessage = index === qaPairs.length - 1
+                      if (!pair.question) return null
 
-          <div
-            className={cn(
-              'fixed bottom-5 left-0 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
-              {
-                'opacity-100 translate-y-0': showSearchInput,
-                'opacity-0 translate-y-10': !showSearchInput
-              }
-            )}
-            style={Object.assign(
-              { transition: 'all 0.35s ease-out' },
-              theme === 'dark'
-                ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                : {}
-            )}
-          >
-            <Button
-              className={cn('bg-background', {
-                'opacity-0 pointer-events-none': !showStop,
-                'opacity-100': showStop
-              })}
-              style={{
-                transition: 'opacity 0.55s ease-out'
-              }}
-              variant="outline"
-              onClick={stop}
-            >
-              <IconStop className="mr-2" />
-              Stop generating
-            </Button>
-            <div className="relative z-20 flex justify-center self-stretch px-4">
-              <TextAreaSearch
-                onSearch={onSubmitSearch}
-                className="lg:max-w-4xl"
-                placeholder="Ask a follow up question"
-                isLoading={isLoading}
+                      return (
+                        <Fragment key={pair.question.id}>
+                          {!!pair.question && (
+                            <UserMessageSection
+                              className="pb-2 pt-8"
+                              key={pair.question.id}
+                              message={pair.question}
+                            />
+                          )}
+                          {!!pair.answer && (
+                            <AssistantMessageSection
+                              key={pair.answer.id}
+                              className="pb-8 pt-2"
+                              message={pair.answer}
+                              clientCode={pair.question?.attachment?.clientCode}
+                              isLoading={isLoading && isLastMessage}
+                              isLastAssistantMessage={isLastMessage}
+                              showRelatedQuestion={isLastMessage}
+                              isDeletable={!isLoading && messages.length > 2}
+                            />
+                          )}
+                          {!isLastMessage && <Separator />}
+                        </Fragment>
+                      )
+                    })}
+                  </div>
+                </div>
+              </ScrollArea>
+
+              <ButtonScrollToBottom
+                className={cn(
+                  '!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]',
+                  {
+                    hidden: devPanelOpen
+                  }
+                )}
+                container={contentContainerRef.current as HTMLDivElement}
+                offset={100}
+                // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
+                // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
+                style={
+                  theme === 'dark'
+                    ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                    : {}
+                }
               />
-            </div>
-          </div>
-        </main>
+
+              <div
+                className={cn(
+                  'fixed bottom-5 left-0 z-30 flex min-h-[3rem] w-full flex-col items-center gap-y-2',
+                  {
+                    'opacity-100 translate-y-0': showSearchInput,
+                    'opacity-0 translate-y-10': !showSearchInput,
+                    hidden: devPanelOpen
+                  }
+                )}
+                style={Object.assign(
+                  { transition: 'all 0.35s ease-out' },
+                  theme === 'dark'
+                    ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                    : {}
+                )}
+              >
+                <div
+                  className={cn('absolute flex items-center gap-4')}
+                  style={isThreadOwner ? { top: '-2.5rem' } : undefined}
+                >
+                  {stopButtonVisible && (
+                    <Button
+                      className="bg-background"
+                      variant="outline"
+                      onClick={() => stop()}
+                    >
+                      <IconStop className="mr-2" />
+                      Stop generating
+                    </Button>
+                  )}
+                  {!stopButtonVisible && (
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button
+                            className="gap-2 bg-background"
+                            variant="outline"
+                            onClick={onClickShare}
+                            disabled={persistenceDisabled}
+                          >
+                            {persistenceDisabled ? (
+                              <IconInfoCircled />
+                            ) : isShareLinkCopied ? (
+                              <IconCheck className="text-green-600" />
+                            ) : (
+                              <IconShare />
+                            )}
+                            Share Link
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent hidden={!persistenceDisabled}>
+                        Please resolve errors in messages before sharing this
+                        thread.
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+                {isThreadOwner && (
+                  <div
+                    className={cn(
+                      'relative z-20 flex justify-center self-stretch px-4'
+                    )}
+                  >
+                    <TextAreaSearch
+                      onSearch={onSubmitSearch}
+                      className="min-h-[5rem] lg:max-w-4xl"
+                      placeholder="Ask a follow up question"
+                      isFollowup
+                      isLoading={isLoading}
+                      contextInfo={contextInfoData?.contextInfo}
+                      fetchingContextInfo={fetchingContextInfo}
+                      modelName={selectedModel}
+                      onModelSelect={onModelSelect}
+                      isModelLoading={isModelLoading}
+                      models={models}
+                    />
+                  </div>
+                )}
+              </div>
+            </main>
+          </ResizablePanel>
+          <ResizableHandle
+            className={cn(
+              'hidden !h-[4px] border-none bg-background shadow-[0px_-4px_4px_rgba(0,0,0,0.2)] hover:bg-blue-500 active:bg-blue-500 dark:shadow-[0px_-4px_4px_rgba(255,255,255,0.2)]',
+              devPanelOpen && 'block'
+            )}
+          />
+          <ResizablePanel
+            collapsible
+            collapsedSize={0}
+            defaultSize={0}
+            ref={devPanelRef}
+            onCollapse={() => setDevPanelOpen(false)}
+            className="z-50"
+          >
+            <DevPanel
+              onClose={() => setDevPanelOpen(false)}
+              value={valueForDev}
+              isFullScreen={devPanelSize === 100}
+              onToggleFullScreen={onToggleFullScreen}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </SearchContext.Provider>
   )
 }
 
-function AnswerBlock({
-  answer,
-  showRelatedQuestion
-}: {
-  answer: ConversationMessage
-  showRelatedQuestion: boolean
-}) {
-  const { onRegenerateResponse, onSubmitSearch, isLoading } =
-    useContext(SearchContext)
-  const [showMore, setShowMore] = useState(false)
+const updateThreadMessageMutation = graphql(/* GraphQL */ `
+  mutation UpdateThreadMessage($input: UpdateMessageInput!) {
+    updateThreadMessage(input: $input)
+  }
+`)
 
-  const getCopyContent = (answer: ConversationMessage) => {
-    if (!answer.relevant_documents) return answer.content
+interface ThreadMessagesErrorViewProps {
+  error: ExtendedCombinedError
+}
+function ThreadMessagesErrorView({ error }: ThreadMessagesErrorViewProps) {
+  let title = 'Something went wrong'
+  let description =
+    'Failed to fetch the thread, please refresh the page or start a new thread'
 
-    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
-    const content = answer.content
-      .replace(citationMatchRegex, (match, p1) => {
-        const citationNumberMatch = match?.match(/\d+/)
-        return `[${citationNumberMatch}]`
-      })
-      .trim()
-    const citations = answer.relevant_documents
-      .map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
-      .join('\n')
-    return `${content}\n\nCitations:\n${citations}`
+  if (error.message === ERROR_CODE_NOT_FOUND) {
+    return <NotFoundPage />
   }
 
-  const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
-
-  const totalHeightInRem = answer.relevant_documents
-    ? Math.ceil(answer.relevant_documents.length / 4) *
-        SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.relevant_documents.length / 4)
-    : 0
   return (
-    <div className="flex flex-col gap-y-5">
-      {/* Relevant documents */}
-      {answer.relevant_documents && answer.relevant_documents.length > 0 && (
-        <div>
-          <div className="mb-1 flex items-center gap-x-2">
-            <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
-            <p className="text-sm font-bold leading-normal">Sources</p>
+    <div className="flex h-screen flex-col">
+      <Header />
+      <div className="flex-1">
+        <div className="flex h-full flex-col items-center justify-center gap-2">
+          <div className="flex items-center gap-2">
+            <IconFileSearch className="h-6 w-6" />
+            <div className="text-xl font-semibold">{title}</div>
           </div>
-          <div
-            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
-            style={{
-              transition: 'height 0.25s ease-out',
-              height: showMore
-                ? `${totalHeightInRem}rem`
-                : `${SOURCE_CARD_STYLE.compress}rem`
-            }}
+          <div>{description}</div>
+          <Link
+            href="/"
+            onClick={clearHomeScrollPosition}
+            className={cn(buttonVariants(), 'mt-4 gap-2')}
           >
-            {answer.relevant_documents.map((source, index) => (
-              <SourceCard
-                key={source.link + index}
-                source={source}
-                showMore={showMore}
-              />
-            ))}
-          </div>
-          <Button
-            variant="ghost"
-            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
-            onClick={() => setShowMore(!showMore)}
-          >
-            <IconChevronRight
-              className={cn({
-                '-rotate-90': showMore,
-                'rotate-90': !showMore
-              })}
-            />
-            <p>{showMore ? 'Show less' : 'Show more'}</p>
-          </Button>
+            <IconPlus />
+            <span>New Thread</span>
+          </Link>
         </div>
-      )}
-
-      {/* Answer content */}
-      <div>
-        <div className="mb-1 flex items-center gap-x-1.5">
-          <IconAnswer
-            className={cn({
-              'animate-spinner': answer.isLoading
-            })}
-          />
-          <p className="text-sm font-bold leading-none">Answer</p>
-        </div>
-        {answer.isLoading && !answer.content && (
-          <Skeleton className="mt-1 h-40 w-full" />
-        )}
-        <MessageMarkdown
-          message={answer.content}
-          sources={answer.relevant_documents}
-        />
-        {answer.error && <ErrorMessageBlock error={answer.error} />}
-
-        {!answer.isLoading && (
-          <div className="mt-3 flex items-center gap-x-3 text-sm">
-            <CopyButton
-              className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
-              value={getCopyContent(answer)}
-              text="Copy"
-            />
-            {!isLoading && (
-              <Button
-                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                variant="ghost"
-                onClick={() => onRegenerateResponse(answer.id)}
-              >
-                <IconRefresh />
-                <p>Regenerate</p>
-              </Button>
-            )}
-          </div>
-        )}
       </div>
-
-      {/* Related questions */}
-      {showRelatedQuestion &&
-        !answer.isLoading &&
-        answer.relevant_questions &&
-        answer.relevant_questions.length > 0 && (
-          <div>
-            <div className="flex items-center gap-x-1.5">
-              <IconLayers />
-              <p className="text-sm font-bold leading-none">Suggestions</p>
-            </div>
-            <div className="mt-2 flex flex-col gap-y-3">
-              {answer.relevant_questions?.map((related, index) => (
-                <div
-                  key={index}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                  onClick={onSubmitSearch.bind(null, related)}
-                >
-                  <p className="w-full overflow-hidden text-ellipsis text-sm">
-                    {related}
-                  </p>
-                  <IconPlus />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
     </div>
   )
 }
 
-// Remove HTML and Markdown format
-const normalizedText = (input: string) => {
-  const sanitizedHtml = DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: []
+function getSourceInputs(ctx: ThreadRunContexts | undefined) {
+  let sourceIdsForDocQuery: string[] = []
+  let sourceIdForCodeQuery: string | undefined
+  let searchPublic = false
+
+  if (ctx) {
+    sourceIdsForDocQuery = uniq(
+      compact([ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds))
+    )
+    searchPublic = ctx.searchPublic ?? false
+    sourceIdForCodeQuery = ctx.codeSourceIds?.[0] ?? undefined
+  }
+  return {
+    sourceIdsForDocQuery,
+    sourceIdForCodeQuery,
+    searchPublic
+  }
+}
+
+interface UseShareThreadOptions {
+  threadIdFromURL?: string
+  threadIdFromStreaming?: string | null
+  streamingDone?: boolean
+  updateThreadURL?: (threadId: string) => string
+}
+
+function useShareThread({
+  threadIdFromURL,
+  threadIdFromStreaming,
+  streamingDone,
+  updateThreadURL
+}: UseShareThreadOptions) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
   })
-  const parsed = marked.parse(sanitizedHtml) as string
-  const decoded = he.decode(parsed)
-  const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
-  return plainText
-}
 
-function SourceCard({
-  source,
-  showMore
-}: {
-  source: Source
-  showMore: boolean
-}) {
-  const { hostname } = new URL(source.link)
-  return (
-    <div
-      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
-      style={{
-        height: showMore
-          ? `${SOURCE_CARD_STYLE.expand}rem`
-          : `${SOURCE_CARD_STYLE.compress}rem`,
-        transition: 'all 0.25s ease-out'
-      }}
-      onClick={() => window.open(source.link)}
-    >
-      <div className="flex flex-col gap-y-0.5">
-        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-          {source.title}
-        </p>
-        <p
-          className={cn(
-            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-            {
-              'line-clamp-2': showMore,
-              'line-clamp-1': !showMore
-            }
-          )}
-        >
-          {normalizedText(source.snippet)}
-        </p>
-      </div>
-      <div className="flex items-center text-xs text-muted-foreground">
-        <div className="flex w-full flex-1 items-center">
-          <SiteFavicon hostname={hostname} />
-          <p className="ml-1 overflow-hidden text-ellipsis">
-            {hostname.replace('www.', '').split('/')[0]}
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
+  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
 
-function MessageMarkdown({
-  message,
-  headline = false,
-  sources
-}: {
-  message: string
-  headline?: boolean
-  sources?: Source[]
-}) {
-  const renderTextWithCitation = (nodeStr: string, index: number) => {
-    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
-    const textList = nodeStr.split(citationMatchRegex)
-    const citationList = nodeStr.match(citationMatchRegex)
-    return (
-      <span key={index}>
-        {textList.map((text, index) => {
-          const citation = citationList?.[index]
-          const citationNumberMatch = citation?.match(/\d+/)
-          const citationIndex = citationNumberMatch
-            ? parseInt(citationNumberMatch[0], 10)
-            : null
-          const source =
-            citationIndex !== null ? sources?.[citationIndex - 1] : null
-          const sourceUrl = source ? new URL(source.link) : null
-          return (
-            <span key={index}>
-              {text && <span>{text}</span>}
-              {source && (
-                <HoverCard>
-                  <HoverCardTrigger>
-                    <span
-                      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-                      onClick={() => window.open(source.link)}
-                    >
-                      {citationIndex}
-                    </span>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-96 text-sm">
-                    <div className="flex w-full flex-col gap-y-1">
-                      <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-                        <SiteFavicon
-                          hostname={sourceUrl!.hostname}
-                          className="m-0 mr-1 leading-none"
-                        />
-                        <p className="m-0 leading-none">
-                          {sourceUrl!.hostname}
-                        </p>
-                      </div>
-                      <p
-                        className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-                        onClick={() => window.open(source.link)}
-                      >
-                        {source.title}
-                      </p>
-                      <p className="m-0 line-clamp-4 leading-none">
-                        {normalizedText(source.snippet)}
-                      </p>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              )}
-            </span>
-          )
-        })}
-      </span>
-    )
+  const shouldSetThreadPersisted =
+    !threadIdFromURL &&
+    streamingDone &&
+    threadIdFromStreaming &&
+    updateThreadURL
+
+  const onShare = async () => {
+    if (isCopied) return
+
+    let url = window.location.href
+    if (shouldSetThreadPersisted) {
+      await setThreadPersisted({ threadId: threadIdFromStreaming })
+      url = updateThreadURL(threadIdFromStreaming)
+    }
+
+    copyToClipboard(url)
   }
 
-  return (
-    <MemoizedReactMarkdown
-      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        p({ children }) {
-          if (headline) {
-            return (
-              <h3 className="break-anywhere cursor-text scroll-m-20 text-xl font-semibold tracking-tight">
-                {children}
-              </h3>
-            )
-          }
-
-          if (children.length) {
-            return (
-              <div className="mb-2 inline-block leading-relaxed last:mb-0">
-                {children.map((childrenItem, index) => {
-                  if (typeof childrenItem === 'string') {
-                    return renderTextWithCitation(childrenItem, index)
-                  }
-
-                  return <span key={index}>{childrenItem}</span>
-                })}
-              </div>
-            )
-          }
-
-          return <p className="mb-2 last:mb-0">{children}</p>
-        },
-        li({ children }) {
-          if (children && children.length) {
-            return (
-              <li>
-                {children.map((childrenItem, index) => {
-                  if (typeof childrenItem === 'string') {
-                    return renderTextWithCitation(childrenItem, index)
-                  }
-
-                  return <span key={index}>{childrenItem}</span>
-                })}
-              </li>
-            )
-          }
-          return <li>{children}</li>
-        },
-        code({ node, inline, className, children, ...props }) {
-          if (children.length) {
-            if (children[0] == '▍') {
-              return (
-                <span className="mt-1 animate-pulse cursor-default">▍</span>
-              )
-            }
-
-            children[0] = (children[0] as string).replace('`▍`', '▍')
-          }
-
-          const match = /language-(\w+)/.exec(className || '')
-
-          if (inline) {
-            return (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            )
-          }
-
-          return (
-            <CodeBlock
-              key={Math.random()}
-              language={(match && match[1]) || ''}
-              value={String(children).replace(/\n$/, '')}
-              {...props}
-            />
-          )
-        }
-      }}
-    >
-      {message}
-    </MemoizedReactMarkdown>
-  )
+  return {
+    onShare,
+    isCopied
+  }
 }
 
-function SiteFavicon({
-  hostname,
-  className
-}: {
-  hostname: string
-  className?: string
-}) {
-  const [isLoaded, setIsLoaded] = useState(false)
+function formatThreadRunErrorMessage(error?: ExtendedCombinedError) {
+  if (!error) return 'Failed to fetch'
 
-  const handleImageLoad = () => {
-    setIsLoaded(true)
+  if (error.message === '401') {
+    return 'Unauthorized'
   }
 
-  return (
-    <div className="relative h-3.5 w-3.5">
-      <Image
-        src={defaultFavicon}
-        alt={hostname}
-        width={14}
-        height={14}
-        className={cn(
-          'absolute left-0 top-0 z-0 h-3.5 w-3.5 rounded-full leading-none',
-          className
-        )}
-      />
-      <Image
-        src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
-        alt={hostname}
-        width={14}
-        height={14}
-        className={cn(
-          'relative z-10 h-3.5 w-3.5 rounded-full bg-card leading-none',
-          className,
-          {
-            'opacity-0': !isLoaded
-          }
-        )}
-        onLoad={handleImageLoad}
-      />
-    </div>
-  )
-}
+  if (
+    some(error.graphQLErrors, o => o.extensions?.code === ERROR_CODE_NOT_FOUND)
+  ) {
+    return `The thread has expired or does not exist.`
+  }
 
-function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
-  const errorMessage = useMemo(() => {
-    let jsonString = JSON.stringify(
-      {
-        error: true,
-        message: error
-      },
-      null,
-      2
-    )
-    const markdownJson = '```\n' + jsonString + '\n```'
-    return markdownJson
-  }, [error])
-  return (
-    <MemoizedReactMarkdown
-      className="prose-full-width prose break-words text-sm dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        code({ node, inline, className, children, ...props }) {
-          return (
-            <div {...props} className={cn(className, 'bg-zinc-950 p-2')}>
-              {children}
-            </div>
-          )
-        }
-      }}
-    >
-      {errorMessage}
-    </MemoizedReactMarkdown>
-  )
+  return error.message || 'Failed to fetch'
 }

@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+	<extension point="org.eclipse.ui.startup">
+		<startup class="com.tabbyml.tabby4eclipse.Startup" />
+	</extension>
+
+	<extension point="org.eclipse.lsp4e.languageServer">
+		<server
+			id="com.tabbyml.tabby4eclipse.languageServer"
+			label="Tabby"
+			class="com.tabbyml.tabby4eclipse.lsp.ConnectionProvider"
+			clientImpl="com.tabbyml.tabby4eclipse.lsp.LanguageClientImpl"
+			serverInterface="com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer"
+			singleton="true"
+			lastDocumentDisconnectedTimeout="600">
+		</server>
+		<contentTypeMapping
+			id="com.tabbyml.tabby4eclipse.languageServer"
+			contentType="org.eclipse.core.runtime.text">
+		</contentTypeMapping>
+	</extension>
+
+	<extension
+		point="org.eclipse.ui.preferencePages">
+		<page
+			id="com.tabbyml.tabby4eclipse.preferences.main"
+			name="Tabby"
+			class="com.tabbyml.tabby4eclipse.preferences.MainPreferencesPage">
+		</page>
+	</extension>
+
+	<extension point="org.eclipse.ui.views">
+		<category
+			name="Tabby"
+			id="com.tabbyml.tabby4eclipse.views">
+		</category>
+		<view
+			id="com.tabbyml.tabby4eclipse.views.chat"
+			name="Tabby Chat"
+			icon="images/chat.png"
+			class="com.tabbyml.tabby4eclipse.chat.ChatView"
+			category="com.tabbyml.tabby4eclipse.views">
+		</view>
+	</extension>
+
+	<extension
+		point="org.eclipse.ui.menus">
+		<menuContribution
+			locationURI="toolbar:org.eclipse.ui.trim.status">
+			<toolbar
+				id="com.tabbyml.tabby4eclipse.statusbar">
+				<control
+					class="com.tabbyml.tabby4eclipse.statusbar.StatusbarContribution"
+					id="com.tabbyml.tabby4eclipse.statusbar.statusbarContribution">
+				</control>
+			</toolbar>
+		</menuContribution>
+		<menuContribution
+			locationURI="popup:org.eclipse.ui.popup.any">
+			<menu
+				id="com.tabbyml.tabby4eclipse.textEditorContextMenu"
+				label="Tabby">
+				<visibleWhen>
+					<with variable="activePart">
+						<instanceof value="org.eclipse.ui.IEditorPart" />
+					</with>
+				</visibleWhen>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.addSelectionToChat"
+					label="Add Selection to Chat">
+				</command>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.addFileToChat"
+					label="Add File to Chat">
+				</command>
+				<separator name="separator0" visible="true" />
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.explain"
+					label="Explain">
+				</command>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.fix"
+					label="Fix">
+				</command>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.generateDocs"
+					label="Generate Docs">
+				</command>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.generateTests"
+					label="Generate Tests">
+				</command>
+			</menu>
+		</menuContribution>
+	</extension>
+
+	<extension point="org.eclipse.ui.commands">
+		<category
+			id="com.tabbyml.tabby4eclipse.commands"
+			name="Tabby">
+		</category>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands"
+			name="Open Tabby Settings"
+			id="com.tabbyml.tabby4eclipse.commands.openPreferences">
+		</command>
+		<category
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Tabby Code Completion">
+		</category>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Trigger Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.trigger">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Previous Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.previous">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Next Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.next">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Accept Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Accept Next Line of Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextLine">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Accept Next Word of Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextWord">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Dismiss Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
+		</command>
+		<category
+			id="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Tabby Chat">
+		</category>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Open Tabby Chat"
+			id="com.tabbyml.tabby4eclipse.commands.chat.openChatView">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Toggle Tabby Chat"
+			id="com.tabbyml.tabby4eclipse.commands.chat.toggleChatView">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Add Selection to Tabby Chat"
+			id="com.tabbyml.tabby4eclipse.commands.chat.addSelectionToChat">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Add File to Tabby Chat"
+			id="com.tabbyml.tabby4eclipse.commands.chat.addFileToChat">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Explain using Tabby"
+			id="com.tabbyml.tabby4eclipse.commands.chat.explain">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Fix using Tabby"
+			id="com.tabbyml.tabby4eclipse.commands.chat.fix">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Generate Docs using Tabby"
+			id="com.tabbyml.tabby4eclipse.commands.chat.generateDocs">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Generate Tests using Tabby"
+			id="com.tabbyml.tabby4eclipse.commands.chat.generateTests">
+		</command>
+	</extension>
+
+	<extension point="org.eclipse.ui.handlers">
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.OpenPreferences"
+			commandId="com.tabbyml.tabby4eclipse.commands.openPreferences">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Trigger"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.trigger">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Previous"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.previous">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Next"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.next">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Accept"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.AcceptNextLine"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextLine">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.AcceptNextWord"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextWord">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Dismiss"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.OpenChatView"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.openChatView">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.ToggleChatView"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.toggleChatView">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.AddSelectionToChat"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.addSelectionToChat">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.AddFileToChat"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.addFileToChat">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.Explain"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.explain">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.Fix"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.fix">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.GenerateDocs"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.generateDocs">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.GenerateTests"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.generateTests">
+		</handler>
+	</extension>
+
+	<extension point="org.eclipse.ui.contexts">
+		<context
+			id="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			name="Inline Completion Visible"
+			description="Tabby inline completion is visible."
+			parentId="org.eclipse.ui.textEditorScope">
+		</context>
+	</extension>
+
+	<extension point="org.eclipse.ui.bindings">
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.toggleChatView"
+			contextId="org.eclipse.ui.contexts.window"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1+M3+L">
+		</key>
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.trigger"
+			contextId="org.eclipse.ui.textEditorScope"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M3+\">
+		</key>
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.previous"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M3+[">
+		</key>
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.next"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M3+]">
+		</key>
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="TAB">
+		</key>
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextLine"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1+TAB">
+		</key>
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextWord"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1+ARROW_RIGHT">
+		</key>
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="ESC">
+		</key>
+	</extension>
+</plugin>

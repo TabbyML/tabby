@@ -6,9 +6,10 @@ use axum::{
 };
 use axum_extra::TypedHeader;
 use hyper::StatusCode;
-use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
-
-use super::MaybeUser;
+use tabby_common::{
+    api::event::{Event, EventLogger, LogEventRequest, SelectKind},
+    axum::MaybeUser,
+};
 
 #[utoipa::path(
     post,

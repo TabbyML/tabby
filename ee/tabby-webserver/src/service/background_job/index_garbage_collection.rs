@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use tabby_common::index::corpus;
-use tabby_scheduler::run_index_garbage_collection;
-use tabby_schema::{repository::RepositoryService, web_crawler::WebCrawlerService};
+use tabby_index::public::{run_index_garbage_collection, CodeIndexer};
+use tabby_schema::{context::ContextService, repository::RepositoryService};
 
 use super::helper::Job;
 
@@ -16,18 +15,23 @@ impl IndexGarbageCollection {
     pub async fn run(
         self,
         repository: Arc<dyn RepositoryService>,
-        web_crawler: Arc<dyn WebCrawlerService>,
+        context: Arc<dyn ContextService>,
     ) -> tabby_schema::Result<()> {
-        let mut sources: Vec<_> = repository.list_all_sources().await?.into_iter().collect();
+        // Run garbage collection on the index
+        let sources = context
+            .read(None)
+            .await?
+            .sources
+            .into_iter()
+            .map(|x| x.source_id())
+            .collect::<Vec<_>>();
+        run_index_garbage_collection(sources)?;
 
-        sources.extend(
-            web_crawler
-                .list_web_crawler_urls(None, None, None, None)
-                .await?
-                .into_iter()
-                .map(|url| (corpus::WEB.into(), url.source_id())),
-        );
+        // Run garbage collection on the code repositories (cloned directories)
+        let repositories = repository.list_all_code_repository().await?;
+        let mut code = CodeIndexer::default();
+        code.garbage_collection(&repositories).await;
 
-        run_index_garbage_collection(sources).map_err(tabby_schema::CoreError::Other)
+        Ok(())
     }
 }

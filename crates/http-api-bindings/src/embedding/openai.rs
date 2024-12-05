@@ -12,17 +12,21 @@ pub struct OpenAIEmbeddingEngine {
 }
 
 impl OpenAIEmbeddingEngine {
-    pub fn create(api_endpoint: &str, model_name: &str, api_key: Option<String>) -> Self {
+    pub fn create(
+        api_endpoint: &str,
+        model_name: &str,
+        api_key: Option<&str>,
+    ) -> Box<dyn Embedding> {
         let config = OpenAIConfig::default()
             .with_api_base(api_endpoint)
             .with_api_key(api_key.unwrap_or_default());
 
         let client = async_openai::Client::with_config(config);
 
-        Self {
+        Box::new(Self {
             client,
             model_name: model_name.to_owned(),
-        }
+        })
     }
 }
 
@@ -43,5 +47,24 @@ impl Embedding for OpenAIEmbeddingEngine {
             .next()
             .context("Failed to get embedding")?;
         Ok(data.embedding)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Make sure you have set the JINA_API_KEY environment variable before running the test
+    #[tokio::test]
+    #[ignore]
+    async fn test_jina_embedding() {
+        let api_key = std::env::var("JINA_API_KEY").expect("JINA_API_KEY must be set");
+        let engine = OpenAIEmbeddingEngine::create(
+            "https://api.jina.ai/v1",
+            "jina-embeddings-v2-base-en",
+            Some(&api_key),
+        );
+        let embedding = engine.embed("Hello, world!").await.unwrap();
+        assert_eq!(embedding.len(), 768);
     }
 }

@@ -1,15 +1,16 @@
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query, query_scalar};
 
-use crate::{DateTimeUtc, DbConn};
+use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct OAuthCredentialDAO {
     pub provider: String,
     pub client_id: String,
     pub client_secret: String,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl DbConn {
@@ -60,7 +61,7 @@ impl DbConn {
     ) -> Result<Option<OAuthCredentialDAO>> {
         let token = sqlx::query_as!(
             OAuthCredentialDAO,
-            "SELECT provider, client_id, client_secret, created_at, updated_at FROM oauth_credential WHERE provider = ?",
+            r#"SELECT provider, client_id, client_secret, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>" FROM oauth_credential WHERE provider = ?"#,
             provider
         )
             .fetch_optional(&self.pool).await?;

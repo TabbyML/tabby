@@ -1,15 +1,17 @@
 use std::{net::IpAddr, sync::Arc, time::Duration};
 
-use axum::{routing, Router};
+use axum::{routing, Extension, Router};
 use clap::Args;
 use hyper::StatusCode;
+use spinners::{Spinner, Spinners, Stream};
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
-    config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
+    axum::AllowedCodeRepository,
+    config::{Config, ModelConfig},
     usage,
 };
-use tabby_inference::Embedding;
-use tokio::time::sleep;
+use tabby_inference::ChatCompletionStream;
+use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
 use tracing::{debug, warn};
 use utoipa::{
@@ -21,10 +23,9 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
-        self, answer,
-        chat::{self, create_chat_service},
+        self,
         code::create_code_search,
-        completion::{self, create_completion_service},
+        completion::{self, create_completion_service_and_chat, CompletionService},
         embedding,
         event::create_event_logger,
         health,
@@ -51,7 +52,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::answer, routes::setting),
+    paths(routes::log_event, routes::completions, routes::chat_completions_utoipa, routes::health, routes::setting),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -62,19 +63,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completion::Snippet,
         completion::DebugOptions,
         completion::DebugData,
-        chat::ChatCompletionRequest,
-        chat::ChatCompletionChoice,
-        chat::ChatCompletionDelta,
-        api::chat::Message,
-        chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        api::code::CodeSearchDocument,
-        api::code::CodeSearchQuery,
-        api::doc::DocSearchDocument,
-        answer::AnswerRequest,
-        answer::AnswerResponseChunk,
-        api::server_setting::ServerSetting
+        api::server_setting::ServerSetting,
     )),
     modifiers(&SecurityAddon),
 )]
@@ -124,7 +115,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     load_model(&config).await;
 
-    debug!("Starting server, this might take a few minutes...");
+    let tx = try_run_spinner();
 
     #[cfg(feature = "ee")]
     #[allow(deprecated)]
@@ -152,28 +143,40 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     };
 
     let mut logger: Arc<dyn EventLogger> = Arc::new(create_event_logger());
-    let mut config_access: Arc<dyn ConfigAccess> = Arc::new(StaticConfigAccess);
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
         logger = ws.logger();
-        config_access = ws.clone();
     }
 
     let index_reader_provider = Arc::new(IndexReaderProvider::default());
-
-    let code = Arc::new(create_code_search(
-        config_access,
+    let docsearch = Arc::new(services::structured_doc::create(
         embedding.clone(),
         index_reader_provider.clone(),
     ));
+
+    let code = Arc::new(create_code_search(
+        embedding.clone(),
+        index_reader_provider.clone(),
+    ));
+
+    let model = &config.model;
+    let (completion, completion_stream, chat) = create_completion_service_and_chat(
+        &config.completion,
+        code.clone(),
+        logger.clone(),
+        model.completion.clone(),
+        model.chat.clone(),
+    )
+    .await;
+
     let mut api = api_router(
         args,
         &config,
         logger.clone(),
         code.clone(),
-        embedding,
-        index_reader_provider,
+        completion,
+        chat.clone(),
         webserver,
     )
     .await;
@@ -183,11 +186,26 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
-        let (new_api, new_ui) = ws.attach(api, ui, code, config.model.chat.is_some()).await;
+        let (new_api, new_ui) = ws
+            .attach(
+                &config,
+                api,
+                ui,
+                code,
+                chat,
+                completion_stream,
+                docsearch,
+                |x| Box::new(services::structured_doc::create_serper(x)),
+            )
+            .await;
         api = new_api;
         ui = new_ui;
     };
 
+    if let Some(tx) = tx {
+        tx.send(())
+            .unwrap_or_else(|_| warn!("Spinner channel is closed"));
+    }
     start_heartbeat(args, &config, webserver);
     run_app(api, Some(ui), args.host, args.port).await
 }
@@ -210,40 +228,15 @@ async fn api_router(
     args: &ServeArgs,
     config: &Config,
     logger: Arc<dyn EventLogger>,
-    code: Arc<dyn CodeSearch>,
-    embedding: Arc<dyn Embedding>,
-    index_reader_provider: Arc<IndexReaderProvider>,
+    _code: Arc<dyn CodeSearch>,
+    completion_state: Option<CompletionService>,
+    chat_state: Option<Arc<dyn ChatCompletionStream>>,
     webserver: Option<bool>,
 ) -> Router {
-    let model = &config.model;
-    let completion_state = if let Some(completion) = &model.completion {
-        Some(Arc::new(
-            create_completion_service(code.clone(), logger.clone(), completion).await,
-        ))
-    } else {
-        None
-    };
-
-    let chat_state = if let Some(chat) = &model.chat {
-        Some(Arc::new(create_chat_service(logger.clone(), chat).await))
-    } else {
-        None
-    };
-
-    let docsearch_state = Arc::new(services::doc::create(embedding, index_reader_provider));
-
-    let answer_state = chat_state.as_ref().map(|chat| {
-        Arc::new(services::answer::create(
-            chat.clone(),
-            code.clone(),
-            docsearch_state.clone(),
-        ))
-    });
-
     let mut routers = vec![];
 
     let health_state = Arc::new(health::HealthState::new(
-        model,
+        &config.model,
         &args.device,
         args.chat_model
             .as_deref()
@@ -265,19 +258,25 @@ async fn api_router(
                 "/v1/health",
                 routing::get(routes::health).with_state(health_state),
             )
+            .route("/v1beta/models", routing::get(routes::models))
+            .with_state(Arc::new(config.clone().into()))
     });
 
     if let Some(completion_state) = completion_state {
-        routers.push({
-            Router::new()
-                .route(
-                    "/v1/completions",
-                    routing::post(routes::completions).with_state(completion_state),
-                )
-                .layer(TimeoutLayer::new(Duration::from_secs(
-                    config.server.completion_timeout,
-                )))
-        });
+        let mut router = Router::new()
+            .route(
+                "/v1/completions",
+                routing::post(routes::completions).with_state(Arc::new(completion_state)),
+            )
+            .layer(TimeoutLayer::new(Duration::from_secs(
+                config.server.completion_timeout,
+            )));
+
+        if webserver.is_none() || webserver.is_some_and(|x| !x) {
+            router = router.layer(Extension(AllowedCodeRepository::new_from_config()));
+        }
+
+        routers.push(router);
     } else {
         routers.push({
             Router::new().route(
@@ -315,19 +314,6 @@ async fn api_router(
                 "/v1beta/chat/completions",
                 routing::post(StatusCode::NOT_IMPLEMENTED),
             )
-        });
-    }
-
-    if let Some(answer_state) = answer_state {
-        routers.push({
-            Router::new().route(
-                "/v1beta/answer",
-                routing::post(routes::answer).with_state(answer_state),
-            )
-        });
-    } else {
-        routers.push({
-            Router::new().route("/v1beta/answer", routing::post(StatusCode::NOT_IMPLEMENTED))
         });
     }
 
@@ -387,10 +373,16 @@ impl Modify for SecurityAddon {
 fn merge_args(config: &Config, args: &ServeArgs) -> Config {
     let mut config = (*config).clone();
     if let Some(model) = &args.model {
+        if config.model.completion.is_some() {
+            warn!("Overriding completion model from config.toml. The overriding behavior might surprise you. Consider setting the model in config.toml directly.");
+        }
         config.model.completion = Some(to_local_config(model, args.parallelism, &args.device));
     };
 
     if let Some(chat_model) = &args.chat_model {
+        if config.model.chat.is_some() {
+            warn!("Overriding chat model from config.toml. The overriding behavior might surprise you. Consider setting the model in config.toml directly.");
+        }
         config.model.chat = Some(to_local_config(
             chat_model,
             args.parallelism,
@@ -399,4 +391,23 @@ fn merge_args(config: &Config, args: &ServeArgs) -> Config {
     }
 
     config
+}
+
+fn try_run_spinner() -> Option<Sender<()>> {
+    if cfg!(feature = "prod") {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        tokio::task::spawn(async move {
+            let mut sp = Spinner::with_timer_and_stream(
+                Spinners::Dots,
+                "Starting...".into(),
+                Stream::Stdout,
+            );
+            let _ = rx.await;
+            sp.stop_with_message("".into());
+        });
+        Some(tx)
+    } else {
+        debug!("Starting server, this might take a few minutes...");
+        None
+    }
 }

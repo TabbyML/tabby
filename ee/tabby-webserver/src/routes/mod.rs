@@ -22,17 +22,24 @@ use tracing::{error, warn};
 use self::hub::HubState;
 use crate::{
     axum::{extract::AuthBearer, graphql, FromAuth},
-    jwt::validate_jwt,
+    jwt::{generate_jwt_payload, validate_jwt},
+    service::answer::AnswerService,
 };
 
-pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router, Router) {
+pub fn create(
+    ctx: Arc<dyn ServiceLocator>,
+    api: Router,
+    ui: Router,
+    _answer: Option<Arc<AnswerService>>,
+) -> (Router, Router) {
     let schema = Arc::new(create_schema());
 
+    let api = api.route(
+        "/v1beta/server_setting",
+        routing::get(server_setting).with_state(ctx.clone()),
+    );
+
     let api = api
-        .route(
-            "/v1beta/server_setting",
-            routing::get(server_setting).with_state(ctx.clone()),
-        )
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
         // 1. /v1/*
         // 2. /v1beta/*
@@ -41,7 +48,15 @@ pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router,
             "/graphql",
             routing::post(graphql::<Arc<Schema>, Arc<dyn ServiceLocator>>).with_state(ctx.clone()),
         )
-        .route("/graphql", routing::get(playground("/graphql", None)))
+        .route(
+            "/subscriptions",
+            routing::get(crate::axum::subscriptions::<Arc<Schema>, Arc<dyn ServiceLocator>>)
+                .with_state(ctx.clone()),
+        )
+        .route(
+            "/graphql",
+            routing::get(playground("/graphql", "/subscriptions")),
+        )
         .layer(Extension(schema))
         .route(
             "/hub",
@@ -51,12 +66,7 @@ pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router,
             "/repositories",
             repositories::routes(ctx.repository(), ctx.auth()),
         )
-        .route(
-            "/avatar/:id",
-            routing::get(avatar)
-                .with_state(ctx.auth())
-                .layer(from_fn_with_state(ctx.auth(), require_login_middleware)),
-        )
+        .route("/avatar/:id", routing::get(avatar).with_state(ctx.auth()))
         .nest("/oauth", oauth::routes(ctx.auth()));
 
     let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));
@@ -69,7 +79,7 @@ pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router,
 pub(crate) async fn require_login_middleware(
     State(auth): State<Arc<dyn AuthenticationService>>,
     AuthBearer(token): AuthBearer,
-    request: Request<Body>,
+    mut request: Request<Body>,
     next: Next,
 ) -> axum::response::Response {
     let unauthorized = axum::response::Response::builder()
@@ -82,9 +92,15 @@ pub(crate) async fn require_login_middleware(
         return unauthorized;
     };
 
-    let Ok(_) = auth.verify_access_token(&token).await else {
+    let Ok(jwt) = auth.verify_access_token(&token).await else {
         return unauthorized;
     };
+
+    let Ok(user) = auth.get_user(&jwt.sub).await else {
+        return unauthorized;
+    };
+
+    request.extensions_mut().insert(user.policy);
 
     next.run(request).await
 }
@@ -132,9 +148,26 @@ async fn avatar(
     Ok(response)
 }
 
+#[async_trait::async_trait]
 impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
-    fn build(locator: Arc<dyn ServiceLocator>, bearer: Option<String>) -> Self {
-        let claims = bearer.and_then(|token| validate_jwt(&token).ok());
+    async fn build(locator: Arc<dyn ServiceLocator>, token: Option<String>) -> Self {
+        let claims = if let Some(token) = token {
+            let mut claims = validate_jwt(&token).ok();
+
+            if claims.is_none() {
+                claims = locator
+                    .auth()
+                    .verify_auth_token(&token)
+                    .await
+                    .ok()
+                    .map(|id| generate_jwt_payload(id, true));
+            }
+
+            claims
+        } else {
+            None
+        };
+
         Self { claims, locator }
     }
 }

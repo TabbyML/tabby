@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use juniper::{GraphQLInputObject, GraphQLObject};
-use validator::{validate_email, Validate, ValidationError};
+use validator::{Validate, ValidateEmail, ValidationError};
 
 use super::Result;
 
@@ -31,7 +31,7 @@ impl SecuritySetting {
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct SecuritySettingInput {
-    #[validate(custom = "validate_unique_domains")]
+    #[validate(custom(function = "validate_unique_domains"))]
     pub allowed_register_domain_list: Vec<String>,
     pub disable_client_side_telemetry: bool,
 }
@@ -69,7 +69,7 @@ fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {
     }
     for (i, domain) in domains.iter().enumerate() {
         let email = format!("noreply@{domain}");
-        if !validate_email(email) {
+        if !email.validate_email() {
             let err = ValidationError {
                 code: format!("allowedRegisterDomainList.{i}.value").into(),
                 message: Some("Invalid domain".into()),

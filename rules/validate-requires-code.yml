@@ -17,6 +17,13 @@ rule:
               stopBy: end
               pattern: message
     - not:
-        has:
-          stopBy: end
-          pattern: custom
+        any:
+          - has:
+              stopBy: end
+              pattern: custom
+          - has:
+              stopBy: end
+              pattern: nested
+          - has:
+              stopBy: end
+              pattern: schema

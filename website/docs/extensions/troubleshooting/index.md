@@ -121,6 +121,23 @@ on a GPU with CUDA or ROCm support or on Apple M1/M2 with Metal support. When ru
 the server, make sure to specify the device in the arguments using  `--device cuda`, `--device rocm` or
 `--device metal`. You can also try using a smaller model from the available [models](https://tabby.tabbyml.com/docs/models/). 
 
+## Problems with the Chat Panel?
+
+### Check Server Enabling Chat Feature
+
+The chat panel is a feature that requires the Tabby server to enable the chat feature. Please make sure that the chat feature is properly configured in the server configuration file or that the server is started with the `--chat-model MODEL_NAME` flag.  
+You can access the server management page at `https://demo.tabbyml.com/system` to check if the chat feature is enabled.
+
+### Check Browser Compatibility in IntelliJ Platform IDEs
+
+The chat panel in IntelliJ Platform IDEs is implemented using an embedded JCEF browser. The support is included in the default Java Runtime for JetBrains IDEs, but it may not be by default in Android Studio.  
+Please follow the steps below to ensure that the JCEF browser is enabled in your IDE:
+
+1. Open `Search Everywhere` (Double `Shift`) or `Find Action` (`Ctrl + Shift + A`), and search for the action `Choose Boot Java Runtime for the IDE...`
+2. Select a Java Runtime that includes JCEF support  
+    ![Choose Boot Java Runtime for the IDE](./intellij-choose-boot-runtime-for-the-ide.png)
+3. Restart the IDE
+
 ## Want to Deep Dive via Logs?
 
 If you cannot solve the issue using the previous steps, you may want to 

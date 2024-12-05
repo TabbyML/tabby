@@ -5,12 +5,15 @@ use chrono::{DateTime, Utc};
 use fetch::fetch_all_repos;
 use juniper::ID;
 use strum::IntoEnumIterator;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{CodeRepository, RepositoryConfig};
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::{JobInfo, JobService},
-    repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
+    repository::{
+        GitReference, ProvidedRepository, Repository, RepositoryProvider,
+        ThirdPartyRepositoryService,
+    },
     AsID, AsRowid, DbEnum, Result,
 };
 use tracing::{debug, error};
@@ -138,6 +141,10 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         } else {
             let _ = self
                 .job
+                .clear(BackgroundJobEvent::SchedulerGithubGitlabRepository(id).to_command())
+                .await;
+            let _ = self
+                .job
                 .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
                 .await;
         }
@@ -202,7 +209,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
     ) -> Result<usize> {
         let usize = self
             .db
-            .delete_outdated_provided_repositories(integration_id.as_rowid()?, before.into())
+            .delete_outdated_provided_repositories(integration_id.as_rowid()?, before)
             .await?;
 
         self.job
@@ -212,7 +219,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(usize)
     }
 
-    async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>> {
+    async fn list_code_repositories(&self) -> Result<Vec<CodeRepository>> {
         let mut urls = vec![];
 
         let integrations = self
@@ -237,7 +244,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 let url = integration
                     .kind
                     .format_authenticated_url(&repository.git_url, &integration.access_token)?;
-                urls.push(RepositoryConfig::new(url));
+                urls.push(CodeRepository::new(&url, &repository.source_id()));
             }
         }
 
@@ -253,9 +260,8 @@ async fn refresh_repositories_for_provider(
 ) -> Result<()> {
     let start = Utc::now();
 
+    debug!("importing {} repositories", repos.len());
     for repo in repos {
-        debug!("importing: {}", repo.name);
-
         let id = repo.vendor_id;
 
         repository
@@ -281,10 +287,16 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         active: value.active,
         display_name: value.name,
         vendor_id: value.vendor_id,
-        created_at: *value.created_at,
-        updated_at: *value.updated_at,
-        refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
-            .unwrap_or_default(),
+        created_at: value.created_at,
+        updated_at: value.updated_at,
+        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(&value.git_url))
+            .unwrap_or_default()
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect(),
         git_url: value.git_url,
         job_info,
     }
@@ -451,7 +463,7 @@ mod tests {
 
         // Test github urls are formatted correctly
         let git_urls: Vec<_> = repository
-            .list_repository_configs()
+            .list_code_repositories()
             .await
             .unwrap()
             .into_iter()
@@ -510,7 +522,7 @@ mod tests {
             .unwrap();
 
         let git_urls: Vec<_> = repository
-            .list_repository_configs()
+            .list_code_repositories()
             .await
             .unwrap()
             .into_iter()

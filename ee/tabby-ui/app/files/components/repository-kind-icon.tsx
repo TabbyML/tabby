@@ -14,6 +14,7 @@ export function RepositoryKindIcon({
 }) {
   switch (kind) {
     case RepositoryKind.Git:
+    case RepositoryKind.GitConfig:
       return <IconDirectorySolid style={{ color: 'rgb(84, 174, 255)' }} />
     case RepositoryKind.Github:
     case RepositoryKind.GithubSelfHosted:

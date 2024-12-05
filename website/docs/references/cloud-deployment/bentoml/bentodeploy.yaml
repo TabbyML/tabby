@@ -1,0 +1,14 @@
+name: tabby
+bento: ./
+access_authorization: false
+envs:
+  - name: RCLONE_CONFIG_R2_TYPE
+    value: s3
+  - name: RCLONE_CONFIG_R2_ACCESS_KEY_ID
+    value: $YOUR_R2_ACCESS_KEY_ID
+  - name: RCLONE_CONFIG_R2_SECRET_ACCESS_KEY
+    value: $YOUR_R2_SECRET_ACCESS_KEY
+  - name: RCLONE_CONFIG_R2_ENDPOINT
+    value: $YOUR_R2_ENDPOINT
+  - name: TABBY_MODEL_CACHE_ROOT
+    value: /home/bentoml/tabby-models

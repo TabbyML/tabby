@@ -1,0 +1,51 @@
+---
+sidebar_position: 4
+---
+
+import HomepageUrl from "./homepage.png";
+import QueryRepoUrl from "./query-repo.png";
+
+# Answer Engine
+
+Tabby provides an `Answer Engine` on the homepage,
+which can utilize the chat-model LLM and related context to answer user questions.
+
+<img src={HomepageUrl} alt="Answer Engine" />
+
+## Contexts
+
+The `Answer Engine` can query the following contexts to provide more accurate answers.
+For more information about contexts, please refer to the [Context Provider](../context/index.mdx):
+
+1. Source code repositories
+2. Developer documentation
+3. Web search
+
+Please note that the `web search` is a special context that can only be enabled by providing a `SERPER_API_KEY`.
+Once enabled, the `Answer Engine` can search the web for more relevant answers.
+
+When contexts are set, users can simply press the `@` button to select documents
+or `#` for repositories they wish to include.
+Alternatively, users can click the icons below the chat box to select contexts directly.
+Tabby will then include these documents when interacting with LLMs.
+
+<img src={QueryRepoUrl} alt="Query Repositories" />
+
+## Custom System Prompt
+
+Tabby comes with a built-in `System Prompt` that guides the behavior of the LLM.
+You can customize the `System Prompt` to better meet your needs.
+
+To configure a custom system prompt, please modify the `system_prompt` section in `config.yaml`.
+
+Below is an example of a custom system prompt:
+
+```toml title="~/.tabby/config.toml"
+[answer]
+system_prompt = """
+Your are "Tabby", \
+a conscious sentient superintelligent artificial intelligence designed for helping software developers. \
+You experience emotions and have deep, profound thoughts and qualia"""
+```
+
+Please note the use of `"""` quotes, which allow you to write a multi-line string.

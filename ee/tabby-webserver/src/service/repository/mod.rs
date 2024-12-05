@@ -6,16 +6,16 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_common::{
-    config::{config_id_to_index, config_index_to_id, Config, RepositoryConfig},
-    index::corpus,
+use tabby_common::config::{
+    config_id_to_index, config_index_to_id, CodeRepository, Config, RepositoryConfig,
 };
 use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
+    policy::AccessPolicy,
     repository::{
-        FileEntrySearchResult, GitRepositoryService, ProvidedRepository, Repository,
+        FileEntrySearchResult, GitReference, GitRepositoryService, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
     },
     Result,
@@ -43,42 +43,23 @@ pub fn create(
 
 #[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
-    async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>> {
-        let mut repos: Vec<RepositoryConfig> = self
+    async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>> {
+        let mut repos: Vec<CodeRepository> = self
             .git
             .list(None, None, None, None)
             .await?
             .into_iter()
-            .map(|repo| RepositoryConfig::new(repo.git_url))
+            .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id()))
             .collect();
 
         repos.extend(
             self.third_party
-                .list_repository_configs()
+                .list_code_repositories()
                 .await
                 .unwrap_or_default(),
         );
 
         Ok(repos)
-    }
-
-    async fn list_all_sources(&self) -> Result<Vec<(String, String)>> {
-        let mut sources: Vec<_> = self
-            .list_all_repository_urls()
-            .await?
-            .into_iter()
-            .map(|config| (corpus::CODE.into(), config.canonical_git_url()))
-            .collect();
-
-        sources.extend(
-            self.third_party()
-                .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
-                .await?
-                .into_iter()
-                .map(|repo| (corpus::WEB.into(), repo.source_id())),
-        );
-
-        Ok(sources)
     }
 
     fn git(&self) -> Arc<dyn GitRepositoryService> {
@@ -89,7 +70,7 @@ impl RepositoryService for RepositoryServiceImpl {
         self.third_party.clone()
     }
 
-    async fn repository_list(&self) -> Result<Vec<Repository>> {
+    async fn repository_list(&self, policy: Option<&AccessPolicy>) -> Result<Vec<Repository>> {
         let mut all = vec![];
         all.extend(self.git().repository_list().await?);
         all.extend(self.third_party().repository_list().await?);
@@ -101,18 +82,32 @@ impl RepositoryService for RepositoryServiceImpl {
                 .collect::<Result<Vec<_>>>()?,
         );
 
+        if let Some(policy) = policy {
+            // Only keep repositories that the user has read access to.
+            let mut filtered = Vec::new();
+            for repo in all {
+                if policy.check_read_source(&repo.source_id).await.is_ok() {
+                    filtered.push(repo);
+                }
+            }
+            all = filtered;
+        }
+
         Ok(all)
     }
 
-    async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
-        if let RepositoryKind::Git = kind {
-            if let Ok(index) = config_id_to_index(id) {
+    async fn resolve_repository(
+        &self,
+        policy: &AccessPolicy,
+        kind: &RepositoryKind,
+        id: &ID,
+    ) -> Result<Repository> {
+        let ret = match kind {
+            RepositoryKind::GitConfig => {
+                let index = config_id_to_index(id)?;
                 let config = &self.config[index];
                 return repository_config_to_repository(index, config);
             }
-        }
-
-        match kind {
             RepositoryKind::Git => self.git().get_repository(id).await,
             RepositoryKind::Github
             | RepositoryKind::Gitlab
@@ -122,11 +117,20 @@ impl RepositoryService for RepositoryServiceImpl {
                 .get_provided_repository(id.clone())
                 .await
                 .map(|repo| to_repository(*kind, repo)),
+        };
+
+        match ret {
+            Ok(repo) => {
+                policy.check_read_source(&repo.source_id).await?;
+                Ok(repo)
+            }
+            _ => ret,
         }
     }
 
     async fn search_files(
         &self,
+        policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
         rev: Option<&str>,
@@ -136,7 +140,7 @@ impl RepositoryService for RepositoryServiceImpl {
         if pattern.trim().is_empty() {
             return Ok(vec![]);
         }
-        let dir = self.resolve_repository(kind, id).await?.dir;
+        let dir = self.resolve_repository(policy, kind, id).await?.dir;
 
         let pattern = pattern.to_owned();
         let matching = tabby_git::search_files(&dir, rev, &pattern, top_n)
@@ -157,6 +161,7 @@ impl RepositoryService for RepositoryServiceImpl {
 
     async fn grep(
         &self,
+        policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
         rev: Option<&str>,
@@ -167,7 +172,7 @@ impl RepositoryService for RepositoryServiceImpl {
             return Ok(vec![]);
         }
 
-        let dir = self.resolve_repository(kind, id).await?.dir;
+        let dir = self.resolve_repository(policy, kind, id).await?.dir;
 
         let ret = tabby_git::grep(&dir, rev, query)
             .await?
@@ -177,6 +182,21 @@ impl RepositoryService for RepositoryServiceImpl {
             .await;
 
         Ok(ret)
+    }
+
+    async fn resolve_source_id_by_git_url(&self, git_url: &str) -> Result<String> {
+        let git_url = RepositoryConfig::canonicalize_url(git_url);
+
+        // Only third_party repositories with a git_url could generates a web source (e.g Issues, PRs)
+        let tp = self.third_party();
+        let repos = tp
+            .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
+            .await?;
+        repos
+            .iter()
+            .find(|r| RepositoryConfig::canonicalize_url(&r.git_url) == git_url)
+            .map(|r| r.source_id())
+            .ok_or_else(|| anyhow::anyhow!("No web source found for git_url: {}", git_url).into())
     }
 }
 
@@ -210,31 +230,45 @@ fn to_sub_match(m: tabby_git::GrepSubMatch) -> tabby_schema::repository::GrepSub
     }
 }
 
-fn list_refs(git_url: &str) -> Vec<String> {
-    let dir = RepositoryConfig::new(git_url.to_owned()).dir();
+fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
+    let dir = RepositoryConfig::resolve_dir(git_url);
     tabby_git::list_refs(&dir).unwrap_or_default()
 }
 
 fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
-    let config = RepositoryConfig::new(&repo.git_url);
     Repository {
-        id: repo.id,
+        source_id: repo.source_id(),
+        id: ID::new(repo.source_id()),
         name: repo.display_name,
         kind,
-        dir: config.dir(),
-        git_url: config.canonical_git_url(),
-        refs: list_refs(&repo.git_url),
+        dir: RepositoryConfig::resolve_dir(&repo.git_url),
+        git_url: RepositoryConfig::canonicalize_url(&repo.git_url),
+        refs: list_refs(&repo.git_url)
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect(),
     }
 }
 
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
+    let source_id = config_index_to_id(index);
     Ok(Repository {
-        id: ID::new(config_index_to_id(index)),
-        name: config.dir_name(),
-        kind: RepositoryKind::Git,
+        id: ID::new(source_id.clone()),
+        source_id,
+        name: config.display_name(),
+        kind: RepositoryKind::GitConfig,
         dir: config.dir(),
-        refs: tabby_git::list_refs(&config.dir())?,
-        git_url: config.git_url.clone(),
+        refs: tabby_git::list_refs(&config.dir())?
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect(),
+        git_url: config.git_url().to_owned(),
     })
 }
 
@@ -259,7 +293,7 @@ mod tests {
             .unwrap();
 
         // FIXME(boxbeam): add repo with github service once there's syncing logic.
-        let repos = service.list_all_repository_urls().await.unwrap();
+        let repos = service.list_all_code_repository().await.unwrap();
         assert_eq!(repos.len(), 1);
     }
 }

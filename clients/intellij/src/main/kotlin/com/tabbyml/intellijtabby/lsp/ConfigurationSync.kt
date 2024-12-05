@@ -2,6 +2,7 @@ package com.tabbyml.intellijtabby.lsp
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.keymap.Keymap
 import com.intellij.openapi.keymap.KeymapManagerListener
 import com.intellij.openapi.project.Project
@@ -15,11 +16,11 @@ import com.tabbyml.intellijtabby.settings.SettingsState
 class ConfigurationSync(private val project: Project) : Disposable {
   private val messageBusConnection = project.messageBus.connect()
   private val settings = service<SettingsService>()
-  private val keymapSettings = project.service<KeymapSettings>()
+  private val keymapSettings = project.serviceOrNull<KeymapSettings>()
 
   data class SettingsData(
     val settings: SettingsService.Settings,
-    val keymap: KeymapSettings.KeymapStyle,
+    val keymap: KeymapSettings.KeymapStyle?,
   ) {
     fun withSettings(settings: SettingsService.Settings): SettingsData {
       return SettingsData(settings, keymap)
@@ -32,13 +33,13 @@ class ConfigurationSync(private val project: Project) : Disposable {
 
   private var cached: SettingsData = SettingsData(
     settings.settings(),
-    keymapSettings.getCurrentKeymapStyle(),
+    keymapSettings?.getCurrentKeymapStyle(),
   )
 
   fun getConfiguration(): ClientProvidedConfig {
     cached = SettingsData(
       settings.settings(),
-      keymapSettings.getCurrentKeymapStyle(),
+      keymapSettings?.getCurrentKeymapStyle(),
     )
     return buildClientProvidedConfig(cached)
   }
@@ -51,11 +52,12 @@ class ConfigurationSync(private val project: Project) : Disposable {
       }
     })
     messageBusConnection.subscribe(KeymapManagerListener.TOPIC, object : KeymapManagerListener {
-      override fun shortcutsChanged(keymap: Keymap, actionIds: MutableCollection<String>, fromSettings: Boolean) {
-        val current = keymapSettings.getCurrentKeymapStyle()
-        if (cached.keymap !== current) {
-          cached = cached.withKeymap(current)
-          notifyServer(server)
+      override fun shortcutChanged(keymap: Keymap, actionId: String, fromSettings: Boolean) {
+        keymapSettings?.getCurrentKeymapStyle()?.let {
+          if (cached.keymap !== it) {
+            cached = cached.withKeymap(it)
+            notifyServer(server)
+          }
         }
       }
     })
@@ -87,6 +89,7 @@ class ConfigurationSync(private val project: Project) : Disposable {
         KeymapSettings.KeymapStyle.DEFAULT -> ClientProvidedConfig.Keybindings.DEFAULT
         KeymapSettings.KeymapStyle.TABBY_STYLE -> ClientProvidedConfig.Keybindings.TABBY_STYLE
         KeymapSettings.KeymapStyle.CUSTOMIZE -> ClientProvidedConfig.Keybindings.CUSTOMIZE
+        null -> ClientProvidedConfig.Keybindings.DEFAULT
       },
       anonymousUsageTracking = ClientProvidedConfig.AnonymousUsageTrackingConfig(
         disable = settings.isAnonymousUsageTrackingDisabled,

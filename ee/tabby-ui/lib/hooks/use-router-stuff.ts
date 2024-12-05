@@ -46,6 +46,8 @@ export default function useRouterStuff() {
       } else {
         router.push(newPath)
       }
+
+      return newPath
     },
     [pathname, searchParams]
   )

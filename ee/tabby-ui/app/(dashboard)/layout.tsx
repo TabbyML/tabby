@@ -1,24 +1,25 @@
 import { Metadata } from 'next'
 
-import MainContent from './components/main-content'
-import Sidebar from './components/sidebar'
+import { LicenseBanner } from '@/components/license-banner'
+
+import Layout from './components/dashboard-layout'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Home',
+    default: 'Dashboard',
     template: `Tabby - %s`
   }
 }
 
-export default function RootLayout({
+export default function DashboardLayout({
   children
 }: {
   children: React.ReactNode
 }) {
   return (
-    <main className="flex flex-1">
-      <Sidebar />
-      <MainContent>{children}</MainContent>
-    </main>
+    <>
+      <LicenseBanner />
+      <Layout>{children}</Layout>
+    </>
   )
 }

@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,8 +34,8 @@ jobs:
         with:
           node-version: 18
 
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
@@ -45,8 +45,8 @@ jobs:
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -56,7 +56,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Test Build
+      - name: Build Plugin
         uses: gradle/gradle-build-action@v2.4.2
         with:
           arguments: buildPlugin

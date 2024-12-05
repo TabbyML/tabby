@@ -9,7 +9,7 @@ impl HashChecker {
     pub fn check(filename: &str, expected_hash: &str) -> Result<(), ValidateError> {
         let mut result = Ok(());
         if filename != "stdout" && (!expected_hash.is_empty()) {
-            let actual_hash = HashChecker::sha256sum(filename);
+            let actual_hash = HashChecker::sha256sum(filename)?;
             if actual_hash != expected_hash {
                 result = Err(ValidateError::Sha256Mismatch);
             }
@@ -22,15 +22,21 @@ impl HashChecker {
         result
     }
 
-    fn sha256sum(filename: &str) -> String {
+    fn sha256sum(filename: &str) -> Result<String, ValidateError> {
         let mut hasher = Sha256::new();
-        let mut file = fs::File::open(filename).unwrap();
+        let mut file = fs::File::open(filename).map_err(|e| {
+            println!("Can not open {filename}:\n  {e}");
+            ValidateError::Sha256Mismatch
+        })?;
 
-        io::copy(&mut file, &mut hasher).unwrap();
+        io::copy(&mut file, &mut hasher).map_err(|e| {
+            println!("Can not read {filename}:\n  {e}");
+            ValidateError::Sha256Mismatch
+        })?;
         let computed_hash = hasher.finalize();
         drop(file);
 
-        format!("{computed_hash:x}")
+        Ok(format!("{computed_hash:x}"))
     }
 }
 
@@ -61,7 +67,7 @@ mod tests {
     fn test_sha256sum_api() {
         let expected = "21d7847124bfb9d9a9d44af6f00d8003006c44b9ef9ba458b5d4d3fc5f81bde5";
 
-        let actual = HashChecker::sha256sum("LICENCE.md");
+        let actual = HashChecker::sha256sum("LICENCE.md").unwrap();
 
         assert_eq!(actual, expected);
     }

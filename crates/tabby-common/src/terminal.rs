@@ -47,7 +47,7 @@ impl<'a> InfoMessage<'a> {
     }
 }
 
-impl<'a> ToString for InfoMessage<'a> {
+impl ToString for InfoMessage<'_> {
     fn to_string(&self) -> String {
         let mut str = String::new();
         str.push_str(&format!("  {}\n\n", self.header_format.format(self.header)));

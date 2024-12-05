@@ -5,41 +5,28 @@ use tabby_common::{
     api::{
         code::CodeSearch,
         event::{ComposedLogger, EventLogger},
+        structured_doc::DocSearch,
     },
-    config::{Config, ConfigAccess, RepositoryConfig},
+    config::Config,
 };
 use tabby_db::DbConn;
-use tabby_inference::Embedding;
-use tabby_schema::{
-    integration::IntegrationService, job::JobService, repository::RepositoryService,
-    web_crawler::WebCrawlerService,
-};
+use tabby_inference::{ChatCompletionStream, CompletionStream, Embedding};
+use tabby_schema::job::JobService;
+use tracing::debug;
 
 use crate::{
     path::db_file,
     routes,
     service::{
-        background_job, create_service_locator, event_logger::create_event_logger, integration,
-        job, repository, web_crawler,
+        create_service_locator, event_logger::create_event_logger, integration, job, repository,
+        web_documents,
     },
 };
 
 pub struct Webserver {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
-    repository: Arc<dyn RepositoryService>,
-    integration: Arc<dyn IntegrationService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
-    job: Arc<dyn JobService>,
-}
-
-#[async_trait::async_trait]
-impl ConfigAccess for Webserver {
-    async fn repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
-        let mut repos = Config::load().map(|x| x.repositories).unwrap_or_default();
-        repos.extend(self.repository.list_all_repository_urls().await?);
-        Ok(repos)
-    }
+    embedding: Arc<dyn Embedding>,
 }
 
 impl Webserver {
@@ -54,37 +41,14 @@ impl Webserver {
             .await
             .expect("Must be able to finalize stale job runs");
 
-        let job: Arc<dyn JobService> = Arc::new(job::create(db.clone()).await);
-
-        let integration = Arc::new(integration::create(db.clone(), job.clone()));
-        let repository = repository::create(db.clone(), integration.clone(), job.clone());
-
-        let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone()));
-
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
-        let ws = Arc::new(Webserver {
+
+        Arc::new(Webserver {
             db: db.clone(),
             logger,
-            repository: repository.clone(),
-            integration: integration.clone(),
-            web_crawler: web_crawler.clone(),
-            job: job.clone(),
-        });
-
-        background_job::start(
-            db.clone(),
-            job,
-            repository.git(),
-            repository.third_party(),
-            integration.clone(),
-            repository.clone(),
-            web_crawler.clone(),
             embedding,
-        )
-        .await;
-
-        ws
+        })
     }
 
     pub fn logger(&self) -> Arc<dyn EventLogger + 'static> {
@@ -93,23 +57,65 @@ impl Webserver {
 
     pub async fn attach(
         &self,
+        config: &Config,
         api: Router,
         ui: Router,
         code: Arc<dyn CodeSearch>,
-        is_chat_enabled: bool,
+        chat: Option<Arc<dyn ChatCompletionStream>>,
+        completion: Option<Arc<dyn CompletionStream>>,
+        docsearch: Arc<dyn DocSearch>,
+        serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> (Router, Router) {
+        let serper: Option<Box<dyn DocSearch>> =
+            if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
+                debug!("Serper API key found, enabling serper...");
+                Some(serper_factory_fn(&api_key))
+            } else {
+                None
+            };
+
+        let db = self.db.clone();
+        let job: Arc<dyn JobService> = Arc::new(job::create(db.clone()).await);
+
+        let integration = Arc::new(integration::create(db.clone(), job.clone()));
+        let repository = repository::create(db.clone(), integration.clone(), job.clone());
+
+        let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
+
+        let context = Arc::new(crate::service::context::create(
+            repository.clone(),
+            web_documents.clone(),
+            serper.is_some(),
+        ));
+
+        let answer = chat.as_ref().map(|chat| {
+            Arc::new(crate::service::answer::create(
+                &config.answer,
+                chat.clone(),
+                code.clone(),
+                docsearch.clone(),
+                context.clone(),
+                serper,
+                repository.clone(),
+            ))
+        });
+
         let ctx = create_service_locator(
             self.logger(),
-            code,
-            self.repository.clone(),
-            self.integration.clone(),
-            self.web_crawler.clone(),
-            self.job.clone(),
+            chat.clone(),
+            completion.clone(),
+            code.clone(),
+            repository.clone(),
+            integration.clone(),
+            job.clone(),
+            answer.clone(),
+            context.clone(),
+            web_documents.clone(),
             self.db.clone(),
-            is_chat_enabled,
+            self.embedding.clone(),
         )
         .await;
 
-        routes::create(ctx, api, ui)
+        routes::create(ctx, api, ui, answer)
     }
 }

@@ -13,3 +13,5 @@ tsup.config.ts
 **/.eslintrc.json
 **/*.map
 **/*.ts
+scripts/**
+.turbo

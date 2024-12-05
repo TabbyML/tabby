@@ -5,7 +5,7 @@ import { useClient } from 'tabby-chat-panel/react'
 
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
-import { useStore } from '@/lib/hooks/use-store'
+import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -23,17 +23,11 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   ...props
 }) => {
   const [{ data }] = useMe()
-  const {
-    pendingEvent,
-    setPendingEvent,
-    repoMap,
-    activeRepoRef,
-    updateActivePath
-  } = React.useContext(SourceCodeBrowserContext)
-  const activeChatId = useStore(useChatStore, state => state.activeChatId)
+  const { pendingEvent, setPendingEvent, repoMap, updateActivePath } =
+    React.useContext(SourceCodeBrowserContext)
+  const activeChatId = useChatStore(state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const repoMapRef = useLatest(repoMap)
-  const latestRepoRef = useLatest(activeRepoRef)
   const onNavigate = async (context: Context) => {
     if (context?.filepath && context?.git_url) {
       const lineHash = formatLineHashForCodeBrowser(context?.range)
@@ -46,10 +40,12 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         const targetRepo = repoMap[matchedRepositoryKey]
         if (targetRepo) {
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
-          // use curernt rev, and use defaultRev as fallback
-          const refName =
-            latestRepoRef?.current?.name ||
-            resolveRepoRef(defaultRef ?? '')?.name
+          // navigate to files of the default branch
+          const refName = resolveRepoRef(defaultRef)?.name
+          const detectedLanguage = context.filepath
+            ? filename2prism(context.filepath)[0]
+            : undefined
+          const isMarkdown = detectedLanguage === 'markdown'
           updateActivePath(
             generateEntryPath(
               targetRepo,
@@ -59,7 +55,8 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             ),
             {
               hash: lineHash,
-              replace: false
+              replace: false,
+              plain: isMarkdown && !!lineHash
             }
           )
           return
@@ -69,7 +66,20 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   }
 
   const client = useClient(iframeRef, {
-    navigate: onNavigate
+    navigate: onNavigate,
+    refresh: async () => {
+      window.location.reload()
+
+      // Ensure the loading effect is maintained
+      await new Promise(resolve => {
+        setTimeout(() => resolve(null), 1000)
+      })
+    },
+    async onSubmitMessage(_msg, _relevantContext) {},
+    onApplyInEditor(_content) {},
+    onLoaded() {},
+    onCopy(_content) {},
+    onKeyboardEvent() {}
   })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {

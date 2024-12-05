@@ -1,11 +1,13 @@
 import { jwtDecode } from 'jwt-decode'
 import { isNil } from 'lodash-es'
+import { FetcherOptions } from 'tabby-chat-panel/index'
 
 import { isClientSide } from '../utils'
 import { AuthData } from './auth'
 
 export const AUTH_TOKEN_KEY = '_tabby_auth'
 export const AUTH_LOCK_KEY = '_tabby_auth_lock'
+const FETCHER_OPTIONS_KEY = '_tabby_chat_sdk_fetcher_options'
 
 const getAuthToken = (): AuthData | undefined => {
   if (isClientSide()) {
@@ -45,6 +47,29 @@ const isTokenExpired = (exp: number | undefined): boolean => {
 // Checks if the JWT token's issued-at time (iat) is within the last minute.
 const isTokenRecentlyIssued = (iat: number | undefined): boolean => {
   return isNil(iat) ? false : Date.now() - iat * 1000 < 60 * 1000
+}
+
+export const getFetcherOptions = (): FetcherOptions | undefined => {
+  try {
+    let fetcherOptions = sessionStorage.getItem(FETCHER_OPTIONS_KEY)
+    if (!fetcherOptions) return undefined
+    return JSON.parse(fetcherOptions)
+  } catch {
+    return undefined
+  }
+}
+
+export const clearFetcherOptions = () => {
+  sessionStorage.removeItem(FETCHER_OPTIONS_KEY)
+}
+
+export const saveFetcherOptions = (fetcherOptions: FetcherOptions) => {
+  if (!fetcherOptions) return
+  try {
+    sessionStorage.setItem(FETCHER_OPTIONS_KEY, JSON.stringify(fetcherOptions))
+  } catch (e) {
+    sessionStorage.removeItem(FETCHER_OPTIONS_KEY)
+  }
 }
 
 class TokenManager {

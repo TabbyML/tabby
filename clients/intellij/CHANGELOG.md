@@ -1,3 +1,66 @@
+## 1.8.4
+
+### Fixes & Improvements
+
+- Fixed an issue where the chat panel failed to display when the endpoint configuration ended with a trailing slash.
+
+## 1.8.3
+
+### Fixes & Improvements
+
+- Fixed a bug that caused the Tabby plugin to not initialize when TLS certificates failed to load. (https://github.com/TabbyML/tabby/issues/3248)
+
+## 1.8.2
+
+### Fixes & Improvements
+
+- Fix DataStore initialization that prevented Tabby from starting on a fresh installation. (https://github.com/TabbyML/tabby/issues/3234)
+
+## 1.8.1
+
+### Features
+
+- Updated the chat panel to compatible with Tabby server v0.18.0 or later.
+
+## 1.7.1
+
+### Features
+
+- Introduced a new chat view feature that allows users to engage in conversations with their AI assistant.
+- Added support for HTTP proxy configuration. Users can now set up an HTTP proxy either through environment variables or in the config file.
+
+### Fixes & Improvements
+
+- Fixed a bug where the inline completion service created too many jobs when receiving multiple document change events at the same time, such as during a reformat code action.
+
+## 1.6.3
+
+### Fixes & Improvements
+
+- Fixed a bug that caused the Tabby plugin to get stuck in initialization when an editor has no related virtual file.
+
+## 1.6.2
+
+### Breaking Changes
+
+- The minimum required IDE version has been increased to >= 2023.1.
+
+### Features
+
+- Added support for multiple choices in inline completion. Completion choices can be cycled by shortcuts `Alt + [` and `Alt +]`.
+- Added support to collect workspace info and git context to enhance inline completion. Credits to Vladimir (#2044).
+
+### Fixes & Improvements
+
+- Updated the underlay protocol to connect to tabby-agent to use LSP.
+- Improved interaction when partially accepting a completion.
+
+## 1.4.1
+
+### Fixes:
+
+- Added support for IntelliJ Platform IDEs version 2024.1.
+
 ## 1.4.0
 
 ### Features

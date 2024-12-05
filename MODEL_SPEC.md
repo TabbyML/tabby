@@ -1,11 +1,12 @@
-# Tabby Model Specification (Unstable)
+# Tabby Model Specification
 
-Tabby organizes the model within a directory. This document provides an explanation of the necessary contents for supporting model serving.
-The minimal Tabby model directory should include the following contents:
+Tabby organizes the models within a directory.
+This document provides an explanation of the necessary contents for supporting model serving.
+A minimal Tabby model directory should include the following contents:
 
 ```
-ggml/
 tabby.json
+ggml/model-00001-of-00001.gguf
 ```
 
 ### tabby.json
@@ -27,6 +28,11 @@ The **chat_template** field is optional. When it is present, it is assumed that 
 
 ### ggml/
 
-This directory contains binary files used by the [llama.cpp](https://github.com/ggerganov/llama.cpp) inference engine. Tabby utilizes ggml for inference on `cpu`, `cuda` and `metal` devices.
+This directory contains binary files used by the [llama.cpp](https://github.com/ggerganov/llama.cpp) inference engine.
+Tabby utilizes GGML for inference on `cpu`, `cuda` and `metal` devices.
 
-Currently, only `q8_0.v2.gguf` (or, starting with 0.11, `model.gguf`) in this directory is in use. You can refer to the instructions in llama.cpp to learn how to acquire it.
+Tabby saves GGUF model files in the format `model-{index}-of-{count}.gguf`, following the llama.cpp naming convention.
+Please note that the index is 1-based,
+by default, Tabby names a single file model as `model-00001-of-00001.gguf`.
+
+For more details about GGUF models, please refer to the instructions in llama.cpp.

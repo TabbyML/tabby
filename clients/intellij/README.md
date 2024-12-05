@@ -5,7 +5,7 @@
 
 Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.
 
-Tabby IntelliJ Platform plugin works with all [IntelliJ Platform IDEs](https://plugins.jetbrains.com/docs/intellij/intellij-platform.html#ides-based-on-the-intellij-platform) that have build 2022.2.5 or later versions, such as [IDEA](https://www.jetbrains.com/idea/), [PyCharm](https://www.jetbrains.com/pycharm/), [GoLand](https://www.jetbrains.com/go/), [Android Studio](https://developer.android.com/studio), and [more](https://plugins.jetbrains.com/docs/intellij/intellij-platform.html#ides-based-on-the-intellij-platform).
+Tabby IntelliJ Platform plugin works with all [IntelliJ Platform IDEs](https://plugins.jetbrains.com/docs/intellij/intellij-platform.html#ides-based-on-the-intellij-platform) that have build 2023.1 or later versions, such as [IDEA](https://www.jetbrains.com/idea/), [PyCharm](https://www.jetbrains.com/pycharm/), [GoLand](https://www.jetbrains.com/go/), [Android Studio](https://developer.android.com/studio), and [more](https://plugins.jetbrains.com/docs/intellij/intellij-platform.html#ides-based-on-the-intellij-platform).
 
 ## Getting Started
 

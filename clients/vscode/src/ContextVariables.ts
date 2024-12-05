@@ -41,7 +41,7 @@ export class ContextVariables {
     }
     const range = new Range(editor.selection.active.line, 0, editor.selection.active.line + 1, 0);
     const text = editor.document.getText(range);
-    const match = /<<<<<<<.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
+    const match = /^<<<<<<< (tabby-[0-9|a-z|A-Z]{6})/g.exec(text);
     if (match) {
       this.chatEditResolving = true;
       return;

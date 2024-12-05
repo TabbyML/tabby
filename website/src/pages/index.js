@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -6,11 +6,15 @@ import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 
 import styles from './index.module.css';
+import Head from '@docusaurus/Head';
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
+      <Head>
+        <title>{siteConfig.title} - {siteConfig.tagline}</title>
+      </Head>
       <div className="container">
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
@@ -19,7 +23,7 @@ function HomepageHeader() {
           <Link
             rel="noopener"
             className="button button--secondary button--lg"
-            to="https://links.tabbyml.com/live-demo">
+            to="#tally-open=mZJ10o&tally-layout=modal&tally-width=720&tally-hide-title=0&tally-emoji-text=👋&tally-emoji-animation=wave">
             View Live Demo 🚀
           </Link>
           <Link
@@ -38,10 +42,14 @@ function HomepageHeader() {
 
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") {
+      location.href = "https://www.tabbyml.com"
+    }
+  }, []);
   return (
     <Layout
-      title={`Home`}
-      description="Description will go into a meta tag in <head />">
+      description="Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

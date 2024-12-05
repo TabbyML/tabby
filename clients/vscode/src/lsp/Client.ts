@@ -1,4 +1,4 @@
-import { ExtensionContext } from "vscode";
+import { CodeActionProvider, ExtensionContext, languages } from "vscode";
 import { BaseLanguageClient } from "vscode-languageclient";
 import { AgentFeature } from "./AgentFeature";
 import { ChatFeature } from "./ChatFeature";
@@ -17,22 +17,30 @@ import { Config } from "../Config";
 import { InlineCompletionProvider } from "../InlineCompletionProvider";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
+import { WorkSpaceFeature } from "./WorkspaceFeature";
+import { FileTrackerFeature } from "./FileTrackFeature";
 
 export class Client {
   private readonly logger = getLogger("");
   readonly agent: AgentFeature;
   readonly chat: ChatFeature;
   readonly telemetry: TelemetryFeature;
+  readonly workspace: WorkSpaceFeature;
+  readonly fileTrack: FileTrackerFeature;
   constructor(
     private readonly context: ExtensionContext,
     readonly languageClient: BaseLanguageClient,
   ) {
     this.agent = new AgentFeature(this.languageClient);
     this.chat = new ChatFeature(this.languageClient);
+    this.workspace = new WorkSpaceFeature(this.languageClient);
     this.telemetry = new TelemetryFeature(this.languageClient);
+    this.fileTrack = new FileTrackerFeature(this, this.context);
     this.languageClient.registerFeature(this.agent);
     this.languageClient.registerFeature(this.chat);
+    this.languageClient.registerFeature(this.workspace);
     this.languageClient.registerFeature(this.telemetry);
+    this.languageClient.registerFeature(this.fileTrack);
     this.languageClient.registerFeature(new DataStoreFeature(this.context, this.languageClient));
     this.languageClient.registerFeature(new EditorOptionsFeature(this.languageClient));
     this.languageClient.registerFeature(new LanguageSupportFeature(this.languageClient));
@@ -73,5 +81,8 @@ export class Client {
   registerGitProvider(provider: GitProvider): void {
     const feature = new GitProviderFeature(this.languageClient, provider);
     this.languageClient.registerFeature(feature);
+  }
+  registerCodeActionProvider(provider: CodeActionProvider) {
+    this.context.subscriptions.push(languages.registerCodeActionsProvider("*", provider));
   }
 }

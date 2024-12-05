@@ -1,52 +1,24 @@
-import { useEffect, useState } from 'react'
-import { useQuery } from 'urql'
+import { useMemo } from 'react'
+import { CombinedError, useQuery } from 'urql'
 
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { QueryVariables } from '@/lib/tabby/gql'
-import { listUsers } from '@/lib/tabby/query'
+import { listSecuredUsers } from '@/lib/tabby/query'
 
-export type Member = {
-  id: string
-  email: string
-  name: string
-}
+import { ListUsersQuery } from '../gql/generates/graphql'
 
-export function useAllMembers() {
-  const [queryVariables, setQueryVariables] = useState<
-    QueryVariables<typeof listUsers>
-  >({ first: DEFAULT_PAGE_SIZE })
+export type Member = ListUsersQuery['users']['edges'][0]['node']
 
-  const [list, setList] = useState<Member[]>([])
-  const [isAllLoaded, setIsAllLoaded] = useState(false)
-
-  const [{ data, fetching }] = useQuery({
-    query: listUsers,
-    variables: queryVariables
+export function useAllMembers(): [
+  Member[],
+  boolean,
+  CombinedError | undefined
+] {
+  const [{ data, fetching, error }] = useQuery({
+    query: listSecuredUsers
   })
 
-  useEffect(() => {
-    if (isAllLoaded) return
-    if (!fetching && data) {
-      const members: Member[] = data?.users.edges.map(edge => ({
-        id: edge.node.id,
-        email: edge.node.email,
-        name: edge.node.name
-      }))
-      const cursor = data?.users.pageInfo.endCursor || ''
-      const hasMore = data?.users.pageInfo.hasNextPage
-      const currentList = [...list]
+  const allUsers = useMemo(() => {
+    return data?.users.edges.map(edge => edge.node) ?? []
+  }, [data?.users])
 
-      setList(currentList.concat(members))
-      if (hasMore) {
-        setQueryVariables({
-          first: DEFAULT_PAGE_SIZE,
-          after: cursor
-        })
-      } else {
-        setIsAllLoaded(true)
-      }
-    }
-  }, [queryVariables, fetching])
-
-  return [list]
+  return [allUsers, fetching, error]
 }

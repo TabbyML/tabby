@@ -1,9 +1,17 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
 import { ClientProvidedConfig } from "tabby-agent";
+import { getLogger } from "./logger";
 
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
+  "chatEdit.history"?: number;
+  useVSCodeProxy?: boolean;
+}
+
+export interface PastServerConfig {
+  endpoint: string;
+  token: string | null;
 }
 
 export class Config extends EventEmitter {
@@ -11,14 +19,19 @@ export class Config extends EventEmitter {
     super();
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (event) => {
-        if (event.affectsConfiguration("tabby")) {
+        if (
+          event.affectsConfiguration("tabby") ||
+          event.affectsConfiguration("http.proxy") ||
+          event.affectsConfiguration("https.proxy") ||
+          event.affectsConfiguration("http.proxyAuthorization")
+        ) {
           this.emit("updated");
         }
       }),
     );
   }
 
-  get workspace(): WorkspaceConfiguration {
+  private get workspace(): WorkspaceConfiguration {
     return workspace.getConfiguration("tabby");
   }
 
@@ -61,6 +74,32 @@ export class Config extends EventEmitter {
     }
   }
 
+  get useVSCodeProxy(): boolean {
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    return advancedSettings["useVSCodeProxy"] ?? true;
+  }
+
+  get maxChatEditHistory(): number {
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    const numHistory = advancedSettings["chatEdit.history"] === undefined ? 20 : advancedSettings["chatEdit.history"];
+    if (numHistory < 0) {
+      return 20;
+    } else if (numHistory === 0) {
+      return 0;
+    } else {
+      return numHistory;
+    }
+  }
+
+  set maxChatEditHistory(value: number) {
+    if (value != this.maxChatEditHistory) {
+      const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+      const updateValue = { ...advancedSettings, "chatEdit.history": value };
+      this.workspace.update("settings.advanced", updateValue, ConfigurationTarget.Global);
+      this.emit("updated");
+    }
+  }
+
   get inlineCompletionEnabled(): boolean {
     return workspace.getConfiguration("editor").get("inlineSuggest.enabled", true);
   }
@@ -96,8 +135,71 @@ export class Config extends EventEmitter {
     this.memento.update("edit.recentlyCommand", value);
   }
 
+  get pastServerConfigs(): PastServerConfig[] {
+    return this.memento.get("server.pastServerConfigs", []);
+  }
+
+  async appendPastServerConfig(config: PastServerConfig) {
+    getLogger().info("appending config", config.endpoint);
+    const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== config.endpoint);
+    const newPastConfigs = [config, ...pastConfigs.slice(0, 4)];
+    await this.memento.update("server.pastServerConfigs", newPastConfigs);
+  }
+
+  async removePastServerConfigByApiEndpoint(apiEndpoint: string) {
+    const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== apiEndpoint);
+    await this.memento.update("server.pastServerConfigs", pastConfigs);
+  }
+
+  async restoreServerConfig(config: PastServerConfig) {
+    await this.memento.update("server.token", config.token);
+    this.serverEndpoint = config.endpoint;
+  }
+
+  get httpConfig() {
+    return workspace.getConfiguration("http");
+  }
+
+  get authorization() {
+    return this.httpConfig.get("authorization", "");
+  }
+
+  set authorization(value: string) {
+    if (value !== this.authorization) {
+      this.httpConfig.update("authorization", value);
+    }
+  }
+
+  get url() {
+    const https = workspace.getConfiguration("https");
+    const httpsProxy = https.get("proxy", "");
+    const httpProxy = this.httpConfig.get("proxy", "");
+
+    return httpsProxy || httpProxy;
+  }
+
+  set url(value: string) {
+    if (value !== this.url) {
+      const isHTTPS = value.includes("https");
+      if (isHTTPS) {
+        workspace.getConfiguration("https").update("proxy", value);
+      } else {
+        this.httpConfig.update("proxy", value);
+      }
+    }
+  }
+
   buildClientProvidedConfig(): ClientProvidedConfig {
+    const url = this.useVSCodeProxy ? this.url : "";
+    const authorization = this.useVSCodeProxy ? this.authorization : "";
+
     return {
+      // Note: current we only support http.proxy | http.authorization
+      // More properties we will land later.
+      proxy: {
+        url,
+        authorization,
+      },
       server: {
         endpoint: this.serverEndpoint,
         token: this.serverToken,

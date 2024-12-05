@@ -1,5 +1,14 @@
-import type { ChatMessage } from 'tabby-chat-panel'
-import type { components as TabbyOpenApiComponents } from 'tabby-openapi'
+import type { ChatMessage, Context } from 'tabby-chat-panel'
+import type { components } from 'tabby-openapi'
+
+import {
+  ContextSourceKind,
+  CreateThreadRunSubscription,
+  MessageAttachmentCode,
+  MessageCodeSearchHit,
+  MessageDocSearchHit
+} from '../gql/generates/graphql'
+import { ArrayElementType } from './common'
 
 export interface UserMessage extends ChatMessage {
   id: string
@@ -13,7 +22,7 @@ export interface AssistantMessage {
   id: string
   message: string
   error?: string
-  relevant_code?: AnswerResponse['relevant_code']
+  relevant_code?: MessageAttachmentCode[]
 }
 
 export interface QuestionAnswerPair {
@@ -48,16 +57,60 @@ export type SearchReponse = {
   num_hits?: number
 }
 
-export type MessageActionType = 'delete' | 'regenerate'
+export type MessageActionType = 'delete' | 'regenerate' | 'edit'
 
-export type AnswerRequest = TabbyOpenApiComponents['schemas']['AnswerRequest']
+type Keys<T> = T extends any ? keyof T : never
+type Pick<T, K extends Keys<T>> = T extends { [k in K]?: any }
+  ? T[K]
+  : undefined
+type MergeUnionType<T> = {
+  [k in Keys<T>]?: Pick<T, k>
+}
 
-type AnswerResponseChunk =
-  TabbyOpenApiComponents['schemas']['AnswerResponseChunk']
+export type ThreadRunContexts = {
+  modelName?: string
+  searchPublic?: boolean
+  docSourceIds?: string[]
+  codeSourceIds?: string[]
+}
 
-export type AnswerResponse = {
-  relevant_code?: AnswerResponseChunk['relevant_code']
-  relevant_documents?: AnswerResponseChunk['relevant_documents']
-  relevant_questions?: AnswerResponseChunk['relevant_questions']
-  answer_delta?: AnswerResponseChunk['answer_delta']
+export interface RelevantCodeContext extends Context {
+  extra?: {
+    scores?: components['schemas']['CodeSearchScores']
+  }
+}
+
+type ExtractHitsByType<T, N> = T extends {
+  __typename: N
+  hits: infer H
+}
+  ? H
+  : never
+
+export type ThreadAssistantMessageAttachmentCodeHits = ExtractHitsByType<
+  CreateThreadRunSubscription['createThreadRun'],
+  'ThreadAssistantMessageAttachmentsCode'
+>
+export type ThreadAssistantMessageAttachmentDocHits = ExtractHitsByType<
+  CreateThreadRunSubscription['createThreadRun'],
+  'ThreadAssistantMessageAttachmentsDoc'
+>
+
+// for rendering, including scores
+export type AttachmentCodeItem =
+  ArrayElementType<ThreadAssistantMessageAttachmentCodeHits>['code'] & {
+    isClient?: boolean
+    extra?: { scores?: MessageCodeSearchHit['scores'] }
+  }
+
+// for rendering, including score
+export type AttachmentDocItem =
+  ArrayElementType<ThreadAssistantMessageAttachmentDocHits>['doc'] & {
+    extra?: { score?: MessageDocSearchHit['score'] }
+  }
+
+export type MentionAttributes = {
+  id: string
+  label: string
+  kind: ContextSourceKind
 }

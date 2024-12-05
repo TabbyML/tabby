@@ -2,7 +2,6 @@ package com.tabbyml.intellijtabby.lsp.protocol.client
 
 import com.tabbyml.intellijtabby.lsp.protocol.*
 import com.tabbyml.intellijtabby.lsp.protocol.InitializeParams
-import com.tabbyml.intellijtabby.lsp.protocol.InitializeResult
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification
@@ -14,30 +13,18 @@ abstract class LanguageClient {
 
   open fun processInitializeResult(server: LanguageServer, result: InitializeResult?) {}
 
-  @JsonNotification("tabby/agent/didUpdateServerInfo")
-  open fun didUpdateServerInfo(params: DidUpdateServerInfoParams) {
+  @JsonNotification("tabby/config/didChange")
+  open fun configDidChange(params: Config) {
+    throw UnsupportedOperationException()
   }
 
-  @JsonNotification("tabby/agent/didChangeStatus")
-  open fun didChangeStatus(params: DidChangeStatusParams) {
-  }
-
-  @JsonNotification("tabby/agent/didUpdateIssues")
-  open fun didUpdateIssues(params: DidUpdateIssueParams) {
+  @JsonNotification("tabby/status/didChange")
+  open fun statusDidChange(params: StatusInfo) {
+    throw UnsupportedOperationException()
   }
 
   @JsonRequest("tabby/workspaceFileSystem/readFile")
   open fun readFile(params: ReadFileParams): CompletableFuture<ReadFileResult?> {
-    throw UnsupportedOperationException()
-  }
-
-  @JsonRequest("tabby/dataStore/get")
-  open fun dataStoreGet(params: DataStoreGetParams): CompletableFuture<Any?> {
-    throw UnsupportedOperationException()
-  }
-
-  @JsonRequest("tabby/dataStore/set")
-  open fun dataStoreSet(params: DataStoreSetParams): CompletableFuture<Boolean> {
     throw UnsupportedOperationException()
   }
 

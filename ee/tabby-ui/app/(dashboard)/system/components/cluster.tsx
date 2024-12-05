@@ -5,7 +5,11 @@ import prettyBytes from 'pretty-bytes'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import { DiskUsage, DiskUsageStats } from '@/lib/gql/generates/graphql'
+import {
+  DiskUsage,
+  DiskUsageStats,
+  ModelHealthBackend
+} from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useMutation } from '@/lib/tabby/gql'
@@ -28,6 +32,14 @@ const getRegistrationTokenDocument = graphql(/* GraphQL */ `
 const resetRegistrationTokenDocument = graphql(/* GraphQL */ `
   mutation ResetRegistrationToken {
     resetRegistrationToken
+  }
+`)
+
+const testModelConnectionQuery = graphql(/* GraphQL */ `
+  query TestModelConnection($backend: ModelHealthBackend!) {
+    testModelConnection(backend: $backend) {
+      latencyMs
+    }
   }
 `)
 
@@ -112,8 +124,8 @@ export default function Workers() {
             )}
             <WorkerCard
               addr="localhost"
-              name="Code Search Index"
-              kind="INDEX"
+              name="Embedding"
+              kind={ModelHealthBackend.Embedding}
               arch=""
               device={healthInfo.device}
               cudaDevices={healthInfo.cuda_devices}
@@ -207,40 +219,35 @@ function Usage() {
       loading={fetching}
       fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
     >
-      <>
-        <div className="flex flex-col gap-y-1.5 py-2">
-          <div>
-            <p className="mb-1 text-sm  text-muted-foreground">Disk Usage</p>
-            <p className="text-3xl font-bold leading-none">
-              {toBytes(totalUsage)}
-            </p>
-          </div>
-          <div className="pt-3">
-            <p className="mb-1 text-sm text-muted-foreground">
-              Storage utilization by Type
-            </p>
-            <div className="flex flex-wrap gap-y-3">
-              {usageData.map(usage => (
+      <div className="flex flex-col gap-y-1.5 py-2">
+        <div>
+          <p className="mb-1 text-sm  text-muted-foreground">Disk Usage</p>
+          <p className="text-3xl font-bold leading-none">
+            {toBytes(totalUsage)}
+          </p>
+        </div>
+        <div className="pt-3">
+          <p className="mb-1 text-sm text-muted-foreground">
+            Storage utilization by Type
+          </p>
+          <div className="flex flex-wrap gap-y-3">
+            {usageData.map(usage => (
+              <div className="flex w-1/2 pt-1 text-sm md:w-36" key={usage!.key}>
                 <div
-                  className="flex w-1/2 pt-1 text-sm md:w-36"
-                  key={usage!.key}
-                >
-                  <div
-                    className="mr-3 mt-1 h-2 w-2 rounded-full"
-                    style={{ backgroundColor: usage!.color }}
-                  />
-                  <div>
-                    <p className="mb-1 leading-none">{usage!.label}</p>
-                    <p className="text-card-foreground/70">
-                      {toBytes(usage!.sizeKb)}
-                    </p>
-                  </div>
+                  className="mr-3 mt-1 h-2 w-2 rounded-full"
+                  style={{ backgroundColor: usage!.color }}
+                />
+                <div>
+                  <p className="mb-1 leading-none">{usage!.label}</p>
+                  <p className="text-card-foreground/70">
+                    {toBytes(usage!.sizeKb)}
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
-      </>
+      </div>
     </LoadingWrapper>
   )
 }

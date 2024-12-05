@@ -1,31 +1,58 @@
+pub mod access_policy;
 pub mod analytic;
 pub mod auth;
 pub mod constants;
+pub mod context;
 pub mod email;
 pub mod integration;
+pub mod interface;
 pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
+pub mod thread;
 pub mod user_event;
-pub mod web_crawler;
+pub mod user_group;
+pub mod web_documents;
 pub mod worker;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
+use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
+use async_openai::{
+    error::OpenAIError,
+    types::{
+        ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
+        CreateChatCompletionRequestArgs,
+    },
+};
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
-    User,
+    UserSecured,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
+use context::{ContextInfo, ContextService};
+use futures::StreamExt;
+use interface::UserValue;
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
-    Object, RootNode, ScalarValue, Value, ID,
+    graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLEnum, GraphQLObject,
+    IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
-use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use tracing::error;
+use repository::RepositoryGrepOutput;
+use tabby_common::{
+    api::{code::CodeSearch, event::EventLogger},
+    config::CompletionConfig,
+};
+use tabby_inference::{
+    ChatCompletionStream, CompletionOptionsBuilder, CompletionStream, Embedding as EmbeddingService,
+};
+use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
+use tracing::{error, warn};
+use user_group::{
+    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
+};
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
 
@@ -40,24 +67,28 @@ use self::{
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{
-        CreateIntegrationInput, FileEntrySearchResult, GrepFile, ProvidedRepository, Repository,
+        CreateIntegrationInput, FileEntrySearchResult, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, UpdateIntegrationInput,
     },
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
     user_event::{UserEvent, UserEventService},
-    web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
+    web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
 };
 use crate::{
     env,
     juniper::relay::{self, query_async, Connection},
+    web_documents::{PresetWebDocument, SetPresetDocumentActiveInput},
 };
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
     fn worker(&self) -> Arc<dyn WorkerService>;
     fn code(&self) -> Arc<dyn CodeSearch>;
+    fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>>;
+    fn completion(&self) -> Option<Arc<dyn CompletionStream>>;
+    fn embedding(&self) -> Arc<dyn EmbeddingService>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
@@ -67,7 +98,11 @@ pub trait ServiceLocator: Send + Sync {
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
-    fn web_crawler(&self) -> Arc<dyn WebCrawlerService>;
+    fn web_documents(&self) -> Arc<dyn WebDocumentService>;
+    fn thread(&self) -> Arc<dyn ThreadService>;
+    fn context(&self) -> Arc<dyn ContextService>;
+    fn user_group(&self) -> Arc<dyn UserGroupService>;
+    fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
 }
 
 pub struct Context {
@@ -87,6 +122,9 @@ pub enum CoreError {
 
     #[error("{0}")]
     Forbidden(&'static str),
+
+    #[error("{0}")]
+    NotFound(&'static str),
 
     #[error("Invalid ID")]
     InvalidID,
@@ -111,7 +149,38 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
             Self::Unauthorized(msg) => {
                 FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
             }
+            Self::NotFound(msg) => FieldError::new(msg, graphql_value!({"code": "NOT_FOUND"})),
             Self::InvalidInput(errors) => from_validation_errors(errors),
+            _ => self.into(),
+        }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum TestModelConnectionError {
+    #[error("{0}")]
+    FailedToConnect(String),
+
+    #[error("Model backend is not enabled")]
+    NotEnabled,
+
+    #[error("{0}")]
+    Other(#[from] CoreError),
+}
+
+impl From<OpenAIError> for TestModelConnectionError {
+    fn from(err: OpenAIError) -> Self {
+        match err {
+            OpenAIError::ApiError(e) => Self::FailedToConnect(e.message),
+            _ => Self::FailedToConnect(err.to_string()),
+        }
+    }
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for TestModelConnectionError {
+    fn into_field_error(self) -> FieldError<S> {
+        match self {
+            TestModelConnectionError::Other(err) => err.into_field_error(),
             _ => self.into(),
         }
     }
@@ -132,8 +201,24 @@ async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     Ok(())
 }
 
-async fn check_user(ctx: &Context) -> Result<User, CoreError> {
+async fn check_user(ctx: &Context) -> Result<UserSecured, CoreError> {
+    check_user_and_auth_token(ctx, false).await
+}
+
+async fn check_user_allow_auth_token(ctx: &Context) -> Result<UserSecured, CoreError> {
+    check_user_and_auth_token(ctx, true).await
+}
+
+async fn check_user_and_auth_token(
+    ctx: &Context,
+    allow_auth_token: bool,
+) -> Result<UserSecured, CoreError> {
     let claims = check_claims(ctx)?;
+    if !allow_auth_token && claims.is_generated_from_auth_token {
+        return Err(CoreError::Forbidden(
+            "Invoking this API with an auth token is not allowed",
+        ));
+    }
     let user = ctx.locator.auth().get_user(&claims.sub).await?;
     Ok(user)
 }
@@ -150,6 +235,19 @@ async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<()
     license.ensure_valid_license()
 }
 
+#[derive(GraphQLEnum)]
+enum ModelHealthBackend {
+    Chat,
+    Completion,
+    Embedding,
+}
+
+#[derive(GraphQLObject, Debug, Clone)]
+struct ModelBackendHealthInfo {
+    /// Latency in milliseconds.
+    latency_ms: i32,
+}
+
 #[derive(Default)]
 pub struct Query;
 
@@ -160,19 +258,19 @@ impl Query {
         ctx.locator.worker().read_registration_token().await
     }
 
-    async fn me(ctx: &Context) -> Result<User> {
-        let claims = check_claims(ctx)?;
-        ctx.locator.auth().get_user(&claims.sub).await
+    async fn me(ctx: &Context) -> Result<UserSecured> {
+        check_user_allow_auth_token(ctx).await
     }
 
+    /// List users, accessible for all login users.
     async fn users(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<User>> {
-        check_admin(ctx).await?;
+    ) -> Result<Connection<UserValue>> {
+        check_user(ctx).await?;
         relay::query_async(
             after,
             before,
@@ -183,6 +281,7 @@ impl Query {
                     .auth()
                     .list_users(after, before, first, last)
                     .await
+                    .map(|users| users.into_iter().map(UserValue::UserSecured).collect())
             },
         )
         .await
@@ -288,10 +387,10 @@ impl Query {
         rev: Option<String>,
         pattern: String,
     ) -> Result<Vec<FileEntrySearchResult>> {
-        check_claims(ctx)?;
+        let user = check_user(ctx).await?;
         ctx.locator
             .repository()
-            .search_files(&kind, &id, rev.as_deref(), &pattern, 40)
+            .search_files(&user.policy, &kind, &id, rev.as_deref(), &pattern, 40)
             .await
     }
 
@@ -313,12 +412,18 @@ impl Query {
         id: ID,
         rev: Option<String>,
         query: String,
-    ) -> Result<Vec<GrepFile>> {
-        check_claims(ctx)?;
-        ctx.locator
+    ) -> Result<RepositoryGrepOutput> {
+        let user = check_user(ctx).await?;
+
+        let start_time = chrono::offset::Utc::now();
+        let files = ctx
+            .locator
             .repository()
-            .grep(&kind, &id, rev.as_deref(), &query, 40)
-            .await
+            .grep(&user.policy, &kind, &id, rev.as_deref(), &query, 40)
+            .await?;
+        let end_time = chrono::offset::Utc::now();
+        let elapsed_ms = (end_time - start_time).num_milliseconds() as i32;
+        Ok(RepositoryGrepOutput { files, elapsed_ms })
     }
 
     async fn oauth_credential(
@@ -363,7 +468,8 @@ impl Query {
         users: Option<Vec<ID>>,
     ) -> Result<Vec<CompletionStats>> {
         let users = users.unwrap_or_default();
-        check_analytic_access(ctx, &users).await?;
+        let user = check_user(ctx).await?;
+        user.policy.check_read_analytic(&users)?;
         ctx.locator.analytic().daily_stats_in_past_year(users).await
     }
 
@@ -375,7 +481,8 @@ impl Query {
         languages: Option<Vec<analytic::Language>>,
     ) -> Result<Vec<CompletionStats>> {
         let users = users.unwrap_or_default();
-        check_analytic_access(ctx, &users).await?;
+        let user = check_user(ctx).await?;
+        user.policy.check_read_analytic(&users)?;
         ctx.locator
             .analytic()
             .daily_stats(start, end, users, languages.unwrap_or_default())
@@ -426,9 +533,17 @@ impl Query {
     }
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
-        check_user(ctx).await?;
+        let user = check_user(ctx).await?;
 
-        ctx.locator.repository().repository_list().await
+        ctx.locator
+            .repository()
+            .repository_list(Some(&user.policy))
+            .await
+    }
+
+    async fn context_info(ctx: &Context) -> Result<ContextInfo> {
+        let user = check_user(ctx).await?;
+        ctx.locator.context().read(Some(&user.policy)).await
     }
 
     async fn integrations(
@@ -440,6 +555,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<Integration>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -465,6 +581,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<ProvidedRepository>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -481,13 +598,68 @@ impl Query {
         .await
     }
 
-    async fn web_crawler_urls(
+    async fn threads(
         ctx: &Context,
+        ids: Option<Vec<ID>>,
+        is_ephemeral: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<WebCrawlerUrl>> {
+    ) -> Result<Connection<thread::Thread>> {
+        check_user(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .thread()
+                    .list(ids.as_deref(), is_ephemeral, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    /// Read thread messages by thread ID.
+    ///
+    /// Thread is public within an instance, so no need to check for ownership.
+    async fn thread_messages(
+        ctx: &Context,
+        thread_id: ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<thread::Message>> {
+        check_user(ctx).await?;
+
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .thread()
+                    .list_thread_messages(&thread_id, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn custom_web_documents(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<CustomWebDocument>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -495,12 +667,129 @@ impl Query {
             last,
             |after, before, first, last| async move {
                 ctx.locator
-                    .web_crawler()
-                    .list_web_crawler_urls(after, before, first, last)
+                    .web_documents()
+                    .list_custom_web_documents(ids, after, before, first, last)
                     .await
             },
         )
         .await
+    }
+    async fn preset_web_documents(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+        is_active: Option<bool>,
+    ) -> Result<Connection<PresetWebDocument>> {
+        check_admin(ctx).await?;
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_documents()
+                    .list_preset_web_documents(ids, after, before, first, last, is_active)
+                    .await
+            },
+        )
+        .await
+    }
+
+    /// List user groups.
+    async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
+        check_user(ctx).await?;
+        ctx.locator.user_group().list().await
+    }
+
+    async fn source_id_access_policies(
+        ctx: &Context,
+        source_id: String,
+    ) -> Result<SourceIdAccessPolicy> {
+        check_admin(ctx).await?;
+        let read = ctx
+            .locator
+            .access_policy()
+            .list_source_id_read_access(&source_id)
+            .await?;
+
+        Ok(SourceIdAccessPolicy { source_id, read })
+    }
+
+    async fn test_model_connection(
+        ctx: &Context,
+        backend: ModelHealthBackend,
+    ) -> Result<ModelBackendHealthInfo, TestModelConnectionError> {
+        check_admin(ctx).await?;
+
+        // count request time in milliseconds
+        let start = Instant::now();
+
+        match backend {
+            ModelHealthBackend::Completion => {
+                if let Some(completion) = ctx.locator.completion() {
+                    let config = CompletionConfig::default();
+                    let options = CompletionOptionsBuilder::default()
+                        .max_decoding_tokens(config.max_decoding_tokens as i32)
+                        .max_input_length(config.max_input_length)
+                        .sampling_temperature(0.1)
+                        .seed(0)
+                        .build()
+                        .expect("Failed to build completion options");
+
+                    let (first, _) = completion
+                        .generate("def fib(n):\n", options)
+                        .await
+                        .into_future()
+                        .await;
+
+                    if first.is_some() {
+                        return Ok(ModelBackendHealthInfo {
+                            latency_ms: start.elapsed().as_millis() as i32,
+                        });
+                    }
+
+                    Err(TestModelConnectionError::FailedToConnect(
+                        "Failed to connect to the completion model".into(),
+                    ))
+                } else {
+                    Err(TestModelConnectionError::NotEnabled)
+                }
+            }
+            ModelHealthBackend::Chat => {
+                if let Some(chat) = ctx.locator.chat() {
+                    let request = CreateChatCompletionRequestArgs::default()
+                        .messages(vec![ChatCompletionRequestMessage::User(
+                            ChatCompletionRequestUserMessageArgs::default()
+                                .content("Hello, please reply in short")
+                                .build()
+                                .expect("Failed to build chat completion message"),
+                        )])
+                        .build()
+                        .expect("Failed to build chat completion request");
+                    match chat.chat(request).await {
+                        Ok(_) => Ok(ModelBackendHealthInfo {
+                            latency_ms: start.elapsed().as_millis() as i32,
+                        }),
+                        Err(e) => Err(e.into()),
+                    }
+                } else {
+                    Err(TestModelConnectionError::NotEnabled)
+                }
+            }
+            ModelHealthBackend::Embedding => {
+                let embedding = ctx.locator.embedding();
+                match embedding.embed("hello Tabby").await {
+                    Ok(_) => Ok(ModelBackendHealthInfo {
+                        latency_ms: start.elapsed().as_millis() as i32,
+                    }),
+                    Err(e) => Err(TestModelConnectionError::FailedToConnect(e.to_string())),
+                }
+            }
+        }
     }
 }
 
@@ -529,6 +818,14 @@ impl Mutation {
     ) -> Result<Invitation> {
         input.validate()?;
         ctx.locator.auth().request_invitation_email(input).await
+    }
+
+    async fn generate_reset_password_url(ctx: &Context, user_id: ID) -> Result<String> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .auth()
+            .generate_reset_password_url(&user_id)
+            .await
     }
 
     async fn request_password_reset_email(
@@ -784,6 +1081,7 @@ impl Mutation {
     }
 
     async fn create_integration(ctx: &Context, input: CreateIntegrationInput) -> Result<ID> {
+        check_admin(ctx).await?;
         input.validate()?;
         let id = ctx
             .locator
@@ -799,6 +1097,7 @@ impl Mutation {
     }
 
     async fn update_integration(ctx: &Context, input: UpdateIntegrationInput) -> Result<bool> {
+        check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
             .integration()
@@ -814,6 +1113,7 @@ impl Mutation {
     }
 
     async fn delete_integration(ctx: &Context, id: ID, kind: IntegrationKind) -> Result<bool> {
+        check_admin(ctx).await?;
         ctx.locator
             .integration()
             .delete_integration(id, kind)
@@ -826,6 +1126,7 @@ impl Mutation {
         id: ID,
         active: bool,
     ) -> Result<bool> {
+        check_admin(ctx).await?;
         ctx.locator
             .repository()
             .third_party()
@@ -840,59 +1141,213 @@ impl Mutation {
         ctx.locator.job().trigger(command).await
     }
 
-    async fn create_web_crawler_url(ctx: &Context, input: CreateWebCrawlerUrlInput) -> Result<ID> {
+    /// Delete pair of user message and bot response in a thread.
+    async fn delete_thread_message_pair(
+        ctx: &Context,
+        thread_id: ID,
+        user_message_id: ID,
+        assistant_message_id: ID,
+    ) -> Result<bool> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        let svc = ctx.locator.thread();
+        let Some(thread) = svc.get(&thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
+
+        user.policy.check_delete_thread_messages(&thread.user_id)?;
+
+        ctx.locator
+            .thread()
+            .delete_thread_message_pair(&thread_id, &user_message_id, &assistant_message_id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn delete_thread(ctx: &Context, id: ID) -> Result<bool> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        let svc = ctx.locator.thread();
+        let Some(thread) = svc.get(&id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
+
+        user.policy.check_delete_thread(&thread.user_id)?;
+
+        ctx.locator.thread().delete(&id).await?;
+        Ok(true)
+    }
+
+    /// Turn on persisted status for a thread.
+    async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        let svc = ctx.locator.thread();
+        let Some(thread) = svc.get(&thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
+
+        user.policy
+            .check_update_thread_persistence(&thread.user_id)?;
+
+        ctx.locator.thread().set_persisted(&thread_id).await?;
+        Ok(true)
+    }
+
+    async fn update_thread_message(
+        ctx: &Context,
+        input: thread::UpdateMessageInput,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        input.validate()?;
+
+        let svc = ctx.locator.thread();
+        let Some(thread) = svc.get(&input.thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
+
+        user.policy.check_update_thread_message(&thread.user_id)?;
+
+        svc.update_thread_message(&input).await?;
+        Ok(true)
+    }
+
+    async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
+        check_admin(ctx).await?;
         input.validate()?;
         let id = ctx
             .locator
-            .web_crawler()
-            .create_web_crawler_url(input.url)
+            .web_documents()
+            .create_custom_web_document(input.name, input.url)
             .await?;
         Ok(id)
     }
 
-    async fn delete_web_crawler_url(ctx: &Context, id: ID) -> Result<bool> {
-        ctx.locator.web_crawler().delete_web_crawler_url(id).await?;
+    async fn delete_custom_document(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .web_documents()
+            .delete_custom_web_document(id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn set_preset_document_active(
+        ctx: &Context,
+        input: SetPresetDocumentActiveInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .web_documents()
+            .set_preset_web_documents_active(input.id, input.active)
+            .await?;
+        Ok(true)
+    }
+
+    async fn create_user_group(ctx: &Context, input: CreateUserGroupInput) -> Result<ID> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        let id = ctx.locator.user_group().create(&input).await?;
+        Ok(id)
+    }
+
+    async fn delete_user_group(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator.user_group().delete(&id).await?;
+        Ok(true)
+    }
+
+    async fn upsert_user_group_membership(
+        ctx: &Context,
+        input: UpsertUserGroupMembershipInput,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        user.policy
+            .check_upsert_user_group_membership(&input)
+            .await?;
+
+        input.validate()?;
+        ctx.locator.user_group().upsert_membership(&input).await?;
+        Ok(true)
+    }
+
+    async fn delete_user_group_membership(
+        ctx: &Context,
+        user_group_id: ID,
+        user_id: ID,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        user.policy
+            .check_delete_user_group_membership(&user_group_id, &user_id)
+            .await?;
+
+        ctx.locator
+            .user_group()
+            .delete_membership(&user_group_id, &user_id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn grant_source_id_read_access(
+        ctx: &Context,
+        source_id: String,
+        user_group_id: ID,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .access_policy()
+            .grant_source_id_read_access(&source_id, &user_group_id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn revoke_source_id_read_access(
+        ctx: &Context,
+        source_id: String,
+        user_group_id: ID,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .access_policy()
+            .revoke_source_id_read_access(&source_id, &user_group_id)
+            .await?;
         Ok(true)
     }
 }
 
-async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreError> {
-    let user = check_user(ctx).await?;
-    if users.is_empty() && !user.is_admin {
-        return Err(CoreError::Forbidden(
-            "You must be admin to read other users' data",
-        ));
-    }
+fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
+    let mut errors: Vec<Value<S>> = vec![];
 
-    if !user.is_admin {
-        for id in users {
-            if user.id != *id {
-                return Err(CoreError::Forbidden(
-                    "You must be admin to read other users' data",
-                ));
+    error.errors().iter().for_each(|(field, kind)| match kind {
+        validator::ValidationErrorsKind::Struct(e) => {
+            for (_, error) in e.0.iter() {
+                if let validator::ValidationErrorsKind::Field(field_errors) = error {
+                    for error in field_errors {
+                        let mut obj = Object::with_capacity(2);
+                        obj.add_field("path", Value::scalar(field.to_string()));
+                        obj.add_field(
+                            "message",
+                            Value::scalar(error.message.clone().unwrap_or_default().to_string()),
+                        );
+                        errors.push(obj.into());
+                    }
+                }
             }
         }
-    }
+        validator::ValidationErrorsKind::List(_) => {
+            warn!("List errors are not handled");
+        }
+        validator::ValidationErrorsKind::Field(e) => {
+            for error in e {
+                let mut obj = Object::with_capacity(2);
+                obj.add_field("path", Value::scalar(error.code.to_string()));
+                obj.add_field(
+                    "message",
+                    Value::scalar(error.message.clone().unwrap_or_default().to_string()),
+                );
+                errors.push(obj.into());
+            }
+        }
+    });
 
-    Ok(())
-}
-
-fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
-    let errors = error
-        .field_errors()
-        .into_iter()
-        .flat_map(|(_, errs)| errs)
-        .cloned()
-        .map(|err| {
-            let mut obj = Object::with_capacity(2);
-            obj.add_field("path", Value::scalar(err.code.to_string()));
-            obj.add_field(
-                "message",
-                Value::scalar(err.message.unwrap_or_default().to_string()),
-            );
-            obj.into()
-        })
-        .collect::<Vec<_>>();
     let mut error = Object::with_capacity(1);
     error.add_field("errors", Value::list(errors));
 
@@ -902,8 +1357,69 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
     FieldError::new("Invalid input parameters", ext.into())
 }
 
-pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>;
+#[derive(Clone, Copy, Debug)]
+pub struct Subscription;
+
+#[graphql_subscription]
+impl Subscription {
+    async fn create_thread_and_run(
+        ctx: &Context,
+        input: CreateThreadAndRunInput,
+    ) -> Result<ThreadRunStream> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        input.validate()?;
+
+        let thread = ctx.locator.thread();
+
+        let thread_id = thread.create(&user.id, &input.thread).await?;
+
+        thread
+            .create_run(
+                &user.policy,
+                &thread_id,
+                &input.options,
+                input.thread.user_message.attachments.as_ref(),
+                true,
+                true,
+            )
+            .await
+    }
+
+    async fn create_thread_run(
+        ctx: &Context,
+        input: CreateThreadRunInput,
+    ) -> Result<ThreadRunStream> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        input.validate()?;
+
+        let svc = ctx.locator.thread();
+        let Some(thread) = svc.get(&input.thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
+
+        if thread.user_id != user.id {
+            return Err(CoreError::Forbidden(
+                "You must be the thread owner to create a run",
+            ));
+        }
+
+        svc.append_user_message(&input.thread_id, &input.additional_user_message)
+            .await?;
+
+        svc.create_run(
+            &user.policy,
+            &input.thread_id,
+            &input.options,
+            input.additional_user_message.attachments.as_ref(),
+            true,
+            false,
+        )
+        .await
+    }
+}
+
+pub type Schema = RootNode<'static, Query, Mutation, Subscription>;
 
 pub fn create_schema() -> Schema {
-    Schema::new(Query, Mutation, EmptySubscription::new())
+    Schema::new(Query, Mutation, Subscription)
 }

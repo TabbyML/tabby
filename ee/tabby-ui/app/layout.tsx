@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/sonner'
 
 import '@/app/globals.css'
 
-import { fontMono, fontSans } from '@/lib/fonts'
+import { fontMono, fontMontserrat, fontSans } from '@/lib/fonts'
 import { cn } from '@/lib/utils'
 import { Providers } from '@/components/providers'
 import { TailwindIndicator } from '@/components/tailwind-indicator'
@@ -36,7 +36,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
         className={cn(
           'bg-transparent font-sans antialiased',
           fontSans.variable,
-          fontMono.variable
+          fontMono.variable,
+          fontMontserrat.variable
         )}
       >
         <Providers attribute="class" defaultTheme="system" enableSystem>

@@ -2,6 +2,7 @@ import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
 import { cacheExchange } from '@urql/exchange-graphcache'
 import { relayPagination } from '@urql/exchange-graphcache/extras'
+import { createClient as createWSClient } from 'graphql-ws'
 import { jwtDecode } from 'jwt-decode'
 import { isNil } from 'lodash-es'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
@@ -11,18 +12,37 @@ import {
   CombinedError,
   errorExchange,
   fetchExchange,
+  OperationContext,
   OperationResult,
+  subscriptionExchange,
   useMutation as useUrqlMutation
 } from 'urql'
 
 import {
+  DeleteUserGroupMembershipMutationVariables,
   GitRepositoriesQueryVariables,
+  ListIntegrationsQueryVariables,
   ListInvitationsQueryVariables,
-  WebCrawlerUrlsQueryVariables
+  ListThreadsQueryVariables,
+  SourceIdAccessPoliciesQueryVariables,
+  UpsertUserGroupMembershipInput
 } from '../gql/generates/graphql'
+import { ExtendedCombinedError } from '../types'
 import { refreshTokenMutation } from './auth'
-import { listInvitations, listRepositories, listWebCrawlerUrl } from './query'
-import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
+import {
+  listIntegrations,
+  listInvitations,
+  listRepositories,
+  listSourceIdAccessPolicies,
+  listThreads,
+  userGroupsQuery
+} from './query'
+import {
+  getAuthToken,
+  getFetcherOptions,
+  isTokenExpired,
+  tokenManager
+} from './token-management'
 
 interface ValidationError {
   path: string
@@ -46,11 +66,14 @@ function useMutation<TResult, TVariables extends AnyVariables>(
     ? makeFormErrorHandler(options.form)
     : undefined
 
-  const fn = async (variables?: TVariables) => {
+  const fn = async (
+    variables?: TVariables & { extraParams?: any },
+    context?: Partial<OperationContext>
+  ) => {
     let response: OperationResult<TResult, AnyVariables> | undefined
 
     try {
-      response = await executeMutation(variables)
+      response = await executeMutation(variables, context)
       if (response?.error) {
         onFormError && onFormError(response.error)
         options?.onError && options.onError(response.error)
@@ -68,8 +91,10 @@ function useMutation<TResult, TVariables extends AnyVariables>(
   return fn
 }
 
-function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
-  return (err: CombinedError) => {
+export function makeFormErrorHandler<T extends FieldValues>(
+  form: UseFormReturn<T>
+) {
+  return (err: ExtendedCombinedError) => {
     const { graphQLErrors = [] } = err
     for (const error of graphQLErrors) {
       if (error.extensions && error.extensions['validation-errors']) {
@@ -81,6 +106,8 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
         }
       } else if (error?.originalError) {
         form.setError('root', error.originalError)
+      } else if (error?.message) {
+        form.setError('root', { message: error.message })
       }
     }
   }
@@ -95,13 +122,26 @@ const client = new Client({
         CompletionStats: () => null,
         ServerInfo: () => null,
         RepositorySearch: () => null,
-        RepositoryList: () => null
+        RepositoryList: () => null,
+        RepositoryGrep: () => null,
+        GrepLine: () => null,
+        GrepFile: () => null,
+        GrepTextOrBase64: () => null,
+        GrepSubMatch: () => null,
+        GitReference: () => null,
+        MessageAttachment: () => null,
+        MessageAttachmentCode: () => null,
+        MessageAttachmentDoc: () => null,
+        NetworkSetting: () => null,
+        ContextInfo: () => null
       },
       resolvers: {
         Query: {
           invitations: relayPagination(),
           gitRepositories: relayPagination(),
-          webCrawlerUrls: relayPagination()
+          webCrawlerUrls: relayPagination(),
+          integrations: relayPagination(),
+          threads: relayPagination()
         }
       },
       updates: {
@@ -155,21 +195,22 @@ const client = new Client({
                 })
             }
           },
-          deleteWebCrawlerUrl(result, args, cache, info) {
-            if (result.deleteWebCrawlerUrl) {
+          deleteIntegration(result, args, cache, info) {
+            if (result.deleteIntegration) {
               cache
                 .inspectFields('Query')
-                .filter(field => field.fieldName === 'webCrawlerUrls')
+                .filter(field => field.fieldName === 'integrations')
                 .forEach(field => {
                   cache.updateQuery(
                     {
-                      query: listWebCrawlerUrl,
-                      variables: field.arguments as WebCrawlerUrlsQueryVariables
+                      query: listIntegrations,
+                      variables:
+                        field.arguments as ListIntegrationsQueryVariables
                     },
                     data => {
-                      if (data?.webCrawlerUrls?.edges) {
-                        data.webCrawlerUrls.edges =
-                          data.webCrawlerUrls.edges.filter(
+                      if (data?.integrations) {
+                        data.integrations.edges =
+                          data.integrations.edges.filter(
                             e => e.node.id !== args.id
                           )
                       }
@@ -178,7 +219,223 @@ const client = new Client({
                   )
                 })
             }
+          },
+          createIntegration(result, args, cache) {
+            const key = 'Query'
+            cache
+              .inspectFields(key)
+              .filter(field => {
+                return (
+                  field.fieldName === 'integrations' &&
+                  !!field.arguments?.kind &&
+                  // @ts-ignore
+                  field.arguments?.kind === args?.input?.kind
+                )
+              })
+              .forEach(field => {
+                cache.invalidate(key, field.fieldName, field.arguments)
+              })
+          },
+          upsertUserGroupMembership(result, args, cache, info) {
+            const { userGroupId, userId, isGroupAdmin } =
+              args.input as UpsertUserGroupMembershipInput
+            const { user, isInsert } = (info.variables.extraParams || {}) as any
+            if (result.upsertUserGroupMembership) {
+              cache.updateQuery({ query: userGroupsQuery }, data => {
+                if (data?.userGroups) {
+                  data.userGroups = data.userGroups.map(group => {
+                    if (group.id !== userGroupId) return group
+                    let newMembers = [...group.members]
+                    if (isInsert) {
+                      const now = new Date().toISOString()
+                      newMembers.push({
+                        user: {
+                          ...user,
+                          __typename: 'UserSecured'
+                        },
+                        isGroupAdmin,
+                        createdAt: now,
+                        updatedAt: now,
+                        __typename: 'UserGroupMembership'
+                      })
+                    } else {
+                      newMembers = newMembers.map(m => {
+                        if (m.user.id !== userId) return m
+                        return {
+                          ...m,
+                          isGroupAdmin
+                        }
+                      })
+                    }
+                    return {
+                      ...group,
+                      members: newMembers
+                    }
+                  })
+                }
+
+                return data
+              })
+            }
+          },
+          deleteUserGroupMembership(result, args, cache, info) {
+            const { userGroupId, userId } =
+              args as DeleteUserGroupMembershipMutationVariables
+            if (result.deleteUserGroupMembership) {
+              cache.updateQuery({ query: userGroupsQuery }, data => {
+                if (data?.userGroups) {
+                  data.userGroups = data.userGroups.map(group => {
+                    if (group.id !== userGroupId) return group
+                    let newMembers = [...group.members].filter(
+                      o => o.user.id !== userId
+                    )
+                    return {
+                      ...group,
+                      members: newMembers
+                    }
+                  })
+                }
+                return data
+              })
+            }
+          },
+          grantSourceIdReadAccess(
+            result,
+            args: { sourceId: string; userGroupId: string },
+            cache,
+            info
+          ) {
+            if (result.grantSourceIdReadAccess) {
+              const { sourceId } = args
+              cache
+                .inspectFields('Query')
+                .filter(
+                  field =>
+                    field.fieldName === 'sourceIdAccessPolicies' &&
+                    field.arguments?.sourceId === sourceId
+                )
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listSourceIdAccessPolicies,
+                      variables:
+                        field.arguments as SourceIdAccessPoliciesQueryVariables
+                    },
+                    data => {
+                      if (data?.sourceIdAccessPolicies?.read) {
+                        const { userGroupName } = (info.variables.extraParams ||
+                          {}) as any
+                        data.sourceIdAccessPolicies.read = [
+                          ...data.sourceIdAccessPolicies.read,
+                          {
+                            __typename: 'UserGroup',
+                            id: args.userGroupId,
+                            name: userGroupName
+                          }
+                        ]
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          revokeSourceIdReadAccess(
+            result,
+            args: { sourceId: string; userGroupId: string },
+            cache,
+            info
+          ) {
+            if (result.revokeSourceIdReadAccess) {
+              const { userGroupId, sourceId } = args
+              cache
+                .inspectFields('Query')
+                .filter(
+                  field =>
+                    field.fieldName === 'sourceIdAccessPolicies' &&
+                    field.arguments?.sourceId === sourceId
+                )
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listSourceIdAccessPolicies,
+                      variables:
+                        field.arguments as SourceIdAccessPoliciesQueryVariables
+                    },
+                    data => {
+                      if (
+                        data?.sourceIdAccessPolicies?.sourceId === sourceId &&
+                        data?.sourceIdAccessPolicies?.read
+                      ) {
+                        data.sourceIdAccessPolicies.read =
+                          data.sourceIdAccessPolicies.read.filter(
+                            o => o.id !== userGroupId
+                          )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          deleteThread(result, args, cache, info) {
+            if (result.deleteThread) {
+              cache
+                .inspectFields('Query')
+                // Update the cache within the thread-feeds only
+                .filter(
+                  field =>
+                    field.fieldName === 'threads' && !field.arguments?.ids
+                )
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listThreads,
+                      variables: field.arguments as ListThreadsQueryVariables
+                    },
+                    data => {
+                      if (data?.threads) {
+                        data.threads.edges = data.threads.edges.filter(
+                          e => e.node.id !== args.id
+                        )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          setThreadPersisted(result, args, cache, info) {
+            if (result.setThreadPersisted) {
+              const key = 'Query'
+              cache
+                .inspectFields(key)
+                .filter(field => {
+                  return (
+                    field.fieldName === 'threads' &&
+                    !field.arguments?.ids &&
+                    !!field.arguments?.before
+                  )
+                })
+                .forEach(field => {
+                  cache.invalidate(key, field.fieldName, field.arguments)
+                })
+            }
           }
+        }
+      },
+      optimistic: {
+        upsertUserGroupMembership() {
+          return true
+        },
+        deleteUserGroupMembership() {
+          return true
+        },
+        grantSourceIdReadAccess() {
+          return true
+        },
+        revokeSourceIdReadAccess() {
+          return true
         }
       }
     }),
@@ -191,12 +448,23 @@ const client = new Client({
         addAuthToOperation(operation) {
           // Sync tokens on every operation
           const authData = getAuthToken()
+          const fetcherOptions = getFetcherOptions()
           accessToken = authData?.accessToken
           refreshToken = authData?.refreshToken
-          if (!accessToken) return operation
-          return utils.appendHeaders(operation, {
-            Authorization: `Bearer ${accessToken}`
-          })
+
+          if (accessToken) {
+            return utils.appendHeaders(operation, {
+              Authorization: `Bearer ${accessToken}`
+            })
+          } else if (fetcherOptions) {
+            const headers = {
+              Authorization: `Bearer ${fetcherOptions.authorization}`,
+              ...fetcherOptions.headers
+            }
+            return utils.appendHeaders(operation, headers)
+          }
+
+          return operation
         },
         didAuthError(error, _operation) {
           const isUnauthorized = error.graphQLErrors.some(
@@ -211,6 +479,7 @@ const client = new Client({
         willAuthError(operation) {
           // Sync tokens on every operation
           const authData = getAuthToken()
+          const fetcherOptions = getFetcherOptions()
           accessToken = authData?.accessToken
           refreshToken = authData?.refreshToken
 
@@ -261,6 +530,8 @@ const client = new Client({
             } catch (e) {
               return true
             }
+          } else if (fetcherOptions) {
+            return !fetcherOptions?.authorization
           } else {
             tokenManager.clearAccessToken()
             return true
@@ -287,7 +558,30 @@ const client = new Client({
         }
       }
     }),
-    fetchExchange
+    fetchExchange,
+    subscriptionExchange({
+      forwardSubscription(request, operation) {
+        const authorization =
+          // @ts-ignore
+          operation.context.fetchOptions?.headers?.Authorization ?? ''
+        const protocol = window.location.protocol
+        const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:'
+        const host = window.location.host
+        const wsClient = createWSClient({
+          url: `${wsProtocol}//${host}/subscriptions`,
+          connectionParams: {
+            authorization
+          }
+        })
+        const input = { ...request, query: request.query || '' }
+        return {
+          subscribe(sink) {
+            const unsubscribe = wsClient.subscribe(input, sink)
+            return { unsubscribe }
+          }
+        }
+      }
+    })
   ]
 })
 

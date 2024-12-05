@@ -1,0 +1,10 @@
+---
+source: crates/tabby-index/src/code/index.rs
+expression: "format!(\"{:#?}\", rust_chunks2)"
+---
+[
+    "use std::future::Future;\n\nuse tokio::sync::RwLock;\n\n#[derive(Default)]\npub struct Cache<T> {\n    value: RwLock<Option<T>>,\n}",
+    "impl<T> Cache<T>",
+    "{\n    pub async fn new() -> Self {\n        Cache {\n            value: Default::default(),\n        }\n    }\n\n    pub async fn invalidate(&self) {\n        *self.value.write().await = None;\n    }",
+    "pub async fn get_or_refresh<F, E>(&self, refresh: impl Fn() -> F) -> Result<T, E>\n    where\n        T: Clone,\n        F: Future<Output = Result<T, E>>,\n    {\n        let value = self.value.read().await;\n        if let Some(value) = &*value {\n            Ok(value.clone())\n        } else {\n            drop(value);\n            let mut value = self.value.write().await;\n            let generated = refresh().await?;\n            *value = Some(generated.clone());\n            Ok(generated)\n        }\n    }\n}",
+]

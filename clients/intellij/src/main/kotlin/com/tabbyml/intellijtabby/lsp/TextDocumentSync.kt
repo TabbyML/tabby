@@ -6,8 +6,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiManager
 import com.tabbyml.intellijtabby.events.DocumentListener
+import com.tabbyml.intellijtabby.findPsiFile
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import org.eclipse.lsp4j.*
 
@@ -33,11 +33,11 @@ class TextDocumentSync(private val project: Project) : Disposable {
       }
 
       override fun documentClosed(document: Document, editor: Editor) {
-        buildDidCloseTextDocumentParams(editor).let { server.textDocumentFeature.didClose(it) }
+        buildDidCloseTextDocumentParams(editor)?.let { server.textDocumentFeature.didClose(it) }
       }
 
       override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
-        buildDidChangeTextDocumentParams(editor, event).let { server.textDocumentFeature.didChange(it) }
+        buildDidChangeTextDocumentParams(editor, event)?.let { server.textDocumentFeature.didChange(it) }
       }
     })
   }
@@ -48,24 +48,27 @@ class TextDocumentSync(private val project: Project) : Disposable {
 
   companion object {
     fun buildDidOpenTextDocumentParams(editor: Editor): DidOpenTextDocumentParams? {
-      val psiManager = editor.project?.let { PsiManager.getInstance(it) } ?: return null
+      val project = editor.project ?: return null
+      val virtualFile = editor.virtualFile ?: return null
       return DidOpenTextDocumentParams(
         TextDocumentItem(
-          editor.virtualFile.url,
-          editor.virtualFile.let { psiManager.findFileWithReadLock(it) }?.getLanguageId() ?: "plaintext",
+          virtualFile.url,
+          project.findPsiFile(virtualFile)?.getLanguageId() ?: "plaintext",
           editor.document.modificationStamp.toInt(),
           editor.document.text,
         )
       )
     }
 
-    fun buildDidCloseTextDocumentParams(editor: Editor): DidCloseTextDocumentParams {
+    fun buildDidCloseTextDocumentParams(editor: Editor): DidCloseTextDocumentParams? {
+      val virtualFile = editor.virtualFile ?: return null
       return DidCloseTextDocumentParams(
-        TextDocumentIdentifier(editor.virtualFile.url)
+        TextDocumentIdentifier(virtualFile.url)
       )
     }
 
-    fun buildDidChangeTextDocumentParams(editor: Editor, event: DocumentEvent): DidChangeTextDocumentParams {
+    fun buildDidChangeTextDocumentParams(editor: Editor, event: DocumentEvent): DidChangeTextDocumentParams? {
+      val virtualFile = editor.virtualFile ?: return null
       val oldLines = event.oldFragment.lines()
       val startPosition = positionInDocument(editor.document, event.offset)
       val endPosition = Position(
@@ -74,7 +77,7 @@ class TextDocumentSync(private val project: Project) : Disposable {
       )
       return DidChangeTextDocumentParams(
         VersionedTextDocumentIdentifier(
-          editor.virtualFile.url,
+          virtualFile.url,
           editor.document.modificationStamp.toInt(),
         ), listOf(
           TextDocumentContentChangeEvent(

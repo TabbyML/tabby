@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
+default-run = "tabby"
 
 [features]
 default = ["ee", "llama-cpp-server/binary"]
@@ -31,7 +32,7 @@ serde = { workspace = true }
 serdeconv = { workspace = true }
 serde_json = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "timeout"] }
-clap = { version = "4.3.0", features = ["derive"] }
+clap = { workspace = true, features = ["derive"] }
 lazy_static = { workspace = true }
 strum = { workspace = true }
 strfmt = "0.2.4"
@@ -51,11 +52,11 @@ thiserror.workspace = true
 chrono.workspace = true
 axum-prometheus = "0.6"
 uuid.workspace = true
-cached = { workspace = true, features = ["async"] }
-parse-git-url = "0.5.1"
 color-eyre = { version = "0.6.3" }
-derive_builder.workspace = true
 reqwest.workspace = true
+async-openai.workspace = true
+spinners = "4.1.1"
+regex.workspace = true
 
 [dependencies.openssl]
 optional = true

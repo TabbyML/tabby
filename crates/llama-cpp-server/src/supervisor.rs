@@ -1,8 +1,4 @@
-use std::{
-    env::{self, var},
-    net::TcpListener,
-    process::Stdio,
-};
+use std::{env::var, net::TcpListener, process::Stdio, time::Duration};
 
 use tokio::{io::AsyncBufReadExt, task::JoinHandle};
 use tracing::{debug, warn};
@@ -24,6 +20,8 @@ impl LlamaCppSupervisor {
         model_path: &str,
         parallelism: u8,
         chat_template: Option<String>,
+        enable_fast_attention: bool,
+        context_size: usize,
     ) -> LlamaCppSupervisor {
         let Some(binary_name) = find_binary_name() else {
             panic!("Failed to locate llama-server binary, please make sure you have llama-server binary locates in the same directory as the current executable.");
@@ -52,7 +50,7 @@ impl LlamaCppSupervisor {
                     .arg(parallelism.to_string())
                     .arg("--log-disable")
                     .arg("--ctx-size")
-                    .arg(env::var("LLAMA_CPP_N_CONTEXT_SIZE").unwrap_or("4096".into()))
+                    .arg(context_size.to_string())
                     .kill_on_drop(true)
                     .stderr(Stdio::piped())
                     .stdout(Stdio::null());
@@ -76,6 +74,12 @@ impl LlamaCppSupervisor {
                     command.arg("--chat-template").arg(chat_template);
                 }
 
+                if enable_fast_attention {
+                    command.arg("-fa");
+                };
+
+                let command_args = format!("{:?}", command);
+
                 let mut process = command.spawn().unwrap_or_else(|e| {
                     panic!(
                         "Failed to start llama-server <{}> with command {:?}: {}",
@@ -92,8 +96,8 @@ impl LlamaCppSupervisor {
 
                 if status_code != 0 {
                     warn!(
-                        "llama-server <{}> exited with status code {}",
-                        name, status_code
+                        "llama-server <{}> exited with status code {}, args: `{}`",
+                        name, status_code, command_args
                     );
                     let mut stderr = process
                         .stderr
@@ -120,9 +124,16 @@ impl LlamaCppSupervisor {
 
     pub async fn start(&self) {
         debug!("Waiting for llama-server <{}> to start...", self.name);
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder().no_proxy().build().unwrap();
         loop {
-            let Ok(resp) = client.get(api_endpoint(self.port) + "/health").send().await else {
+            let Ok(resp) = client
+                .get(api_endpoint(self.port) + "/health")
+                .timeout(Duration::from_secs(1))
+                .send()
+                .await
+            else {
+                debug!("llama-server <{}> not ready yet, retrying...", self.name);
+                tokio::time::sleep(Duration::from_secs(1)).await;
                 continue;
             };
 

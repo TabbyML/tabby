@@ -20,10 +20,10 @@ class ToggleInlineCompletionTriggerMode : AnAction() {
 
   override fun update(e: AnActionEvent) {
     if (settings.completionTriggerMode == SettingsState.TriggerMode.AUTOMATIC) {
-      e.presentation.text = "Switch to Manual Mode"
-      e.presentation.description = "Manual trigger inline completion suggestions on demand."
+      e.presentation.text = "Disable Auto Inline Completion"
+      e.presentation.description = "You can trigger inline completion manually."
     } else {
-      e.presentation.text = "Switch to Automatic Mode"
+      e.presentation.text = "Enable Auto Inline Completion"
       e.presentation.description = "Show inline completion suggestions automatically."
     }
   }

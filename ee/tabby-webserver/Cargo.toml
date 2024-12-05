@@ -20,7 +20,7 @@ futures.workspace = true
 hyper = { workspace = true, features = ["client"] }
 jsonwebtoken = "9.1.0"
 juniper.workspace = true
-juniper_axum = "0.1"
+juniper_axum = { version = "0.1", features = ["subscriptions"] }
 juniper_graphql_ws = "0.4"
 lazy_static.workspace = true
 lettre = { version = "0.11.3", features = ["tokio1", "tokio1-native-tls"] }
@@ -32,7 +32,7 @@ rust-embed = "8.0.0"
 serde.workspace = true
 serde_json.workspace = true
 tabby-common = { path = "../../crates/tabby-common" }
-tabby-scheduler = { path = "../../crates/tabby-scheduler" }
+tabby-index = { path = "../../crates/tabby-index" }
 tabby-inference = { path = "../../crates/tabby-inference" }
 tabby-schema = { path = "../../ee/tabby-schema" }
 tabby-db = { path = "../../ee/tabby-db" }
@@ -44,6 +44,7 @@ tracing.workspace = true
 url = { workspace = true }
 urlencoding = "2.1.3"
 tabby-git = { path = "../../crates/tabby-git" }
+tabby-crawler = { path = "../../crates/tabby-crawler" }
 octocrab = "0.38.0"
 fs_extra = "1.3.0"
 gitlab = "0.1700.1"
@@ -52,6 +53,9 @@ strum.workspace = true
 cron = "0.12.1"
 async-stream.workspace = true
 logkit.workspace = true
+async-openai.workspace = true
+ratelimit.workspace = true
+cached.workspace = true
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -60,3 +64,4 @@ tabby-db = { path = "../../ee/tabby-db", features = ["testutils"] }
 tabby-common = { path = "../../crates/tabby-common", features = ["testutils"] }
 serial_test = { workspace = true }
 temp_testdir = { workspace = true }
+insta = { workspace = true, features = ["yaml", "redactions"] }

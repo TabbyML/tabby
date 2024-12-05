@@ -67,6 +67,9 @@ jobs:
 
       - run: sudo bash ./ci/prepare_build_environment.sh
 
+      - name: Run doc tests
+        run: cargo test --doc
+
       - name: Run unit tests on community build
         run: cargo test --bin tabby --no-default-features
 

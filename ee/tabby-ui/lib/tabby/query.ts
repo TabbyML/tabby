@@ -45,6 +45,7 @@ export const listRepositories = graphql(/* GraphQL */ `
           id
           name
           gitUrl
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -94,7 +95,6 @@ export const listJobRuns = graphql(/* GraphQL */ `
           finishedAt
           exitCode
           stdout
-          stderr
         }
         cursor
       }
@@ -124,7 +124,7 @@ export const listJobs = graphql(/* GraphQL */ `
   }
 `)
 
-export const listUsers = graphql(/* GraphQL */ `
+export const listSecuredUsers = graphql(/* GraphQL */ `
   query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
     users(after: $after, before: $before, first: $first, last: $last) {
       edges {
@@ -240,6 +240,7 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
           displayName
           gitUrl
           active
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -264,28 +265,173 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
   }
 `)
 
-export const listWebCrawlerUrl = graphql(/* GraphQL */ `
-  query WebCrawlerUrls(
+export const repositoryListQuery = graphql(/* GraphQL */ `
+  query RepositoryList {
+    repositoryList {
+      id
+      name
+      kind
+      gitUrl
+      refs {
+        name
+        commit
+      }
+    }
+  }
+`)
+
+export const repositorySearch = graphql(/* GraphQL */ `
+  query RepositorySearch(
+    $kind: RepositoryKind!
+    $id: ID!
+    $rev: String
+    $pattern: String!
+  ) {
+    repositorySearch(kind: $kind, id: $id, rev: $rev, pattern: $pattern) {
+      type
+      path
+      indices
+    }
+  }
+`)
+
+export const contextInfoQuery = graphql(/* GraphQL */ `
+  query ContextInfo {
+    contextInfo {
+      sources {
+        id
+        sourceKind
+        sourceId
+        sourceName
+      }
+    }
+  }
+`)
+
+export const userGroupsQuery = graphql(/* GraphQL */ `
+  query UserGroups {
+    userGroups {
+      id
+      name
+      createdAt
+      updatedAt
+      members {
+        user {
+          id
+          email
+          name
+          createdAt
+        }
+        isGroupAdmin
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`)
+
+export const listSourceIdAccessPolicies = graphql(/* GraphQL */ `
+  query sourceIdAccessPolicies($sourceId: String!) {
+    sourceIdAccessPolicies(sourceId: $sourceId) {
+      sourceId
+      read {
+        id
+        name
+      }
+    }
+  }
+`)
+
+export const listThreads = graphql(/* GraphQL */ `
+  query ListThreads(
+    $ids: [ID!]
+    $isEphemeral: Boolean
     $after: String
     $before: String
     $first: Int
     $last: Int
   ) {
-    webCrawlerUrls(after: $after, before: $before, first: $first, last: $last) {
+    threads(
+      ids: $ids
+      isEphemeral: $isEphemeral
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
       edges {
         node {
-          url
           id
+          userId
           createdAt
-          jobInfo {
-            lastJobRun {
-              id
-              job
-              createdAt
-              finishedAt
-              exitCode
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listThreadMessages = graphql(/* GraphQL */ `
+  query ListThreadMessages(
+    $threadId: ID!
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    threadMessages(
+      threadId: $threadId
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          threadId
+          role
+          content
+          attachment {
+            code {
+              gitUrl
+              filepath
+              language
+              content
+              startLine
             }
-            command
+            clientCode {
+              filepath
+              content
+              startLine
+            }
+            doc {
+              __typename
+              ... on MessageAttachmentWebDoc {
+                title
+                link
+                content
+              }
+              ... on MessageAttachmentIssueDoc {
+                title
+                link
+                body
+                closed
+              }
+              ... on MessageAttachmentPullDoc {
+                title
+                link
+                body
+                merged
+              }
+            }
           }
         }
         cursor
@@ -297,5 +443,11 @@ export const listWebCrawlerUrl = graphql(/* GraphQL */ `
         endCursor
       }
     }
+  }
+`)
+
+export const setThreadPersistedMutation = graphql(/* GraphQL */ `
+  mutation SetThreadPersisted($threadId: ID!) {
+    setThreadPersisted(threadId: $threadId)
   }
 `)

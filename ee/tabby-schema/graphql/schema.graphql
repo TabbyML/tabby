@@ -1,12 +1,22 @@
 schema {
   query: Query
   mutation: Mutation
+  subscription: Subscription
 }
 
 enum AuthMethod {
   NONE
   PLAIN
   LOGIN
+}
+
+"Represents the kind of context source."
+enum ContextSourceKind {
+  GIT
+  GITHUB
+  GITLAB
+  DOC
+  WEB
 }
 
 enum Encryption {
@@ -63,6 +73,12 @@ enum LicenseType {
   ENTERPRISE
 }
 
+enum ModelHealthBackend {
+  CHAT
+  COMPLETION
+  EMBEDDING
+}
+
 enum OAuthProvider {
   GITHUB
   GOOGLE
@@ -75,6 +91,33 @@ enum RepositoryKind {
   GITLAB
   GITHUB_SELF_HOSTED
   GITLAB_SELF_HOSTED
+  GIT_CONFIG
+}
+
+enum Role {
+  USER
+  ASSISTANT
+}
+
+input CodeQueryInput {
+  filepath: String
+  language: String
+  content: String!
+  "git_url to be included in the code search." gitUrl: String
+  "source_ids to be included in the code search." sourceId: String
+}
+
+input CodeSearchParamsOverrideInput {
+  minEmbeddingScore: Float
+  minBm25Score: Float
+  minRrfScore: Float
+  numToReturn: Int
+  numToScore: Int
+}
+
+input CreateCustomDocumentInput {
+  name: String!
+  url: String!
 }
 
 input CreateIntegrationInput {
@@ -84,8 +127,34 @@ input CreateIntegrationInput {
   apiBase: String
 }
 
-input CreateWebCrawlerUrlInput {
-  url: String!
+input CreateMessageInput {
+  content: String!
+  attachments: MessageAttachmentInput
+}
+
+input CreateThreadAndRunInput {
+  thread: CreateThreadInput!
+  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false, modelName: null}
+}
+
+input CreateThreadInput {
+  userMessage: CreateMessageInput!
+}
+
+input CreateThreadRunInput {
+  threadId: ID!
+  additionalUserMessage: CreateMessageInput!
+  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false, modelName: null}
+}
+
+input CreateUserGroupInput {
+  "User group name, can only start with a lowercase letter, and contain characters, numbers, and `-` or `_`" name: String!
+}
+
+input DocQueryInput {
+  content: String!
+  "Whether to collect documents from public web." searchPublic: Boolean!
+  "source_ids to be included in the doc search." sourceIds: [String!]
 }
 
 input EmailSettingInput {
@@ -96,6 +165,16 @@ input EmailSettingInput {
   encryption: Encryption!
   authMethod: AuthMethod!
   smtpPassword: String
+}
+
+input MessageAttachmentCodeInput {
+  filepath: String
+  startLine: Int
+  content: String!
+}
+
+input MessageAttachmentInput {
+  code: [MessageAttachmentCodeInput!]!
 }
 
 input NetworkSettingInput {
@@ -127,6 +206,23 @@ input SecuritySettingInput {
   disableClientSideTelemetry: Boolean!
 }
 
+input SetPresetDocumentActiveInput {
+  id: ID!
+  active: Boolean!
+}
+
+input ThreadRunDebugOptionsInput {
+  codeSearchParamsOverride: CodeSearchParamsOverrideInput = null
+}
+
+input ThreadRunOptionsInput {
+  modelName: String = null
+  docQuery: DocQueryInput = null
+  codeQuery: CodeQueryInput = null
+  generateRelevantQuestions: Boolean! = false
+  debugOptions: ThreadRunDebugOptionsInput = null
+}
+
 input UpdateIntegrationInput {
   id: ID!
   displayName: String!
@@ -135,10 +231,45 @@ input UpdateIntegrationInput {
   kind: IntegrationKind!
 }
 
+input UpdateMessageInput {
+  id: ID!
+  threadId: ID!
+  content: String!
+}
+
 input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
   clientSecret: String
+}
+
+input UpsertUserGroupMembershipInput {
+  userGroupId: ID!
+  userId: ID!
+  isGroupAdmin: Boolean!
+}
+
+interface ContextSource implements ContextSourceId {
+  id: ID!
+  sourceId: String!
+  sourceKind: ContextSourceKind!
+  "Display name of the source, used to provide a human-readable name for user selection, such as in a dropdown menu."
+  sourceName: String!
+}
+
+interface ContextSourceId {
+  "Represents the source of the context, which is the value mapped to `source_id` in the index."
+  sourceId: String!
+}
+
+interface User {
+  id: ID!
+  email: String!
+  name: String!
+  createdAt: DateTime!
+  isAdmin: Boolean!
+  isOwner: Boolean!
+  active: Boolean!
 }
 
 """
@@ -164,6 +295,32 @@ type CompletionStats {
   completions: Int!
   views: Int!
   selects: Int!
+}
+
+type ContextInfo {
+  sources: [ContextSource!]!
+}
+
+type CustomDocumentConnection {
+  edges: [CustomDocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CustomDocumentEdge {
+  node: CustomWebDocument!
+  cursor: String!
+}
+
+type CustomWebDocument implements ContextSourceId & ContextSource {
+  url: String!
+  name: String!
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  jobInfo: JobInfo!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
 }
 
 type DiskUsage {
@@ -195,11 +352,17 @@ type FileEntrySearchResult {
   indices: [Int!]!
 }
 
-type GitRepository {
+type GitReference {
+  name: String!
+  commit: String!
+}
+
+type GitRepository implements ContextSourceId {
   id: ID!
+  sourceId: String!
   name: String!
   gitUrl: String!
-  refs: [String!]!
+  refs: [GitReference!]!
   jobInfo: JobInfo!
 }
 
@@ -283,7 +446,6 @@ type JobRun {
   finishedAt: DateTime
   exitCode: Int
   stdout: String!
-  stderr: String!
 }
 
 type JobRunConnection {
@@ -311,9 +473,92 @@ type LicenseInfo {
   expiresAt: DateTime
 }
 
+type Message {
+  id: ID!
+  threadId: ID!
+  role: Role!
+  content: String!
+  attachment: MessageAttachment!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type MessageAttachment {
+  code: [MessageAttachmentCode!]!
+  clientCode: [MessageAttachmentClientCode!]!
+  doc: [MessageAttachmentDoc!]!
+}
+
+type MessageAttachmentClientCode {
+  filepath: String
+  startLine: Int
+  content: String!
+}
+
+type MessageAttachmentCode {
+  gitUrl: String!
+  filepath: String!
+  language: String!
+  content: String!
+  startLine: Int!
+}
+
+type MessageAttachmentCodeScores {
+  rrf: Float!
+  bm25: Float!
+  embedding: Float!
+}
+
+type MessageAttachmentIssueDoc {
+  title: String!
+  link: String!
+  body: String!
+  closed: Boolean!
+}
+
+type MessageAttachmentPullDoc {
+  title: String!
+  link: String!
+  body: String!
+  patch: String!
+  merged: Boolean!
+}
+
+type MessageAttachmentWebDoc {
+  title: String!
+  link: String!
+  content: String!
+}
+
+type MessageCodeSearchHit {
+  code: MessageAttachmentCode!
+  scores: MessageAttachmentCodeScores!
+}
+
+type MessageConnection {
+  edges: [MessageEdge!]!
+  pageInfo: PageInfo!
+}
+
+type MessageDocSearchHit {
+  doc: MessageAttachmentDoc!
+  score: Float!
+}
+
+type MessageEdge {
+  node: Message!
+  cursor: String!
+}
+
+type ModelBackendHealthInfo {
+  "Latency in milliseconds."
+  latencyMs: Int!
+}
+
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
+  generateResetPasswordUrl(userId: ID!): String!
   requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
   passwordReset(input: PasswordResetInput!): Boolean!
   passwordChange(input: PasswordChangeInput!): Boolean!
@@ -347,8 +592,21 @@ type Mutation {
   updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   "Trigger a job run given its param string."
   triggerJobRun(command: String!): ID!
-  createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
-  deleteWebCrawlerUrl(id: ID!): Boolean!
+  "Delete pair of user message and bot response in a thread."
+  deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
+  deleteThread(id: ID!): Boolean!
+  "Turn on persisted status for a thread."
+  setThreadPersisted(threadId: ID!): Boolean!
+  updateThreadMessage(input: UpdateMessageInput!): Boolean!
+  createCustomDocument(input: CreateCustomDocumentInput!): ID!
+  deleteCustomDocument(id: ID!): Boolean!
+  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
+  createUserGroup(input: CreateUserGroupInput!): ID!
+  deleteUserGroup(id: ID!): Boolean!
+  upsertUserGroupMembership(input: UpsertUserGroupMembershipInput!): Boolean!
+  deleteUserGroupMembership(userGroupId: ID!, userId: ID!): Boolean!
+  grantSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
+  revokeSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
 }
 
 type NetworkSetting {
@@ -369,7 +627,30 @@ type PageInfo {
   endCursor: String
 }
 
-type ProvidedRepository {
+type PresetDocumentConnection {
+  edges: [PresetDocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PresetDocumentEdge {
+  node: PresetWebDocument!
+  cursor: String!
+}
+
+type PresetWebDocument implements ContextSourceId & ContextSource {
+  name: String!
+  id: ID!
+  "`updated_at` is only filled when the preset is active."
+  updatedAt: DateTime
+  "`job_info` is only filled when the preset is active."
+  jobInfo: JobInfo
+  isActive: Boolean!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
+}
+
+type ProvidedRepository implements ContextSourceId {
   id: ID!
   integrationId: ID!
   active: Boolean!
@@ -378,8 +659,9 @@ type ProvidedRepository {
   vendorId: String!
   createdAt: DateTime!
   updatedAt: DateTime!
-  refs: [String!]!
+  refs: [GitReference!]!
   jobInfo: JobInfo!
+  sourceId: String!
 }
 
 type ProvidedRepositoryConnection {
@@ -394,7 +676,8 @@ type ProvidedRepositoryEdge {
 
 type Query {
   registrationToken: String!
-  me: User!
+  me: UserSecured!
+  "List users, accessible for all login users."
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
@@ -419,7 +702,7 @@ type Query {
     * `f:schema -lang:rust fn`
     * `func_name lang:go`
   """
-  repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): [GrepFile!]!
+  repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): RepositoryGrepOutput!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
@@ -430,9 +713,22 @@ type Query {
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
+  contextInfo: ContextInfo!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
-  webCrawlerUrls(after: String, before: String, first: Int, last: Int): WebCrawlerUrlConnection!
+  threads(ids: [ID!], isEphemeral: Boolean, after: String, before: String, first: Int, last: Int): ThreadConnection!
+  """
+    Read thread messages by thread ID.
+
+    Thread is public within an instance, so no need to check for ownership.
+  """
+  threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
+  presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
+  "List user groups."
+  userGroups: [UserGroup!]!
+  sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
+  testModelConnection(backend: ModelHealthBackend!): ModelBackendHealthInfo!
 }
 
 type RefreshTokenResponse {
@@ -446,12 +742,15 @@ type RegisterResponse {
   refreshToken: String!
 }
 
-type Repository {
+type Repository implements ContextSourceId & ContextSource {
   id: ID!
+  sourceId: String!
+  sourceKind: ContextSourceKind!
+  sourceName: String!
   name: String!
   kind: RepositoryKind!
   gitUrl: String!
-  refs: [String!]!
+  refs: [GitReference!]!
 }
 
 type RepositoryConnection {
@@ -462,6 +761,12 @@ type RepositoryConnection {
 type RepositoryEdge {
   node: GitRepository!
   cursor: String!
+}
+
+type RepositoryGrepOutput {
+  files: [GrepFile!]!
+  "Elapsed time in milliseconds for grep search."
+  elapsedMs: Int!
 }
 
 type SecuritySetting {
@@ -477,21 +782,68 @@ type ServerInfo {
   isDemoMode: Boolean!
 }
 
+type SourceIdAccessPolicy {
+  sourceId: String!
+  read: [UserGroup!]!
+}
+
+type Subscription {
+  createThreadAndRun(input: CreateThreadAndRunInput!): ThreadRunItem!
+  createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
+}
+
+type Thread {
+  id: ID!
+  userId: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ThreadAssistantMessageAttachmentsCode {
+  hits: [MessageCodeSearchHit!]!
+}
+
+type ThreadAssistantMessageAttachmentsDoc {
+  hits: [MessageDocSearchHit!]!
+}
+
+type ThreadAssistantMessageCompleted {
+  id: ID!
+}
+
+type ThreadAssistantMessageContentDelta {
+  delta: String!
+}
+
+type ThreadAssistantMessageCreated {
+  id: ID!
+}
+
+type ThreadConnection {
+  edges: [ThreadEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ThreadCreated {
+  id: ID!
+}
+
+type ThreadEdge {
+  node: Thread!
+  cursor: String!
+}
+
+type ThreadRelevantQuestions {
+  questions: [String!]!
+}
+
+type ThreadUserMessageCreated {
+  id: ID!
+}
+
 type TokenAuthResponse {
   accessToken: String!
   refreshToken: String!
-}
-
-type User {
-  id: ID!
-  email: String!
-  name: String!
-  isAdmin: Boolean!
-  isOwner: Boolean!
-  authToken: String!
-  createdAt: DateTime!
-  active: Boolean!
-  isPasswordSet: Boolean!
 }
 
 type UserConnection {
@@ -522,19 +874,45 @@ type UserEventEdge {
   cursor: String!
 }
 
-type WebCrawlerUrl {
-  url: String!
+type UserGroup {
   id: ID!
+  name: String!
   createdAt: DateTime!
-  jobInfo: JobInfo!
+  updatedAt: DateTime!
+  members: [UserGroupMembership!]!
 }
 
-type WebCrawlerUrlConnection {
-  edges: [WebCrawlerUrlEdge!]!
-  pageInfo: PageInfo!
+type UserGroupMembership {
+  user: User!
+  isGroupAdmin: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-type WebCrawlerUrlEdge {
-  node: WebCrawlerUrl!
-  cursor: String!
+type UserSecured implements User {
+  id: ID!
+  email: String!
+  name: String!
+  createdAt: DateTime!
+  isAdmin: Boolean!
+  isOwner: Boolean!
+  active: Boolean!
+  authToken: String!
+  isPasswordSet: Boolean!
 }
+
+type WebContextSource implements ContextSourceId & ContextSource {
+  id: ID!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
+}
+
+union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc
+
+"""
+  Schema of thread run stream.
+
+  Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
+"""
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted

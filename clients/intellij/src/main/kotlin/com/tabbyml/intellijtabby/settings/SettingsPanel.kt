@@ -3,6 +3,7 @@ package com.tabbyml.intellijtabby.settings
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.keymap.impl.ui.KeymapPanel
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
@@ -15,9 +16,9 @@ import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.tabbyml.intellijtabby.lsp.ConnectionService
-import com.tabbyml.intellijtabby.lsp.protocol.IssueDetailParams
-import com.tabbyml.intellijtabby.lsp.protocol.IssueName
-import com.tabbyml.intellijtabby.lsp.protocol.Status
+import com.tabbyml.intellijtabby.lsp.protocol.StatusIgnoredIssuesEditParams
+import com.tabbyml.intellijtabby.lsp.protocol.StatusInfo
+import com.tabbyml.intellijtabby.lsp.protocol.StatusRequestParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,7 +30,8 @@ import javax.swing.JPanel
 
 class SettingsPanel(private val project: Project) {
   private val settings = service<SettingsService>()
-  private suspend fun getServer() = project.service<ConnectionService>().getServerAsync()
+  private val scope = CoroutineScope(Dispatchers.IO)
+  private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
 
   private val serverEndpointTextField = JBTextField()
   private val serverTokenPasswordField = JBPasswordField()
@@ -40,7 +42,6 @@ class SettingsPanel(private val project: Project) {
       val task = object : Task.Modal(
         project, parentComponent, "Check Connection", true
       ) {
-        private val scope = CoroutineScope(Dispatchers.IO)
         lateinit var job: Job
         override fun run(indicator: ProgressIndicator) {
           job = scope.launch {
@@ -51,17 +52,13 @@ class SettingsPanel(private val project: Project) {
             settings.notifyChanges(project)
 
             val server = getServer() ?: return@launch
-            val status = server.agentFeature.status().await()
-            when (status) {
-              Status.READY -> {
-                invokeLater(ModalityState.stateForComponent(parentComponent)) {
-                  Messages.showInfoMessage(
-                    parentComponent, "Successfully connected to the Tabby server.", "Check Connection Completed"
-                  )
-                }
+            val statusInfo = server.statusFeature.getStatus(StatusRequestParams(recheckConnection = true)).await()
+            when (statusInfo.status) {
+              StatusInfo.Status.CONNECTING -> {
+                // Do nothing
               }
 
-              Status.UNAUTHORIZED -> {
+              StatusInfo.Status.UNAUTHORIZED -> {
                 invokeLater(ModalityState.stateForComponent(parentComponent)) {
                   Messages.showErrorDialog(
                     parentComponent,
@@ -71,22 +68,24 @@ class SettingsPanel(private val project: Project) {
                 }
               }
 
+              StatusInfo.Status.DISCONNECTED -> {
+                invokeLater(ModalityState.stateForComponent(parentComponent)) {
+                  val errorMessage = statusInfo.helpMessage ?: "Unknown error."
+                  val messages = "<html>Failed to connect to the Tabby server:<br/>${errorMessage}</html>"
+                  Messages.showErrorDialog(parentComponent, messages, "Check Connection Failed")
+                }
+              }
+
               else -> {
-                val detail = server.agentFeature.getIssueDetail(
-                  IssueDetailParams(
-                    name = IssueName.CONNECTION_FAILED, helpMessageFormat = IssueDetailParams.HelpMessageFormat.HTML
+                invokeLater(ModalityState.stateForComponent(parentComponent)) {
+                  Messages.showInfoMessage(
+                    parentComponent, "Successfully connected to the Tabby server.", "Check Connection Completed"
                   )
-                ).await()
-                if (detail?.name == IssueName.CONNECTION_FAILED) {
-                  invokeLater(ModalityState.stateForComponent(parentComponent)) {
-                    val errorMessage = detail.helpMessage ?: "Unknown error."
-                    val messages = "<html>Failed to connect to the Tabby server:<br/>${errorMessage}</html>"
-                    Messages.showErrorDialog(parentComponent, messages, "Check Connection Failed")
-                  }
                 }
               }
             }
           }
+
           while (job.isActive) {
             indicator.checkCanceled()
             Thread.sleep(100)
@@ -97,6 +96,7 @@ class SettingsPanel(private val project: Project) {
           job.cancel()
         }
       }
+
       ProgressManager.getInstance().run(task)
     }
   }
@@ -180,10 +180,14 @@ class SettingsPanel(private val project: Project) {
 
   private val resetMutedNotificationsButton = JButton("Reset \"Don't Show Again\" Notifications").apply {
     addActionListener {
-      settings.notificationsMuted = mutableListOf()
-      settings.notifyChanges(project)
-      invokeLater(ModalityState.stateForComponent(this@SettingsPanel.mainPanel)) {
-        Messages.showInfoMessage("Reset \"Don't Show Again\" notifications successfully.", "Reset Notifications")
+      scope.launch {
+        val server = getServer() ?: return@launch
+        server.statusFeature.editIgnoredIssues(StatusIgnoredIssuesEditParams(operation = StatusIgnoredIssuesEditParams.Operation.REMOVE_ALL))
+          .thenAccept {
+            invokeLater(ModalityState.stateForComponent(this@SettingsPanel.mainPanel)) {
+              Messages.showInfoMessage("Reset \"Don't Show Again\" notifications successfully.", "Reset Notifications")
+            }
+          }
       }
     }
   }
@@ -191,16 +195,19 @@ class SettingsPanel(private val project: Project) {
     FormBuilder.createFormBuilder().addComponent(resetMutedNotificationsButton).panel
 
   val mainPanel: JPanel =
-    FormBuilder.createFormBuilder().addLabeledComponent("Server", serverEndpointPanel, 5, false).addSeparator(5)
-      .addLabeledComponent("Inline completion trigger", completionTriggerModePanel, 5, false).addSeparator(5)
-      .addLabeledComponent("Keymap", keymapStylePanel, 5, false).addSeparator(5)
+    FormBuilder.createFormBuilder().addLabeledComponent("Server", serverEndpointPanel, 5, false)
+      .addSeparator(5)
+      .addLabeledComponent("Inline completion trigger", completionTriggerModePanel, 5, false)
+      .addSeparator(5)
+      .addLabeledComponent("Keymap", keymapStylePanel, 5, false)
+      .addSeparator(5)
       .addLabeledComponent("<html>Node binary<br/>(Requires restart IDE)</html>", nodeBinaryPanel, 5, false)
-      .addSeparator(5).addLabeledComponent("Anonymous usage tracking", isAnonymousUsageTrackingPanel, 5, false).apply {
-        if (settings.notificationsMuted.isNotEmpty()) {
-          addSeparator(5)
-          addLabeledComponent("Notifications", resetMutedNotificationsPanel, 5, false)
-        }
-      }.addComponentFillVertically(JPanel(), 0).panel
+      .addSeparator(5)
+      .addLabeledComponent("Anonymous usage tracking", isAnonymousUsageTrackingPanel, 5, false)
+      .addSeparator(5)
+      .addLabeledComponent("Notifications", resetMutedNotificationsPanel, 5, false)
+      .addComponentFillVertically(JPanel(), 0)
+      .panel
 
   var serverEndpoint: String
     get() = serverEndpointTextField.text

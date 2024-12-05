@@ -1,6 +1,6 @@
 'use client'
 
-import React, { PropsWithChildren } from 'react'
+import React, { PropsWithChildren, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
@@ -8,12 +8,13 @@ import { ImperativePanelHandle } from 'react-resizable-panels'
 import useSWR from 'swr'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import { GitReference, RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
+import { repositoryListQuery } from '@/lib/tabby/query'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import {
@@ -21,19 +22,22 @@ import {
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
+import { BlobModeView } from './blob-mode-view'
 import { ChatSideBar } from './chat-side-bar'
+import { CodeSearchBar } from './code-search-bar'
+import { CodeSearchResultView } from './code-search-result-view'
 import { ErrorView } from './error-view'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
-import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
-import { RawFileView } from './raw-file-view'
-import { TextFileView } from './text-file-view'
+import { TreeModeView } from './tree-mode-view'
+import type { FileDisplayType, RepositoryRefKind } from './types'
 import {
   CodeBrowserError,
   generateEntryPath,
@@ -73,14 +77,30 @@ type TFileMapItem = {
 type TFileMap = Record<string, TFileMapItem>
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
-const repositoryListQuery = graphql(/* GraphQL */ `
-  query RepositoryList {
-    repositoryList {
-      id
-      name
-      kind
-      gitUrl
-      refs
+const repositoryGrepQuery = graphql(/* GraphQL */ `
+  query RepositoryGrep(
+    $id: ID!
+    $kind: RepositoryKind!
+    $rev: String
+    $query: String!
+  ) {
+    repositoryGrep(kind: $kind, id: $id, rev: $rev, query: $query) {
+      files {
+        path
+        lines {
+          line {
+            text
+            base64
+          }
+          byteOffset
+          lineNumber
+          subMatches {
+            bytesStart
+            bytesEnd
+          }
+        }
+      }
+      elapsedMs
     }
   }
 `)
@@ -92,6 +112,7 @@ type SourceCodeBrowserContextValue = {
     options?: {
       hash?: string
       replace?: boolean
+      plain?: boolean
     }
   ) => Promise<void>
   repoMap: Record<string, RepositoryItem>
@@ -112,11 +133,17 @@ type SourceCodeBrowserContextValue = {
   isChatEnabled: boolean | undefined
   activeRepo: RepositoryItem | undefined
   activeRepoRef:
-    | { kind?: 'branch' | 'tag'; name?: string; ref: string }
+    | {
+        kind?: 'branch' | 'tag' | 'commit'
+        name?: string
+        ref: GitReference | undefined
+      }
     | undefined
   isPathInitialized: boolean
   activeEntryInfo: ReturnType<typeof resolveRepositoryInfoFromPath>
   prevActivePath: React.MutableRefObject<string | undefined>
+  error: Error | undefined
+  setError: (e: Error | undefined) => void
 }
 
 const SourceCodeBrowserContext =
@@ -128,7 +155,8 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   children
 }) => {
   const pathname = usePathname()
-  const { updateUrlComponents } = useRouterStuff()
+  const { updateUrlComponents, searchParams } = useRouterStuff()
+  const redirectGitUrl = searchParams.get('redirect_git_url')?.toString()
   const [isPathInitialized, setIsPathInitialized] = React.useState(false)
   const [activePath, setActivePath] = React.useState<string | undefined>()
   const activeEntryInfo = React.useMemo(() => {
@@ -146,6 +174,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const [pendingEvent, setPendingEvent] = React.useState<
     QuickActionEventPayload | undefined
   >()
+  const [error, setError] = useState<Error | undefined>()
   const prevActivePath = React.useRef<string | undefined>()
 
   const updateActivePath: SourceCodeBrowserContextValue['updateActivePath'] =
@@ -163,7 +192,12 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         })
       } else {
         const setParams: Record<string, string> = {}
-        let delList = ['plain', 'redirect_filepath', 'redirect_git_url', 'line']
+        let delList = ['redirect_filepath', 'redirect_git_url', 'line']
+        if (options?.plain) {
+          setParams['plain'] = '1'
+        } else {
+          delList.push('plain')
+        }
 
         updateUrlComponents({
           pathname: `/files/${path}`,
@@ -213,12 +247,23 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
 
   const activeRepoRef = React.useMemo(() => {
     if (!activeEntryInfo || !activeRepo) return undefined
-    const rev = decodeURIComponent(activeEntryInfo?.rev ?? '')
-    const activeRepoRef = activeRepo.refs?.find(
-      ref => ref === `refs/heads/${rev}` || ref === `refs/tags/${rev}`
+    const rev = activeEntryInfo?.rev ?? ''
+    const _activeRepoRef = activeRepo.refs?.find(
+      ref =>
+        ref?.name === `refs/heads/${rev}` ||
+        ref?.name === `refs/tags/${rev}` ||
+        ref?.commit === rev
     )
-    if (activeRepoRef) {
-      return resolveRepoRef(activeRepoRef)
+    if (_activeRepoRef) {
+      let refKind: RepositoryRefKind | undefined
+      if (_activeRepoRef.name === `refs/heads/${rev}`) {
+        refKind = 'branch'
+      } else if (_activeRepoRef.name === `refs/tags/${rev}`) {
+        refKind = 'tag'
+      } else if (_activeRepoRef.commit === rev) {
+        refKind = 'commit'
+      }
+      return resolveRepoRef(_activeRepoRef, refKind)
     }
   }, [activeEntryInfo, activeRepo])
 
@@ -254,7 +299,11 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     if (!isPathInitialized) {
       setIsPathInitialized(true)
     }
-  }, [pathname])
+
+    if (error) {
+      setError(undefined)
+    }
+  }, [pathname, redirectGitUrl])
 
   return (
     <SourceCodeBrowserContext.Provider
@@ -281,7 +330,9 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         activeRepoRef,
         isPathInitialized,
         activeEntryInfo,
-        prevActivePath
+        prevActivePath,
+        error,
+        setError
       }}
     >
       {children}
@@ -292,8 +343,6 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
 interface SourceCodeBrowserProps {
   className?: string
 }
-
-type FileDisplayType = 'image' | 'text' | 'raw' | ''
 
 const ENTRY_CONTENT_TYPE = 'application/vnd.directory+json'
 
@@ -311,12 +360,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     repoMap,
     setRepoMap,
     activeRepo,
-    activeRepoRef,
     isPathInitialized,
     activeEntryInfo,
     prevActivePath,
     updateFileMap,
-    setExpandedKeys
+    setExpandedKeys,
+    error,
+    setError
   } = React.useContext(SourceCodeBrowserContext)
 
   const { searchParams } = useRouterStuff()
@@ -324,6 +374,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const { progress, setProgress } = useTopbarProgress()
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
+  const searchQuery = searchParams.get('q')?.toString()
 
   const parsedEntryInfo = React.useMemo(() => {
     return resolveRepositoryInfoFromPath(activePath)
@@ -331,11 +382,14 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   const activeBasename = parsedEntryInfo?.basename
 
-  const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
-
   const isBlobMode = activeEntryInfo?.viewMode === 'blob'
+  const isSearchMode = activeEntryInfo?.viewMode === 'search'
+
   const shouldFetchTree =
-    !!isPathInitialized && !isEmpty(repoMap) && !!activePath
+    !!initialized && !isEmpty(repoMap) && !!activePath && !isSearchMode
+  const shouldFetchRepositoryGrep =
+    !!initialized && !isEmpty(repoMap) && !!activePath && isSearchMode
+  const shouldFetchRawFile = !!initialized && isBlobMode && activeRepo
 
   // fetch tree
   const {
@@ -368,11 +422,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   } = useSWR<{
     blob?: Blob
     contentLength?: number
+    fileDisplayType: FileDisplayType
   }>(
-    isBlobMode && activeRepo
-      ? toEntryRequestUrl(activeRepo, activeRepoRef?.name, activeBasename)
+    shouldFetchRawFile
+      ? [
+          toEntryRequestUrl(activeRepo, activeEntryInfo.rev, activeBasename),
+          activeBasename
+        ]
       : null,
-    (url: string) =>
+    ([url, basename]: [string, string]) =>
       fetcher(url, {
         responseFormatter: async response => {
           const contentType = response.headers.get('Content-Type')
@@ -380,11 +438,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             throw new Error(CodeBrowserError.INVALID_URL)
           }
           const contentLength = toNumber(response.headers.get('Content-Length'))
-          // todo abort big size request and truncate
+          // FIXME(jueliang) abort big size request and truncate the response data
           const blob = await response.blob()
+          const fileDisplayType = await getFileViewType(basename ?? '', blob)
           return {
             contentLength,
-            blob
+            blob,
+            fileDisplayType
           }
         },
         errorHandler() {
@@ -397,19 +457,35 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   )
 
+  const {
+    data: repositoryGreps,
+    isLoading: fetchingRepositoryGrep,
+    error: repositoryGrepError
+  } = useSWR(
+    shouldFetchRepositoryGrep && searchQuery ? [activePath, searchQuery] : null,
+    ([activePath, searchQuery]) => {
+      const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+      return fetchRepositoryGrep(
+        searchQuery,
+        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined,
+        activeEntryInfo.rev
+      )
+    },
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false
+    }
+  )
+
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
-  const error = rawFileError || entriesError
+  const fileDisplayType = rawFileResponse?.fileDisplayType
+  const viewAffectingError = error || rawFileError || entriesError
 
-  const showErrorView = !!error
+  const showErrorView = !!viewAffectingError
 
-  const showDirectoryView =
+  const isTreeMode =
     activeEntryInfo?.viewMode === 'tree' || !activeEntryInfo?.viewMode
-
-  const showTextFileView = isBlobMode && fileViewType === 'text'
-
-  const showRawFileView =
-    isBlobMode && (fileViewType === 'image' || fileViewType === 'raw')
 
   const onPanelLayout = (sizes: number[]) => {
     if (sizes?.[2]) {
@@ -431,7 +507,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         if (targetRepo) {
           // use default rev
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
-          const refName = resolveRepoRef(defaultRef ?? '')?.name || ''
+          const refName = resolveRepoRef(defaultRef)?.name || ''
 
           const lineRangeInHash = parseLineNumberFromHash(window.location.hash)
           const isValidLineHash = !isNil(lineRangeInHash?.start)
@@ -445,15 +521,24 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             ? window.location.hash
             : formatLineHashForCodeBrowser({ start: startLineNumber })
 
+          const detectedLanguage = redirect_filepath
+            ? filename2prism(redirect_filepath)[0]
+            : undefined
+          const isMarkdown = detectedLanguage === 'markdown'
+
           updateActivePath(
             generateEntryPath(targetRepo, refName, redirect_filepath, 'file'),
             {
               replace: true,
-              hash: nextHash
+              hash: nextHash,
+              plain: isMarkdown && !!nextHash
             }
           )
           initializing.current = false
           return
+        } else {
+          // target repository not found
+          setError(new Error(CodeBrowserError.REPOSITORY_NOT_FOUND))
         }
       }
 
@@ -523,19 +608,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [fetchingRawFile, fetchingTreeEntries])
 
   React.useEffect(() => {
-    const calculateViewType = async () => {
-      const displayType = await getFileViewType(activePath ?? '', fileBlob)
-      setFileViewType(displayType)
-    }
-
-    if (isBlobMode) {
-      calculateViewType()
-    } else {
-      setFileViewType('')
-    }
-  }, [activePath, isBlobMode, fileBlob])
-
-  React.useEffect(() => {
     if (chatSideBarVisible) {
       chatSideBarPanelRef.current?.expand()
       chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
@@ -585,36 +657,57 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="py-4" />
-          {!initialized ? (
-            <ListSkeleton className="rounded-lg border p-4" />
-          ) : showErrorView ? (
-            <ErrorView
-              className={`rounded-lg border p-4`}
-              error={entriesError || rawFileError}
+        <div className="mb-4 flex h-full flex-col">
+          <CodeSearchBar
+            className={cn(
+              'z-40',
+              !!activeEntryInfo?.repositorySpecifier ? 'block' : 'hidden'
+            )}
+          />
+          {(isTreeMode || isBlobMode) && (
+            <FileDirectoryBreadcrumb
+              className={cn('px-4 pb-4', {
+                'pt-4': !activeEntryInfo?.repositorySpecifier
+              })}
             />
-          ) : (
-            <div>
-              {showDirectoryView && (
-                <DirectoryView
-                  loading={fetchingTreeEntries}
-                  initialized={initialized}
-                  className={`rounded-lg border`}
+          )}
+          <ScrollArea>
+            <div className="flex h-full flex-col px-4 pb-4">
+              {!initialized ? (
+                <ListSkeleton className="rounded-lg border p-4" />
+              ) : showErrorView ? (
+                <ErrorView
+                  className={`rounded-lg border p-4`}
+                  error={viewAffectingError}
                 />
-              )}
-              {showTextFileView && (
-                <TextFileView blob={fileBlob} contentLength={contentLength} />
-              )}
-              {showRawFileView && (
-                <RawFileView
-                  blob={fileBlob}
-                  isImage={fileViewType === 'image'}
-                  contentLength={contentLength}
-                />
+              ) : (
+                <>
+                  {isTreeMode && (
+                    <TreeModeView
+                      loading={fetchingTreeEntries}
+                      initialized={initialized}
+                      className={`rounded-lg border`}
+                    />
+                  )}
+                  {isBlobMode && (
+                    <BlobModeView
+                      blob={fileBlob}
+                      contentLength={contentLength}
+                      fileDisplayType={fileDisplayType}
+                      loading={fetchingRawFile || fetchingTreeEntries}
+                    />
+                  )}
+                  {isSearchMode && (
+                    <CodeSearchResultView
+                      results={repositoryGreps?.files}
+                      requestDuration={repositoryGreps?.elapsedMs}
+                      loading={fetchingRepositoryGrep}
+                    />
+                  )}
+                </>
               )}
             </div>
-          )}
+          </ScrollArea>
         </div>
       </ResizablePanel>
       <>
@@ -696,8 +789,9 @@ function isReadableTextFile(blob: Blob) {
 async function getFileViewType(
   path: string,
   blob: Blob | undefined
-): Promise<FileDisplayType> {
-  if (!blob) return ''
+): Promise<FileDisplayType | undefined> {
+  if (!blob) return undefined
+
   const mimeType = blob?.type
   const detectedLanguage = filename2prism(path)?.[0]
 
@@ -754,6 +848,33 @@ async function fetchEntriesFromPath(
     }
   }
   return result
+}
+
+async function fetchRepositoryGrep(
+  query: string,
+  repository: RepositoryListQuery['repositoryList'][0] | undefined,
+  rev: string | undefined
+) {
+  if (!repository) {
+    throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
+  }
+  const result = client
+    .query(repositoryGrepQuery, {
+      id: repository.id,
+      kind: repository.kind,
+      query,
+      rev,
+      pause: !repository
+    })
+    .toPromise()
+
+  return result?.then(res => {
+    if (res?.error) {
+      throw new Error(CodeBrowserError.FAILED_TO_FETCH)
+    }
+
+    return res?.data?.repositoryGrep
+  })
 }
 
 export type { TFileMap, TFileMapItem }

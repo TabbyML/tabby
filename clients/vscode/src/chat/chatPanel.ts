@@ -1,21 +1,18 @@
-import { createThread, type ThreadOptions } from "@quilted/threads";
-import type { ServerApi, ClientApi } from "tabby-chat-panel";
-import { WebviewView } from "vscode";
+import { createThread, type ThreadOptions } from "tabby-threads";
+import type { ServerApi, ClientApiMethods } from "tabby-chat-panel";
+import { Webview } from "vscode";
 
 export function createThreadFromWebview<Self = Record<string, never>, Target = Record<string, never>>(
-  webview: WebviewView,
+  webview: Webview,
   options?: ThreadOptions<Self, Target>,
 ) {
   return createThread(
     {
-      send(...args) {
-        webview.webview.postMessage({ data: args });
+      send(message) {
+        webview.postMessage({ action: "postMessageToChatPanel", message });
       },
-      listen(listen, { signal }) {
-        const { dispose } = webview.webview.onDidReceiveMessage((data) => {
-          listen(data);
-        });
-
+      listen(listener, { signal }) {
+        const { dispose } = webview.onDidReceiveMessage(listener);
         signal?.addEventListener("abort", () => {
           dispose();
         });
@@ -25,10 +22,17 @@ export function createThreadFromWebview<Self = Record<string, never>, Target = R
   );
 }
 
-export function createClient(webview: WebviewView, api: ClientApi): ServerApi {
+export function createClient(webview: Webview, api: ClientApiMethods): ServerApi {
   return createThreadFromWebview(webview, {
     expose: {
       navigate: api.navigate,
+      refresh: api.refresh,
+      onSubmitMessage: api.onSubmitMessage,
+      onApplyInEditor: api.onApplyInEditor,
+      onApplyInEditorV2: api.onApplyInEditorV2,
+      onLoaded: api.onLoaded,
+      onCopy: api.onCopy,
+      onKeyboardEvent: api.onKeyboardEvent,
     },
   });
 }

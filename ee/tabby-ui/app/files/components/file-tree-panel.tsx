@@ -26,14 +26,14 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = ({
     fileTreeData,
     fileMap,
     activeRepo,
-    activeRepoRef
+    activeEntryInfo
   } = React.useContext(SourceCodeBrowserContext)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const scrollTop = useScrollTop(containerRef, 200)
   const onSelectTreeNode = (treeNode: TFileTreeNode) => {
     const nextPath = generateEntryPath(
       activeRepo,
-      activeRepoRef?.name as string,
+      activeEntryInfo.rev,
       treeNode.file.basename,
       treeNode.file.kind
     )

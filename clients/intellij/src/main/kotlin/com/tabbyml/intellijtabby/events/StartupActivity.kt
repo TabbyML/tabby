@@ -1,6 +1,6 @@
 package com.tabbyml.intellijtabby.events
 
-import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.tabbyml.intellijtabby.completion.InlineCompletionService
@@ -12,11 +12,11 @@ import kotlinx.coroutines.launch
 class StartupActivity : ProjectActivity {
   override suspend fun execute(project: Project) {
     // initialize services
-    val connectionService = project.service<ConnectionService>()
+    val connectionService = project.serviceOrNull<ConnectionService>()
     CoroutineScope(Dispatchers.IO).launch {
-      connectionService.getServerAsync()
+      connectionService?.getServerAsync()
     }
-    project.service<CombinedState>()
-    project.service<InlineCompletionService>()
+    project.serviceOrNull<CombinedState>()
+    project.serviceOrNull<InlineCompletionService>()
   }
 }

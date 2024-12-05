@@ -2,9 +2,10 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cached::CachedAsync;
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
-use crate::{DateTimeUtc, DbConn};
+use crate::{AsSqliteDateTimeString, DbConn};
 
 #[derive(FromRow)]
 pub struct UserCompletionDAO {
@@ -16,13 +17,13 @@ pub struct UserCompletionDAO {
     pub selects: i64,
     pub dismisses: i64,
 
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(FromRow, Clone)]
 pub struct UserCompletionDailyStatsDAO {
-    pub start: DateTimeUtc,
+    pub start: DateTime<Utc>,
     pub language: String,
     pub completions: i32,
     pub views: i32,
@@ -39,8 +40,9 @@ impl DbConn {
     ) -> Result<i32> {
         let duration = Duration::from_millis(ts as u64);
         let created_at =
-            DateTimeUtc::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
-                .context("Invalid created_at timestamp")?;
+            DateTime::<Utc>::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+                .context("Invalid created_at timestamp")?
+                .as_sqlite_datetime();
         let res = query!(
             "INSERT INTO user_completions (user_id, completion_id, language, created_at) VALUES (?, ?, ?, ?);",
             user_id,
@@ -63,8 +65,9 @@ impl DbConn {
     ) -> Result<()> {
         let duration = Duration::from_millis(ts as u64);
         let updated_at =
-            DateTimeUtc::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
-                .context("Invalid updated_at timestamp")?;
+            DateTime::<Utc>::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+                .context("Invalid updated_at timestamp")?
+                .as_sqlite_datetime();
         query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ?, updated_at = ? WHERE completion_id = ?",
             views, selects, dismisses, updated_at, completion_id).execute(&self.pool).await?;
         Ok(())
@@ -122,8 +125,8 @@ impl DbConn {
 
     pub async fn compute_daily_stats(
         &self,
-        start: DateTimeUtc,
-        end: DateTimeUtc,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
         users: Vec<i64>,
         languages: Vec<String>,
         all_languages: Vec<String>,
@@ -170,8 +173,8 @@ impl DbConn {
             no_selected_users = users.is_empty(),
             no_selected_languages = languages.is_empty(),
         ))
-        .bind(start)
-        .bind(end)
+        .bind(start.as_sqlite_datetime())
+        .bind(end.as_sqlite_datetime())
         .fetch_all(&self.pool)
         .await?;
         Ok(res)
@@ -180,7 +183,8 @@ impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn fetch_one_user_completion(&self) -> Result<Option<UserCompletionDAO>> {
         Ok(
-            sqlx::query_as!(UserCompletionDAO, "SELECT user_id, completion_id, language, created_at, updated_at, views, selects, dismisses FROM user_completions")
+            sqlx::query_as!(UserCompletionDAO,
+                r#"SELECT user_id, completion_id, language, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>", views, selects, dismisses FROM user_completions"#)
                 .fetch_optional(&self.pool)
                 .await?,
         )

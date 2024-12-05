@@ -1,17 +1,18 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
-use crate::{DateTimeUtc, DbConn};
+use crate::{AsSqliteDateTimeString, DbConn};
 
 #[derive(FromRow)]
 pub struct UserEventDAO {
     pub id: i64,
     pub user_id: i64,
     pub kind: String,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
     pub payload: Vec<u8>,
 }
 
@@ -25,8 +26,9 @@ impl DbConn {
     ) -> Result<()> {
         let duration = Duration::from_millis(created_at as u64);
         let created_at =
-            DateTimeUtc::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
-                .context("Invalid created_at timestamp")?;
+            DateTime::<Utc>::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+                .context("Invalid created_at timestamp")?
+                .as_sqlite_datetime();
         query!(
             r#"INSERT INTO user_events(user_id, kind, created_at, payload) VALUES (?, ?, ?, ?)"#,
             user_id,
@@ -45,8 +47,8 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
         users: Vec<i64>,
-        start: DateTimeUtc,
-        end: DateTimeUtc,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> Result<Vec<UserEventDAO>> {
         let users = users
             .iter()
@@ -60,7 +62,7 @@ impl DbConn {
         let events = query_paged_as!(
             UserEventDAO,
             "user_events",
-            ["id", "user_id", "kind", "created_at", "payload"],
+            ["id", "user_id", "kind", "created_at" as "created_at!: DateTime<Utc>", "payload"],
             limit,
             skip_id,
             backwards,

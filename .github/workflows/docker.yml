@@ -7,7 +7,9 @@ on:
   push:
     tags:
       - "v*"
-      - "!*-dev"
+      - "!*-dev.*"
+      - "!vscode@*"
+      - '!vim@*'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -20,7 +22,7 @@ env:
 
 jobs:
   release-docker:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-2vcpu-ubuntu-2204
     permissions:
       contents: read
       packages: write

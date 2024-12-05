@@ -9,14 +9,14 @@ function processWinCa(copyRootsExe: boolean = false): Plugin {
   return {
     name: "processWinCa",
     setup: (build: PluginBuild) => {
-      build.onLoad({ filter: /win-ca\/lib\/crypt32-\w*.node$/ }, async () => {
+      build.onLoad({ filter: /win-ca[\\/]lib[\\/]crypt32-\w*.node$/ }, async () => {
         // As win-ca fallback is used, skip not required `.node` binaries
         return {
           contents: "",
           loader: "empty",
         };
       });
-      build.onLoad({ filter: /win-ca\/lib\/fallback.js$/ }, async (args) => {
+      build.onLoad({ filter: /win-ca[\\/]lib[\\/]fallback.js$/ }, async (args) => {
         if (copyRootsExe) {
           // Copy `roots.exe` binary to `dist/win-ca`, and the LICENSE
           const binaryName = "roots.exe";
@@ -55,7 +55,7 @@ export default defineConfig(async () => {
   return [
     {
       name: "lsp-protocol",
-      entry: ["src/lsp/protocol.ts"],
+      entry: ["src/protocol.ts"],
       dts: true,
       external: ["vscode-languageserver-protocol"],
       banner: {
@@ -64,7 +64,10 @@ export default defineConfig(async () => {
     },
     {
       name: "lsp-node",
-      entry: ["src/lsp/index.ts"],
+      loader: {
+        ".md": "text",
+      },
+      entry: ["src/index.ts"],
       outDir: "dist/node",
       platform: "node",
       target: "node18",
@@ -86,7 +89,10 @@ export default defineConfig(async () => {
     },
     {
       name: "lsp-browser",
-      entry: ["src/lsp/index.ts"],
+      loader: {
+        ".md": "text",
+      },
+      entry: ["src/index.ts"],
       outDir: "dist/browser",
       platform: "browser",
       format: "esm",
@@ -108,13 +114,19 @@ export default defineConfig(async () => {
         "win-ca",
         "mac-ca",
         "vscode-languageserver/node",
+        "undici",
       ],
       esbuildPlugins: [
-        processWinCa(),
         polyfillNode({
           polyfills: {},
         }),
       ],
+      esbuildOptions: (options) => {
+        // disable warning for `import is undefined`:
+        // src/lsp/index.ts:9:6:
+        // 9 |  dns.setDefaultResultOrder("ipv4first");
+        options.logOverride = { "import-is-undefined": "info" };
+      },
       banner: {
         js: banner,
       },

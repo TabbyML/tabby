@@ -95,7 +95,6 @@ export default {
             position: 'left',
             label: 'Docs',
           },
-          { to: '/playground', label: 'Playground', position: 'left' },
           { to: '/blog', label: 'Blog', position: 'left' },
           { to: '/api', label: 'API', position: 'left' },
           {
@@ -116,10 +115,6 @@ export default {
               {
                 label: 'Docs',
                 to: '/docs/welcome',
-              },
-              {
-                label: 'Playground',
-                to: '/playground',
               },
               {
                 label: 'API',
@@ -154,6 +149,9 @@ export default {
               {
                 label: "Media Kit",
                 href: "https://www.figma.com/community/file/1299817332961215434/tabby-mediakit"
+              },
+              {
+                html: `<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=96661b6c-b6b6-4340-9ffb-dcc46d7b970a" />`
               }
             ],
           },
@@ -205,6 +203,18 @@ export default {
             from: '/blog/running-tabby-as-a-language-server'
           },
           {
+            to: '/blog/2023/09/05/deploy-tabby-to-huggingface-space',
+            from: '/blog/deploy-tabby-to-huggingface-space.md',
+          },
+          {
+            to: '/blog/2023/08/31/first-stable-release',
+            from: '/blog/first-stable-release',
+          },
+          {
+            to: '/blog/2023/10/14/seed-round-release-0-3-0',
+            from: '/blog/2023/10/14/seed-round-release-0-3-0-RAG',
+          },
+          {
             to: '/docs/quick-start/installation/docker',
             from: '/docs/self-hosting/docker'
           },
@@ -235,7 +245,19 @@ export default {
           {
             to: '/docs/administration/upgrade',
             from: '/docs/administration'
-          }
+          },
+          {
+            to: '/docs/welcome',
+            from: '/docs',
+          },
+          {
+            to: '/docs/quick-start/installation/docker',
+            from: '/docs/quick-start/installation'
+          },
+          {
+            to: '/docs/references/programming-languages',
+            from: '/docs/programming-languages'
+          },
         ],
         createRedirects(existingPath) {
           // Create redirection from /docs/installation/* to /docs/quick-start/installation/*
@@ -244,8 +266,23 @@ export default {
               existingPath.replace("/docs/quick-start/installation", "/docs/installation"),
             ]
           }
+
+          // Create redirection from /docs/quick-start/installation/* to /docs/references/cloud-deployment/*
+          if (existingPath.startsWith("/docs/references/cloud-deployment/")) {
+            return [
+              existingPath.replace("/docs/references/cloud-deployment/", "/docs/quick-start/installation/"),
+              existingPath.replace("/docs/references/cloud-deployment/", "/docs/installation/"),
+            ]
+          }
         }
       },
     ],
   ],
+
+  scripts: [
+    {
+      src: "https://tally.so/widgets/embed.js",
+      async: true
+    }
+  ]
 };

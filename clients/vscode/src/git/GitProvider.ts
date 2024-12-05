@@ -3,34 +3,40 @@ import type { Repository as GitRepository, API } from "./git";
 export type Repository = GitRepository;
 import { getLogger } from "../logger";
 
-function getGitExtensionApi(): API | undefined {
-  const ext = extensions.getExtension("vscode.git");
-  return ext?.isActive ? ext.exports.getAPI(1) : undefined;
-}
-
 export class GitProvider {
   private readonly logger = getLogger();
   private api: API | undefined = undefined;
+  private remoteUrlToLocalRoot = new Map<string, Uri | undefined>();
 
-  constructor() {
-    this.init();
-  }
-
-  private init(tries = 0) {
-    this.api = getGitExtensionApi();
+  private async initGitExtensionApi(tries = 0): Promise<void> {
+    try {
+      const ext = extensions.getExtension("vscode.git");
+      if (ext?.isActive) {
+        this.api = ext.exports.getAPI(1);
+      }
+    } catch (err) {
+      this.logger.debug(`${err}`);
+    }
     if (this.api) {
       this.logger.info("GitProvider created.");
     } else {
-      if (tries > 10) {
+      if (tries >= 2) {
         this.logger.warn(`Failed to create GitProvider after ${tries} tries, giving up.`);
       } else {
         const delay = (tries + 1) * 1000;
         this.logger.info(`Failed to create GitProvider, retry after ${delay}ms`);
-        setTimeout(() => {
-          this.init(tries + 1);
-        }, delay);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        this.initGitExtensionApi(tries + 1);
       }
     }
+  }
+
+  async init(): Promise<void> {
+    await this.initGitExtensionApi();
+  }
+
+  isApiAvailable(): boolean {
+    return !!this.api;
   }
 
   getRepositories(): Repository[] | undefined {
@@ -66,6 +72,23 @@ export class GitProvider {
       repository.state.remotes.find((remote) => remote.name === "origin") ||
       repository.state.remotes.find((remote) => remote.name === "upstream") ||
       repository.state.remotes[0];
-    return remote?.fetchUrl ?? remote?.pushUrl;
+    const remoteUrl = remote?.fetchUrl ?? remote?.pushUrl;
+    if (remoteUrl) {
+      this.remoteUrlToLocalRoot.set(remoteUrl, repository.rootUri);
+    }
+    return remoteUrl;
+  }
+
+  findLocalRootUriByRemoteUrl(remoteUrl: string): Uri | undefined {
+    if (this.remoteUrlToLocalRoot.has(remoteUrl)) {
+      return this.remoteUrlToLocalRoot.get(remoteUrl);
+    }
+    const allRepos = this.getRepositories();
+    const repo = allRepos?.find((repo) =>
+      repo.state.remotes.find((remote) => remote.fetchUrl === remoteUrl || remote.pushUrl === remoteUrl),
+    );
+    const localRootUri = repo?.rootUri;
+    this.remoteUrlToLocalRoot.set(remoteUrl, localRootUri);
+    return localRootUri;
   }
 }

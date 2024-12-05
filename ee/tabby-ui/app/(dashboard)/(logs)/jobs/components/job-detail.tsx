@@ -10,15 +10,12 @@ import { useQuery } from 'urql'
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import {
-  IconAlertTriangle,
   IconChevronLeft,
   IconClock,
   IconHistory,
   IconSpinner,
-  IconStopWatch,
-  IconTerminalSquare
+  IconStopWatch
 } from '@/components/ui/icons'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { getJobDisplayName, getLabelByJobRun } from '../utils'
@@ -38,8 +35,7 @@ export default function JobRunDetail() {
   const stateLabel = getLabelByJobRun(currentNode)
   const isPending =
     (stateLabel === 'Pending' || stateLabel === 'Running') &&
-    !currentNode?.stdout &&
-    !currentNode?.stderr
+    !currentNode?.stdout
 
   React.useEffect(() => {
     let timer: number
@@ -73,7 +69,7 @@ export default function JobRunDetail() {
                   {getJobDisplayName(currentNode.job)}
                 </h2>
               </div>
-              <div className="mb-8 flex gap-x-5 text-sm text-muted-foreground lg:gap-x-10">
+              <div className="mb-2 flex gap-x-5 text-sm text-muted-foreground lg:gap-x-10">
                 <div className="flex items-center gap-1">
                   <IconStopWatch />
                   <p>State: {stateLabel}</p>
@@ -117,32 +113,9 @@ export default function JobRunDetail() {
                   </div>
                 )}
               </div>
-              <Tabs defaultValue="stdout" className="flex flex-1 flex-col">
-                <TabsList className="grid w-[400px] grid-cols-2">
-                  <TabsTrigger value="stdout">
-                    <IconTerminalSquare className="mr-1" />
-                    stdout
-                  </TabsTrigger>
-                  <TabsTrigger value="stderr">
-                    <IconAlertTriangle className="mr-1" />
-                    stderr
-                  </TabsTrigger>
-                </TabsList>
-                <div className="flex flex-1 flex-col">
-                  <TabsContent value="stdout">
-                    <StdoutView
-                      value={currentNode?.stdout}
-                      pending={isPending}
-                    />
-                  </TabsContent>
-                  <TabsContent value="stderr">
-                    <StdoutView
-                      value={currentNode?.stderr}
-                      pending={isPending}
-                    />
-                  </TabsContent>
-                </div>
-              </Tabs>
+              <div className="flex flex-1 flex-col">
+                <StdoutView value={currentNode?.stdout} pending={isPending} />
+              </div>
             </>
           )}
         </div>
@@ -164,7 +137,7 @@ function StdoutView({
   return (
     <div
       className={cn(
-        'relative mt-2 h-[66vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 font-mono text-[0.9rem] dark:bg-gray-800',
+        'relative mt-2 h-[72vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 font-mono text-[0.9rem] dark:bg-gray-800',
         className
       )}
       {...rest}

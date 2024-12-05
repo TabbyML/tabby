@@ -5,6 +5,8 @@ use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
 
+use crate::create_reqwest_client;
+
 pub struct LlamaCppEngine {
     client: reqwest::Client,
     api_endpoint: String,
@@ -12,19 +14,20 @@ pub struct LlamaCppEngine {
 }
 
 impl LlamaCppEngine {
-    pub fn create(api_endpoint: &str, api_key: Option<String>) -> Self {
-        let client = reqwest::Client::new();
+    pub fn create(api_endpoint: &str, api_key: Option<String>) -> Box<dyn CompletionStream> {
+        let client = create_reqwest_client(api_endpoint);
 
-        Self {
+        Box::new(Self {
             client,
-            api_endpoint: format!("{}/completions", api_endpoint),
+            api_endpoint: format!("{}/completion", api_endpoint),
             api_key,
-        }
+        })
     }
 }
 
 #[derive(Serialize)]
 struct CompletionRequest {
+    seed: u64,
     prompt: String,
     n_predict: i32,
     temperature: f32,
@@ -43,6 +46,7 @@ struct CompletionResponseChunk {
 impl CompletionStream for LlamaCppEngine {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
         let request = CompletionRequest {
+            seed: options.seed,
             prompt: prompt.to_owned(),
             n_predict: options.max_decoding_tokens,
             temperature: options.sampling_temperature,

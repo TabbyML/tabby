@@ -1,19 +1,23 @@
 import React from 'react'
-import { debounce, type DebounceSettings } from 'lodash-es'
+import { debounce, DebouncedFunc, type DebounceSettings } from 'lodash-es'
 
 import { useLatest } from './use-latest'
 import { useUnmount } from './use-unmount'
 
+// import { useUnmount } from './use-unmount'
+
 type noop = (...args: any[]) => any
 
-// interface UseDebounceOptions<T = any> extends DebounceSettings {
-//   onFire?: (value: T) => void
-// }
+interface UseDebounceOptions<T extends noop> extends DebounceSettings {
+  onUnmount?: (
+    debounced: DebouncedFunc<(...args: Parameters<T>) => ReturnType<T>>
+  ) => void
+}
 
 function useDebounceCallback<T extends noop>(
   fn: T,
   wait?: number,
-  options?: DebounceSettings
+  options?: UseDebounceOptions<T>
 ) {
   const fnRef = useLatest(fn)
   const debounced = React.useMemo(
@@ -28,7 +32,10 @@ function useDebounceCallback<T extends noop>(
     []
   )
 
-  useUnmount(() => debounced.cancel())
+  useUnmount(() => {
+    options?.onUnmount?.(debounced)
+    debounced.cancel()
+  })
 
   return {
     run: debounced,

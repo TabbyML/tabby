@@ -10,7 +10,7 @@
       "name": "Apache 2.0",
       "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE"
     },
-    "version": "0.11.0"
+    "version": "0.17.0"
   },
   "servers": [
     {
@@ -26,25 +26,17 @@
         ],
         "operationId": "chat_completions",
         "requestBody": {
+          "description": "",
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatCompletionRequest"
-              }
+              "schema": {}
             }
           },
           "required": true
         },
         "responses": {
           "200": {
-            "description": "Success",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatCompletionChunk"
-                }
-              }
-            }
+            "description": "Success"
           },
           "405": {
             "description": "When chat model is not specified, the endpoint returns 405 Method Not Allowed"
@@ -157,118 +149,6 @@
   },
   "components": {
     "schemas": {
-      "ChatCompletionChoice": {
-        "type": "object",
-        "required": [
-          "index",
-          "delta"
-        ],
-        "properties": {
-          "index": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "logprobs": {
-            "type": "string",
-            "nullable": true
-          },
-          "finish_reason": {
-            "type": "string",
-            "nullable": true
-          },
-          "delta": {
-            "$ref": "#/components/schemas/ChatCompletionDelta"
-          }
-        }
-      },
-      "ChatCompletionChunk": {
-        "type": "object",
-        "required": [
-          "id",
-          "created",
-          "system_fingerprint",
-          "object",
-          "model",
-          "choices"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "created": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 0
-          },
-          "system_fingerprint": {
-            "type": "string"
-          },
-          "object": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "choices": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ChatCompletionChoice"
-            }
-          }
-        }
-      },
-      "ChatCompletionDelta": {
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "type": "string"
-          }
-        }
-      },
-      "ChatCompletionRequest": {
-        "type": "object",
-        "required": [
-          "messages"
-        ],
-        "properties": {
-          "messages": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Message"
-            }
-          },
-          "temperature": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
-          },
-          "seed": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true,
-            "minimum": 0
-          }
-        },
-        "example": {
-          "messages": [
-            {
-              "content": "What is tail recursion?",
-              "role": "user"
-            },
-            {
-              "content": "It's a kind of optimization in compiler?",
-              "role": "assistant"
-            },
-            {
-              "content": "Could you share more details?",
-              "role": "user"
-            }
-          ]
-        }
-      },
       "Choice": {
         "type": "object",
         "required": [
@@ -283,6 +163,95 @@
           },
           "text": {
             "type": "string"
+          }
+        }
+      },
+      "CodeSearchDocument": {
+        "type": "object",
+        "required": [
+          "body",
+          "filepath",
+          "git_url",
+          "language",
+          "start_line"
+        ],
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "filepath": {
+            "type": "string"
+          },
+          "git_url": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "CodeSearchHit": {
+        "type": "object",
+        "required": [
+          "scores",
+          "doc"
+        ],
+        "properties": {
+          "scores": {
+            "$ref": "#/components/schemas/CodeSearchScores"
+          },
+          "doc": {
+            "$ref": "#/components/schemas/CodeSearchDocument"
+          }
+        }
+      },
+      "CodeSearchQuery": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "git_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "filepath": {
+            "type": "string",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "CodeSearchScores": {
+        "type": "object",
+        "required": [
+          "rrf",
+          "bm25",
+          "embedding"
+        ],
+        "properties": {
+          "rrf": {
+            "type": "number",
+            "format": "float",
+            "description": "Reciprocal rank fusion score: https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html"
+          },
+          "bm25": {
+            "type": "number",
+            "format": "float"
+          },
+          "embedding": {
+            "type": "number",
+            "format": "float"
           }
         }
       },
@@ -375,6 +344,41 @@
           }
         }
       },
+      "DocSearchDocument": {
+        "type": "object",
+        "required": [
+          "title",
+          "link",
+          "snippet"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          }
+        }
+      },
+      "DocSearchHit": {
+        "type": "object",
+        "required": [
+          "score",
+          "doc"
+        ],
+        "properties": {
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "doc": {
+            "$ref": "#/components/schemas/DocSearchDocument"
+          }
+        }
+      },
       "HealthState": {
         "type": "object",
         "required": [
@@ -426,51 +430,6 @@
           }
         }
       },
-      "Hit": {
-        "type": "object",
-        "required": [
-          "score",
-          "doc",
-          "id"
-        ],
-        "properties": {
-          "score": {
-            "type": "number",
-            "format": "float"
-          },
-          "doc": {
-            "$ref": "#/components/schemas/HitDocument"
-          },
-          "id": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
-        }
-      },
-      "HitDocument": {
-        "type": "object",
-        "required": [
-          "body",
-          "filepath",
-          "git_url",
-          "language"
-        ],
-        "properties": {
-          "body": {
-            "type": "string"
-          },
-          "filepath": {
-            "type": "string"
-          },
-          "git_url": {
-            "type": "string"
-          },
-          "language": {
-            "type": "string"
-          }
-        }
-      },
       "LogEventRequest": {
         "type": "object",
         "required": [
@@ -501,40 +460,6 @@
             "format": "int32",
             "nullable": true,
             "minimum": 0
-          }
-        }
-      },
-      "Message": {
-        "type": "object",
-        "required": [
-          "role",
-          "content"
-        ],
-        "properties": {
-          "role": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          }
-        }
-      },
-      "SearchResponse": {
-        "type": "object",
-        "required": [
-          "num_hits",
-          "hits"
-        ],
-        "properties": {
-          "num_hits": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "hits": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Hit"
-            }
           }
         }
       },

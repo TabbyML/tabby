@@ -117,4 +117,14 @@ Once your PR is ready, please request review from one of the [Tabby team members
 
 # Changelog
 
-Tabby used [changie](changie.dev) to track unreleased features, it's preferred the changelog is added as part of implementation pr. To create an unreleased feature, use `change new` command.
+Tabby used [changie](https://changie.dev/) to track unreleased features, it's preferred the changelog is added as part of implementation pr. To create an unreleased feature, use `changie new` command.
+
+# Contributing to Docs
+
+To begin contributing to Tabby's docs website, make sure you installed node lts and yarn:
+
+```
+cd website
+yarn install
+yarn start
+```

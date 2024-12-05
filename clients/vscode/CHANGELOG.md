@@ -1,6 +1,130 @@
-## 1.6.0
+## 1.14.0
 
-**pre-release**
+### Features
+
+- Introduced a "Smart Apply" button in the chat panel's generated code block. This feature suggests edits directly in the current editor, enabling users to apply generated code quickly without manual intervention. Note: Requires the latest version of the Tabby server.
+- Added a dynamic indicator in the chat panel's input box to show the currently selected text, which will be used as context for the chat conversation. Note: Requires the latest version of the Tabby server.
+
+### Fixes & Improvements
+
+- Resolved an issue where the chat panel's file context navigation failed when the VSCode workspace was not at the root of the git repository containing the target file.
+- Fixed a bug where inline completion did not function in the web extension for browsers when opening remote repositories, such as those from GitHub.
+- Corrected the storage of user data in the web extension for browsers.
+
+## 1.12.5
+
+### Fixes & Improvements
+
+- Fixed a bug where the inline completion provider was incorrectly registered twice, causing the status bar loading indicator to not correctly show ongoing completion requests.
+
+## 1.12.4
+
+### Fixes & Improvements
+
+- Fixed a bug causing the Tabby web extension to not initialize in browsers. (https://github.com/TabbyML/tabby/issues/3302)
+
+## 1.12.3
+
+### Fixes & Improvements
+
+- Fixed an issue where the chat panel failed to display when the endpoint configuration ended with a trailing slash.
+- Improved the context of code completion by adding support for collecting code snippets from recently viewed editors.
+
+## 1.12.2
+
+### Fixes & Improvements
+
+- Fixed a bug that caused the Tabby extension to not initialize when TLS certificates failed to load. (https://github.com/TabbyML/tabby/issues/3248)
+
+## 1.12.1
+
+### Fixes & Improvements
+
+- Fix DataStore initialization that prevented Tabby from starting on a fresh installation. (https://github.com/TabbyML/tabby/issues/3234)
+
+## 1.12.0
+
+### Features
+
+- Updated the chat panel to be compatible with Tabby server v0.18.0 or later.
+- Added support to open the chat panel as a tab in editor groups.
+- Introduced actions in the quick-fix menu to explain or fix errors using Tabby.
+
+## 1.10.3
+
+### Fixes & Improvements
+
+- Fixed theme detection issue in the chat side panel. (https://github.com/TabbyML/tabby/issues/3031)
+
+## 1.10.2
+
+### Fixes & Improvements
+
+- Enhanced post-processing for generating commit messages to address the issue of quotation marks not being removed in certain scenarios.
+
+## 1.10.1
+
+### Fixes & Improvements
+
+- Enhanced inline editing streaming experience.
+- Added the option to utilize `Edit with Tabby` in the quick fix menu for quicker access.
+- Supported using the http proxy configuration in the VSCode settings.
+
+## 1.10.0
+
+### Features
+
+- Introduced a new UI for the Tabby command palette, helping you quickly inspect status and navigate to commands. Access the command palette by clicking the `Tabby` label in the status bar.
+- Added a new keybinding `Ctrl/Cmd + L` to open the chat panel.
+- Enhanced the chat panel conversation context by allowing you to manually add code snippets through right-click menu or `Ctrl/Cmd + L`.
+- Added a button in the source control view title to easily generate commit messages.
+
+### Fixes & Improvements
+
+- Renamed the command `Tabby: Edit...` to `Tabby: Start Inline Editing`. You can edit commands from the history now.
+- Inline edit streaming steps are now considered as one undo-redo step.
+- Fixed a bug where the chat panel did not refresh when server configuration was changed.
+- Decreased the delay in navigating to files when clicking on context references in the chat panel.
+
+## 1.8.2
+
+### Features
+
+- Added support for HTTP proxy configuration. Users can now set up an HTTP proxy either through environment variables or in the config file.
+
+### Fixes & Improvements
+
+- Enhanced the chat side panel interaction with various improvements. The chat panel improvements require the latest version of the Tabby server to fully function.
+- Updated and optimized the Tabby configurations in the VSCode Settings page.
+- Resolved compatibility issue with chat panel on connections to an older version of the Tabby server.
+- Users can now manually remove the history of chat edit commands. The maximum number of history entries can be configured in the advanced settings.
+
+## 1.7.4
+
+### Fixes
+
+- Fixed a bug causing the chat view failed to display due to trailing slash in the endpoint config.
+
+## 1.7.3
+
+### Features
+
+- Introducing a new chat view feature that allows users to engage in conversations with their AI assistant. Access the chat view conveniently from the activity bar.
+- Introducing a new experimental feature for editing documents using a chat command. Select some text in the editor and press `Ctrl + i` to start.
+- Added a set of commands in the command palette to interact with the chat view.
+
+### Fixes & Improvements
+
+- Updated the walkthrough guides.
+- Fixed bugs causing the web extension initialization to fail.
+
+## 1.6.3
+
+### Fixes
+
+- Fixed a bug that caused unexpected logging output and the generation of an `audit.json` file in the working directory.
+
+## 1.6.2
 
 ### Features
 
@@ -10,6 +134,8 @@
 ### Fixes & Improvements
 
 - Improved logging in the VSCode Output channel.
+- Fixed a bug causing the chat stream parsing to fail.
+- Improved the message extraction when generating commit messages.
 
 ## 1.5.4
 
@@ -18,20 +144,6 @@
 - Fixed settings title on the VSCode settings page.
 
 ## 1.5.3
-
-**stable**
-
-Stable release for 1.5.2.
-
-## 1.5.2
-
-**pre-release**
-
-### Fixes
-
-- Fixed an issue where the indexing worker for recently edited code may cause a stuck.
-
-## 1.5.0
 
 ### Features
 
@@ -45,6 +157,7 @@ Stable release for 1.5.2.
 ### Fixes
 
 - Corrected server-side config retrieval behavior for connections to Tabby servers with version < 0.9.
+- Fixed an issue where the indexing worker for recently edited code may cause a stuck.
 
 ## 1.4.0
 

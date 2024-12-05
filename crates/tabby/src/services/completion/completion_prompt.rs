@@ -2,23 +2,28 @@ use std::sync::Arc;
 
 use strfmt::strfmt;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError, CodeSearchQuery},
+    api::code::{CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery},
+    axum::AllowedCodeRepository,
     languages::get_language,
 };
 use tracing::warn;
 
 use super::{Segments, Snippet};
 
-static MAX_SNIPPETS_TO_FETCH: usize = 20;
-
 pub struct PromptBuilder {
+    code_search_params: CodeSearchParams,
     prompt_template: Option<String>,
     code: Option<Arc<dyn CodeSearch>>,
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>, code: Option<Arc<dyn CodeSearch>>) -> Self {
+    pub fn new(
+        code_search_params: &CodeSearchParams,
+        prompt_template: Option<String>,
+        code: Option<Arc<dyn CodeSearch>>,
+    ) -> Self {
         PromptBuilder {
+            code_search_params: code_search_params.clone(),
             prompt_template,
             code,
         }
@@ -32,7 +37,12 @@ impl PromptBuilder {
         strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
     }
 
-    pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
+    pub async fn collect(
+        &self,
+        language: &str,
+        segments: &Segments,
+        allowed_code_repository: &AllowedCodeRepository,
+    ) -> Vec<Snippet> {
         let quota_threshold_for_snippets_from_code_search = 256;
         let mut max_snippets_chars_in_prompt = 768;
         let mut snippets: Vec<Snippet> = vec![];
@@ -56,10 +66,15 @@ impl PromptBuilder {
             return snippets;
         };
 
+        let Some(source_id) = allowed_code_repository.closest_match(git_url) else {
+            return snippets;
+        };
+
         let snippets_from_code_search = collect_snippets(
+            &self.code_search_params,
             max_snippets_chars_in_prompt,
             code.as_ref(),
-            git_url,
+            source_id,
             segments.filepath.as_deref(),
             language,
             &segments.prefix,
@@ -140,7 +155,6 @@ fn extract_snippets_from_segments(
             if count_characters + declaration.body.len() > max_snippets_chars {
                 break;
             }
-
             count_characters += declaration.body.len();
             ret.push(Snippet {
                 filepath: declaration.filepath.clone(),
@@ -166,6 +180,22 @@ fn extract_snippets_from_segments(
         }
     }
 
+    // then comes to the snippets from recently opened files.
+    if let Some(relevant_snippets) = &segments.relevant_snippets_from_recently_opened_files {
+        for snippet in relevant_snippets {
+            if count_characters + snippet.body.len() > max_snippets_chars {
+                break;
+            }
+
+            count_characters += snippet.body.len();
+            ret.push(Snippet {
+                filepath: snippet.filepath.clone(),
+                body: snippet.body.clone(),
+                score: 1.0,
+            });
+        }
+    }
+
     if ret.is_empty() {
         None
     } else {
@@ -174,23 +204,27 @@ fn extract_snippets_from_segments(
 }
 
 async fn collect_snippets(
+    code_search_params: &CodeSearchParams,
     max_snippets_chars: usize,
     code: &dyn CodeSearch,
-    git_url: &str,
+    source_id: &str,
     filepath: Option<&str>,
     language: &str,
     content: &str,
 ) -> Vec<Snippet> {
-    let query = CodeSearchQuery {
-        git_url: git_url.to_owned(),
-        filepath: filepath.map(|x| x.to_owned()),
-        language: language.to_owned(),
-        content: content.to_owned(),
-    };
+    let query = CodeSearchQuery::new(
+        filepath.map(|x| x.to_owned()),
+        Some(language.to_owned()),
+        content.to_owned(),
+        source_id.to_owned(),
+    );
 
     let mut ret = Vec::new();
 
-    let serp = match code.search_in_language(query, MAX_SNIPPETS_TO_FETCH).await {
+    let serp = match code
+        .search_in_language(query, code_search_params.clone())
+        .await
+    {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
@@ -246,7 +280,7 @@ mod tests {
         };
 
         // Init prompt builder with prompt rewrite disabled.
-        PromptBuilder::new(prompt_template, None)
+        PromptBuilder::new(&CodeSearchParams::default(), prompt_template, None)
     }
 
     fn make_segment(prefix: String, suffix: Option<String>) -> Segments {
@@ -257,6 +291,7 @@ mod tests {
             git_url: None,
             declarations: None,
             relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
         }
     }
@@ -268,7 +303,7 @@ mod tests {
         async fn search_in_language(
             &self,
             _query: CodeSearchQuery,
-            _limit: usize,
+            _params: CodeSearchParams,
         ) -> Result<CodeSearchResponse, CodeSearchError> {
             (self.0)()
         }
@@ -278,7 +313,8 @@ mod tests {
     async fn test_collect_snippets() {
         // Not ready error from CodeSearch should result in empty snippets, rather than error
         let search = MockCodeSearch(|| Err(CodeSearchError::NotReady));
-        let snippets = collect_snippets(150, &search, "", None, "", "").await;
+        let snippets =
+            collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
         assert_eq!(snippets, vec![]);
 
         let search = MockCodeSearch(|| {
@@ -286,7 +322,8 @@ mod tests {
                 hits: vec![Default::default()],
             })
         });
-        let snippets = collect_snippets(150, &search, "", None, "", "").await;
+        let snippets =
+            collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
         assert_eq!(
             snippets,
             vec![Snippet {
@@ -475,6 +512,7 @@ def this_is_prefix():\n";
             git_url: None,
             declarations: None,
             relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
         };
 
@@ -496,12 +534,17 @@ def this_is_prefix():\n";
                 body: "res_1 = invoke_function_1(n)".to_owned(),
                 score: 1.0,
             }]),
+            relevant_snippets_from_recently_opened_files: Some(vec![Snippet {
+                filepath: "b1.py".to_owned(),
+                body: "res_1 = invoke_function_1(n)".to_owned(),
+                score: 1.0,
+            }]),
             clipboard: None,
         };
 
         assert!(
             extract_snippets_from_segments(max_snippets_chars, &segments)
-                .is_some_and(|x| x.1.len() == 2)
+                .is_some_and(|x| x.1.len() == 3)
         );
     }
 }

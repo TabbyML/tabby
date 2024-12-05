@@ -10,7 +10,7 @@ import { cn, delay } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconCloudUpload, IconSpinner } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
-import { mutateAvatar, UserAvatar } from '@/components/user-avatar'
+import { mutateAvatar, MyAvatar } from '@/components/user-avatar'
 
 const uploadUserAvatarMutation = graphql(/* GraphQL */ `
   mutation uploadUserAvatarBase64($id: ID!, $avatarBase64: String!) {
@@ -77,7 +77,7 @@ export const Avatar = () => {
       <div className="relative">
         <label
           htmlFor="avatar-file"
-          className="absolute left-0 top-0 z-20 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full bg-background/90 opacity-0 transition-all hover:opacity-100"
+          className="absolute left-0 top-0 z-20 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full bg-background/90 opacity-0 transition-opacity hover:opacity-100"
         >
           <IconCloudUpload />
         </label>
@@ -95,7 +95,7 @@ export const Avatar = () => {
             alt="avatar to be uploaded"
           />
         )}
-        <UserAvatar
+        <MyAvatar
           className={cn('relative h-16 w-16 border', {
             'opacity-0': uploadedImgString
           })}

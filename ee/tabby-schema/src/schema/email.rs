@@ -35,6 +35,7 @@ pub struct EmailSettingInput {
     #[validate(email(code = "fromAddress", message = "Invalid email address"))]
     pub from_address: String,
     pub smtp_server: String,
+    #[validate(range(min = 1, max = 65535, code = "smtpPort", message = "Invalid port"))]
     pub smtp_port: i32,
     pub encryption: Encryption,
     pub auth_method: AuthMethod,

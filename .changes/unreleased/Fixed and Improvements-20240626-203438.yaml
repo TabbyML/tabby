@@ -1,4 +1,0 @@
-kind: Fixed and Improvements
-body: add TABBY_HUGGINGFACE_HOST_OVERRIDE to override huggingface.co to compatible
-  mirrors (e.g hf-mirror.com)
-time: 2024-06-26T20:34:38.657449+08:00

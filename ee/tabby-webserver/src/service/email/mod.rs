@@ -6,7 +6,7 @@ use lettre::{
     message::{header::ContentType, Mailbox, MessageBuilder},
     transport::smtp::{
         authentication::{Credentials, Mechanism},
-        client::{Tls, TlsParameters},
+        client::{Certificate, Tls, TlsParameters},
         AsyncSmtpTransportBuilder,
     },
     Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
@@ -45,8 +45,19 @@ fn make_smtp_builder(
     host: &str,
     port: u16,
     encryption: Encryption,
+    _cert_pem: Option<String>,
 ) -> Result<AsyncSmtpTransportBuilder> {
-    let tls_parameters = TlsParameters::new(host.into()).map_err(anyhow::Error::new)?;
+    let mut tls_parameters = TlsParameters::builder(host.into());
+
+    if let Ok(cert_string) = std::env::var("TABBY_WEBSERVER_EMAIL_CERT") {
+        let cert = Certificate::from_pem(cert_string.as_bytes())
+            .map_err(|e| CoreError::Other(e.into()))?;
+        tls_parameters = tls_parameters.add_root_certificate(cert);
+    }
+
+    let tls_parameters = tls_parameters
+        .build()
+        .map_err(|e| CoreError::Other(e.into()))?;
 
     let builder = match encryption {
         Encryption::StartTls => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
@@ -86,7 +97,7 @@ impl EmailServiceImpl {
     ) -> Result<()> {
         let mut smtp_server = self.smtp_server.write().await;
 
-        let mut builder = make_smtp_builder(host, port as u16, encryption)?;
+        let mut builder = make_smtp_builder(host, port as u16, encryption, None)?;
         let mechanism = auth_mechanism(auth_method);
         if !mechanism.is_empty() {
             builder = builder

@@ -56,6 +56,9 @@ impl IntegrationService for IntegrationServiceImpl {
             .delete_integration(id.as_rowid()?, kind.as_enum_str())
             .await?;
         self.job
+            .clear(BackgroundJobEvent::SyncThirdPartyRepositories(id).to_command())
+            .await?;
+        self.job
             .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
             .await?;
         Ok(())

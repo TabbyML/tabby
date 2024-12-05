@@ -2,6 +2,7 @@ mod completion_prompt;
 
 use std::sync::Arc;
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
@@ -9,10 +10,14 @@ use tabby_common::{
         code::CodeSearch,
         event::{Event, EventLogger},
     },
-    config::ModelConfig,
+    axum::AllowedCodeRepository,
+    config::{CompletionConfig, ModelConfig},
     languages::get_language,
 };
-use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
+use tabby_inference::{
+    ChatCompletionStream, CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder,
+    CompletionStream,
+};
 use thiserror::Error;
 use utoipa::ToSchema;
 
@@ -133,6 +138,16 @@ pub struct Segments {
     /// Sorted in descending order of [Snippet::score].
     relevant_snippets_from_changed_files: Option<Vec<Snippet>>,
 
+    /// The relevant code snippets extracted from recently opened files.
+    /// These snippets are selected from candidates found within code chunks
+    /// based on the last visited location.
+    ///
+    /// Current Active file is excluded from the search candidates.
+    /// When provided with [Segments::relevant_snippets_from_changed_files], the snippets have
+    /// already been deduplicated to ensure no duplication with entries
+    /// in [Segments::relevant_snippets_from_changed_files].
+    relevant_snippets_from_recently_opened_files: Option<Vec<Snippet>>,
+
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
 }
@@ -226,7 +241,11 @@ pub struct DebugData {
     prompt: Option<String>,
 }
 
+/// CompletionService enhances the CodeGeneration feature by adding Retrieval Augmented Code Completion capability.
+/// It enables the retrieval of pertinent code snippets from the code repository,
+/// which are then utilized as prompts for the code generation model.
 pub struct CompletionService {
+    config: CompletionConfig,
     engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
@@ -234,6 +253,7 @@ pub struct CompletionService {
 
 impl CompletionService {
     fn new(
+        config: CompletionConfig,
         engine: Arc<CodeGeneration>,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
@@ -241,7 +261,12 @@ impl CompletionService {
     ) -> Self {
         Self {
             engine,
-            prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
+            prompt_builder: completion_prompt::PromptBuilder::new(
+                &config.code_search_params,
+                prompt_template,
+                Some(code),
+            ),
+            config,
             logger,
         }
     }
@@ -250,24 +275,29 @@ impl CompletionService {
         &self,
         language: &str,
         segments: &Segments,
+        allowed_code_repository: &AllowedCodeRepository,
         disable_retrieval_augmented_code_completion: bool,
     ) -> Vec<Snippet> {
         if disable_retrieval_augmented_code_completion {
             return vec![];
         }
 
-        self.prompt_builder.collect(language, segments).await
+        self.prompt_builder
+            .collect(language, segments, allowed_code_repository)
+            .await
     }
 
     fn text_generation_options(
         language: &str,
         temperature: Option<f32>,
         seed: Option<u64>,
+        max_input_length: usize,
+        max_output_tokens: usize,
     ) -> CodeGenerationOptions {
         let mut builder = CodeGenerationOptionsBuilder::default();
         builder
-            .max_input_length(1024 + 512)
-            .max_decoding_tokens(64)
+            .max_input_length(max_input_length)
+            .max_decoding_tokens(max_output_tokens as i32)
             .language(Some(get_language(language)));
         temperature.inspect(|x| {
             builder.sampling_temperature(*x);
@@ -283,32 +313,46 @@ impl CompletionService {
     pub async fn generate(
         &self,
         request: &CompletionRequest,
+        allowed_code_repository: &AllowedCodeRepository,
+        user_agent: Option<&str>,
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
-        let options =
-            Self::text_generation_options(language.as_str(), request.temperature, request.seed);
+        let options = Self::text_generation_options(
+            language.as_str(),
+            request.temperature,
+            request.seed,
+            self.config.max_input_length,
+            self.config.max_decoding_tokens,
+        );
 
+        let mut use_crlf = false;
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
         } else if let Some(segments) = request.segments.as_ref() {
+            if contains_crlf(segments) {
+                use_crlf = true;
+            }
+
             let snippets = self
                 .build_snippets(
                     &language,
                     segments,
+                    allowed_code_repository,
                     request.disable_retrieval_augmented_code_completion(),
                 )
                 .await;
             let prompt = self
                 .prompt_builder
                 .build(&language, segments.clone(), &snippets);
-            (prompt, Some(segments), snippets)
+
+            (override_prompt(prompt, use_crlf), Some(segments), snippets)
         } else {
             return Err(CompletionError::EmptyPrompt);
         };
 
-        let text = self.engine.generate(&prompt, options).await;
-        let segments = segments.cloned().map(|s| s.into());
+        let generated_text =
+            override_generated_text(self.engine.generate(&prompt, options).await, use_crlf);
 
         self.logger.log(
             request.user.clone(),
@@ -316,11 +360,12 @@ impl CompletionService {
                 completion_id: completion_id.clone(),
                 language,
                 prompt: prompt.clone(),
-                segments,
+                segments: segments.cloned().map(|x| x.into()),
                 choices: vec![api::event::Choice {
                     index: 0,
-                    text: text.clone(),
+                    text: generated_text.clone(),
                 }],
+                user_agent: user_agent.map(|x| x.to_owned()),
             },
         );
 
@@ -334,29 +379,79 @@ impl CompletionService {
 
         Ok(CompletionResponse::new(
             completion_id,
-            vec![Choice::new(text)],
+            vec![Choice::new(generated_text)],
             debug_data,
         ))
     }
 }
 
-pub async fn create_completion_service(
+fn contains_crlf(segments: &Segments) -> bool {
+    if segments.prefix.contains("\r\n") {
+        return true;
+    }
+    if let Some(suffix) = &segments.suffix {
+        if suffix.contains("\r\n") {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn override_prompt(prompt: String, use_crlf: bool) -> String {
+    if use_crlf {
+        prompt.replace("\r\n", "\n")
+    } else {
+        prompt
+    }
+}
+
+/// override_generated_text replaces \n with \r\n in the generated text if use_crlf is true.
+/// This is used to ensure that the generated text has the same line endings as the prompt.
+///
+/// Because there might be \r\n in the text, which also has a `\n` and should not be replaced,
+/// we can not simply replace \n with \r\n.
+fn override_generated_text(generated: String, use_crlf: bool) -> String {
+    if use_crlf {
+        let re = Regex::new(r"([^\r])\n").unwrap(); // Match \n that is preceded by anything except \r
+        re.replace_all(&generated, "$1\r\n").to_string() // Replace with captured character and \r\n
+    } else {
+        generated
+    }
+}
+
+pub async fn create_completion_service_and_chat(
+    config: &CompletionConfig,
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
-    model: &ModelConfig,
-) -> CompletionService {
-    let (
-        engine,
-        model::PromptInfo {
-            prompt_template, ..
-        },
-    ) = model::load_code_generation(model).await;
+    completion: Option<ModelConfig>,
+    chat: Option<ModelConfig>,
+) -> (
+    Option<CompletionService>,
+    Option<Arc<dyn CompletionStream>>,
+    Option<Arc<dyn ChatCompletionStream>>,
+) {
+    let (code_generation, completion_stream, chat, prompt) =
+        model::load_code_generation_and_chat(completion, chat).await;
 
-    CompletionService::new(engine.clone(), code, logger, prompt_template)
+    let completion = code_generation.clone().map(|code_generation| {
+        CompletionService::new(
+            config.to_owned(),
+            code_generation.clone(),
+            code,
+            logger,
+            prompt
+                .unwrap_or_else(|| panic!("Prompt template is required for code completion"))
+                .prompt_template,
+        )
+    });
+
+    (completion, completion_stream, chat)
 }
 
 #[cfg(test)]
 mod tests {
+    use api::code::CodeSearchParams;
     use async_stream::stream;
     use async_trait::async_trait;
     use futures::stream::BoxStream;
@@ -391,15 +486,16 @@ mod tests {
         async fn search_in_language(
             &self,
             _query: CodeSearchQuery,
-            _limit: usize,
+            _params: CodeSearchParams,
         ) -> Result<CodeSearchResponse, CodeSearchError> {
             Ok(CodeSearchResponse { hits: vec![] })
         }
     }
 
     fn mock_completion_service() -> CompletionService {
-        let generation = CodeGeneration::new(Arc::new(MockCompletionStream));
+        let generation = CodeGeneration::new(Arc::new(MockCompletionStream), None);
         CompletionService::new(
+            CompletionConfig::default(),
             Arc::new(generation),
             Arc::new(MockCodeSearch),
             Arc::new(MockEventLogger),
@@ -417,6 +513,7 @@ mod tests {
             git_url: None,
             declarations: None,
             relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
         };
         let request = CompletionRequest {
@@ -428,12 +525,108 @@ mod tests {
             seed: None,
         };
 
-        let response = completion_service.generate(&request).await.unwrap();
+        let allowed_code_repository = AllowedCodeRepository::default();
+        let response = completion_service
+            .generate(&request, &allowed_code_repository, Some("test user agent"))
+            .await
+            .unwrap();
         assert_eq!(response.choices[0].text, r#""Hello, world!""#);
 
         let prompt = completion_service
             .prompt_builder
             .build("rust", segment.clone(), &[]);
         assert_eq!(prompt, "<pre>fn hello_world() -> &'static str {<mid>}<end>");
+    }
+
+    #[test]
+    fn test_contains_crlf() {
+        let contained_crlf = vec![
+            Segments {
+                prefix: "fn hello_world() -> &'static str {\r\n".into(),
+                suffix: Some("}".into()),
+                filepath: None,
+                git_url: None,
+                declarations: None,
+                relevant_snippets_from_changed_files: None,
+                relevant_snippets_from_recently_opened_files: None,
+                clipboard: None,
+            },
+            Segments {
+                prefix: "fn hello_world() -> &'static str {".into(),
+                suffix: Some("}\r\n".into()),
+                filepath: None,
+                git_url: None,
+                declarations: None,
+                relevant_snippets_from_changed_files: None,
+                relevant_snippets_from_recently_opened_files: None,
+                clipboard: None,
+            },
+            Segments {
+                prefix: "fn hello_world() -> &'static str {\r\n".into(),
+                suffix: Some("}\r\n".into()),
+                filepath: None,
+                git_url: None,
+                declarations: None,
+                relevant_snippets_from_changed_files: None,
+                relevant_snippets_from_recently_opened_files: None,
+                clipboard: None,
+            },
+        ];
+        for segments in contained_crlf {
+            assert!(contains_crlf(&segments));
+        }
+
+        let not_contained_crlf = vec![Segments {
+            prefix: "fn hello_world() -> &'static str {\r".into(),
+            suffix: Some("}\n".into()),
+            filepath: None,
+            git_url: None,
+            declarations: None,
+            relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_recently_opened_files: None,
+            clipboard: None,
+        }];
+        for segments in not_contained_crlf {
+            assert!(!contains_crlf(&segments));
+        }
+    }
+
+    #[test]
+    fn test_override_prompt() {
+        let prompt = "fn hello_world() -> &'static str {\r\n".to_string();
+        let use_crlf = true;
+        assert_eq!(
+            override_prompt(prompt.clone(), use_crlf),
+            "fn hello_world() -> &'static str {\n"
+        );
+
+        let use_crlf = false;
+        assert_eq!(override_prompt(prompt.clone(), use_crlf), prompt);
+    }
+
+    #[test]
+    fn test_override_generated() {
+        let cases = vec![
+            (
+                "fn hello_world() -> &'static str {\r\n".to_string(),
+                "fn hello_world() -> &'static str {\r\n".to_string(),
+            ),
+            (
+                "fn hello_world() -> &'static str {\n".to_string(),
+                "fn hello_world() -> &'static str {\r\n".to_string(),
+            ),
+            (
+                "fn hello_world() -> &'static str {\r".to_string(),
+                "fn hello_world() -> &'static str {\r".to_string(),
+            ),
+            (
+                "fn hello_world() -> &'static str {".to_string(),
+                "fn hello_world() -> &'static str {".to_string(),
+            ),
+        ];
+
+        for (generated, expected) in cases {
+            assert_eq!(override_generated_text(generated, true), expected);
+        }
     }
 }

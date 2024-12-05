@@ -1,10 +1,9 @@
 use anyhow::Result;
-use chrono::Duration;
+use chrono::{DateTime, Duration, Utc};
 use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
-use super::DbConn;
-use crate::{DateTimeUtc, DbOption};
+use super::{AsSqliteDateTimeString, DbConn};
 
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
@@ -14,28 +13,23 @@ pub struct JobRunDAO {
     pub command: String,
     pub exit_code: Option<i64>,
     pub stdout: String,
-    pub stderr: String,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     /// The time when the job was started.
-    pub started_at: DbOption<DateTimeUtc>,
+    pub started_at: Option<DateTime<Utc>>,
 
     #[sqlx(rename = "end_ts")]
-    pub finished_at: DbOption<DateTimeUtc>,
+    pub finished_at: Option<DateTime<Utc>>,
 }
 
 impl JobRunDAO {
     pub fn is_running(&self) -> bool {
-        self.started_at.0.is_some() && self.finished_at.0.is_none()
+        self.started_at.is_some() && self.finished_at.is_none()
     }
 
     pub fn is_pending(&self) -> bool {
-        self.started_at.0.is_none()
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.finished_at.0.is_some()
+        self.started_at.is_none() && self.exit_code.is_none()
     }
 }
 
@@ -76,15 +70,6 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_job_stderr(&self, job_id: i64, stderr: String) -> Result<()> {
-        query!(
-            r#"UPDATE job_runs SET stderr = stderr || ?, updated_at = datetime('now') WHERE id = ?"#,
-            stderr,
-            job_id
-        ).execute(&self.pool).await?;
-        Ok(())
-    }
-
     pub async fn update_job_status(&self, job_id: i64, exit_code: i32) -> Result<()> {
         query!(
             r#"UPDATE job_runs SET end_ts = datetime('now'), exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
@@ -111,6 +96,15 @@ impl DbConn {
         .await
         .ok()
         .flatten()
+    }
+
+    pub async fn delete_pending_job_run(&self, command: &str) -> Result<usize> {
+        // Delete jobs that are not started and doesn't have an exit code.
+        let num_deleted = query!("UPDATE job_runs SET exit_code = -1, end_ts = datetime('now'), updated_at = datetime('now') WHERE exit_code IS NULL AND started_at IS NULL AND command = ?", command)
+            .execute(&self.pool)
+            .await?.rows_affected();
+
+        Ok(num_deleted as usize)
     }
 
     pub async fn list_job_runs_with_filter(
@@ -144,12 +138,11 @@ impl DbConn {
                 "job" as "name",
                 "exit_code",
                 "stdout",
-                "stderr",
                 "command"!,
-                "created_at"!,
-                "updated_at"!,
-                "started_at",
-                "end_ts" as "finished_at"
+                "created_at" as "created_at!: DateTime<Utc>",
+                "updated_at" as "updated_at!: DateTime<Utc>",
+                "started_at" as "started_at: DateTime<Utc>",
+                "end_ts" as "finished_at: DateTime<Utc>"
             ],
             limit,
             skip_id,
@@ -172,7 +165,7 @@ impl DbConn {
             None => "".into(),
         };
 
-        let cutoff = DateTimeUtc::now() - Duration::days(7);
+        let cutoff = Utc::now() - Duration::days(7);
 
         let stats = sqlx::query_as(&format!(
             r#"SELECT
@@ -181,7 +174,7 @@ impl DbConn {
                 SUM(exit_code IS NULL) AS pending FROM job_runs
                 WHERE created_at > ? {condition};"#
         ))
-        .bind(cutoff)
+        .bind(cutoff.as_sqlite_datetime())
         .fetch_one(&self.pool)
         .await?;
         Ok(stats)

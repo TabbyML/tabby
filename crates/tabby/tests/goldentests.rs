@@ -79,6 +79,16 @@ async fn golden_test(body: serde_json::Value) -> serde_json::Value {
         }),
     );
 
+    let resp = CLIENT
+        .post("http://127.0.0.1:9090/v1/completions")
+        .json(&body)
+        .send()
+        .await
+        .unwrap();
+
+    let info = resp.text().await.unwrap();
+    eprintln!("info {}", info);
+
     let actual: serde_json::Value = CLIENT
         .post("http://127.0.0.1:9090/v1/completions")
         .json(&body)

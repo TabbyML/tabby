@@ -4,7 +4,7 @@ services:
   worker-0:
     restart: always
     image: tabbyml/tabby
-    command: serve --model TabbyML/StarCoder-1B --device cuda
+    command: serve --model TabbyML/StarCoder-1B --device cuda --no-webserver
     volumes:
       - "$HOME/.tabby:/data"
     deploy:
@@ -18,7 +18,7 @@ services:
   worker-1:
     restart: always
     image: tabbyml/tabby
-    command: serve --model TabbyML/StarCoder-1B --device cuda
+    command: serve --model TabbyML/StarCoder-1B --device cuda --no-webserver
     volumes:
       - "$HOME/.tabby:/data"
     deploy:

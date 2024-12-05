@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
 
+use crate::create_reqwest_client;
+
 pub struct LlamaCppEngine {
     client: reqwest::Client,
     api_endpoint: String,
@@ -9,14 +11,14 @@ pub struct LlamaCppEngine {
 }
 
 impl LlamaCppEngine {
-    pub fn create(api_endpoint: &str, api_key: Option<String>) -> Self {
-        let client = reqwest::Client::new();
+    pub fn create(api_endpoint: &str, api_key: Option<String>) -> Box<dyn Embedding> {
+        let client = create_reqwest_client(api_endpoint);
 
-        Self {
+        Box::new(Self {
             client,
-            api_endpoint: format!("{}/embeddings", api_endpoint),
+            api_endpoint: format!("{}/embedding", api_endpoint),
             api_key,
-        }
+        })
     }
 }
 
@@ -46,9 +48,9 @@ impl Embedding for LlamaCppEngine {
         if response.status().is_server_error() {
             let error = response.text().await?;
             return Err(anyhow::anyhow!(
-                "Error from server: {}, prompt: {}",
+                "Error from server: {}, prompt length: {}",
                 error,
-                prompt
+                prompt.len()
             ));
         }
 

@@ -3,39 +3,38 @@ package com.tabbyml.intellijtabby.lsp
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationInfo
-import com.intellij.openapi.components.service
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiManager
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.util.messages.Topic
+import com.tabbyml.intellijtabby.findDocument
+import com.tabbyml.intellijtabby.findPsiFile
+import com.tabbyml.intellijtabby.findVirtualFile
 import com.tabbyml.intellijtabby.git.GitProvider
+import com.tabbyml.intellijtabby.languageSupport.LanguageSupportProvider
+import com.tabbyml.intellijtabby.languageSupport.LanguageSupportService
 import com.tabbyml.intellijtabby.lsp.protocol.*
 import com.tabbyml.intellijtabby.lsp.protocol.ClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.ClientInfo
 import com.tabbyml.intellijtabby.lsp.protocol.InitializeParams
-import com.tabbyml.intellijtabby.lsp.protocol.InitializeResult
 import com.tabbyml.intellijtabby.lsp.protocol.TextDocumentClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.future.await
-import kotlinx.coroutines.launch
+import com.tabbyml.intellijtabby.safeSyncPublisher
 import org.eclipse.lsp4j.*
 import java.util.concurrent.CompletableFuture
 
 class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.lsp.protocol.client.LanguageClient(),
   Disposable {
   private val logger = Logger.getInstance(LanguageClient::class.java)
-  private val publisher = project.messageBus.syncPublisher(AgentListener.TOPIC)
-  private val scope = CoroutineScope(Dispatchers.IO)
-  private val virtualFileManager = VirtualFileManager.getInstance()
-  private val psiManager = PsiManager.getInstance(project)
-  private val gitProvider = project.service<GitProvider>()
+  private val gitProvider = project.serviceOrNull<GitProvider>()
+  private val languageSupportService = project.serviceOrNull<LanguageSupportService>()
   private val configurationSync = ConfigurationSync(project)
   private val textDocumentSync = TextDocumentSync(project)
 
@@ -66,8 +65,11 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
           didChangeConfiguration = DidChangeConfigurationCapabilities()
         },
         tabby = TabbyClientCapabilities(
-          agent = true,
-          gitProvider = true,
+          configDidChangeListener = true,
+          statusDidChangeListener = true,
+          gitProvider = gitProvider?.isSupported(),
+          workspaceFileSystem = true,
+          languageSupport = languageSupportService != null,
           editorOptions = true,
         ),
       ), workspaceFolders = getWorkspaceFolders()
@@ -79,23 +81,19 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   override fun processInitializeResult(server: LanguageServer, result: InitializeResult?) {
     configurationSync.startSync(server)
     textDocumentSync.startSync(server)
-    scope.launch {
-      publisher.agentStatusChanged(server.agentFeature.status().await())
-      publisher.agentIssueUpdated(server.agentFeature.issues().await())
-    }
   }
 
-  override fun didChangeStatus(params: DidChangeStatusParams) {
-    publisher.agentStatusChanged(params.status)
+  override fun configDidChange(params: Config) {
+    project.safeSyncPublisher(ConfigListener.TOPIC)?.configChanged(params)
   }
 
-  override fun didUpdateIssues(params: DidUpdateIssueParams) {
-    publisher.agentIssueUpdated(params)
+  override fun statusDidChange(params: StatusInfo) {
+    project.safeSyncPublisher(StatusListener.TOPIC)?.statusChanged(params)
   }
 
   override fun editorOptions(params: EditorOptionsParams): CompletableFuture<EditorOptions?> {
     val codeStyleSettingsManager = CodeStyleSettingsManager.getInstance(project)
-    val indentation = findPsiFile(params.uri)?.language?.let {
+    val indentation = project.findPsiFile(params.uri)?.language?.let {
       codeStyleSettingsManager.mainProjectCodeStyle?.getCommonSettings(it)?.indentOptions
     }?.let {
       if (it.USE_TAB_CHARACTER) {
@@ -109,8 +107,72 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     }
   }
 
+  override fun readFile(params: ReadFileParams): CompletableFuture<ReadFileResult?> {
+    val file = project.findVirtualFile(params.uri) ?: return CompletableFuture.completedFuture(null)
+    when (params.format) {
+      ReadFileParams.Format.TEXT -> {
+        val document = project.findDocument(file) ?: return CompletableFuture.completedFuture(null)
+        val text = if (params.range != null) {
+          document.getText(
+            TextRange(
+              offsetInDocument(document, params.range.start),
+              offsetInDocument(document, params.range.end)
+            )
+          )
+        } else {
+          document.text
+        }
+        return CompletableFuture.completedFuture(ReadFileResult(text))
+      }
+
+      else -> {
+        return CompletableFuture.completedFuture(null)
+      }
+    }
+  }
+
+  override fun declaration(params: DeclarationParams): CompletableFuture<List<LocationLink>?> {
+    return CompletableFuture<List<LocationLink>?>().completeAsync {
+      val virtualFile = project.findVirtualFile(params.textDocument.uri) ?: return@completeAsync null
+      val document = project.findDocument(virtualFile) ?: return@completeAsync null
+      val psiFile = project.findPsiFile(virtualFile) ?: return@completeAsync null
+      val languageSupport = languageSupportService ?: return@completeAsync null
+      languageSupport.provideDeclaration(
+        LanguageSupportProvider.FilePosition(psiFile, offsetInDocument(document, params.position))
+      )?.mapNotNull {
+        val targetUri = it.file.virtualFile.url
+        val targetDocument = project.findDocument(it.file.virtualFile) ?: return@mapNotNull null
+        val range = Range(
+          positionInDocument(targetDocument, it.range.startOffset),
+          positionInDocument(targetDocument, it.range.endOffset)
+        )
+        LocationLink(targetUri, range, range)
+      }
+    }
+  }
+
+  override fun semanticTokensRange(params: SemanticTokensRangeParams): CompletableFuture<SemanticTokensRangeResult?> {
+    return CompletableFuture<SemanticTokensRangeResult?>().completeAsync {
+      val virtualFile = project.findVirtualFile(params.textDocument.uri) ?: return@completeAsync null
+      val document = project.findDocument(virtualFile) ?: return@completeAsync null
+      val psiFile = project.findPsiFile(virtualFile) ?: return@completeAsync null
+      val languageSupport = languageSupportService ?: return@completeAsync null
+      languageSupport.provideSemanticTokensRange(
+        LanguageSupportProvider.FileRange(
+          psiFile,
+          TextRange(
+            offsetInDocument(document, params.range.start),
+            offsetInDocument(document, params.range.end)
+          )
+        )
+      )?.let {
+        encodeSemanticTokens(document, it)
+      }
+    }
+  }
+
   override fun gitRepository(params: GitRepositoryParams): CompletableFuture<GitRepository?> {
-    val repository = gitProvider.getRepository(params.uri)?.let { repo ->
+    val repository = gitProvider?.getRepository(params.uri)?.let { repo ->
       GitRepository(root = repo.root, remotes = repo.remotes?.map {
         GitRepository.Remote(
           name = it.name,
@@ -124,7 +186,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   }
 
   override fun gitDiff(params: GitDiffParams): CompletableFuture<GitDiffResult?> {
-    val result = gitProvider.diff(params.repository, params.cached)?.let {
+    val result = gitProvider?.diff(params.repository, params.cached)?.let {
       GitDiffResult(diff = it)
     }
     return CompletableFuture<GitDiffResult?>().apply {
@@ -154,6 +216,26 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     }
   }
 
+  override fun showMessageRequest(params: ShowMessageRequestParams): CompletableFuture<MessageActionItem?> {
+    return CompletableFuture<MessageActionItem?>().apply {
+      invokeLater {
+        val actions = params.actions.map { it.title }.toTypedArray()
+        val selected = Messages.showDialog(
+          params.message,
+          "Tabby",
+          actions,
+          0,
+          when (params.type) {
+            MessageType.Error -> Messages.getErrorIcon()
+            MessageType.Warning -> Messages.getWarningIcon()
+            else -> Messages.getInformationIcon()
+          },
+        )
+        complete(actions.getOrNull(selected)?.let { MessageActionItem(it) })
+      }
+    }
+  }
+
   override fun logMessage(params: MessageParams) {
     when (params.type) {
       MessageType.Error -> logger.warn(params.message)
@@ -173,23 +255,79 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     textDocumentSync.dispose()
   }
 
-  private fun findPsiFile(fileUri: String): PsiFile? {
-    return virtualFileManager.findFileByUrl(fileUri)?.let { psiManager.findFileWithReadLock(it) }
-  }
-
   private fun getWorkspaceFolders(): List<WorkspaceFolder> {
     return project.guessProjectDir()?.let {
       listOf(WorkspaceFolder(it.url, project.name))
     } ?: listOf()
   }
 
-  interface AgentListener {
-    fun agentStatusChanged(status: String) {}
-    fun agentIssueUpdated(issueList: IssueList) {}
+  private fun encodeSemanticTokens(
+    document: Document,
+    tokens: List<LanguageSupportProvider.SemanticToken>
+  ): SemanticTokensRangeResult {
+    val tokenTypesLegend = mutableListOf<String>()
+    val tokenModifiersLegend = mutableListOf<String>()
+    val data = mutableListOf<Int>()
+    var line = 0
+    var character = 0
+    for (token in tokens.sortedBy { it.range.startOffset }) {
+      val position = positionInDocument(document, token.range.startOffset)
+      val deltaLine = position.line - line
+      line = position.line
+      if (deltaLine != 0) {
+        character = 0
+      }
+      val deltaCharacter = position.character - character
+      character = position.character
+      val length = token.range.endOffset - token.range.startOffset
+      val tokenType = tokenTypesLegend.indexOf(token.type).let {
+        if (it == -1) {
+          tokenTypesLegend.add(token.type)
+          tokenTypesLegend.size - 1
+        } else {
+          it
+        }
+      }
+      val tokenModifiers = token.modifiers.map { modifier ->
+        tokenModifiersLegend.indexOf(modifier).let {
+          if (it == -1) {
+            tokenModifiersLegend.add(modifier)
+            tokenModifiersLegend.size - 1
+          } else {
+            it
+          }
+        }
+      }.fold(0) { acc, i ->
+        acc or (1 shl i)
+      }
+
+      data.add(deltaLine)
+      data.add(deltaCharacter)
+      data.add(length)
+      data.add(tokenType)
+      data.add(tokenModifiers)
+    }
+    return SemanticTokensRangeResult(
+      legend = SemanticTokensRangeResult.SemanticTokensLegend(tokenTypesLegend, tokenModifiersLegend),
+      tokens = SemanticTokensRangeResult.SemanticTokens(data = data)
+    )
+  }
+
+  interface ConfigListener {
+    fun configChanged(config: Config) {}
 
     companion object {
       @Topic.ProjectLevel
-      val TOPIC = Topic(AgentListener::class.java, Topic.BroadcastDirection.NONE)
+      val TOPIC = Topic(ConfigListener::class.java, Topic.BroadcastDirection.NONE)
+    }
+  }
+
+  interface StatusListener {
+    fun statusChanged(status: StatusInfo) {}
+
+    companion object {
+      @Topic.ProjectLevel
+      val TOPIC = Topic(StatusListener::class.java, Topic.BroadcastDirection.NONE)
     }
   }
 }

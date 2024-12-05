@@ -246,6 +246,34 @@ top_level_keywords = [
 ]
 
 [[config]]
+languages = ["elixir"]
+exts = ["ex", "exs"]
+line_comment = "#"
+top_level_keywords = [
+    "def",
+    "defp",
+    "defmacro",
+    "defmacrop",
+    "module",
+    "use",
+    "import",
+    "alias",
+    "require",
+    "if",
+    "unless",
+    "case",
+    "cond",
+    "with",
+    "try",
+    "catch",
+    "throw",
+    "receive",
+    "after",
+    "do",
+    "end",
+]
+
+[[config]]
 languages = ["r"]
 exts = ["R", "r"]
 line_comment = "#"
@@ -306,6 +334,12 @@ exts = ["Makefile"]
 [[config]]
 languages = ["markdown"]
 exts = ["md", "markdown"]
+chunk_size = 1536
+
+[[config]]
+languages = ["txt"]
+exts = ["txt"]
+chunk_size = 1536
 
 [[config]]
 languages = ["perl"]
@@ -363,3 +397,55 @@ exts = ["tex"]
 [[config]]
 languages = ["vb"]
 exts = ["vb"]
+
+[[config]]
+languages = ["ocaml"]
+exts = ["ml", "mli"]
+top_level_keywords = [
+  "and",
+  "as",
+  "assert",
+  "begin",
+  "class",
+  "constraint",
+  "do",
+  "done",
+  "downto",
+  "else",
+  "end",
+  "exception",
+  "external",
+  "for",
+  "fun",
+  "function",
+  "functor",
+  "if",
+  "in",
+  "include",
+  "inherit",
+  "initializer",
+  "lazy",
+  "let",
+  "match",
+  "method",
+  "module",
+  "mutable",
+  "new",
+  "nonrec",
+  "object",
+  "of",
+  "open",
+  "private",
+  "rec",
+  "sig",
+  "struct",
+  "then",
+  "to",
+  "try",
+  "type",
+  "val",
+  "virtual",
+  "when",
+  "while",
+  "with",
+]

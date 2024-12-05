@@ -2423,7 +2423,7 @@
     "@docusaurus/theme-search-algolia" "3.2.1"
     "@docusaurus/types" "3.2.1"
 
-"@docusaurus/react-loadable@5.5.2":
+"@docusaurus/react-loadable@5.5.2", "react-loadable@npm:@docusaurus/react-loadable@5.5.2":
   version "5.5.2"
   resolved "https://registry.yarnpkg.com/@docusaurus/react-loadable/-/react-loadable-5.5.2.tgz#81aae0db81ecafbdaee3651f12804580868fa6ce"
   integrity sha512-A3dYjdBGuy0IGT+wyLIGIKLRE+sAk1iNk0f1HjNDysO7u8lhL4N3VEm+FAubmJbAztn94F7MxBTPmnixbiyFdQ==
@@ -4002,15 +4002,10 @@ caniuse-api@^3.0.0:
     lodash.memoize "^4.1.2"
     lodash.uniq "^4.5.0"
 
-caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001464, caniuse-lite@^1.0.30001489:
-  version "1.0.30001495"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001495.tgz#64a0ccef1911a9dcff647115b4430f8eff1ef2d9"
-  integrity sha512-F6x5IEuigtUfU5ZMQK2jsy5JqUUlEFRVZq8bO2a+ysq5K7jD6PPc9YXZj78xDNS3uNchesp1Jw47YXEqr+Viyg==
-
-caniuse-lite@^1.0.30001587:
-  version "1.0.30001612"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001612.tgz#d34248b4ec1f117b70b24ad9ee04c90e0b8a14ae"
-  integrity sha512-lFgnZ07UhaCcsSZgWW0K5j4e69dK1u/ltrL9lTUiFOwNHs12S3UMIEYgBV0Z6C6hRDev7iRnMzzYmKabYdXF9g==
+caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001464, caniuse-lite@^1.0.30001489, caniuse-lite@^1.0.30001587:
+  version "1.0.30001640"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001640.tgz"
+  integrity sha512-lA4VMpW0PSUrFnkmVuEKBUovSWKhj7puyCg8StBChgu298N1AtuF1sKWEvfDuimSEDbhlb/KqPKC3fs1HbuQUA==
 
 ccount@^2.0.0:
   version "2.0.1"
@@ -6775,11 +6770,6 @@ marked@^11.0.0:
   resolved "https://registry.yarnpkg.com/marked/-/marked-11.2.0.tgz#fc908aeca962b721b0392ee4205e6f90ebffb074"
   integrity sha512-HR0m3bvu0jAPYiIvLUUQtdg1g6D247//lvcekpHO1WMvbwDlwSkZAX9Lw4F4YHE1T0HaaNve0tuAWuV1UJ6vtw==
 
-marked@^9.1.5:
-  version "9.1.5"
-  resolved "https://registry.yarnpkg.com/marked/-/marked-9.1.5.tgz#fcada4702ea64a5c05a4ff0e0639628aac8a1e5f"
-  integrity sha512-14QG3shv8Kg/xc0Yh6TNkMj90wXH9mmldi5941I2OevfJ/FQAFLEwtwU2/FfgSAOMlWHrEukWSGQf8MiVYNG2A==
-
 mdast-util-directive@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/mdast-util-directive/-/mdast-util-directive-3.0.0.tgz#3fb1764e705bbdf0afb0d3f889e4404c3e82561f"
@@ -8833,14 +8823,6 @@ react-loadable-ssr-addon-v5-slorber@^1.0.1:
   integrity sha512-lq3Lyw1lGku8zUEJPDxsNm1AfYHBrO9Y1+olAYwpUJ2IGFBskM0DMKok97A6LWUpHm+o7IvQBOWu9MLenp9Z+A==
   dependencies:
     "@babel/runtime" "^7.10.3"
-
-"react-loadable@npm:@docusaurus/react-loadable@5.5.2":
-  version "5.5.2"
-  resolved "https://registry.yarnpkg.com/@docusaurus/react-loadable/-/react-loadable-5.5.2.tgz#81aae0db81ecafbdaee3651f12804580868fa6ce"
-  integrity sha512-A3dYjdBGuy0IGT+wyLIGIKLRE+sAk1iNk0f1HjNDysO7u8lhL4N3VEm+FAubmJbAztn94F7MxBTPmnixbiyFdQ==
-  dependencies:
-    "@types/react" "*"
-    prop-types "^15.6.2"
 
 react-magic-dropzone@^1.0.1:
   version "1.0.1"

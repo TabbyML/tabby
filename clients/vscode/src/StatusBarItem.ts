@@ -39,6 +39,10 @@ export class StatusBarItem {
   ) {
     this.updateStatus();
     this.item.show();
+    this.item.command = {
+      title: "Show Tabby Command Palette",
+      command: "tabby.commandPalette.trigger",
+    };
     this.context.subscriptions.push(this.item);
 
     this.client.languageClient.onDidChangeState(() => this.updateStatus());
@@ -100,11 +104,6 @@ export class StatusBarItem {
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconLoading} ${label}`;
     this.item.tooltip = "Tabby is initializing.";
-    this.item.command = {
-      title: "",
-      command: "tabby.applyCallback",
-      arguments: [() => this.showInformationWhenInitializing()],
-    };
   }
 
   private toAutomatic() {
@@ -116,11 +115,6 @@ export class StatusBarItem {
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconAutomatic} ${label}`;
     this.item.tooltip = "Tabby automatic code completion is enabled.";
-    this.item.command = {
-      title: "",
-      command: "tabby.applyCallback",
-      arguments: [() => this.showInformationWhenAutomaticTrigger()],
-    };
   }
 
   private toManual() {
@@ -132,11 +126,6 @@ export class StatusBarItem {
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconManual} ${label}`;
     this.item.tooltip = "Tabby is standing by, click or press `Alt + \\` to trigger code completion.";
-    this.item.command = {
-      title: "",
-      command: "tabby.applyCallback",
-      arguments: [() => this.showInformationWhenManualTrigger()],
-    };
   }
 
   private toDisabled() {
@@ -148,11 +137,6 @@ export class StatusBarItem {
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconDisabled} ${label}`;
     this.item.tooltip = "Tabby is disabled. Click to check settings.";
-    this.item.command = {
-      title: "",
-      command: "tabby.applyCallback",
-      arguments: [() => this.showInformationWhenInlineSuggestDisabled()],
-    };
     this.showInformationWhenInlineSuggestDisabled();
   }
 
@@ -165,11 +149,6 @@ export class StatusBarItem {
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconLoading} ${label}`;
     this.item.tooltip = "Tabby is generating code completions.";
-    this.item.command = {
-      title: "",
-      command: "tabby.applyCallback",
-      arguments: [() => this.showInformationWhenLoading()],
-    };
   }
 
   private toDisconnected() {
@@ -181,11 +160,6 @@ export class StatusBarItem {
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconDisconnected} ${label}`;
     this.item.tooltip = "Cannot connect to Tabby Server. Click to open settings.";
-    this.item.command = {
-      title: "",
-      command: "tabby.applyCallback",
-      arguments: [() => this.issues.showHelpMessage("connectionFailed")],
-    };
   }
 
   private toUnauthorized() {
@@ -197,11 +171,6 @@ export class StatusBarItem {
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconUnauthorized} ${label}`;
     this.item.tooltip = "Tabby Server requires authorization. Please set your personal token.";
-    this.item.command = {
-      title: "",
-      command: "tabby.applyCallback",
-      arguments: [() => this.showInformationWhenUnauthorized()],
-    };
     this.showInformationWhenUnauthorized();
   }
 
@@ -224,64 +193,6 @@ export class StatusBarItem {
         this.item.tooltip = "";
         break;
     }
-    this.item.command = {
-      title: "",
-      command: "tabby.applyCallback",
-      arguments: [() => this.issues.showHelpMessage()],
-    };
-  }
-
-  private showInformationWhenInitializing() {
-    window.showInformationMessage("Tabby is initializing.", "Settings").then((selection) => {
-      switch (selection) {
-        case "Settings":
-          commands.executeCommand("tabby.openSettings");
-          break;
-      }
-    });
-  }
-
-  private showInformationWhenAutomaticTrigger() {
-    window.showInformationMessage("Tabby automatic code completion is enabled.", "Settings").then((selection) => {
-      switch (selection) {
-        case "Settings":
-          commands.executeCommand("tabby.openSettings");
-          break;
-      }
-    });
-  }
-
-  private showInformationWhenManualTrigger() {
-    window
-      .showInformationMessage(
-        "Tabby is standing by. Trigger code completion manually?",
-        "Trigger",
-        "Automatic Mode",
-        "Settings",
-      )
-      .then((selection) => {
-        switch (selection) {
-          case "Trigger":
-            commands.executeCommand("editor.action.inlineSuggest.trigger");
-            break;
-          case "Automatic Mode":
-            commands.executeCommand("tabby.toggleInlineCompletionTriggerMode", "automatic");
-            break;
-          case "Settings":
-            commands.executeCommand("tabby.openSettings");
-            break;
-        }
-      });
-  }
-
-  private showInformationWhenLoading() {
-    window.showInformationMessage("Tabby is generating code completions.", "Settings").then((selection) => {
-      switch (selection) {
-        case "Settings":
-          commands.executeCommand("tabby.openSettings");
-          break;
-      }
-    });
   }
 
   private showInformationWhenInlineSuggestDisabled() {

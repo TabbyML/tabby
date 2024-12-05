@@ -48,14 +48,6 @@ pub fn body_query(tokens: &[String]) -> Box<dyn Query> {
     Box::new(BooleanQuery::union(subqueries))
 }
 
-fn git_url_query(git_url: &str) -> Box<TermQuery> {
-    let schema = IndexSchema::instance();
-    let mut term =
-        Term::from_field_json_path(schema.field_chunk_attributes, fields::CHUNK_GIT_URL, false);
-    term.append_type_and_str(git_url);
-    Box::new(TermQuery::new(term, IndexRecordOption::Basic))
-}
-
 fn filepath_query(filepath: &str) -> Box<TermQuery> {
     let schema = IndexSchema::instance();
     let mut term =
@@ -69,26 +61,26 @@ pub fn code_search_query(
     chunk_tokens_query: Box<dyn Query>,
 ) -> BooleanQuery {
     let schema = IndexSchema::instance();
-    let corpus_query = schema.corpus_query(corpus::CODE);
-    let language_query = language_query(&query.language);
-    let git_url_query = git_url_query(&query.git_url);
 
     // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
-    let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![
+    let mut subqueries = vec![
+        (Occur::Must, chunk_tokens_query),
+        (Occur::Must, schema.corpus_query(corpus::CODE)),
         (
             Occur::Must,
-            Box::new(ConstScoreQuery::new(corpus_query, 0.0)),
-        ),
-        (
-            Occur::Must,
-            Box::new(ConstScoreQuery::new(language_query, 0.0)),
-        ),
-        (Occur::Must, Box::new(chunk_tokens_query)),
-        (
-            Occur::Must,
-            Box::new(ConstScoreQuery::new(git_url_query, 0.0)),
+            Box::new(ConstScoreQuery::new(
+                Box::new(schema.source_id_query(&query.source_id)),
+                0.0,
+            )),
         ),
     ];
+
+    if let Some(language) = query.language.as_deref() {
+        subqueries.push((
+            Occur::Must,
+            Box::new(ConstScoreQuery::new(language_query(language), 0.0)),
+        ));
+    }
 
     // When filepath presents, we exclude the file from the search.
     if let Some(filepath) = &query.filepath {

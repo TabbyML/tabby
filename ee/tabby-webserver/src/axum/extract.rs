@@ -49,11 +49,14 @@ where
         };
 
         // Check that its a well-formed bearer and return
-        let split = authorization.split_once(' ');
-        match split {
-            // Found proper bearer
-            Some(("Bearer", contents)) => Ok(Self(Some(contents.to_owned()))),
-            _ => Ok(Self(None)),
-        }
+        Ok(Self(extract_bearer_token(authorization)))
+    }
+}
+
+pub fn extract_bearer_token(authorization: &str) -> Option<String> {
+    let split = authorization.split_once(' ');
+    match split {
+        Some(("Bearer", contents)) => Some(contents.to_owned()),
+        _ => None,
     }
 }

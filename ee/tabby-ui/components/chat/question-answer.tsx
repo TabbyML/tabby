@@ -1,38 +1,42 @@
 // Inspired by Chatbot-UI and modified to fit the needs of this project
 // @see https://github.com/mckaywrigley/chatbot-ui/blob/main/components/Chat/ChatMessage.tsx
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
-import { isNil } from 'lodash-es'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
+import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
+import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
   AssistantMessage,
+  AttachmentCodeItem,
   QuestionAnswerPair,
   UserMessage
 } from '@/lib/types/chat'
-import { cn } from '@/lib/utils'
-import { CodeBlock } from '@/components/ui/codeblock'
-import { MemoizedReactMarkdown } from '@/components/markdown'
+import {
+  cn,
+  getRangeFromAttachmentCode,
+  getRangeTextFromAttachmentCode
+} from '@/lib/utils'
 
 import { CopyButton } from '../copy-button'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger
-} from '../ui/accordion'
+import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
 import { Button } from '../ui/button'
-import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
+import {
+  IconEdit,
+  IconFile,
+  IconRefresh,
+  IconTrash,
+  IconUser
+} from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
-import { UserAvatar } from '../user-avatar'
+import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
+import { CodeReferences } from './code-references'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
@@ -53,6 +57,7 @@ function QuestionAnswerList({
             <QuestionAnswerItem
               isLoading={isLastItem ? isLoading : false}
               message={message}
+              isLastItem={isLastItem}
             />
             {!isLastItem && <Separator className="my-4 md:my-8" />}
           </React.Fragment>
@@ -65,6 +70,7 @@ function QuestionAnswerList({
 interface QuestionAnswerItemProps {
   message: QuestionAnswerPair
   isLoading: boolean
+  isLastItem?: boolean
 }
 
 type SelectCode = {
@@ -72,7 +78,11 @@ type SelectCode = {
   isMultiLine: boolean
 }
 
-function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
+function QuestionAnswerItem({
+  message,
+  isLoading,
+  isLastItem
+}: QuestionAnswerItemProps) {
   const { user, assistant } = message
 
   return (
@@ -83,8 +93,10 @@ function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
           <Separator className="my-4 md:my-8" />
           <AssistantMessageCard
             message={assistant}
+            userMessage={user}
             isLoading={isLoading}
             userMessageId={user.id}
+            enableRegenerating={isLastItem}
           />
         </>
       )}
@@ -96,7 +108,8 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext, from } = React.useContext(ChatContext)
+  const { onNavigateToContext, supportsOnApplyInEditorV2 } =
+    React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -122,13 +135,16 @@ function UserMessageCard(props: { message: UserMessage }) {
       {...props}
     >
       <div
-        className={cn('flex w-full items-center justify-between md:w-auto', {
-          'hidden md:flex': !data?.me.name
-        })}
+        className={cn(
+          'flex min-h-[2rem] w-full items-center justify-between md:w-auto',
+          {
+            'hidden md:flex': !data?.me.name
+          }
+        )}
       >
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
-            <UserAvatar
+            <MyAvatar
               className="h-6 w-6 md:h-8 md:w-8"
               fallback={
                 <div className="flex h-6 w-6 items-center justify-center md:h-8 md:w-8">
@@ -147,18 +163,23 @@ function UserMessageCard(props: { message: UserMessage }) {
 
       <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
-          <MessageMarkdown message={message.message} />
-          {!!selectCodeSnippet && (
-            <MessageMarkdown message={selectCodeSnippet} />
-          )}
+          <MessageMarkdown
+            message={message.message}
+            canWrapLongLines
+            supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+          />
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
           </div>
 
-          {selectCode && message.selectContext && from !== 'vscode' && (
+          {selectCode && message.selectContext && (
             <div
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
-              onClick={() => onNavigateToContext?.(message.selectContext!)}
+              onClick={() =>
+                onNavigateToContext?.(message.selectContext!, {
+                  openInEditor: true
+                })
+              }
             >
               <IconFile className="h-3 w-3" />
               <p className="flex-1 truncate pr-1">
@@ -185,17 +206,29 @@ function UserMessageCard(props: { message: UserMessage }) {
 
 function UserMessageCardActions(props: { message: UserMessage }) {
   const { message } = props
-  const { handleMessageAction } = React.useContext(ChatContext)
+  const { handleMessageAction, isLoading } = React.useContext(ChatContext)
   return (
     <ChatMessageActionsWrapper>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={e => handleMessageAction?.(message.id, 'delete')}
-      >
-        <IconTrash />
-        <span className="sr-only">Delete message</span>
-      </Button>
+      {!isLoading && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={e => handleMessageAction(message.id, 'edit')}
+        >
+          <IconEdit />
+          <span className="sr-only">Edit message</span>
+        </Button>
+      )}
+      {!isLoading && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={e => handleMessageAction(message.id, 'delete')}
+        >
+          <IconTrash />
+          <span className="sr-only">Delete message</span>
+        </Button>
+      )}
     </ChatMessageActionsWrapper>
   )
 }
@@ -204,36 +237,117 @@ interface AssistantMessageCardProps {
   userMessageId: string
   isLoading: boolean
   message: AssistantMessage
+  userMessage: UserMessage
+  enableRegenerating?: boolean
 }
 
 interface AssistantMessageActionProps {
   userMessageId: string
   message: AssistantMessage
+  enableRegenerating?: boolean
+  attachmentCode?: Array<AttachmentCodeItem>
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
-  const { message, isLoading, userMessageId, ...rest } = props
-
-  const contexts: Array<Context> = React.useMemo(() => {
+  const {
+    message,
+    userMessage,
+    isLoading,
+    userMessageId,
+    enableRegenerating,
+    ...rest
+  } = props
+  const {
+    onNavigateToContext,
+    onApplyInEditor,
+    onCopyContent,
+    supportsOnApplyInEditorV2
+  } = React.useContext(ChatContext)
+  const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
+    React.useState<number | undefined>(undefined)
+  const serverCode: Array<Context> = React.useMemo(() => {
     return (
       message?.relevant_code?.map(code => {
-        const start_line = code?.start_line ?? 0
-        const lineCount = code.body.split('\n').length
-        const end_line = start_line + lineCount - 1
+        const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
         return {
           kind: 'file',
           range: {
-            start: start_line,
-            end: end_line
+            start: startLine,
+            end: endLine
           },
           filepath: code.filepath,
-          content: code.body,
-          git_url: code.git_url
+          content: code.content,
+          git_url: code.gitUrl
         }
       }) ?? []
     )
   }, [message?.relevant_code])
+
+  const clientCode: Array<Context> = React.useMemo(() => {
+    return uniqWith(
+      compact([
+        userMessage.activeContext,
+        ...(userMessage?.relevantContext ?? [])
+      ]),
+      isEqual
+    )
+  }, [userMessage.activeContext, userMessage.relevantContext])
+
+  const attachmentDocsLen = 0
+
+  const attachmentClientCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
+    useMemo(() => {
+      const formatedAttachmentClientCode =
+        clientCode?.map(o => ({
+          content: o.content,
+          filepath: o.filepath,
+          gitUrl: o.git_url,
+          startLine: o.range.start,
+          language: filename2prism(o.filepath ?? '')[0],
+          isClient: true
+        })) ?? []
+      return formatedAttachmentClientCode
+    }, [clientCode])
+
+  const attachmentCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
+    useMemo(() => {
+      const formatedServerAttachmentCode =
+        serverCode?.map(o => ({
+          content: o.content,
+          filepath: o.filepath,
+          gitUrl: o.git_url,
+          startLine: o.range.start,
+          language: filename2prism(o.filepath ?? '')[0],
+          isClient: false
+        })) ?? []
+      return compact([...formatedServerAttachmentCode])
+    }, [serverCode])
+
+  const onCodeCitationMouseEnter = (index: number) => {
+    setRelevantCodeHighlightIndex(index - 1 - (attachmentDocsLen || 0))
+  }
+
+  const onCodeCitationMouseLeave = (index: number) => {
+    setRelevantCodeHighlightIndex(undefined)
+  }
+
+  const onCodeCitationClick = (code: AttachmentCodeItem) => {
+    const { startLine, endLine } = getRangeFromAttachmentCode(code)
+    const ctx: Context = {
+      git_url: code.gitUrl,
+      content: code.content,
+      filepath: code.filepath,
+      kind: 'file',
+      range: {
+        start: startLine,
+        end: endLine
+      }
+    }
+    onNavigateToContext?.(ctx, {
+      openInEditor: code.isClient
+    })
+  }
 
   return (
     <div
@@ -242,7 +356,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       )}
       {...rest}
     >
-      <div className="flex w-full items-center justify-between md:w-auto">
+      <div className="flex min-h-[2rem] w-full items-center justify-between md:w-auto">
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
@@ -254,17 +368,43 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           <AssistantMessageCardActions
             message={message}
             userMessageId={userMessageId}
+            enableRegenerating={enableRegenerating}
+            attachmentCode={attachmentCode}
           />
         </div>
       </div>
 
       <div className="w-full flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
-        <CodeReferences contexts={contexts} />
+        <CodeReferences
+          contexts={serverCode}
+          clientContexts={clientCode}
+          onContextClick={(ctx, isInWorkspace) => {
+            onNavigateToContext?.(ctx, {
+              openInEditor: isInWorkspace
+            })
+          }}
+          // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
+          showExternalLink={!!onApplyInEditor}
+          showClientCodeIcon={!onApplyInEditor}
+          highlightIndex={relevantCodeHighlightIndex}
+          triggerClassname="md:pt-0"
+        />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
         ) : (
           <>
-            <MessageMarkdown message={message.message} />
+            <MessageMarkdown
+              message={message.message}
+              onApplyInEditor={onApplyInEditor}
+              onCopyContent={onCopyContent}
+              attachmentClientCode={attachmentClientCode}
+              attachmentCode={attachmentCode}
+              onCodeCitationClick={onCodeCitationClick}
+              onCodeCitationMouseEnter={onCodeCitationMouseEnter}
+              onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+              canWrapLongLines={!isLoading}
+              supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+            />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
         )}
@@ -272,11 +412,38 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           <AssistantMessageCardActions
             message={message}
             userMessageId={userMessageId}
+            enableRegenerating={enableRegenerating}
+            attachmentCode={attachmentCode}
           />
         </div>
       </div>
     </div>
   )
+}
+
+function getCopyContent(
+  content: string,
+  attachmentCode?: Array<AttachmentCodeItem>
+) {
+  if (!attachmentCode || isEmpty(attachmentCode)) return content
+
+  const parsedContent = content
+    .replace(MARKDOWN_CITATION_REGEX, match => {
+      const citationNumberMatch = match?.match(/\d+/)
+      return `[${citationNumberMatch}]`
+    })
+    .trim()
+
+  const codeCitations =
+    attachmentCode
+      .map((code, idx) => {
+        const lineRangeText = getRangeTextFromAttachmentCode(code)
+        const filenameText = compact([code.filepath, lineRangeText]).join(':')
+        return `[${idx + 1}] ${filenameText}`
+      })
+      .join('\n') ?? ''
+
+  return `${parsedContent}\n\nCitations:\n${codeCitations}`
 }
 
 function AssistantMessageCardActions(props: AssistantMessageActionProps) {
@@ -285,10 +452,14 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
     isLoading: isGenerating,
     onCopyContent
   } = React.useContext(ChatContext)
-  const { message, userMessageId } = props
+  const { message, userMessageId, enableRegenerating, attachmentCode } = props
+  const copyContent = useMemo(() => {
+    return getCopyContent(message.message, attachmentCode)
+  }, [message.message, attachmentCode])
+
   return (
     <ChatMessageActionsWrapper>
-      {!isGenerating && (
+      {!isGenerating && enableRegenerating && (
         <Button
           variant="ghost"
           size="icon"
@@ -298,94 +469,8 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
           <span className="sr-only">Regenerate message</span>
         </Button>
       )}
-      <CopyButton value={message.message} onCopyContent={onCopyContent} />
+      <CopyButton value={copyContent} onCopyContent={onCopyContent} />
     </ChatMessageActionsWrapper>
-  )
-}
-
-function MessageMarkdown({ message }: { message: string }) {
-  const { onCopyContent } = React.useContext(ChatContext)
-  return (
-    <MemoizedReactMarkdown
-      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        p({ children }) {
-          return <p className="mb-2 last:mb-0">{children}</p>
-        },
-        code({ node, inline, className, children, ...props }) {
-          if (children.length) {
-            if (children[0] == '▍') {
-              return (
-                <span className="mt-1 animate-pulse cursor-default">▍</span>
-              )
-            }
-
-            children[0] = (children[0] as string).replace('`▍`', '▍')
-          }
-
-          const match = /language-(\w+)/.exec(className || '')
-          const metaObject = parseMetaDataString(node.data?.meta as string)
-          const isReference = metaObject?.['is_reference'] === '1'
-
-          if (isReference) {
-            return null
-          }
-
-          if (inline) {
-            return (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            )
-          }
-
-          return (
-            <CodeBlock
-              key={Math.random()}
-              language={(match && match[1]) || ''}
-              value={String(children).replace(/\n$/, '')}
-              onCopyContent={onCopyContent}
-              {...props}
-            />
-          )
-        }
-      }}
-    >
-      {message}
-    </MemoizedReactMarkdown>
-  )
-}
-
-function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
-  const errorMessage = React.useMemo(() => {
-    let jsonString = JSON.stringify(
-      {
-        error: true,
-        message: error
-      },
-      null,
-      2
-    )
-    const markdownJson = '```\n' + jsonString + '\n```'
-    return markdownJson
-  }, [error])
-  return (
-    <MemoizedReactMarkdown
-      className="prose break-words text-sm dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        code({ node, inline, className, children, ...props }) {
-          return (
-            <div {...props} className={cn(className, 'bg-zinc-950 p-2')}>
-              {children}
-            </div>
-          )
-        }
-      }}
-    >
-      {errorMessage}
-    </MemoizedReactMarkdown>
   )
 }
 
@@ -416,97 +501,12 @@ function ChatMessageActionsWrapper({
   return (
     <div
       className={cn(
-        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-[5rem] md:-top-2 md:opacity-0',
+        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-[4rem] md:-top-2 md:opacity-0',
         className
       )}
       {...props}
     />
   )
-}
-
-interface ContextReferencesProps {
-  contexts: Context[]
-}
-const CodeReferences = ({ contexts }: ContextReferencesProps) => {
-  const { onNavigateToContext, isReferenceClickable } =
-    React.useContext(ChatContext)
-  const isMultipleReferences = contexts?.length > 1
-
-  if (!contexts?.length) return null
-
-  return (
-    <Accordion
-      type="single"
-      collapsible
-      className="bg-transparent text-foreground"
-    >
-      <AccordionItem value="references" className="my-0 border-0">
-        <AccordionTrigger className="my-0 py-2">
-          <span className="mr-2">{`Read ${contexts.length} file${
-            isMultipleReferences ? 's' : ''
-          }`}</span>
-        </AccordionTrigger>
-        <AccordionContent className="space-y-2">
-          {contexts?.map((item, index) => {
-            const isMultiLine =
-              !isNil(item.range?.start) &&
-              !isNil(item.range?.end) &&
-              item.range.start < item.range.end
-            const pathSegments = item.filepath.split('/')
-            const fileName = pathSegments[pathSegments.length - 1]
-            const path = pathSegments
-              .slice(0, pathSegments.length - 1)
-              .join('/')
-            return (
-              <div
-                className={cn('rounded-md border p-2 hover:bg-accent', {
-                  'cursor-pointer': isReferenceClickable,
-                  'cursor-default pointer-events-auto': !isReferenceClickable
-                })}
-                key={index}
-                onClick={e =>
-                  isReferenceClickable && onNavigateToContext?.(item)
-                }
-              >
-                <div className="flex items-center gap-1 overflow-hidden">
-                  <IconFile className="shrink-0" />
-                  <div className="flex-1 truncate" title={item.filepath}>
-                    <span>{fileName}</span>
-                    {item.range?.start && (
-                      <span className="text-muted-foreground">
-                        :{item.range.start}
-                      </span>
-                    )}
-                    {isMultiLine && (
-                      <span className="text-muted-foreground">
-                        -{item.range.end}
-                      </span>
-                    )}
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {path}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  )
-}
-
-function parseMetaDataString(metaData: string | undefined) {
-  const metadataObj: Record<string, string> = {}
-  if (!metaData) return metadataObj
-
-  const keyValuePairs = metaData.split(' ')
-  keyValuePairs.forEach(pair => {
-    const [key, value] = pair.split('=')
-    metadataObj[key] = value
-  })
-
-  return metadataObj
 }
 
 export { QuestionAnswerList }

@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { isEmpty } from 'lodash-es'
 import { useInView } from 'react-intersection-observer'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
@@ -230,7 +229,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   level,
   root
 }) => {
-  const { activeRepo, activeRepoRef, activeEntryInfo } = React.useContext(
+  const { activeRepo, activeEntryInfo } = React.useContext(
     SourceCodeBrowserContext
   )
   const {
@@ -254,7 +253,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   const { data, isLoading }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
       shouldFetchChildren
-        ? toEntryRequestUrl(activeRepo, activeRepoRef?.name, basename)
+        ? toEntryRequestUrl(activeRepo, activeEntryInfo.rev, basename)
         : null,
       fetcher,
       {
@@ -267,7 +266,6 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 
     if (data?.entries?.length) {
       const patchMap: TFileMap = data.entries.reduce((sum, cur) => {
-        // const path = `${repositorySpecifier}/${rev}/${cur.basename}`
         const path = cur.basename
         return {
           ...sum,
@@ -352,13 +350,6 @@ const FileTreeRenderer: React.FC = () => {
 
   if (!initialized) return <FileTreeSkeleton />
 
-  if (isEmpty(repoMap))
-    return (
-      <div className="flex h-full items-center justify-center">
-        No Indexed repository
-      </div>
-    )
-
   if (!hasSelectedRepo) {
     return null
   }
@@ -367,10 +358,6 @@ const FileTreeRenderer: React.FC = () => {
     if (fetchingTreeEntries) {
       return <FileTreeSkeleton />
     }
-
-    return (
-      <div className="flex h-full items-center justify-center">No Data</div>
-    )
   }
 
   return (

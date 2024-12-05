@@ -19,13 +19,17 @@ lazy_static! {
 }
 
 pub fn generate_jwt(id: ID) -> jwt::errors::Result<String> {
-    let iat = jwt::get_current_timestamp() as i64;
-    let exp = iat + *JWT_DEFAULT_EXP;
-    let claims = JWTPayload::new(id, iat, exp);
+    let claims = generate_jwt_payload(id, false);
 
     let header = jwt::Header::default();
     let token = jwt::encode(&header, &claims, &JWT_ENCODING_KEY)?;
     Ok(token)
+}
+
+pub fn generate_jwt_payload(id: ID, is_generated_from_auth_token: bool) -> JWTPayload {
+    let iat = jwt::get_current_timestamp() as i64;
+    let exp = iat + *JWT_DEFAULT_EXP;
+    JWTPayload::new(id, iat, exp, is_generated_from_auth_token)
 }
 
 pub fn validate_jwt(token: &str) -> jwt::errors::Result<JWTPayload> {
