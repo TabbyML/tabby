@@ -236,6 +236,8 @@ CREATE TABLE readed_notifications(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   notification_id INTEGER NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY(notification_id) REFERENCES notifications(id) ON DELETE CASCADE
 );

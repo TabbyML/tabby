@@ -194,28 +194,28 @@
 <!-- notifications -->
 <g id="node6" class="node">
 <title>notifications</title>
-<polygon fill="none" stroke="black" points="561,-1868 561,-1890 646,-1890 646,-1868 561,-1868"/>
-<text text-anchor="start" x="567.88" y="-1874.7" font-family="Times,serif" font-weight="bold" font-size="14.00">notifications</text>
-<polygon fill="none" stroke="black" points="561,-1844 561,-1868 581,-1868 581,-1844 561,-1844"/>
-<text text-anchor="start" x="563.88" y="-1851.7" font-family="Times,serif" font-size="14.00">🔑</text>
-<polygon fill="none" stroke="black" points="581,-1844 581,-1868 646,-1868 646,-1844 581,-1844"/>
-<text text-anchor="start" x="608.25" y="-1850.95" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="561,-1912 561,-1934 646,-1934 646,-1912 561,-1912"/>
+<text text-anchor="start" x="567.88" y="-1918.7" font-family="Times,serif" font-weight="bold" font-size="14.00">notifications</text>
+<polygon fill="none" stroke="black" points="561,-1888 561,-1912 581,-1912 581,-1888 561,-1888"/>
+<text text-anchor="start" x="563.88" y="-1895.7" font-family="Times,serif" font-size="14.00">🔑</text>
+<polygon fill="none" stroke="black" points="581,-1888 581,-1912 646,-1912 646,-1888 581,-1888"/>
+<text text-anchor="start" x="608.25" y="-1894.95" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="561,-1866 561,-1888 581,-1888 581,-1866 561,-1866"/>
+<text text-anchor="start" x="569.12" y="-1871.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="581,-1866 581,-1888 646,-1888 646,-1866 581,-1866"/>
+<text text-anchor="start" x="585.75" y="-1871.7" font-family="Times,serif" font-size="14.00">created_at</text>
+<polygon fill="none" stroke="black" points="561,-1844 561,-1866 581,-1866 581,-1844 561,-1844"/>
+<text text-anchor="start" x="569.12" y="-1849.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="581,-1844 581,-1866 646,-1866 646,-1844 581,-1844"/>
+<text text-anchor="start" x="583.88" y="-1849.7" font-family="Times,serif" font-size="14.00">updated_at</text>
 <polygon fill="none" stroke="black" points="561,-1822 561,-1844 581,-1844 581,-1822 561,-1822"/>
 <text text-anchor="start" x="569.12" y="-1827.7" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="581,-1822 581,-1844 646,-1844 646,-1822 581,-1822"/>
-<text text-anchor="start" x="585.75" y="-1827.7" font-family="Times,serif" font-size="14.00">created_at</text>
+<text text-anchor="start" x="601.5" y="-1827.7" font-family="Times,serif" font-size="14.00">kind</text>
 <polygon fill="none" stroke="black" points="561,-1800 561,-1822 581,-1822 581,-1800 561,-1800"/>
 <text text-anchor="start" x="569.12" y="-1805.7" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="581,-1800 581,-1822 646,-1822 646,-1800 581,-1800"/>
-<text text-anchor="start" x="583.88" y="-1805.7" font-family="Times,serif" font-size="14.00">updated_at</text>
-<polygon fill="none" stroke="black" points="561,-1778 561,-1800 581,-1800 581,-1778 561,-1778"/>
-<text text-anchor="start" x="569.12" y="-1783.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="581,-1778 581,-1800 646,-1800 646,-1778 581,-1778"/>
-<text text-anchor="start" x="601.5" y="-1783.7" font-family="Times,serif" font-size="14.00">kind</text>
-<polygon fill="none" stroke="black" points="561,-1756 561,-1778 581,-1778 581,-1756 561,-1756"/>
-<text text-anchor="start" x="569.12" y="-1761.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="581,-1756 581,-1778 646,-1778 646,-1756 581,-1756"/>
-<text text-anchor="start" x="593.62" y="-1761.7" font-family="Times,serif" font-size="14.00">content</text>
+<text text-anchor="start" x="593.62" y="-1805.7" font-family="Times,serif" font-size="14.00">content</text>
 </g>
 <!-- oauth_credential -->
 <g id="node7" class="node">
@@ -368,32 +368,40 @@
 <!-- readed_notifications -->
 <g id="node10" class="node">
 <title>readed_notifications</title>
-<polygon fill="none" stroke="black" points="328.5,-1913 328.5,-1935 451.5,-1935 451.5,-1913 328.5,-1913"/>
-<text text-anchor="start" x="331.12" y="-1919.7" font-family="Times,serif" font-weight="bold" font-size="14.00">readed_notifications</text>
-<polygon fill="none" stroke="black" points="328.5,-1889 328.5,-1913 357.5,-1913 357.5,-1889 328.5,-1889"/>
-<text text-anchor="start" x="335.88" y="-1896.7" font-family="Times,serif" font-size="14.00">🔑</text>
-<polygon fill="none" stroke="black" points="357.5,-1889 357.5,-1913 451.5,-1913 451.5,-1889 357.5,-1889"/>
-<text text-anchor="start" x="399.25" y="-1895.95" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="328.5,-1957 328.5,-1979 451.5,-1979 451.5,-1957 328.5,-1957"/>
+<text text-anchor="start" x="331.12" y="-1963.7" font-family="Times,serif" font-weight="bold" font-size="14.00">readed_notifications</text>
+<polygon fill="none" stroke="black" points="328.5,-1933 328.5,-1957 357.5,-1957 357.5,-1933 328.5,-1933"/>
+<text text-anchor="start" x="335.88" y="-1940.7" font-family="Times,serif" font-size="14.00">🔑</text>
+<polygon fill="none" stroke="black" points="357.5,-1933 357.5,-1957 451.5,-1957 451.5,-1933 357.5,-1933"/>
+<text text-anchor="start" x="399.25" y="-1939.95" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="328.5,-1911 328.5,-1933 357.5,-1933 357.5,-1911 328.5,-1911"/>
+<text text-anchor="start" x="341.12" y="-1916.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="357.5,-1911 357.5,-1933 451.5,-1933 451.5,-1911 357.5,-1911"/>
+<text text-anchor="start" x="384.62" y="-1916.7" font-family="Times,serif" font-size="14.00">user_id</text>
+<polygon fill="none" stroke="black" points="328.5,-1889 328.5,-1911 357.5,-1911 357.5,-1889 328.5,-1889"/>
+<text text-anchor="start" x="341.12" y="-1894.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="357.5,-1889 357.5,-1911 451.5,-1911 451.5,-1889 357.5,-1889"/>
+<text text-anchor="start" x="364.75" y="-1894.7" font-family="Times,serif" font-size="14.00">notification_id</text>
 <polygon fill="none" stroke="black" points="328.5,-1867 328.5,-1889 357.5,-1889 357.5,-1867 328.5,-1867"/>
 <text text-anchor="start" x="341.12" y="-1872.7" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="357.5,-1867 357.5,-1889 451.5,-1889 451.5,-1867 357.5,-1867"/>
-<text text-anchor="start" x="384.62" y="-1872.7" font-family="Times,serif" font-size="14.00">user_id</text>
+<text text-anchor="start" x="376.75" y="-1872.7" font-family="Times,serif" font-size="14.00">created_at</text>
 <polygon fill="none" stroke="black" points="328.5,-1845 328.5,-1867 357.5,-1867 357.5,-1845 328.5,-1845"/>
 <text text-anchor="start" x="341.12" y="-1850.7" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="357.5,-1845 357.5,-1867 451.5,-1867 451.5,-1845 357.5,-1845"/>
-<text text-anchor="start" x="364.75" y="-1850.7" font-family="Times,serif" font-size="14.00">notification_id</text>
+<text text-anchor="start" x="374.88" y="-1850.7" font-family="Times,serif" font-size="14.00">updated_at</text>
 </g>
 <!-- readed_notifications&#45;&gt;notifications -->
 <g id="edge10" class="edge">
 <title>readed_notifications:e&#45;&gt;notifications:w</title>
-<path fill="none" stroke="black" d="M452.5,-1856C496.36,-1856 510.02,-1856 548.93,-1856"/>
-<polygon fill="black" stroke="black" points="548.49,-1859.5 558.49,-1856 548.49,-1852.5 548.49,-1859.5"/>
+<path fill="none" stroke="black" d="M452.5,-1900C496.36,-1900 510.02,-1900 548.93,-1900"/>
+<polygon fill="black" stroke="black" points="548.49,-1903.5 558.49,-1900 548.49,-1896.5 548.49,-1903.5"/>
 </g>
 <!-- readed_notifications&#45;&gt;users -->
 <g id="edge11" class="edge">
 <title>readed_notifications:e&#45;&gt;users:w</title>
-<path fill="none" stroke="black" d="M452.5,-1878C479.16,-1878 480.61,-1856.55 491,-1832 507.58,-1792.84 490.94,-1474.41 524.6,-1426.13"/>
-<polygon fill="black" stroke="black" points="526.27,-1429.22 532.73,-1420.83 522.44,-1423.35 526.27,-1429.22"/>
+<path fill="none" stroke="black" d="M452.5,-1922C496.01,-1922 480.06,-1874.11 491,-1832 501.69,-1790.84 490.05,-1474.11 524.5,-1426.09"/>
+<polygon fill="black" stroke="black" points="526.2,-1429.16 532.73,-1420.82 522.42,-1423.27 526.2,-1429.16"/>
 </g>
 <!-- refresh_tokens -->
 <g id="node11" class="node">
