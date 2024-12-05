@@ -54,13 +54,14 @@ pub struct IndexSchema {
     /// Last updated time for the document in index.
     pub field_updated_at: Field,
 
-    /// Number of failed chunks during indexing.
-    pub field_failed_chunks_count: Field,
     // ==========================================
 
     // === Fields for document ===
-    /// JSON attributes for the document, it's only stored but not indexed.
+    /// JSON attributes for the document, it's indexed and stored.
     pub field_attributes: Field,
+
+    /// Number of failed chunks during indexing.
+    pub field_failed_chunks_count: Field,
     // ===========================
 
     // === Fields for chunk ===
@@ -252,18 +253,13 @@ impl IndexSchema {
             (Occur::Must, self.corpus_query(corpus)),
             // Must match the doc id
             (Occur::Must, Box::new(doc_id_query)),
-            // Must has the failed_chunks_count field
+            // Must has the attributes.field field
             (
                 Occur::Must,
                 Box::new(ExistsQuery::new_exists_query(format!(
                     "{}.{}",
                     FIELD_ATTRIBUTES, field
                 ))),
-            ),
-            // Exclude chunk documents
-            (
-                Occur::MustNot,
-                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
             ),
         ])
     }

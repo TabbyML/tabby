@@ -14,7 +14,7 @@ use super::{build_tokens, BuildStructuredDoc};
 pub struct IssueDocument {
     pub link: String,
     pub title: String,
-    pub author_email: String,
+    pub author_email: Option<String>,
     pub body: String,
     pub closed: bool,
 }

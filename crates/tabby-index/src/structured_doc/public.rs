@@ -102,7 +102,7 @@ impl StructuredDocIndexer {
         // v0.22.0 add the author field to the issue and pull documents.
         match &document.fields {
             StructuredDocFields::Issue(issue) => {
-                if !issue.author_email.is_empty()
+                if issue.author_email.is_some()
                     && !self.indexer.has_attribute_field(
                         document.id(),
                         StructuredDocIndexFields::issue::AUTHOR_EMAIL,
@@ -112,7 +112,7 @@ impl StructuredDocIndexer {
                 }
             }
             StructuredDocFields::Pull(pull) => {
-                if !pull.author_email.is_empty()
+                if pull.author_email.is_some()
                     && !self.indexer.has_attribute_field(
                         document.id(),
                         StructuredDocIndexFields::pull::AUTHOR_EMAIL,

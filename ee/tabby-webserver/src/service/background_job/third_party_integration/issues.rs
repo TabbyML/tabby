@@ -61,7 +61,7 @@ pub async fn list_github_issues(
                     fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                         link: issue.html_url.to_string(),
                         title: issue.title,
-                        author_email: issue.user.email.unwrap_or_default(),
+                        author_email: issue.user.email,
                         body: issue.body.unwrap_or_default(),
                         closed: issue.state == octocrab::models::IssueState::Closed,
                     })
@@ -94,7 +94,7 @@ struct GitlabIssue {
 
 #[derive(Deserialize)]
 struct GitlabAuthor {
-    public_email: String,
+    public_email: Option<String>,
 }
 
 pub async fn list_gitlab_issues(

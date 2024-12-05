@@ -63,7 +63,7 @@ mod structured_doc_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: id.to_owned(),
                 title: "title".to_owned(),
-                author_email: "author_email".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -110,7 +110,7 @@ mod structured_doc_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: id.to_owned(),
                 title: "title".to_owned(),
-                author_email: "author_email".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -157,7 +157,7 @@ mod structured_doc_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: id.to_owned(),
                 title: "title".to_owned(),
-                author_email: "author_email".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -274,7 +274,7 @@ mod builder_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: test_id.to_owned(),
                 title: "title".to_owned(),
-                author_email: "author_email".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -336,7 +336,7 @@ mod builder_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: test_id.to_owned(),
                 title: "title".to_owned(),
-                author_email: "author_email".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),

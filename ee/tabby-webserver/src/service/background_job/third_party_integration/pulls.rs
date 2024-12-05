@@ -51,19 +51,19 @@ pub async fn list_github_pulls(
                 let title = pull.title.clone().unwrap_or_default();
                 let body = pull.body.clone().unwrap_or_default();
 
-                let author = pull.user.as_ref().map(|user| user.login.clone()).unwrap_or_default();
-                let email = if !author.is_empty() {
+                let author = pull.user.as_ref().map(|user| user.login.clone());
+                let email = if let Some(author) = author {
                     match octocrab.users(&author).profile().await {
                         Ok(profile) => {
-                            profile.email.unwrap_or_default()
+                            profile.email
                         }
                         Err(e) => {
                             debug!("Failed to fetch user profile for {}: {}", author, e);
-                            String::new()
+                            None
                         }
                     }
                 } else {
-                    String::new()
+                    None
                 };
 
                 let doc = StructuredDoc {

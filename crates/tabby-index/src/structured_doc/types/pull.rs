@@ -14,7 +14,7 @@ use super::{build_tokens, BuildStructuredDoc};
 pub struct PullDocument {
     pub link: String,
     pub title: String,
-    pub author_email: String,
+    pub author_email: Option<String>,
     pub body: String,
 
     /// The diff represents the code changes in this PR,
