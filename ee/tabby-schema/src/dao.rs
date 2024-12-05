@@ -11,6 +11,7 @@ use tabby_db::{
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
     interface::UserValue,
+    notification::NotificationKind,
     repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -23,7 +24,7 @@ use crate::{
         user_event::{EventKind, UserEvent},
         CoreError,
     },
-    thread::{self},
+    thread,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -464,6 +465,23 @@ impl DbEnum for thread::Role {
             "assistant" => Ok(thread::Role::Assistant),
             "user" => Ok(thread::Role::User),
             _ => bail!("{s} is not a valid value for thread::Role"),
+        }
+    }
+}
+
+impl DbEnum for NotificationKind {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            NotificationKind::Admin => "admin",
+            NotificationKind::AllUser => "all_user",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "admin" => Ok(NotificationKind::Admin),
+            "all_user" => Ok(NotificationKind::AllUser),
+            _ => bail!("{s} is not a valid value for NotificationKind"),
         }
     }
 }

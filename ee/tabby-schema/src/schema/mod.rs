@@ -15,6 +15,7 @@ pub mod user_event;
 pub mod user_group;
 pub mod web_documents;
 pub mod worker;
+pub mod notification;
 
 use std::{sync::Arc, time::Instant};
 
