@@ -25,6 +25,7 @@ pub struct StructuredDocState {
     // For instance, a closed pull request will be marked as deleted,
     // prompting the indexer to remove it from the index.
     pub deleted: bool,
+    pub id: String,
 }
 
 pub struct StructuredDocIndexer {
@@ -39,19 +40,32 @@ impl StructuredDocIndexer {
         Self { indexer, builder }
     }
 
+    // Runs pre-sync checks to determine if the document needs to be updated.
+    // Returns false if `sync` is not required to be called.
+    pub async fn presync(&self, state: StructuredDocState) -> bool {
+        if state.deleted {
+            self.indexer.delete(&state.id);
+            return false;
+        }
+
+        if self.indexer.is_indexed_after(&state.id, state.updated_at)
+            && !self.indexer.has_failed_chunks(&state.id)
+        {
+            return false;
+        };
+
+        true
+    }
+
     // The sync process updates the document in the indexer incrementally.
     // It first determines whether the document requires an update.
     //
     // If an update is needed, it checks the deletion state of the document.
     // If the document is marked as deleted, it will be removed.
     // Next, the document is rebuilt, the original is deleted, and the newly indexed document is added.
-    pub async fn sync(&self, state: StructuredDocState, document: StructuredDoc) -> bool {
-        if !self.require_updates(state.updated_at, &document) {
+    pub async fn sync(&self, document: StructuredDoc) -> bool {
+        if document.should_skip() {
             return false;
-        }
-
-        if state.deleted {
-            return self.delete(document.id()).await;
         }
 
         stream! {
@@ -78,19 +92,5 @@ impl StructuredDocIndexer {
 
     pub fn commit(self) {
         self.indexer.commit();
-    }
-
-    fn require_updates(&self, updated_at: DateTime<Utc>, document: &StructuredDoc) -> bool {
-        if document.should_skip() {
-            return false;
-        }
-
-        if self.indexer.is_indexed_after(document.id(), updated_at)
-            && !self.indexer.has_failed_chunks(document.id())
-        {
-            return false;
-        };
-
-        true
     }
 }

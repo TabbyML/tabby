@@ -142,7 +142,7 @@ impl SchedulerGithubGitlabJob {
             let mut count = 0;
             let mut num_updated = 0;
             for await (state, doc) in issue_stream.chain(pull_stream) {
-                if index.sync(state, doc).await {
+                if index.presync(state).await && index.sync(doc).await {
                     num_updated += 1
                 }
 
