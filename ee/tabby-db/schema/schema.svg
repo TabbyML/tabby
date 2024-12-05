@@ -211,7 +211,7 @@
 <polygon fill="none" stroke="black" points="561,-1822 561,-1844 581,-1844 581,-1822 561,-1822"/>
 <text text-anchor="start" x="569.12" y="-1827.7" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="581,-1822 581,-1844 646,-1844 646,-1822 581,-1822"/>
-<text text-anchor="start" x="601.5" y="-1827.7" font-family="Times,serif" font-size="14.00">kind</text>
+<text text-anchor="start" x="589.88" y="-1827.7" font-family="Times,serif" font-size="14.00">recipient</text>
 <polygon fill="none" stroke="black" points="561,-1800 561,-1822 581,-1822 581,-1800 561,-1800"/>
 <text text-anchor="start" x="569.12" y="-1805.7" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="581,-1800 581,-1822 646,-1822 646,-1800 581,-1800"/>
