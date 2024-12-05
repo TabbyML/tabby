@@ -14,6 +14,7 @@ use super::{build_tokens, BuildStructuredDoc};
 pub struct PullDocument {
     pub link: String,
     pub title: String,
+    pub author_email: String,
     pub body: String,
 
     /// The diff represents the code changes in this PR,
@@ -34,6 +35,7 @@ impl BuildStructuredDoc for PullDocument {
         json!({
             fields::pull::LINK: self.link,
             fields::pull::TITLE: self.title,
+            fields::pull::AUTHOR_EMAIL: self.author_email,
             fields::pull::BODY: self.body,
             fields::pull::DIFF: self.diff,
             fields::pull::MERGED: self.merged,
