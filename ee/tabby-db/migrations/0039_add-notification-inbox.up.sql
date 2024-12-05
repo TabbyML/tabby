@@ -5,9 +5,10 @@ CREATE TABLE notifications (
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
 
   -- enum of ADMIN, ALL_USERS
-  kind: TEXT NOT NULL,
+  kind TEXT NOT NULL,
 
-  content: TEXT NOT NULL,
+  -- content of notification, in markdown format.
+  content TEXT NOT NULL,
 )
 
 CREATE TABLE readed_notifications (
