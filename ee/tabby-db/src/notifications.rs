@@ -8,17 +8,17 @@ use crate::DbConn;
 pub struct NotificationDAO {
     pub id: i64,
 
-    pub kind: String,
+    pub recipient: String,
     pub content: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl DbConn {
-    pub async fn create_notification(&self, kind: &str, content: &str) -> Result<i64> {
+    pub async fn create_notification(&self, recipient: &str, content: &str) -> Result<i64> {
         let res = query!(
-            "INSERT INTO notifications (kind, content) VALUES (?, ?)",
-            kind,
+            "INSERT INTO notifications (recipient, content) VALUES (?, ?)",
+            recipient,
             content
         )
         .execute(&self.pool)
@@ -47,17 +47,17 @@ impl DbConn {
             .get_user(user_id)
             .await?
             .context("User doesn't exist")?;
-        let kind_clause = if user.is_admin {
-            "kind = 'all_user' OR kind = 'admin'"
+        let recipient_clause = if user.is_admin {
+            "recipient = 'all_user' OR recipient = 'admin'"
         } else {
-            "kind = 'all_user'"
+            "recipient = 'all_user'"
         };
         let date_7days_ago = Utc::now() - Duration::days(7);
         let sql = format!(
             r#"
-        SELECT notifications.id, notifications.created_at, notifications.updated_at, kind, content
+        SELECT notifications.id, notifications.created_at, notifications.updated_at, recipient, content
         FROM notifications LEFT JOIN readed_notifications ON notifications.id = readed_notifications.notification_id
-        WHERE ({kind_clause}) AND notifications.created_at > '{date_7days_ago}' AND readed_notifications.user_id IS NULL  -- notification is not marked as readed
+        WHERE ({recipient_clause}) AND notifications.created_at > '{date_7days_ago}' AND readed_notifications.user_id IS NULL  -- notification is not marked as readed
         "#
         );
         let notifications = query_as(&sql).fetch_all(&self.pool).await?;
