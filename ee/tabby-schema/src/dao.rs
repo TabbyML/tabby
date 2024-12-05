@@ -9,7 +9,10 @@ use tabby_db::{
 };
 
 use crate::{
-    integration::{Integration, IntegrationKind, IntegrationStatus}, notification::NotificationKind, repository::RepositoryKind, schema::{
+    integration::{Integration, IntegrationKind, IntegrationStatus},
+    notification::NotificationKind,
+    repository::RepositoryKind,
+    schema::{
         auth::{self, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
         job,
@@ -19,7 +22,8 @@ use crate::{
         setting::{NetworkSetting, SecuritySetting},
         user_event::{EventKind, UserEvent},
         CoreError,
-    }, thread::{self, MessageAttachment}
+    },
+    thread::{self, MessageAttachment},
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -490,7 +494,7 @@ impl DbEnum for NotificationKind {
     fn as_enum_str(&self) -> &'static str {
         match self {
             NotificationKind::Admin => "admin",
-            NotificationKind::AllUser => "all_user"
+            NotificationKind::AllUser => "all_user",
         }
     }
 

@@ -8,6 +8,7 @@ pub mod integration;
 pub mod interface;
 pub mod job;
 pub mod license;
+pub mod notification;
 pub mod repository;
 pub mod setting;
 pub mod thread;
@@ -15,7 +16,6 @@ pub mod user_event;
 pub mod user_group;
 pub mod web_documents;
 pub mod worker;
-pub mod notification;
 
 use std::{sync::Arc, time::Instant};
 
