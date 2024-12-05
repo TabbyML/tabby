@@ -125,8 +125,20 @@ export const listJobs = graphql(/* GraphQL */ `
 `)
 
 export const listSecuredUsers = graphql(/* GraphQL */ `
-  query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
-    users(after: $after, before: $before, first: $first, last: $last) {
+  query ListUsers(
+    $emails: [String!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    users(
+      emails: $emails
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
       edges {
         node {
           id
@@ -422,12 +434,14 @@ export const listThreadMessages = graphql(/* GraphQL */ `
               ... on MessageAttachmentIssueDoc {
                 title
                 link
+                author
                 body
                 closed
               }
               ... on MessageAttachmentPullDoc {
                 title
                 link
+                author
                 body
                 merged
               }
