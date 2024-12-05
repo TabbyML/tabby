@@ -45,6 +45,7 @@ mod user_events;
 mod user_groups;
 mod users;
 mod web_documents;
+mod notifications;
 
 use anyhow::Result;
 use sql_query_builder as sql;
