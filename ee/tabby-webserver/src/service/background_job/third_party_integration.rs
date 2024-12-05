@@ -14,6 +14,7 @@ use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::JobService,
     repository::{ProvidedRepository, ThirdPartyRepositoryService},
+    CoreError,
 };
 use tracing::debug;
 
@@ -134,7 +135,6 @@ impl SchedulerGithubGitlabJob {
                 if index.presync(state).await && index.sync(doc).await {
                     num_updated += 1
                 }
-
                 count += 1;
                 if count % 100 == 0 {
                     logkit::info!("{} docs seen, {} docs updated", count, num_updated);
@@ -167,7 +167,7 @@ impl SchedulerGithubGitlabJob {
                     .update_integration_sync_status(integration.id.clone(), Some(e.to_string()))
                     .await?;
                 logkit::error!("Failed to fetch pulls: {}", e);
-                return Err(e);
+                return Ok(());
             }
         };
 
@@ -258,13 +258,16 @@ async fn fetch_all_pull_states(
     integration: &Integration,
     repository: &ProvidedRepository,
 ) -> tabby_schema::Result<BoxStream<'static, (u64, StructuredDocState)>> {
-    let s: BoxStream<(u64, StructuredDocState)> = list_github_pull_states(
-        integration.api_base(),
-        &repository.display_name,
-        &integration.access_token,
-    )
-    .await?
-    .boxed();
-
-    Ok(s)
+    match &integration.kind {
+        IntegrationKind::Github | IntegrationKind::GithubSelfHosted => Ok(list_github_pull_states(
+            integration.api_base(),
+            &repository.display_name,
+            &integration.access_token,
+        )
+        .await?
+        .boxed()),
+        IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => Err(CoreError::Other(
+            anyhow::anyhow!("Gitlab does not support pull requests yet"),
+        )),
+    }
 }
