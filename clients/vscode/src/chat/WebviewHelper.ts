@@ -244,6 +244,11 @@ export class WebviewHelper {
     }
   }
 
+  public isSupportedSchemeForActiveSelection(scheme: string) {
+    const supportedSchemes = ["file", "untitled"];
+    return supportedSchemes.includes(scheme);
+  }
+
   public sendMessageToChatPanel(message: ChatMessage) {
     this.logger.info(`Sending message to chat panel: ${JSON.stringify(message)}`);
     this.client?.sendMessage(message);
@@ -334,7 +339,7 @@ export class WebviewHelper {
   }
 
   public async syncActiveSelection(editor: TextEditor | undefined) {
-    if (!editor) {
+    if (!editor || !this.isSupportedSchemeForActiveSelection(editor.document.uri.scheme)) {
       this.syncActiveSelectionToChatPanel(null);
       return;
     }
@@ -362,19 +367,13 @@ export class WebviewHelper {
   }
 
   public addTextEditorEventListeners() {
-    const supportSchemes = ["file", "untitled"];
     window.onDidChangeActiveTextEditor((e) => {
-      if (e && !supportSchemes.includes(e.document.uri.scheme)) {
-        this.syncActiveSelection(undefined);
-        return;
-      }
-
       this.syncActiveSelection(e);
     });
 
     window.onDidChangeTextEditorSelection((e) => {
       // This listener only handles text files.
-      if (!supportSchemes.includes(e.textEditor.document.uri.scheme)) {
+      if (!this.isSupportedSchemeForActiveSelection(e.textEditor.document.uri.scheme)) {
         return;
       }
       this.syncActiveSelection(e.textEditor);
@@ -461,7 +460,7 @@ export class WebviewHelper {
           relevantContext: [],
         };
         // FIXME: after synchronizing the activeSelection, perhaps there's no need to include activeSelection in the message.
-        if (editor) {
+        if (editor && this.isSupportedSchemeForActiveSelection(editor.document.uri.scheme)) {
           const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
           if (fileContext)
             // active selection
