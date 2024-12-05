@@ -67,9 +67,8 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
-    use crate::testutils;
-
     use super::*;
+    use crate::testutils;
 
     /// Smoke test to ensure sql query is valid, actual functionality test shall happens at service level.
     #[tokio::test]

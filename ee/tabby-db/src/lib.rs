@@ -33,6 +33,7 @@ mod invitations;
 mod job_runs;
 #[cfg(test)]
 mod migration_tests;
+mod notifications;
 mod oauth_credential;
 mod password_reset;
 mod provided_repositories;
@@ -45,7 +46,6 @@ mod user_events;
 mod user_groups;
 mod users;
 mod web_documents;
-mod notifications;
 
 use anyhow::Result;
 use sql_query_builder as sql;
