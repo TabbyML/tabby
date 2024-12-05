@@ -1,5 +1,6 @@
-import { ReactNode, useContext } from 'react'
+import { ReactNode, useContext, useEffect, useState } from 'react'
 import { Element } from 'react-markdown/lib/ast-to-react'
+import { SymbolInfo } from 'tabby-chat-panel/index'
 
 import { cn } from '@/lib/utils'
 
@@ -12,6 +13,7 @@ export interface CodeElementProps {
   className?: string
   children: ReactNode & ReactNode[]
 }
+
 /**
  * Code element in Markdown AST.
  */
@@ -22,13 +24,34 @@ export function CodeElement({
   ...props
 }: CodeElementProps) {
   const {
-    onNavigateSymbol,
+    onLookupSymbol,
     canWrapLongLines,
     onApplyInEditor,
     onCopyContent,
     supportsOnApplyInEditorV2,
-    activeSelection
+    activeSelection,
+    onNavigateToContext
   } = useContext(MessageMarkdownContext)
+
+  const [symbolLocation, setSymbolLocation] = useState<SymbolInfo | undefined>(
+    undefined
+  )
+
+  const keyword = children[0]?.toString()
+
+  useEffect(() => {
+    const lookupSymbol = async () => {
+      if (!inline || !onLookupSymbol || !keyword) return
+
+      const symbolInfo = await onLookupSymbol(
+        activeSelection?.filepath ? [activeSelection?.filepath] : [],
+        keyword
+      )
+      setSymbolLocation(symbolInfo)
+    }
+
+    lookupSymbol()
+  }, [inline, keyword, onLookupSymbol, activeSelection?.filepath])
 
   if (children.length) {
     if (children[0] === '▍') {
@@ -37,36 +60,27 @@ export function CodeElement({
     children[0] = (children[0] as string).replace('`▍`', '▍')
   }
 
-  const match = /language-(\w+)/.exec(className || '')
-
   if (inline) {
-    if (!onNavigateSymbol) {
-      return (
-        <code className={className} {...props}>
-          {children}
-        </code>
-      )
-    }
-
-    const keyword = children[0]?.toString()
-    if (!keyword) {
-      return (
-        <code className={className} {...props}>
-          {children}
-        </code>
-      )
-    }
-
-    const isClickable = Boolean(canWrapLongLines)
+    const isClickable = Boolean(symbolLocation)
 
     const handleClick = () => {
-      if (!isClickable) return
-      if (onNavigateSymbol) {
-        onNavigateSymbol(
-          activeSelection?.filepath ? [activeSelection?.filepath] : [],
-          keyword
-        )
-      }
+      if (!isClickable || !symbolLocation || !onNavigateToContext) return
+
+      onNavigateToContext(
+        {
+          filepath: symbolLocation.targetFile,
+          range: {
+            start: symbolLocation.targetLine,
+            end: symbolLocation.targetLine
+          },
+          git_url: '',
+          content: '',
+          kind: 'file'
+        },
+        {
+          openInEditor: true
+        }
+      )
     }
 
     return (
@@ -84,7 +98,7 @@ export function CodeElement({
       </code>
     )
   }
-
+  const match = /language-(\w+)/.exec(className || '')
   return (
     <CodeBlock
       key={Math.random()}

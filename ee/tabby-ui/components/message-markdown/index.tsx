@@ -20,7 +20,12 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-import { FileContext } from 'tabby-chat-panel/index'
+import {
+  Context,
+  FileContext,
+  NavigateOpts,
+  SymbolInfo
+} from 'tabby-chat-panel/index'
 
 import {
   MARKDOWN_CITATION_REGEX,
@@ -73,7 +78,11 @@ export interface MessageMarkdownProps {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
-  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
+  onLookupSymbol?: (
+    filepaths: string[],
+    keyword: string
+  ) => Promise<SymbolInfo | undefined>
+  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -97,9 +106,10 @@ export function MessageMarkdown({
   fetchingContextInfo,
   className,
   canWrapLongLines,
-  onNavigateSymbol,
+  onLookupSymbol,
   supportsOnApplyInEditorV2,
   activeSelection,
+  onNavigateToContext,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -176,8 +186,9 @@ export function MessageMarkdown({
         fetchingContextInfo: !!fetchingContextInfo,
         canWrapLongLines: !!canWrapLongLines,
         supportsOnApplyInEditorV2,
-        onNavigateSymbol,
-        activeSelection
+        onLookupSymbol,
+        activeSelection,
+        onNavigateToContext
       }}
     >
       <MemoizedReactMarkdown

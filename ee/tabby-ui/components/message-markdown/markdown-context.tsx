@@ -1,5 +1,10 @@
 import { createContext } from 'react'
-import { FileContext } from 'tabby-chat-panel/index'
+import {
+  Context,
+  FileContext,
+  NavigateOpts,
+  SymbolInfo
+} from 'tabby-chat-panel/index'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem } from '@/lib/types'
@@ -16,7 +21,11 @@ export type MessageMarkdownContextValue = {
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
   canWrapLongLines: boolean
-  onNavigateSymbol?: (filepaths: string[], keyword: string) => void
+  onLookupSymbol?: (
+    filepaths: string[],
+    keyword: string
+  ) => Promise<SymbolInfo | undefined>
+  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   supportsOnApplyInEditorV2: boolean
   activeSelection?: FileContext
 }
