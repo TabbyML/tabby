@@ -84,8 +84,8 @@ export interface ClientApiMethods {
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
 
-  // navigate to lsp definition by symbol
-  onNavigateSymbol?: (hintFilepaths: string[], keyword: string) => void
+  // find symbol definition location by hint filepaths and keyword 
+  onLookupSymbol?: (hintFilepaths: string[], keyword: string) => Promise<SymbolInfo | undefined>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -128,7 +128,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
-      onNavigateSymbol: api.onNavigateSymbol,
+      onLookupSymbol: api.onLookupSymbol,
     },
   })
 }
