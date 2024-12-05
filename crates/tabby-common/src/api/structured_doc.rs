@@ -86,8 +86,7 @@ pub trait FromTantivyDocument {
 impl FromTantivyDocument for DocSearchDocument {
     fn from_tantivy_document(doc: &TantivyDocument, chunk: &TantivyDocument) -> Option<Self> {
         let schema = IndexSchema::instance();
-        let kind = get_json_text_field(doc, schema.field_attributes, structured_doc::fields::KIND)
-            .unwrap_or_default();
+        let kind = get_json_text_field(doc, schema.field_attributes, structured_doc::fields::KIND);
 
         match kind {
             "web" => {
@@ -109,20 +108,17 @@ impl FromTantivyDocument for DocSearchWebDocument {
             doc,
             schema.field_attributes,
             structured_doc::fields::web::TITLE,
-        )
-        .unwrap_or_default();
+        );
         let link = get_json_text_field(
             doc,
             schema.field_attributes,
             structured_doc::fields::web::LINK,
-        )
-        .unwrap_or_default();
+        );
         let snippet = get_json_text_field(
             chunk,
             schema.field_chunk_attributes,
             structured_doc::fields::web::CHUNK_TEXT,
-        )
-        .unwrap_or_default();
+        );
 
         Some(Self {
             title: title.into(),
@@ -139,15 +135,13 @@ impl FromTantivyDocument for DocSearchIssueDocument {
             doc,
             schema.field_attributes,
             structured_doc::fields::issue::TITLE,
-        )
-        .unwrap_or_default();
+        );
         let link = get_json_text_field(
             doc,
             schema.field_attributes,
             structured_doc::fields::issue::LINK,
-        )
-        .unwrap_or_default();
-        let author_email = get_json_text_field(
+        );
+        let author_email = get_json_option_text_field(
             doc,
             schema.field_attributes,
             structured_doc::fields::issue::AUTHOR_EMAIL,
@@ -156,8 +150,7 @@ impl FromTantivyDocument for DocSearchIssueDocument {
             doc,
             schema.field_attributes,
             structured_doc::fields::issue::BODY,
-        )
-        .unwrap_or_default();
+        );
         let closed = get_json_bool_field(
             doc,
             schema.field_attributes,
@@ -180,15 +173,13 @@ impl FromTantivyDocument for DocSearchPullDocument {
             doc,
             schema.field_attributes,
             structured_doc::fields::pull::TITLE,
-        )
-        .unwrap_or_default();
+        );
         let link = get_json_text_field(
             doc,
             schema.field_attributes,
             structured_doc::fields::pull::LINK,
-        )
-        .unwrap_or_default();
-        let author_email = get_json_text_field(
+        );
+        let author_email = get_json_option_text_field(
             doc,
             schema.field_attributes,
             structured_doc::fields::pull::AUTHOR_EMAIL,
@@ -197,14 +188,12 @@ impl FromTantivyDocument for DocSearchPullDocument {
             doc,
             schema.field_attributes,
             structured_doc::fields::pull::BODY,
-        )
-        .unwrap_or_default();
+        );
         let diff = get_json_text_field(
             doc,
             schema.field_attributes,
             structured_doc::fields::pull::DIFF,
-        )
-        .unwrap_or_default();
+        );
         let merged = get_json_bool_field(
             doc,
             schema.field_attributes,
@@ -225,6 +214,28 @@ fn get_json_field<'a>(
     doc: &'a TantivyDocument,
     field: schema::Field,
     name: &str,
+) -> CompactDocValue<'a> {
+    doc.get_first(field)
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .find(|(k, _)| *k == name)
+        .unwrap()
+        .1
+}
+
+fn get_json_bool_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> bool {
+    get_json_field(doc, field, name).as_bool().unwrap()
+}
+
+fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
+    get_json_field(doc, field, name).as_str().unwrap()
+}
+
+fn get_json_option_field<'a>(
+    doc: &'a TantivyDocument,
+    field: schema::Field,
+    name: &str,
 ) -> Option<CompactDocValue<'a>> {
     Some(
         doc.get_first(field)?
@@ -234,18 +245,10 @@ fn get_json_field<'a>(
     )
 }
 
-fn get_json_bool_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> bool {
-    if let Some(field) = get_json_field(doc, field, name) {
-        field.as_bool().unwrap_or_default()
-    } else {
-        false
-    }
-}
-
-fn get_json_text_field<'a>(
+fn get_json_option_text_field<'a>(
     doc: &'a TantivyDocument,
     field: schema::Field,
     name: &str,
 ) -> Option<&'a str> {
-    get_json_field(doc, field, name).and_then(|field| field.as_str())
+    get_json_option_field(doc, field, name).and_then(|field| field.as_str())
 }
