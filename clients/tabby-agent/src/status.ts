@@ -1,10 +1,11 @@
 import type { Connection } from "vscode-languageserver";
 import type { Feature } from "./feature";
-import type { DataStore } from "./dataStore";
+import type { DataStore, StoredData } from "./dataStore";
 import type { Configurations } from "./config";
 import type { TabbyApiClient } from "./http/tabbyApiClient";
 import { EventEmitter } from "events";
 import { ShowMessageRequest, ShowMessageRequestParams, MessageType } from "vscode-languageserver";
+import deepEqual from "deep-equal";
 import {
   ClientCapabilities,
   ServerCapabilities,
@@ -40,6 +41,7 @@ export class StatusProvider extends EventEmitter implements Feature {
 
     connection.onRequest(StatusRequest.type, async (params) => {
       if (params?.recheckConnection) {
+        await this.configurations.refreshClientProvidedConfig();
         await this.tabbyApiClient.connect({ reset: true });
       }
       return this.buildStatusInfo({ includeHelpMessage: true });
@@ -77,6 +79,12 @@ export class StatusProvider extends EventEmitter implements Feature {
         }
       },
     );
+
+    this.dataStore.on("updated", async (data: Partial<StoredData>, old: Partial<StoredData>) => {
+      if (!deepEqual(data.statusIgnoredIssues, old.statusIgnoredIssues)) {
+        this.notify();
+      }
+    });
 
     return {};
   }
