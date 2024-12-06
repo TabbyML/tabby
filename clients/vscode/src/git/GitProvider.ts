@@ -26,7 +26,7 @@ export class GitProvider {
         const delay = (tries + 1) * 1000;
         this.logger.info(`Failed to create GitProvider, retry after ${delay}ms`);
         await new Promise((resolve) => setTimeout(resolve, delay));
-        this.initGitExtensionApi(tries + 1);
+        await this.initGitExtensionApi(tries + 1);
       }
     }
   }

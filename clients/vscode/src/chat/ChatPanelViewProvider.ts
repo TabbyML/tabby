@@ -1,9 +1,8 @@
 import { ExtensionContext, window, WebviewPanel } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
-import type { AgentFeature as Agent } from "../lsp/AgentFeature";
+import { Client } from "../lsp/Client";
 import { GitProvider } from "../git/GitProvider";
-import { ChatFeature } from "../lsp/ChatFeature";
 import { getLogger } from "../logger";
 
 export class ChatPanelViewProvider {
@@ -13,12 +12,11 @@ export class ChatPanelViewProvider {
 
   constructor(
     private readonly context: ExtensionContext,
-    agent: Agent,
+    client: Client,
     gitProvider: GitProvider,
-    chat: ChatFeature,
   ) {
     const logger = getLogger();
-    this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider, chat);
+    this.webviewHelper = new WebviewHelper(context, client, logger, gitProvider);
   }
 
   // The method is called when the chat panel first opened

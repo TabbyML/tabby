@@ -93,7 +93,7 @@ async function openTextDocument(fileContext: FileContext, gitProvider: GitProvid
     // try parse as absolute path
     const absoluteFilepath = Uri.parse(filePath, true);
     if (absoluteFilepath.scheme) {
-      return workspace.openTextDocument(absoluteFilepath);
+      return await workspace.openTextDocument(absoluteFilepath);
     }
   } catch (err) {
     // Cannot open as absolute path, try to find file in git root
