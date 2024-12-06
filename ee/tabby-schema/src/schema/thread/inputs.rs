@@ -25,6 +25,7 @@ pub struct CreateThreadAndRunInput {
     #[validate(nested)]
     pub thread: CreateThreadInput,
 
+    #[validate(nested)]
     #[graphql(default)]
     pub options: ThreadRunOptionsInput,
 }
