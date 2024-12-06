@@ -286,8 +286,8 @@
             "type": "string",
             "default": "",
             "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
-            "patternErrorMessage": "Please enter a validate http or https URL.",
-            "markdownDescription": "Please use command [Connect To Server](command:tabby.connectToServer) to specify the endpoint the Tabby server."
+            "patternErrorMessage": "Please enter a valid HTTP or HTTPS URL.",
+            "markdownDescription": "Please use the command [Connect to Server](command:tabby.connectToServer) to specify the endpoint of the Tabby server."
           },
           "tabby.keybindings": {
             "type": "string",
