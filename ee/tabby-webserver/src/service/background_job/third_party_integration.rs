@@ -116,36 +116,14 @@ impl SchedulerGithubGitlabJob {
             "Indexing documents for repository {}",
             repository.display_name
         );
-        let index = StructuredDocIndexer::new(embedding.clone());
-        let issue_stream = match fetch_all_issues(&integration, &repository).await {
-            Ok(s) => s,
-            Err(e) => {
-                integration_service
-                    .update_integration_sync_status(integration.id, Some(e.to_string()))
-                    .await?;
-                logkit::error!("Failed to fetch issues: {}", e);
-                return Err(e);
-            }
-        };
 
-        stream! {
-            let mut count = 0;
-            let mut num_updated = 0;
-            for await (state, doc) in issue_stream {
-                if index.presync(state).await && index.sync(doc).await {
-                    num_updated += 1
-                }
-                count += 1;
-                if count % 100 == 0 {
-                    logkit::info!("{} docs seen, {} docs updated", count, num_updated);
-                };
-            }
-
-            logkit::info!("{} docs seen, {} docs updated", count, num_updated);
-            index.commit();
-        }
-        .count()
-        .await;
+        self.sync_issues(
+            &integration,
+            integration_service.clone(),
+            &repository,
+            embedding.clone(),
+        )
+        .await?;
 
         self.sync_pulls(&integration, integration_service, &repository, embedding)
             .await?;
@@ -164,7 +142,7 @@ impl SchedulerGithubGitlabJob {
             Ok(s) => s,
             Err(e) => {
                 integration_service
-                    .update_integration_sync_status(integration.id.clone(), Some(e.to_string()))
+                    .update_integration_sync_status(&integration.id, Some(e.to_string()))
                     .await?;
                 logkit::error!("Failed to fetch pulls: {}", e);
                 return Ok(());
@@ -206,6 +184,47 @@ impl SchedulerGithubGitlabJob {
             num_updated
         );
         index.commit();
+
+        Ok(())
+    }
+
+    async fn sync_issues(
+        &self,
+        integration: &Integration,
+        integration_service: Arc<dyn IntegrationService>,
+        repository: &ProvidedRepository,
+        embedding: Arc<dyn Embedding>,
+    ) -> tabby_schema::Result<()> {
+        let issue_stream = match fetch_all_issues(&integration, &repository).await {
+            Ok(s) => s,
+            Err(e) => {
+                integration_service
+                    .update_integration_sync_status(&integration.id, Some(e.to_string()))
+                    .await?;
+                logkit::error!("Failed to fetch issues: {}", e);
+                return Err(e);
+            }
+        };
+
+        let index = StructuredDocIndexer::new(embedding);
+        stream! {
+            let mut count = 0;
+            let mut num_updated = 0;
+            for await (state, doc) in issue_stream {
+                if index.presync(state).await && index.sync(doc).await {
+                    num_updated += 1
+                }
+                count += 1;
+                if count % 100 == 0 {
+                    logkit::info!("{} issue docs seen, {} issue docs updated", count, num_updated);
+                };
+            }
+
+            logkit::info!("{} issue docs seen, {} issue docs updated", count, num_updated);
+            index.commit();
+        }
+        .count()
+        .await;
 
         Ok(())
     }

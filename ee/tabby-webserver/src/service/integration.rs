@@ -133,7 +133,7 @@ impl IntegrationService for IntegrationServiceImpl {
         Ok(self.db.get_integration(id.as_rowid()?).await?.try_into()?)
     }
 
-    async fn update_integration_sync_status(&self, id: ID, error: Option<String>) -> Result<()> {
+    async fn update_integration_sync_status(&self, id: &ID, error: Option<String>) -> Result<()> {
         self.db
             .update_integration_error(id.as_rowid()?, error)
             .await?;
@@ -191,7 +191,7 @@ mod tests {
         // Test updating error status for gitlab provider
         tokio::time::sleep(Duration::from_secs(1)).await;
         integration
-            .update_integration_sync_status(id.clone(), Some("error".into()))
+            .update_integration_sync_status(&id, Some("error".into()))
             .await
             .unwrap();
 
@@ -200,7 +200,7 @@ mod tests {
 
         // Test successful status (no error)
         integration
-            .update_integration_sync_status(id.clone(), None)
+            .update_integration_sync_status(&id, None)
             .await
             .unwrap();
 
@@ -246,7 +246,7 @@ mod tests {
 
         // Test integration status is failed after updating sync status with an error
         integration
-            .update_integration_sync_status(id.clone(), Some("error".into()))
+            .update_integration_sync_status(&id, Some("error".into()))
             .await
             .unwrap();
 
@@ -288,7 +288,7 @@ mod tests {
 
         // Test integration status is ready after a successful sync and an update which changes no fields
         integration
-            .update_integration_sync_status(id.clone(), None)
+            .update_integration_sync_status(&id, None)
             .await
             .unwrap();
         integration

@@ -169,7 +169,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             Ok(repos) => repos,
             Err(e) => {
                 self.integration
-                    .update_integration_sync_status(provider.id.clone(), Some(e.to_string()))
+                    .update_integration_sync_status(&provider.id, Some(e.to_string()))
                     .await?;
                 error!(
                     "Failed to fetch repositories from integration: {}",
@@ -270,7 +270,7 @@ async fn refresh_repositories_for_provider(
     }
 
     integration
-        .update_integration_sync_status(provider.id.clone(), None)
+        .update_integration_sync_status(&provider.id, None)
         .await?;
     let num_removed = repository
         .delete_outdated_repositories(provider.id, start)
