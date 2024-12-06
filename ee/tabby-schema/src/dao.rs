@@ -10,6 +10,7 @@ use tabby_db::{
 
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
+    notification::NotificationRecipient,
     repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -485,6 +486,23 @@ impl DbEnum for thread::Role {
             "assistant" => Ok(thread::Role::Assistant),
             "user" => Ok(thread::Role::User),
             _ => bail!("{s} is not a valid value for thread::Role"),
+        }
+    }
+}
+
+impl DbEnum for NotificationRecipient {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            NotificationRecipient::Admin => "admin",
+            NotificationRecipient::AllUser => "all_user",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "admin" => Ok(NotificationRecipient::Admin),
+            "all_user" => Ok(NotificationRecipient::AllUser),
+            _ => bail!("{s} is not a valid value for NotificationKind"),
         }
     }
 }
