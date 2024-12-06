@@ -17,15 +17,19 @@ use crate::{indexer::TantivyDocBuilder, Indexer};
 /// StructuredDocState tracks the state of the document source.
 /// It helps determine whether the document should be updated or deleted.
 pub struct StructuredDocState {
+    // id is the unique identifier of the document.
+    // It is used to track the document in the indexer.
+    pub id: String,
+
     // updated_at is the time when the document was last updated.
     // when the updated_at is earlier than the document's index time,
     // the update will be skipped.
     pub updated_at: DateTime<Utc>,
+
     // deleted indicates whether the document should be removed from the indexer.
     // For instance, a closed pull request will be marked as deleted,
     // prompting the indexer to remove it from the index.
     pub deleted: bool,
-    pub id: String,
 }
 
 pub struct StructuredDocIndexer {
