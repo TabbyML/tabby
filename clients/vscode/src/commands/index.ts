@@ -6,11 +6,8 @@ import {
   ExtensionContext,
   CancellationTokenSource,
   Uri,
-  Disposable,
-  InputBoxValidationSeverity,
   ProgressLocation,
   ThemeIcon,
-  QuickPickItem,
   ViewColumn,
   Range,
   CodeAction,
@@ -18,19 +15,19 @@ import {
 } from "vscode";
 import os from "os";
 import path from "path";
-import { strict as assert } from "assert";
-import { Client } from "./lsp/Client";
-import { Config, PastServerConfig } from "./Config";
-import { ContextVariables } from "./ContextVariables";
-import { InlineCompletionProvider } from "./InlineCompletionProvider";
-import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
-import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
-import { getFileContextFromSelection, getFileContext } from "./chat/fileContext";
-import { GitProvider, Repository } from "./git/GitProvider";
-import CommandPalette from "./CommandPalette";
-import { showOutputPanel } from "./logger";
-import { Issues } from "./Issues";
-import { InlineEditController } from "./inline-edit";
+import { StatusIssuesName } from "tabby-agent";
+import { Client } from "../lsp/Client";
+import { Config } from "../Config";
+import { ContextVariables } from "../ContextVariables";
+import { InlineCompletionProvider } from "../InlineCompletionProvider";
+import { ChatSideViewProvider } from "../chat/ChatSideViewProvider";
+import { ChatPanelViewProvider } from "../chat/ChatPanelViewProvider";
+import { getFileContextFromSelection, getFileContext } from "../chat/fileContext";
+import { GitProvider, Repository } from "../git/GitProvider";
+import { showOutputPanel } from "../logger";
+import { InlineEditController } from "../inline-edit";
+import { CommandPalette } from "./commandPalette";
+import { ConnectToServerWidget } from "./connectToServer";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -39,22 +36,18 @@ export class Commands {
     private readonly context: ExtensionContext,
     private readonly client: Client,
     private readonly config: Config,
-    private readonly issues: Issues,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatSideViewProvider,
     private readonly gitProvider: GitProvider,
-  ) {
-    const registrations = Object.keys(this.commands).map((key) => {
+  ) {}
+
+  register() {
+    const registrations = Object.entries(this.commands).map(([key, handler]) => {
       const commandName = `tabby.${key}`;
-      const commandHandler = this.commands[key];
-      if (commandHandler) {
-        return commands.registerCommand(commandName, commandHandler, this);
-      }
-      return null;
+      return commands.registerCommand(commandName, handler, this);
     });
-    const notNullRegistrations = registrations.filter((disposable): disposable is Disposable => disposable !== null);
-    this.context.subscriptions.push(...notNullRegistrations);
+    this.context.subscriptions.push(...registrations);
   }
 
   private async sendMessageToChatPanel(msg: string) {
@@ -100,7 +93,7 @@ export class Commands {
     applyCallback: (callback: (() => void) | undefined) => {
       callback?.();
     },
-    toggleInlineCompletionTriggerMode: (value: "automatic" | "manual" | undefined) => {
+    toggleInlineCompletionTriggerMode: async (value: "automatic" | "manual" | undefined) => {
       let target = value;
       if (!target) {
         if (this.config.inlineCompletionTriggerMode === "automatic") {
@@ -109,46 +102,15 @@ export class Commands {
           target = "automatic";
         }
       }
-      this.config.inlineCompletionTriggerMode = target;
+      await this.config.updateInlineCompletionTriggerMode(target);
     },
-    setApiEndpoint: () => {
-      window
-        .showInputBox({
-          prompt: "Enter the URL of your Tabby Server",
-          value: this.config.serverEndpoint,
-          validateInput: (input: string) => {
-            try {
-              const url = new URL(input);
-              assert(url.protocol == "http:" || url.protocol == "https:");
-            } catch (error) {
-              return {
-                message: "Please enter a validate http or https URL.",
-                severity: InputBoxValidationSeverity.Error,
-              };
-            }
-            return null;
-          },
-        })
-        .then((url) => {
-          if (url) {
-            this.config.serverEndpoint = url;
-          }
-        });
-    },
-    setApiToken: () => {
-      const currentToken = this.config.serverToken;
-      window
-        .showInputBox({
-          prompt: "Enter your personal token",
-          value: currentToken.length > 0 ? currentToken : undefined,
-          password: true,
-        })
-        .then((token) => {
-          if (token === undefined) {
-            return; // User canceled
-          }
-          this.config.serverToken = token;
-        });
+    connectToServer: async (endpoint?: string | undefined) => {
+      if (endpoint) {
+        this.config.updateServerEndpoint(endpoint);
+      } else {
+        const widget = new ConnectToServerWidget(this.client, this.config);
+        widget.show();
+      }
     },
     openSettings: () => {
       commands.executeCommand("workbench.action.openSettings", "@ext:TabbyML.vscode-tabby");
@@ -219,7 +181,8 @@ export class Commands {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
     },
     "commandPalette.trigger": () => {
-      new CommandPalette(this.client, this.config, this.issues);
+      const commandPalette = new CommandPalette(this.client, this.config);
+      commandPalette.show();
     },
     "outputPanel.focus": () => {
       showOutputPanel();
@@ -255,21 +218,11 @@ export class Commands {
       this.inlineCompletionProvider.handleEvent("dismiss");
       commands.executeCommand("editor.action.inlineSuggest.hide");
     },
-    "notifications.mute": (type: string) => {
-      const notifications = this.config.mutedNotifications;
-      if (!notifications.includes(type)) {
-        const updated = notifications.concat(type);
-        this.config.mutedNotifications = updated;
-      }
+    "status.addIgnoredIssues": (name: StatusIssuesName) => {
+      this.client.status.editIgnoredIssues({ operation: "add", issues: name });
     },
-    "notifications.resetMuted": (type?: string) => {
-      const notifications = this.config.mutedNotifications;
-      if (type) {
-        const updated = notifications.filter((item) => item !== type);
-        this.config.mutedNotifications = updated;
-      } else {
-        this.config.mutedNotifications = [];
-      }
+    "status.resetIgnoredIssues": () => {
+      this.client.status.editIgnoredIssues({ operation: "removeAll", issues: [] });
     },
     "chat.explainCodeBlock": async (userCommand?: string) => {
       this.sendMessageToChatPanel("Explain the selected code:".concat(userCommand ? `\n${userCommand}` : ""));
@@ -304,12 +257,7 @@ export class Commands {
         retainContextWhenHidden: true,
       });
 
-      const chatPanelViewProvider = new ChatPanelViewProvider(
-        this.context,
-        this.client.agent,
-        this.gitProvider,
-        this.client.chat,
-      );
+      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client, this.gitProvider);
 
       chatPanelViewProvider.resolveWebviewView(panel);
     },
@@ -374,13 +322,13 @@ export class Commands {
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
     "chat.generateCommitMessage": async (repository?: Repository) => {
-      const repos = this.gitProvider.getRepositories() ?? [];
-      if (repos.length < 1) {
-        window.showInformationMessage("No Git repositories found.");
-        return;
-      }
       let selectedRepo = repository;
       if (!selectedRepo) {
+        const repos = this.gitProvider.getRepositories() ?? [];
+        if (repos.length < 1) {
+          window.showInformationMessage("No Git repositories found.");
+          return;
+        }
         if (repos.length == 1) {
           selectedRepo = repos[0];
         } else {
@@ -432,40 +380,6 @@ export class Commands {
           }
         },
       );
-    },
-    "server.selectPastServerConfig": () => {
-      const configs = this.config.pastServerConfigs;
-      if (configs.length <= 0) return;
-
-      const quickPick = window.createQuickPick<QuickPickItem & PastServerConfig>();
-
-      quickPick.items = configs.map((x) => ({
-        ...x,
-        label: x.endpoint,
-        buttons: [
-          {
-            iconPath: new ThemeIcon("settings-remove"),
-          },
-        ],
-      }));
-
-      quickPick.onDidAccept(() => {
-        const item = quickPick.activeItems[0];
-        if (item) {
-          this.config.restoreServerConfig(item);
-        }
-
-        quickPick.hide();
-      });
-
-      quickPick.onDidTriggerItemButton((e) => {
-        if (!(e.button.iconPath instanceof ThemeIcon)) return;
-        if (e.button.iconPath.id === "settings-remove") {
-          this.config.removePastServerConfigByApiEndpoint(e.item.endpoint);
-        }
-      });
-
-      quickPick.show();
     },
   };
 }

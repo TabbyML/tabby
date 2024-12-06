@@ -1,17 +1,19 @@
 # Connect to Server
 
-**Tips**: If you are using local deployment and default port `http://localhost:8080`, you can simply skip this step.
+To connect to the Tabby server, follow these steps:
 
-Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and search for the command [Tabby: Connect to Server...](command:tabby.setApiEndpoint). Follow the instructions to input the Tabby server's endpoint URL and the token.
+1. Click the Tabby status bar item to open the commands panel and select [Connect to Server...](command:tabby.connectToServer).
 
-![connectToServer](./connectToServer.png)
+2. Follow the instructions to input the Tabby server's endpoint URL:
+   ![connectToServer_url](./connectToServer_url.png)
 
-Once the connection is established, you will see the Tabby status bar item showing checkmark.
+3. Enter the token:
+   ![connectToServer_token](./connectToServer_token.png)
+
+Once the connection is established, the Tabby status bar item will show a checkmark:
 
 ![statusbarReady](./statusbarReady.png)
 
-Alternatively, you can set the endpoint in the [Settings](command:tabby.openSettings).
-
 ## Cross-IDE Settings
 
-If you are using multiple IDEs, you can use the [Config File](command:tabby.openTabbyAgentSettings) to share the settings across IDEs. Refer to the [Online Documentation](https://tabby.tabbyml.com/docs/extensions/configurations/) for more details.
+If you are using multiple IDEs, you can use the [Tabby Agent Config File](command:tabby.openTabbyAgentSettings) to share the settings across IDEs. Refer to the [Online Documentation](https://tabby.tabbyml.com/docs/extensions/configurations/) for more details.

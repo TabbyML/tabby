@@ -1,7 +1,9 @@
-# Tabby Commands
+# Commands
 
-Search for Tabby commands by typing `Tabby` in the command palette.
+You can click on the `Tabby` status bar item to open the [Tabby Command Palette](command:tabby.commandPalette.trigger) and select the desired command.
 
-![Commands](./commands.png)
+![Tabby Command Palette](./commandPalette.png)
+
+You can also search `Tabby` in the [command palette](command:workbench.action.quickOpen?%5B%22%3ETabby%22%5D) for a list of all available commands provided by the Tabby extension.
 
 **Note**: Commands related to chat features are only visible when your server supports them.
