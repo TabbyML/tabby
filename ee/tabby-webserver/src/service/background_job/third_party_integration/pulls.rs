@@ -8,7 +8,7 @@ use tabby_index::public::{
 
 use super::error::octocrab_error_message;
 
-// TODO(kweizh): we can only get StructuredDoc id after constructing the StructuredDoc
+// FIXME(kweizh): we can only get StructuredDoc id after constructing the StructuredDoc
 // but we need to pass the id to the StructuredDocState
 // so we need to refactor the id() method in StructuredDoc
 fn pull_id(pull: &octocrab::models::pulls::PullRequest) -> String {
