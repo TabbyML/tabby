@@ -30,6 +30,10 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
+import { createRequest } from '@urql/core'
+import { client } from '@/lib/tabby/gql'
+import { IsAvaileableWorkspaceQuery } from '@/lib/gql/generates/graphql'
+import { isAvaileableWorkspaceQuery } from '@/lib/tabby/query'
 
 type ChatContextValue = {
   threadId: string | undefined
@@ -88,6 +92,22 @@ interface ChatProps extends React.ComponentProps<'div'> {
   supportsOnApplyInEditorV2: boolean
 }
 
+async function isAvaileableWorkspace(): Promise<
+  IsAvaileableWorkspaceQuery['status']
+> {
+  // debugger
+  const query = client.createRequestOperation(
+    'query',
+    createRequest(isAvaileableWorkspaceQuery as any, {})
+  )
+
+  console.log('query', query)
+
+  return client
+    .executeQuery(query)
+    .then(data => console.log('data', data)) as any
+}
+
 function ChatRenderer(
   {
     className,
@@ -123,6 +143,7 @@ function ChatRenderer(
     state => state.enableActiveSelection
   )
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
+  isAvaileableWorkspace()
 
   const {
     sendUserMessage,

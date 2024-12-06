@@ -209,6 +209,12 @@ impl AnswerService {
         override_params: Option<&CodeSearchParamsOverrideInput>,
         policy: AccessPolicy,
     ) -> Vec<CodeSearchHit> {
+        println!("input.filepath {:?}", input.filepath);
+        println!("input.language {:?}", input.language);
+        println!("input.content {}", input.content);
+        println!("input.git_url {:?}", input.git_url);
+        println!("input.source_id {:?}", input.source_id);
+
         let source_id: Option<&str> = {
             if let Some(source_id) = &input.source_id {
                 if helper.can_access_source_id(source_id) {

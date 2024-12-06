@@ -29,7 +29,7 @@ pub struct CreateThreadAndRunInput {
     pub options: ThreadRunOptionsInput,
 }
 
-#[derive(GraphQLInputObject, Validate, Clone)]
+#[derive(GraphQLInputObject, Validate, Clone, Debug)]
 pub struct DocQueryInput {
     pub content: String,
 
@@ -40,7 +40,7 @@ pub struct DocQueryInput {
     pub source_ids: Option<Vec<String>>,
 }
 
-#[derive(GraphQLInputObject, Validate, Clone)]
+#[derive(GraphQLInputObject, Validate, Clone, Debug)]
 #[validate(schema(function = "validate_code_query_input", skip_on_field_errors = false))]
 pub struct CodeQueryInput {
     pub filepath: Option<String>,
@@ -68,7 +68,7 @@ fn validate_code_query_input(input: &CodeQueryInput) -> Result<(), ValidationErr
     Ok(())
 }
 
-#[derive(GraphQLInputObject, Validate, Default, Clone)]
+#[derive(GraphQLInputObject, Validate, Default, Clone, Debug)]
 pub struct ThreadRunOptionsInput {
     #[graphql(default)]
     pub model_name: Option<String>,
@@ -88,7 +88,7 @@ pub struct ThreadRunOptionsInput {
     pub debug_options: Option<ThreadRunDebugOptionsInput>,
 }
 
-#[derive(GraphQLInputObject, Clone)]
+#[derive(GraphQLInputObject, Clone, Debug)]
 pub struct CodeSearchParamsOverrideInput {
     pub min_embedding_score: Option<f64>,
     pub min_bm25_score: Option<f64>,
@@ -97,7 +97,7 @@ pub struct CodeSearchParamsOverrideInput {
     pub num_to_score: Option<i32>,
 }
 
-#[derive(GraphQLInputObject, Clone)]
+#[derive(GraphQLInputObject, Clone, Debug)]
 pub struct ThreadRunDebugOptionsInput {
     #[graphql(default)]
     pub code_search_params_override: Option<CodeSearchParamsOverrideInput>,
