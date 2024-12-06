@@ -8,6 +8,16 @@ use tabby_index::public::{
 
 use super::error::octocrab_error_message;
 
+// TODO(kweizh): we can only get StructuredDoc id after constructing the StructuredDoc
+// but we need to pass the id to the StructuredDocState
+// so we need to refactor the id() method in StructuredDoc
+fn pull_id(pull: &octocrab::models::pulls::PullRequest) -> String {
+    pull.html_url
+        .clone()
+        .map(|url| url.to_string())
+        .unwrap_or_else(|| pull.url.clone())
+}
+
 pub async fn list_github_pull_states(
     api_base: &str,
     full_name: &str,
@@ -44,13 +54,13 @@ pub async fn list_github_pull_states(
             let pages = response.number_of_pages().unwrap_or_default();
 
             for pull in response.items {
-                let url = pull.html_url.map(|url| url.to_string()).unwrap_or_else(|| pull.url);
+                let id = pull_id(&pull);
 
                 // skip closed but not merged pulls
                 if let Some(state) = pull.state {
                     if state == IssueState::Closed && pull.merged_at.is_none() {
                         yield (pull.number, StructuredDocState{
-                            id: url, //TODO(kweizh): refactor id()
+                            id: id,
                             updated_at: pull.updated_at.unwrap(),
                             deleted: true,
                         });
@@ -59,7 +69,7 @@ pub async fn list_github_pull_states(
                 }
 
                 yield (pull.number, StructuredDocState{
-                    id: url, //TODO(kweizh): refactor id()
+                    id: id,
                     updated_at: pull.updated_at.unwrap_or_else(|| chrono::Utc::now()),
                     deleted: false,
                 });
