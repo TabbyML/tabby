@@ -112,6 +112,9 @@ export function MessageMarkdown({
   onNavigateToContext,
   ...rest
 }: MessageMarkdownProps) {
+  const [symbolPositionMap, setSymbolLocationMap] = useState<
+    Map<string, SymbolInfo | undefined>
+  >(new Map())
   const messageAttachments: MessageAttachments = useMemo(() => {
     const docs: MessageAttachments =
       attachmentDocs?.map(item => ({
@@ -174,6 +177,18 @@ export function MessageMarkdown({
     return elements
   }
 
+  const lookupSymbol = async (keyword: string) => {
+    if (!onLookupSymbol) return
+    if (symbolPositionMap.has(keyword)) return
+
+    setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
+    const symbolInfo = await onLookupSymbol(
+      activeSelection?.filepath ? [activeSelection?.filepath] : [],
+      keyword
+    )
+    setSymbolLocationMap(map => new Map(map.set(keyword, symbolInfo)))
+  }
+
   return (
     <MessageMarkdownContext.Provider
       value={{
@@ -186,14 +201,18 @@ export function MessageMarkdown({
         fetchingContextInfo: !!fetchingContextInfo,
         canWrapLongLines: !!canWrapLongLines,
         supportsOnApplyInEditorV2,
-        onLookupSymbol,
         activeSelection,
-        onNavigateToContext
+        onNavigateToContext,
+        symbolPositionMap,
+        lookupSymbol: onLookupSymbol ? lookupSymbol : undefined
       }}
     >
       <MemoizedReactMarkdown
         className={cn(
           'message-markdown prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0',
+          {
+            'cursor-default': !!onApplyInEditor
+          },
           className
         )}
         remarkPlugins={[remarkGfm, remarkMath]}

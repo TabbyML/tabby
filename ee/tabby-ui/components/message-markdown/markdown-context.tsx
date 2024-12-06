@@ -21,13 +21,11 @@ export type MessageMarkdownContextValue = {
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
   canWrapLongLines: boolean
-  onLookupSymbol?: (
-    filepaths: string[],
-    keyword: string
-  ) => Promise<SymbolInfo | undefined>
   onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   supportsOnApplyInEditorV2: boolean
   activeSelection?: FileContext
+  symbolPositionMap: Map<string, SymbolInfo | undefined>
+  lookupSymbol?: (keyword: string) => void
 }
 
 export const MessageMarkdownContext =

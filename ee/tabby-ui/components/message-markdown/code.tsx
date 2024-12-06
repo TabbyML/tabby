@@ -1,10 +1,10 @@
 import { ReactNode, useContext, useEffect, useState } from 'react'
 import { Element } from 'react-markdown/lib/ast-to-react'
-import { SymbolInfo } from 'tabby-chat-panel/index'
 
 import { cn } from '@/lib/utils'
 
 import { CodeBlock } from '../ui/codeblock'
+import { IconSquareChevronRight } from '../ui/icons'
 import { MessageMarkdownContext } from './markdown-context'
 
 export interface CodeElementProps {
@@ -24,34 +24,22 @@ export function CodeElement({
   ...props
 }: CodeElementProps) {
   const {
-    onLookupSymbol,
+    lookupSymbol,
     canWrapLongLines,
     onApplyInEditor,
     onCopyContent,
     supportsOnApplyInEditorV2,
-    activeSelection,
-    onNavigateToContext
+    onNavigateToContext,
+    symbolPositionMap
   } = useContext(MessageMarkdownContext)
 
-  const [symbolLocation, setSymbolLocation] = useState<SymbolInfo | undefined>(
-    undefined
-  )
-
   const keyword = children[0]?.toString()
+  const symbolLocation = keyword ? symbolPositionMap.get(keyword) : undefined
 
   useEffect(() => {
-    const lookupSymbol = async () => {
-      if (!inline || !onLookupSymbol || !keyword) return
-
-      const symbolInfo = await onLookupSymbol(
-        activeSelection?.filepath ? [activeSelection?.filepath] : [],
-        keyword
-      )
-      setSymbolLocation(symbolInfo)
-    }
-
-    lookupSymbol()
-  }, [inline, keyword, onLookupSymbol, activeSelection?.filepath])
+    if (!inline || !lookupSymbol || !keyword) return
+    lookupSymbol(keyword)
+  }, [inline, keyword, lookupSymbol])
 
   if (children.length) {
     if (children[0] === '▍') {
@@ -61,10 +49,10 @@ export function CodeElement({
   }
 
   if (inline) {
-    const isClickable = Boolean(symbolLocation)
+    const isSymbolNavigable = Boolean(symbolLocation)
 
     const handleClick = () => {
-      if (!isClickable || !symbolLocation || !onNavigateToContext) return
+      if (!isSymbolNavigable || !symbolLocation || !onNavigateToContext) return
 
       onNavigateToContext(
         {
@@ -86,22 +74,34 @@ export function CodeElement({
     return (
       <code
         className={cn(
+          'group/symbol inline-flex flex-nowrap gap-1 items-center',
           className,
-          isClickable
-            ? 'cursor-pointer transition-colors hover:bg-muted/50'
-            : ''
+          {
+            symbol: !!lookupSymbol,
+            'bg-muted leading-5': !isSymbolNavigable,
+            'cursor-pointer hover:bg-muted/50 border': isSymbolNavigable
+          }
         )}
         onClick={handleClick}
         {...props}
       >
-        {children}
+        {isSymbolNavigable && (
+          <IconSquareChevronRight className="w-3.5 h-3.5 text-primary" />
+        )}
+        <span
+          className={cn('self-baseline', {
+            'group-hover/symbol:text-primary': isSymbolNavigable
+          })}
+        >
+          {children}
+        </span>
       </code>
     )
   }
+
   const match = /language-(\w+)/.exec(className || '')
   return (
     <CodeBlock
-      key={Math.random()}
       language={(match && match[1]) || ''}
       value={String(children).replace(/\n$/, '')}
       onApplyInEditor={onApplyInEditor}
