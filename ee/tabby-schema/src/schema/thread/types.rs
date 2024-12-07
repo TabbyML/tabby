@@ -139,6 +139,7 @@ pub struct MessageAttachmentWebDoc {
 pub struct MessageAttachmentIssueDoc {
     pub title: String,
     pub link: String,
+    pub author_email: Option<String>,
     pub body: String,
     pub closed: bool,
 }
@@ -147,6 +148,7 @@ pub struct MessageAttachmentIssueDoc {
 pub struct MessageAttachmentPullDoc {
     pub title: String,
     pub link: String,
+    pub author_email: Option<String>,
     pub body: String,
     pub patch: String,
     pub merged: bool,
@@ -164,6 +166,7 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
                 MessageAttachmentDoc::Issue(MessageAttachmentIssueDoc {
                     title: issue.title,
                     link: issue.link,
+                    author_email: issue.author_email.clone(),
                     body: issue.body,
                     closed: issue.closed,
                 })
@@ -171,6 +174,7 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
             DocSearchDocument::Pull(pull) => MessageAttachmentDoc::Pull(MessageAttachmentPullDoc {
                 title: pull.title,
                 link: pull.link,
+                author_email: pull.author_email.clone(),
                 body: pull.body,
                 patch: pull.diff,
                 merged: pull.merged,
