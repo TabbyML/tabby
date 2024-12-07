@@ -2,7 +2,8 @@ import type { components as TabbyApiComponents } from "tabby-openapi/compatible"
 import type { ConfigData } from "../config/type";
 import path from "path";
 import hashObject from "object-hash";
-import { splitLines, isBlank, regOnlyAutoClosingCloseChars } from "../utils/string";
+import { splitLines, isBlank, regOnlyAutoClosingCloseChars, findUnpairedAutoClosingChars } from "../utils/string";
+import { logger } from "./postprocess/base";
 
 export type CompletionRequest = {
   filepath: string;
@@ -210,7 +211,27 @@ export class CompletionContext {
   buildSegments(config: ConfigData["completion"]["prompt"]): TabbyApiComponents["schemas"]["Segments"] {
     // prefix && suffix
     const prefix = this.prefixLines.slice(Math.max(this.prefixLines.length - config.maxPrefixLines, 0)).join("");
-    const suffix = this.suffixLines.slice(0, config.maxSuffixLines).join("");
+    let suffix = this.suffixLines.slice(0, config.maxSuffixLines).join("");
+
+    logger.info("segment prefix:" + prefix);
+    // remove first unpaired bracket in segment
+    const unpairedChars = findUnpairedAutoClosingChars(suffix).join("");
+    if (unpairedChars.length > 0) {
+      const firstIndex = suffix.trimStart().indexOf(unpairedChars);
+      if (firstIndex == 0) {
+        suffix = suffix.substring(unpairedChars.length);
+      }
+    }
+
+    // deal with suffix only semicolon
+    if (suffix.trimStart().startsWith(";")) {
+      const semicolonIndex = suffix.indexOf(";");
+      logger.info("find it, ; index:" + semicolonIndex);
+      logger.info("suffix:" + suffix);
+      logger.info("suffix.substring(semicolonIndex + 1):" + suffix.substring(semicolonIndex + 1));
+      suffix = suffix.substring(semicolonIndex + 1);
+    }
+    logger.info(`unpaired len: ${unpairedChars}  build segments after suffix ${suffix}`);
 
     // filepath && git_url
     let relativeFilepathRoot: string | undefined = undefined;
