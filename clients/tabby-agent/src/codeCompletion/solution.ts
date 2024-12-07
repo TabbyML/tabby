@@ -63,7 +63,7 @@ export class CompletionItem {
       this.processedText = this.context.insertSeg + this.fullText;
       this.processedRange = {
         start: this.context.insertPosition,
-        end: this.context.insertPosition + (this.context.insertSeg + this.fullText).length,
+        end: this.context.insertPosition + this.processedText.length,
       };
     } else {
       this.processedText = this.fullText;
