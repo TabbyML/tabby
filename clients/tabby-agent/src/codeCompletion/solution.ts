@@ -59,23 +59,22 @@ export class CompletionItem {
     this.isBlank = isBlank(this.text);
 
     // if with auto complete item, insert the completion item with the predicted text
+    let position = this.context.position;
+    this.processedText = this.fullText;
+
     if (this.context.isWithCorrectAutoComplete()) {
-      this.processedText = this.context.insertSeg + this.fullText;
-      this.processedRange = {
-        start: this.context.insertPosition,
-        end: this.context.insertPosition + this.processedText.length,
-      };
-    } else {
-      this.processedText = this.fullText;
-      this.processedRange = {
-        start: this.context.currentLinePrefix.endsWith(this.replacePrefix)
-          ? this.context.position - this.replacePrefix.length
-          : this.context.position,
-        end: this.context.currentLineSuffix.startsWith(this.replaceSuffix)
-          ? this.context.position + this.replaceSuffix.length
-          : this.context.position,
-      };
+      position = this.context.insertPosition;
+      this.processedText = this.context.insertSeg + this.processedText;
     }
+
+    this.processedRange = {
+      start: this.context.currentLinePrefix.endsWith(this.replacePrefix)
+        ? position - this.replacePrefix.length
+        : position,
+      end: this.context.currentLineSuffix.startsWith(this.replaceSuffix)
+        ? position + this.replaceSuffix.length
+        : position,
+    };
   }
 
   static createBlankItem(context: CompletionContext): CompletionItem {
