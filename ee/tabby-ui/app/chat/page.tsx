@@ -74,6 +74,7 @@ export default function ChatPage() {
   // server feature support check
   const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
     useState(false)
+  const [supportsOnLookupSymbol, setSupportsOnLookupSymbol] = useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -236,6 +237,7 @@ export default function ChatPage() {
         server
           ?.hasCapability('onApplyInEditorV2')
           .then(setSupportsOnApplyInEditorV2)
+        server?.hasCapability('onLookupSymbol').then(setSupportsOnLookupSymbol)
       }
 
       checkCapabilities()
@@ -388,6 +390,10 @@ export default function ChatPage() {
             : server?.onApplyInEditor)
         }
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+        onLookupSymbol={
+          isInEditor &&
+          (supportsOnLookupSymbol ? server?.onLookupSymbol : undefined)
+        }
       />
     </ErrorBoundary>
   )

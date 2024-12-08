@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
+import { ReactNode, useContext, useMemo, useState } from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -15,7 +15,6 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
-import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
 import {
   HoverCard,
   HoverCardContent,
@@ -24,6 +23,13 @@ import {
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
+
+import {
+  Context,
+  FileContext,
+  NavigateOpts,
+  SymbolInfo
+} from 'tabby-chat-panel/index'
 
 import {
   MARKDOWN_CITATION_REGEX,
@@ -39,6 +45,8 @@ import {
   IconGitPullRequest
 } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
+import { CodeElement } from './code'
+import { MessageMarkdownContext } from './markdown-context'
 
 type RelevantDocItem = {
   type: 'doc'
@@ -75,6 +83,11 @@ export interface MessageMarkdownProps {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
+  onLookupSymbol?: (
+    filepaths: string[],
+    keyword: string
+  ) => Promise<SymbolInfo | undefined>
+  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -84,26 +97,8 @@ export interface MessageMarkdownProps {
   // wrapLongLines for code block
   canWrapLongLines?: boolean
   supportsOnApplyInEditorV2: boolean
+  activeSelection?: FileContext
 }
-
-type MessageMarkdownContextValue = {
-  onCopyContent?: ((value: string) => void) | undefined
-  onApplyInEditor?: (
-    content: string,
-    opts?: { languageId: string; smart: boolean }
-  ) => void
-  onCodeCitationClick?: (code: AttachmentCodeItem) => void
-  onCodeCitationMouseEnter?: (index: number) => void
-  onCodeCitationMouseLeave?: (index: number) => void
-  contextInfo: ContextInfo | undefined
-  fetchingContextInfo: boolean
-  canWrapLongLines: boolean
-  supportsOnApplyInEditorV2: boolean
-}
-
-const MessageMarkdownContext = createContext<MessageMarkdownContextValue>(
-  {} as MessageMarkdownContextValue
-)
 
 export function MessageMarkdown({
   message,
@@ -117,9 +112,15 @@ export function MessageMarkdown({
   fetchingContextInfo,
   className,
   canWrapLongLines,
+  onLookupSymbol,
   supportsOnApplyInEditorV2,
+  activeSelection,
+  onNavigateToContext,
   ...rest
 }: MessageMarkdownProps) {
+  const [symbolPositionMap, setSymbolLocationMap] = useState<
+    Map<string, SymbolInfo | undefined>
+  >(new Map())
   const messageAttachments: MessageAttachments = useMemo(() => {
     const docs: MessageAttachments =
       attachmentDocs?.map(item => ({
@@ -189,6 +190,18 @@ export function MessageMarkdown({
     return elements
   }
 
+  const lookupSymbol = async (keyword: string) => {
+    if (!onLookupSymbol) return
+    if (symbolPositionMap.has(keyword)) return
+
+    setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
+    const symbolInfo = await onLookupSymbol(
+      activeSelection?.filepath ? [activeSelection?.filepath] : [],
+      keyword
+    )
+    setSymbolLocationMap(map => new Map(map.set(keyword, symbolInfo)))
+  }
+
   return (
     <MessageMarkdownContext.Provider
       value={{
@@ -200,12 +213,19 @@ export function MessageMarkdown({
         contextInfo,
         fetchingContextInfo: !!fetchingContextInfo,
         canWrapLongLines: !!canWrapLongLines,
-        supportsOnApplyInEditorV2
+        supportsOnApplyInEditorV2,
+        activeSelection,
+        onNavigateToContext,
+        symbolPositionMap,
+        lookupSymbol: onLookupSymbol ? lookupSymbol : undefined
       }}
     >
       <MemoizedReactMarkdown
         className={cn(
           'message-markdown prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0',
+          {
+            'cursor-default': !!onApplyInEditor
+          },
           className
         )}
         remarkPlugins={[remarkGfm, remarkMath]}
@@ -231,7 +251,6 @@ export function MessageMarkdown({
                     if (typeof childrenItem === 'string') {
                       return processMessagePlaceholder(childrenItem)
                     }
-
                     return <span key={index}>{childrenItem}</span>
                   })}
                 </li>
@@ -240,37 +259,15 @@ export function MessageMarkdown({
             return <li>{children}</li>
           },
           code({ node, inline, className, children, ...props }) {
-            if (children.length) {
-              if (children[0] == '▍') {
-                return (
-                  <span className="mt-1 animate-pulse cursor-default">▍</span>
-                )
-              }
-
-              children[0] = (children[0] as string).replace('`▍`', '▍')
-            }
-
-            const match = /language-(\w+)/.exec(className || '')
-
-            if (inline) {
-              return (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              )
-            }
-
             return (
-              <CodeBlockWrapper
-                key={Math.random()}
-                language={(match && match[1]) || ''}
-                value={String(children).replace(/\n$/, '')}
-                onApplyInEditor={onApplyInEditor}
-                onCopyContent={onCopyContent}
-                canWrapLongLines={canWrapLongLines}
-                supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+              <CodeElement
+                node={node}
+                inline={inline}
+                className={className}
                 {...props}
-              />
+              >
+                {children}
+              </CodeElement>
             )
           }
         }}
@@ -314,20 +311,6 @@ export function ErrorMessageBlock({
     >
       {errorMessage}
     </MemoizedReactMarkdown>
-  )
-}
-
-function CodeBlockWrapper(props: CodeBlockProps) {
-  const { canWrapLongLines, supportsOnApplyInEditorV2 } = useContext(
-    MessageMarkdownContext
-  )
-
-  return (
-    <CodeBlock
-      {...props}
-      canWrapLongLines={canWrapLongLines}
-      supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-    />
   )
 }
 

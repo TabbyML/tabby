@@ -9,8 +9,11 @@ import {
   Webview,
   ColorThemeKind,
   ProgressLocation,
+  commands,
+  LocationLink,
+  workspace,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams, SymbolInfo } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
@@ -21,6 +24,7 @@ import { createClient } from "./chatPanel";
 import { Client as LspClient } from "../lsp/Client";
 import { isBrowser } from "../env";
 import { getFileContextFromSelection, showFileContext } from "./fileContext";
+import path from "path";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -384,6 +388,9 @@ export class WebviewHelper {
   }
 
   public createChatClient(webview: Webview) {
+    /*
+      utility functions for createClient
+    */
     const getIndentInfo = (document: TextDocument, selection: Selection) => {
       // Determine the indentation for the content
       // The calculation is based solely on the indentation of the first line
@@ -546,6 +553,61 @@ export class WebviewHelper {
       onKeyboardEvent: (type: string, event: KeyboardEventInit) => {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
+      },
+      onLookupSymbol: async (hintFilepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
+        const findSymbolInfo = async (filepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
+          if (!keyword || !filepaths.length) {
+            this.logger.info("No keyword or filepaths provided");
+            return undefined;
+          }
+          try {
+            const workspaceRoot = workspace.workspaceFolders?.[0];
+            if (!workspaceRoot) {
+              this.logger.error("No workspace folder found");
+              return undefined;
+            }
+            const rootPath = workspaceRoot.uri;
+            for (const filepath of filepaths) {
+              const normalizedPath = filepath.startsWith("/") ? filepath.slice(1) : filepath;
+              const fullPath = path.join(rootPath.path, normalizedPath);
+              const fileUri = Uri.file(fullPath);
+              const document = await workspace.openTextDocument(fileUri);
+              const content = document.getText();
+              let pos = 0;
+              while ((pos = content.indexOf(keyword, pos)) !== -1) {
+                const position = document.positionAt(pos);
+                const locations = await commands.executeCommand<LocationLink[]>(
+                  "vscode.executeDefinitionProvider",
+                  fileUri,
+                  position,
+                );
+                if (locations && locations.length > 0) {
+                  const location = locations[0];
+                  if (location) {
+                    const targetPath = location.targetUri.fsPath;
+                    const relativePath = path.relative(rootPath.path, targetPath);
+                    const normalizedTargetPath = relativePath.startsWith("/") ? relativePath.slice(1) : relativePath;
+
+                    return {
+                      sourceFile: filepath,
+                      sourceLine: position.line + 1,
+                      sourceCol: position.character,
+                      targetFile: normalizedTargetPath,
+                      targetLine: location.targetRange.start.line + 1,
+                      targetCol: location.targetRange.start.character,
+                    };
+                  }
+                }
+                pos += keyword.length;
+              }
+            }
+          } catch (error) {
+            this.logger.error("Error in findSymbolInfo:", error);
+          }
+          return undefined;
+        };
+
+        return await findSymbolInfo(hintFilepaths, keyword);
       },
     });
   }
