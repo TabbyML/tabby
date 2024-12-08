@@ -174,14 +174,13 @@ export class CompletionContext {
    */
   private handleAutoComplete(request: CompletionRequest): void {
     if (!request.autoComplete?.completionItem) return;
+    // check if the completion item is the same as the curr segment
+    if (!request.autoComplete.currSeg || !request.autoComplete.completionItem.startsWith(request.autoComplete.currSeg))
+      return;
+
     this.completionItem = request.autoComplete.completionItem;
     this.currSeg = request.autoComplete.currSeg ?? "";
     this.insertSeg = request.autoComplete.insertSeg ?? "";
-
-    // check if the completion item is the same as the insert segment
-    if (!this.completionItem.startsWith(this.insertSeg)) {
-      return;
-    }
 
     const prefixText = request.text.slice(0, request.position);
     const lastIndex = prefixText.lastIndexOf(this.currSeg);
