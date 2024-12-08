@@ -100,7 +100,11 @@ export class DataStore extends EventEmitter implements Feature {
         });
       }
     } else if (this.fileDataStore) {
-      await this.fileDataStore.write(this.data);
+      const oldData = (await this.fileDataStore.read()) as Partial<StoredData>;
+      if (!deepEqual(oldData, this.data)) {
+        await this.fileDataStore.write(this.data);
+        this.emit("updated", this.data, oldData);
+      }
     }
   }
 }

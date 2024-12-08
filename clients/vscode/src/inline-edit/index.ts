@@ -76,7 +76,7 @@ export class InlineEditController {
       const updatedRecentlyCommand = [command]
         .concat(this.recentlyCommand.filter((item) => item !== command))
         .slice(0, this.config.maxChatEditHistory);
-      this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
+      await this.config.updateChatEditRecentlyCommand(updatedRecentlyCommand);
     }
 
     this.editor.selection = new Selection(startPosition, startPosition);
@@ -102,14 +102,14 @@ export class InlineEditController {
     this.editor.selection = new Selection(startPosition, startPosition);
   }
 
-  private onDidTriggerItemButton(event: QuickPickItemButtonEvent<EditCommand>) {
+  private async onDidTriggerItemButton(event: QuickPickItemButtonEvent<EditCommand>) {
     const item = event.item;
     const button = event.button;
     if (button.iconPath instanceof ThemeIcon && button.iconPath.id === "settings-remove") {
       const index = this.recentlyCommand.indexOf(item.value);
       if (index !== -1) {
         this.recentlyCommand.splice(index, 1);
-        this.config.chatEditRecentlyCommand = this.recentlyCommand;
+        await this.config.updateChatEditRecentlyCommand(this.recentlyCommand);
         this.updateQuickPickList();
       }
     }

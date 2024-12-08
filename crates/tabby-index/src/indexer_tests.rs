@@ -33,7 +33,7 @@ mod structured_doc_tests {
     use std::sync::Arc;
 
     use serial_test::file_serial;
-    use tabby_common::index::corpus;
+    use tabby_common::index::{corpus, structured_doc::fields as StructuredDocIndexFields};
     use temp_testdir::TempDir;
 
     use super::mock_embedding::MockEmbedding;
@@ -63,6 +63,7 @@ mod structured_doc_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: id.to_owned(),
                 title: "title".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -86,13 +87,7 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        // Wait for up to 60s for the document to be indexed.
-        for _ in 0..10 {
-            if validator.is_indexed(id) {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
+
         assert!(validator.is_indexed(id));
         assert!(validator.has_failed_chunks(id));
 
@@ -115,6 +110,7 @@ mod structured_doc_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: id.to_owned(),
                 title: "title".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -138,15 +134,54 @@ mod structured_doc_tests {
         indexer.commit();
 
         let validator = Indexer::new(corpus::STRUCTURED_DOC);
-        // Wait for up to 60s for the document to be indexed.
-        for _ in 0..10 {
-            if validator.is_indexed(id) {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
+
         assert!(validator.is_indexed(id));
         assert!(!validator.has_failed_chunks(id));
+
+        tabby_common::path::set_tabby_root(root);
+    }
+
+    #[test]
+    #[file_serial(set_tabby_root)]
+    fn test_structured_doc_has_attribute_field() {
+        let root = tabby_common::path::tabby_root();
+        let temp_dir = TempDir::default();
+        tabby_common::path::set_tabby_root(temp_dir.to_owned());
+
+        let id = "structured_doc_has_attribute_field";
+        let embedding = MockEmbedding::new(vec![1.0], false);
+        let embedding = Arc::new(embedding);
+        let indexer = StructuredDocIndexer::new(embedding.clone());
+        let doc = StructuredDoc {
+            source_id: "source".to_owned(),
+            fields: StructuredDocFields::Issue(StructuredDocIssueFields {
+                link: id.to_owned(),
+                title: "title".to_owned(),
+                author_email: Some("author_email".to_owned()),
+                body: "body".to_owned(),
+                closed: false,
+            }),
+        };
+
+        let updated_at = chrono::Utc::now();
+        let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            indexer
+                .sync(
+                    StructuredDocState {
+                        updated_at,
+                        deleted: false,
+                    },
+                    doc,
+                )
+                .await
+        });
+        assert!(res);
+        indexer.commit();
+
+        let validator = Indexer::new(corpus::STRUCTURED_DOC);
+
+        assert!(validator.is_indexed(id));
+        assert!(validator.has_attribute_field(id, StructuredDocIndexFields::issue::AUTHOR_EMAIL));
 
         tabby_common::path::set_tabby_root(root);
     }
@@ -195,14 +230,18 @@ mod builder_tests {
                 std::thread::available_parallelism().unwrap().get() * 2,
                 32,
             ))
+            .map(|handler| handler.unwrap())
             .collect::<Vec<_>>()
             .await
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
         });
 
         // the chunks should be failed as no embedding is provided
         // the last element is the document itself
         assert_eq!(res.len(), 1);
-        let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
+        let doc = res.last().unwrap();
 
         let schema = IndexSchema::instance();
         let failed_count = doc
@@ -235,6 +274,7 @@ mod builder_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: test_id.to_owned(),
                 title: "title".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),
@@ -250,8 +290,12 @@ mod builder_tests {
                 std::thread::available_parallelism().unwrap().get() * 2,
                 32,
             ))
+            .map(|handler| handler.unwrap())
             .collect::<Vec<_>>()
             .await
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
         });
 
         // The last element is the document itself,
@@ -259,7 +303,7 @@ mod builder_tests {
         // Given that the embedding is empty,
         // all chunks should be considered failed and skipped.
         assert_eq!(res.len(), 1);
-        let doc = res.last().unwrap().as_ref().unwrap().as_ref().unwrap();
+        let doc = res.last().unwrap();
 
         let schema = IndexSchema::instance();
         let failed_count = doc
@@ -292,6 +336,7 @@ mod builder_tests {
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: test_id.to_owned(),
                 title: "title".to_owned(),
+                author_email: Some("author_email".to_owned()),
                 body: "body".to_owned(),
                 closed: false,
             }),

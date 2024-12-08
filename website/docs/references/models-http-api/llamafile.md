@@ -17,23 +17,23 @@ Below is an example configuration:
 ```toml title="~/.tabby/config.toml"
 # Chat model
 [model.chat.http]
-kind = "openai/chat"
+kind = "openai/chat"  # llamafile uses openai/chat kind
 model_name = "your_model"
-api_endpoint = "http://localhost:8081/v1"
+api_endpoint = "http://localhost:8081/v1"  # Please add and conclude with the `v1` suffix
 api_key = ""
 
 # Completion model
 [model.completion.http]
-kind = "llama.cpp/completion"
+kind = "llama.cpp/completion"   # llamafile uses llama.cpp/completion kind
 model_name = "your_model"
-api_endpoint = "http://localhost:8081"
+api_endpoint = "http://localhost:8081"  # DO NOT append the `v1` suffix
 api_key = "secret-api-key"
 prompt_template = "<|fim_prefix|>{prefix}<|fim_suffix|>{suffix}<|fim_middle|>" # Example prompt template for the Qwen2.5 Coder model series.
 
 # Embedding model
 [model.embedding.http]
-kind = "llama.cpp/embedding"
+kind = "llama.cpp/embedding"  # llamafile uses llama.cpp/embedding kind
 model_name = "your_model"
-api_endpoint = "http://localhost:8082"
+api_endpoint = "http://localhost:8082"  # DO NOT append the `v1` suffix
 api_key = ""
 ```

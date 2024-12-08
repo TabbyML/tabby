@@ -8,7 +8,7 @@ pub struct OpenTimer<'a> {
     depth: u32,
 }
 
-impl<'a> OpenTimer<'a> {
+impl OpenTimer<'_> {
     /// Starts timing a new named subtask
     ///
     /// The timer is stopped automatically
@@ -23,7 +23,7 @@ impl<'a> OpenTimer<'a> {
     }
 }
 
-impl<'a> Drop for OpenTimer<'a> {
+impl Drop for OpenTimer<'_> {
     fn drop(&mut self) {
         self.timer_tree.timings.push(Timing {
             name: self.name,

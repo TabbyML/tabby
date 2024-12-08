@@ -1,5 +1,5 @@
 ---
-slug: deploy-tabby-to-huggingface-space.md
+slug: /2023/09/05/deploy-tabby-to-huggingface-space
 title: Deploying a Tabby Instance in Hugging Face Spaces
 authors:
   - name: Rand Xie

@@ -445,3 +445,9 @@ export const listThreadMessages = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const setThreadPersistedMutation = graphql(/* GraphQL */ `
+  mutation SetThreadPersisted($threadId: ID!) {
+    setThreadPersisted(threadId: $threadId)
+  }
+`)

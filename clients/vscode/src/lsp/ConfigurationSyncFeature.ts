@@ -28,15 +28,15 @@ export class ConfigurationSyncFeature implements StaticFeature {
   }
 
   initialize(): void {
-    this.config.on("updated", this.listener);
+    this.config.on("updated", () => this.sync());
   }
 
   clear(): void {
-    this.config.off("updated", this.listener);
+    this.config.off("updated", () => this.sync());
   }
 
-  private listener = () => {
+  async sync(): Promise<void> {
     const clientProvidedConfig: ClientProvidedConfig = this.config.buildClientProvidedConfig();
     this.client.sendNotification(DidChangeConfigurationNotification.method, { settings: clientProvidedConfig });
-  };
+  }
 }

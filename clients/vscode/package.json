@@ -45,13 +45,8 @@
         "category": "Tabby"
       },
       {
-        "command": "tabby.setApiEndpoint",
+        "command": "tabby.connectToServer",
         "title": "Connect to Server...",
-        "category": "Tabby"
-      },
-      {
-        "command": "tabby.setApiToken",
-        "title": "Set Token...",
         "category": "Tabby"
       },
       {
@@ -75,8 +70,8 @@
         "category": "Tabby"
       },
       {
-        "command": "tabby.notifications.resetMuted",
-        "title": "Reset notifications marked as \"Don't Show Again\"",
+        "command": "tabby.status.resetIgnoredIssues",
+        "title": "Reset Ignored Issues",
         "category": "Tabby"
       },
       {
@@ -133,11 +128,6 @@
       {
         "command": "tabby.chat.edit.discard",
         "title": "Discard Changes",
-        "category": "Tabby"
-      },
-      {
-        "command": "tabby.server.selectPastServerConfig",
-        "title": "Select Server Endpoint from History",
         "category": "Tabby"
       },
       {
@@ -248,7 +238,7 @@
           {
             "id": "connectToServer",
             "title": "Connect to Server",
-            "description": "Connect the Tabby extension to your server. \n[Connect to Server](command:tabby.setApiEndpoint)",
+            "description": "Connect the Tabby extension to your server. \n[Connect to Server](command:tabby.connectToServer)",
             "media": {
               "markdown": "assets/walkthroughs/connectToServer.md"
             }
@@ -272,7 +262,7 @@
           {
             "id": "commands",
             "title": "Commands",
-            "description": "Explore all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%22%5D)",
+            "description": "Explore all [Tabby Commands](command:workbench.action.quickOpen?%5B%22%3ETabby%22%5D). \n[Tabby Command Palette](command:tabby.commandPalette.trigger)",
             "media": {
               "markdown": "assets/walkthroughs/commands.md"
             }
@@ -296,8 +286,8 @@
             "type": "string",
             "default": "",
             "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
-            "patternErrorMessage": "Please enter a validate http or https URL.",
-            "markdownDescription": "Specify the API endpoint for the Tabby server.  \nIf authentication is required, please [Set Credentials](command:tabby.setApiToken).  \nIf left empty, the server endpoint specified in the [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
+            "patternErrorMessage": "Please enter a valid HTTP or HTTPS URL.",
+            "markdownDescription": "Please use the command [Connect to Server](command:tabby.connectToServer) to specify the endpoint of the Tabby server."
           },
           "tabby.keybindings": {
             "type": "string",
