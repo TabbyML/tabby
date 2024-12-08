@@ -280,6 +280,12 @@ export const repositoryListQuery = graphql(/* GraphQL */ `
   }
 `)
 
+export const isAvaileableWorkspaceQuery = graphql(/* GraphQL */ `
+  query IsAvaileableWorkspace($gitUrl: String) {
+    status
+  }
+`)
+
 export const repositorySearch = graphql(/* GraphQL */ `
   query RepositorySearch(
     $kind: RepositoryKind!

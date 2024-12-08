@@ -56,6 +56,8 @@ impl AllowedCodeRepository {
         Self { list }
     }
     pub fn closest_match(&self, git_url: &str) -> Option<&str> {
+        println!("self.list.iter() {:?}", self.list.iter());
+        
         closest_match(git_url, self.list.iter())
     }
 }
