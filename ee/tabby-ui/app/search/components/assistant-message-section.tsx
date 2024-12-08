@@ -101,7 +101,8 @@ export function AssistantMessageSection({
     onUpdateMessage
   } = useContext(SearchContext)
 
-  const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
+  const { supportsOnApplyInEditorV2, onNavigateToContext } =
+    useContext(ChatContext)
 
   const [isEditing, setIsEditing] = useState(false)
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -374,6 +375,7 @@ export function AssistantMessageSection({
               fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+              onNavigateToContext={onNavigateToContext}
             />
             {/* if isEditing, do not display error message block */}
             {message.error && <ErrorMessageBlock error={message.error} />}
