@@ -1,4 +1,4 @@
-import { ReactNode, useContext, useEffect, useState } from 'react'
+import { ReactNode, useContext, useEffect } from 'react'
 import { Element } from 'react-markdown/lib/ast-to-react'
 
 import { cn } from '@/lib/utils'
@@ -74,7 +74,7 @@ export function CodeElement({
     return (
       <code
         className={cn(
-          'group/symbol inline-flex flex-nowrap gap-1 items-center',
+          'group/symbol inline-flex flex-nowrap items-center gap-1',
           className,
           {
             symbol: !!lookupSymbol,
@@ -86,7 +86,7 @@ export function CodeElement({
         {...props}
       >
         {isSymbolNavigable && (
-          <IconSquareChevronRight className="w-3.5 h-3.5 text-primary" />
+          <IconSquareChevronRight className="h-3.5 w-3.5 text-primary" />
         )}
         <span
           className={cn('self-baseline', {
