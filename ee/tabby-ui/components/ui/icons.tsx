@@ -1856,6 +1856,6 @@ export {
   IconCircleDot,
   IconGitPullRequest,
   IconGitMerge,
-  IconSquareChevronRight
+  IconSquareChevronRight,
   IconFileSearch2
 }
