@@ -671,14 +671,19 @@ mod tests {
         AsID,
     };
 
-    use crate::answer::{
-        merge_code_snippets,
-        testutils::{
-            make_policy, make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
-            FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+    use crate::{
+        answer::{
+            merge_code_snippets,
+            testutils::{
+                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+                FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+            },
+            trim_bullet, AnswerService,
         },
-        trim_bullet, AnswerService,
+        service::auth,
     };
+
+    use crate::service::access_policy::testutils::make_policy;
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
@@ -854,6 +859,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_collect_relevant_code() {
+        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
         });
@@ -868,6 +874,7 @@ mod tests {
 
         let mut service = AnswerService::new(
             &config,
+            auth.clone(),
             chat.clone(),
             code.clone(),
             doc.clone(),
@@ -931,6 +938,7 @@ mod tests {
 
         service = AnswerService::new(
             &config,
+            auth.clone(),
             chat.clone(),
             code_fail_not_ready.clone(),
             doc.clone(),
@@ -944,6 +952,7 @@ mod tests {
 
         service = AnswerService::new(
             &config,
+            auth.clone(),
             chat.clone(),
             code_fail.clone(),
             doc.clone(),
@@ -955,6 +964,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_relevant_questions_v2() {
+        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
         });
@@ -968,6 +978,7 @@ mod tests {
 
         let service = AnswerService::new(
             &config,
+            auth.clone(),
             chat.clone(),
             code.clone(),
             doc.clone(),
@@ -1015,6 +1026,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_relevant_questions_v2_error() {
+        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> =
             Arc::new(FakeChatCompletionStream { return_error: true });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
@@ -1027,6 +1039,7 @@ mod tests {
 
         let service = AnswerService::new(
             &config,
+            auth.clone(),
             chat.clone(),
             code.clone(),
             doc.clone(),
@@ -1068,6 +1081,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_collect_relevant_docs() {
+        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
         });
@@ -1081,6 +1095,7 @@ mod tests {
 
         let service = AnswerService::new(
             &config,
+            auth.clone(),
             chat.clone(),
             code.clone(),
             doc.clone(),
@@ -1137,6 +1152,7 @@ mod tests {
         use futures::StreamExt;
         use tabby_schema::{policy::AccessPolicy, thread::ThreadRunOptionsInput};
 
+        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
         });
@@ -1153,7 +1169,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
         let service = Arc::new(AnswerService::new(
-            &config, chat, code, doc, context, serper, repo,
+            &config, auth, chat, code, doc, context, serper, repo,
         ));
 
         let db = DbConn::new_in_memory().await.unwrap();

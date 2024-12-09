@@ -115,7 +115,7 @@ impl ServerContext {
         let thread = Arc::new(thread::create(
             db_conn.clone(),
             answer.clone(),
-            auth.clone(),
+            Some(auth.clone()),
         ));
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
