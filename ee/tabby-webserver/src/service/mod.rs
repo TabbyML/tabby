@@ -112,7 +112,11 @@ impl ServerContext {
         embedding: Arc<dyn EmbeddingService>,
     ) -> Self {
         let user_event = Arc::new(user_event::create(db_conn.clone()));
-        let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
+        let thread = Arc::new(thread::create(
+            db_conn.clone(),
+            answer.clone(),
+            auth.clone(),
+        ));
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
 

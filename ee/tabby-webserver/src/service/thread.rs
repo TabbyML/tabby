@@ -3,13 +3,15 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_db::{DbConn, ThreadMessageDAO};
+use tabby_db::{DbConn, ThreadMessageAttachmentDoc, ThreadMessageDAO};
 use tabby_schema::{
+    auth::AuthenticationService,
     bail,
     policy::AccessPolicy,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem,
-        ThreadRunOptionsInput, ThreadRunStream, ThreadService, UpdateMessageInput,
+        self, CreateMessageInput, CreateThreadInput, MessageAttachment, MessageAttachmentDoc,
+        MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream,
+        ThreadService, UpdateMessageInput,
     },
     AsID, AsRowid, DbEnum, Result,
 };
@@ -18,6 +20,7 @@ use super::{answer::AnswerService, graphql_pagination_to_filter};
 
 struct ThreadServiceImpl {
     db: DbConn,
+    auth: Arc<dyn AuthenticationService>,
     answer: Option<Arc<AnswerService>>,
 }
 
@@ -27,7 +30,75 @@ impl ThreadServiceImpl {
             .db
             .list_thread_messages(thread_id.as_rowid()?, None, None, false)
             .await?;
-        to_vec_messages(messages)
+        self.to_vec_messages(messages).await
+    }
+
+    async fn to_vec_messages(
+        &self,
+        messages: Vec<ThreadMessageDAO>,
+    ) -> Result<Vec<thread::Message>> {
+        let mut output = vec![];
+        output.reserve(messages.len());
+
+        for message in messages {
+            let code = message.code_attachments;
+            let client_code = message.client_code_attachments;
+            let doc = message.doc_attachments;
+
+            let attachment = MessageAttachment {
+                code: code
+                    .map(|x| x.0.into_iter().map(|i| i.into()).collect())
+                    .unwrap_or_default(),
+                client_code: client_code
+                    .map(|x| x.0.into_iter().map(|i| i.into()).collect())
+                    .unwrap_or_default(),
+                doc: if let Some(docs) = doc {
+                    self.to_message_attachment_docs(docs.0).await
+                } else {
+                    vec![]
+                },
+            };
+
+            output.push(thread::Message {
+                id: message.id.as_id(),
+                thread_id: message.thread_id.as_id(),
+                role: thread::Role::from_enum_str(&message.role)?,
+                content: message.content,
+                attachment,
+                created_at: message.created_at,
+                updated_at: message.updated_at,
+            });
+        }
+
+        Ok(output)
+    }
+
+    async fn to_message_attachment_docs(
+        &self,
+        thread_docs: Vec<ThreadMessageAttachmentDoc>,
+    ) -> Vec<MessageAttachmentDoc> {
+        let mut output = vec![];
+        output.reserve(thread_docs.len());
+        for thread_doc in thread_docs {
+            let id = match &thread_doc {
+                ThreadMessageAttachmentDoc::Issue(issue) => issue.author_user_id.as_deref(),
+                ThreadMessageAttachmentDoc::Pull(pull) => pull.author_user_id.as_deref(),
+                _ => None,
+            };
+            let user = if let Some(id) = id {
+                self.auth
+                    .get_user(&juniper::ID::from(id.to_owned()))
+                    .await
+                    .ok()
+                    .map(|x| x.into())
+            } else {
+                None
+            };
+            output.push(
+                MessageAttachmentDoc::from_thread_message_attachment_document(thread_doc, user),
+            );
+        }
+        output
     }
 }
 
@@ -243,7 +314,7 @@ impl ThreadService for ThreadServiceImpl {
             .list_thread_messages(thread_id, limit, skip_id, backwards)
             .await?;
 
-        to_vec_messages(messages)
+        self.to_vec_messages(messages).await
     }
 
     async fn delete_thread_message_pair(
@@ -268,20 +339,12 @@ impl ThreadService for ThreadServiceImpl {
     }
 }
 
-fn to_vec_messages(messages: Vec<ThreadMessageDAO>) -> Result<Vec<thread::Message>> {
-    let mut output = vec![];
-    output.reserve(messages.len());
-
-    for x in messages {
-        let message: thread::Message = x.try_into()?;
-        output.push(message);
-    }
-
-    Ok(output)
-}
-
-pub fn create(db: DbConn, answer: Option<Arc<AnswerService>>) -> impl ThreadService {
-    ThreadServiceImpl { db, answer }
+pub fn create(
+    db: DbConn,
+    answer: Option<Arc<AnswerService>>,
+    auth: Arc<dyn AuthenticationService>,
+) -> impl ThreadService {
+    ThreadServiceImpl { db, answer, auth }
 }
 
 #[cfg(test)]

@@ -225,7 +225,7 @@ impl AnswerService {
             _ => None,
         };
         let user = if let Some(email) = email {
-            auth.get_user_by_email(&email).await.ok().map(|x| x.into())
+            auth.get_user_by_email(email).await.ok().map(|x| x.into())
         } else {
             None
         };
