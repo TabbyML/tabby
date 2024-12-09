@@ -105,3 +105,9 @@ export function checkSourcesAvailability(
 
   return { hasCodebaseSource, hasDocumentSource }
 }
+
+export function formatFileNameForDisplay(uri: string) {
+  const regex = /(?:vscode-notebook-cell:)?(.*?)(\?|#|$)/
+  const match = uri.match(regex)
+  return match ? match[1] : null
+}

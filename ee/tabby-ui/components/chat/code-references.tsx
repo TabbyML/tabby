@@ -2,7 +2,7 @@ import React, { forwardRef, useEffect, useState } from 'react'
 import { isNil } from 'lodash-es'
 
 import { RelevantCodeContext } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, formatFileNameForDisplay } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -177,7 +177,7 @@ function ContextItem({
           <div className="flex items-center gap-1 overflow-hidden">
             <IconFile className="shrink-0" />
             <div className="flex-1 truncate" title={context.filepath}>
-              <span>{fileName}</span>
+              <span>{formatFileNameForDisplay(fileName)}</span>
               {context.range?.start && (
                 <span className="text-muted-foreground">
                   :{context.range.start}
