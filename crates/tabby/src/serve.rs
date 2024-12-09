@@ -29,7 +29,7 @@ use crate::{
         embedding,
         event::create_event_logger,
         health,
-        model::download_model_if_needed,
+        model::Downloader,
         tantivy::IndexReaderProvider,
     },
     to_local_config, Device,
@@ -113,7 +113,10 @@ pub struct ServeArgs {
 pub async fn main(config: &Config, args: &ServeArgs) {
     let config = merge_args(config, args);
 
-    load_model(&config).await;
+    if let Err(e) = load_model(&config).await {
+        warn!("Failed to load model: {}", e);
+        std::process::exit(1);
+    }
 
     let tx = try_run_spinner();
 
@@ -210,18 +213,22 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     run_app(api, Some(ui), args.host, args.port).await
 }
 
-async fn load_model(config: &Config) {
+async fn load_model(config: &Config) -> anyhow::Result<()> {
+    let mut downloader = Downloader::new();
+
     if let Some(ModelConfig::Local(ref model)) = config.model.completion {
-        download_model_if_needed(&model.model_id).await;
+        downloader.download_completion(&model.model_id).await?;
     }
 
     if let Some(ModelConfig::Local(ref model)) = config.model.chat {
-        download_model_if_needed(&model.model_id).await;
+        downloader.download_chat(&model.model_id).await?;
     }
 
     if let ModelConfig::Local(ref model) = config.model.embedding {
-        download_model_if_needed(&model.model_id).await;
+        downloader.download_embedding(&model.model_id).await?;
     }
+
+    Ok(())
 }
 
 async fn api_router(
