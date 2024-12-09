@@ -489,6 +489,12 @@ type MessageAttachment {
   doc: [MessageAttachmentDoc!]!
 }
 
+type MessageAttachmentAuthor {
+  id: String!
+  email: String!
+  name: String!
+}
+
 type MessageAttachmentClientCode {
   filepath: String
   startLine: Int
@@ -512,7 +518,7 @@ type MessageAttachmentCodeScores {
 type MessageAttachmentIssueDoc {
   title: String!
   link: String!
-  authorEmail: String
+  author: MessageAttachmentAuthor
   body: String!
   closed: Boolean!
 }
@@ -520,7 +526,7 @@ type MessageAttachmentIssueDoc {
 type MessageAttachmentPullDoc {
   title: String!
   link: String!
-  authorEmail: String
+  author: MessageAttachmentAuthor
   body: String!
   patch: String!
   merged: Boolean!

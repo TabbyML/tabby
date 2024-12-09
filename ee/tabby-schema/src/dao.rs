@@ -3,9 +3,9 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
-    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
-    ThreadMessageAttachmentWebDoc, ThreadMessageDAO, UserEventDAO,
+    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentAuthor, ThreadMessageAttachmentClientCode,
+    ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
+    ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc, ThreadMessageDAO, UserEventDAO,
 };
 
 use crate::{
@@ -242,7 +242,7 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
                     title: val.title,
                     link: val.link,
-                    author_email: val.author_email.clone(),
+                    author: val.author.map(|x| x.into()),
                     body: val.body,
                     closed: val.closed,
                 })
@@ -251,12 +251,22 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
                     title: val.title,
                     link: val.link,
-                    author_email: val.author_email.clone(),
+                    author: val.author.map(|x| x.into()),
                     body: val.body,
                     patch: val.diff,
                     merged: val.merged,
                 })
             }
+        }
+    }
+}
+
+impl From<thread::MessageAttachmentAuthor> for ThreadMessageAttachmentAuthor {
+    fn from(value: thread::MessageAttachmentAuthor) -> Self {
+        Self {
+            id: value.id,
+            email: value.email,
+            name: value.name,
         }
     }
 }
@@ -275,7 +285,7 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 ThreadMessageAttachmentDoc::Issue(ThreadMessageAttachmentIssueDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
-                    author_email: val.author_email.clone(),
+                    author: val.author.clone().map(|x| x.into()),
                     body: val.body.clone(),
                     closed: val.closed,
                 })
@@ -284,12 +294,22 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 ThreadMessageAttachmentDoc::Pull(ThreadMessageAttachmentPullDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
-                    author_email: val.author_email.clone(),
+                    author: val.author.clone().map(|x| x.into()),
                     body: val.body.clone(),
                     diff: val.patch.clone(),
                     merged: val.merged,
                 })
             }
+        }
+    }
+}
+
+impl From<ThreadMessageAttachmentAuthor> for thread::MessageAttachmentAuthor {
+    fn from(value: ThreadMessageAttachmentAuthor) -> Self {
+        Self {
+            id: value.id,
+            email: value.email,
+            name: value.name,
         }
     }
 }

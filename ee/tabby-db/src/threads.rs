@@ -50,7 +50,7 @@ pub struct ThreadMessageAttachmentWebDoc {
 pub struct ThreadMessageAttachmentIssueDoc {
     pub title: String,
     pub link: String,
-    pub author_email: Option<String>,
+    pub author: Option<ThreadMessageAttachmentAuthor>,
     pub body: String,
     pub closed: bool,
 }
@@ -59,10 +59,17 @@ pub struct ThreadMessageAttachmentIssueDoc {
 pub struct ThreadMessageAttachmentPullDoc {
     pub title: String,
     pub link: String,
-    pub author_email: Option<String>,
+    pub author: Option<ThreadMessageAttachmentAuthor>,
     pub body: String,
     pub diff: String,
     pub merged: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentAuthor {
+    pub id: String,
+    pub name: String,
+    pub email: String,
 }
 
 #[derive(Serialize, Deserialize)]
