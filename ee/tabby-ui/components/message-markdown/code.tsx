@@ -83,7 +83,7 @@ export function CodeElement({
         {...props}
       >
         {isSymbolNavigable && (
-          <IconSquareChevronRight className="h-3.5 w-3.5 text-primary shrink-0" />
+          <IconSquareChevronRight className="h-3.5 w-3.5 shrink-0 text-primary" />
         )}
         <span
           className={cn('self-baseline', {
