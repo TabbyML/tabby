@@ -6,7 +6,7 @@ use juniper::ID;
 use tabby_db::{DbConn, ThreadMessageAttachmentDoc, ThreadMessageDAO};
 use tabby_schema::{
     auth::AuthenticationService,
-    bail,
+    bail, from_thread_message_attachment_document,
     policy::AccessPolicy,
     thread::{
         self, CreateMessageInput, CreateThreadInput, MessageAttachment, MessageAttachmentDoc,
@@ -98,9 +98,7 @@ impl ThreadServiceImpl {
                 None
             };
 
-            output.push(
-                MessageAttachmentDoc::from_thread_message_attachment_document(thread_doc, user),
-            );
+            output.push(from_thread_message_attachment_document(thread_doc, user));
         }
         output
     }

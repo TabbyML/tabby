@@ -262,6 +262,40 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
     }
 }
 
+pub fn from_thread_message_attachment_document(
+    doc: ThreadMessageAttachmentDoc,
+    author: Option<UserValue>,
+) -> thread::MessageAttachmentDoc {
+    match doc {
+        ThreadMessageAttachmentDoc::Web(web) => {
+            thread::MessageAttachmentDoc::Web(thread::MessageAttachmentWebDoc {
+                title: web.title,
+                link: web.link,
+                content: web.content,
+            })
+        }
+        ThreadMessageAttachmentDoc::Issue(issue) => {
+            thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
+                title: issue.title,
+                link: issue.link,
+                author,
+                body: issue.body,
+                closed: issue.closed,
+            })
+        }
+        ThreadMessageAttachmentDoc::Pull(pull) => {
+            thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
+                title: pull.title,
+                link: pull.link,
+                author,
+                body: pull.body,
+                patch: pull.diff,
+                merged: pull.merged,
+            })
+        }
+    }
+}
+
 impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
     fn from(val: &thread::MessageAttachmentDoc) -> Self {
         match val {

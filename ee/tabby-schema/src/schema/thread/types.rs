@@ -5,7 +5,6 @@ use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
     structured_doc::DocSearchDocument,
 };
-use tabby_db::ThreadMessageAttachmentDoc;
 use validator::Validate;
 
 use crate::{interface::UserValue, juniper::relay::NodeType, Context};
@@ -184,40 +183,6 @@ impl MessageAttachmentDoc {
                 patch: pull.diff,
                 merged: pull.merged,
             }),
-        }
-    }
-
-    pub fn from_thread_message_attachment_document(
-        doc: ThreadMessageAttachmentDoc,
-        author: Option<UserValue>,
-    ) -> Self {
-        match doc {
-            ThreadMessageAttachmentDoc::Web(web) => {
-                MessageAttachmentDoc::Web(MessageAttachmentWebDoc {
-                    title: web.title,
-                    link: web.link,
-                    content: web.content,
-                })
-            }
-            ThreadMessageAttachmentDoc::Issue(issue) => {
-                MessageAttachmentDoc::Issue(MessageAttachmentIssueDoc {
-                    title: issue.title,
-                    link: issue.link,
-                    author,
-                    body: issue.body,
-                    closed: issue.closed,
-                })
-            }
-            ThreadMessageAttachmentDoc::Pull(pull) => {
-                MessageAttachmentDoc::Pull(MessageAttachmentPullDoc {
-                    title: pull.title,
-                    link: pull.link,
-                    author,
-                    body: pull.body,
-                    patch: pull.diff,
-                    merged: pull.merged,
-                })
-            }
         }
     }
 }
