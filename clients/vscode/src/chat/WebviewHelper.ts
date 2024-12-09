@@ -11,7 +11,6 @@ import {
   ProgressLocation,
   commands,
   LocationLink,
-  workspace,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams, SymbolInfo } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
@@ -24,8 +23,7 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { ChatFeature } from "../lsp/ChatFeature";
 import { isBrowser } from "../env";
-import { getFileContextFromSelection, showFileContext } from "./fileContext";
-import path from "path";
+import { getFileContextFromSelection, showFileContext, openTextDocument } from "./fileContext";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -571,38 +569,29 @@ export class WebviewHelper {
             return undefined;
           }
           try {
-            const workspaceRoot = workspace.workspaceFolders?.[0];
-            if (!workspaceRoot) {
-              this.logger.error("No workspace folder found");
-              return undefined;
-            }
-            const rootPath = workspaceRoot.uri;
             for (const filepath of filepaths) {
-              const normalizedPath = filepath.startsWith("/") ? filepath.slice(1) : filepath;
-              const fullPath = path.join(rootPath.path, normalizedPath);
-              const fileUri = Uri.file(fullPath);
-              const document = await workspace.openTextDocument(fileUri);
+              const document = await openTextDocument({ filePath: filepath }, this.gitProvider);
+              if (!document) {
+                this.logger.info(`File not found: ${filepath}`);
+                continue;
+              }
               const content = document.getText();
               let pos = 0;
               while ((pos = content.indexOf(keyword, pos)) !== -1) {
                 const position = document.positionAt(pos);
                 const locations = await commands.executeCommand<LocationLink[]>(
                   "vscode.executeDefinitionProvider",
-                  fileUri,
+                  document.uri,
                   position,
                 );
                 if (locations && locations.length > 0) {
                   const location = locations[0];
                   if (location) {
-                    const targetPath = location.targetUri.fsPath;
-                    const relativePath = path.relative(rootPath.path, targetPath);
-                    const normalizedTargetPath = relativePath.startsWith("/") ? relativePath.slice(1) : relativePath;
-
                     return {
                       sourceFile: filepath,
                       sourceLine: position.line + 1,
                       sourceCol: position.character,
-                      targetFile: normalizedTargetPath,
+                      targetFile: location.targetUri.toString(true),
                       targetLine: location.targetRange.start.line + 1,
                       targetCol: location.targetRange.start.character,
                     };
