@@ -74,11 +74,11 @@ export function CodeElement({
     return (
       <code
         className={cn(
-          'group/symbol inline-flex flex-nowrap items-center gap-1',
+          'group/symbol inline-flex flex-nowrap items-center',
           className,
           {
             symbol: !!lookupSymbol,
-            'bg-muted leading-5': !isSymbolNavigable,
+            'bg-muted leading-5': !!lookupSymbol && !isSymbolNavigable,
             'cursor-pointer hover:bg-muted/50 border': isSymbolNavigable
           }
         )}
