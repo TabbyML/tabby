@@ -73,20 +73,17 @@ export function CodeElement({
 
     return (
       <code
-        className={cn(
-          'group/symbol inline-flex flex-nowrap items-center gap-1',
-          className,
-          {
-            symbol: !!lookupSymbol,
-            'bg-muted leading-5': !isSymbolNavigable,
-            'cursor-pointer hover:bg-muted/50 border': isSymbolNavigable
-          }
-        )}
+        className={cn('group/symbol', className, {
+          symbol: !!lookupSymbol,
+          'bg-muted leading-5 py-0.5': !!lookupSymbol && !isSymbolNavigable,
+          'inline-flex items-center gap-1 cursor-pointer hover:bg-muted/50 border':
+            isSymbolNavigable
+        })}
         onClick={handleClick}
         {...props}
       >
         {isSymbolNavigable && (
-          <IconSquareChevronRight className="h-3.5 w-3.5 text-primary" />
+          <IconSquareChevronRight className="h-3.5 w-3.5 shrink-0 text-primary" />
         )}
         <span
           className={cn('self-baseline', {
