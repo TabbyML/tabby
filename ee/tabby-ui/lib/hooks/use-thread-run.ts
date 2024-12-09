@@ -222,6 +222,8 @@ export function useThreadRun({
   threadId: propsThreadId,
   onAssistantMessageCompleted
 }: UseThreadRunOptions): ThreadRun {
+  console.log('threadId', propsThreadId);
+
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
   )

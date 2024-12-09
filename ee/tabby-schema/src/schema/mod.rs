@@ -441,6 +441,8 @@ impl Query {
     }
 
     async fn server_info(ctx: &Context) -> Result<ServerInfo> {
+
+        
         Ok(ServerInfo {
             is_admin_initialized: ctx.locator.auth().is_admin_initialized().await?,
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
@@ -449,6 +451,7 @@ impl Query {
             is_demo_mode: env::is_demo_mode(),
         })
     }
+
 
     async fn license(ctx: &Context) -> Result<LicenseInfo> {
         ctx.locator.license().read().await
@@ -542,6 +545,23 @@ impl Query {
             .await
     }
 
+    async fn is_availeable_workspace(ctx: &Context, git_url: String) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        
+        let repositorys = ctx.locator
+            .repository()
+            .repository_list(Some(&user.policy))
+            .await.unwrap_or_default();
+        
+        for repo in repositorys {
+            if repo.git_url == git_url {
+                return Ok(true);
+            }
+        }
+        
+        return Ok(false);
+    }
+    
     async fn context_info(ctx: &Context) -> Result<ContextInfo> {
         let user = check_user(ctx).await?;
         ctx.locator.context().read(Some(&user.policy)).await
@@ -1397,6 +1417,10 @@ impl Subscription {
 
         svc.append_user_message(&input.thread_id, &input.additional_user_message)
             .await?;
+        
+        println!("user.policy {:?}", user.policy);
+        println!("input.thread_id {:?}", input.thread_id);
+        println!("input.options {:?}", input.options);
 
         svc.create_run(
             &user.policy,
