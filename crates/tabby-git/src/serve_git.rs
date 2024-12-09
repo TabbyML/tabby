@@ -19,10 +19,13 @@ fn resolve<'a>(
     rev: Option<&str>,
     relpath_str: Option<&str>,
 ) -> anyhow::Result<Resolve<'a>> {
+    // relpath_str is always separated by `/`, need to process it into platform specific path (e.g `\` on windows).
+    let relpath_str = relpath_str.map(|s| s.replace('/', std::path::MAIN_SEPARATOR_STR));
+
     let commit = rev_to_commit(repository, rev)?;
     let tree = commit.tree()?;
 
-    let relpath = Path::new(relpath_str.unwrap_or(""));
+    let relpath = Path::new(relpath_str.as_deref().unwrap_or(""));
     let object = if relpath_str.is_some() {
         tree.get_path(relpath)?.to_object(repository)?
     } else {
