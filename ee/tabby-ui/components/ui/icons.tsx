@@ -39,6 +39,7 @@ import {
   Share2,
   Sparkles,
   SquareActivity,
+  SquareChevronRight,
   Star,
   Tag,
   WrapText,
@@ -1730,6 +1731,13 @@ function IconGitMerge({
   return <GitMerge className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconSquareChevronRight({
+  className,
+  ...props
+}: React.ComponentProps<typeof SquareChevronRight>) {
+  return <SquareChevronRight className={cn('h-4 w-4', className)} {...props} />
+}
+
 function IconFileSearch2({
   className,
   ...props
@@ -1848,5 +1856,6 @@ export {
   IconCircleDot,
   IconGitPullRequest,
   IconGitMerge,
+  IconSquareChevronRight,
   IconFileSearch2
 }

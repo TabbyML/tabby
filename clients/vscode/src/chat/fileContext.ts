@@ -7,6 +7,11 @@ import { getLogger } from "../logger";
 
 const logger = getLogger("FileContext");
 
+export interface FilePathParams {
+  filePath: string;
+  gitRemoteUrl?: string;
+}
+
 export async function getFileContextFromSelection(
   editor: TextEditor,
   gitProvider: GitProvider,
@@ -19,7 +24,6 @@ export async function getFileContext(
   gitProvider: GitProvider,
   useSelection = false,
 ): Promise<FileContext | null> {
-  const uri = editor.document.uri;
   const text = editor.document.getText(useSelection ? editor.selection : undefined);
   if (!text || text.trim().length < 1) {
     return null;
@@ -35,30 +39,14 @@ export async function getFileContext(
         end: editor.document.lineCount,
       };
 
-  const workspaceFolder =
-    workspace.getWorkspaceFolder(uri) ?? (editor.document.isUntitled ? workspace.workspaceFolders?.[0] : undefined);
-  const repo =
-    gitProvider.getRepository(uri) ?? (workspaceFolder ? gitProvider.getRepository(workspaceFolder.uri) : undefined);
-  const gitRemoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-  let filePath = uri.toString(true);
-  if (repo && gitRemoteUrl) {
-    const relativeFilePath = path.relative(repo.rootUri.toString(true), filePath);
-    if (!relativeFilePath.startsWith("..")) {
-      filePath = relativeFilePath;
-    }
-  } else if (workspaceFolder) {
-    const relativeFilePath = path.relative(workspaceFolder.uri.toString(true), filePath);
-    if (!relativeFilePath.startsWith("..")) {
-      filePath = relativeFilePath;
-    }
-  }
+  const filePathParams = await buildFilePathParams(editor.document.uri, gitProvider);
 
   return {
     kind: "file",
     content,
     range,
-    filepath: filePath,
-    git_url: gitRemoteUrl ?? "",
+    filepath: filePathParams.filePath,
+    git_url: filePathParams.gitRemoteUrl ?? "",
   };
 }
 
@@ -69,7 +57,13 @@ export async function showFileContext(fileContext: FileContext, gitProvider: Git
     return;
   }
 
-  const document = await openTextDocument(fileContext, gitProvider);
+  const document = await openTextDocument(
+    {
+      filePath: fileContext.filepath,
+      gitRemoteUrl: fileContext.git_url,
+    },
+    gitProvider,
+  );
   if (!document) {
     throw new Error(`File not found: ${fileContext.filepath}`);
   }
@@ -87,43 +81,89 @@ export async function showFileContext(fileContext: FileContext, gitProvider: Git
   editor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
 }
 
-async function openTextDocument(fileContext: FileContext, gitProvider: GitProvider): Promise<TextDocument | null> {
-  const { filepath: filePath, git_url: gitUrl } = fileContext;
+export async function buildFilePathParams(uri: Uri, gitProvider: GitProvider): Promise<FilePathParams> {
+  const workspaceFolder =
+    workspace.getWorkspaceFolder(uri) ?? (uri.scheme === "untitled" ? workspace.workspaceFolders?.[0] : undefined);
+  const repo =
+    gitProvider.getRepository(uri) ?? (workspaceFolder ? gitProvider.getRepository(workspaceFolder.uri) : undefined);
+  const gitRemoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
+  let filePath = uri.toString(true);
+  if (repo && gitRemoteUrl) {
+    const relativeFilePath = path.relative(repo.rootUri.toString(true), filePath);
+    if (!relativeFilePath.startsWith("..")) {
+      filePath = relativeFilePath;
+    }
+  } else if (workspaceFolder) {
+    const relativeFilePath = path.relative(workspaceFolder.uri.toString(true), filePath);
+    if (!relativeFilePath.startsWith("..")) {
+      filePath = relativeFilePath;
+    }
+  }
+  return {
+    filePath,
+    gitRemoteUrl,
+  };
+}
+
+export async function openTextDocument(
+  filePathParams: FilePathParams,
+  gitProvider: GitProvider,
+): Promise<TextDocument | null> {
+  const { filePath, gitRemoteUrl } = filePathParams;
+
+  // Try parse as absolute path
   try {
-    // try parse as absolute path
     const absoluteFilepath = Uri.parse(filePath, true);
     if (absoluteFilepath.scheme) {
       return await workspace.openTextDocument(absoluteFilepath);
     }
   } catch (err) {
-    // Cannot open as absolute path, try to find file in git root
+    // ignore
   }
 
-  if (gitUrl && gitUrl.trim().length > 0) {
-    const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(gitUrl);
+  // Try find file in provided git repository
+  if (gitRemoteUrl && gitRemoteUrl.trim().length > 0) {
+    const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(gitRemoteUrl);
     if (localGitRoot) {
       try {
         const absoluteFilepath = Uri.joinPath(localGitRoot, filePath);
         return await workspace.openTextDocument(absoluteFilepath);
       } catch (err) {
-        // File not found in local git root, try to find file in workspace folders
+        // ignore
       }
     }
   }
 
   for (const root of workspace.workspaceFolders ?? []) {
+    // Try find file in workspace folder
     const absoluteFilepath = Uri.joinPath(root.uri, filePath);
     try {
       return await workspace.openTextDocument(absoluteFilepath);
     } catch (err) {
-      // File not found in workspace folder, try to use findFiles
+      // ignore
+    }
+
+    // Try find file in git repository of workspace folder
+    const localGitRoot = gitProvider.getRepository(root.uri)?.rootUri;
+    if (localGitRoot) {
+      try {
+        const absoluteFilepath = Uri.joinPath(localGitRoot, filePath);
+        return await workspace.openTextDocument(absoluteFilepath);
+      } catch (err) {
+        // ignore
+      }
     }
   }
-  logger.info("File not found in workspace folders, trying with findFiles...");
 
+  // Try find file in workspace folders using workspace.findFiles
+  logger.info("File not found in workspace folders, trying with findFiles...");
   const files = await workspace.findFiles(filePath, undefined, 1);
   if (files[0]) {
-    return workspace.openTextDocument(files[0]);
+    try {
+      return await workspace.openTextDocument(files[0]);
+    } catch (err) {
+      // ignore
+    }
   }
 
   return null;

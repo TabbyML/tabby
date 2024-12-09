@@ -9,8 +9,10 @@ import {
   Webview,
   ColorThemeKind,
   ProgressLocation,
+  commands,
+  LocationLink,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams, SymbolInfo } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
@@ -20,7 +22,7 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { Client as LspClient } from "../lsp/Client";
 import { isBrowser } from "../env";
-import { getFileContextFromSelection, showFileContext } from "./fileContext";
+import { getFileContextFromSelection, showFileContext, openTextDocument } from "./fileContext";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -384,6 +386,9 @@ export class WebviewHelper {
   }
 
   public createChatClient(webview: Webview) {
+    /*
+      utility functions for createClient
+    */
     const getIndentInfo = (document: TextDocument, selection: Selection) => {
       // Determine the indentation for the content
       // The calculation is based solely on the indentation of the first line
@@ -546,6 +551,52 @@ export class WebviewHelper {
       onKeyboardEvent: (type: string, event: KeyboardEventInit) => {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
+      },
+      onLookupSymbol: async (hintFilepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
+        const findSymbolInfo = async (filepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
+          if (!keyword || !filepaths.length) {
+            this.logger.info("No keyword or filepaths provided");
+            return undefined;
+          }
+          try {
+            for (const filepath of filepaths) {
+              const document = await openTextDocument({ filePath: filepath }, this.gitProvider);
+              if (!document) {
+                this.logger.info(`File not found: ${filepath}`);
+                continue;
+              }
+              const content = document.getText();
+              let pos = 0;
+              while ((pos = content.indexOf(keyword, pos)) !== -1) {
+                const position = document.positionAt(pos);
+                const locations = await commands.executeCommand<LocationLink[]>(
+                  "vscode.executeDefinitionProvider",
+                  document.uri,
+                  position,
+                );
+                if (locations && locations.length > 0) {
+                  const location = locations[0];
+                  if (location) {
+                    return {
+                      sourceFile: filepath,
+                      sourceLine: position.line + 1,
+                      sourceCol: position.character,
+                      targetFile: location.targetUri.toString(true),
+                      targetLine: location.targetRange.start.line + 1,
+                      targetCol: location.targetRange.start.character,
+                    };
+                  }
+                }
+                pos += keyword.length;
+              }
+            }
+          } catch (error) {
+            this.logger.error("Error in findSymbolInfo:", error);
+          }
+          return undefined;
+        };
+
+        return await findSymbolInfo(hintFilepaths, keyword);
       },
     });
   }
