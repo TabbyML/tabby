@@ -243,11 +243,7 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
                     title: val.title,
                     link: val.link,
-                    author: val.author_user_id.map(|x| UserValue {
-                        id: x,
-                        email: None,
-                        name: None,
-                    }),
+                    author: None, // will be filled in service layer
                     body: val.body,
                     closed: val.closed,
                 })
@@ -256,11 +252,7 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
                     title: val.title,
                     link: val.link,
-                    author: val.author_user_id.map(|x| UserValue {
-                        id: x,
-                        email: None,
-                        name: None,
-                    }),
+                    author: None, // will be filled in service layer
                     body: val.body,
                     patch: val.diff,
                     merged: val.merged,
@@ -284,7 +276,9 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 ThreadMessageAttachmentDoc::Issue(ThreadMessageAttachmentIssueDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
-                    author_user_id: val.author.as_ref().map(|x| x.id.clone()),
+                    author_user_id: val.author.as_ref().map(|x| match x {
+                        UserValue::UserSecured(user) => user.id.to_string(),
+                    }),
                     body: val.body.clone(),
                     closed: val.closed,
                 })
@@ -293,7 +287,9 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 ThreadMessageAttachmentDoc::Pull(ThreadMessageAttachmentPullDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
-                    author_user_id: val.author.as_ref().map(|x| x.id.clone()),
+                    author_user_id: val.author.as_ref().map(|x| match x {
+                        UserValue::UserSecured(user) => user.id.to_string(),
+                    }),
                     body: val.body.clone(),
                     diff: val.patch.clone(),
                     merged: val.merged,

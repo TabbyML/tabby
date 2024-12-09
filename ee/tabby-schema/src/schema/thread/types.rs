@@ -158,8 +158,8 @@ pub struct MessageAttachmentPullDoc {
     pub merged: bool,
 }
 
-impl From<DocSearchDocument> for MessageAttachmentDoc {
-    fn from(doc: DocSearchDocument) -> Self {
+impl MessageAttachmentDoc {
+    pub fn from_doc_search_document(doc: DocSearchDocument, author: Option<UserValue>) -> Self {
         match doc {
             DocSearchDocument::Web(web) => MessageAttachmentDoc::Web(MessageAttachmentWebDoc {
                 title: web.title,
@@ -170,7 +170,7 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
                 MessageAttachmentDoc::Issue(MessageAttachmentIssueDoc {
                     title: issue.title,
                     link: issue.link,
-                    author: None,
+                    author: author,
                     body: issue.body,
                     closed: issue.closed,
                 })
@@ -178,7 +178,7 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
             DocSearchDocument::Pull(pull) => MessageAttachmentDoc::Pull(MessageAttachmentPullDoc {
                 title: pull.title,
                 link: pull.link,
-                author: None,
+                author: author,
                 body: pull.body,
                 patch: pull.diff,
                 merged: pull.merged,
@@ -192,15 +192,6 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
 pub struct MessageDocSearchHit {
     pub doc: MessageAttachmentDoc,
     pub score: f64,
-}
-
-impl From<DocSearchHit> for MessageDocSearchHit {
-    fn from(hit: DocSearchHit) -> Self {
-        Self {
-            doc: hit.doc.into(),
-            score: hit.score as f64,
-        }
-    }
 }
 
 #[derive(GraphQLObject)]

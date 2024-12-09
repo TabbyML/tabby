@@ -22,18 +22,19 @@ use tabby_common::{
             CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
             CodeSearchScores,
         },
-        structured_doc::{DocSearch, DocSearchError, DocSearchHit},
+        structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
     },
     config::AnswerConfig,
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
+    auth::AuthenticationService,
     context::{ContextInfoHelper, ContextService},
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentDoc, ThreadAssistantMessageAttachmentsCode,
+        MessageAttachmentDoc, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
         ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
@@ -44,6 +45,7 @@ use crate::bail;
 
 pub struct AnswerService {
     config: AnswerConfig,
+    auth: Arc<dyn AuthenticationService>,
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
@@ -55,6 +57,7 @@ pub struct AnswerService {
 impl AnswerService {
     fn new(
         config: &AnswerConfig,
+        auth: Arc<dyn AuthenticationService>,
         chat: Arc<dyn ChatCompletionStream>,
         code: Arc<dyn CodeSearch>,
         doc: Arc<dyn DocSearch>,
@@ -64,6 +67,7 @@ impl AnswerService {
     ) -> Self {
         Self {
             config: config.clone(),
+            auth,
             chat,
             code,
             doc,
@@ -122,14 +126,24 @@ impl AnswerService {
             if let Some(doc_query) = options.doc_query.as_ref() {
                 let hits = self.collect_relevant_docs(&context_info_helper, doc_query)
                     .await;
-                attachment.doc = hits.iter()
-                        .map(|x| x.doc.clone().into())
-                        .collect::<Vec<_>>();
+                attachment.doc = futures::future::join_all(hits.iter().map(|x| async {
+                    Self::new_message_attachment_doc(self.auth.clone(), x.doc.clone()).await
+                })).await;
 
                 debug!("doc content: {:?}: {:?}", doc_query.content, attachment.doc.len());
 
                 if !attachment.doc.is_empty() {
-                    let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                    let hits = futures::future::join_all(hits.into_iter().map(|x| {
+                        let score = x.score;
+                        let doc = x.doc.clone();
+                        let auth = self.auth.clone();
+                        async move {
+                            MessageDocSearchHit {
+                                score: score as f64,
+                                doc: Self::new_message_attachment_doc(auth, doc).await,
+                            }
+                        }
+                    })).await;
                     yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(
                         ThreadAssistantMessageAttachmentsDoc { hits }
                     ));
@@ -199,6 +213,23 @@ impl AnswerService {
         };
 
         Ok(Box::pin(s))
+    }
+
+    async fn new_message_attachment_doc(
+        auth: Arc<dyn AuthenticationService>,
+        doc: DocSearchDocument,
+    ) -> MessageAttachmentDoc {
+        let email = match &doc {
+            DocSearchDocument::Issue(issue) => issue.author_email.as_deref(),
+            DocSearchDocument::Pull(pull) => pull.author_email.as_deref(),
+            _ => None,
+        };
+        let user = if let Some(email) = email {
+            auth.get_user_by_email(&email).await.ok().map(|x| x.into())
+        } else {
+            None
+        };
+        MessageAttachmentDoc::from_doc_search_document(doc, user)
     }
 
     async fn collect_relevant_code(
@@ -377,6 +408,7 @@ fn trim_bullet(s: &str) -> String {
 
 pub fn create(
     config: &AnswerConfig,
+    auth: Arc<dyn AuthenticationService>,
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
@@ -384,7 +416,7 @@ pub fn create(
     serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
 ) -> AnswerService {
-    AnswerService::new(config, chat, code, doc, context, serper, repository)
+    AnswerService::new(config, auth, chat, code, doc, context, serper, repository)
 }
 
 fn convert_messages_to_chat_completion_request(

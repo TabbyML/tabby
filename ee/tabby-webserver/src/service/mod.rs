@@ -1,17 +1,17 @@
 mod access_policy;
 mod analytic;
 pub mod answer;
-mod auth;
+pub mod auth;
 pub mod background_job;
 pub mod context;
-mod email;
+pub mod email;
 pub mod event_logger;
 pub mod integration;
 pub mod job;
-mod license;
+pub mod license;
 mod preset_web_documents_data;
 pub mod repository;
-mod setting;
+pub mod setting;
 mod thread;
 mod user_event;
 mod user_group;
@@ -58,10 +58,9 @@ use tabby_schema::{
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
 
-use self::{
-    analytic::new_analytic_service, email::new_email_service, license::new_license_service,
-};
+use self::analytic::new_analytic_service;
 use crate::rate_limit::UserRateLimiter;
+
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
@@ -91,6 +90,7 @@ struct ServerContext {
 impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
+        auth: Arc<dyn AuthenticationService>,
         chat: Option<Arc<dyn ChatCompletionStream>>,
         completion: Option<Arc<dyn CompletionStream>>,
         code: Arc<dyn CodeSearch>,
@@ -100,21 +100,13 @@ impl ServerContext {
         answer: Option<Arc<AnswerService>>,
         context: Arc<dyn ContextService>,
         web_documents: Arc<dyn WebDocumentService>,
+        mail: Arc<dyn EmailService>,
+        license: Arc<dyn LicenseService>,
+        setting: Arc<dyn SettingService>,
         db_conn: DbConn,
         embedding: Arc<dyn EmbeddingService>,
     ) -> Self {
-        let mail = Arc::new(
-            new_email_service(db_conn.clone())
-                .await
-                .expect("failed to initialize mail service"),
-        );
-        let license = Arc::new(
-            new_license_service(db_conn.clone())
-                .await
-                .expect("failed to initialize license service"),
-        );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
-        let setting = Arc::new(setting::create(db_conn.clone()));
         let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
@@ -132,16 +124,11 @@ impl ServerContext {
         .await;
 
         Self {
-            mail: mail.clone(),
+            mail,
             embedding,
             chat,
             completion,
-            auth: Arc::new(auth::create(
-                db_conn.clone(),
-                mail,
-                license.clone(),
-                setting.clone(),
-            )),
+            auth,
             web_documents,
             thread,
             context,
@@ -354,6 +341,7 @@ impl ServiceLocator for ArcServerContext {
 
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
+    auth: Arc<dyn AuthenticationService>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
     completion: Option<Arc<dyn CompletionStream>>,
     code: Arc<dyn CodeSearch>,
@@ -363,12 +351,16 @@ pub async fn create_service_locator(
     answer: Option<Arc<AnswerService>>,
     context: Arc<dyn ContextService>,
     web_documents: Arc<dyn WebDocumentService>,
+    mail: Arc<dyn EmailService>,
+    license: Arc<dyn LicenseService>,
+    setting: Arc<dyn SettingService>,
     db: DbConn,
     embedding: Arc<dyn EmbeddingService>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(
             logger,
+            auth,
             chat,
             completion,
             code,
@@ -378,6 +370,9 @@ pub async fn create_service_locator(
             answer,
             context,
             web_documents,
+            mail,
+            license,
+            setting,
             db,
             embedding,
         )
