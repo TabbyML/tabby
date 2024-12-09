@@ -242,7 +242,11 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
                     title: val.title,
                     link: val.link,
-                    author: val.author.map(|x| x.into()),
+                    author: val.author_user_id.map(|x| thread::MessageAttachmentAuthor {
+                        id: x,
+                        email: None,
+                        name: None,
+                    }),
                     body: val.body,
                     closed: val.closed,
                 })
@@ -251,22 +255,16 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
                     title: val.title,
                     link: val.link,
-                    author: val.author.map(|x| x.into()),
+                    author: val.author_user_id.map(|x| thread::MessageAttachmentAuthor {
+                        id: x,
+                        email: None,
+                        name: None,
+                    }),
                     body: val.body,
                     patch: val.diff,
                     merged: val.merged,
                 })
             }
-        }
-    }
-}
-
-impl From<thread::MessageAttachmentAuthor> for ThreadMessageAttachmentAuthor {
-    fn from(value: thread::MessageAttachmentAuthor) -> Self {
-        Self {
-            id: value.id,
-            email: value.email,
-            name: value.name,
         }
     }
 }
@@ -285,7 +283,7 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 ThreadMessageAttachmentDoc::Issue(ThreadMessageAttachmentIssueDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
-                    author: val.author.clone().map(|x| x.into()),
+                    author_user_id: val.author.as_ref().map(|x| x.id.clone()),
                     body: val.body.clone(),
                     closed: val.closed,
                 })
@@ -294,22 +292,12 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 ThreadMessageAttachmentDoc::Pull(ThreadMessageAttachmentPullDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
-                    author: val.author.clone().map(|x| x.into()),
+                    author_user_id: val.author.as_ref().map(|x| x.id.clone()),
                     body: val.body.clone(),
                     diff: val.patch.clone(),
                     merged: val.merged,
                 })
             }
-        }
-    }
-}
-
-impl From<ThreadMessageAttachmentAuthor> for thread::MessageAttachmentAuthor {
-    fn from(value: ThreadMessageAttachmentAuthor) -> Self {
-        Self {
-            id: value.id,
-            email: value.email,
-            name: value.name,
         }
     }
 }

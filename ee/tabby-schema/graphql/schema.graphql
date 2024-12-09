@@ -491,8 +491,8 @@ type MessageAttachment {
 
 type MessageAttachmentAuthor {
   id: String!
-  email: String!
-  name: String!
+  email: String
+  name: String
 }
 
 type MessageAttachmentClientCode {

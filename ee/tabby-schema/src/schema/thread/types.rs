@@ -147,8 +147,8 @@ pub struct MessageAttachmentIssueDoc {
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentAuthor {
     pub id: String,
-    pub email: String,
-    pub name: String,
+    pub email: Option<String>,
+    pub name: Option<String>,
 }
 
 #[derive(GraphQLObject, Clone)]
