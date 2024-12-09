@@ -7,7 +7,7 @@ use tabby_common::api::{
 };
 use validator::Validate;
 
-use crate::{juniper::relay::NodeType, Context};
+use crate::{interface::UserValue, juniper::relay::NodeType, Context};
 
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
 pub enum Role {
@@ -55,6 +55,7 @@ pub struct UpdateMessageInput {
 }
 
 #[derive(GraphQLObject, Clone, Default)]
+#[graphql(context = Context)]
 pub struct MessageAttachment {
     pub code: Vec<MessageAttachmentCode>,
     pub client_code: Vec<MessageAttachmentClientCode>,
@@ -122,6 +123,7 @@ impl From<CodeSearchHit> for MessageCodeSearchHit {
 }
 
 #[derive(GraphQLUnion, Clone)]
+#[graphql(context = Context)]
 pub enum MessageAttachmentDoc {
     Web(MessageAttachmentWebDoc),
     Issue(MessageAttachmentIssueDoc),
@@ -136,26 +138,21 @@ pub struct MessageAttachmentWebDoc {
 }
 
 #[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
 pub struct MessageAttachmentIssueDoc {
     pub title: String,
     pub link: String,
-    pub author: Option<MessageAttachmentAuthor>,
+    pub author: Option<UserValue>,
     pub body: String,
     pub closed: bool,
 }
 
 #[derive(GraphQLObject, Clone)]
-pub struct MessageAttachmentAuthor {
-    pub id: String,
-    pub email: Option<String>,
-    pub name: Option<String>,
-}
-
-#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
 pub struct MessageAttachmentPullDoc {
     pub title: String,
     pub link: String,
-    pub author: Option<MessageAttachmentAuthor>,
+    pub author: Option<UserValue>,
     pub body: String,
     pub patch: String,
     pub merged: bool,
@@ -191,6 +188,7 @@ impl From<DocSearchDocument> for MessageAttachmentDoc {
 }
 
 #[derive(GraphQLObject)]
+#[graphql(context = Context)]
 pub struct MessageDocSearchHit {
     pub doc: MessageAttachmentDoc,
     pub score: f64,
@@ -256,6 +254,7 @@ pub struct ThreadAssistantMessageAttachmentsCode {
 }
 
 #[derive(GraphQLObject)]
+#[graphql(context = Context)]
 pub struct ThreadAssistantMessageAttachmentsDoc {
     pub hits: Vec<MessageDocSearchHit>,
 }
@@ -274,6 +273,7 @@ pub struct ThreadAssistantMessageCompleted {
 ///
 /// Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 #[derive(GraphQLUnion)]
+#[graphql(context = Context)]
 pub enum ThreadRunItem {
     ThreadCreated(ThreadCreated),
     ThreadRelevantQuestions(ThreadRelevantQuestions),

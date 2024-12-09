@@ -10,6 +10,7 @@ use tabby_db::{
 
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
+    interface::UserValue,
     repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -242,7 +243,7 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
                     title: val.title,
                     link: val.link,
-                    author: val.author_user_id.map(|x| thread::MessageAttachmentAuthor {
+                    author: val.author_user_id.map(|x| UserValue {
                         id: x,
                         email: None,
                         name: None,
@@ -255,7 +256,7 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
                 thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
                     title: val.title,
                     link: val.link,
-                    author: val.author_user_id.map(|x| thread::MessageAttachmentAuthor {
+                    author: val.author_user_id.map(|x| UserValue {
                         id: x,
                         email: None,
                         name: None,
