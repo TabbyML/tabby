@@ -31,9 +31,8 @@ jobs:
       matrix:
         binary:
           - aarch64-apple-darwin
-          - x86_64-manylinux2014
-          - x86_64-manylinux2014-cuda117
-          - x86_64-manylinux2014-cuda122
+          - x86_64-manylinux_2_28
+          - x86_64-manylinux_2_28-cuda123
           - x86_64-manylinux_2_28-vulkan
           - x86_64-windows-msvc
           - x86_64-windows-msvc-vulkan
@@ -46,18 +45,13 @@ jobs:
             build_args: --features binary
           - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
-            binary: x86_64-manylinux2014
-            container: quay.io/pypa/manylinux2014_x86_64
+            binary: x86_64-manylinux_2_28
+            container: quay.io/pypa/manylinux_2_28_x86_64
             build_args: --features binary
           - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
-            binary: x86_64-manylinux2014-cuda117
-            container: sameli/manylinux2014_x86_64_cuda_11.7
-            build_args: --features binary,cuda
-          - os: buildjet-2vcpu-ubuntu-2204
-            target: x86_64-unknown-linux-gnu
-            binary: x86_64-manylinux2014-cuda122
-            container: sameli/manylinux2014_x86_64_cuda_12.2
+            binary: x86_64-manylinux_2_28-cuda123
+            container: sameli/manylinux_2_28_x86_64_cuda_12.3
             build_args: --features binary,cuda
           - os: buildjet-4vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
@@ -170,7 +164,7 @@ jobs:
       matrix:
         binary:
           - aarch64-apple-darwin
-          - x86_64-manylinux2014
+          - x86_64-manylinux_2_28
           - x86_64-windows-msvc
         include:
           - os: macos-latest
@@ -179,8 +173,8 @@ jobs:
             build_args: --no-default-features --features prod
           - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
-            binary: x86_64-manylinux2014
-            container: quay.io/pypa/manylinux2014_x86_64
+            binary: x86_64-manylinux_2_28
+            container: quay.io/pypa/manylinux_2_28_x86_64
             build_args: --no-default-features --features static-ssl,prod
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -319,9 +313,7 @@ jobs:
               llamav=${llaman#llama-server_}
               tabbyv=${tabbyn#tabby_}
 
-              # TODO: fix this after all builds migrate to manylinux_2_28
-              if [[ $llamav == *"$tabbyv"* ]] ||
-                  ([[ $llamav == "x86_64-manylinux_2_28-vulkan" ]] && [[ $tabbyv == "x86_64-manylinux2014" ]]); then
+              if [[ $llamav == *"$tabbyv"* ]]; then
                 echo "Creating bundle for $llamav"
 
                 # the downloaded files may have the same folder name with release_dir
