@@ -3,7 +3,7 @@
 }
 
 .message-markdown code.symbol {
-  @apply rounded-md font-normal mx-1 px-1 gap-1;
+  @apply rounded-md font-normal mx-1 px-1;
 }
 
 .message-markdown code.symbol::before,
