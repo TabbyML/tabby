@@ -24,8 +24,7 @@ use crate::{
 };
 
 use crate::service::{
-    auth::create as new_auth_service, email::new_email_service, license::new_license_service,
-    setting::create as new_setting_service,
+    new_auth_service, new_email_service, new_license_service, new_setting_service,
 };
 
 pub struct Webserver {

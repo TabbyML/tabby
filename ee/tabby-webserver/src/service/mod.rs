@@ -1,17 +1,17 @@
 mod access_policy;
 mod analytic;
 pub mod answer;
-pub mod auth;
+mod auth;
 pub mod background_job;
 pub mod context;
-pub mod email;
+mod email;
 pub mod event_logger;
 pub mod integration;
 pub mod job;
-pub mod license;
+mod license;
 mod preset_web_documents_data;
 pub mod repository;
-pub mod setting;
+mod setting;
 mod thread;
 mod user_event;
 mod user_group;
@@ -56,6 +56,11 @@ use tabby_schema::{
     web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
+};
+
+pub use {
+    auth::create as new_auth_service, email::new_email_service, license::new_license_service,
+    setting::create as new_setting_service,
 };
 
 use self::analytic::new_analytic_service;
