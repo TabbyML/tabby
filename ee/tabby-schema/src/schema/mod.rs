@@ -8,6 +8,7 @@ pub mod integration;
 pub mod interface;
 pub mod job;
 pub mod license;
+pub mod notification;
 pub mod repository;
 pub mod setting;
 pub mod thread;
