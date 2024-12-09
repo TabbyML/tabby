@@ -192,7 +192,7 @@ impl AuthenticationService for FakeAuthService {
     }
 
     async fn oauth_callback_url(&self, _provider: OAuthProvider) -> Result<String> {
-        Ok(format!("https://example.com/oauth/callback/"))
+        Ok("https://example.com/oauth/callback/".to_string())
     }
 
     async fn update_oauth_credential(&self, _input: UpdateOAuthCredentialInput) -> Result<()> {

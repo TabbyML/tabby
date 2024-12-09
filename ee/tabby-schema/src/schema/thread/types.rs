@@ -171,7 +171,7 @@ impl MessageAttachmentDoc {
                 MessageAttachmentDoc::Issue(MessageAttachmentIssueDoc {
                     title: issue.title,
                     link: issue.link,
-                    author: author,
+                    author,
                     body: issue.body,
                     closed: issue.closed,
                 })
@@ -179,7 +179,7 @@ impl MessageAttachmentDoc {
             DocSearchDocument::Pull(pull) => MessageAttachmentDoc::Pull(MessageAttachmentPullDoc {
                 title: pull.title,
                 link: pull.link,
-                author: author,
+                author,
                 body: pull.body,
                 patch: pull.diff,
                 merged: pull.merged,
@@ -203,7 +203,7 @@ impl MessageAttachmentDoc {
                 MessageAttachmentDoc::Issue(MessageAttachmentIssueDoc {
                     title: issue.title,
                     link: issue.link,
-                    author: author,
+                    author,
                     body: issue.body,
                     closed: issue.closed,
                 })
@@ -212,7 +212,7 @@ impl MessageAttachmentDoc {
                 MessageAttachmentDoc::Pull(MessageAttachmentPullDoc {
                     title: pull.title,
                     link: pull.link,
-                    author: author,
+                    author,
                     body: pull.body,
                     patch: pull.diff,
                     merged: pull.merged,

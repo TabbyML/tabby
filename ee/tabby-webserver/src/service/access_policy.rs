@@ -60,8 +60,9 @@ pub fn create(db: DbConn, context: Arc<dyn ContextService>) -> impl AccessPolicy
 
 #[cfg(test)]
 pub mod testutils {
-    use super::*;
     use tabby_schema::policy::AccessPolicy;
+
+    use super::*;
 
     pub async fn make_policy() -> AccessPolicy {
         AccessPolicy::new(

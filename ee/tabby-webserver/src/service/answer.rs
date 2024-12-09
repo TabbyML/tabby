@@ -680,10 +680,8 @@ mod tests {
             },
             trim_bullet, AnswerService,
         },
-        service::auth,
+        service::{access_policy::testutils::make_policy, auth},
     };
-
-    use crate::service::access_policy::testutils::make_policy;
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";

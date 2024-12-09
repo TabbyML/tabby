@@ -22,14 +22,18 @@ use std::sync::Arc;
 use answer::AnswerService;
 use anyhow::Context;
 use async_trait::async_trait;
+pub use auth::create as new_auth_service;
 use axum::{
     body::Body,
     http::{HeaderName, HeaderValue, Request, StatusCode},
     middleware::Next,
     response::IntoResponse,
 };
+pub use email::new_email_service;
 use hyper::{HeaderMap, Uri};
 use juniper::ID;
+pub use license::new_license_service;
+pub use setting::create as new_setting_service;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
@@ -56,11 +60,6 @@ use tabby_schema::{
     web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
-};
-
-pub use {
-    auth::create as new_auth_service, email::new_email_service, license::new_license_service,
-    setting::create as new_setting_service,
 };
 
 use self::analytic::new_analytic_service;

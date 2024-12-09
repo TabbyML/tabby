@@ -18,13 +18,10 @@ use crate::{
     path::db_file,
     routes,
     service::{
-        create_service_locator, event_logger::create_event_logger, integration, job, repository,
+        create_service_locator, event_logger::create_event_logger, integration, job,
+        new_auth_service, new_email_service, new_license_service, new_setting_service, repository,
         web_documents,
     },
-};
-
-use crate::service::{
-    new_auth_service, new_email_service, new_license_service, new_setting_service,
 };
 
 pub struct Webserver {
