@@ -61,7 +61,7 @@ pub async fn list_github_pull_states(
                 if let Some(state) = pull.state {
                     if state == IssueState::Closed && pull.merged_at.is_none() {
                         yield (pull.number, StructuredDocState{
-                            id: id,
+                            id,
                             updated_at: pull.updated_at.unwrap(),
                             deleted: true,
                         });
@@ -70,8 +70,8 @@ pub async fn list_github_pull_states(
                 }
 
                 yield (pull.number, StructuredDocState{
-                    id: id,
-                    updated_at: pull.updated_at.unwrap_or_else(|| chrono::Utc::now()),
+                    id,
+                    updated_at: pull.updated_at.unwrap_or_else(chrono::Utc::now),
                     deleted: false,
                 });
             }
