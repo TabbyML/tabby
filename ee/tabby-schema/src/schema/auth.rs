@@ -174,7 +174,7 @@ impl JWTPayload {
     }
 }
 
-#[derive(Debug, GraphQLObject)]
+#[derive(Debug, GraphQLObject, Clone)]
 #[graphql(context = Context, impl = [UserValue])]
 pub struct UserSecured {
     // === implements User ===

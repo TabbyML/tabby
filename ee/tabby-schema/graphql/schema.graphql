@@ -512,6 +512,7 @@ type MessageAttachmentCodeScores {
 type MessageAttachmentIssueDoc {
   title: String!
   link: String!
+  author: User
   body: String!
   closed: Boolean!
 }
@@ -519,6 +520,7 @@ type MessageAttachmentIssueDoc {
 type MessageAttachmentPullDoc {
   title: String!
   link: String!
+  author: User
   body: String!
   patch: String!
   merged: Boolean!

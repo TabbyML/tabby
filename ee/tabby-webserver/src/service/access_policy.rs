@@ -57,3 +57,18 @@ impl AccessPolicyService for AccessPolicyServiceImpl {
 pub fn create(db: DbConn, context: Arc<dyn ContextService>) -> impl AccessPolicyService {
     AccessPolicyServiceImpl { db, context }
 }
+
+#[cfg(test)]
+pub mod testutils {
+    use tabby_schema::policy::AccessPolicy;
+
+    use super::*;
+
+    pub async fn make_policy() -> AccessPolicy {
+        AccessPolicy::new(
+            DbConn::new_in_memory().await.unwrap(),
+            &ID::from("nihao".to_string()),
+            false,
+        )
+    }
+}

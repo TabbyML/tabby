@@ -32,6 +32,9 @@ use crate::{
     oauth::{self, OAuthClient},
 };
 
+#[cfg(test)]
+pub mod testutils;
+
 #[derive(Clone)]
 struct ImpersonateUserCredential {
     id: i64,
