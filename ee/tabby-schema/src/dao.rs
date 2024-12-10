@@ -5,7 +5,7 @@ use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
     ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
-    ThreadMessageAttachmentWebDoc, ThreadMessageDAO, UserEventDAO,
+    ThreadMessageAttachmentWebDoc, UserEventDAO,
 };
 
 use crate::{
@@ -23,7 +23,7 @@ use crate::{
         user_event::{EventKind, UserEvent},
         CoreError,
     },
-    thread::{self, MessageAttachment},
+    thread::{self},
 };
 
 impl From<InvitationDAO> for auth::Invitation {
