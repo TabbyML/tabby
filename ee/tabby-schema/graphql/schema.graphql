@@ -715,7 +715,7 @@ type Query {
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
-  isAvaileableWorkspace(gitUrl: String!): Boolean!
+  resolveGitUrl(gitUrl: String!): Repository
   contextInfo: ContextInfo!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!

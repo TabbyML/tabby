@@ -544,10 +544,12 @@ impl Query {
     async fn resolve_git_url(ctx: &Context, git_url: String) -> Result<Option<Repository>> {
         let user = check_user(ctx).await?;
 
-        let repositorys = ctx.locator
+        let repositorys = ctx
+            .locator
             .repository()
             .repository_list(Some(&user.policy))
-            .await.unwrap_or_default();
+            .await
+            .unwrap_or_default();
 
         for repo in repositorys {
             if repo.git_url == git_url {
@@ -555,7 +557,7 @@ impl Query {
             }
         }
 
-        return Ok(None);
+        Ok(None)
     }
 
     async fn context_info(ctx: &Context) -> Result<ContextInfo> {
