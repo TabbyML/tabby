@@ -386,7 +386,6 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn list_users(
         &self,
-        emails: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,

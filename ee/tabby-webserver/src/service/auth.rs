@@ -450,7 +450,6 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn list_users(
         &self,
-        emails: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -460,7 +459,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         Ok(self
             .db
-            .list_users_with_filter(emails, skip_id, limit, backwards)
+            .list_users_with_filter(skip_id, limit, backwards)
             .await?
             .into_iter()
             .map(|x| UserSecured::new(self.db.clone(), x))
@@ -982,7 +981,6 @@ mod tests {
 
     async fn list_users(
         db: &AuthenticationServiceImpl,
-        emails: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -994,10 +992,7 @@ mod tests {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(db
-                    .list_users(emails, after, before, first, last)
-                    .await
-                    .unwrap())
+                Ok(db.list_users(after, before, first, last).await.unwrap())
             },
         )
         .await
@@ -1293,14 +1288,13 @@ mod tests {
             .await
             .unwrap();
 
-        let all_users = list_users(&service, None, None, None, None, None).await;
+        let all_users = list_users(&service, None, None, None, None).await;
 
         assert!(!all_users.page_info.has_next_page);
         assert!(!all_users.page_info.has_previous_page);
 
         let users = list_users(
             &service,
-            None,
             Some(all_users.edges[0].cursor.clone()),
             None,
             None,
@@ -1311,14 +1305,13 @@ mod tests {
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
 
-        let users = list_users(&service, None, None, None, Some(2), None).await;
+        let users = list_users(&service, None, None, Some(2), None).await;
 
         assert!(users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
         let users = list_users(
             &service,
-            None,
             None,
             Some(all_users.edges[1].cursor.clone()),
             None,
@@ -1331,7 +1324,6 @@ mod tests {
 
         let users = list_users(
             &service,
-            None,
             Some(all_users.edges[2].cursor.clone()),
             None,
             None,
@@ -1341,13 +1333,12 @@ mod tests {
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
 
-        let users = list_users(&service, None, None, None, Some(3), None).await;
+        let users = list_users(&service, None, None, Some(3), None).await;
         assert!(!users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
         let users = list_users(
             &service,
-            None,
             Some(all_users.edges[0].cursor.clone()),
             None,
             Some(2),
@@ -1356,65 +1347,6 @@ mod tests {
         .await;
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
-    }
-
-    #[tokio::test]
-    async fn test_users_by_emails() {
-        let service = test_authentication_service().await;
-        let name1 = "User1";
-        let name2 = "User2";
-        let name3 = "User3";
-        service
-            .db
-            .create_user(
-                "a@example.com".into(),
-                Some("pass".into()),
-                false,
-                Some(name1.into()),
-            )
-            .await
-            .unwrap();
-        service
-            .db
-            .create_user(
-                "b@example.com".into(),
-                Some("pass".into()),
-                false,
-                Some(name2.into()),
-            )
-            .await
-            .unwrap();
-        service
-            .db
-            .create_user(
-                "c@example.com".into(),
-                Some("pass".into()),
-                false,
-                Some(name3.into()),
-            )
-            .await
-            .unwrap();
-
-        let cases = vec![
-            (vec![name1, name2, name3], None),
-            (
-                vec![name2, name3],
-                Some(vec!["b@example.com".into(), "c@example.com".into()]),
-            ),
-            (vec![name2], Some(vec!["b@example.com".into()])),
-        ];
-
-        for (expected, emails) in cases {
-            let users = list_users(&service, emails, None, None, None, None).await;
-            assert_eq!(users.edges.len(), expected.len());
-            let mut names = users
-                .edges
-                .into_iter()
-                .map(|x| x.node.name.clone())
-                .collect::<Vec<_>>();
-            names.sort();
-            assert_eq!(names, expected);
-        }
     }
 
     #[tokio::test]
