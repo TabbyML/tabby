@@ -246,7 +246,7 @@ export class WebviewHelper {
   }
 
   public isSupportedSchemeForActiveSelection(scheme: string) {
-    const supportedSchemes = ["file", "untitled", 'vscode-notebook-cell'];
+    const supportedSchemes = ["file", "untitled", "vscode-notebook-cell"];
     return supportedSchemes.includes(scheme);
   }
 
