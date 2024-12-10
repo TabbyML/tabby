@@ -532,7 +532,7 @@ function SourceCard({
           <p>Score: {source?.extra?.score ?? '-'}</p>
         </TooltipContent>
       </Tooltip>
-      <HoverCardContent className="bg-background text-foreground w-96 text-sm dark:border-muted-foreground/60">
+      <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
         <DocDetailView relevantDocument={source} />
       </HoverCardContent>
     </HoverCard>
@@ -563,9 +563,9 @@ function SourceCardContent({
         </p>
 
         {showAvatar && (
-          <div className="overflow-x-hidden flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-hidden">
             <UserAvatar user={author} className="h-3.5 w-3.5 shrink-0" />
-            <p className="truncate text-xs text-muted-foreground font-medium">
+            <p className="truncate text-xs font-medium text-muted-foreground">
               {author?.name}
             </p>
           </div>

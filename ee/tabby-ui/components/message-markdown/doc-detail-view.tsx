@@ -71,11 +71,11 @@ function PullDocInfoView({
   return (
     <div className="flex items-center gap-3">
       <PRStateBadge merged={merged} />
-      <div className="flex items-center gap-1.5 flex-1">
+      <div className="flex flex-1 items-center gap-1.5">
         {!!user && (
           <>
-            <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
-            <span className="text-muted-foreground font-semibold">
+            <UserAvatar user={user} className="not-prose h-5 w-5 shrink-0" />
+            <span className="font-semibold text-muted-foreground">
               {user.name || user.email}
             </span>
           </>
@@ -95,11 +95,11 @@ function IssueDocInfoView({
   return (
     <div className="flex items-center gap-3">
       <IssueStateBadge closed={closed} />
-      <div className="flex items-center gap-1.5 flex-1">
+      <div className="flex flex-1 items-center gap-1.5">
         {!!user && (
           <>
-            <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
-            <span className="text-muted-foreground font-semibold">
+            <UserAvatar user={user} className="not-prose h-5 w-5 shrink-0" />
+            <span className="font-semibold text-muted-foreground">
               {user.name || user.email}
             </span>
           </>
@@ -113,7 +113,7 @@ function IssueStateBadge({ closed }: { closed: boolean }) {
   return (
     <Badge
       variant={closed ? 'default' : 'secondary'}
-      className="gap-1 py-1 text-xs shrink-0"
+      className="shrink-0 gap-1 py-1 text-xs"
     >
       {closed ? (
         <IconCheckCircled className="h-3.5 w-3.5" />
@@ -129,7 +129,7 @@ function PRStateBadge({ merged }: { merged: boolean }) {
   return (
     <Badge
       variant={merged ? 'default' : 'secondary'}
-      className="gap-1 py-1 text-xs shrink-0"
+      className="shrink-0 gap-1 py-1 text-xs"
     >
       {merged ? (
         <IconGitMerge className="h-3.5 w-3.5" />

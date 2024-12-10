@@ -1,8 +1,4 @@
 import { ReactNode, useContext, useMemo, useState } from 'react'
-import Image from 'next/image'
-import defaultFavicon from '@/assets/default-favicon.png'
-import DOMPurify from 'dompurify'
-import he from 'he'
 import { compact, isNil } from 'lodash-es'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -14,7 +10,6 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
 import {
   HoverCard,
   HoverCardContent,
@@ -374,7 +369,7 @@ function RelevantDocumentBadge({
           {citationIndex}
         </span>
       </HoverCardTrigger>
-      <HoverCardContent className="w-96 text-sm bg-background text-foreground dark:border-muted-foreground/60">
+      <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
         <DocDetailView relevantDocument={relevantDocument} />
       </HoverCardContent>
     </HoverCard>
