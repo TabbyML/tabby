@@ -229,39 +229,6 @@ impl From<&thread::MessageAttachmentCodeInput> for ThreadMessageAttachmentClient
     }
 }
 
-impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
-    fn from(value: ThreadMessageAttachmentDoc) -> Self {
-        match value {
-            ThreadMessageAttachmentDoc::Web(val) => {
-                thread::MessageAttachmentDoc::Web(thread::MessageAttachmentWebDoc {
-                    title: val.title,
-                    link: val.link,
-                    content: val.content,
-                })
-            }
-            ThreadMessageAttachmentDoc::Issue(val) => {
-                thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
-                    title: val.title,
-                    link: val.link,
-                    author: None, // will be filled in service layer
-                    body: val.body,
-                    closed: val.closed,
-                })
-            }
-            ThreadMessageAttachmentDoc::Pull(val) => {
-                thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
-                    title: val.title,
-                    link: val.link,
-                    author: None, // will be filled in service layer
-                    body: val.body,
-                    patch: val.diff,
-                    merged: val.merged,
-                })
-            }
-        }
-    }
-}
-
 pub fn from_thread_message_attachment_document(
     doc: ThreadMessageAttachmentDoc,
     author: Option<UserValue>,
@@ -341,37 +308,6 @@ impl From<ThreadDAO> for thread::Thread {
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
-    }
-}
-
-impl TryFrom<ThreadMessageDAO> for thread::Message {
-    type Error = anyhow::Error;
-    fn try_from(value: ThreadMessageDAO) -> Result<Self, Self::Error> {
-        let code = value.code_attachments;
-        let client_code = value.client_code_attachments;
-        let doc = value.doc_attachments;
-
-        let attachment = MessageAttachment {
-            code: code
-                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
-                .unwrap_or_default(),
-            client_code: client_code
-                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
-                .unwrap_or_default(),
-            doc: doc
-                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
-                .unwrap_or_default(),
-        };
-
-        Ok(Self {
-            id: value.id.as_id(),
-            thread_id: value.thread_id.as_id(),
-            role: thread::Role::from_enum_str(&value.role)?,
-            content: value.content,
-            attachment,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-        })
     }
 }
 
