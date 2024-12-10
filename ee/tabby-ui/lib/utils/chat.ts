@@ -7,6 +7,7 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 
+import { VSCODE_NOTEBOOK_CELL_SCHEME } from '../constants'
 import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
@@ -107,7 +108,8 @@ export function checkSourcesAvailability(
 }
 
 export function formatFileNameForDisplay(uri: string) {
-  const regex = /(?:vscode-notebook-cell:)?(.*?)(\?|#|$)/
+  const regexPattern = `(?:${VSCODE_NOTEBOOK_CELL_SCHEME}:)?(.*?)(\\?|#|$)`
+  const regex = new RegExp(regexPattern)
   const match = uri.match(regex)
   return match ? match[1] : null
 }
