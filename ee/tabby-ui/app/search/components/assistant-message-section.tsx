@@ -9,20 +9,16 @@ import { marked } from 'marked'
 import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
 import { Context } from 'tabby-chat-panel/index'
-import { useQuery } from 'urql'
 import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import {
-  ListUsersQuery,
   Maybe,
   MessageAttachmentClientCode,
   MessageAttachmentCode
 } from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
-import { listSecuredUsers } from '@/lib/tabby/query'
 import {
-  ArrayElementType,
   AttachmentDocItem,
   ExtendedCombinedError,
   RelevantCodeContext
@@ -72,7 +68,6 @@ import {
 import { ChatContext } from '@/components/chat/chat'
 import { CodeReferences } from '@/components/chat/code-references'
 import { CopyButton } from '@/components/copy-button'
-import LoadingWrapper from '@/components/loading-wrapper'
 import {
   ErrorMessageBlock,
   MessageMarkdown
@@ -495,17 +490,6 @@ function SourceCard({
   const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
   const [devTooltipOpen, setDevTooltipOpen] = useState(false)
 
-  const author =
-    source.__typename === 'MessageAttachmentWebDoc' ? undefined : source.author
-  const [{ data, fetching: fetchingUser }] = useQuery({
-    query: listSecuredUsers,
-    variables: {
-      emails: [author as string]
-    },
-    pause: !author
-  })
-  const user = data?.users?.edges[0]?.node
-
   const onOpenChange = (v: boolean) => {
     if (!showDevTooltip) return
     setDevTooltipOpen(v)
@@ -536,12 +520,7 @@ function SourceCard({
               }}
               onClick={() => window.open(source.link)}
             >
-              <SourceCardContent
-                source={source}
-                showMore={showMore}
-                fetchingUser={fetchingUser}
-                user={user}
-              />
+              <SourceCardContent source={source} showMore={showMore} />
             </div>
           </TooltipTrigger>
         </HoverCardTrigger>
@@ -554,11 +533,7 @@ function SourceCard({
         </TooltipContent>
       </Tooltip>
       <HoverCardContent className="bg-background text-foreground w-96 text-sm dark:border-muted-foreground/60">
-        <DocDetailView
-          relevantDocument={source}
-          fetchingUser={fetchingUser}
-          user={user}
-        />
+        <DocDetailView relevantDocument={source} />
       </HoverCardContent>
     </HoverCard>
   )
@@ -566,14 +541,10 @@ function SourceCard({
 
 function SourceCardContent({
   source,
-  showMore,
-  user: propsUser,
-  fetchingUser: propsFetchingUser
+  showMore
 }: {
   source: AttachmentDocItem
   showMore: boolean
-  user: ArrayElementType<ListUsersQuery['users']['edges']>['node'] | undefined
-  fetchingUser: boolean
 }) {
   const { hostname } = new URL(source.link)
 
@@ -582,17 +553,7 @@ function SourceCardContent({
   const author =
     source.__typename === 'MessageAttachmentWebDoc' ? undefined : source.author
 
-  const [{ data, fetching }] = useQuery({
-    query: listSecuredUsers,
-    variables: {
-      emails: [author as string]
-    },
-    pause: !!propsUser || !author
-  })
-
-  const user = propsUser || data?.users?.edges[0]?.node
-  const fetchingUser = propsFetchingUser || fetching
-  const showAvatar = (isIssue || isPR) && !!user
+  const showAvatar = (isIssue || isPR) && !!author
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">
@@ -600,33 +561,29 @@ function SourceCardContent({
         <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
           {source.title}
         </p>
-        <LoadingWrapper
-          loading={fetchingUser}
-          fallback={<Skeleton className="w-full h-3 mt-1" />}
-        >
-          {showAvatar && (
-            <div className="overflow-x-hidden flex items-center gap-1">
-              <UserAvatar user={user} className="h-3.5 w-3.5 shrink-0" />
-              <p className="truncate text-xs text-muted-foreground font-medium">
-                {user?.name}
-              </p>
-            </div>
-          )}
-          {(!showAvatar || showMore) && (
-            <p
-              className={cn(
-                ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-                !showAvatar && showMore ? 'line-clamp-2' : 'line-clamp-1'
-                // {
-                //   'line-clamp-2': showMore,
-                //   'line-clamp-1': !showMore
-                // }
-              )}
-            >
-              {normalizedText(getContent(source))}
+
+        {showAvatar && (
+          <div className="overflow-x-hidden flex items-center gap-1">
+            <UserAvatar user={author} className="h-3.5 w-3.5 shrink-0" />
+            <p className="truncate text-xs text-muted-foreground font-medium">
+              {author?.name}
             </p>
-          )}
-        </LoadingWrapper>
+          </div>
+        )}
+        {(!showAvatar || showMore) && (
+          <p
+            className={cn(
+              ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+              !showAvatar && showMore ? 'line-clamp-2' : 'line-clamp-1'
+              // {
+              //   'line-clamp-2': showMore,
+              //   'line-clamp-1': !showMore
+              // }
+            )}
+          >
+            {normalizedText(getContent(source))}
+          </p>
+        )}
       </div>
       <div className="flex items-center text-xs text-muted-foreground">
         <div className="flex w-full flex-1 items-center justify-between gap-1">

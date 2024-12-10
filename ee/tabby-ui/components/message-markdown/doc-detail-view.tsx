@@ -1,11 +1,8 @@
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
-import { useQuery } from 'urql'
 
-import { ListUsersQuery } from '@/lib/gql/generates/graphql'
-import { listSecuredUsers } from '@/lib/tabby/query'
-import type { ArrayElementType, AttachmentDocItem } from '@/lib/types'
+import type { AttachmentDocItem } from '@/lib/types'
 import { getContent } from '@/lib/utils'
 
 import LoadingWrapper from '../loading-wrapper'
@@ -20,13 +17,9 @@ import {
 import { UserAvatar } from '../user-avatar'
 
 export function DocDetailView({
-  relevantDocument,
-  user: propsUser,
-  fetchingUser: propsFetchingUser
+  relevantDocument
 }: {
   relevantDocument: AttachmentDocItem
-  user?: ArrayElementType<ListUsersQuery['users']['edges']>['node']
-  fetchingUser?: boolean
 }) {
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
   const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
@@ -35,17 +28,6 @@ export function DocDetailView({
     relevantDocument.__typename === 'MessageAttachmentWebDoc'
       ? undefined
       : relevantDocument.author
-
-  const [{ data, fetching }] = useQuery({
-    query: listSecuredUsers,
-    variables: {
-      emails: [author as string]
-    },
-    pause: !!propsUser || !author
-  })
-
-  const user = propsUser || data?.users?.edges[0]?.node
-  const fetchingUser = propsFetchingUser || fetching
 
   return (
     <div className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0">
@@ -65,18 +47,10 @@ export function DocDetailView({
         </p>
         <div className="mb-2 w-auto">
           {isIssue && (
-            <IssueDocInfoView
-              closed={relevantDocument.closed}
-              user={user}
-              fetchingUser={fetchingUser}
-            />
+            <IssueDocInfoView closed={relevantDocument.closed} user={author} />
           )}
           {isPR && (
-            <PullDocInfoView
-              merged={relevantDocument.merged}
-              user={user}
-              fetchingUser={fetchingUser}
-            />
+            <PullDocInfoView merged={relevantDocument.merged} user={author} />
           )}
         </div>
         <p className="m-0 line-clamp-4 leading-none">
@@ -89,19 +63,17 @@ export function DocDetailView({
 
 function PullDocInfoView({
   merged,
-  user,
-  fetchingUser
+  user
 }: {
   merged: boolean
-  user?: ArrayElementType<ListUsersQuery['users']['edges']>['node']
-  fetchingUser?: boolean
+  user: { id: string; email: string; name: string }
 }) {
   return (
     <LoadingWrapper>
       <div className="flex items-center gap-3">
         <PRStateBadge merged={merged} />
         <div className="flex items-center gap-1.5 flex-1">
-          {!user || fetchingUser ? null : (
+          {!!user && (
             <>
               <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
               <span className="text-muted-foreground font-semibold">
@@ -117,18 +89,16 @@ function PullDocInfoView({
 
 function IssueDocInfoView({
   closed,
-  user,
-  fetchingUser
+  user
 }: {
   closed: boolean
-  user?: ArrayElementType<ListUsersQuery['users']['edges']>['node']
-  fetchingUser?: boolean
+  user: { id: string; email: string; name: string }
 }) {
   return (
     <div className="flex items-center gap-3">
       <IssueStateBadge closed={closed} />
       <div className="flex items-center gap-1.5 flex-1">
-        {!user || fetchingUser ? null : (
+        {!!user && (
           <>
             <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
             <span className="text-muted-foreground font-semibold">

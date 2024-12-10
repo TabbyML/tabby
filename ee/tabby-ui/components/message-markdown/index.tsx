@@ -39,8 +39,8 @@ import {
 import { Mention } from '../mention-tag'
 import { Skeleton } from '../ui/skeleton'
 import { CodeElement } from './code'
-import { MessageMarkdownContext } from './markdown-context'
 import { DocDetailView } from './doc-detail-view'
+import { MessageMarkdownContext } from './markdown-context'
 
 type RelevantDocItem = {
   type: 'doc'

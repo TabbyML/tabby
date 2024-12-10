@@ -65,14 +65,22 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
             ... on MessageAttachmentIssueDoc {
               title
               link
-              author
+              author {
+                id
+                email
+                name
+              }
               body
               closed
             }
             ... on MessageAttachmentPullDoc {
               title
               link
-              author
+              author {
+                id
+                email
+                name
+              }
               body
               merged
             }
@@ -134,14 +142,22 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
             ... on MessageAttachmentIssueDoc {
               title
               link
-              author
+              author {
+                id
+                email
+                name
+              }
               body
               closed
             }
             ... on MessageAttachmentPullDoc {
               title
               link
-              author
+              author {
+                id
+                email
+                name
+              }
               body
               merged
             }
