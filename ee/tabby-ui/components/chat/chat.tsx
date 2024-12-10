@@ -13,6 +13,7 @@ import {
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
+  RepositoryListQuery,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -35,6 +36,10 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
+import { createRequest } from '@urql/core'
+import { client } from '@/lib/tabby/gql'
+import { IsAvaileableWorkspaceQuery } from '@/lib/gql/generates/graphql'
+import { isAvaileableWorkspaceQuery, repositoryListQuery } from '@/lib/tabby/query'
 
 type ChatContextValue = {
   threadId: string | undefined
@@ -99,6 +104,32 @@ interface ChatProps extends React.ComponentProps<'div'> {
   ) => Promise<SymbolInfo | undefined>
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+}
+
+async function isAvaileableWorkspace(gitUrl: string): Promise<
+  IsAvaileableWorkspaceQuery['isAvaileableWorkspace']
+> {
+  // debugger
+  const query = client.createRequestOperation(
+    'query',
+    createRequest(isAvaileableWorkspaceQuery, { gitUrl })
+  )
+
+  return client
+    .executeQuery(query)
+    .then(data => console.log('data', data)) as any
+}
+
+async function fetchAllRepositories(): Promise<
+  RepositoryListQuery['repositoryList']
+> {
+  const query = client.createRequestOperation(
+    'query',
+    createRequest(repositoryListQuery, {})
+  )
+  return client
+    .executeQuery(query)
+    .then(data => data?.data?.repositoryList || [])
 }
 
 function ChatRenderer(
@@ -497,6 +528,10 @@ function ChatRenderer(
 
   const debouncedUpdateActiveSelection = useDebounceCallback(
     (ctx: Context | null) => {
+      console.log('ctx', ctx);
+      if (ctx?.git_url) isAvaileableWorkspace(ctx.git_url)
+
+      fetchAllRepositories().then(res => console.log('fetchres', res))
       setActiveSelection(ctx)
     },
     300
