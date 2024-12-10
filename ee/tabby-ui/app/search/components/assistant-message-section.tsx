@@ -39,6 +39,11 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card'
+import {
   IconBlocks,
   IconBug,
   IconCheckCircled,
@@ -65,9 +70,11 @@ import { CodeReferences } from '@/components/chat/code-references'
 import { CopyButton } from '@/components/copy-button'
 import {
   ErrorMessageBlock,
-  MessageMarkdown,
-  SiteFavicon
+  MessageMarkdown
 } from '@/components/message-markdown'
+import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
+import { SiteFavicon } from '@/components/site-favicon'
+import { UserAvatar } from '@/components/user-avatar'
 
 import { ConversationMessage, SearchContext, SOURCE_CARD_STYLE } from './search'
 
@@ -495,33 +502,40 @@ function SourceCard({
   }
 
   return (
-    <Tooltip
-      open={devTooltipOpen}
-      onOpenChange={onOpenChange}
-      delayDuration={0}
-    >
-      <TooltipTrigger asChild>
-        <div
-          className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 hover:bg-card/60"
-          style={{
-            height: showMore
-              ? `${SOURCE_CARD_STYLE.expand}rem`
-              : `${SOURCE_CARD_STYLE.compress}rem`,
-            transition: 'all 0.25s ease-out'
-          }}
-          onClick={() => window.open(source.link)}
-        >
-          <SourceCardContent source={source} showMore={showMore} />
-        </div>
-      </TooltipTrigger>
-      <TooltipContent
-        align="start"
-        className="cursor-pointer p-2"
-        onClick={onTootipClick}
+    <HoverCard openDelay={100} closeDelay={100}>
+      <Tooltip
+        open={devTooltipOpen}
+        onOpenChange={onOpenChange}
+        delayDuration={0}
       >
-        <p>Score: {source?.extra?.score ?? '-'}</p>
-      </TooltipContent>
-    </Tooltip>
+        <HoverCardTrigger asChild>
+          <TooltipTrigger asChild>
+            <div
+              className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 hover:bg-card/60"
+              style={{
+                height: showMore
+                  ? `${SOURCE_CARD_STYLE.expand}rem`
+                  : `${SOURCE_CARD_STYLE.compress}rem`,
+                transition: 'all 0.25s ease-out'
+              }}
+              onClick={() => window.open(source.link)}
+            >
+              <SourceCardContent source={source} showMore={showMore} />
+            </div>
+          </TooltipTrigger>
+        </HoverCardTrigger>
+        <TooltipContent
+          align="start"
+          className="cursor-pointer p-2"
+          onClick={onTootipClick}
+        >
+          <p>Score: {source?.extra?.score ?? '-'}</p>
+        </TooltipContent>
+      </Tooltip>
+      <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+        <DocDetailView relevantDocument={source} />
+      </HoverCardContent>
+    </HoverCard>
   )
 }
 
@@ -536,6 +550,10 @@ function SourceCardContent({
 
   const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
   const isPR = source.__typename === 'MessageAttachmentPullDoc'
+  const author =
+    source.__typename === 'MessageAttachmentWebDoc' ? undefined : source.author
+
+  const showAvatar = (isIssue || isPR) && !!author
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">
@@ -543,17 +561,25 @@ function SourceCardContent({
         <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
           {source.title}
         </p>
-        <p
-          className={cn(
-            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-            {
-              'line-clamp-2': showMore,
-              'line-clamp-1': !showMore
-            }
-          )}
-        >
-          {normalizedText(getContent(source))}
-        </p>
+
+        {showAvatar && (
+          <div className="flex items-center gap-1 overflow-x-hidden">
+            <UserAvatar user={author} className="h-3.5 w-3.5 shrink-0" />
+            <p className="truncate text-xs font-medium text-muted-foreground">
+              {author?.name}
+            </p>
+          </div>
+        )}
+        {(!showAvatar || showMore) && (
+          <p
+            className={cn(
+              ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+              !showAvatar && showMore ? 'line-clamp-2' : 'line-clamp-1'
+            )}
+          >
+            {normalizedText(getContent(source))}
+          </p>
+        )}
       </div>
       <div className="flex items-center text-xs text-muted-foreground">
         <div className="flex w-full flex-1 items-center justify-between gap-1">

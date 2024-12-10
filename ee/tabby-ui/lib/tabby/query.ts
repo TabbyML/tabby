@@ -422,12 +422,22 @@ export const listThreadMessages = graphql(/* GraphQL */ `
               ... on MessageAttachmentIssueDoc {
                 title
                 link
+                author {
+                  id
+                  email
+                  name
+                }
                 body
                 closed
               }
               ... on MessageAttachmentPullDoc {
                 title
                 link
+                author {
+                  id
+                  email
+                  name
+                }
                 body
                 merged
               }
