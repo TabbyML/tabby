@@ -12,7 +12,7 @@ import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
-import { cn, getTitleFromMessages } from '@/lib/utils'
+import { cn, formatFileNameForDisplay, getTitleFromMessages } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -288,7 +288,7 @@ function ContextLabel({
 
   return (
     <span className={cn('truncate', className)}>
-      {fileName}
+      {formatFileNameForDisplay(fileName)}
       <span className="text-muted-foreground">{line}</span>
     </span>
   )
