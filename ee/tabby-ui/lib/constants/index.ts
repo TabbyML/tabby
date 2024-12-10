@@ -13,3 +13,5 @@ export const SLUG_TITLE_MAX_LENGTH = 48
 export * as regex from './regex'
 
 export const ERROR_CODE_NOT_FOUND = 'NOT_FOUND'
+
+export const VSCODE_NOTEBOOK_CELL_SCHEME = 'vscode-notebook-cell'
