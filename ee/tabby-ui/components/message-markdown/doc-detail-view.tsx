@@ -2,10 +2,10 @@ import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
 
+import { Maybe } from '@/lib/gql/generates/graphql'
 import type { AttachmentDocItem } from '@/lib/types'
 import { getContent } from '@/lib/utils'
 
-import LoadingWrapper from '../loading-wrapper'
 import { SiteFavicon } from '../site-favicon'
 import { Badge } from '../ui/badge'
 import {
@@ -66,24 +66,22 @@ function PullDocInfoView({
   user
 }: {
   merged: boolean
-  user: { id: string; email: string; name: string }
+  user: Maybe<{ id: string; email: string; name: string }> | undefined
 }) {
   return (
-    <LoadingWrapper>
-      <div className="flex items-center gap-3">
-        <PRStateBadge merged={merged} />
-        <div className="flex items-center gap-1.5 flex-1">
-          {!!user && (
-            <>
-              <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
-              <span className="text-muted-foreground font-semibold">
-                {user.name || user.email}
-              </span>
-            </>
-          )}
-        </div>
+    <div className="flex items-center gap-3">
+      <PRStateBadge merged={merged} />
+      <div className="flex items-center gap-1.5 flex-1">
+        {!!user && (
+          <>
+            <UserAvatar user={user} className="w-5 h-5 shrink-0 not-prose" />
+            <span className="text-muted-foreground font-semibold">
+              {user.name || user.email}
+            </span>
+          </>
+        )}
       </div>
-    </LoadingWrapper>
+    </div>
   )
 }
 
@@ -92,7 +90,7 @@ function IssueDocInfoView({
   user
 }: {
   closed: boolean
-  user: { id: string; email: string; name: string }
+  user: Maybe<{ id: string; email: string; name: string }> | undefined
 }) {
   return (
     <div className="flex items-center gap-3">

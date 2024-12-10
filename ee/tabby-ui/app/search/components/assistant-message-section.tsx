@@ -575,10 +575,6 @@ function SourceCardContent({
             className={cn(
               ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
               !showAvatar && showMore ? 'line-clamp-2' : 'line-clamp-1'
-              // {
-              //   'line-clamp-2': showMore,
-              //   'line-clamp-1': !showMore
-              // }
             )}
           >
             {normalizedText(getContent(source))}
