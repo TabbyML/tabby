@@ -138,7 +138,7 @@ impl SchedulerGithubGitlabJob {
         repository: &ProvidedRepository,
         embedding: Arc<dyn Embedding>,
     ) -> tabby_schema::Result<()> {
-        let mut pull_state_stream = match fetch_all_pull_states(&integration, &repository).await {
+        let mut pull_state_stream = match fetch_all_pull_states(integration, repository).await {
             Ok(s) => s,
             Err(e) => {
                 integration_service
@@ -195,7 +195,7 @@ impl SchedulerGithubGitlabJob {
         repository: &ProvidedRepository,
         embedding: Arc<dyn Embedding>,
     ) -> tabby_schema::Result<()> {
-        let issue_stream = match fetch_all_issues(&integration, &repository).await {
+        let issue_stream = match fetch_all_issues(integration, repository).await {
             Ok(s) => s,
             Err(e) => {
                 integration_service
