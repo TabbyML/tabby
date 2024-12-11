@@ -1,8 +1,10 @@
 use anyhow::{anyhow, Result};
 use async_stream::stream;
 use futures::Stream;
-use octocrab::models::pulls::PullRequest;
-use octocrab::{models::IssueState, Octocrab};
+use octocrab::{
+    models::{pulls::PullRequest, IssueState},
+    Octocrab,
+};
 use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields, StructuredDocState,
 };
