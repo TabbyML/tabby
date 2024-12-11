@@ -541,6 +541,25 @@ impl Query {
             .await
     }
 
+    async fn resolve_git_url(ctx: &Context, git_url: String) -> Result<bool> {
+        let user = check_user_and_auth_token(ctx).await?;
+
+        let repositorys = ctx
+            .locator
+            .repository()
+            .repository_list(Some(&user.policy))
+            .await
+            .unwrap_or_default();
+
+        for repo in repositorys {
+            if repo.git_url == git_url {
+                return Ok(true);
+            }
+        }
+
+        return Ok(false);
+    }
+
     async fn context_info(ctx: &Context) -> Result<ContextInfo> {
         let user = check_user(ctx).await?;
         ctx.locator.context().read(Some(&user.policy)).await
