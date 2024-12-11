@@ -528,6 +528,63 @@ impl Query {
         .await
     }
 
+    async fn notifications(
+        ctx: &Context,
+        readed: Option<bool>,
+    ) -> Result<Vec<notification::Notification>> {
+        let user = check_user(ctx).await?;
+        match readed {
+            Some(true) => Ok(vec![
+                notification::Notification {
+                    id: "1".to_string().into(),
+                    content: "Hello".into(),
+                    read: true,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                },
+                notification::Notification {
+                    id: "3".to_string().into(),
+                    content: "Tabby".into(),
+                    read: true,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                },
+            ]),
+            Some(false) => Ok(vec![
+                notification::Notification {
+                    id: "2".to_string().into(),
+                    content: "World".into(),
+                    read: false,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                },
+                notification::Notification {
+                    id: "4".to_string().into(),
+                    content: "Assistant".into(),
+                    read: false,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                },
+            ]),
+            None => Ok(vec![
+                notification::Notification {
+                    id: "5".to_string().into(),
+                    content: "World".into(),
+                    read: false,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                },
+                notification::Notification {
+                    id: "6".to_string().into(),
+                    content: "Assistant".into(),
+                    read: true,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                },
+            ]),
+        }
+    }
+
     async fn disk_usage_stats(ctx: &Context) -> Result<DiskUsageStats> {
         check_admin(ctx).await?;
         ctx.locator.analytic().disk_usage_stats().await
@@ -986,6 +1043,10 @@ impl Mutation {
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.email().send_test(to).await?;
+        Ok(true)
+    }
+
+    async fn mark_notifications_readed(ctx: &Context, notification_ids: Vec<ID>) -> Result<bool> {
         Ok(true)
     }
 
