@@ -576,6 +576,7 @@ type Mutation {
   refreshToken(refreshToken: String!): RefreshTokenResponse!
   createInvitation(email: String!): ID!
   sendTestEmail(to: String!): Boolean!
+  markNotificationsReaded(notificationIds: [ID!]!): Boolean!
   createGitRepository(name: String!, gitUrl: String!): ID!
   deleteGitRepository(id: ID!): Boolean!
   updateGitRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
@@ -613,6 +614,14 @@ type Mutation {
 
 type NetworkSetting {
   externalUrl: String!
+}
+
+type Notification {
+  id: ID!
+  content: String!
+  read: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type OAuthCredential {
@@ -713,6 +722,7 @@ type Query {
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTime!, end: DateTime!, users: [ID!], languages: [Language!]): [CompletionStats!]!
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
+  notifications(readed: Boolean): [Notification!]!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
   contextInfo: ContextInfo!
