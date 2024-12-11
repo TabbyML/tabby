@@ -280,9 +280,9 @@ export const repositoryListQuery = graphql(/* GraphQL */ `
   }
 `)
 
-export const isAvaileableWorkspaceQuery = graphql(/* GraphQL */ `
-  query IsAvaileableWorkspace($gitUrl: String!) {
-    isAvaileableWorkspace(gitUrl: $gitUrl)
+export const resolveGitUrlQuery = graphql(/* GraphQL */ `
+  query ResolveGitUrl($gitUrl: String!) {
+    resolveGitUrl(gitUrl: $gitUrl)
   }
 `)
 

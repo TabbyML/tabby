@@ -123,7 +123,6 @@ const client = new Client({
         ServerInfo: () => null,
         RepositorySearch: () => null,
         RepositoryList: () => null,
-        // IsAvaileableWorkspace: () => null,
         RepositoryGrep: () => null,
         GrepLine: () => null,
         GrepFile: () => null,
