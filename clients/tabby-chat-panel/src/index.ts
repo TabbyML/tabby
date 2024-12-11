@@ -86,6 +86,9 @@ export interface ClientApiMethods {
 
   // find symbol definition location by hint filepaths and keyword
   onLookupSymbol?: (hintFilepaths: string[], keyword: string) => Promise<SymbolInfo | undefined>
+
+  // find symbol definitions by context
+  onLookupDefinitions?: (context: Context) => Promise<Context[]>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -129,6 +132,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
       onLookupSymbol: api.onLookupSymbol,
+      onLookupDefinitions: api.onLookupDefinitions,
     },
   })
 }
