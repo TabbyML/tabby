@@ -125,8 +125,43 @@ describe("postprocess", () => {
       };
       await assertFilterResult(filter, context, completion, expected);
     });
+    it("should handle bracket case with semicolon", async () => {
+      const context = documentContext`
+        console.log("║");
+      `;
+      context.language = "typescript";
+      const completion = {
+        text: inline`
+                       ├hello world");┤
+        `,
+      };
+      const expected = {
+        text: inline`
+                       ├hello world");┤
+        `,
+        replaceSuffix: '");',
+      };
+      await assertFilterResult(filter, context, completion, expected);
+    });
+    it("should handle bracket case with semicolon", async () => {
+      const context = documentContext`
+        console.log(║);
+      `;
+      context.language = "typescript";
+      const completion = {
+        text: inline`
+                       ├a + b);┤
+        `,
+      };
+      const expected = {
+        text: inline`
+                       ├a + b);┤
+        `,
+        replaceSuffix: ");",
+      };
+      await assertFilterResult(filter, context, completion, expected);
+    });
   });
-
   describe("calculateReplaceRangeByBracketStack: bad cases", () => {
     const filter = calculateReplaceRangeByBracketStack;
     it("cannot handle the case of completion bracket stack is same with suffix but should not be replaced", async () => {

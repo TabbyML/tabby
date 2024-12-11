@@ -252,6 +252,17 @@ export function findUnpairedAutoClosingChars(input: string): string[] {
       }
     }
     index += nextFound.index + nextFound.found.pattern.chars.length;
+
+    if (stack.length > 0) {
+      const lastItem = stack[stack.length - 1];
+      if (lastItem && lastItem.endsWith(")")) {
+        const nextChar = input[index];
+        if (nextChar === ";") {
+          stack[stack.length - 1] = lastItem + ";";
+          index++;
+        }
+      }
+    }
   }
   return stack;
 }
