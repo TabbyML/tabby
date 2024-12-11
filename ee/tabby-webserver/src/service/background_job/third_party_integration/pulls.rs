@@ -109,7 +109,11 @@ pub async fn get_github_pull_doc(
         match octocrab.users(&author).profile().await {
             Ok(profile) => profile.email,
             Err(e) => {
-                debug!("Failed to fetch user profile for {}: {}", author, e);
+                debug!(
+                    "Failed to fetch user profile for {}: {}",
+                    author,
+                    octocrab_error_message(e)
+                );
                 None
             }
         }
