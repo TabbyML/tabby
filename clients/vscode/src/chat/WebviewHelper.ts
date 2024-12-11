@@ -11,6 +11,8 @@ import {
   ProgressLocation,
   commands,
   LocationLink,
+  Position,
+  Range,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams, SymbolInfo } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
@@ -419,6 +421,11 @@ export class WebviewHelper {
       });
     };
 
+    // get definition locations
+    const getDefinitionLocations = async (uri: Uri, position: Position) => {
+      return await commands.executeCommand<LocationLink[]>("vscode.executeDefinitionProvider", uri, position);
+    };
+
     return createClient(webview, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
@@ -560,6 +567,7 @@ export class WebviewHelper {
           }
           try {
             for (const filepath of filepaths) {
+              this.logger.info(filepath);
               const document = await openTextDocument({ filePath: filepath }, this.gitProvider);
               if (!document) {
                 this.logger.info(`File not found: ${filepath}`);
@@ -569,14 +577,12 @@ export class WebviewHelper {
               let pos = 0;
               while ((pos = content.indexOf(keyword, pos)) !== -1) {
                 const position = document.positionAt(pos);
-                const locations = await commands.executeCommand<LocationLink[]>(
-                  "vscode.executeDefinitionProvider",
-                  document.uri,
-                  position,
-                );
+                const locations = await getDefinitionLocations(document.uri, position);
                 if (locations && locations.length > 0) {
                   const location = locations[0];
                   if (location) {
+                    this.logger.info(location.targetUri.toString(true));
+
                     return {
                       sourceFile: filepath,
                       sourceLine: position.line + 1,
@@ -597,6 +603,195 @@ export class WebviewHelper {
         };
 
         return await findSymbolInfo(hintFilepaths, keyword);
+      },
+      onLookupDefinitions: async (context: Context): Promise<Context[]> => {
+        if (!context?.filepath || !context?.range) {
+          this.logger.info("Invalid context - missing required fields:", {
+            filepath: !!context?.filepath,
+            range: !!context?.range,
+          });
+          return [];
+        }
+
+        const workspaceRoot = context.filepath.split("/")[0];
+        if (!workspaceRoot) {
+          this.logger.info("Could not determine workspace root from filepath:", context.filepath);
+          return [];
+        }
+
+        const document = await openTextDocument({ filePath: context.filepath }, this.gitProvider);
+        if (!document) {
+          this.logger.info(`File not found: ${context.filepath}`);
+          return [];
+        }
+
+        const textRange = new Range(new Position(context.range.start, 0), new Position(context.range.end + 1, 0));
+
+        const text = document.getText(textRange);
+        if (!text) {
+          this.logger.info("Empty text content for range:", textRange);
+          return [];
+        }
+
+        let allResults: Context[] = [];
+        const words = text.split(/\b/);
+
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i]?.trim();
+          if (!word || word.match(/^\W+$/)) {
+            continue;
+          }
+
+          let pos = 0;
+          let currentLine = context.range.start;
+          let currentChar = 0;
+
+          for (let j = 0; j < i; j++) {
+            const word = words[j];
+            if (word) {
+              pos += word.length;
+            }
+          }
+
+          const lines = text.slice(0, pos).split("\n");
+          currentLine += lines.length - 1;
+          if (lines.length > 1) {
+            currentChar = lines[lines.length - 1]?.length ?? 0;
+          } else {
+            currentChar += pos;
+          }
+
+          try {
+            const position = new Position(currentLine, currentChar);
+            const locations = await getDefinitionLocations(document.uri, position);
+
+            if (!locations?.[0]) {
+              continue;
+            }
+
+            const location = locations[0];
+            const targetUri = location.targetUri?.toString(true);
+            if (!targetUri) {
+              this.logger.info("Invalid targetUri for location:", location);
+              continue;
+            }
+
+            const fullPath = targetUri.replace(/^file:\/\/\//, "");
+            const relativePath = fullPath.split(`/${workspaceRoot}/`)[1];
+            if (!relativePath) {
+              this.logger.info("Could not extract relative path from:", { targetUri, workspaceRoot });
+              continue;
+            }
+
+            const targetDocument = await openTextDocument(
+              { filePath: `${workspaceRoot}/${relativePath}` },
+              this.gitProvider,
+            );
+            if (!targetDocument) {
+              this.logger.info(`Could not open target file: ${relativePath}`);
+              continue;
+            }
+
+            if (!location.targetRange?.start || !location.targetRange?.end) {
+              this.logger.info("Invalid target range in location:", location);
+              continue;
+            }
+
+            const targetRange = new Range(
+              new Position(location.targetRange.start.line, 0),
+              new Position(location.targetRange.end.line + 1, 0),
+            );
+
+            const targetContent = targetDocument.getText(targetRange);
+            if (!targetContent) {
+              this.logger.info("Failed to get target content for range:", targetRange);
+              continue;
+            }
+
+            allResults.push({
+              kind: "file",
+              filepath: `${workspaceRoot}/${relativePath}`,
+              range: {
+                start: location.targetRange.start.line,
+                end: location.targetRange.end.line,
+              },
+              content: targetContent,
+              git_url: context.git_url,
+            });
+          } catch (error) {
+            this.logger.error(`Error looking up definition for word "${word}":`, error);
+          }
+        }
+
+        // transform results
+        // remove start 0 and end 0
+        allResults = allResults.filter((result) => result.range?.start !== 0 && result.range?.end !== 0);
+
+        // merge overlapping ranges
+        const fileGroups = new Map<string, Context[]>();
+        for (const result of allResults) {
+          if (!result?.filepath) continue;
+          const existing = fileGroups.get(result.filepath) || [];
+          existing.push(result);
+          fileGroups.set(result.filepath, existing);
+        }
+
+        const finalResults: Context[] = [];
+        for (const [filepath, contexts] of fileGroups) {
+          if (!contexts?.length) continue;
+
+          if (contexts.length === 1) {
+            const context = contexts[0];
+            if (context) {
+              finalResults.push(context);
+            }
+            continue;
+          }
+
+          contexts.sort((a, b) => (a.range?.start ?? 0) - (b.range?.start ?? 0));
+          let current = contexts[0];
+
+          // TODO(Sma1lboy): consider move range.ts to common packages
+          // for handle all case including Range from vscode and vscode-languageserver, also our own define LineRange
+          for (let i = 1; i < contexts.length; i++) {
+            const next = contexts[i];
+            if (!next?.range?.start || !next?.range?.end || !current?.range?.end || !current?.range?.start) {
+              this.logger.info("Invalid range:", { current, next });
+              continue;
+            }
+
+            if (next.range.start <= current.range.end + 1) {
+              current = {
+                ...current,
+                range: {
+                  start: Math.min(current.range.start, next.range.start),
+                  end: Math.max(current.range.end, next.range.end),
+                },
+              };
+
+              const targetDocument = await openTextDocument({ filePath: filepath }, this.gitProvider);
+              if (targetDocument) {
+                const mergedRange = new Range(
+                  new Position(current.range.start, 0),
+                  new Position(current.range.end + 1, 0),
+                );
+                const mergedContent = targetDocument.getText(mergedRange);
+                if (mergedContent) {
+                  current.content = mergedContent;
+                }
+              }
+            } else {
+              finalResults.push(current);
+              current = next;
+            }
+          }
+
+          if (current) {
+            finalResults.push(current);
+          }
+        }
+
+        return finalResults;
       },
     });
   }
