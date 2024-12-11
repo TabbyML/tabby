@@ -58,7 +58,7 @@ pub async fn list_github_pulls(
                             profile.email
                         }
                         Err(e) => {
-                            debug!("Failed to fetch user profile for {}: {}", author, e);
+                            debug!("Failed to fetch user profile for {}: {}", author, octocrab_error_message(e));
                             None
                         }
                     }
