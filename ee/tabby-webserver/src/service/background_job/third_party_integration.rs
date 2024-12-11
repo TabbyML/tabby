@@ -163,12 +163,18 @@ impl SchedulerGithubGitlabJob {
                 );
             }
 
-            if !index.presync(state).await {
+            if !index.presync(&state).await {
                 continue;
             }
+
+            if state.raw.as_ref().is_none() {
+                logkit::warn!("Pull {} has no raw data", id);
+                continue;
+            }
+
             let pull = get_github_pull_doc(
                 &repository.source_id(),
-                id,
+                state.raw.unwrap(),
                 integration.api_base(),
                 &repository.display_name,
                 &integration.access_token,
@@ -211,7 +217,7 @@ impl SchedulerGithubGitlabJob {
             let mut count = 0;
             let mut num_updated = 0;
             for await (state, doc) in issue_stream {
-                if index.presync(state).await && index.sync(doc).await {
+                if index.presync(&state).await && index.sync(doc).await {
                     num_updated += 1
                 }
                 count += 1;

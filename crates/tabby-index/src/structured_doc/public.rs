@@ -30,6 +30,8 @@ pub struct StructuredDocState {
     // For instance, a closed pull request will be marked as deleted,
     // prompting the indexer to remove it from the index.
     pub deleted: bool,
+
+    pub raw: Option<serde_json::Value>,
 }
 
 pub struct StructuredDocIndexer {
@@ -46,7 +48,7 @@ impl StructuredDocIndexer {
 
     // Runs pre-sync checks to determine if the document needs to be updated.
     // Returns false if `sync` is not required to be called.
-    pub async fn presync(&self, state: StructuredDocState) -> bool {
+    pub async fn presync(&self, state: &StructuredDocState) -> bool {
         if state.deleted {
             self.indexer.delete(&state.id);
             return false;

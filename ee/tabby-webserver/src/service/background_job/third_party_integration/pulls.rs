@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use async_stream::stream;
 use futures::Stream;
 use octocrab::{models::IssueState, Octocrab};
+use serde_json::json;
 use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields, StructuredDocState,
 };
@@ -58,12 +59,13 @@ pub async fn list_github_pull_states(
                 let id = pull_id(&pull);
 
                 // skip closed but not merged pulls
-                if let Some(state) = pull.state {
-                    if state == IssueState::Closed && pull.merged_at.is_none() {
+                if let Some(state) = &pull.state {
+                    if *state == IssueState::Closed && pull.merged_at.is_none() {
                         yield (pull.number, StructuredDocState{
                             id,
                             updated_at: pull.updated_at.unwrap(),
                             deleted: true,
+                            raw: None,
                         });
                         continue;
                     }
@@ -73,6 +75,7 @@ pub async fn list_github_pull_states(
                     id,
                     updated_at: pull.updated_at.unwrap_or_else(chrono::Utc::now),
                     deleted: false,
+                    raw: Some(json!(pull)),
                 });
             }
 
@@ -88,37 +91,18 @@ pub async fn list_github_pull_states(
 
 pub async fn get_github_pull_doc(
     source_id: &str,
-    id: u64,
+    raw: serde_json::Value,
     api_base: &str,
     full_name: &str,
     access_token: &str,
 ) -> Result<StructuredDoc> {
+    let pull: octocrab::models::pulls::PullRequest =
+        serde_json::from_value(raw).map_err(|e| anyhow!("Failed to parse pull request: {}", e))?;
+
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?
         .build()?;
-
-    let (owner, repo) = full_name
-        .split_once('/')
-        .ok_or_else(|| anyhow!("Invalid repository name"))?;
-
-    let owner = owner.to_owned();
-    let repo = repo.to_owned();
-    let source_id = source_id.to_owned();
-
-    let pull = octocrab.pulls(&owner, &repo).get(id).await.map_err(|e| {
-        anyhow!(
-            "Failed to fetch pull requests: {}",
-            octocrab_error_message(e)
-        )
-    })?;
-
-    let url = pull
-        .html_url
-        .map(|url| url.to_string())
-        .unwrap_or_else(|| pull.url);
-    let title = pull.title.clone().unwrap_or_default();
-    let body = pull.body.clone().unwrap_or_default();
 
     let author = pull.user.as_ref().map(|user| user.login.clone());
     let email = if let Some(author) = author {
@@ -138,8 +122,12 @@ pub async fn get_github_pull_doc(
     // and the size of the diff is less than 8MB.
     let diff =
         if pull.additions.unwrap_or_default() + pull.deletions.unwrap_or_default() < 100 * 1024 {
+            let (owner, repo) = full_name
+                .split_once('/')
+                .ok_or_else(|| anyhow!("Invalid repository name"))?;
+
             octocrab
-                .pulls(&owner, &repo)
+                .pulls(owner, repo)
                 .get_diff(pull.number)
                 .await
                 .map_err(|e| {
@@ -155,10 +143,13 @@ pub async fn get_github_pull_doc(
     Ok(StructuredDoc {
         source_id: source_id.to_string(),
         fields: StructuredDocFields::Pull(StructuredDocPullDocumentFields {
-            link: url.clone(),
-            title,
+            link: pull
+                .html_url
+                .map(|url| url.to_string())
+                .unwrap_or_else(|| pull.url),
+            title: pull.title.clone().unwrap_or_default(),
             author_email: email.clone(),
-            body,
+            body: pull.body.clone().unwrap_or_default(),
             merged: pull.merged_at.is_some(),
             diff,
         }),

@@ -56,10 +56,11 @@ impl WebCrawlerJob {
             num_docs += 1;
 
             if indexer
-                .presync(StructuredDocState {
+                .presync(&StructuredDocState {
                     id: source_doc.id().to_string(),
                     updated_at: Utc::now(),
                     deleted: false,
+                    raw: None,
                 })
                 .await
             {
