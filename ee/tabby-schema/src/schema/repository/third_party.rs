@@ -105,7 +105,7 @@ pub trait ThirdPartyRepositoryService: Send + Sync + RepositoryProvider {
         last: Option<usize>,
     ) -> Result<Vec<ProvidedRepository>>;
 
-    async fn get_provided_repository(&self, id: ID) -> Result<ProvidedRepository>;
+    async fn get_provided_repository(&self, id: &ID) -> Result<ProvidedRepository>;
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn upsert_repository(
