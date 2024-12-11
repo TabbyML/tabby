@@ -7,7 +7,10 @@ import type {
   SymbolInfo
 } from 'tabby-chat-panel'
 
-import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
+import {
+  ERROR_CODE_NOT_FOUND,
+  VSCODE_NOTEBOOK_CELL_SCHEME
+} from '@/lib/constants'
 import {
   CodeQueryInput,
   CreateMessageInput,
@@ -626,5 +629,9 @@ function isValidContextForCodeQuery(context: FileContext | undefined) {
     context.filepath.startsWith('untitled:') &&
     !filename2prism(context.filepath)[0]
 
-  return !isUntitledFile
+  const isVscodeNotebookCell = context.filepath.startsWith(
+    VSCODE_NOTEBOOK_CELL_SCHEME
+  )
+
+  return !isUntitledFile && !isVscodeNotebookCell
 }
