@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use async_stream::stream;
 use futures::Stream;
+use octocrab::models::pulls::PullRequest;
 use octocrab::{models::IssueState, Octocrab};
-use serde_json::json;
 use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields, StructuredDocState,
 };
@@ -20,11 +20,15 @@ fn pull_id(pull: &octocrab::models::pulls::PullRequest) -> String {
         .unwrap_or_else(|| pull.url.clone())
 }
 
+pub enum Pull {
+    GitHub(PullRequest),
+}
+
 pub async fn list_github_pull_states(
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<impl Stream<Item = (u64, StructuredDocState)>> {
+) -> Result<impl Stream<Item = (Pull, StructuredDocState)>> {
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?
@@ -57,25 +61,24 @@ pub async fn list_github_pull_states(
 
             for pull in response.items {
                 let id = pull_id(&pull);
+                let updated_at = pull.updated_at.unwrap_or_else(chrono::Utc::now);
 
                 // skip closed but not merged pulls
                 if let Some(state) = &pull.state {
                     if *state == IssueState::Closed && pull.merged_at.is_none() {
-                        yield (pull.number, StructuredDocState{
+                        yield (Pull::GitHub(pull), StructuredDocState{
                             id,
-                            updated_at: pull.updated_at.unwrap(),
+                            updated_at,
                             deleted: true,
-                            raw: None,
                         });
                         continue;
                     }
                 }
 
-                yield (pull.number, StructuredDocState{
+                yield (Pull::GitHub(pull), StructuredDocState{
                     id,
-                    updated_at: pull.updated_at.unwrap_or_else(chrono::Utc::now),
+                    updated_at,
                     deleted: false,
-                    raw: Some(json!(pull)),
                 });
             }
 
@@ -91,14 +94,11 @@ pub async fn list_github_pull_states(
 
 pub async fn get_github_pull_doc(
     source_id: &str,
-    raw: serde_json::Value,
+    pull: PullRequest,
     api_base: &str,
     full_name: &str,
     access_token: &str,
 ) -> Result<StructuredDoc> {
-    let pull: octocrab::models::pulls::PullRequest =
-        serde_json::from_value(raw).map_err(|e| anyhow!("Failed to parse pull request: {}", e))?;
-
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?

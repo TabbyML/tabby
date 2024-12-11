@@ -72,7 +72,7 @@ mod structured_doc_tests {
         let updated_at = chrono::Utc::now();
         let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
             let updated = indexer
-                .presync(StructuredDocState {
+                .presync(&StructuredDocState {
                     id: doc.id().to_string(),
                     updated_at,
                     deleted: false,
@@ -118,7 +118,7 @@ mod structured_doc_tests {
         let updated_at = chrono::Utc::now();
         let res = tokio::runtime::Runtime::new().unwrap().block_on(async {
             let updated = indexer
-                .presync(StructuredDocState {
+                .presync(&StructuredDocState {
                     id: doc.id().to_string(),
                     updated_at,
                     deleted: false,

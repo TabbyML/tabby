@@ -30,8 +30,6 @@ pub struct StructuredDocState {
     // For instance, a closed pull request will be marked as deleted,
     // prompting the indexer to remove it from the index.
     pub deleted: bool,
-
-    pub raw: Option<serde_json::Value>,
 }
 
 pub struct StructuredDocIndexer {

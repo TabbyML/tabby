@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::Result;
 use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::{stream::BoxStream, StreamExt};
@@ -153,7 +154,7 @@ impl SchedulerGithubGitlabJob {
         let mut num_updated = 0;
 
         let index = StructuredDocIndexer::new(embedding);
-        while let Some((id, state)) = pull_state_stream.next().await {
+        while let Some((pull, state)) = pull_state_stream.next().await {
             count += 1;
             if count % 100 == 0 {
                 logkit::info!(
@@ -167,21 +168,9 @@ impl SchedulerGithubGitlabJob {
                 continue;
             }
 
-            if state.raw.as_ref().is_none() {
-                logkit::warn!("Pull {} has no raw data", id);
-                continue;
-            }
+            let pull_doc = fetch_pull_structured_doc(integration, repository, pull).await?;
 
-            let pull = get_github_pull_doc(
-                &repository.source_id(),
-                state.raw.unwrap(),
-                integration.api_base(),
-                &repository.display_name,
-                &integration.access_token,
-            )
-            .await?;
-
-            index.sync(pull).await;
+            index.sync(pull_doc).await;
             num_updated += 1;
         }
         logkit::info!(
@@ -279,10 +268,11 @@ async fn fetch_all_issues(
 
     Ok(s)
 }
+
 async fn fetch_all_pull_states(
     integration: &Integration,
     repository: &ProvidedRepository,
-) -> tabby_schema::Result<BoxStream<'static, (u64, StructuredDocState)>> {
+) -> tabby_schema::Result<BoxStream<'static, (pulls::Pull, StructuredDocState)>> {
     match &integration.kind {
         IntegrationKind::Github | IntegrationKind::GithubSelfHosted => Ok(list_github_pull_states(
             integration.api_base(),
@@ -294,5 +284,24 @@ async fn fetch_all_pull_states(
         IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => Err(CoreError::Other(
             anyhow::anyhow!("Gitlab does not support pull requests yet"),
         )),
+    }
+}
+
+async fn fetch_pull_structured_doc(
+    integration: &Integration,
+    repository: &ProvidedRepository,
+    pull: pulls::Pull,
+) -> Result<StructuredDoc> {
+    match pull {
+        pulls::Pull::GitHub(pull) => {
+            get_github_pull_doc(
+                &repository.source_id(),
+                pull,
+                integration.api_base(),
+                &repository.display_name,
+                &integration.access_token,
+            )
+            .await
+        }
     }
 }

@@ -70,7 +70,6 @@ pub async fn list_github_issues(
                     id: doc.id().to_string(),
                     updated_at: issue.updated_at,
                     deleted: false,
-                    raw: None,
                 }, doc);
             }
 
@@ -138,7 +137,6 @@ pub async fn list_gitlab_issues(
                 id: doc.id().to_string(),
                 updated_at: issue.updated_at,
                 deleted: false,
-                raw: None,
             }, doc);
         }
     };
