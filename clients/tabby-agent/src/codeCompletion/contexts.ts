@@ -3,7 +3,6 @@ import type { ConfigData } from "../config/type";
 import path from "path";
 import hashObject from "object-hash";
 import { splitLines, isBlank, regOnlyAutoClosingCloseChars, findUnpairedAutoClosingChars } from "../utils/string";
-import { logger } from "./postprocess/base";
 
 export type CompletionRequest = {
   filepath: string;
