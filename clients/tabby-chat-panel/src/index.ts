@@ -252,10 +252,12 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       refresh: api.refresh,
       onSubmitMessage: api.onSubmitMessage,
       onApplyInEditor: api.onApplyInEditor,
+      onApplyInEditorV2: api.onApplyInEditorV2,
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
       lookupSymbol: api.lookupSymbol,
+      openInEditor: api.openInEditor,
     },
   })
 }
