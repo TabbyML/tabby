@@ -20,9 +20,9 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 import './style.css'
 
 import {
-  Context,
   FileContext,
-  NavigateOpts,
+  FileLocation,
+  LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel/index'
 
@@ -62,10 +62,10 @@ export interface MessageMarkdownProps {
     opts?: { languageId: string; smart: boolean }
   ) => void
   onLookupSymbol?: (
-    filepaths: string[],
-    keyword: string
+    symbol: string,
+    hints?: LookupSymbolHint[] | undefined
   ) => Promise<SymbolInfo | undefined>
-  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
+  openInEditor?: (target: FileLocation) => void
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -91,9 +91,9 @@ export function MessageMarkdown({
   className,
   canWrapLongLines,
   onLookupSymbol,
+  openInEditor,
   supportsOnApplyInEditorV2,
   activeSelection,
-  onNavigateToContext,
   ...rest
 }: MessageMarkdownProps) {
   const [symbolPositionMap, setSymbolLocationMap] = useState<
@@ -173,10 +173,21 @@ export function MessageMarkdown({
     if (symbolPositionMap.has(keyword)) return
 
     setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
-    const symbolInfo = await onLookupSymbol(
-      activeSelection?.filepath ? [activeSelection?.filepath] : [],
-      keyword
-    )
+    const hints: LookupSymbolHint[] = []
+    if (activeSelection) {
+      hints.push({
+        filepath: {
+          kind: 'git',
+          filepath: activeSelection.filepath,
+          gitUrl: activeSelection.git_url
+        },
+        location: {
+          start: activeSelection.range.start,
+          end: activeSelection.range.end
+        }
+      })
+    }
+    const symbolInfo = await onLookupSymbol(keyword, hints)
     setSymbolLocationMap(map => new Map(map.set(keyword, symbolInfo)))
   }
 
@@ -193,9 +204,9 @@ export function MessageMarkdown({
         canWrapLongLines: !!canWrapLongLines,
         supportsOnApplyInEditorV2,
         activeSelection,
-        onNavigateToContext,
         symbolPositionMap,
-        lookupSymbol: onLookupSymbol ? lookupSymbol : undefined
+        lookupSymbol: onLookupSymbol ? lookupSymbol : undefined,
+        openInEditor
       }}
     >
       <MemoizedReactMarkdown

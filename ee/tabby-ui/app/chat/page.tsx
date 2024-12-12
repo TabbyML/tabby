@@ -237,7 +237,7 @@ export default function ChatPage() {
         server
           ?.hasCapability('onApplyInEditorV2')
           .then(setSupportsOnApplyInEditorV2)
-        server?.hasCapability('onLookupSymbol').then(setSupportsOnLookupSymbol)
+        server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
       }
 
       checkCapabilities()
@@ -392,8 +392,9 @@ export default function ChatPage() {
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
         onLookupSymbol={
           isInEditor &&
-          (supportsOnLookupSymbol ? server?.onLookupSymbol : undefined)
+          (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
         }
+        openInEditor={isInEditor && server?.openInEditor}
       />
     </ErrorBoundary>
   )
