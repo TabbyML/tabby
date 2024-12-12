@@ -40,10 +40,11 @@ impl NotificationService for NotificationServiceImpl {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use juniper::ID;
     use tabby_db::DbConn;
     use tabby_schema::{notification::NotificationService, AsID};
+
+    use super::*;
 
     #[tokio::test]
     async fn test_notification_admin_list() {
@@ -63,9 +64,9 @@ mod tests {
 
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 1);
-        assert_eq!(notifications[0].id, ID::from(notification_id));
+        assert_eq!(notifications[0].id, notification_id);
         assert_eq!(notifications[0].content, "admin_list");
-        assert_eq!(notifications[0].read, false);
+        assert!(!notifications[0].read);
     }
 
     #[tokio::test]
@@ -89,7 +90,7 @@ mod tests {
         assert_eq!(notifications.len(), 1);
         assert_eq!(notifications[0].id, notification_id.as_id());
         assert_eq!(notifications[0].content, "admin_list_read");
-        assert_eq!(notifications[0].read, true);
+        assert!(notifications[0].read);
     }
 
     #[tokio::test]
@@ -114,9 +115,9 @@ mod tests {
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 2);
         assert_eq!(notifications[0].content, "admin_list");
-        assert_eq!(notifications[0].read, false);
+        assert!(!notifications[0].read);
         assert_eq!(notifications[1].content, "admin_list_all_user");
-        assert_eq!(notifications[1].read, false);
+        assert!(!notifications[1].read);
     }
 
     #[tokio::test]
@@ -134,7 +135,7 @@ mod tests {
         service.mark_read(&user_id, None).await.unwrap();
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 1);
-        assert_eq!(notifications[0].read, true);
+        assert!(notifications[0].read);
     }
 
     #[tokio::test]
@@ -159,7 +160,7 @@ mod tests {
             .unwrap();
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 1);
-        assert_eq!(notifications[0].read, true);
+        assert!(notifications[0].read);
 
         assert!(service
             .mark_read(&user_id, Some(notification_id))
@@ -185,13 +186,13 @@ mod tests {
         service.mark_read(&user_id, None).await.unwrap();
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 1);
-        assert_eq!(notifications[0].read, true);
+        assert!(notifications[0].read);
 
         // mark all read will not return error even when call twice
         // but it should not create duplicated notifications
         service.mark_read(&user_id, None).await.unwrap();
         assert_eq!(notifications.len(), 1);
-        assert_eq!(notifications[0].read, true);
+        assert!(notifications[0].read);
     }
 
     #[tokio::test]
@@ -212,8 +213,8 @@ mod tests {
         service.mark_read(&user_id, None).await.unwrap();
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 2);
-        assert_eq!(notifications[0].read, true);
-        assert_eq!(notifications[1].read, true);
+        assert!(notifications[0].read);
+        assert!(notifications[1].read);
     }
 
     #[tokio::test]
@@ -234,6 +235,6 @@ mod tests {
         service.mark_read(&user_id, None).await.unwrap();
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 1);
-        assert_eq!(notifications[0].read, true);
+        assert!(notifications[0].read);
     }
 }
