@@ -13,7 +13,6 @@ import {
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
-  RepositoryListQuery,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -106,10 +105,9 @@ interface ChatProps extends React.ComponentProps<'div'> {
   supportsOnApplyInEditorV2: boolean
 }
 
-async function isAvaileableWorkspace(gitUrl: string): Promise<
+async function resolveGitUrl(gitUrl: string): Promise<
   ResolveGitUrlQuery['resolveGitUrl']
 > {
-  // debugger
   const query = client.createRequestOperation(
     'query',
     createRequest(resolveGitUrlQuery, { gitUrl })
@@ -118,18 +116,6 @@ async function isAvaileableWorkspace(gitUrl: string): Promise<
   return client
     .executeQuery(query)
     .then(data => console.log('data', data)) as any
-}
-
-async function fetchAllRepositories(): Promise<
-  RepositoryListQuery['repositoryList']
-> {
-  const query = client.createRequestOperation(
-    'query',
-    createRequest(repositoryListQuery, {})
-  )
-  return client
-    .executeQuery(query)
-    .then(data => data?.data?.repositoryList || [])
 }
 
 function ChatRenderer(
@@ -529,9 +515,8 @@ function ChatRenderer(
   const debouncedUpdateActiveSelection = useDebounceCallback(
     (ctx: Context | null) => {
       console.log('ctx', ctx);
-      if (ctx?.git_url) isAvaileableWorkspace(ctx.git_url)
+      // if (ctx?.git_url) resolveGitUrl(ctx.git_url)
 
-      fetchAllRepositories().then(res => console.log('fetchres', res))
       setActiveSelection(ctx)
     },
     300

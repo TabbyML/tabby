@@ -129,7 +129,6 @@ export default function ChatPage() {
       setErrorMessage(null)
     },
     addRelevantContext: context => {
-      console.log('context', context)
       return addRelevantContext(context)
     },
     updateTheme: (style, themeClass) => {
@@ -268,8 +267,6 @@ export default function ChatPage() {
   const onChatLoaded = () => {
     pendingRelevantContexts.forEach(addRelevantContext)
     pendingMessages.forEach(sendMessage)
-    
-    console.log('pendingActiveSelection', pendingActiveSelection)
 
     chatRef.current?.updateActiveSelection(pendingActiveSelection)
 
