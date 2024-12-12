@@ -231,17 +231,18 @@ function ChatPanelRenderer(
           <div className="flex flex-wrap gap-2">
             <AnimatePresence presenceAffectsLayout>
               {indexedRepository ? (
-                <Tooltip delayDuration={100}>
-                  <TooltipTrigger asChild>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9, y: -5 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{
-                        ease: 'easeInOut',
-                        duration: 0.1
-                      }}
-                      exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                    >
+                <motion.div
+                  key="indexed-repository"
+                  initial={{ opacity: 0, scale: 0.9, y: -5 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{
+                    ease: 'easeInOut',
+                    duration: 0.1
+                  }}
+                  exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                >
+                  <Tooltip delayDuration={100}>
+                    <TooltipTrigger asChild>
                       <Badge
                         variant="outline"
                         className={cn(
@@ -274,18 +275,19 @@ function ChatPanelRenderer(
                           )}
                         </Button>
                       </Badge>
-                    </motion.div>
-                  </TooltipTrigger>
-                  <TooltipContent className="text-md space-y-2" align="start">
-                    <span className="font-semibold text-muted-foreground">
-                      Indexed repository of current workspace:
-                    </span>
-                    <p>{indexedRepository.gitUrl}</p>
-                  </TooltipContent>
-                </Tooltip>
+                    </TooltipTrigger>
+                    <TooltipContent className="text-md space-y-2" align="start">
+                      <span className="font-semibold text-muted-foreground">
+                        Indexed repository of current workspace:
+                      </span>
+                      <p>{indexedRepository.gitUrl}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </motion.div>
               ) : null}
               {activeSelection ? (
                 <motion.div
+                  key="active-selection"
                   initial={{ opacity: 0, scale: 0.9, y: -5 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{
