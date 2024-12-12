@@ -289,7 +289,7 @@ export class WebviewHelper {
 
   public async syncIndexedGitUrlToChatPanel(url: string | undefined) {
     try {
-      this.logger.log('sync indexed git url', url)
+      this.logger.log("sync indexed git url", url);
       await this.client?.updateGitUrl(url);
     } catch {
       this.logger.log(
@@ -394,7 +394,7 @@ export class WebviewHelper {
     }
 
     const filePathParams = await buildFilePathParams(editor.document.uri, this.gitProvider);
-    this.syncIndexedGitUrlToChatPanel(filePathParams?.gitRemoteUrl)
+    this.syncIndexedGitUrlToChatPanel(filePathParams?.gitRemoteUrl);
   }
 
   public addAgentEventListeners() {
