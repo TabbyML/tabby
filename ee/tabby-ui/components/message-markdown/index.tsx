@@ -22,6 +22,7 @@ import './style.css'
 import {
   FileContext,
   FileLocation,
+  Filepath,
   LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel/index'
@@ -175,12 +176,26 @@ export function MessageMarkdown({
     setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
     const hints: LookupSymbolHint[] = []
     if (activeSelection) {
-      hints.push({
-        filepath: {
+      // FIXME(@icycodes): this is intended to convert the filepath to Filepath type
+      // We should remove this after FileContext.filepath use type Filepath instead of string
+      let filepath: Filepath
+      if (
+        activeSelection.git_url.length > 1 &&
+        !activeSelection.filepath.includes(':')
+      ) {
+        filepath = {
           kind: 'git',
           filepath: activeSelection.filepath,
           gitUrl: activeSelection.git_url
-        },
+        }
+      } else {
+        filepath = {
+          kind: 'uri',
+          uri: activeSelection.filepath
+        }
+      }
+      hints.push({
+        filepath,
         location: {
           start: activeSelection.range.start,
           end: activeSelection.range.end

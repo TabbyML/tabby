@@ -34,7 +34,15 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
 
 export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: GitProvider): Uri | null {
   if (filepath.kind === "uri") {
-    return Uri.parse(filepath.uri, true);
+    try {
+      return Uri.parse(filepath.uri, true);
+    } catch (e) {
+      // FIXME(@icycodes): this is a hack for uri is relative filepaths in workspaces
+      const workspaceRoot = workspace.workspaceFolders?.[0];
+      if (workspaceRoot) {
+        return Uri.joinPath(workspaceRoot.uri, filepath.uri);
+      }
+    }
   } else if (filepath.kind === "git") {
     const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(filepath.gitUrl);
     if (localGitRoot) {
