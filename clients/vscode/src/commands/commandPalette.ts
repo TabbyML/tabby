@@ -1,10 +1,13 @@
-import { commands, window, Command, QuickPick, QuickPickItem, QuickPickItemKind } from "vscode";
+import { commands, window, Command, QuickPick, QuickPickItem, QuickPickItemKind, ThemeIcon } from "vscode";
 import { State as LanguageClientState } from "vscode-languageclient";
 import { Client } from "../lsp/Client";
 import { Config } from "../Config";
 
+const MENU_ITEM_INDENT_SPACING = "      ";
+
 interface CommandPaletteItem extends QuickPickItem {
   command?: string | Command | (() => void | Promise<void>);
+  picked?: boolean;
 }
 
 export class CommandPalette {
@@ -16,15 +19,38 @@ export class CommandPalette {
   show() {
     const quickPick: QuickPick<CommandPaletteItem> = window.createQuickPick();
     quickPick.title = "Tabby Command Palette";
+    let items: CommandPaletteItem[] = [];
 
-    const items: CommandPaletteItem[] = [];
+    const disconnectStatues = ["disconnected", "unauthorized"];
+    if (disconnectStatues.includes(this.client.status.current?.status || "")) {
+      items.push(this.itemForStatus());
+    }
 
-    items.push(this.itemForStatus());
+    // Status section
     this.client.status.on("didChange", () => {
       items[0] = this.itemForStatus();
       quickPick.items = items;
     });
 
+    // Features section
+    const validStatuses = ["ready", "readyForAutoTrigger", "readyForManualTrigger"];
+    if (validStatuses.includes(this.client.status.current?.status || "")) {
+      items = items.concat([
+        { label: "enable/disable features", kind: QuickPickItemKind.Separator },
+        {
+          label:
+            (this.config.inlineCompletionTriggerMode === "automatic" ? "" : MENU_ITEM_INDENT_SPACING) +
+            "Code Completions",
+          detail: MENU_ITEM_INDENT_SPACING + "Toggle between automatic and manual completion mode",
+          picked: this.config.inlineCompletionTriggerMode === "automatic",
+          command: "tabby.toggleInlineCompletionTriggerMode",
+          iconPath: this.config.inlineCompletionTriggerMode === "automatic" ? new ThemeIcon("check") : undefined,
+          alwaysShow: true,
+        },
+      ]);
+    }
+
+    // Chat section
     if (this.client.chat.isAvailable) {
       items.push({
         label: "$(comment) Chat",
@@ -32,44 +58,46 @@ export class CommandPalette {
       });
     }
 
-    items.push(
+    // Settings section
+    items = items.concat([
+      { label: "settings", kind: QuickPickItemKind.Separator },
       {
-        label: "",
-        kind: QuickPickItemKind.Separator,
-      },
-      {
-        label: this.config.inlineCompletionTriggerMode === "manual" ? "Enable Completions" : "Disable Completions",
-        command: "tabby.toggleInlineCompletionTriggerMode",
-      },
-      {
-        label: "",
-        kind: QuickPickItemKind.Separator,
-      },
-      {
-        label: "$(plug) Connect to Server...",
+        label: "Set Credentials",
         command: "tabby.connectToServer",
+        iconPath: new ThemeIcon("plug"),
       },
       {
-        label: "$(settings) Settings...",
+        label: "Settings",
         command: "tabby.openSettings",
+        iconPath: new ThemeIcon("gear"),
       },
       {
-        label: "$(gear) Agent Settings...",
+        label: "Agent Settings",
         command: "tabby.openTabbyAgentSettings",
+        iconPath: new ThemeIcon("tools"),
       },
       {
-        label: "$(output) Show Logs...",
+        label: "Show Logs",
         command: "tabby.outputPanel.focus",
+        iconPath: new ThemeIcon("output"),
       },
-      {
-        label: "",
-        kind: QuickPickItemKind.Separator,
-      },
+    ]);
+
+    // Help section
+    items = items.concat([
+      { label: "help & support", kind: QuickPickItemKind.Separator },
       {
         label: "$(question) Help",
+        description: "Open online documentation",
         command: "tabby.openOnlineHelp",
       },
-    );
+    ]);
+
+    if (validStatuses.includes(this.client.status.current?.status || "")) {
+      items.push({ label: "server status", kind: QuickPickItemKind.Separator });
+
+      items.push(this.itemForStatus());
+    }
 
     quickPick.items = items;
     quickPick.onDidAccept(async () => {
