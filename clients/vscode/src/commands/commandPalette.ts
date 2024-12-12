@@ -62,7 +62,7 @@ export class CommandPalette {
     items = items.concat([
       { label: "settings", kind: QuickPickItemKind.Separator },
       {
-        label: "Set Credentials",
+        label: "Connect to Server",
         command: "tabby.connectToServer",
         iconPath: new ThemeIcon("plug"),
       },
@@ -119,12 +119,13 @@ export class CommandPalette {
   }
 
   private itemForStatus(): CommandPaletteItem {
+    const STATUS_PREFIX = MENU_ITEM_INDENT_SPACING + "Status: ";
     const languageClientState = this.client.languageClient.state;
     switch (languageClientState) {
       case LanguageClientState.Stopped:
       case LanguageClientState.Starting: {
         return {
-          label: "$(loading~spin) Initializing...",
+          label: `${STATUS_PREFIX}Initializing...`,
         };
       }
       case LanguageClientState.Running: {
@@ -132,19 +133,19 @@ export class CommandPalette {
         switch (statusInfo?.status) {
           case "connecting": {
             return {
-              label: "$(loading~spin) Connecting...",
+              label: `${STATUS_PREFIX}Connecting...`,
             };
           }
           case "unauthorized": {
             return {
-              label: "$(key) Unauthorized",
+              label: `${STATUS_PREFIX}Unauthorized`,
               description: "Update the settings to connect to Tabby Server",
               command: "tabby.connectToServer",
             };
           }
           case "disconnected": {
             return {
-              label: "$(debug-disconnect) Disconnected",
+              label: `${STATUS_PREFIX}Disconnected`,
               description: "Update the settings to connect to Tabby Server",
               command: "tabby.connectToServer",
             };
@@ -154,14 +155,14 @@ export class CommandPalette {
           case "readyForManualTrigger":
           case "fetching": {
             return {
-              label: "$(check) Ready",
+              label: `${STATUS_PREFIX}Ready`,
               description: this.client.agentConfig.current?.server.endpoint,
               command: "tabby.outputPanel.focus",
             };
           }
           case "completionResponseSlow": {
             return {
-              label: "$(warning) Slow Response",
+              label: `${STATUS_PREFIX}Slow Response`,
               description: "Completion requests appear to take too much time.",
               command: async () => {
                 const currentStatusInfo = await this.client.status.fetchAgentStatusInfo();
@@ -190,7 +191,7 @@ export class CommandPalette {
           }
           default: {
             return {
-              label: "$(warning) Unknown Status",
+              label: `${STATUS_PREFIX}Unknown Status`,
               description: "Please check the logs for more information.",
               command: "tabby.outputPanel.focus",
             };
