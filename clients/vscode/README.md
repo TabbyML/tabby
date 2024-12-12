@@ -18,7 +18,7 @@ ext install TabbyML.vscode-tabby
 
 ## Autocomplete
 
-Tabby suggests multi-line code completions and full functions in real-time as you write code. Give it a try in the [online playground](https://tabby.tabbyml.com/playground).
+Tabby suggests multi-line code completions and full functions in real-time as you write code.
 
 ![Autocomplete Demo](https://tabby.tabbyml.com/img/demo.gif)
 
