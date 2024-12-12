@@ -41,6 +41,7 @@ use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLEnum, GraphQLObject,
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
+use notification::NotificationService;
 use repository::RepositoryGrepOutput;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
@@ -104,6 +105,7 @@ pub trait ServiceLocator: Send + Sync {
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
+    fn notification(&self) -> Arc<dyn NotificationService>;
 }
 
 pub struct Context {
@@ -528,61 +530,9 @@ impl Query {
         .await
     }
 
-    async fn notifications(
-        ctx: &Context,
-        readed: Option<bool>,
-    ) -> Result<Vec<notification::Notification>> {
+    async fn notifications(ctx: &Context) -> Result<Vec<notification::Notification>> {
         let user = check_user(ctx).await?;
-        match readed {
-            Some(true) => Ok(vec![
-                notification::Notification {
-                    id: "1".to_string().into(),
-                    content: "Hello".into(),
-                    read: true,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                },
-                notification::Notification {
-                    id: "3".to_string().into(),
-                    content: "Tabby".into(),
-                    read: true,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                },
-            ]),
-            Some(false) => Ok(vec![
-                notification::Notification {
-                    id: "2".to_string().into(),
-                    content: "World".into(),
-                    read: false,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                },
-                notification::Notification {
-                    id: "4".to_string().into(),
-                    content: "Assistant".into(),
-                    read: false,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                },
-            ]),
-            None => Ok(vec![
-                notification::Notification {
-                    id: "5".to_string().into(),
-                    content: "World".into(),
-                    read: false,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                },
-                notification::Notification {
-                    id: "6".to_string().into(),
-                    content: "Assistant".into(),
-                    read: true,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                },
-            ]),
-        }
+        ctx.locator.notification().list(&user.id).await
     }
 
     async fn disk_usage_stats(ctx: &Context) -> Result<DiskUsageStats> {
@@ -1046,7 +996,13 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn mark_notifications_readed(ctx: &Context, notification_ids: Vec<ID>) -> Result<bool> {
+    async fn mark_notifications_read(ctx: &Context, notification_id: Option<ID>) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        ctx.locator
+            .notification()
+            .mark_read(&user.id, notification_id)
+            .await?;
         Ok(true)
     }
 

@@ -2,7 +2,7 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, NotificationDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
     ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
     ThreadMessageAttachmentWebDoc, UserEventDAO,
@@ -11,7 +11,7 @@ use tabby_db::{
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
     interface::UserValue,
-    notification::NotificationRecipient,
+    notification::{Notification, NotificationRecipient},
     repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -183,6 +183,18 @@ impl TryFrom<UserEventDAO> for UserEvent {
             created_at: value.created_at,
             payload: String::from_utf8(value.payload)?,
         })
+    }
+}
+
+impl From<NotificationDAO> for Notification {
+    fn from(value: NotificationDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            content: value.content,
+            read: value.read,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
     }
 }
 

@@ -1,2 +1,2 @@
 DROP TABLE notifications;
-DROP TABLE readed_notifications;
+DROP TABLE read_notifications;

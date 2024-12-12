@@ -11,7 +11,7 @@ CREATE TABLE notifications (
   content TEXT NOT NULL
 );
 
-CREATE TABLE readed_notifications (
+CREATE TABLE read_notifications (
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   notification_id INTEGER NOT NULL,
