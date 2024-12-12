@@ -1,6 +1,7 @@
 import { CodeActionProvider, ExtensionContext, languages } from "vscode";
 import { BaseLanguageClient } from "vscode-languageclient";
-import { AgentFeature } from "./AgentFeature";
+import { AgentStatusFeature } from "./AgentStatusFeature";
+import { AgentConfigFeature } from "./AgentConfigFeature";
 import { ChatFeature } from "./ChatFeature";
 import { CodeLensMiddleware } from "./CodeLensMiddleware";
 import { ConfigurationMiddleware } from "./ConfigurationMiddleware";
@@ -22,21 +23,25 @@ import { FileTrackerFeature } from "./FileTrackFeature";
 
 export class Client {
   private readonly logger = getLogger("");
-  readonly agent: AgentFeature;
+  readonly status: AgentStatusFeature;
+  readonly agentConfig: AgentConfigFeature;
   readonly chat: ChatFeature;
   readonly telemetry: TelemetryFeature;
   readonly workspace: WorkSpaceFeature;
   readonly fileTrack: FileTrackerFeature;
+
   constructor(
     private readonly context: ExtensionContext,
     readonly languageClient: BaseLanguageClient,
   ) {
-    this.agent = new AgentFeature(this.languageClient);
+    this.status = new AgentStatusFeature(this.languageClient);
+    this.agentConfig = new AgentConfigFeature(this.languageClient);
     this.chat = new ChatFeature(this.languageClient);
     this.workspace = new WorkSpaceFeature(this.languageClient);
     this.telemetry = new TelemetryFeature(this.languageClient);
     this.fileTrack = new FileTrackerFeature(this, this.context);
-    this.languageClient.registerFeature(this.agent);
+    this.languageClient.registerFeature(this.status);
+    this.languageClient.registerFeature(this.agentConfig);
     this.languageClient.registerFeature(this.chat);
     this.languageClient.registerFeature(this.workspace);
     this.languageClient.registerFeature(this.telemetry);
@@ -52,7 +57,7 @@ export class Client {
   }
 
   async start(): Promise<void> {
-    await this.languageClient.start();
+    return this.languageClient.start();
   }
 
   async stop(): Promise<void> {
@@ -82,6 +87,7 @@ export class Client {
     const feature = new GitProviderFeature(this.languageClient, provider);
     this.languageClient.registerFeature(feature);
   }
+
   registerCodeActionProvider(provider: CodeActionProvider) {
     this.context.subscriptions.push(languages.registerCodeActionsProvider("*", provider));
   }

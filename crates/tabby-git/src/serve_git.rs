@@ -64,7 +64,8 @@ fn resolve<'a>(
                         basename: relpath
                             .join(entry.name().expect("failed to resolve entry name"))
                             .display()
-                            .to_string(),
+                            .to_string()
+                            .replace("\\", "/"),
                     }
                 })
                 .collect::<Vec<_>>(),

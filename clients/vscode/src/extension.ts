@@ -6,13 +6,11 @@ import { getLogger } from "./logger";
 import { Client } from "./lsp/Client";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { Config } from "./Config";
-import { Issues } from "./Issues";
 import { GitProvider } from "./git/GitProvider";
 import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
 import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
-import { Commands } from "./Commands";
-import { Status } from "tabby-agent";
+import { Commands } from "./commands";
 import { CodeActions } from "./CodeActions";
 import { isBrowser } from "./env";
 
@@ -59,56 +57,39 @@ export async function activate(context: ExtensionContext) {
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
 
-  // Register config callback for past ServerConfig
-  client.agent.addListener("didChangeStatus", async (status: Status) => {
-    if (!client) return;
-
-    const { config: serverConfig } = await client.agent.fetchServerInfo();
-
-    if (serverConfig.requestHeaders && Object.keys(serverConfig.requestHeaders).length > 0) {
-      // If serverConfig.requestHeaders is not empty, it means the server is configured in `tabby-agent/config.toml`, we shall not record it.
-      return;
-    }
-
-    if (status === "ready") {
-      await config.appendPastServerConfig({
-        endpoint: serverConfig.endpoint,
-        token: serverConfig.token,
-      });
-    }
-  });
-
   // Register chat panel
-  const chatViewProvider = new ChatSideViewProvider(context, client.agent, logger, gitProvider, client.chat);
+  const chatViewProvider = new ChatSideViewProvider(context, client, logger, gitProvider);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
-  await gitProvider.init();
-  await client.start();
 
-  const issues = new Issues(client, config);
-  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals
-  const statusBarItem = new StatusBarItem(context, client, config, issues, inlineCompletionProvider);
-  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals
+  const statusBarItem = new StatusBarItem(client, config);
+  statusBarItem.registerInContext(context);
+
   const commands = new Commands(
     context,
     client,
     config,
-    issues,
     contextVariables,
     inlineCompletionProvider,
     chatViewProvider,
     gitProvider,
   );
+  commands.register();
+
   /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals
   const codeActions = new CodeActions(client, contextVariables);
 
   logger.info("Tabby extension activated.");
+
+  await gitProvider.init();
+
+  logger.info("Launching language server tabby-agent...");
+  await client.start();
+  logger.info("Language server tabby-agent launched.");
 }
 
 export async function deactivate() {

@@ -53,7 +53,14 @@ export interface ServerApi {
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: Context | null) => void
 }
-
+export interface SymbolInfo {
+  sourceFile: string
+  sourceLine: number
+  sourceCol: number
+  targetFile: string
+  targetLine: number
+  targetCol: number
+}
 export interface ClientApiMethods {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
@@ -77,6 +84,8 @@ export interface ClientApiMethods {
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
 
+  // find symbol definition location by hint filepaths and keyword
+  onLookupSymbol?: (hintFilepaths: string[], keyword: string) => Promise<SymbolInfo | undefined>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -119,6 +128,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
+      onLookupSymbol: api.onLookupSymbol,
     },
   })
 }

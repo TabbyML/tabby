@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
-use tabby_common::index::corpus;
+use tabby_common::index::{corpus, structured_doc::fields as StructuredDocIndexFields};
 use tabby_inference::Embedding;
 
 pub use super::types::{
@@ -85,6 +85,10 @@ impl StructuredDocIndexer {
             return false;
         }
 
+        if self.should_backfill(document) {
+            return true;
+        }
+
         if self.indexer.is_indexed_after(document.id(), updated_at)
             && !self.indexer.has_failed_chunks(document.id())
         {
@@ -92,5 +96,34 @@ impl StructuredDocIndexer {
         };
 
         true
+    }
+
+    fn should_backfill(&self, document: &StructuredDoc) -> bool {
+        // v0.22.0 add the author field to the issue and pull documents.
+        match &document.fields {
+            StructuredDocFields::Issue(issue) => {
+                if issue.author_email.is_some()
+                    && !self.indexer.has_attribute_field(
+                        document.id(),
+                        StructuredDocIndexFields::issue::AUTHOR_EMAIL,
+                    )
+                {
+                    return true;
+                }
+            }
+            StructuredDocFields::Pull(pull) => {
+                if pull.author_email.is_some()
+                    && !self.indexer.has_attribute_field(
+                        document.id(),
+                        StructuredDocIndexFields::pull::AUTHOR_EMAIL,
+                    )
+                {
+                    return true;
+                }
+            }
+            _ => (),
+        }
+
+        false
     }
 }

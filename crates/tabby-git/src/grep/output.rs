@@ -138,7 +138,7 @@ pub struct GrepMatchSink<'output, 'a> {
     matcher: &'a RegexMatcher,
 }
 
-impl<'output, 'a> Sink for GrepMatchSink<'output, 'a> {
+impl Sink for GrepMatchSink<'_, '_> {
     type Error = std::io::Error;
 
     fn matched(
@@ -201,7 +201,7 @@ pub struct GrepNegativeMatchSink<'output> {
     output: &'output mut GrepOutput,
 }
 
-impl<'output> Sink for GrepNegativeMatchSink<'output> {
+impl Sink for GrepNegativeMatchSink<'_> {
     type Error = std::io::Error;
 
     fn matched(

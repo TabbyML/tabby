@@ -5,6 +5,7 @@ use octocrab::{models::IssueState, Octocrab};
 use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocPullDocumentFields, StructuredDocState,
 };
+use tracing::debug;
 
 use super::error::octocrab_error_message;
 
@@ -49,11 +50,28 @@ pub async fn list_github_pulls(
                 let url = pull.html_url.map(|url| url.to_string()).unwrap_or_else(|| pull.url);
                 let title = pull.title.clone().unwrap_or_default();
                 let body = pull.body.clone().unwrap_or_default();
+
+                let author = pull.user.as_ref().map(|user| user.login.clone());
+                let email = if let Some(author) = author {
+                    match octocrab.users(&author).profile().await {
+                        Ok(profile) => {
+                            profile.email
+                        }
+                        Err(e) => {
+                            debug!("Failed to fetch user profile for {}: {}", author, octocrab_error_message(e));
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
                 let doc = StructuredDoc {
                     source_id: source_id.to_string(),
                     fields: StructuredDocFields::Pull(StructuredDocPullDocumentFields {
                         link: url.clone(),
                         title,
+                        author_email: email.clone(),
                         body,
                         merged: pull.merged_at.is_some(),
                         diff: String::new(),
@@ -92,6 +110,7 @@ pub async fn list_github_pulls(
                     fields: StructuredDocFields::Pull(StructuredDocPullDocumentFields {
                         link: url,
                         title: pull.title.unwrap_or_default(),
+                        author_email: email,
                         body: pull.body.unwrap_or_default(),
                         diff,
                         merged: pull.merged_at.is_some(),

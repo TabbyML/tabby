@@ -14,9 +14,9 @@ pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
 pub use threads::{
-    ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
-    ThreadMessageAttachmentWebDoc, ThreadMessageDAO,
+    ThreadDAO, ThreadMessageAttachmentAuthor, ThreadMessageAttachmentClientCode,
+    ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
+    ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc, ThreadMessageDAO,
 };
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;

@@ -1,5 +1,4 @@
 ---
-slug: first-stable-release
 title: "Introducing First Stable Release: v0.0.1"
 authors: [ meng ]
 tags: [release]
