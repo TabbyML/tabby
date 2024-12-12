@@ -263,7 +263,6 @@ export class CompletionProvider implements Feature {
     }
     result.request.manually = params.context?.triggerKind === InlineCompletionTriggerKind.Invoked;
 
-    this.logger.info("this should only ahhpen onece");
     if (params.context.selectedCompletionInfo) {
       const customContext = params.context as {
         triggerKind: InlineCompletionTriggerKind;
@@ -502,7 +501,6 @@ export class CompletionProvider implements Feature {
 
         // postprocess: postCache
         solution = solution.withItems(...(await postCacheProcess(solution.items, config.postprocess)));
-        this.logger.info("solution after postprocess:" + JSON.stringify(solution));
         if (signals.aborted) {
           throw signals.reason;
         }

@@ -213,7 +213,7 @@ export class CompletionContext {
     const prefix = this.prefixLines.slice(Math.max(this.prefixLines.length - config.maxPrefixLines, 0)).join("");
     let suffix = this.suffixLines.slice(0, config.maxSuffixLines).join("");
 
-    logger.info("segment prefix:" + prefix);
+    // TODO: maybe move this part to string utils
     // remove first unpaired bracket in segment
     const unpairedChars = findUnpairedAutoClosingChars(suffix).join("");
     if (unpairedChars.length > 0) {
@@ -226,12 +226,8 @@ export class CompletionContext {
     // deal with suffix only semicolon
     if (suffix.trimStart().startsWith(";")) {
       const semicolonIndex = suffix.indexOf(";");
-      logger.info("find it, ; index:" + semicolonIndex);
-      logger.info("suffix:" + suffix);
-      logger.info("suffix.substring(semicolonIndex + 1):" + suffix.substring(semicolonIndex + 1));
       suffix = suffix.substring(semicolonIndex + 1);
     }
-    logger.info(`unpaired len: ${unpairedChars}  build segments after suffix ${suffix}`);
 
     // filepath && git_url
     let relativeFilepathRoot: string | undefined = undefined;
