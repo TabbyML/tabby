@@ -12,7 +12,7 @@ import {
   commands,
   LocationLink,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams, SymbolInfo } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
@@ -552,8 +552,8 @@ export class WebviewHelper {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
-      onLookupSymbol: async (hintFilepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
-        const findSymbolInfo = async (filepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
+      onLookupSymbol: async (hintFilepaths: string[], keyword: string): Promise<Context | undefined> => {
+        const findSymbolInfo = async (filepaths: string[], keyword: string): Promise<Context | undefined> => {
           if (!keyword || !filepaths.length) {
             this.logger.info("No keyword or filepaths provided");
             return undefined;
@@ -578,12 +578,14 @@ export class WebviewHelper {
                   const location = locations[0];
                   if (location) {
                     return {
-                      sourceFile: filepath,
-                      sourceLine: position.line + 1,
-                      sourceCol: position.character,
-                      targetFile: location.targetUri.toString(true),
-                      targetLine: location.targetRange.start.line + 1,
-                      targetCol: location.targetRange.start.character,
+                      content: "",
+                      filepath: location.targetUri.toString(true),
+                      git_url: "",
+                      kind: "file",
+                      range: {
+                        start: location.targetRange.start.line + 1,
+                        end: location.targetRange.end.line + 1,
+                      },
                     };
                   }
                 }

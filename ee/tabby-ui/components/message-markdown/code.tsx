@@ -54,21 +54,9 @@ export function CodeElement({
     const handleClick = () => {
       if (!isSymbolNavigable || !symbolLocation || !onNavigateToContext) return
 
-      onNavigateToContext(
-        {
-          filepath: symbolLocation.targetFile,
-          range: {
-            start: symbolLocation.targetLine,
-            end: symbolLocation.targetLine
-          },
-          git_url: '',
-          content: '',
-          kind: 'file'
-        },
-        {
-          openInEditor: true
-        }
-      )
+      onNavigateToContext(symbolLocation, {
+        openInEditor: true
+      })
     }
 
     return (

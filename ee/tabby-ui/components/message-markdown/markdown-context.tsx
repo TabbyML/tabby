@@ -1,10 +1,5 @@
 import { createContext } from 'react'
-import {
-  Context,
-  FileContext,
-  NavigateOpts,
-  SymbolInfo
-} from 'tabby-chat-panel/index'
+import { Context, FileContext, NavigateOpts } from 'tabby-chat-panel/index'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem } from '@/lib/types'
@@ -24,7 +19,7 @@ export type MessageMarkdownContextValue = {
   onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   supportsOnApplyInEditorV2: boolean
   activeSelection?: FileContext
-  symbolPositionMap: Map<string, SymbolInfo | undefined>
+  symbolPositionMap: Map<string, Context | undefined>
   lookupSymbol?: (keyword: string) => void
 }
 

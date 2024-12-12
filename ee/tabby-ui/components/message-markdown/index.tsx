@@ -19,12 +19,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-import {
-  Context,
-  FileContext,
-  NavigateOpts,
-  SymbolInfo
-} from 'tabby-chat-panel/index'
+import { Context, FileContext, NavigateOpts } from 'tabby-chat-panel/index'
 
 import {
   MARKDOWN_CITATION_REGEX,
@@ -64,7 +59,7 @@ export interface MessageMarkdownProps {
   onLookupSymbol?: (
     filepaths: string[],
     keyword: string
-  ) => Promise<SymbolInfo | undefined>
+  ) => Promise<Context | undefined>
   onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
@@ -97,7 +92,7 @@ export function MessageMarkdown({
   ...rest
 }: MessageMarkdownProps) {
   const [symbolPositionMap, setSymbolLocationMap] = useState<
-    Map<string, SymbolInfo | undefined>
+    Map<string, Context | undefined>
   >(new Map())
   const messageAttachments: MessageAttachments = useMemo(() => {
     const docs: MessageAttachments =
