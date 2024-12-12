@@ -40,7 +40,7 @@ export class CommandPalette {
         {
           label:
             (this.config.inlineCompletionTriggerMode === "automatic" ? "" : MENU_ITEM_INDENT_SPACING) +
-            "Code Completions",
+            "Code Completion",
           detail: MENU_ITEM_INDENT_SPACING + "Toggle between automatic and manual completion mode",
           picked: this.config.inlineCompletionTriggerMode === "automatic",
           command: "tabby.toggleInlineCompletionTriggerMode",
