@@ -54,15 +54,17 @@ impl WebCrawlerJob {
             };
 
             num_docs += 1;
-            indexer
-                .sync(
-                    StructuredDocState {
-                        updated_at: Utc::now(),
-                        deleted: false,
-                    },
-                    source_doc,
-                )
-                .await;
+
+            if indexer
+                .presync(&StructuredDocState {
+                    id: source_doc.id().to_string(),
+                    updated_at: Utc::now(),
+                    deleted: false,
+                })
+                .await
+            {
+                indexer.sync(source_doc).await;
+            }
         }
         logkit::info!("Crawled {} documents from '{}'", num_docs, self.url);
         indexer.commit();
