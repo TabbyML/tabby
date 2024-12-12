@@ -40,7 +40,7 @@ impl NotificationService for NotificationServiceImpl {
 
 #[cfg(test)]
 mod tests {
-    use juniper::ID;
+    
     use tabby_db::DbConn;
     use tabby_schema::{notification::NotificationService, AsID};
 
