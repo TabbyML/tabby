@@ -282,7 +282,19 @@ export const repositoryListQuery = graphql(/* GraphQL */ `
 
 export const resolveGitUrlQuery = graphql(/* GraphQL */ `
   query ResolveGitUrl($gitUrl: String!) {
-    resolveGitUrl(gitUrl: $gitUrl)
+    resolveGitUrl(gitUrl: $gitUrl) {
+    id
+    sourceId
+    sourceKind
+    sourceName
+    name
+    kind
+    gitUrl
+    refs {
+      name
+      commit
+    }
+  }
   }
 `)
 

@@ -38,8 +38,8 @@ import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 import { createRequest } from '@urql/core'
 import { client } from '@/lib/tabby/gql'
-import { IsAvaileableWorkspaceQuery } from '@/lib/gql/generates/graphql'
-import { isAvaileableWorkspaceQuery, repositoryListQuery } from '@/lib/tabby/query'
+import { ResolveGitUrlQuery } from '@/lib/gql/generates/graphql'
+import { resolveGitUrlQuery, repositoryListQuery } from '@/lib/tabby/query'
 
 type ChatContextValue = {
   threadId: string | undefined
@@ -107,12 +107,12 @@ interface ChatProps extends React.ComponentProps<'div'> {
 }
 
 async function isAvaileableWorkspace(gitUrl: string): Promise<
-  IsAvaileableWorkspaceQuery['isAvaileableWorkspace']
+  ResolveGitUrlQuery['resolveGitUrl']
 > {
   // debugger
   const query = client.createRequestOperation(
     'query',
-    createRequest(isAvaileableWorkspaceQuery, { gitUrl })
+    createRequest(resolveGitUrlQuery, { gitUrl })
   )
 
   return client
