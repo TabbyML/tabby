@@ -185,6 +185,7 @@ export interface ServerApi {
   addRelevantContext: (context: Context) => void
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: Context | null) => void
+  updateGitUrl: (gitUrl: string | undefined) => void
 }
 
 export interface ClientApiMethods {
@@ -272,6 +273,7 @@ export function createServer(api: ServerApi): ClientApi {
       addRelevantContext: api.addRelevantContext,
       updateTheme: api.updateTheme,
       updateActiveSelection: api.updateActiveSelection,
+      updateGitUrl: api.updateGitUrl,
     },
   })
 }

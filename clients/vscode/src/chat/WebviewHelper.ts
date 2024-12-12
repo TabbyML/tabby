@@ -287,6 +287,21 @@ export class WebviewHelper {
     }
   }
 
+  public async syncIndexedGitUrlToChatPanel(url: string | undefined) {
+    try {
+      this.logger.log('sync indexed git url', url)
+      await this.client?.updateGitUrl(url);
+    } catch {
+      this.logger.log(
+        {
+          every: 100,
+          level: "warn",
+        },
+        "Git URL sync failed. Please update your Tabby server to the latest version.",
+      );
+    }
+  }
+
   public addRelevantContext(context: Context) {
     if (!this.client) {
       this.pendingRelevantContexts.push(context);
@@ -318,6 +333,7 @@ export class WebviewHelper {
     this.pendingMessages = [];
 
     this.syncActiveSelection(window.activeTextEditor);
+    this.syncIndexedGitURL(window.activeTextEditor);
 
     const agentConfig = this.lspClient.agentConfig.current;
     if (agentConfig?.server.token) {
@@ -371,6 +387,16 @@ export class WebviewHelper {
     this.syncActiveSelectionToChatPanel(fileContext);
   }
 
+  public async syncIndexedGitURL(editor: TextEditor | undefined) {
+    if (!editor) {
+      this.syncIndexedGitUrlToChatPanel(undefined);
+      return;
+    }
+
+    const filePathParams = await buildFilePathParams(editor.document.uri, this.gitProvider);
+    this.syncIndexedGitUrlToChatPanel(filePathParams?.gitRemoteUrl)
+  }
+
   public addAgentEventListeners() {
     this.lspClient.status.on("didChange", async (status: StatusInfo) => {
       const agentConfig = this.lspClient.agentConfig.current;
@@ -386,6 +412,7 @@ export class WebviewHelper {
   public addTextEditorEventListeners() {
     window.onDidChangeActiveTextEditor((e) => {
       this.syncActiveSelection(e);
+      this.syncIndexedGitURL(e);
     });
 
     window.onDidChangeTextEditorSelection((e) => {

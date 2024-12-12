@@ -28,9 +28,6 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
-import { useQuery } from 'urql'
-
-import { resolveGitUrlQuery } from '@/lib/tabby/query'
 import { saveFetcherOptions } from '@/lib/tabby/token-management'
 
 const convertToHSLColor = (style: string) => {
@@ -60,6 +57,7 @@ export default function ChatPage() {
   >([])
   const [pendingActiveSelection, setPendingActiveSelection] =
     useState<Context | null>(null)
+  const [pendingGitUrl, setPendingGitUrl] = useState<string | undefined>()
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
@@ -104,6 +102,14 @@ export default function ChatPage() {
       chatRef.current.updateActiveSelection(ctx)
     } else if (ctx) {
       setPendingActiveSelection(ctx)
+    }
+  }
+
+  const updateGitUrl = (gitUrl: string | undefined) => {
+    if (chatRef.current) {
+      chatRef.current.updateGitUrl(gitUrl)
+    } else if (gitUrl) {
+      setPendingGitUrl(gitUrl)
     }
   }
 
@@ -154,18 +160,8 @@ export default function ChatPage() {
       document.documentElement.className =
         themeClass + ` client client-${client}`
     },
-    updateActiveSelection
-  })
-
-  // FIXME get url from workspace
-  const workspaceGitURL = 'https://github.com/tabbyML/tabby'
-
-  const [{ data, fetching }] = useQuery({
-    query: resolveGitUrlQuery,
-    variables: {
-      gitUrl: workspaceGitURL
-    },
-    pause: !workspaceGitURL
+    updateActiveSelection,
+    updateGitUrl
   })
 
   useEffect(() => {
@@ -276,12 +272,14 @@ export default function ChatPage() {
     setPendingRelevantContexts([])
     setPendingMessages([])
     setPendingActiveSelection(null)
+    setPendingGitUrl(undefined)
   }
 
   const onChatLoaded = () => {
     pendingRelevantContexts.forEach(addRelevantContext)
     pendingMessages.forEach(sendMessage)
     chatRef.current?.updateActiveSelection(pendingActiveSelection)
+    chatRef.current?.updateGitUrl(pendingGitUrl)
 
     clearPendingState()
     setChatLoaded(true)
