@@ -276,7 +276,7 @@ function ChatPanelRenderer(
                     </motion.div>
                   </TooltipTrigger>
                   <TooltipContent className="text-md space-y-2">
-                    <span className="text-muted-foreground font-semibold">
+                    <span className="font-semibold text-muted-foreground">
                       Indexed repository of current workspace:
                     </span>
                     <p>{indexedRepository.gitUrl}</p>
