@@ -2,7 +2,7 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, NotificationDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
     ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
     ThreadMessageAttachmentWebDoc, UserEventDAO,
@@ -11,6 +11,7 @@ use tabby_db::{
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
     interface::UserValue,
+    notification::{Notification, NotificationRecipient},
     repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -23,7 +24,7 @@ use crate::{
         user_event::{EventKind, UserEvent},
         CoreError,
     },
-    thread::{self},
+    thread,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -182,6 +183,18 @@ impl TryFrom<UserEventDAO> for UserEvent {
             created_at: value.created_at,
             payload: String::from_utf8(value.payload)?,
         })
+    }
+}
+
+impl From<NotificationDAO> for Notification {
+    fn from(value: NotificationDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            content: value.content,
+            read: value.read,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
     }
 }
 
@@ -464,6 +477,23 @@ impl DbEnum for thread::Role {
             "assistant" => Ok(thread::Role::Assistant),
             "user" => Ok(thread::Role::User),
             _ => bail!("{s} is not a valid value for thread::Role"),
+        }
+    }
+}
+
+impl DbEnum for NotificationRecipient {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            NotificationRecipient::Admin => "admin",
+            NotificationRecipient::AllUser => "all_user",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "admin" => Ok(NotificationRecipient::Admin),
+            "all_user" => Ok(NotificationRecipient::AllUser),
+            _ => bail!("{s} is not a valid value for NotificationKind"),
         }
     }
 }
