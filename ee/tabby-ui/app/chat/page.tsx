@@ -28,6 +28,9 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
+import { useQuery } from 'urql'
+
+import { resolveGitUrlQuery } from '@/lib/tabby/query'
 import { saveFetcherOptions } from '@/lib/tabby/token-management'
 
 const convertToHSLColor = (style: string) => {
@@ -152,6 +155,17 @@ export default function ChatPage() {
         themeClass + ` client client-${client}`
     },
     updateActiveSelection
+  })
+
+  // FIXME get url from workspace
+  const workspaceGitURL = 'https://github.com/tabbyML/tabby'
+
+  const [{ data, fetching }] = useQuery({
+    query: resolveGitUrlQuery,
+    variables: {
+      gitUrl: workspaceGitURL
+    },
+    pause: !workspaceGitURL
   })
 
   useEffect(() => {
@@ -395,6 +409,7 @@ export default function ChatPage() {
           (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
         }
         openInEditor={isInEditor && server?.openInEditor}
+        indexedRepository={data?.resolveGitUrl}
       />
     </ErrorBoundary>
   )

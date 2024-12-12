@@ -15,6 +15,7 @@ import {
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
+  ResolveGitUrlQuery,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -63,6 +64,7 @@ type ChatContextValue = {
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+  indexedRepository: ResolveGitUrlQuery['resolveGitUrl']
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -125,7 +127,8 @@ function ChatRenderer(
     onLookupSymbol,
     openInEditor,
     chatInputRef,
-    supportsOnApplyInEditorV2
+    supportsOnApplyInEditorV2,
+    indexedRepository
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -556,7 +559,8 @@ function ChatRenderer(
         removeRelevantContext,
         chatInputRef,
         activeSelection,
-        supportsOnApplyInEditorV2
+        supportsOnApplyInEditorV2,
+        indexedRepository
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

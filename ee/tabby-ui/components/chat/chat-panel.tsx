@@ -9,7 +9,10 @@ import type { Context } from 'tabby-chat-panel'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
-import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
+import {
+  updateEnableActiveSelection,
+  updateEnableIndexedRepository
+} from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
@@ -20,6 +23,7 @@ import {
   IconCheck,
   IconEye,
   IconEyeOff,
+  IconFolderGit,
   IconRefresh,
   IconRemove,
   IconShare,
@@ -70,11 +74,16 @@ function ChatPanelRenderer(
     relevantContext,
     removeRelevantContext,
     activeSelection,
-    onCopyContent
+    onCopyContent,
+    indexedRepository
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
+  const enableIndexedRepository = useChatStore(
+    state => state.enableIndexedRepository
+  )
+
   const [persisting, setPerisiting] = useState(false)
   const { width } = useWindowSize()
   const isExtraSmallScreen = typeof width === 'number' && width < 376
@@ -220,6 +229,60 @@ function ChatPanelRenderer(
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
           <div className="flex flex-wrap gap-2">
             <AnimatePresence presenceAffectsLayout>
+              {indexedRepository ? (
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: -5 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{
+                        ease: 'easeInOut',
+                        duration: 0.1
+                      }}
+                      exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                    >
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md pr-0 text-sm font-semibold',
+                          {
+                            'border-dashed !text-muted-foreground italic line-through':
+                              !enableIndexedRepository
+                          }
+                        )}
+                      >
+                        <IconFolderGit />
+                        {indexedRepository.name}
+                        <span className="shrink-0 text-muted-foreground">
+                          Current repo
+                        </span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0 rounded-l-none"
+                          onClick={e => {
+                            updateEnableIndexedRepository(
+                              !enableIndexedRepository
+                            )
+                          }}
+                        >
+                          {enableIndexedRepository ? (
+                            <IconEye />
+                          ) : (
+                            <IconEyeOff />
+                          )}
+                        </Button>
+                      </Badge>
+                    </motion.div>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-md space-y-2">
+                    <span className="text-muted-foreground font-semibold">
+                      Indexed repository of current workspace:
+                    </span>
+                    <p>{indexedRepository.gitUrl}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : null}
               {activeSelection ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9, y: -5 }}
