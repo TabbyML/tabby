@@ -19,23 +19,23 @@ export class CommandPalette {
   show() {
     const quickPick: QuickPick<CommandPaletteItem> = window.createQuickPick();
     quickPick.title = "Tabby Command Palette";
-    let items: CommandPaletteItem[] = [];
+    const items: CommandPaletteItem[] = [];
 
-    const disconnectStatues = ["disconnected", "unauthorized"];
-    if (disconnectStatues.includes(this.client.status.current?.status || "")) {
-      items.push(this.itemForStatus());
-    }
+    items.push({ label: "status", kind: QuickPickItemKind.Separator }, this.itemForStatus(), {
+      label: "settings",
+      kind: QuickPickItemKind.Separator,
+    });
 
     // Status section
     this.client.status.on("didChange", () => {
-      items[0] = this.itemForStatus();
+      items[1] = this.itemForStatus();
       quickPick.items = items;
     });
 
     // Features section
     const validStatuses = ["ready", "readyForAutoTrigger", "readyForManualTrigger"];
     if (validStatuses.includes(this.client.status.current?.status || "")) {
-      items = items.concat([
+      items.push(
         { label: "enable/disable features", kind: QuickPickItemKind.Separator },
         {
           label:
@@ -47,7 +47,7 @@ export class CommandPalette {
           iconPath: this.config.inlineCompletionTriggerMode === "automatic" ? new ThemeIcon("check") : undefined,
           alwaysShow: true,
         },
-      ]);
+      );
     }
 
     // Chat section
@@ -59,7 +59,7 @@ export class CommandPalette {
     }
 
     // Settings section
-    items = items.concat([
+    items.push(
       { label: "settings", kind: QuickPickItemKind.Separator },
       {
         label: "Connect to Server",
@@ -69,7 +69,7 @@ export class CommandPalette {
       {
         label: "Settings",
         command: "tabby.openSettings",
-        iconPath: new ThemeIcon("gear"),
+        iconPath: new ThemeIcon("settings"),
       },
       {
         label: "Agent Settings",
@@ -81,23 +81,17 @@ export class CommandPalette {
         command: "tabby.outputPanel.focus",
         iconPath: new ThemeIcon("output"),
       },
-    ]);
+    );
 
     // Help section
-    items = items.concat([
+    items.push(
       { label: "help & support", kind: QuickPickItemKind.Separator },
       {
         label: "$(question) Help",
         description: "Open online documentation",
         command: "tabby.openOnlineHelp",
       },
-    ]);
-
-    if (validStatuses.includes(this.client.status.current?.status || "")) {
-      items.push({ label: "server status", kind: QuickPickItemKind.Separator });
-
-      items.push(this.itemForStatus());
-    }
+    );
 
     quickPick.items = items;
     quickPick.onDidAccept(async () => {
