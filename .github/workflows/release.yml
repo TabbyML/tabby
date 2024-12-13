@@ -51,7 +51,7 @@ jobs:
           - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux_2_28-cuda123
-            container: sameli/manylinux_2_28_x86_64_cuda_12.3
+            container: sameli/manylinux_2_28_x86_64_cuda_12.3@sha256:e12416bf249ab312f9dcfdebd7939b968dd6f1b6f810abbede818df875e86a7c
             build_args: --features binary,cuda
           - os: buildjet-4vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
