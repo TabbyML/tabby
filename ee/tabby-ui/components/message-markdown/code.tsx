@@ -69,7 +69,7 @@ export function CodeElement({
         {...props}
       >
         {isSymbolNavigable && (
-          <IconSquareChevronRight className="h-3.5 w-3.5 text-primary inline-block relative -top-px" />
+          <IconSquareChevronRight className="relative -top-px inline-block h-3.5 w-3.5 text-primary" />
         )}
         <span
           className={cn('whitespace-normal', {
