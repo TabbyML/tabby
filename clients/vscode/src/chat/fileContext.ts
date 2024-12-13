@@ -166,6 +166,7 @@ export async function openTextDocument(
     }
   }
 
+  logger.warn(`File not found: ${filePath}`);
   return null;
 }
 

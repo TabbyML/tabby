@@ -2,14 +2,16 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, NotificationDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
     ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
-    ThreadMessageAttachmentWebDoc, ThreadMessageDAO, UserEventDAO,
+    ThreadMessageAttachmentWebDoc, UserEventDAO,
 };
 
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
+    interface::UserValue,
+    notification::{Notification, NotificationRecipient},
     repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -22,7 +24,7 @@ use crate::{
         user_event::{EventKind, UserEvent},
         CoreError,
     },
-    thread::{self, MessageAttachment},
+    thread,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -184,6 +186,18 @@ impl TryFrom<UserEventDAO> for UserEvent {
     }
 }
 
+impl From<NotificationDAO> for Notification {
+    fn from(value: NotificationDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            content: value.content,
+            read: value.read,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
 impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
     fn from(value: ThreadMessageAttachmentCode) -> Self {
         Self {
@@ -228,33 +242,36 @@ impl From<&thread::MessageAttachmentCodeInput> for ThreadMessageAttachmentClient
     }
 }
 
-impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
-    fn from(value: ThreadMessageAttachmentDoc) -> Self {
-        match value {
-            ThreadMessageAttachmentDoc::Web(val) => {
-                thread::MessageAttachmentDoc::Web(thread::MessageAttachmentWebDoc {
-                    title: val.title,
-                    link: val.link,
-                    content: val.content,
-                })
-            }
-            ThreadMessageAttachmentDoc::Issue(val) => {
-                thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
-                    title: val.title,
-                    link: val.link,
-                    body: val.body,
-                    closed: val.closed,
-                })
-            }
-            ThreadMessageAttachmentDoc::Pull(val) => {
-                thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
-                    title: val.title,
-                    link: val.link,
-                    body: val.body,
-                    patch: val.diff,
-                    merged: val.merged,
-                })
-            }
+pub fn from_thread_message_attachment_document(
+    doc: ThreadMessageAttachmentDoc,
+    author: Option<UserValue>,
+) -> thread::MessageAttachmentDoc {
+    match doc {
+        ThreadMessageAttachmentDoc::Web(web) => {
+            thread::MessageAttachmentDoc::Web(thread::MessageAttachmentWebDoc {
+                title: web.title,
+                link: web.link,
+                content: web.content,
+            })
+        }
+        ThreadMessageAttachmentDoc::Issue(issue) => {
+            thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
+                title: issue.title,
+                link: issue.link,
+                author,
+                body: issue.body,
+                closed: issue.closed,
+            })
+        }
+        ThreadMessageAttachmentDoc::Pull(pull) => {
+            thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
+                title: pull.title,
+                link: pull.link,
+                author,
+                body: pull.body,
+                patch: pull.diff,
+                merged: pull.merged,
+            })
         }
     }
 }
@@ -273,6 +290,9 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 ThreadMessageAttachmentDoc::Issue(ThreadMessageAttachmentIssueDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
+                    author_user_id: val.author.as_ref().map(|x| match x {
+                        UserValue::UserSecured(user) => user.id.to_string(),
+                    }),
                     body: val.body.clone(),
                     closed: val.closed,
                 })
@@ -281,6 +301,9 @@ impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
                 ThreadMessageAttachmentDoc::Pull(ThreadMessageAttachmentPullDoc {
                     title: val.title.clone(),
                     link: val.link.clone(),
+                    author_user_id: val.author.as_ref().map(|x| match x {
+                        UserValue::UserSecured(user) => user.id.to_string(),
+                    }),
                     body: val.body.clone(),
                     diff: val.patch.clone(),
                     merged: val.merged,
@@ -298,37 +321,6 @@ impl From<ThreadDAO> for thread::Thread {
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
-    }
-}
-
-impl TryFrom<ThreadMessageDAO> for thread::Message {
-    type Error = anyhow::Error;
-    fn try_from(value: ThreadMessageDAO) -> Result<Self, Self::Error> {
-        let code = value.code_attachments;
-        let client_code = value.client_code_attachments;
-        let doc = value.doc_attachments;
-
-        let attachment = MessageAttachment {
-            code: code
-                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
-                .unwrap_or_default(),
-            client_code: client_code
-                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
-                .unwrap_or_default(),
-            doc: doc
-                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
-                .unwrap_or_default(),
-        };
-
-        Ok(Self {
-            id: value.id.as_id(),
-            thread_id: value.thread_id.as_id(),
-            role: thread::Role::from_enum_str(&value.role)?,
-            content: value.content,
-            attachment,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-        })
     }
 }
 
@@ -485,6 +477,23 @@ impl DbEnum for thread::Role {
             "assistant" => Ok(thread::Role::Assistant),
             "user" => Ok(thread::Role::User),
             _ => bail!("{s} is not a valid value for thread::Role"),
+        }
+    }
+}
+
+impl DbEnum for NotificationRecipient {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            NotificationRecipient::Admin => "admin",
+            NotificationRecipient::AllUser => "all_user",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "admin" => Ok(NotificationRecipient::Admin),
+            "all_user" => Ok(NotificationRecipient::AllUser),
+            _ => bail!("{s} is not a valid value for NotificationKind"),
         }
     }
 }

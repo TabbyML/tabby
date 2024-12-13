@@ -8,15 +8,16 @@ pub use email_setting::EmailSettingDAO;
 pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
+pub use notifications::NotificationDAO;
 pub use oauth_credential::OAuthCredentialDAO;
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
 pub use threads::{
-    ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
-    ThreadMessageAttachmentWebDoc, ThreadMessageDAO,
+    ThreadDAO, ThreadMessageAttachmentAuthor, ThreadMessageAttachmentClientCode,
+    ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
+    ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc, ThreadMessageDAO,
 };
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
@@ -33,6 +34,7 @@ mod invitations;
 mod job_runs;
 #[cfg(test)]
 mod migration_tests;
+mod notifications;
 mod oauth_credential;
 mod password_reset;
 mod provided_repositories;

@@ -1,10 +1,5 @@
 import { ReactNode, useContext, useMemo, useState } from 'react'
-import Image from 'next/image'
-import defaultFavicon from '@/assets/default-favicon.png'
-import DOMPurify from 'dompurify'
-import he from 'he'
 import { compact, isNil } from 'lodash-es'
-import { marked } from 'marked'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
@@ -14,7 +9,7 @@ import {
   MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
-import { cn, getContent } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import {
   HoverCard,
   HoverCardContent,
@@ -25,9 +20,10 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 import './style.css'
 
 import {
-  Context,
   FileContext,
-  NavigateOpts,
+  FileLocation,
+  Filepath,
+  LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel/index'
 
@@ -37,15 +33,9 @@ import {
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
-import { Badge } from '../ui/badge'
-import {
-  IconCheckCircled,
-  IconCircleDot,
-  IconGitMerge,
-  IconGitPullRequest
-} from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 import { CodeElement } from './code'
+import { DocDetailView } from './doc-detail-view'
 import { MessageMarkdownContext } from './markdown-context'
 
 type RelevantDocItem = {
@@ -61,17 +51,6 @@ type RelevantCodeItem = {
 
 type MessageAttachments = Array<RelevantDocItem | RelevantCodeItem>
 
-const normalizedText = (input: string) => {
-  const sanitizedHtml = DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: []
-  })
-  const parsed = marked.parse(sanitizedHtml) as string
-  const decoded = he.decode(parsed)
-  const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
-  return plainText
-}
-
 export interface MessageMarkdownProps {
   message: string
   headline?: boolean
@@ -84,10 +63,10 @@ export interface MessageMarkdownProps {
     opts?: { languageId: string; smart: boolean }
   ) => void
   onLookupSymbol?: (
-    filepaths: string[],
-    keyword: string
+    symbol: string,
+    hints?: LookupSymbolHint[] | undefined
   ) => Promise<SymbolInfo | undefined>
-  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
+  openInEditor?: (target: FileLocation) => void
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -113,9 +92,9 @@ export function MessageMarkdown({
   className,
   canWrapLongLines,
   onLookupSymbol,
+  openInEditor,
   supportsOnApplyInEditorV2,
   activeSelection,
-  onNavigateToContext,
   ...rest
 }: MessageMarkdownProps) {
   const [symbolPositionMap, setSymbolLocationMap] = useState<
@@ -195,10 +174,35 @@ export function MessageMarkdown({
     if (symbolPositionMap.has(keyword)) return
 
     setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
-    const symbolInfo = await onLookupSymbol(
-      activeSelection?.filepath ? [activeSelection?.filepath] : [],
-      keyword
-    )
+    const hints: LookupSymbolHint[] = []
+    if (activeSelection) {
+      // FIXME(@icycodes): this is intended to convert the filepath to Filepath type
+      // We should remove this after FileContext.filepath use type Filepath instead of string
+      let filepath: Filepath
+      if (
+        activeSelection.git_url.length > 1 &&
+        !activeSelection.filepath.includes(':')
+      ) {
+        filepath = {
+          kind: 'git',
+          filepath: activeSelection.filepath,
+          gitUrl: activeSelection.git_url
+        }
+      } else {
+        filepath = {
+          kind: 'uri',
+          uri: activeSelection.filepath
+        }
+      }
+      hints.push({
+        filepath,
+        location: {
+          start: activeSelection.range.start,
+          end: activeSelection.range.end
+        }
+      })
+    }
+    const symbolInfo = await onLookupSymbol(keyword, hints)
     setSymbolLocationMap(map => new Map(map.set(keyword, symbolInfo)))
   }
 
@@ -215,9 +219,9 @@ export function MessageMarkdown({
         canWrapLongLines: !!canWrapLongLines,
         supportsOnApplyInEditorV2,
         activeSelection,
-        onNavigateToContext,
         symbolPositionMap,
-        lookupSymbol: onLookupSymbol ? lookupSymbol : undefined
+        lookupSymbol: onLookupSymbol ? lookupSymbol : undefined,
+        openInEditor
       }}
     >
       <MemoizedReactMarkdown
@@ -381,12 +385,8 @@ function RelevantDocumentBadge({
   relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
-  const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
-  const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
-  const isPR = relevantDocument?.__typename === 'MessageAttachmentPullDoc'
-
   return (
-    <HoverCard>
+    <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger>
         <span
           className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
@@ -395,29 +395,8 @@ function RelevantDocumentBadge({
           {citationIndex}
         </span>
       </HoverCardTrigger>
-      <HoverCardContent className="w-96 text-sm">
-        <div className="flex w-full flex-col gap-y-1">
-          <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-            <SiteFavicon
-              hostname={sourceUrl!.hostname}
-              className="m-0 mr-1 leading-none"
-            />
-            <p className="m-0 leading-none">{sourceUrl!.hostname}</p>
-          </div>
-          <p
-            className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-            onClick={() => window.open(relevantDocument.link)}
-          >
-            {relevantDocument.title}
-          </p>
-          <div className="mb-2 w-auto">
-            {isIssue && <IssueStateBadge closed={relevantDocument.closed} />}
-            {isPR && <PRStateBadge merged={relevantDocument.merged} />}
-          </div>
-          <p className="m-0 line-clamp-4 leading-none">
-            {normalizedText(getContent(relevantDocument))}
-          </p>
-        </div>
+      <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+        <DocDetailView relevantDocument={relevantDocument} />
       </HoverCardContent>
     </HoverCard>
   )
@@ -451,80 +430,5 @@ function RelevantCodeBadge({
     >
       {citationIndex}
     </span>
-  )
-}
-
-export function SiteFavicon({
-  hostname,
-  className
-}: {
-  hostname: string
-  className?: string
-}) {
-  const [isLoaded, setIsLoaded] = useState(false)
-
-  const handleImageLoad = () => {
-    setIsLoaded(true)
-  }
-
-  return (
-    <div className="relative h-3.5 w-3.5 shrink-0">
-      <Image
-        src={defaultFavicon}
-        alt={hostname}
-        width={14}
-        height={14}
-        className={cn(
-          'absolute left-0 top-0 z-0 h-3.5 w-3.5 rounded-full leading-none',
-          className
-        )}
-      />
-      <Image
-        src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
-        alt={hostname}
-        width={14}
-        height={14}
-        className={cn(
-          'relative z-10 h-3.5 w-3.5 rounded-full bg-card leading-none',
-          className,
-          {
-            'opacity-0': !isLoaded
-          }
-        )}
-        onLoad={handleImageLoad}
-      />
-    </div>
-  )
-}
-
-function IssueStateBadge({ closed }: { closed: boolean }) {
-  return (
-    <Badge
-      variant={closed ? 'default' : 'secondary'}
-      className="gap-1 py-1 text-xs"
-    >
-      {closed ? (
-        <IconCheckCircled className="h-3.5 w-3.5" />
-      ) : (
-        <IconCircleDot className="h-3.5 w-3.5" />
-      )}
-      {closed ? 'Closed' : 'Open'}
-    </Badge>
-  )
-}
-
-function PRStateBadge({ merged }: { merged: boolean }) {
-  return (
-    <Badge
-      variant={merged ? 'default' : 'secondary'}
-      className="gap-1 py-1 text-xs"
-    >
-      {merged ? (
-        <IconGitMerge className="h-3.5 w-3.5" />
-      ) : (
-        <IconGitPullRequest className="h-3.5 w-3.5" />
-      )}
-      {merged ? 'Merged' : 'Open'}
-    </Badge>
   )
 }
