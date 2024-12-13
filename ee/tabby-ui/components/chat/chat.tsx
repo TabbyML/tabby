@@ -276,7 +276,7 @@ function ChatRenderer(
   }
 
   React.useEffect(() => {
-    if (!isLoading || !qaPairs?.length || !answer) return
+    if (!qaPairs?.length || !answer) return
 
     const lastQaPairs = qaPairs[qaPairs.length - 1]
 
