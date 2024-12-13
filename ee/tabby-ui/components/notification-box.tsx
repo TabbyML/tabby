@@ -9,9 +9,12 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import { NotificationsQuery } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
+import { notificationsQuery } from '@/lib/tabby/query'
 import { ArrayElementType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
+import LoadingWrapper from './loading-wrapper'
+import { ListSkeleton } from './skeleton'
 import { Button } from './ui/button'
 import {
   DropdownMenu,
@@ -24,86 +27,6 @@ import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
 
 interface Props extends HTMLAttributes<HTMLDivElement> {}
 
-const notifications_unread = [
-  {
-    title: 'License expired',
-    content:
-      'Your enterprise license has expired, with validity until October 1, 2024. Please contact us to renew your subscription.',
-    date: '2024-11-25T08:50:12.395Z',
-    read: false
-  },
-  {
-    title: 'Third party integration job failed',
-    content:
-      'The job for integrating with github repository `tabby` failed. Please check the logs or configuration for more details.',
-    date: '2024-10-25T08:50:12.395Z',
-    read: false
-  },
-  {
-    title: 'Indexing job failed',
-    content:
-      'The job for indexing the repository `tabby` failed. Please check the logs for more details.',
-    date: '2024-09-23T08:50:12.395Z',
-    read: false
-  },
-  {
-    title: 'License about to expired',
-    content:
-      'Your enterprise license is about to expire on October 1, 2023. Please contact us to renew your subscription.',
-    date: '2023-09-20T08:50:12.395Z',
-    read: false
-  }
-]
-
-const notifications_all = [
-  {
-    title: 'Third party integration job failed',
-    content:
-      'The job for integrating with github repository `tabby` failed. Please check the logs or configuration for more details.',
-    date: '2024-10-25T08:50:12.395Z',
-    read: true
-  },
-  {
-    title: 'License expired',
-    content:
-      'Your enterprise license has expired, with validity until October 1, 2024. Please contact us to renew your subscription.',
-    date: '2024-11-25T08:50:12.395Z',
-    read: false
-  },
-  {
-    title: 'Third party integration job failed',
-    content:
-      'The job for integrating with github repository `tabby` failed. Please check the logs or configuration for more details.',
-    date: '2024-10-25T08:50:12.395Z',
-    read: false
-  },
-  {
-    title: 'Indexing job failed',
-    content:
-      'The job for indexing the repository `tabby` failed. Please check the logs for more details.',
-    date: '2024-09-23T08:50:12.395Z',
-    read: false
-  },
-  {
-    title: 'License about to expired',
-    content:
-      'Your enterprise license is about to expire on October 1, 2023. Please contact us to renew your subscription.',
-    date: '2023-09-20T08:50:12.395Z',
-    read: false
-  }
-]
-
-const notificationsQuery = graphql(/* GraphQL */ `
-  query Notifications {
-    notifications {
-      id
-      content
-      read
-      createdAt
-    }
-  }
-`)
-
 const markNotificationsReadMutation = graphql(/* GraphQL */ `
   mutation markNotificationsRead($notificationId: ID) {
     markNotificationsRead(notificationId: $notificationId)
@@ -111,11 +34,14 @@ const markNotificationsReadMutation = graphql(/* GraphQL */ `
 `)
 
 export function NotificationBox({ className, ...rest }: Props) {
-  const [{ data }] = useQuery({
+  const [{ data, fetching }] = useQuery({
     query: notificationsQuery
   })
 
-  const notifications = data?.notifications
+  const notifications = useMemo(() => {
+    return data?.notifications.slice().reverse()
+  }, [data?.notifications])
+
   const unreadNotifications = useMemo(() => {
     return notifications?.filter(o => !o.read) ?? []
   }, [notifications])
@@ -163,11 +89,18 @@ export function NotificationBox({ className, ...rest }: Props) {
               <TabsTrigger value="unread">Unread</TabsTrigger>
               <TabsTrigger value="all">All</TabsTrigger>
             </TabsList>
-            <TabsContent value="unread">
-              <NotificationList notifications={unreadNotifications} />
+            <TabsContent value="unread" className="mt-4">
+              <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
+                <NotificationList
+                  type="unread"
+                  notifications={unreadNotifications}
+                />
+              </LoadingWrapper>
             </TabsContent>
-            <TabsContent value="all">
-              <NotificationList notifications={notifications} />
+            <TabsContent value="all" className="mt-4">
+              <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
+                <NotificationList type="all" notifications={notifications} />
+              </LoadingWrapper>
             </TabsContent>
           </Tabs>
         </DropdownMenuContent>
@@ -177,14 +110,24 @@ export function NotificationBox({ className, ...rest }: Props) {
 }
 
 function NotificationList({
-  notifications
+  notifications,
+  type
 }: {
   notifications: NotificationsQuery['notifications'] | undefined
+  type: 'unread' | 'all'
 }) {
   const len = notifications?.length ?? 0
 
+  if (!len) {
+    return (
+      <div className="my-4 text-center text-muted-foreground text-sm">
+        {type === 'unread' ? 'No unread notifications' : 'No notifications'}
+      </div>
+    )
+  }
+
   return (
-    <div className="mt-4 space-y-2">
+    <div className="space-y-2">
       {notifications?.map((item, index) => {
         return (
           <div key={item.id}>
