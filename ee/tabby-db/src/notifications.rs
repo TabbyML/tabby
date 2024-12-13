@@ -33,7 +33,13 @@ impl DbConn {
 
     pub async fn mark_notification_read(&self, id: i64, user_id: i64) -> Result<()> {
         query!(
-            "INSERT INTO read_notifications (notification_id, user_id) VALUES (?, ?)",
+            "INSERT INTO read_notifications (notification_id, user_id)
+            SELECT ?, ?
+            WHERE NOT EXISTS (
+                SELECT 1 FROM read_notifications WHERE notification_id = ? AND user_id = ?
+            )",
+            id,
+            user_id,
             id,
             user_id
         )
@@ -59,7 +65,7 @@ impl DbConn {
 
         let query = format!(
             r#"
-INSERT INTO read_notifications (notification_id, user_id)
+INSERT OR IGNORE INTO read_notifications (notification_id, user_id)
 SELECT
     notifications.id,
     ?

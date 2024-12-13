@@ -419,4 +419,77 @@ mod tests {
         assert_eq!(notifications.len(), 1);
         assert!(notifications[0].read);
     }
+
+    #[tokio::test]
+    async fn test_admin_mark_single_then_all() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let user = db
+            .create_user("test1".into(), None, true, None)
+            .await
+            .unwrap()
+            .as_id();
+        let notification = db
+            .create_notification("admin", "notification1")
+            .await
+            .unwrap()
+            .as_id();
+        db.create_notification("admin", "notification2")
+            .await
+            .unwrap();
+
+        // mark single notification
+        service.mark_read(&user, Some(&notification)).await.unwrap();
+        let notifications = service.list(&user).await.unwrap();
+        assert_eq!(notifications.len(), 2);
+        assert!(notifications[0].read);
+        assert!(!notifications[1].read);
+
+        // mark all notifications
+        service.mark_read(&user, None).await.unwrap();
+        let notifications = service.list(&user).await.unwrap();
+        assert_eq!(notifications.len(), 2);
+        assert!(notifications[0].read);
+        assert!(notifications[1].read);
+    }
+
+    #[tokio::test]
+    async fn test_admin_mark_single_twice() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let user = db
+            .create_user("test1".into(), None, true, None)
+            .await
+            .unwrap()
+            .as_id();
+        let notification = db
+            .create_notification("admin", "notification1")
+            .await
+            .unwrap()
+            .as_id();
+
+        service.mark_read(&user, Some(&notification)).await.unwrap();
+        assert!(service.mark_read(&user, Some(&notification)).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_admin_mark_all_twice() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let user = db
+            .create_user("test1".into(), None, true, None)
+            .await
+            .unwrap()
+            .as_id();
+        db.create_notification("admin", "notification1")
+            .await
+            .unwrap()
+            .as_id();
+
+        service.mark_read(&user, None).await.unwrap();
+        assert!(service.mark_read(&user, None).await.is_ok());
+    }
 }

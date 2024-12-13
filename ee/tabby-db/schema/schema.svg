@@ -316,7 +316,7 @@
 <text text-anchor="start" x="599.5" y="-1242.2" font-family="Times,serif" font-size="14.00">name</text>
 </g>
 <!-- password_reset&#45;&gt;users -->
-<g id="edge8" class="edge">
+<g id="edge10" class="edge">
 <title>password_reset:e&#45;&gt;users:w</title>
 <path fill="none" stroke="black" d="M439.38,-1033.75C478.63,-1033.75 477.22,-1068.41 491.75,-1104.88 518.92,-1173.06 463.68,-1422.54 523.63,-1448.66"/>
 <polygon fill="black" stroke="black" points="522.77,-1452.06 533.27,-1450.58 524.14,-1445.19 522.77,-1452.06"/>
@@ -365,43 +365,43 @@
 <path fill="none" stroke="black" d="M193.88,-566.75C254.37,-566.75 272.23,-567.52 327.56,-567.62"/>
 <polygon fill="black" stroke="black" points="327.23,-571.12 337.24,-567.62 327.24,-564.12 327.23,-571.12"/>
 </g>
-<!-- readed_notifications -->
+<!-- read_notifications -->
 <g id="node10" class="node">
-<title>readed_notifications</title>
-<polygon fill="none" stroke="black" points="328.88,-1999 328.88,-2021.5 452.62,-2021.5 452.62,-1999 328.88,-1999"/>
-<text text-anchor="start" x="331.88" y="-2006.2" font-family="Times,serif" font-weight="bold" font-size="14.00">readed_notifications</text>
-<polygon fill="none" stroke="black" points="328.88,-1974.25 328.88,-1999 358.12,-1999 358.12,-1974.25 328.88,-1974.25"/>
-<text text-anchor="start" x="336.38" y="-1982.7" font-family="Times,serif" font-size="14.00">🔑</text>
-<polygon fill="none" stroke="black" points="358.12,-1974.25 358.12,-1999 452.62,-1999 452.62,-1974.25 358.12,-1974.25"/>
-<text text-anchor="start" x="400.12" y="-1981.58" font-family="Times,serif" font-size="14.00">id</text>
-<polygon fill="none" stroke="black" points="328.88,-1951.75 328.88,-1974.25 358.12,-1974.25 358.12,-1951.75 328.88,-1951.75"/>
-<text text-anchor="start" x="341.62" y="-1957.95" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="358.12,-1951.75 358.12,-1974.25 452.62,-1974.25 452.62,-1951.75 358.12,-1951.75"/>
-<text text-anchor="start" x="385.5" y="-1957.95" font-family="Times,serif" font-size="14.00">user_id</text>
-<polygon fill="none" stroke="black" points="328.88,-1929.25 328.88,-1951.75 358.12,-1951.75 358.12,-1929.25 328.88,-1929.25"/>
-<text text-anchor="start" x="341.62" y="-1935.45" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="358.12,-1929.25 358.12,-1951.75 452.62,-1951.75 452.62,-1929.25 358.12,-1929.25"/>
-<text text-anchor="start" x="365.62" y="-1935.45" font-family="Times,serif" font-size="14.00">notification_id</text>
-<polygon fill="none" stroke="black" points="328.88,-1906.75 328.88,-1929.25 358.12,-1929.25 358.12,-1906.75 328.88,-1906.75"/>
-<text text-anchor="start" x="341.62" y="-1912.95" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="358.12,-1906.75 358.12,-1929.25 452.62,-1929.25 452.62,-1906.75 358.12,-1906.75"/>
-<text text-anchor="start" x="377.62" y="-1912.95" font-family="Times,serif" font-size="14.00">created_at</text>
-<polygon fill="none" stroke="black" points="328.88,-1884.25 328.88,-1906.75 358.12,-1906.75 358.12,-1884.25 328.88,-1884.25"/>
-<text text-anchor="start" x="341.62" y="-1890.45" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="358.12,-1884.25 358.12,-1906.75 452.62,-1906.75 452.62,-1884.25 358.12,-1884.25"/>
-<text text-anchor="start" x="375.75" y="-1890.45" font-family="Times,serif" font-size="14.00">updated_at</text>
+<title>read_notifications</title>
+<polygon fill="none" stroke="black" points="335.62,-1999 335.62,-2021.5 445.88,-2021.5 445.88,-1999 335.62,-1999"/>
+<text text-anchor="start" x="338.62" y="-2006.2" font-family="Times,serif" font-weight="bold" font-size="14.00">read_notifications</text>
+<polygon fill="none" stroke="black" points="335.62,-1974.25 335.62,-1999 358.12,-1999 358.12,-1974.25 335.62,-1974.25"/>
+<text text-anchor="start" x="339.75" y="-1982.7" font-family="Times,serif" font-size="14.00">🔑</text>
+<polygon fill="none" stroke="black" points="358.12,-1974.25 358.12,-1999 445.88,-1999 445.88,-1974.25 358.12,-1974.25"/>
+<text text-anchor="start" x="396.75" y="-1981.58" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="335.62,-1951.75 335.62,-1974.25 358.12,-1974.25 358.12,-1951.75 335.62,-1951.75"/>
+<text text-anchor="start" x="345" y="-1957.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="358.12,-1951.75 358.12,-1974.25 445.88,-1974.25 445.88,-1951.75 358.12,-1951.75"/>
+<text text-anchor="start" x="382.12" y="-1957.95" font-family="Times,serif" font-size="14.00">user_id</text>
+<polygon fill="none" stroke="black" points="335.62,-1929.25 335.62,-1951.75 358.12,-1951.75 358.12,-1929.25 335.62,-1929.25"/>
+<text text-anchor="start" x="345" y="-1935.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="358.12,-1929.25 358.12,-1951.75 445.88,-1951.75 445.88,-1929.25 358.12,-1929.25"/>
+<text text-anchor="start" x="362.25" y="-1935.45" font-family="Times,serif" font-size="14.00">notification_id</text>
+<polygon fill="none" stroke="black" points="335.62,-1906.75 335.62,-1929.25 358.12,-1929.25 358.12,-1906.75 335.62,-1906.75"/>
+<text text-anchor="start" x="345" y="-1912.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="358.12,-1906.75 358.12,-1929.25 445.88,-1929.25 445.88,-1906.75 358.12,-1906.75"/>
+<text text-anchor="start" x="374.25" y="-1912.95" font-family="Times,serif" font-size="14.00">created_at</text>
+<polygon fill="none" stroke="black" points="335.62,-1884.25 335.62,-1906.75 358.12,-1906.75 358.12,-1884.25 335.62,-1884.25"/>
+<text text-anchor="start" x="345" y="-1890.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="358.12,-1884.25 358.12,-1906.75 445.88,-1906.75 445.88,-1884.25 358.12,-1884.25"/>
+<text text-anchor="start" x="372.38" y="-1890.45" font-family="Times,serif" font-size="14.00">updated_at</text>
 </g>
-<!-- readed_notifications&#45;&gt;notifications -->
-<g id="edge10" class="edge">
-<title>readed_notifications:e&#45;&gt;notifications:w</title>
-<path fill="none" stroke="black" d="M453.62,-1940.5C497.28,-1940.5 510.88,-1940.61 549.6,-1940.62"/>
+<!-- read_notifications&#45;&gt;notifications -->
+<g id="edge1" class="edge">
+<title>read_notifications:e&#45;&gt;notifications:w</title>
+<path fill="none" stroke="black" d="M446.88,-1940.5C493.38,-1940.5 507.8,-1940.61 549.17,-1940.62"/>
 <polygon fill="black" stroke="black" points="549.11,-1944.12 559.11,-1940.62 549.11,-1937.12 549.11,-1944.12"/>
 </g>
-<!-- readed_notifications&#45;&gt;users -->
-<g id="edge11" class="edge">
-<title>readed_notifications:e&#45;&gt;users:w</title>
-<path fill="none" stroke="black" d="M453.62,-1963C497.53,-1963 480.93,-1914.42 491.75,-1871.88 502.48,-1829.69 489.9,-1504.79 525.28,-1456.79"/>
-<polygon fill="black" stroke="black" points="526.84,-1459.94 533.47,-1451.68 523.13,-1454.01 526.84,-1459.94"/>
+<!-- read_notifications&#45;&gt;users -->
+<g id="edge2" class="edge">
+<title>read_notifications:e&#45;&gt;users:w</title>
+<path fill="none" stroke="black" d="M446.88,-1963C492.02,-1963 479.29,-1915.27 491.75,-1871.88 503.74,-1830.12 490.14,-1506.21 525.08,-1457.1"/>
+<polygon fill="black" stroke="black" points="526.97,-1460.05 533.48,-1451.69 523.18,-1454.17 526.97,-1460.05"/>
 </g>
 <!-- refresh_tokens -->
 <g id="node11" class="node">
@@ -430,7 +430,7 @@
 <text text-anchor="start" x="375.56" y="-1727.45" font-family="Times,serif" font-size="14.00">created_at</text>
 </g>
 <!-- refresh_tokens&#45;&gt;users -->
-<g id="edge3" class="edge">
+<g id="edge5" class="edge">
 <title>refresh_tokens:e&#45;&gt;users:w</title>
 <path fill="none" stroke="black" d="M437.5,-1800C485.02,-1800 475.5,-1752.53 491.75,-1707.88 510.16,-1657.29 481.46,-1478.63 523.86,-1453.76"/>
 <polygon fill="black" stroke="black" points="524.52,-1457.2 533.29,-1451.26 522.72,-1450.44 524.52,-1457.2"/>
@@ -550,7 +550,7 @@
 <text text-anchor="start" x="584.88" y="-704.7" font-family="Times,serif" font-size="14.00">updated_at</text>
 </g>
 <!-- source_id_read_access_policies&#45;&gt;user_groups -->
-<g id="edge1" class="edge">
+<g id="edge3" class="edge">
 <title>source_id_read_access_policies:e&#45;&gt;user_groups:w</title>
 <path fill="none" stroke="black" d="M484.75,-684.5C534.21,-684.5 511.37,-764.28 549.53,-776.75"/>
 <polygon fill="black" stroke="black" points="548.73,-780.17 559.13,-778.16 549.74,-773.24 548.73,-780.17"/>
@@ -628,13 +628,13 @@
 <text text-anchor="start" x="350.25" y="-1541.2" font-family="Times,serif" font-size="14.00">relevant_questions</text>
 </g>
 <!-- thread_messages&#45;&gt;threads -->
-<g id="edge2" class="edge">
+<g id="edge4" class="edge">
 <title>thread_messages:e&#45;&gt;threads:w</title>
 <path fill="none" stroke="black" d="M208.12,-1660C256.52,-1660 271.39,-1659.89 314.68,-1659.88"/>
 <polygon fill="black" stroke="black" points="314.49,-1663.38 324.49,-1659.88 314.49,-1656.38 314.49,-1663.38"/>
 </g>
 <!-- threads&#45;&gt;users -->
-<g id="edge9" class="edge">
+<g id="edge11" class="edge">
 <title>threads:e&#45;&gt;users:w</title>
 <path fill="none" stroke="black" d="M455.5,-1613.75C531.76,-1613.75 462.42,-1467.6 523.32,-1452.19"/>
 <polygon fill="black" stroke="black" points="523.71,-1455.66 533.25,-1451.05 522.91,-1448.71 523.71,-1455.66"/>
@@ -682,7 +682,7 @@
 <text text-anchor="start" x="371.81" y="-1287.45" font-family="Times,serif" font-size="14.00">updated_at</text>
 </g>
 <!-- user_completions&#45;&gt;users -->
-<g id="edge5" class="edge">
+<g id="edge7" class="edge">
 <title>user_completions:e&#45;&gt;users:w</title>
 <path fill="none" stroke="black" d="M445.38,-1450C481.06,-1450 492.7,-1450.71 523.51,-1450.85"/>
 <polygon fill="black" stroke="black" points="523.23,-1454.35 533.24,-1450.87 523.24,-1447.35 523.23,-1454.35"/>
@@ -714,7 +714,7 @@
 <text text-anchor="start" x="379.5" y="-1124.45" font-family="Times,serif" font-size="14.00">payload</text>
 </g>
 <!-- user_events&#45;&gt;users -->
-<g id="edge4" class="edge">
+<g id="edge6" class="edge">
 <title>user_events:e&#45;&gt;users:w</title>
 <path fill="none" stroke="black" d="M432.62,-1197C473.65,-1197 473.43,-1231.17 491.75,-1267.88 527.25,-1338.98 458.53,-1440.38 523.63,-1450.12"/>
 <polygon fill="black" stroke="black" points="523.03,-1453.58 533.24,-1450.77 523.5,-1446.6 523.03,-1453.58"/>
@@ -750,13 +750,13 @@
 <text text-anchor="start" x="381.94" y="-798.2" font-family="Times,serif" font-size="14.00">updated_at</text>
 </g>
 <!-- user_group_memberships&#45;&gt;user_groups -->
-<g id="edge6" class="edge">
+<g id="edge8" class="edge">
 <title>user_group_memberships:e&#45;&gt;user_groups:w</title>
 <path fill="none" stroke="black" d="M470.5,-870.75C523.71,-870.75 506.39,-791.24 549.41,-779.75"/>
 <polygon fill="black" stroke="black" points="549.62,-783.25 559.12,-778.56 548.77,-776.31 549.62,-783.25"/>
 </g>
 <!-- user_group_memberships&#45;&gt;users -->
-<g id="edge7" class="edge">
+<g id="edge9" class="edge">
 <title>user_group_memberships:e&#45;&gt;users:w</title>
 <path fill="none" stroke="black" d="M470.5,-893.25C529.21,-893.25 479.05,-1387.44 525,-1445.36"/>
 <polygon fill="black" stroke="black" points="523.01,-1448.25 533.43,-1450.13 526.46,-1442.16 523.01,-1448.25"/>
