@@ -152,7 +152,7 @@ function ChatPanelRenderer(
                 <Button
                   variant="outline"
                   onClick={() => stop()}
-                  className="bg-background gap-2"
+                  className="gap-2 bg-background"
                 >
                   <IconStop />
                   {!isExtraSmallScreen && 'Stop generating'}
@@ -170,7 +170,7 @@ function ChatPanelRenderer(
                     <Button
                       variant="outline"
                       onClick={() => reload()}
-                      className="bg-background gap-2"
+                      className="gap-2 bg-background"
                     >
                       <IconRefresh />
                       {!isExtraSmallScreen && 'Regenerate'}
@@ -205,7 +205,7 @@ function ChatPanelRenderer(
                 <Button
                   variant="outline"
                   onClick={onClearMessages}
-                  className="bg-background gap-2"
+                  className="gap-2 bg-background"
                 >
                   <IconTrash />
                   {!isExtraSmallScreen && 'Clear'}
