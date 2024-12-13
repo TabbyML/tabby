@@ -375,7 +375,6 @@ export function AssistantMessageSection({
               fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-              onNavigateToContext={onNavigateToContext}
             />
             {/* if isEditing, do not display error message block */}
             {message.error && <ErrorMessageBlock error={message.error} />}

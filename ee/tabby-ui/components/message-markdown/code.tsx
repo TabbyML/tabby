@@ -25,16 +25,16 @@ export function CodeElement({
 }: CodeElementProps) {
   const {
     lookupSymbol,
+    openInEditor,
     canWrapLongLines,
     onApplyInEditor,
     onCopyContent,
     supportsOnApplyInEditorV2,
-    onNavigateToContext,
     symbolPositionMap
   } = useContext(MessageMarkdownContext)
 
   const keyword = children[0]?.toString()
-  const symbolLocation = keyword ? symbolPositionMap.get(keyword) : undefined
+  const symbolInfo = keyword ? symbolPositionMap.get(keyword) : undefined
 
   useEffect(() => {
     if (!inline || !lookupSymbol || !keyword) return
@@ -49,26 +49,12 @@ export function CodeElement({
   }
 
   if (inline) {
-    const isSymbolNavigable = Boolean(symbolLocation)
+    const isSymbolNavigable = Boolean(symbolInfo?.target)
 
     const handleClick = () => {
-      if (!isSymbolNavigable || !symbolLocation || !onNavigateToContext) return
-
-      onNavigateToContext(
-        {
-          filepath: symbolLocation.targetFile,
-          range: {
-            start: symbolLocation.targetLine,
-            end: symbolLocation.targetLine
-          },
-          git_url: '',
-          content: '',
-          kind: 'file'
-        },
-        {
-          openInEditor: true
-        }
-      )
+      if (isSymbolNavigable && openInEditor && symbolInfo?.target) {
+        openInEditor(symbolInfo.target)
+      }
     }
 
     return (

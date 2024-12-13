@@ -4,15 +4,26 @@ import {
   env,
   TextEditor,
   window,
+  Range,
   Selection,
   TextDocument,
   Webview,
   ColorThemeKind,
   ProgressLocation,
   commands,
+  Location,
   LocationLink,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams, SymbolInfo } from "tabby-chat-panel";
+import type {
+  ServerApi,
+  ChatMessage,
+  Context,
+  NavigateOpts,
+  OnLoadedParams,
+  LookupSymbolHint,
+  SymbolInfo,
+  FileLocation,
+} from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
@@ -24,6 +35,13 @@ import { createClient } from "./chatPanel";
 import { ChatFeature } from "../lsp/ChatFeature";
 import { isBrowser } from "../env";
 import { getFileContextFromSelection, showFileContext, openTextDocument } from "./fileContext";
+import {
+  localUriToChatPanelFilepath,
+  chatPanelFilepathToLocalUri,
+  vscodePositionToChatPanelPosition,
+  vscodeRangeToChatPanelPositionRange,
+  chatPanelLocationToVSCodeRange,
+} from "./utils";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -562,51 +580,129 @@ export class WebviewHelper {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
-      onLookupSymbol: async (hintFilepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
-        const findSymbolInfo = async (filepaths: string[], keyword: string): Promise<SymbolInfo | undefined> => {
-          if (!keyword || !filepaths.length) {
-            this.logger.info("No keyword or filepaths provided");
-            return undefined;
+      lookupSymbol: async (symbol: string, hints?: LookupSymbolHint[] | undefined): Promise<SymbolInfo | undefined> => {
+        if (!symbol.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+          // Do not process invalid symbols
+          return undefined;
+        }
+        /// FIXME: When no hints provided, try to use `vscode.executeWorkspaceSymbolProvider` to find the symbol.
+
+        // Find the symbol in the hints
+        for (const hint of hints ?? []) {
+          if (!hint.filepath) {
+            this.logger.debug("No filepath in the hint:", hint);
+            continue;
           }
-          try {
-            for (const filepath of filepaths) {
-              const document = await openTextDocument({ filePath: filepath }, this.gitProvider);
-              if (!document) {
-                this.logger.info(`File not found: ${filepath}`);
-                continue;
-              }
-              const content = document.getText();
-              let pos = 0;
-              while ((pos = content.indexOf(keyword, pos)) !== -1) {
-                const position = document.positionAt(pos);
-                const locations = await commands.executeCommand<LocationLink[]>(
-                  "vscode.executeDefinitionProvider",
-                  document.uri,
-                  position,
-                );
-                if (locations && locations.length > 0) {
-                  const location = locations[0];
-                  if (location) {
+          const uri = chatPanelFilepathToLocalUri(hint.filepath, this.gitProvider);
+          if (!uri) {
+            continue;
+          }
+          const document = await openTextDocument({ filePath: uri.toString(true) }, this.gitProvider);
+          if (!document) {
+            continue;
+          }
+
+          const findSymbolInContent = async (
+            content: string,
+            offsetInDocument: number,
+          ): Promise<SymbolInfo | undefined> => {
+            // Add word boundary to perform exact match
+            const matchRegExp = new RegExp(`\\b${symbol}\\b`, "g");
+            let match;
+            while ((match = matchRegExp.exec(content)) !== null) {
+              const offset = offsetInDocument + match.index;
+              const position = document.positionAt(offset);
+              const locations = await commands.executeCommand<Location[] | LocationLink[]>(
+                "vscode.executeDefinitionProvider",
+                document.uri,
+                position,
+              );
+              if (locations && locations.length > 0) {
+                const location = locations[0];
+                if (location) {
+                  if ("targetUri" in location) {
+                    const targetLocation = location.targetSelectionRange ?? location.targetRange;
                     return {
-                      sourceFile: filepath,
-                      sourceLine: position.line + 1,
-                      sourceCol: position.character,
-                      targetFile: location.targetUri.toString(true),
-                      targetLine: location.targetRange.start.line + 1,
-                      targetCol: location.targetRange.start.character,
+                      source: {
+                        filepath: localUriToChatPanelFilepath(document.uri, this.gitProvider),
+                        location: vscodePositionToChatPanelPosition(position),
+                      },
+                      target: {
+                        filepath: localUriToChatPanelFilepath(location.targetUri, this.gitProvider),
+                        location: vscodeRangeToChatPanelPositionRange(targetLocation),
+                      },
+                    };
+                  } else if ("uri" in location) {
+                    return {
+                      source: {
+                        filepath: localUriToChatPanelFilepath(document.uri, this.gitProvider),
+                        location: vscodePositionToChatPanelPosition(position),
+                      },
+                      target: {
+                        filepath: localUriToChatPanelFilepath(location.uri, this.gitProvider),
+                        location: vscodeRangeToChatPanelPositionRange(location.range),
+                      },
                     };
                   }
                 }
-                pos += keyword.length;
               }
             }
-          } catch (error) {
-            this.logger.error("Error in findSymbolInfo:", error);
-          }
-          return undefined;
-        };
+            return undefined;
+          };
 
-        return await findSymbolInfo(hintFilepaths, keyword);
+          let symbolInfo: SymbolInfo | undefined;
+          if (hint.location) {
+            // Find in the hint location
+            const location = chatPanelLocationToVSCodeRange(hint.location);
+            if (location) {
+              let range: Range;
+              if (!location.isEmpty) {
+                range = location;
+              } else {
+                // a empty range, create a new range with this line to the end of the file
+                range = new Range(location.start.line, 0, document.lineCount, 0);
+              }
+              const content = document.getText(range);
+              const offset = document.offsetAt(range.start);
+              symbolInfo = await findSymbolInContent(content, offset);
+            }
+          }
+          if (!symbolInfo) {
+            // Fallback to find in full content
+            const content = document.getText();
+            symbolInfo = await findSymbolInContent(content, 0);
+          }
+          if (symbolInfo) {
+            // Symbol found
+            this.logger.debug(
+              `Symbol found: ${symbol} with hints: ${JSON.stringify(hints)}: ${JSON.stringify(symbolInfo)}`,
+            );
+            return symbolInfo;
+          }
+        }
+        this.logger.debug(`Symbol not found: ${symbol} with hints: ${JSON.stringify(hints)}`);
+        return undefined;
+      },
+      openInEditor: async (fileLocation: FileLocation): Promise<boolean> => {
+        const uri = chatPanelFilepathToLocalUri(fileLocation.filepath, this.gitProvider);
+        if (!uri) {
+          return false;
+        }
+
+        const targetRange = chatPanelLocationToVSCodeRange(fileLocation.location) ?? new Range(0, 0, 0, 0);
+        try {
+          await commands.executeCommand(
+            "editor.action.goToLocations",
+            uri,
+            targetRange.start,
+            [new Location(uri, targetRange)],
+            "goto",
+          );
+          return true;
+        } catch (error) {
+          this.logger.error("Failed to go to location:", fileLocation, error);
+          return false;
+        }
       },
     });
   }
