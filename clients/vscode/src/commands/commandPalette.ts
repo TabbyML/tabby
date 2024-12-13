@@ -35,16 +35,17 @@ export class CommandPalette {
     // Features section
     const validStatuses = ["ready", "readyForAutoTrigger", "readyForManualTrigger"];
     if (validStatuses.includes(this.client.status.current?.status || "")) {
+      const iconPath = this.config.inlineCompletionTriggerMode === "automatic" ? new ThemeIcon("check") : undefined;
+      const labelPrefix = iconPath ? "" : MENU_ITEM_INDENT_SPACING;
+
       items.push(
         { label: "enable/disable features", kind: QuickPickItemKind.Separator },
         {
-          label:
-            (this.config.inlineCompletionTriggerMode === "automatic" ? "" : MENU_ITEM_INDENT_SPACING) +
-            "Code Completion",
+          label: labelPrefix + "Code Completion",
           detail: MENU_ITEM_INDENT_SPACING + "Toggle between automatic and manual completion mode",
           picked: this.config.inlineCompletionTriggerMode === "automatic",
           command: "tabby.toggleInlineCompletionTriggerMode",
-          iconPath: this.config.inlineCompletionTriggerMode === "automatic" ? new ThemeIcon("check") : undefined,
+          iconPath: iconPath,
           alwaysShow: true,
         },
       );
@@ -53,8 +54,9 @@ export class CommandPalette {
     // Chat section
     if (this.client.chat.isAvailable) {
       items.push({
-        label: "$(comment) Chat",
+        label: "Chat",
         command: "tabby.chatView.focus",
+        iconPath: new ThemeIcon("comment"),
       });
     }
 
@@ -87,9 +89,10 @@ export class CommandPalette {
     items.push(
       { label: "help & support", kind: QuickPickItemKind.Separator },
       {
-        label: "$(question) Help",
+        label: "Help",
         description: "Open online documentation",
         command: "tabby.openOnlineHelp",
+        iconPath: new ThemeIcon("question"),
       },
     );
 
