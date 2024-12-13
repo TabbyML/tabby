@@ -109,10 +109,10 @@ SELECT
     notifications.id,
     notifications.created_at,
     notifications.updated_at,
-    recipient,
-    content,
+    notifications.recipient,
+    notifications.content,
     CASE
-        WHEN read_notifications.user_id IS NOT NULL THEN 1
+        WHEN read_notifications.user_id = '{user_id}' THEN 1
         ELSE 0
     END AS read
 FROM
@@ -121,6 +121,7 @@ LEFT JOIN
     read_notifications
 ON
     notifications.id = read_notifications.notification_id
+    AND read_notifications.user_id = '{user_id}'
 WHERE
     ({recipient_clause})
     AND notifications.created_at > '{date_7days_ago}'

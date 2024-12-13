@@ -47,7 +47,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_notification_admin_list() {
+    async fn test_admin_list() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
@@ -70,7 +70,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_notification_admin_list_read() {
+    async fn test_admin_list_read() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_notification_admin_list_all() {
+    async fn test_admin_list_all() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
@@ -121,7 +121,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_notification_admin_mark_all_read_admin() {
+    async fn test_admin_mark_all_read_admin() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_notification_admin_mark_read_twice() {
+    async fn test_admin_mark_read_twice() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
@@ -169,7 +169,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_notification_admin_mark_all_read_twice() {
+    async fn test_admin_mark_all_read_twice() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
@@ -196,7 +196,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_notification_admin_mark_all_read_admin_and_all_user() {
+    async fn test_admin_mark_all_read_admin_and_all_user() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_notification_user_mark_all_read_admin_and_all_user() {
+    async fn test_user_mark_all_read_admin_and_all_user() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
@@ -234,6 +234,153 @@ mod tests {
 
         service.mark_read(&user_id, None).await.unwrap();
         let notifications = service.list(&user_id).await.unwrap();
+        assert_eq!(notifications.len(), 1);
+        assert!(notifications[0].read);
+    }
+
+    #[tokio::test]
+    async fn test_multi_user_list() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let user1 = db
+            .create_user("test1".into(), None, false, None)
+            .await
+            .unwrap()
+            .as_id();
+        let user2 = db
+            .create_user("test2".into(), None, false, None)
+            .await
+            .unwrap()
+            .as_id();
+        db.create_notification("admin", "admin_list").await.unwrap();
+        db.create_notification("all_user", "all_user")
+            .await
+            .unwrap();
+
+        let notifications = service.list(&user1).await.unwrap();
+        assert_eq!(notifications.len(), 1);
+        assert!(!notifications[0].read);
+
+        let notifications = service.list(&user2).await.unwrap();
+        assert_eq!(notifications.len(), 1);
+        assert!(!notifications[0].read);
+    }
+
+    #[tokio::test]
+    async fn test_multi_user_mark_read() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let user1 = db
+            .create_user("test1".into(), None, false, None)
+            .await
+            .unwrap()
+            .as_id();
+        let user2 = db
+            .create_user("test2".into(), None, false, None)
+            .await
+            .unwrap()
+            .as_id();
+        db.create_notification("admin", "admin_list").await.unwrap();
+        db.create_notification("all_user", "all_user")
+            .await
+            .unwrap();
+
+        // user1 mark read
+        service.mark_read(&user1, None).await.unwrap();
+        let notifications = service.list(&user1).await.unwrap();
+        assert_eq!(notifications.len(), 1);
+        assert!(notifications[0].read);
+
+        // user2 should still have unread notification
+        let notifications = service.list(&user2).await.unwrap();
+        assert_eq!(notifications.len(), 1);
+        assert!(!notifications[0].read);
+
+        // user2 mark read
+        service.mark_read(&user2, None).await.unwrap();
+        let notifications = service.list(&user2).await.unwrap();
+        assert_eq!(notifications.len(), 1);
+        assert!(notifications[0].read);
+    }
+
+    #[tokio::test]
+    async fn test_multi_admin_mark_read() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let user1 = db
+            .create_user("test1".into(), None, true, None)
+            .await
+            .unwrap()
+            .as_id();
+        let user2 = db
+            .create_user("test2".into(), None, true, None)
+            .await
+            .unwrap()
+            .as_id();
+        db.create_notification("admin", "admin_list").await.unwrap();
+        db.create_notification("all_user", "all_user")
+            .await
+            .unwrap();
+
+        // user1 mark read
+        service.mark_read(&user1, None).await.unwrap();
+        let notifications = service.list(&user1).await.unwrap();
+        assert_eq!(notifications.len(), 2);
+        assert!(notifications[0].read);
+        assert!(notifications[1].read);
+
+        // user2 should still have unread notification
+        let notifications = service.list(&user2).await.unwrap();
+        assert_eq!(notifications.len(), 2);
+        assert!(!notifications[0].read);
+        assert!(!notifications[1].read);
+
+        // user2 mark read
+        service.mark_read(&user2, None).await.unwrap();
+        let notifications = service.list(&user2).await.unwrap();
+        assert_eq!(notifications.len(), 2);
+        assert!(notifications[0].read);
+        assert!(notifications[1].read);
+    }
+
+    #[tokio::test]
+    async fn test_multi_admin_user_mark_read() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let admin = db
+            .create_user("test1".into(), None, true, None)
+            .await
+            .unwrap()
+            .as_id();
+        let user = db
+            .create_user("test2".into(), None, false, None)
+            .await
+            .unwrap()
+            .as_id();
+        db.create_notification("admin", "admin_list").await.unwrap();
+        db.create_notification("all_user", "all_user")
+            .await
+            .unwrap();
+
+        // admin mark read
+        service.mark_read(&admin, None).await.unwrap();
+        let notifications = service.list(&admin).await.unwrap();
+        assert_eq!(notifications.len(), 2);
+        assert!(notifications[0].read);
+        assert!(notifications[1].read);
+
+        // user should still have unread notification
+        let notifications = service.list(&user).await.unwrap();
+        assert_eq!(notifications.len(), 1);
+        assert!(!notifications[0].read);
+
+        // user mark read
+        service.mark_read(&user, None).await.unwrap();
+        let notifications = service.list(&user).await.unwrap();
         assert_eq!(notifications.len(), 1);
         assert!(notifications[0].read);
     }
