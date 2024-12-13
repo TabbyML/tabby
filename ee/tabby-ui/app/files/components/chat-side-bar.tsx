@@ -80,8 +80,8 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     onLoaded() {},
     onCopy(_content) {},
     onKeyboardEvent() {},
-    async onLookupSymbol(_filepath, _keywords) {
-      return undefined
+    async openInEditor() {
+      return false
     }
   })
 

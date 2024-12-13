@@ -3,6 +3,8 @@ import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type {
   Context,
   FileContext,
+  FileLocation,
+  LookupSymbolHint,
   NavigateOpts,
   SymbolInfo
 } from 'tabby-chat-panel'
@@ -52,9 +54,10 @@ type ChatContextValue = {
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onLookupSymbol?: (
-    filepaths: string[],
-    keyword: string
+    symbol: string,
+    hints?: LookupSymbolHint[] | undefined
   ) => Promise<SymbolInfo | undefined>
+  openInEditor?: (target: FileLocation) => void
   relevantContext: Context[]
   activeSelection: Context | null
   removeRelevantContext: (index: number) => void
@@ -94,9 +97,10 @@ interface ChatProps extends React.ComponentProps<'div'> {
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onLookupSymbol?: (
-    filepaths: string[],
-    keyword: string
+    symbol: string,
+    hints?: LookupSymbolHint[] | undefined
   ) => Promise<SymbolInfo | undefined>
+  openInEditor?: (target: FileLocation) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
 }
@@ -119,6 +123,7 @@ function ChatRenderer(
     onSubmitMessage,
     onApplyInEditor,
     onLookupSymbol,
+    openInEditor,
     chatInputRef,
     supportsOnApplyInEditorV2
   }: ChatProps,
@@ -546,6 +551,7 @@ function ChatRenderer(
         onCopyContent,
         onApplyInEditor,
         onLookupSymbol,
+        openInEditor,
         relevantContext,
         removeRelevantContext,
         chatInputRef,
