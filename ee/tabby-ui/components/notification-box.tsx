@@ -120,7 +120,7 @@ function NotificationList({
 
   if (!len) {
     return (
-      <div className="my-4 text-center text-muted-foreground text-sm">
+      <div className="my-4 text-center text-sm text-muted-foreground">
         {type === 'unread' ? 'No unread notifications' : 'No notifications'}
       </div>
     )
