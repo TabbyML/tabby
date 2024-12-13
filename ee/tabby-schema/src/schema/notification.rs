@@ -21,7 +21,9 @@ pub struct Notification {
 
 #[async_trait]
 pub trait NotificationService: Send + Sync {
+    async fn create(&self, recipient: NotificationRecipient, content: &str) -> Result<ID>;
+
     async fn list(&self, user_id: &ID) -> Result<Vec<Notification>>;
 
-    async fn mark_read(&self, user_id: &ID, id: Option<ID>) -> Result<()>;
+    async fn mark_read(&self, user_id: &ID, id: Option<&ID>) -> Result<()>;
 }

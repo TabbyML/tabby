@@ -4,8 +4,8 @@ use sqlx::{prelude::*, query, query_as};
 
 use crate::DbConn;
 
-pub const NOTIFICATION_RECIPIENT_ALL_USER: &str = "all_user";
-pub const NOTIFICATION_RECIPIENT_ADMIN: &str = "admin";
+const NOTIFICATION_RECIPIENT_ALL_USER: &str = "all_user";
+const NOTIFICATION_RECIPIENT_ADMIN: &str = "admin";
 
 #[derive(FromRow)]
 pub struct NotificationDAO {

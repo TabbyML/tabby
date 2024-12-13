@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    notification::{Notification, NotificationService},
-    AsRowid, Result,
+    notification::{Notification, NotificationRecipient, NotificationService},
+    AsID, AsRowid, DbEnum, Result,
 };
 
 struct NotificationServiceImpl {
@@ -16,22 +16,30 @@ pub fn create(db: DbConn) -> impl NotificationService {
 
 #[async_trait]
 impl NotificationService for NotificationServiceImpl {
+    async fn create(&self, recipient: NotificationRecipient, content: &str) -> Result<ID> {
+        let id = self
+            .db
+            .create_notification(recipient.as_enum_str(), content)
+            .await?;
+        Ok(id.as_id())
+    }
+
     async fn list(&self, user_id: &ID) -> Result<Vec<Notification>> {
         let notifications = self
             .db
-            .list_notifications_within_7days(user_id.as_rowid().unwrap())
+            .list_notifications_within_7days(user_id.as_rowid()?)
             .await?;
         Ok(notifications.into_iter().map(|n| n.into()).collect())
     }
 
-    async fn mark_read(&self, user_id: &ID, id: Option<ID>) -> Result<()> {
+    async fn mark_read(&self, user_id: &ID, id: Option<&ID>) -> Result<()> {
         if let Some(id) = id {
             self.db
-                .mark_notification_read(id.as_rowid().unwrap(), user_id.as_rowid().unwrap())
+                .mark_notification_read(id.as_rowid()?, user_id.as_rowid()?)
                 .await?;
         } else {
             self.db
-                .mark_all_notifications_read_by_user(user_id.as_rowid().unwrap())
+                .mark_all_notifications_read_by_user(user_id.as_rowid()?)
                 .await?;
         }
         Ok(())
@@ -56,11 +64,10 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        let notification_id = db
-            .create_notification("admin", "admin_list")
+        let notification_id = service
+            .create(NotificationRecipient::Admin, "admin_list")
             .await
-            .unwrap()
-            .as_id();
+            .unwrap();
 
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 1);
@@ -77,18 +84,20 @@ mod tests {
         let user_id = db
             .create_user("test".into(), None, true, None)
             .await
-            .unwrap();
-        let notification_id = db
-            .create_notification("admin", "admin_list_read")
+            .unwrap()
+            .as_id();
+        let notification_id = service
+            .create(NotificationRecipient::Admin, "admin_list_read")
             .await
             .unwrap();
-        db.mark_notification_read(notification_id, user_id)
+        service
+            .mark_read(&user_id, Some(&notification_id))
             .await
             .unwrap();
 
-        let notifications = service.list(&user_id.as_id()).await.unwrap();
+        let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 1);
-        assert_eq!(notifications[0].id, notification_id.as_id());
+        assert_eq!(notifications[0].id, notification_id);
         assert_eq!(notifications[0].content, "admin_list_read");
         assert!(notifications[0].read);
     }
@@ -103,14 +112,14 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list")
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
             .await
-            .unwrap()
-            .as_id();
-        db.create_notification("all_user", "admin_list_all_user")
+            .unwrap();
+        service
+            .create(NotificationRecipient::AllUser, "admin_list_all_user")
             .await
-            .unwrap()
-            .as_id();
+            .unwrap();
 
         let notifications = service.list(&user_id).await.unwrap();
         assert_eq!(notifications.len(), 2);
@@ -130,7 +139,10 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list").await.unwrap();
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
+            .await
+            .unwrap();
 
         service.mark_read(&user_id, None).await.unwrap();
         let notifications = service.list(&user_id).await.unwrap();
@@ -148,14 +160,13 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        let notification_id = db
-            .create_notification("admin", "admin_list")
+        let notification_id = service
+            .create(NotificationRecipient::Admin, "admin_list")
             .await
-            .unwrap()
-            .as_id();
+            .unwrap();
 
         service
-            .mark_read(&user_id, Some(notification_id.clone()))
+            .mark_read(&user_id, Some(&notification_id))
             .await
             .unwrap();
         let notifications = service.list(&user_id).await.unwrap();
@@ -163,7 +174,7 @@ mod tests {
         assert!(notifications[0].read);
 
         assert!(service
-            .mark_read(&user_id, Some(notification_id))
+            .mark_read(&user_id, Some(&notification_id))
             .await
             .is_err())
     }
@@ -178,10 +189,10 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list")
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
             .await
-            .unwrap()
-            .as_id();
+            .unwrap();
 
         service.mark_read(&user_id, None).await.unwrap();
         let notifications = service.list(&user_id).await.unwrap();
@@ -205,8 +216,12 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list").await.unwrap();
-        db.create_notification("all_user", "all_user")
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
+            .await
+            .unwrap();
+        service
+            .create(NotificationRecipient::AllUser, "all_user")
             .await
             .unwrap();
 
@@ -227,8 +242,12 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list").await.unwrap();
-        db.create_notification("all_user", "all_user")
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
+            .await
+            .unwrap();
+        service
+            .create(NotificationRecipient::AllUser, "all_user")
             .await
             .unwrap();
 
@@ -253,8 +272,12 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list").await.unwrap();
-        db.create_notification("all_user", "all_user")
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
+            .await
+            .unwrap();
+        service
+            .create(NotificationRecipient::AllUser, "all_user")
             .await
             .unwrap();
 
@@ -282,8 +305,12 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list").await.unwrap();
-        db.create_notification("all_user", "all_user")
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
+            .await
+            .unwrap();
+        service
+            .create(NotificationRecipient::AllUser, "all_user")
             .await
             .unwrap();
 
@@ -320,8 +347,12 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list").await.unwrap();
-        db.create_notification("all_user", "all_user")
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
+            .await
+            .unwrap();
+        service
+            .create(NotificationRecipient::AllUser, "all_user")
             .await
             .unwrap();
 
@@ -361,8 +392,12 @@ mod tests {
             .await
             .unwrap()
             .as_id();
-        db.create_notification("admin", "admin_list").await.unwrap();
-        db.create_notification("all_user", "all_user")
+        service
+            .create(NotificationRecipient::Admin, "admin_list")
+            .await
+            .unwrap();
+        service
+            .create(NotificationRecipient::AllUser, "all_user")
             .await
             .unwrap();
 

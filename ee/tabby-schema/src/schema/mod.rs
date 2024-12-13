@@ -1001,7 +1001,7 @@ impl Mutation {
 
         ctx.locator
             .notification()
-            .mark_read(&user.id, notification_id)
+            .mark_read(&user.id, notification_id.as_ref())
             .await?;
         Ok(true)
     }
