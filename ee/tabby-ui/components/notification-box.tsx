@@ -1,10 +1,15 @@
 'use client'
 
-import { HTMLAttributes } from 'react'
+import { HTMLAttributes, useMemo } from 'react'
 import Link from 'next/link'
 import { TabsContent } from '@radix-ui/react-tabs'
 import moment from 'moment'
+import { useQuery } from 'urql'
 
+import { graphql } from '@/lib/gql/generates'
+import { NotificationsQuery } from '@/lib/gql/generates/graphql'
+import { useMutation } from '@/lib/tabby/gql'
+import { ArrayElementType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 import { Button } from './ui/button'
@@ -88,8 +93,38 @@ const notifications_all = [
   }
 ]
 
+const notificationsQuery = graphql(/* GraphQL */ `
+  query Notifications {
+    notifications {
+      id
+      content
+      read
+      createdAt
+    }
+  }
+`)
+
+const markNotificationsReadMutation = graphql(/* GraphQL */ `
+  mutation markNotificationsRead($notificationId: ID) {
+    markNotificationsRead(notificationId: $notificationId)
+  }
+`)
+
 export function NotificationBox({ className, ...rest }: Props) {
-  const hasUnreadNotificatiosn = true
+  const [{ data }] = useQuery({
+    query: notificationsQuery
+  })
+
+  const notifications = data?.notifications
+  const unreadNotifications = useMemo(() => {
+    return notifications?.filter(o => !o.read) ?? []
+  }, [notifications])
+  const hasUnreadNotification = unreadNotifications.length > 0
+
+  const markNotificationsRead = useMutation(markNotificationsReadMutation)
+  const onClickMarkAllRead = () => {
+    markNotificationsRead()
+  }
 
   return (
     <div className={cn(className)} {...rest}>
@@ -97,7 +132,7 @@ export function NotificationBox({ className, ...rest }: Props) {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative">
             <IconBell />
-            {hasUnreadNotificatiosn && (
+            {hasUnreadNotification && (
               <div className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-red-400"></div>
             )}
           </Button>
@@ -110,7 +145,12 @@ export function NotificationBox({ className, ...rest }: Props) {
         >
           <div className="flex items-center justify-between px-4 py-2">
             <div className="text-sm font-medium">Nofitications</div>
-            <Button size="sm" className="h-6 py-1 text-xs">
+            <Button
+              size="sm"
+              className="h-6 py-1 text-xs"
+              onClick={onClickMarkAllRead}
+              disabled={!hasUnreadNotification}
+            >
               Mark all as read
             </Button>
           </div>
@@ -124,10 +164,10 @@ export function NotificationBox({ className, ...rest }: Props) {
               <TabsTrigger value="all">All</TabsTrigger>
             </TabsList>
             <TabsContent value="unread">
-              <NotificationList type="unread" />
+              <NotificationList notifications={unreadNotifications} />
             </TabsContent>
             <TabsContent value="all">
-              <NotificationList type="all" />
+              <NotificationList notifications={notifications} />
             </TabsContent>
           </Tabs>
         </DropdownMenuContent>
@@ -136,14 +176,18 @@ export function NotificationBox({ className, ...rest }: Props) {
   )
 }
 
-function NotificationList({ type }: { type: 'unread' | 'all' }) {
-  const list = type === 'unread' ? notifications_unread : notifications_all
-  const len = list.length
+function NotificationList({
+  notifications
+}: {
+  notifications: NotificationsQuery['notifications'] | undefined
+}) {
+  const len = notifications?.length ?? 0
+
   return (
     <div className="mt-4 space-y-2">
-      {list.map((item, index) => {
+      {notifications?.map((item, index) => {
         return (
-          <div key={`${type}_${index}`}>
+          <div key={item.id}>
             <NotificationItem data={item} />
             <Separator
               className={cn('my-3', {
@@ -158,15 +202,19 @@ function NotificationList({ type }: { type: 'unread' | 'all' }) {
 }
 
 interface NotificationItemProps extends HTMLAttributes<HTMLDivElement> {
-  data: {
-    read: boolean
-    title: string
-    date: string
-    content: string
-  }
+  data: ArrayElementType<NotificationsQuery['notifications']>
 }
 
 function NotificationItem({ data }: NotificationItemProps) {
+  const content = data.content
+
+  const markNotificationsRead = useMutation(markNotificationsReadMutation)
+  const onClickMarkRead = async () => {
+    markNotificationsRead({
+      notificationId: data.id
+    })
+  }
+
   return (
     <div className="group space-y-1.5">
       <div className="flex cursor-pointer items-center gap-1.5 overflow-hidden text-sm font-medium">
@@ -174,15 +222,15 @@ function NotificationItem({ data }: NotificationItemProps) {
           <span className="h-2 w-2 shrink-0 rounded-full bg-red-400"></span>
         )}
         <span className="flex-1 truncate group-hover:opacity-70">
-          {data.title}
+          todo: format title
         </span>
       </div>
       <div className="line-clamp-3 cursor-pointer text-sm text-muted-foreground group-hover:opacity-70">
-        {data.content}
+        {content}
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="text-muted-foreground">
-          {formatNotificationTime(data.date)}
+          {formatNotificationTime(data.createdAt)}
         </span>
         <div className="flex items-center gap-1.5">
           <Link
@@ -196,6 +244,9 @@ function NotificationItem({ data }: NotificationItemProps) {
             <Button
               variant="link"
               className="flex h-auto items-center gap-0.5 p-1 text-xs text-muted-foreground"
+              onClick={e => {
+                onClickMarkRead()
+              }}
             >
               <IconCheck className="h-3 w-3" />
               Mark as read
