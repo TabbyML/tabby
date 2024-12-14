@@ -1,5 +1,5 @@
 use async_openai::{
-    error::{ApiError, OpenAIError},
+    error::OpenAIError,
     types::{
         ChatCompletionResponseStream, CreateChatCompletionRequest, CreateChatCompletionResponse,
     },
@@ -9,7 +9,6 @@ use futures::stream::BoxStream;
 use leaky_bucket::RateLimiter;
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
 use tokio::time::Duration;
-use tracing::warn;
 
 fn new_rate_limiter(rpm: u64) -> RateLimiter {
     RateLimiter::builder()
