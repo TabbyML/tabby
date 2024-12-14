@@ -65,7 +65,7 @@ impl DbConn {
 
         let query = format!(
             r#"
-INSERT OR IGNORE INTO read_notifications (notification_id, user_id)
+INSERT INTO read_notifications (notification_id, user_id)
 SELECT
     notifications.id,
     ?
@@ -77,7 +77,7 @@ ON
     notifications.id = read_notifications.notification_id
     AND read_notifications.user_id = ?
 WHERE
-    {}
+    ({})
     AND read_notifications.notification_id IS NULL;
         "#,
             recipient_clause
