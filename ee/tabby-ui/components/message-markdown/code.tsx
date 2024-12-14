@@ -62,17 +62,17 @@ export function CodeElement({
         className={cn('group/symbol', className, {
           symbol: !!lookupSymbol,
           'bg-muted leading-5 py-0.5': !!lookupSymbol && !isSymbolNavigable,
-          'inline-flex items-center gap-1 cursor-pointer hover:bg-muted/50 border':
+          'space-x-1 cursor-pointer hover:bg-muted/50 border whitespace-nowrap align-middle py-0.5':
             isSymbolNavigable
         })}
         onClick={handleClick}
         {...props}
       >
         {isSymbolNavigable && (
-          <IconSquareChevronRight className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <IconSquareChevronRight className="relative -top-px inline-block h-3.5 w-3.5 text-primary" />
         )}
         <span
-          className={cn('self-baseline', {
+          className={cn('whitespace-normal', {
             'group-hover/symbol:text-primary': isSymbolNavigable
           })}
         >
