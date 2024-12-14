@@ -1,5 +1,6 @@
 import React, { RefObject, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
+import { useWindowSize } from '@uidotdev/usehooks'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compact } from 'lodash-es'
@@ -29,6 +30,7 @@ import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { PromptForm, PromptFormRef } from '@/components/chat/prompt-form'
 import { FooterText } from '@/components/footer'
 
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat'
 
 export interface ChatPanelProps
@@ -74,6 +76,9 @@ function ChatPanelRenderer(
     state => state.enableActiveSelection
   )
   const [persisting, setPerisiting] = useState(false)
+  const { width } = useWindowSize()
+  const isExtraSmallScreen = typeof width === 'number' && width < 376
+
   const slugWithThreadId = useMemo(() => {
     if (!threadId) return ''
     const content = qaPairs[0]?.user.message
@@ -135,47 +140,81 @@ function ChatPanelRenderer(
     <div className={className}>
       <ButtonScrollToBottom container={container} />
       <div className={`mx-auto md:px-4 ${chatMaxWidthClass}`}>
-        <div className="flex h-10 items-center justify-center gap-2">
+        <div
+          className={cn(
+            'flex h-10 items-center justify-center',
+            isExtraSmallScreen ? 'gap-3' : 'gap-2'
+          )}
+        >
           {isLoading ? (
-            <Button
-              variant="outline"
-              onClick={() => stop()}
-              className="bg-background"
-            >
-              <IconStop className="mr-2" />
-              Stop generating
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => stop()}
+                  className="gap-2 bg-background"
+                >
+                  <IconStop />
+                  {!isExtraSmallScreen && 'Stop generating'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent hidden={!isExtraSmallScreen}>
+                Stop generating
+              </TooltipContent>
+            </Tooltip>
           ) : (
             qaPairs?.length > 0 && (
               <>
-                <Button
-                  variant="outline"
-                  onClick={() => reload()}
-                  className="bg-background"
-                >
-                  <IconRefresh className="mr-2" />
-                  Regenerate
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2 bg-background"
-                  onClick={handleShareThread}
-                >
-                  {isCopied ? <IconCheck /> : <IconShare />}
-                  Share
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={() => reload()}
+                      className="gap-2 bg-background"
+                    >
+                      <IconRefresh />
+                      {!isExtraSmallScreen && 'Regenerate'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent hidden={!isExtraSmallScreen}>
+                    Regenerate
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="gap-2 bg-background"
+                      onClick={handleShareThread}
+                    >
+                      {isCopied ? <IconCheck /> : <IconShare />}
+                      {!isExtraSmallScreen && 'Share'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent hidden={!isExtraSmallScreen}>
+                    Share
+                  </TooltipContent>
+                </Tooltip>
               </>
             )
           )}
           {qaPairs?.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={onClearMessages}
-              className="bg-background"
-            >
-              <IconTrash className="mr-2" />
-              Clear
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={onClearMessages}
+                  className="gap-2 bg-background"
+                >
+                  <IconTrash />
+                  {!isExtraSmallScreen && 'Clear'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent hidden={!isExtraSmallScreen}>
+                Clear
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
