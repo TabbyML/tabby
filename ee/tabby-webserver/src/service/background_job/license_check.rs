@@ -25,7 +25,7 @@ impl LicenseCheckJob {
         notification_service: Arc<dyn NotificationService>,
     ) -> tabby_schema::Result<()> {
         let license = license_service.read().await?;
-        if license.r#type != LicenseType::Community {
+        if license.r#type == LicenseType::Community {
             return Ok(());
         }
         if let Some(expire_in_days) = license.expire_in_days() {
