@@ -34,14 +34,11 @@ impl DbConn {
     pub async fn mark_notification_read(&self, id: i64, user_id: i64) -> Result<()> {
         query!(
             "INSERT INTO read_notifications (notification_id, user_id)
-            SELECT ?, ?
-            WHERE NOT EXISTS (
-                SELECT 1 FROM read_notifications WHERE notification_id = ? AND user_id = ?
-            )",
+             VALUES (?, ?)
+             ON CONFLICT (notification_id, user_id)
+             DO NOTHING",
             id,
             user_id,
-            id,
-            user_id
         )
         .execute(&self.pool)
         .await?;
