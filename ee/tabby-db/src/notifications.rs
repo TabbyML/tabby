@@ -33,9 +33,12 @@ impl DbConn {
 
     pub async fn mark_notification_read(&self, id: i64, user_id: i64) -> Result<()> {
         query!(
-            "INSERT INTO read_notifications (notification_id, user_id) VALUES (?, ?)",
+            "INSERT INTO read_notifications (notification_id, user_id)
+             VALUES (?, ?)
+             ON CONFLICT (notification_id, user_id)
+             DO NOTHING",
             id,
-            user_id
+            user_id,
         )
         .execute(&self.pool)
         .await?;
@@ -71,7 +74,7 @@ ON
     notifications.id = read_notifications.notification_id
     AND read_notifications.user_id = ?
 WHERE
-    {}
+    ({})
     AND read_notifications.notification_id IS NULL;
         "#,
             recipient_clause
