@@ -10,6 +10,7 @@ use tabby_common::{
     config::{Config, ModelConfig},
     usage,
 };
+use tabby_download::ModelKind;
 use tabby_inference::ChatCompletionStream;
 use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
@@ -212,15 +213,15 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
 async fn load_model(config: &Config) {
     if let Some(ModelConfig::Local(ref model)) = config.model.completion {
-        download_model_if_needed(&model.model_id).await;
+        download_model_if_needed(&model.model_id, ModelKind::Completion).await;
     }
 
     if let Some(ModelConfig::Local(ref model)) = config.model.chat {
-        download_model_if_needed(&model.model_id).await;
+        download_model_if_needed(&model.model_id, ModelKind::Chat).await;
     }
 
     if let ModelConfig::Local(ref model) = config.model.embedding {
-        download_model_if_needed(&model.model_id).await;
+        download_model_if_needed(&model.model_id, ModelKind::Embedding).await;
     }
 }
 
