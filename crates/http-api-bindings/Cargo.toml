@@ -21,6 +21,7 @@ async-openai.workspace = true
 ratelimit.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+leaky-bucket = "1.1.2"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }
