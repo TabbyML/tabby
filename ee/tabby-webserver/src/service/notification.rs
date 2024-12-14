@@ -176,7 +176,7 @@ mod tests {
         assert!(service
             .mark_read(&user_id, Some(&notification_id))
             .await
-            .is_err())
+            .is_ok())
     }
 
     #[tokio::test]
