@@ -13,6 +13,8 @@ import { useQuery } from 'urql'
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import {
   CodeQueryInput,
+  ContextInfo,
+  ContextSourceKind,
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
@@ -24,7 +26,7 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { resolveGitUrlQuery } from '@/lib/tabby/query'
+import { contextInfoQuery, resolveGitUrlQuery } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
@@ -67,6 +69,10 @@ type ChatContextValue = {
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
   indexedRepository: ResolveGitUrlQuery['resolveGitUrl']
+  selectedRepoId: string | null
+  setSelectedRepoId: React.Dispatch<React.SetStateAction<string | null>>
+  repos: ContextInfo['sources']
+  fetchingRepos: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -143,7 +149,13 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
+  // gitUrl from workspace
   const [gitUrl, setGitUrl] = React.useState<string | undefined>()
+  // sourceId
+  const [selectedRepoId, setSelectedRepoId] = React.useState<string | null>(
+    null
+  )
+
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
@@ -152,8 +164,22 @@ function ChatRenderer(
   )
 
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
+  const [{ data: contextInfoData, fetching: fetchingSources }] = useQuery({
+    query: contextInfoQuery
+  })
+  const repos = React.useMemo(() => {
+    return (
+      contextInfoData?.contextInfo?.sources.filter(source => {
+        return [
+          ContextSourceKind.Git,
+          ContextSourceKind.Github,
+          ContextSourceKind.Gitlab
+        ].includes(source.sourceKind)
+      }) ?? []
+    )
+  }, [contextInfoData])
 
-  const [{ data }] = useQuery({
+  const [{ data: resolvedGitUrl }] = useQuery({
     query: resolveGitUrlQuery,
     variables: {
       gitUrl: gitUrl as string
@@ -586,7 +612,11 @@ function ChatRenderer(
         chatInputRef,
         activeSelection,
         supportsOnApplyInEditorV2,
-        indexedRepository: gitUrl ? data?.resolveGitUrl : undefined
+        indexedRepository: gitUrl ? resolvedGitUrl?.resolveGitUrl : undefined,
+        selectedRepoId,
+        setSelectedRepoId,
+        repos,
+        fetchingRepos: fetchingSources
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

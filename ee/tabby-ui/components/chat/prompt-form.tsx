@@ -26,7 +26,6 @@ import {
   SearchableSelectOption,
   SearchableSelectTextarea
 } from '@/components/searchable-select'
-import { RepoSelect } from './repo-select'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -199,15 +198,15 @@ function PromptFormRenderer(
           return (
             <>
               <SearchableSelectAnchor>
-                <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background pr-8 sm:rounded-md sm:border sm:pr-12">
-                  {/* <span
+                <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
+                  <span
                     className={cn(
                       buttonVariants({ size: 'sm', variant: 'ghost' }),
                       'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 hover:bg-background sm:left-4'
                     )}
                   >
                     <IconEdit />
-                  </span> */}
+                  </span>
                   <SearchableSelectTextarea
                     tabIndex={0}
                     rows={1}
@@ -305,11 +304,6 @@ function PromptFormRenderer(
           )
         }}
       </SearchableSelect>
-      <RepoSelect
-        value={undefined}
-        onChange={() => {}}
-        models={['1', '2']}
-      />
     </form>
   )
 }

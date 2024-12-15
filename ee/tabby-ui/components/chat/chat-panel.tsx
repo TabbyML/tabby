@@ -9,10 +9,7 @@ import type { Context } from 'tabby-chat-panel'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
-import {
-  updateEnableActiveSelection,
-  updateEnableIndexedRepository
-} from '@/lib/stores/chat-actions'
+import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
@@ -24,7 +21,6 @@ import {
   IconEye,
   IconEyeOff,
   IconFileText,
-  IconFolderGit,
   IconRefresh,
   IconRemove,
   IconShare,
@@ -37,6 +33,7 @@ import { FooterText } from '@/components/footer'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat'
+import { RepoSelect } from './repo-select'
 
 export interface ChatPanelProps
   extends Pick<UseChatHelpers, 'stop' | 'input' | 'setInput'> {
@@ -76,7 +73,11 @@ function ChatPanelRenderer(
     removeRelevantContext,
     activeSelection,
     onCopyContent,
-    indexedRepository
+    indexedRepository,
+    selectedRepoId,
+    setSelectedRepoId,
+    repos,
+    fetchingRepos
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
@@ -230,7 +231,14 @@ function ChatPanelRenderer(
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
           <div className="flex flex-wrap gap-2">
             <AnimatePresence presenceAffectsLayout>
-              {indexedRepository ? (
+              <RepoSelect
+                value={selectedRepoId}
+                onChange={setSelectedRepoId}
+                repos={repos}
+                workspaceRepoId={indexedRepository?.sourceId}
+                isInitializing={fetchingRepos}
+              />
+              {/* {indexedRepository ? (
                 <motion.div
                   key="indexed-repository"
                   initial={{ opacity: 0, scale: 0.9, y: -5 }}
@@ -284,7 +292,7 @@ function ChatPanelRenderer(
                     </TooltipContent>
                   </Tooltip>
                 </motion.div>
-              ) : null}
+              ) : null} */}
               {activeSelection ? (
                 <motion.div
                   key="active-selection"
