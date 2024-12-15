@@ -1,7 +1,6 @@
 'use client'
 
 import { HTMLAttributes, useMemo } from 'react'
-import Link from 'next/link'
 import { TabsContent } from '@radix-ui/react-tabs'
 import moment from 'moment'
 import { useQuery } from 'urql'
@@ -67,7 +66,7 @@ export function NotificationBox({ className, ...rest }: Props) {
           side="bottom"
           align="end"
           className="flex w-96 flex-col overflow-hidden p-0"
-          style={{ maxHeight: 'calc(100vh - 6rem)' }}
+          style={{ maxHeight: '60vh' }}
         >
           <div className="flex items-center justify-between px-4 py-2">
             <div className="text-sm font-medium">Nofitications</div>
@@ -149,47 +148,57 @@ interface NotificationItemProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 function NotificationItem({ data }: NotificationItemProps) {
-  const content = data.content
+  const { type, title, content } = resolveNotification(data.content)
 
   const markNotificationsRead = useMutation(markNotificationsReadMutation)
-  const onClickMarkRead = async () => {
+
+  const onClickMarkRead = () => {
     markNotificationsRead({
       notificationId: data.id
     })
   }
 
+  const onAction = () => {
+    onClickMarkRead()
+
+    if (type === 'license_will_expire') {
+      return window.open('/settings/subscription')
+    }
+  }
+
   return (
     <div className="group space-y-1.5">
-      <div className="flex cursor-pointer items-center gap-1.5 overflow-hidden text-sm font-medium">
-        {!data.read && (
-          <span className="h-2 w-2 shrink-0 rounded-full bg-red-400"></span>
-        )}
-        <span className="flex-1 truncate group-hover:opacity-70">
-          todo: format title
-        </span>
-      </div>
-      <div className="line-clamp-3 cursor-pointer text-sm text-muted-foreground group-hover:opacity-70">
-        {content}
+      <div className="space-y-1.5" onClick={onAction}>
+        <div className="flex cursor-pointer items-center gap-1.5 overflow-hidden text-sm font-medium">
+          {!data.read && (
+            <span className="h-2 w-2 shrink-0 rounded-full bg-red-400"></span>
+          )}
+          <span className="flex-1 truncate group-hover:opacity-70">
+            {title}
+          </span>
+        </div>
+        <div className="cursor-pointer text-sm text-muted-foreground group-hover:opacity-70 whitespace-pre-wrap break-words">
+          {content}
+        </div>
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="text-muted-foreground">
           {formatNotificationTime(data.createdAt)}
         </span>
         <div className="flex items-center gap-1.5">
-          <Link
-            href="/"
-            className="flex items-center gap-0.5 p-1 font-medium underline-offset-4 hover:underline"
+          <Button
+            variant="link"
+            className="flex h-auto items-center gap-0.5 p-1 text-xs text-muted-foreground"
+            onClick={onAction}
           >
             <IconArrowRight className="h-3 w-3" />
             Detail
-          </Link>
+          </Button>
           {!data.read && (
             <Button
               variant="link"
               className="flex h-auto items-center gap-0.5 p-1 text-xs text-muted-foreground"
-              onClick={e => {
-                onClickMarkRead()
-              }}
+              onClick={onClickMarkRead}
             >
               <IconCheck className="h-3 w-3" />
               Mark as read
@@ -199,6 +208,26 @@ function NotificationItem({ data }: NotificationItemProps) {
       </div>
     </div>
   )
+}
+
+function resolveNotification(content: string) {
+  // use first line as title
+  const title = content.split('\n')[0]
+  const _content = content.split('\n').slice(1).join('\n')
+
+  if (content.startsWith('Your license will expire')) {
+    return {
+      type: 'license_will_expire',
+      title,
+      content: _content
+    }
+  }
+
+  return {
+    type: '',
+    title,
+    content: _content
+  }
 }
 
 // Nov 21, 2022, 7:03 AM
