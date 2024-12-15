@@ -177,7 +177,7 @@ function NotificationItem({ data }: NotificationItemProps) {
             {title}
           </span>
         </div>
-        <div className="cursor-pointer text-sm text-muted-foreground group-hover:opacity-70 whitespace-pre-wrap break-words">
+        <div className="cursor-pointer whitespace-pre-wrap break-words text-sm text-muted-foreground group-hover:opacity-70">
           {content}
         </div>
       </div>
