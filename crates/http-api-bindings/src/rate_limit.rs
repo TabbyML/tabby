@@ -11,10 +11,11 @@ use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream,
 use tokio::time::Duration;
 
 fn new_rate_limiter(rpm: u64) -> RateLimiter {
+    let rps = (rpm as f64 / 60.0).ceil() as usize;
     RateLimiter::builder()
-        .initial(rpm as usize)
-        .interval(Duration::from_secs(60))
-        .refill(rpm as usize)
+        .initial(rps)
+        .interval(Duration::from_secs(1))
+        .refill(rps)
         .build()
 }
 
