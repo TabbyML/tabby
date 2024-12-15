@@ -407,7 +407,6 @@ export default function ChatPage() {
           (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
         }
         openInEditor={isInEditor && server?.openInEditor}
-        indexedRepository={data?.resolveGitUrl}
       />
     </ErrorBoundary>
   )

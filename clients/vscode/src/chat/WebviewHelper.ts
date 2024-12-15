@@ -33,7 +33,7 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { Client as LspClient } from "../lsp/Client";
 import { isBrowser } from "../env";
-import { getFileContextFromSelection, showFileContext, openTextDocument } from "./fileContext";
+import { getFileContextFromSelection, showFileContext, openTextDocument, buildFilePathParams } from "./fileContext";
 import {
   localUriToChatPanelFilepath,
   chatPanelFilepathToLocalUri,
