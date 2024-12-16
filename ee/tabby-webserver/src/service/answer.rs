@@ -676,8 +676,7 @@ mod tests {
         answer::{
             merge_code_snippets,
             testutils::{
-                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
-                FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+                make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch,
             },
             trim_bullet, AnswerService,
         },
@@ -865,13 +864,13 @@ mod tests {
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
-        let mut serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
 
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
 
-        let mut service = AnswerService::new(
+        let service = AnswerService::new(
             &config,
             auth.clone(),
             chat.clone(),
@@ -908,67 +907,67 @@ mod tests {
         }
 
         /*
-        let code_query_input_not_access = make_code_query_input(Some("TEST"), Some(TEST_GIT_URL));
-        service
-            .collect_relevant_code(
-                &context_info_helper,
-                &code_query_input_not_access,
-                &code_search_params,
-                None,
-                policy.clone(),
-            )
-            .await;
+               let code_query_input_not_access = make_code_query_input(Some("TEST"), Some(TEST_GIT_URL));
+               service
+                   .collect_relevant_code(
+                       &context_info_helper,
+                       &code_query_input_not_access,
+                       &code_search_params,
+                       None,
+                       policy.clone(),
+                   )
+                   .await;
 
-        let code_query_input_with_only_git = make_code_query_input(None, Some(TEST_GIT_URL));
-        service
-            .collect_relevant_code(
-                &context_info_helper,
-                &code_query_input_with_only_git,
-                &code_search_params,
-                None,
-                policy.clone(),
-            )
-            .await;
+               let code_query_input_with_only_git = make_code_query_input(None, Some(TEST_GIT_URL));
+               service
+                   .collect_relevant_code(
+                       &context_info_helper,
+                       &code_query_input_with_only_git,
+                       &code_search_params,
+                       None,
+                       policy.clone(),
+                   )
+                   .await;
 
-        let code_query_input_with_only_git = make_code_query_input(None, None);
-        service
-            .collect_relevant_code(
-                &context_info_helper,
-                &code_query_input_with_only_git,
-                &code_search_params,
-                None,
-                policy.clone(),
-            )
-            .await;
+               let code_query_input_with_only_git = make_code_query_input(None, None);
+               service
+                   .collect_relevant_code(
+                       &context_info_helper,
+                       &code_query_input_with_only_git,
+                       &code_search_params,
+                       None,
+                       policy.clone(),
+                   )
+                   .await;
 
-        let code_fail_not_ready = Arc::new(FakeCodeSearchFailNotReady);
-        serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+               let code_fail_not_ready = Arc::new(FakeCodeSearchFailNotReady);
+               serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
 
-        service = AnswerService::new(
-            &config,
-            auth.clone(),
-            chat.clone(),
-            code_fail_not_ready.clone(),
-            doc.clone(),
-            context.clone(),
-            serper,
-            repo.clone(),
-        );
+               service = AnswerService::new(
+                   &config,
+                   auth.clone(),
+                   chat.clone(),
+                   code_fail_not_ready.clone(),
+                   doc.clone(),
+                   context.clone(),
+                   serper,
+                   repo.clone(),
+               );
 
-        let code_fail = Arc::new(FakeCodeSearchFail);
-        serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+               let code_fail = Arc::new(FakeCodeSearchFail);
+               serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
 
-        service = AnswerService::new(
-            &config,
-            auth.clone(),
-            chat.clone(),
-            code_fail.clone(),
-            doc.clone(),
-            context.clone(),
-            serper,
-            repo.clone(),
-        );
- */
+               service = AnswerService::new(
+                   &config,
+                   auth.clone(),
+                   chat.clone(),
+                   code_fail.clone(),
+                   doc.clone(),
+                   context.clone(),
+                   serper,
+                   repo.clone(),
+               );
+        */
     }
 
     #[tokio::test]
