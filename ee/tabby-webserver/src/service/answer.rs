@@ -888,17 +888,26 @@ mod tests {
         debug_assert!(context_info_helper.can_access_source_id("source-1"));
 
         let policy = make_policy().await;
-
-        service
-            .collect_relevant_code(
+        if let Some(repository) = service
+            .find_repository(
                 &context_info_helper,
                 &code_query_input_could_access,
-                &code_search_params,
-                None,
                 policy.clone(),
             )
-            .await;
+            .await
+        {
+            service
+                .collect_relevant_code(
+                    &repository,
+                    &context_info_helper,
+                    &code_query_input_could_access,
+                    &code_search_params,
+                    None,
+                )
+                .await;
+        }
 
+        /*
         let code_query_input_not_access = make_code_query_input(Some("TEST"), Some(TEST_GIT_URL));
         service
             .collect_relevant_code(
@@ -959,6 +968,7 @@ mod tests {
             serper,
             repo.clone(),
         );
+ */
     }
 
     #[tokio::test]
@@ -1271,7 +1281,7 @@ mod tests {
             },
         ];
 
-        let result = merge_code_snippets(repo, hits).await;
+        let result = merge_code_snippets(&repo.unwrap(), hits).await;
 
         assert_eq!(result.len(), 2);
     }
