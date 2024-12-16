@@ -676,7 +676,8 @@ mod tests {
         answer::{
             merge_code_snippets,
             testutils::{
-                make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch,
+                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+                FakeContextService, FakeDocSearch,
             },
             trim_bullet, AnswerService,
         },
