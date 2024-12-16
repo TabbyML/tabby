@@ -8,6 +8,7 @@ pub mod integration;
 pub mod interface;
 pub mod job;
 pub mod license;
+pub mod notification;
 pub mod repository;
 pub mod setting;
 pub mod thread;
@@ -40,6 +41,7 @@ use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLEnum, GraphQLObject,
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
+use notification::NotificationService;
 use repository::RepositoryGrepOutput;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
@@ -103,6 +105,7 @@ pub trait ServiceLocator: Send + Sync {
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
+    fn notification(&self) -> Arc<dyn NotificationService>;
 }
 
 pub struct Context {
@@ -525,6 +528,11 @@ impl Query {
             },
         )
         .await
+    }
+
+    async fn notifications(ctx: &Context) -> Result<Vec<notification::Notification>> {
+        let user = check_user(ctx).await?;
+        ctx.locator.notification().list(&user.id).await
     }
 
     async fn disk_usage_stats(ctx: &Context) -> Result<DiskUsageStats> {
@@ -985,6 +993,16 @@ impl Mutation {
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.email().send_test(to).await?;
+        Ok(true)
+    }
+
+    async fn mark_notifications_read(ctx: &Context, notification_id: Option<ID>) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        ctx.locator
+            .notification()
+            .mark_read(&user.id, notification_id.as_ref())
+            .await?;
         Ok(true)
     }
 

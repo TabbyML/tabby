@@ -33,8 +33,8 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
       onKeyboardEvent: api.onKeyboardEvent,
-      onLookupSymbol: api.onLookupSymbol,
-      onLookupDefinitions: api.onLookupDefinitions,
+      lookupSymbol: api.lookupSymbol,
+      openInEditor: api.openInEditor,
     },
   });
 }

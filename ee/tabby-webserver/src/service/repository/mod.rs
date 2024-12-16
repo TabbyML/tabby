@@ -114,7 +114,7 @@ impl RepositoryService for RepositoryServiceImpl {
             | RepositoryKind::GithubSelfHosted
             | RepositoryKind::GitlabSelfHosted => self
                 .third_party()
-                .get_provided_repository(id.clone())
+                .get_provided_repository(id)
                 .await
                 .map(|repo| to_repository(*kind, repo)),
         };

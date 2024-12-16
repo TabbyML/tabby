@@ -22,6 +22,7 @@ import {
 } from '@tiptap/react'
 import type { Content as TiptapContent } from '@tiptap/react'
 
+import { NEWLINE_CHARACTER } from '@/lib/constants'
 import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
@@ -106,7 +107,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
     const doSubmit = useLatest((editor: Editor) => {
       if (submitting) return
 
-      const text = editor.getText()
+      const text = editor.getText({ blockSeparator: NEWLINE_CHARACTER }).trim()
       if (!text) return
 
       onSubmit?.(editor)

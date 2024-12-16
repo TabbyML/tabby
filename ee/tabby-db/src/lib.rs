@@ -8,6 +8,7 @@ pub use email_setting::EmailSettingDAO;
 pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
+pub use notifications::NotificationDAO;
 pub use oauth_credential::OAuthCredentialDAO;
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
@@ -33,6 +34,7 @@ mod invitations;
 mod job_runs;
 #[cfg(test)]
 mod migration_tests;
+mod notifications;
 mod oauth_credential;
 mod password_reset;
 mod provided_repositories;

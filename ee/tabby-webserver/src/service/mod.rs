@@ -9,6 +9,7 @@ pub mod event_logger;
 pub mod integration;
 pub mod job;
 mod license;
+mod notification;
 mod preset_web_documents_data;
 pub mod repository;
 mod setting;
@@ -51,6 +52,7 @@ use tabby_schema::{
     is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
+    notification::NotificationService,
     policy,
     repository::RepositoryService,
     setting::SettingService,
@@ -72,6 +74,7 @@ struct ServerContext {
     chat: Option<Arc<dyn ChatCompletionStream>>,
     completion: Option<Arc<dyn CompletionStream>>,
     auth: Arc<dyn AuthenticationService>,
+    notification: Arc<dyn NotificationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
@@ -118,6 +121,7 @@ impl ServerContext {
         ));
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
+        let notification = Arc::new(notification::create(db_conn.clone()));
 
         background_job::start(
             db_conn.clone(),
@@ -150,6 +154,7 @@ impl ServerContext {
             setting,
             user_group,
             access_policy,
+            notification,
             db_conn,
             user_rate_limiter: UserRateLimiter::default(),
         }
@@ -288,6 +293,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn logger(&self) -> Arc<dyn EventLogger> {
         self.0.logger.clone()
+    }
+
+    fn notification(&self) -> Arc<dyn tabby_schema::notification::NotificationService> {
+        self.0.notification.clone()
     }
 
     fn job(&self) -> Arc<dyn JobService> {
