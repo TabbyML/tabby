@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUST_TOOLCHAIN: 1.76.0
+  RUST_TOOLCHAIN: 1.82.0
 
 jobs:
   release-docker:
