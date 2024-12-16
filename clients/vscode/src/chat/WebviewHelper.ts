@@ -25,6 +25,7 @@ import type {
   SymbolInfo,
   FileLocation,
   LookupDefinitionsHint,
+  Filepath,
 } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -844,7 +845,100 @@ export class WebviewHelper {
           }
         }
 
-        return symbolInfos;
+        const getActualFilepath = (filepath: Filepath | undefined): string => {
+          if (!filepath) {
+            this.logger.info("No filepath provided.");
+            return "";
+          }
+          if (filepath.kind === "git") {
+            return filepath.filepath;
+          } else {
+            return filepath.uri;
+          }
+        };
+
+        // remove target location inside the context location
+        const filteredSymbolInfos = symbolInfos
+          .filter((symbolInfo) => {
+            if (!context.location) {
+              this.logger.info("No context location, keeping symbol");
+              return true;
+            }
+            const contextActualPath = getActualFilepath(context.filepath);
+            const targetActualPath = getActualFilepath(symbolInfo.target.filepath);
+            if (contextActualPath !== targetActualPath) {
+              return true;
+            }
+            const contextRange = chatPanelLocationToVSCodeRange(context.location);
+            if (!contextRange) {
+              this.logger.warn("Could not convert context location to VS Code range", context.location);
+              return true;
+            }
+            const targetRange = chatPanelLocationToVSCodeRange(symbolInfo.target.location);
+            if (!targetRange) {
+              this.logger.warn("Could not convert target location to VS Code range", symbolInfo.target.location);
+              return true;
+            }
+            const isOutsideRange =
+              targetRange.end.isBefore(contextRange.start) || targetRange.start.isAfter(contextRange.end);
+            return isOutsideRange;
+          })
+          // deal with overlapping target ranges
+          .filter((currentSymbol, index, array) => {
+            if (index === 0) return true;
+
+            const currentFilepath = getActualFilepath(currentSymbol.target.filepath);
+            const currentRange = chatPanelLocationToVSCodeRange(currentSymbol.target.location);
+
+            if (!currentRange) {
+              this.logger.warn(
+                "Could not convert current target location to VS Code range",
+                currentSymbol.target.location,
+              );
+              return true;
+            }
+
+            for (let i = 0; i < index; i++) {
+              const prevSymbol = array[i];
+              if (!prevSymbol) {
+                continue;
+              }
+              const prevFilepath = getActualFilepath(prevSymbol.target.filepath);
+
+              if (prevFilepath !== currentFilepath) {
+                continue;
+              }
+
+              const prevRange = chatPanelLocationToVSCodeRange(prevSymbol.target.location);
+              if (!prevRange) {
+                continue;
+              }
+
+              const hasOverlap = !(
+                currentRange.end.isBefore(prevRange.start) || currentRange.start.isAfter(prevRange.end)
+              );
+
+              if (hasOverlap) {
+                this.logger.info("Found overlapping ranges:", {
+                  current: currentRange,
+                  previous: prevRange,
+                });
+
+                const mergedStart = currentRange.start.isBefore(prevRange.start) ? currentRange.start : prevRange.start;
+                const mergedEnd = currentRange.end.isAfter(prevRange.end) ? currentRange.end : prevRange.end;
+
+                const mergedRange = new Range(mergedStart, mergedEnd);
+
+                prevSymbol.target.location = vscodeRangeToChatPanelPositionRange(mergedRange);
+
+                this.logger.info("Merged Lookup Definition range:", mergedRange);
+                return false;
+              }
+            }
+            return true;
+          });
+
+        return filteredSymbolInfos;
       },
     });
   }
