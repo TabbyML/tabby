@@ -1,7 +1,5 @@
-use axum_prometheus::lifecycle::layer;
 use opentelemetry::{
-    global,
-    trace::{FutureExt, TracerProvider as _},
+    trace::TracerProvider as _,
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
