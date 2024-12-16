@@ -23,6 +23,8 @@ pub struct ThreadMessageDAO {
     pub role: String,
     pub content: String,
 
+    pub code_source_id: Option<String>,
+
     pub code_attachments: Option<Json<Vec<ThreadMessageAttachmentCode>>>,
     pub client_code_attachments: Option<Json<Vec<ThreadMessageAttachmentClientCode>>>,
     pub doc_attachments: Option<Json<Vec<ThreadMessageAttachmentDoc>>>,
@@ -223,12 +225,14 @@ impl DbConn {
     pub async fn update_thread_message_code_attachments(
         &self,
         message_id: i64,
+        code_source_id: &str,
         code_attachments: &[ThreadMessageAttachmentCode],
     ) -> Result<()> {
         let code_attachments = Json(code_attachments);
         query!(
-            "UPDATE thread_messages SET code_attachments = ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE thread_messages SET code_attachments = ?, code_source_id = ?, updated_at = DATETIME('now') WHERE id = ?",
             code_attachments,
+            code_source_id,
             message_id
         )
         .execute(&self.pool)
@@ -296,6 +300,7 @@ impl DbConn {
                 thread_id,
                 role,
                 content,
+                code_source_id,
                 code_attachments as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
                 client_code_attachments as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
                 doc_attachments as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
@@ -329,6 +334,7 @@ impl DbConn {
                 "thread_id",
                 "role",
                 "content",
+                "code_source_id",
                 "code_attachments" as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
                 "client_code_attachments" as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
                 "doc_attachments" as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",

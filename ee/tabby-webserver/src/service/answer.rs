@@ -105,21 +105,23 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                let hits = self.collect_relevant_code(
-                    &context_info_helper,
-                    code_query,
-                    &self.config.code_search_params,
-                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()),
-                    policy.clone(),
-                ).await;
-                attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
+                if let Some(repository) = self.find_repository(&context_info_helper, code_query, policy.clone()).await {
+                    let hits = self.collect_relevant_code(
+                        &repository,
+                        &context_info_helper,
+                        code_query,
+                        &self.config.code_search_params,
+                        options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()),
+                    ).await;
+                    attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
-                if !hits.is_empty() {
-                    let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
-                    yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                        ThreadAssistantMessageAttachmentsCode { hits }
-                    ));
-                }
+                    if !hits.is_empty() {
+                        let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                        yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
+                            ThreadAssistantMessageAttachmentsCode { code_source_id: repository.source_id, hits }
+                        ));
+                    }
+                };
             };
 
             // 2. Collect relevant docs if needed.
@@ -232,15 +234,13 @@ impl AnswerService {
         MessageAttachmentDoc::from_doc_search_document(doc, user)
     }
 
-    async fn collect_relevant_code(
+    async fn find_repository(
         &self,
         helper: &ContextInfoHelper,
         input: &CodeQueryInput,
-        params: &CodeSearchParams,
-        override_params: Option<&CodeSearchParamsOverrideInput>,
         policy: AccessPolicy,
-    ) -> Vec<CodeSearchHit> {
-        let source_id: Option<&str> = {
+    ) -> Option<Repository> {
+        let source_id = {
             if let Some(source_id) = &input.source_id {
                 if helper.can_access_source_id(source_id) {
                     Some(source_id.as_str())
@@ -252,22 +252,27 @@ impl AnswerService {
             } else {
                 None
             }
-        };
+        }?;
 
-        let Some(source_id) = source_id else {
-            return vec![];
-        };
-
-        let repo = match self.repository.repository_list(Some(&policy)).await {
+        match self.repository.repository_list(Some(&policy)).await {
             Ok(repos) => repos.into_iter().find(|x| x.source_id == source_id),
-            Err(_) => return vec![],
-        };
+            Err(_) => None,
+        }
+    }
 
+    async fn collect_relevant_code(
+        &self,
+        repository: &Repository,
+        helper: &ContextInfoHelper,
+        input: &CodeQueryInput,
+        params: &CodeSearchParams,
+        override_params: Option<&CodeSearchParamsOverrideInput>,
+    ) -> Vec<CodeSearchHit> {
         let query = CodeSearchQuery::new(
             input.filepath.clone(),
             input.language.clone(),
             helper.rewrite_tag(&input.content),
-            source_id.to_owned(),
+            repository.source_id.clone(),
         );
 
         let mut params = params.clone();
@@ -276,7 +281,7 @@ impl AnswerService {
         }
 
         match self.code.search_in_language(query, params).await {
-            Ok(docs) => merge_code_snippets(repo, docs.hits).await,
+            Ok(docs) => merge_code_snippets(repository, docs.hits).await,
             Err(err) => {
                 if let CodeSearchError::NotReady = err {
                     debug!("Code search is not ready yet");
@@ -551,13 +556,9 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 
 /// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 300, and there are multiple hits (number of hits > 1), include the entire file.
 pub async fn merge_code_snippets(
-    repository: Option<Repository>,
+    repository: &Repository,
     hits: Vec<CodeSearchHit>,
 ) -> Vec<CodeSearchHit> {
-    let Some(repository) = repository else {
-        return hits;
-    };
-
     // group hits by filepath
     let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
     for hit in hits.clone().into_iter() {

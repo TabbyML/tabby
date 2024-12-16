@@ -213,6 +213,7 @@ impl ThreadService for ThreadServiceImpl {
                             .collect::<Vec<_>>();
                         db.update_thread_message_code_attachments(
                             assistant_message_id,
+                            &x.code_source_id,
                             &code,
                         ).await?;
                     }
