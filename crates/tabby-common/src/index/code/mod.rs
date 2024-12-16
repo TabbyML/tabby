@@ -11,6 +11,7 @@ use crate::api::code::CodeSearchQuery;
 
 pub mod fields {
     pub const CHUNK_GIT_URL: &str = "chunk_git_url";
+    pub const CHUNK_COMMIT: &str = "chunk_commit";
     pub const CHUNK_FILEPATH: &str = "chunk_filepath";
     pub const CHUNK_LANGUAGE: &str = "chunk_language";
     pub const CHUNK_BODY: &str = "chunk_body";

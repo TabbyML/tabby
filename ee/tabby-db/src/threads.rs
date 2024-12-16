@@ -75,6 +75,7 @@ pub struct ThreadMessageAttachmentAuthor {
 #[derive(Serialize, Deserialize)]
 pub struct ThreadMessageAttachmentCode {
     pub git_url: String,
+    pub commit: Option<String>,
     pub language: String,
     pub filepath: String,
     pub content: String,

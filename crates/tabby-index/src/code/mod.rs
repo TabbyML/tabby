@@ -38,9 +38,9 @@ impl CodeIndexer {
             "Building source code index: {}",
             repository.canonical_git_url()
         );
-        repository::sync_repository(repository)?;
+        let commit = repository::sync_repository(repository)?;
 
-        index::index_repository(embedding, repository).await;
+        index::index_repository(embedding, repository, &commit).await;
         index::garbage_collection().await;
 
         Ok(())
@@ -102,6 +102,7 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
                 let attributes = json!({
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
                     code::fields::CHUNK_GIT_URL: source_code.git_url,
+                    code::fields::CHUNK_COMMIT: source_code.commit,
                     code::fields::CHUNK_LANGUAGE: source_code.language,
                     code::fields::CHUNK_BODY: body,
                     code::fields::CHUNK_START_LINE: start_line,

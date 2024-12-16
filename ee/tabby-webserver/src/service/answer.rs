@@ -576,7 +576,7 @@ pub async fn merge_code_snippets(
 
             if let Some(file_content) = file_content {
                 debug!(
-                    "file {} less than 200, it will be included whole file content",
+                    "file {} less than 300, it will be included whole file content",
                     file_hits[0].doc.filepath
                 );
                 let mut insert_hit = file_hits[0].clone();
