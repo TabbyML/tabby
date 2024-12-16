@@ -168,13 +168,13 @@ export interface LookupSymbolHint {
  */
 export interface LookupDefinitionsHint {
   /**
-  * The filepath of the file to search the symbol.
-  */
+   * The filepath of the file to search the symbol.
+   */
   filepath?: Filepath
 
   /**
-  * The location in the file to search the symbol.
-  */
+   * The location in the file to search the symbol.
+   */
   location?: Location
 }
 
