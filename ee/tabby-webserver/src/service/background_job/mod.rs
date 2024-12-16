@@ -2,6 +2,7 @@ mod db;
 mod git;
 mod helper;
 mod index_garbage_collection;
+mod license_check;
 mod third_party_integration;
 mod web_crawler;
 
@@ -13,6 +14,7 @@ use git::SchedulerGitJob;
 use helper::{CronStream, Job, JobLogger};
 use index_garbage_collection::IndexGarbageCollection;
 use juniper::ID;
+use license_check::LicenseCheckJob;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::CodeRepository;
 use tabby_db::DbConn;
@@ -21,6 +23,8 @@ use tabby_schema::{
     context::ContextService,
     integration::IntegrationService,
     job::JobService,
+    license::LicenseService,
+    notification::NotificationService,
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
 };
 use third_party_integration::SchedulerGithubGitlabJob;
@@ -64,11 +68,16 @@ pub async fn start(
     integration_service: Arc<dyn IntegrationService>,
     repository_service: Arc<dyn RepositoryService>,
     context_service: Arc<dyn ContextService>,
+    license_service: Arc<dyn LicenseService>,
+    notification_service: Arc<dyn NotificationService>,
     embedding: Arc<dyn Embedding>,
 ) {
     let mut hourly =
         CronStream::new(Schedule::from_str("@hourly").expect("Invalid cron expression"))
             .into_stream();
+
+    let mut daily = CronStream::new(Schedule::from_str("@daily").expect("Invalid cron expression"))
+        .into_stream();
 
     tokio::spawn(async move {
         loop {
@@ -141,6 +150,11 @@ pub async fn start(
                     }
 
                 },
+                Some(now) = daily.next() => {
+                    if let Err(err) = LicenseCheckJob::cron(now, license_service.clone(), notification_service.clone()).await {
+                        warn!("License check job failed: {err:?}");
+                    }
+                }
                 else => {
                     warn!("Background job channel closed");
                     break;

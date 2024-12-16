@@ -131,6 +131,8 @@ impl ServerContext {
             integration.clone(),
             repository.clone(),
             context.clone(),
+            license.clone(),
+            notification.clone(),
             embedding.clone(),
         )
         .await;

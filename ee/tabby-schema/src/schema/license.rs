@@ -81,6 +81,14 @@ impl LicenseInfo {
 
         Ok(())
     }
+
+    pub fn expire_in_days(&self) -> Option<i64> {
+        self.expires_at.map(|expires_at| {
+            let now = Utc::now();
+            let duration = expires_at.signed_duration_since(now);
+            duration.num_days()
+        })
+    }
 }
 
 #[async_trait]
