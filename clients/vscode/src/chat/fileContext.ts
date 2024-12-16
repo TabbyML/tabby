@@ -81,6 +81,18 @@ export async function showFileContext(fileContext: FileContext, gitProvider: Git
   editor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
 }
 
+export async function getGitRemoteUrl(fileUri: Uri | undefined, gitProvider: GitProvider): Promise<string | undefined> {
+  if (fileUri) {
+    const pathParams = await buildFilePathParams(fileUri, gitProvider)
+    return pathParams.gitRemoteUrl
+  }
+
+  const workspaceFolder = workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) return undefined;
+  const repo = gitProvider.getRepository(workspaceFolder.uri);
+  return repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
+}
+
 export async function buildFilePathParams(uri: Uri, gitProvider: GitProvider): Promise<FilePathParams> {
   const workspaceFolder =
     workspace.getWorkspaceFolder(uri) ?? (uri.scheme === "untitled" ? workspace.workspaceFolders?.[0] : undefined);

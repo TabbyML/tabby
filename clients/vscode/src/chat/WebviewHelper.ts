@@ -33,7 +33,7 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { Client as LspClient } from "../lsp/Client";
 import { isBrowser } from "../env";
-import { getFileContextFromSelection, showFileContext, openTextDocument, buildFilePathParams } from "./fileContext";
+import { getFileContextFromSelection, showFileContext, openTextDocument, getGitRemoteUrl } from "./fileContext";
 import {
   localUriToChatPanelFilepath,
   chatPanelFilepathToLocalUri,
@@ -287,7 +287,7 @@ export class WebviewHelper {
     }
   }
 
-  public async syncIndexedGitUrlToChatPanel(url: string | undefined) {
+  public async syncWorkspaceGitUrlToChatPanel(url: string | undefined) {
     try {
       this.logger.log("sync indexed git url", url);
       await this.client?.updateGitUrl(url);
@@ -333,7 +333,7 @@ export class WebviewHelper {
     this.pendingMessages = [];
 
     this.syncActiveSelection(window.activeTextEditor);
-    this.syncIndexedGitURL(window.activeTextEditor);
+    this.syncWorkspaceGitURL(window.activeTextEditor);
 
     const agentConfig = this.lspClient.agentConfig.current;
     if (agentConfig?.server.token) {
@@ -387,14 +387,9 @@ export class WebviewHelper {
     this.syncActiveSelectionToChatPanel(fileContext);
   }
 
-  public async syncIndexedGitURL(editor: TextEditor | undefined) {
-    if (!editor) {
-      this.syncIndexedGitUrlToChatPanel(undefined);
-      return;
-    }
-
-    const filePathParams = await buildFilePathParams(editor.document.uri, this.gitProvider);
-    this.syncIndexedGitUrlToChatPanel(filePathParams?.gitRemoteUrl);
+  public async syncWorkspaceGitURL(editor: TextEditor | undefined) {
+    const gitRemoteUrl = await getGitRemoteUrl(editor?.document.uri, this.gitProvider);
+    this.syncWorkspaceGitUrlToChatPanel(gitRemoteUrl);
   }
 
   public addAgentEventListeners() {
@@ -412,7 +407,7 @@ export class WebviewHelper {
   public addTextEditorEventListeners() {
     window.onDidChangeActiveTextEditor((e) => {
       this.syncActiveSelection(e);
-      this.syncIndexedGitURL(e);
+      this.syncWorkspaceGitURL(e);
     });
 
     window.onDidChangeTextEditorSelection((e) => {

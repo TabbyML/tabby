@@ -82,9 +82,6 @@ function ChatPanelRenderer(
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
-  const enableIndexedRepository = useChatStore(
-    state => state.enableIndexedRepository
-  )
 
   const [persisting, setPerisiting] = useState(false)
   const { width } = useWindowSize()
@@ -238,61 +235,6 @@ function ChatPanelRenderer(
                 workspaceRepoId={indexedRepository?.sourceId}
                 isInitializing={fetchingRepos}
               />
-              {/* {indexedRepository ? (
-                <motion.div
-                  key="indexed-repository"
-                  initial={{ opacity: 0, scale: 0.9, y: -5 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{
-                    ease: 'easeInOut',
-                    duration: 0.1
-                  }}
-                  exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                >
-                  <Tooltip delayDuration={100}>
-                    <TooltipTrigger asChild>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md pr-0 text-sm font-semibold',
-                          {
-                            'border-dashed !text-muted-foreground italic line-through':
-                              !enableIndexedRepository
-                          }
-                        )}
-                      >
-                        <IconFolderGit />
-                        {indexedRepository.name}
-                        <span className="shrink-0 text-muted-foreground">
-                          Current repo
-                        </span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 shrink-0 rounded-l-none"
-                          onClick={e => {
-                            updateEnableIndexedRepository(
-                              !enableIndexedRepository
-                            )
-                          }}
-                        >
-                          {enableIndexedRepository ? (
-                            <IconEye />
-                          ) : (
-                            <IconEyeOff />
-                          )}
-                        </Button>
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent className="text-md space-y-2" align="start">
-                      <span className="font-semibold text-muted-foreground">
-                        Indexed repository of current workspace:
-                      </span>
-                      <p>{indexedRepository.gitUrl}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </motion.div>
-              ) : null} */}
               {activeSelection ? (
                 <motion.div
                   key="active-selection"

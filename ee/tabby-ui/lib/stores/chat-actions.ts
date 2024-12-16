@@ -13,7 +13,3 @@ export const updateSelectedModel = (model: string | undefined) => {
 export const updateEnableActiveSelection = (enable: boolean) => {
   set(() => ({ enableActiveSelection: enable }))
 }
-
-export const updateEnableIndexedRepository = (enable: boolean) => {
-  set(() => ({ enableIndexedRepository: enable }))
-}

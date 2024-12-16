@@ -159,9 +159,6 @@ function ChatRenderer(
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
-  const enableIndexedRepository = useChatStore(
-    state => state.enableIndexedRepository
-  )
 
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
   const [{ data: contextInfoData, fetching: fetchingSources }] = useQuery({
@@ -179,6 +176,7 @@ function ChatRenderer(
     )
   }, [contextInfoData])
 
+  // todo remove this
   const [{ data: resolvedGitUrl }] = useQuery({
     query: resolveGitUrlQuery,
     variables: {
@@ -198,6 +196,22 @@ function ChatRenderer(
   } = useThreadRun({
     threadId
   })
+
+  React.useEffect(() => {
+    const setDefaultRepoId = () => {
+      if (!resolvedGitUrl || !repos?.length) return
+      if (selectedRepoId) return
+
+      const defaultRepo = repos.find(
+        o => o.sourceId === resolvedGitUrl.resolveGitUrl?.sourceId
+      )
+      if (defaultRepo) {
+        setSelectedRepoId(defaultRepo.sourceId)
+      }
+    }
+
+    setDefaultRepoId()
+  }, [resolvedGitUrl, repos])
 
   const onDeleteMessage = async (userMessageId: string) => {
     if (!threadId) return

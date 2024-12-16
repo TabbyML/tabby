@@ -1,3 +1,5 @@
+import { useWindowSize } from '@uidotdev/usehooks'
+
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import {
@@ -35,6 +37,9 @@ export function RepoSelect({
   isInitializing,
   workspaceRepoId
 }: RepoSelectProps) {
+  const { width } = useWindowSize()
+  const isExtraSmallScreen = typeof width === 'number' && width < 240
+
   const onSelectRepo = (v: string) => {
     onChange(v)
     // todo input focus
@@ -57,14 +62,14 @@ export function RepoSelect({
       <DropdownMenu>
         <Badge
           variant="outline"
-          className="h-7 items-center gap-1 overflow-hidden rounded-md text-sm font-semibold pr-0 min-w-[8rem]"
+          className="h-7 items-center gap-1 overflow-hidden rounded-md text-sm font-semibold pr-0 min-w-[8rem] break-all"
         >
           <DropdownMenuTrigger className="outline-none" asChild>
-            <div className="cursor-pointer flex-1 flex items-center gap-1.5 truncate break-all">
+            <div className="cursor-pointer flex-1 flex items-center gap-1.5 overflow-hidden">
               <IconFolderGit className="shrink-0" />
-              <div className="flex-1 flex items-center gap-1.5">
+              <div className="flex-1 flex items-center gap-1.5 truncate break-all">
                 <span
-                  className={cn({
+                  className={cn('truncate', {
                     'text-muted-foreground': !selectedRepoName
                   })}
                 >
@@ -72,7 +77,7 @@ export function RepoSelect({
                 </span>
                 {isWorkspaceRepo && (
                   <span className="shrink-0 text-muted-foreground">
-                    Repo in workspace
+                    {isExtraSmallScreen ? 'Workspace' : 'Repo in workspace'}
                   </span>
                 )}
               </div>
@@ -86,7 +91,6 @@ export function RepoSelect({
               variant="ghost"
               className="h-7 w-7 shrink-0 rounded-l-none"
               onClick={e => {
-                console.log('eeeeeeee')
                 e.preventDefault()
                 e.stopPropagation()
                 onChange(null)
@@ -128,7 +132,7 @@ export function RepoSelect({
                   </div>
                   {repo.sourceId === workspaceRepoId && (
                     <span className="text-muted-foreground ml-1.5 shrink-0">
-                      Repo in workspace
+                      {isExtraSmallScreen ? 'Workspace' : 'Repo in workspace'}
                     </span>
                   )}
                 </DropdownMenuRadioItem>

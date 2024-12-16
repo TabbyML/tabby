@@ -9,14 +9,12 @@ export interface ChatState {
   activeChatId: string | undefined
   selectedModel: string | undefined
   enableActiveSelection: boolean
-  enableIndexedRepository: boolean
 }
 
 const initialState: ChatState = {
   activeChatId: nanoid(),
   selectedModel: undefined,
-  enableActiveSelection: true,
-  enableIndexedRepository: true
+  enableActiveSelection: true
 }
 
 export const useChatStore = create<ChatState>()(
