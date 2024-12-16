@@ -5,6 +5,7 @@ use async_openai::{
 };
 use async_trait::async_trait;
 use tabby_inference::Embedding;
+use tracing::{info_span, Instrument};
 
 pub struct OpenAIEmbeddingEngine {
     client: async_openai::Client<OpenAIConfig>,
@@ -40,7 +41,12 @@ impl Embedding for OpenAIEmbeddingEngine {
             user: None,
             dimensions: None,
         };
-        let resp = self.client.embeddings().create(request).await?;
+        let resp = self
+            .client
+            .embeddings()
+            .create(request)
+            .instrument(info_span!("embed_openai"))
+            .await?;
         let data = resp
             .data
             .into_iter()

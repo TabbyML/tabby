@@ -11,7 +11,7 @@ use tabby_common::{
 };
 use tabby_inference::Embedding;
 use tokio::task::JoinHandle;
-use tracing::warn;
+use tracing::{info_span, warn, Instrument};
 
 use self::intelligence::SourceCode;
 use crate::{
@@ -126,7 +126,7 @@ async fn build_binarize_embedding_tokens(
     embedding: Arc<dyn Embedding>,
     body: &str,
 ) -> Result<Vec<String>> {
-    let embedding = match embedding.embed(body).await {
+    let embedding = match embedding.embed(body).instrument(info_span!("embed")).await {
         Ok(x) => x,
         Err(err) => {
             bail!("Failed to embed chunk text: {}", err);

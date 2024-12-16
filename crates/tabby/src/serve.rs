@@ -14,7 +14,7 @@ use tabby_download::ModelKind;
 use tabby_inference::ChatCompletionStream;
 use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
-use tracing::{debug, warn};
+use tracing::{debug, info_span, warn, Instrument};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
@@ -114,7 +114,9 @@ pub struct ServeArgs {
 pub async fn main(config: &Config, args: &ServeArgs) {
     let config = merge_args(config, args);
 
-    load_model(&config).await;
+    load_model(&config)
+        .instrument(info_span!("load_model"))
+        .await;
 
     let tx = try_run_spinner();
 
@@ -213,15 +215,21 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
 async fn load_model(config: &Config) {
     if let Some(ModelConfig::Local(ref model)) = config.model.completion {
-        download_model_if_needed(&model.model_id, ModelKind::Completion).await;
+        download_model_if_needed(&model.model_id, ModelKind::Completion)
+            .instrument(info_span!("completion"))
+            .await;
     }
 
     if let Some(ModelConfig::Local(ref model)) = config.model.chat {
-        download_model_if_needed(&model.model_id, ModelKind::Chat).await;
+        download_model_if_needed(&model.model_id, ModelKind::Chat)
+            .instrument(info_span!("chat"))
+            .await;
     }
 
     if let ModelConfig::Local(ref model) = config.model.embedding {
-        download_model_if_needed(&model.model_id, ModelKind::Embedding).await;
+        download_model_if_needed(&model.model_id, ModelKind::Embedding)
+            .instrument(info_span!("embedding"))
+            .await;
     }
 }
 
