@@ -441,7 +441,11 @@ export class WebviewHelper {
 
     // get definition locations
     const getDefinitionLocations = async (uri: Uri, position: Position) => {
-      return await commands.executeCommand<LocationLink[]>("vscode.executeDefinitionProvider", uri, position);
+      return await commands.executeCommand<Location[] | LocationLink[]>(
+        "vscode.executeDefinitionProvider",
+        uri,
+        position,
+      );
     };
 
     return createClient(webview, {
@@ -609,11 +613,7 @@ export class WebviewHelper {
             while ((match = matchRegExp.exec(content)) !== null) {
               const offset = offsetInDocument + match.index;
               const position = document.positionAt(offset);
-              const locations = await commands.executeCommand<Location[] | LocationLink[]>(
-                "vscode.executeDefinitionProvider",
-                document.uri,
-                position,
-              );
+              const locations = await getDefinitionLocations(document.uri, position);
               if (locations && locations.length > 0) {
                 const location = locations[0];
                 if (location) {
@@ -762,12 +762,10 @@ export class WebviewHelper {
             continue;
           }
 
-          // calculate line and character for the current word
           const wordLine = snippetRange.start.line + (lines.length - 1);
           const lastLine = lines[lines.length - 1];
           const wordChar = lines.length > 1 && lastLine ? lastLine.length : pos;
 
-          // ensure wordLine and wordChar are valid before constructing Position
           if (wordLine < 0 || wordLine >= document.lineCount) {
             this.logger.debug("lookupDefinitions: Calculated word line is out of range, skipping.", { wordLine });
             continue;
@@ -780,24 +778,32 @@ export class WebviewHelper {
 
           const position = new Position(wordLine, wordChar);
 
-          let locations: LocationLink[] | undefined;
+          let definitionResults: (Location | LocationLink)[] | undefined;
           try {
-            locations = await getDefinitionLocations(document.uri, position);
+            definitionResults = await getDefinitionLocations(document.uri, position);
           } catch (error) {
             this.logger.error(`lookupDefinitions: Error executing definition provider for "${word}":`, error);
             continue;
           }
 
-          if (!locations || locations.length === 0) {
+          if (!definitionResults || definitionResults.length === 0) {
             continue;
           }
 
-          for (const location of locations) {
-            const targetUri = location.targetUri;
-            const targetRange = location.targetSelectionRange ?? location.targetRange;
+          for (const result of definitionResults) {
+            let targetUri: Uri;
+            let targetRange: Range;
+
+            if ("targetUri" in result) {
+              targetUri = result.targetUri;
+              targetRange = result.targetSelectionRange ?? result.targetRange;
+            } else {
+              targetUri = result.uri;
+              targetRange = result.range;
+            }
 
             if (!targetUri || !targetRange) {
-              this.logger.debug("lookupDefinitions: Location is missing targetUri or targetRange, skipping.", location);
+              this.logger.debug("lookupDefinitions: Location is missing required properties, skipping.", result);
               continue;
             }
 
