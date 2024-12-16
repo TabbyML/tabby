@@ -30,6 +30,7 @@ pub struct CodeSearchDocument {
     pub body: String,
     pub filepath: String,
     pub git_url: String,
+    pub commit: String,
     pub language: String,
     pub start_line: usize,
 }

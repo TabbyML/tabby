@@ -202,6 +202,7 @@ impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
     fn from(value: ThreadMessageAttachmentCode) -> Self {
         Self {
             git_url: value.git_url,
+            commit: value.commit.unwrap_or_default(),
             filepath: value.filepath,
             language: value.language,
             content: value.content,
@@ -214,6 +215,7 @@ impl From<&thread::MessageAttachmentCode> for ThreadMessageAttachmentCode {
     fn from(val: &thread::MessageAttachmentCode) -> Self {
         ThreadMessageAttachmentCode {
             git_url: val.git_url.clone(),
+            commit: Some(val.commit.clone()),
             filepath: val.filepath.clone(),
             language: val.language.clone(),
             content: val.content.clone(),
