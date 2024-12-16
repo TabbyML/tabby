@@ -10,6 +10,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { IconNotice } from '@/components/ui/icons'
 
 import { ClientOnly } from './client-only'
+import { NotificationBox } from './notification-box'
 import { ThemeToggle } from './theme-toggle'
 import { SidebarTrigger } from './ui/sidebar'
 import { MyAvatar } from './user-avatar'
@@ -43,6 +44,7 @@ export function Header() {
         <ClientOnly>
           <ThemeToggle />
         </ClientOnly>
+        <NotificationBox />
         <UserPanel>
           <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
