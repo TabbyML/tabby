@@ -164,6 +164,21 @@ export interface LookupSymbolHint {
 }
 
 /**
+ * Represents a hint to help find definitions.
+ */
+export interface LookupDefinitionsHint {
+  /**
+  * The filepath of the file to search the symbol.
+  */
+  filepath?: Filepath
+
+  /**
+  * The location in the file to search the symbol.
+  */
+  location?: Location
+}
+
+/**
  * Includes information about a symbol returned by the {@link ClientApiMethods.lookupSymbol} method.
  */
 export interface SymbolInfo {
@@ -210,8 +225,6 @@ export interface ClientApiMethods {
 
   onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
 
-  onLookupDefinitions?: (context: Context) => Promise<Context[]>
-
   /**
    * Find the target symbol and return the symbol information.
    * @param symbol The symbol to find.
@@ -226,7 +239,8 @@ export interface ClientApiMethods {
    * @returns Whether the file location is opened successfully.
    */
   openInEditor: (target: FileLocation) => Promise<boolean>
-  
+
+  lookupDefinitions?: (hint: LookupDefinitionsHint) => Promise<SymbolInfo[]>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -261,7 +275,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onKeyboardEvent: api.onKeyboardEvent,
       lookupSymbol: api.lookupSymbol,
       openInEditor: api.openInEditor,
-      onLookupDefinitions: api.onLookupDefinitions,
+      lookupDefinitions: api.lookupDefinitions,
     },
   })
 }

@@ -4,7 +4,6 @@ import {
   env,
   TextEditor,
   window,
-  Range,
   Selection,
   TextDocument,
   Webview,
@@ -25,6 +24,7 @@ import type {
   LookupSymbolHint,
   SymbolInfo,
   FileLocation,
+  LookupDefinitionsHint,
 } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -701,37 +701,44 @@ export class WebviewHelper {
           return false;
         }
       },
-      onLookupDefinitions: async (context: Context): Promise<Context[]> => {
-        if (!context?.filepath || !context?.range) {
-          this.logger.info("Invalid context - missing required fields:", {
-            filepath: !!context?.filepath,
-            range: !!context?.range,
-          });
+      lookupDefinitions: async (context: LookupDefinitionsHint): Promise<SymbolInfo[]> => {
+        if (!context?.filepath) {
+          this.logger.info("lookupDefinitions: Missing filepath in context.");
           return [];
         }
 
-        const workspaceRoot = context.filepath.split("/")[0];
-        if (!workspaceRoot) {
-          this.logger.info("Could not determine workspace root from filepath:", context.filepath);
+        const uri = chatPanelFilepathToLocalUri(context.filepath, this.gitProvider);
+        if (!uri) {
+          this.logger.info("lookupDefinitions: Could not resolve local URI for:", context.filepath);
           return [];
         }
 
-        const document = await openTextDocument({ filePath: context.filepath }, this.gitProvider);
+        const document = await openTextDocument({ filePath: uri.toString(true) }, this.gitProvider);
         if (!document) {
-          this.logger.info(`File not found: ${context.filepath}`);
+          this.logger.info("lookupDefinitions: File not found:", context.filepath);
           return [];
         }
 
-        const textRange = new Range(new Position(context.range.start, 0), new Position(context.range.end + 1, 0));
+        let snippetRange: Range;
+        if (context.location) {
+          const vsRange = chatPanelLocationToVSCodeRange(context.location);
+          if (vsRange) {
+            snippetRange = vsRange.isEmpty ? new Range(vsRange.start.line, 0, document.lineCount, 0) : vsRange;
+          } else {
+            snippetRange = new Range(0, 0, document.lineCount, 0);
+          }
+        } else {
+          snippetRange = new Range(0, 0, document.lineCount, 0);
+        }
 
-        const text = document.getText(textRange);
+        const text = document.getText(snippetRange);
         if (!text) {
-          this.logger.info("Empty text content for range:", textRange);
+          this.logger.info("lookupDefinitions: No text found in the specified range.");
           return [];
         }
 
-        let allResults: Context[] = [];
         const words = text.split(/\b/);
+        const symbolInfos: SymbolInfo[] = [];
 
         for (let i = 0; i < words.length; i++) {
           const word = words[i]?.trim();
@@ -740,9 +747,6 @@ export class WebviewHelper {
           }
 
           let pos = 0;
-          let currentLine = context.range.start;
-          let currentChar = 0;
-
           for (let j = 0; j < i; j++) {
             const word = words[j];
             if (word) {
@@ -750,334 +754,91 @@ export class WebviewHelper {
             }
           }
 
-          const lines = text.slice(0, pos).split("\n");
-          currentLine += lines.length - 1;
-          if (lines.length > 1) {
-            currentChar = lines[lines.length - 1]?.length ?? 0;
-          } else {
-            currentChar += pos;
+          const prefixText = text.slice(0, pos);
+          const lines = prefixText.split("\n");
+
+          if (lines.length === 0) {
+            this.logger.debug("lookupDefinitions: Empty lines array encountered unexpectedly.");
+            continue;
           }
 
+          // calculate line and character for the current word
+          const wordLine = snippetRange.start.line + (lines.length - 1);
+          const lastLine = lines[lines.length - 1];
+          const wordChar = lines.length > 1 && lastLine ? lastLine.length : pos;
+
+          // ensure wordLine and wordChar are valid before constructing Position
+          if (wordLine < 0 || wordLine >= document.lineCount) {
+            this.logger.debug("lookupDefinitions: Calculated word line is out of range, skipping.", { wordLine });
+            continue;
+          }
+
+          if (wordChar < 0) {
+            this.logger.debug("lookupDefinitions: Calculated character index is negative, skipping.", { wordChar });
+            continue;
+          }
+
+          const position = new Position(wordLine, wordChar);
+
+          let locations: LocationLink[] | undefined;
           try {
-            const position = new Position(currentLine, currentChar);
-            const locations = await getDefinitionLocations(document.uri, position);
-
-            if (!locations?.[0]) {
-              continue;
-            }
-
-            const location = locations[0];
-            const targetUri = location.targetUri?.toString(true);
-            if (!targetUri) {
-              this.logger.info("Invalid targetUri for location:", location);
-              continue;
-            }
-
-            const fullPath = targetUri.replace(/^file:\/\/\//, "");
-            const relativePath = fullPath.split(`/${workspaceRoot}/`)[1];
-            if (!relativePath) {
-              this.logger.info("Could not extract relative path from:", { targetUri, workspaceRoot });
-              continue;
-            }
-
-            const targetDocument = await openTextDocument(
-              { filePath: `${workspaceRoot}/${relativePath}` },
-              this.gitProvider,
-            );
-            if (!targetDocument) {
-              this.logger.info(`Could not open target file: ${relativePath}`);
-              continue;
-            }
-
-            if (!location.targetRange?.start || !location.targetRange?.end) {
-              this.logger.info("Invalid target range in location:", location);
-              continue;
-            }
-
-            const targetRange = new Range(
-              new Position(location.targetRange.start.line, 0),
-              new Position(location.targetRange.end.line + 1, 0),
-            );
-
-            const targetContent = targetDocument.getText(targetRange);
-            if (!targetContent) {
-              this.logger.info("Failed to get target content for range:", targetRange);
-              continue;
-            }
-
-            allResults.push({
-              kind: "file",
-              filepath: `${workspaceRoot}/${relativePath}`,
-              range: {
-                start: location.targetRange.start.line,
-                end: location.targetRange.end.line,
-              },
-              content: targetContent,
-              git_url: context.git_url,
-            });
+            locations = await getDefinitionLocations(document.uri, position);
           } catch (error) {
-            this.logger.error(`Error looking up definition for word "${word}":`, error);
-          }
-        }
-
-        // transform results
-        // remove start 0 and end 0
-        allResults = allResults.filter((result) => result.range?.start !== 0 && result.range?.end !== 0);
-
-        // merge overlapping ranges
-        const fileGroups = new Map<string, Context[]>();
-        for (const result of allResults) {
-          if (!result?.filepath) continue;
-          const existing = fileGroups.get(result.filepath) || [];
-          existing.push(result);
-          fileGroups.set(result.filepath, existing);
-        }
-
-        const finalResults: Context[] = [];
-        for (const [filepath, contexts] of fileGroups) {
-          if (!contexts?.length) continue;
-
-          if (contexts.length === 1) {
-            const context = contexts[0];
-            if (context) {
-              finalResults.push(context);
-            }
+            this.logger.error(`lookupDefinitions: Error executing definition provider for "${word}":`, error);
             continue;
           }
 
-          contexts.sort((a, b) => (a.range?.start ?? 0) - (b.range?.start ?? 0));
-          let current = contexts[0];
-
-          // TODO(Sma1lboy): consider move range.ts to common packages
-          // for handle all case including Range from vscode and vscode-languageserver, also our own define LineRange
-          for (let i = 1; i < contexts.length; i++) {
-            const next = contexts[i];
-            if (!next?.range?.start || !next?.range?.end || !current?.range?.end || !current?.range?.start) {
-              this.logger.info("Invalid range:", { current, next });
-              continue;
-            }
-
-            if (next.range.start <= current.range.end + 1) {
-              current = {
-                ...current,
-                range: {
-                  start: Math.min(current.range.start, next.range.start),
-                  end: Math.max(current.range.end, next.range.end),
-                },
-              };
-
-              const targetDocument = await openTextDocument({ filePath: filepath }, this.gitProvider);
-              if (targetDocument) {
-                const mergedRange = new Range(
-                  new Position(current.range.start, 0),
-                  new Position(current.range.end + 1, 0),
-                );
-                const mergedContent = targetDocument.getText(mergedRange);
-                if (mergedContent) {
-                  current.content = mergedContent;
-                }
-              }
-            } else {
-              finalResults.push(current);
-              current = next;
-            }
-          }
-
-          if (current) {
-            finalResults.push(current);
-          }
-        }
-
-        return finalResults;
-      },
-      onLookupDefinitions: async (context: Context): Promise<Context[]> => {
-        if (!context?.filepath || !context?.range) {
-          this.logger.info("Invalid context - missing required fields:", {
-            filepath: !!context?.filepath,
-            range: !!context?.range,
-          });
-          return [];
-        }
-
-        const workspaceRoot = context.filepath.split("/")[0];
-        if (!workspaceRoot) {
-          this.logger.info("Could not determine workspace root from filepath:", context.filepath);
-          return [];
-        }
-
-        const document = await openTextDocument({ filePath: context.filepath }, this.gitProvider);
-        if (!document) {
-          this.logger.info(`File not found: ${context.filepath}`);
-          return [];
-        }
-
-        const textRange = new Range(new Position(context.range.start, 0), new Position(context.range.end + 1, 0));
-
-        const text = document.getText(textRange);
-        if (!text) {
-          this.logger.info("Empty text content for range:", textRange);
-          return [];
-        }
-
-        let allResults: Context[] = [];
-        const words = text.split(/\b/);
-
-        for (let i = 0; i < words.length; i++) {
-          const word = words[i]?.trim();
-          if (!word || word.match(/^\W+$/)) {
+          if (!locations || locations.length === 0) {
             continue;
           }
 
-          let pos = 0;
-          let currentLine = context.range.start;
-          let currentChar = 0;
+          for (const location of locations) {
+            const targetUri = location.targetUri;
+            const targetRange = location.targetSelectionRange ?? location.targetRange;
 
-          for (let j = 0; j < i; j++) {
-            const word = words[j];
-            if (word) {
-              pos += word.length;
-            }
-          }
-
-          const lines = text.slice(0, pos).split("\n");
-          currentLine += lines.length - 1;
-          if (lines.length > 1) {
-            currentChar = lines[lines.length - 1]?.length ?? 0;
-          } else {
-            currentChar += pos;
-          }
-
-          try {
-            const position = new Position(currentLine, currentChar);
-            const locations = await getDefinitionLocations(document.uri, position);
-
-            if (!locations?.[0]) {
+            if (!targetUri || !targetRange) {
+              this.logger.debug("lookupDefinitions: Location is missing targetUri or targetRange, skipping.", location);
               continue;
             }
 
-            const location = locations[0];
-            const targetUri = location.targetUri?.toString(true);
-            if (!targetUri) {
-              this.logger.info("Invalid targetUri for location:", location);
+            const sourceFilepath = localUriToChatPanelFilepath(document.uri, this.gitProvider);
+            const targetFilepath = localUriToChatPanelFilepath(targetUri, this.gitProvider);
+
+            if (!sourceFilepath || !targetFilepath) {
+              this.logger.debug("lookupDefinitions: Could not convert source/target URI to filepath, skipping.", {
+                sourceUri: document.uri.toString(true),
+                targetUri: targetUri.toString(true),
+              });
               continue;
             }
 
-            const fullPath = targetUri.replace(/^file:\/\/\//, "");
-            const relativePath = fullPath.split(`/${workspaceRoot}/`)[1];
-            if (!relativePath) {
-              this.logger.info("Could not extract relative path from:", { targetUri, workspaceRoot });
+            const sourceLocation: FileLocation = {
+              filepath: sourceFilepath,
+              location: vscodePositionToChatPanelPosition(position),
+            };
+
+            const targetPositionRange = vscodeRangeToChatPanelPositionRange(targetRange);
+            if (!targetPositionRange) {
+              this.logger.debug(
+                "lookupDefinitions: Could not convert target range to chat panel position range, skipping.",
+                targetRange,
+              );
               continue;
             }
 
-            const targetDocument = await openTextDocument(
-              { filePath: `${workspaceRoot}/${relativePath}` },
-              this.gitProvider,
-            );
-            if (!targetDocument) {
-              this.logger.info(`Could not open target file: ${relativePath}`);
-              continue;
-            }
+            const targetLocation: FileLocation = {
+              filepath: targetFilepath,
+              location: targetPositionRange,
+            };
 
-            if (!location.targetRange?.start || !location.targetRange?.end) {
-              this.logger.info("Invalid target range in location:", location);
-              continue;
-            }
-
-            const targetRange = new Range(
-              new Position(location.targetRange.start.line, 0),
-              new Position(location.targetRange.end.line + 1, 0),
-            );
-
-            const targetContent = targetDocument.getText(targetRange);
-            if (!targetContent) {
-              this.logger.info("Failed to get target content for range:", targetRange);
-              continue;
-            }
-
-            allResults.push({
-              kind: "file",
-              filepath: `${workspaceRoot}/${relativePath}`,
-              range: {
-                start: location.targetRange.start.line,
-                end: location.targetRange.end.line,
-              },
-              content: targetContent,
-              git_url: context.git_url,
+            symbolInfos.push({
+              source: sourceLocation,
+              target: targetLocation,
             });
-          } catch (error) {
-            this.logger.error(`Error looking up definition for word "${word}":`, error);
           }
         }
 
-        // transform results
-        // remove start 0 and end 0
-        allResults = allResults.filter((result) => result.range?.start !== 0 && result.range?.end !== 0);
-
-        // merge overlapping ranges
-        const fileGroups = new Map<string, Context[]>();
-        for (const result of allResults) {
-          if (!result?.filepath) continue;
-          const existing = fileGroups.get(result.filepath) || [];
-          existing.push(result);
-          fileGroups.set(result.filepath, existing);
-        }
-
-        const finalResults: Context[] = [];
-        for (const [filepath, contexts] of fileGroups) {
-          if (!contexts?.length) continue;
-
-          if (contexts.length === 1) {
-            const context = contexts[0];
-            if (context) {
-              finalResults.push(context);
-            }
-            continue;
-          }
-
-          contexts.sort((a, b) => (a.range?.start ?? 0) - (b.range?.start ?? 0));
-          let current = contexts[0];
-
-          // TODO(Sma1lboy): consider move range.ts to common packages
-          // for handle all case including Range from vscode and vscode-languageserver, also our own define LineRange
-          for (let i = 1; i < contexts.length; i++) {
-            const next = contexts[i];
-            if (!next?.range?.start || !next?.range?.end || !current?.range?.end || !current?.range?.start) {
-              this.logger.info("Invalid range:", { current, next });
-              continue;
-            }
-
-            if (next.range.start <= current.range.end + 1) {
-              current = {
-                ...current,
-                range: {
-                  start: Math.min(current.range.start, next.range.start),
-                  end: Math.max(current.range.end, next.range.end),
-                },
-              };
-
-              const targetDocument = await openTextDocument({ filePath: filepath }, this.gitProvider);
-              if (targetDocument) {
-                const mergedRange = new Range(
-                  new Position(current.range.start, 0),
-                  new Position(current.range.end + 1, 0),
-                );
-                const mergedContent = targetDocument.getText(mergedRange);
-                if (mergedContent) {
-                  current.content = mergedContent;
-                }
-              }
-            } else {
-              finalResults.push(current);
-              current = next;
-            }
-          }
-
-          if (current) {
-            finalResults.push(current);
-          }
-        }
-
-        return finalResults;
+        return symbolInfos;
       },
     });
   }
