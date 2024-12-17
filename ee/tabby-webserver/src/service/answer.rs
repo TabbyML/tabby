@@ -1123,7 +1123,7 @@ mod tests {
             .collect_relevant_docs(&context_info_helper, &doc_query_3)
             .await;
 
-        assert!(hits_3.len() > 0);
+        assert!(!hits_3.is_empty());
 
         // Test Case 4: Test with empty source IDs and no public search
         let doc_query_4 = DocQueryInput {
@@ -1247,7 +1247,7 @@ mod tests {
             .create("test-repo".to_string(), TEST_GIT_URL.to_string())
             .await
             .unwrap();
-        let source_id = format!("git:{}", repo_id.to_string());
+        let source_id = format!("git:{}", repo_id);
 
         println!("Created test repository with ID: {}", source_id);
 
