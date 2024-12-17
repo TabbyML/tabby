@@ -76,7 +76,7 @@ export function RepoSelect({
                 </span>
                 {isWorkspaceRepo && (
                   <span className="shrink-0 text-muted-foreground">
-                    {isExtraSmallScreen ? 'Workspace' : 'Repo in workspace'}
+                    Context
                   </span>
                 )}
               </div>
