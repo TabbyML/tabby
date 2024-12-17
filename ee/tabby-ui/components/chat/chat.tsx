@@ -254,8 +254,7 @@ function ChatRenderer(
       ]
       setQaPairs(nextQaPairs)
       const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user,
-        enableActiveSelection
+        qaPair.user
       )
 
       return regenerate({
@@ -412,30 +411,13 @@ function ChatRenderer(
   }, [error])
 
   const generateRequestPayload = (
-    userMessage: UserMessage,
-    enableActiveSelection?: boolean
+    userMessage: UserMessage
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
-    // use selectContext for code query by default
-    let contextForCodeQuery: FileContext | undefined = userMessage.selectContext
-
-    // if enableActiveSelection, use selectContext or activeContext for code query
-    if (enableActiveSelection) {
-      contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
-    }
-
-    // check context for codeQuery
-    if (!isValidContextForCodeQuery(contextForCodeQuery)) {
-      contextForCodeQuery = undefined
-    }
-
-    const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
+    const content = userMessage.message
+    const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
       ? {
-          content: contextForCodeQuery.content ?? '',
-          filepath: contextForCodeQuery.filepath,
-          language: contextForCodeQuery.filepath
-            ? filename2prism(contextForCodeQuery.filepath)[0] || 'plaintext'
-            : 'plaintext',
-          gitUrl: contextForCodeQuery?.git_url ?? ''
+          content,
+          sourceId: selectedRepoId
         }
       : null
 
@@ -443,6 +425,7 @@ function ChatRenderer(
       enableActiveSelection && !!userMessage.activeContext
     const clientSideFileContexts: FileContext[] = uniqWith(
       compact([
+        userMessage.selectContext,
         hasUsableActiveContext && userMessage.activeContext,
         ...(userMessage?.relevantContext || [])
       ]),
@@ -455,8 +438,6 @@ function ChatRenderer(
         filepath: o.filepath,
         startLine: o.range.start
       }))
-
-    const content = userMessage.message
 
     return [
       {
@@ -517,9 +498,7 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      sendUserMessage(
-        ...generateRequestPayload(newUserMessage, enableActiveSelection)
-      )
+      sendUserMessage(...generateRequestPayload(newUserMessage))
     }
   )
 
