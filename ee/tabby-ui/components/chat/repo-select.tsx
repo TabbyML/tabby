@@ -42,7 +42,6 @@ export function RepoSelect({
 
   const onSelectRepo = (v: string) => {
     onChange(v)
-    // todo input focus
   }
 
   const isWorkspaceRepo = !!workspaceRepoId && workspaceRepoId === value

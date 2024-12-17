@@ -132,6 +132,14 @@ function ChatPanelRenderer(
     }
   }
 
+  const onSelectRepo = (sourceId: string | null) => {
+    setSelectedRepoId(sourceId)
+
+    setTimeout(() => {
+      chatInputRef.current?.focus()
+    })
+  }
+
   React.useImperativeHandle(
     ref,
     () => {
@@ -230,7 +238,7 @@ function ChatPanelRenderer(
             <AnimatePresence presenceAffectsLayout>
               <RepoSelect
                 value={selectedRepoId}
-                onChange={setSelectedRepoId}
+                onChange={onSelectRepo}
                 repos={repos}
                 workspaceRepoId={indexedRepository?.sourceId}
                 isInitializing={fetchingRepos}
