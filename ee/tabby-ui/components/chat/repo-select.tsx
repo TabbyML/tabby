@@ -181,13 +181,6 @@ export function RepoSelect({
                           {repo.sourceName}
                         </div>
                       </div>
-                      {repo.sourceId === workspaceRepoId && (
-                        <span className="ml-1.5 shrink-0 text-muted-foreground">
-                          {isExtraSmallScreen
-                            ? 'Workspace'
-                            : 'Repo in workspace'}
-                        </span>
-                      )}
                     </CommandItem>
                   )
                 })}
