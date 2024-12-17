@@ -289,8 +289,8 @@ export class WebviewHelper {
 
   public async syncWorkspaceGitUrlToChatPanel(url: string | undefined) {
     try {
-      this.logger.log("sync indexed git url", url);
-      await this.client?.updateGitUrl(url);
+      this.logger.log("sync workspace git url", url);
+      await this.client?.updateGitUrl?.(url);
     } catch {
       this.logger.log(
         {
@@ -333,7 +333,7 @@ export class WebviewHelper {
     this.pendingMessages = [];
 
     this.syncActiveSelection(window.activeTextEditor);
-    this.syncWorkspaceGitURL(window.activeTextEditor);
+    this.syncWorkspaceGitUrl(window.activeTextEditor);
 
     const agentConfig = this.lspClient.agentConfig.current;
     if (agentConfig?.server.token) {
@@ -387,7 +387,7 @@ export class WebviewHelper {
     this.syncActiveSelectionToChatPanel(fileContext);
   }
 
-  public async syncWorkspaceGitURL(editor: TextEditor | undefined) {
+  public async syncWorkspaceGitUrl(editor: TextEditor | undefined) {
     const gitRemoteUrl = await getGitRemoteUrl(editor?.document.uri, this.gitProvider);
     this.syncWorkspaceGitUrlToChatPanel(gitRemoteUrl);
   }
@@ -407,7 +407,7 @@ export class WebviewHelper {
   public addTextEditorEventListeners() {
     window.onDidChangeActiveTextEditor((e) => {
       this.syncActiveSelection(e);
-      this.syncWorkspaceGitURL(e);
+      this.syncWorkspaceGitUrl(e);
     });
 
     window.onDidChangeTextEditorSelection((e) => {

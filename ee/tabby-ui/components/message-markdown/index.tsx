@@ -203,6 +203,7 @@ export function MessageMarkdown({
       })
     }
     const symbolInfo = await onLookupSymbol(keyword, hints)
+    console.log('symbolInfo====', keyword, hints?.length || 0, symbolInfo)
     setSymbolLocationMap(map => new Map(map.set(keyword, symbolInfo)))
   }
 

@@ -185,7 +185,7 @@ export interface ServerApi {
   addRelevantContext: (context: Context) => void
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: Context | null) => void
-  updateGitUrl: (gitUrl: string | undefined) => void
+  updateGitUrl?: (gitUrl: string | undefined) => void
 }
 
 export interface ClientApiMethods {
