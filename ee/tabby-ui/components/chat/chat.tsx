@@ -19,7 +19,6 @@ import {
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
-  ResolveGitUrlQuery,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -27,6 +26,7 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
+import { client } from '@/lib/tabby/gql'
 import { contextInfoQuery, resolveGitUrlQuery } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
@@ -45,6 +45,7 @@ import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
+  initialized: boolean
   threadId: string | undefined
   isLoading: boolean
   qaPairs: QuestionAnswerPair[]
@@ -69,11 +70,10 @@ type ChatContextValue = {
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
-  indexedRepository: ResolveGitUrlQuery['resolveGitUrl']
   selectedRepoId: string | undefined
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
   repos: ContextInfo['sources']
-  fetchingRepos: boolean
+  fetchingSources: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -151,8 +151,6 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
-  // gitUrl from workspace
-  const [gitUrl, setGitUrl] = React.useState<string | undefined>()
   // sourceId
   const [selectedRepoId, setSelectedRepoId] = React.useState<
     string | undefined
@@ -178,14 +176,6 @@ function ChatRenderer(
     )
   }, [contextInfoData])
 
-  const [{ data: resolvedGitUrl }] = useQuery({
-    query: resolveGitUrlQuery,
-    variables: {
-      gitUrl: gitUrl as string
-    },
-    pause: !gitUrl
-  })
-
   const {
     sendUserMessage,
     isLoading,
@@ -197,22 +187,6 @@ function ChatRenderer(
   } = useThreadRun({
     threadId
   })
-
-  React.useEffect(() => {
-    const setDefaultRepoId = () => {
-      if (!resolvedGitUrl || !repos?.length) return
-      if (selectedRepoId) return
-
-      const defaultRepo = repos.find(
-        o => o.sourceId === resolvedGitUrl.resolveGitUrl?.sourceId
-      )
-      if (defaultRepo) {
-        setSelectedRepoId(defaultRepo.sourceId)
-      }
-    }
-
-    setDefaultRepoId()
-  }, [resolvedGitUrl, repos])
 
   const onDeleteMessage = async (userMessageId: string) => {
     if (!threadId) return
@@ -549,6 +523,45 @@ function ChatRenderer(
     debouncedUpdateActiveSelection.run(ctx)
   }
 
+  const fetchWorkspaceGitRepo = () => {
+    if (provideWorkspaceGitRepoInfo) {
+      return provideWorkspaceGitRepoInfo()
+    } else {
+      return []
+    }
+  }
+
+  const resolveGitUrl = async (gitUrl: string | undefined) => {
+    if (!gitUrl) return undefined
+    return client.query(resolveGitUrlQuery, { gitUrl }).toPromise()
+  }
+
+  React.useEffect(() => {
+    const init = async () => {
+      const gitRepoInfo = await fetchWorkspaceGitRepo()
+      // get default repo
+      if (gitRepoInfo?.length) {
+        const defaultGitUrl = gitRepoInfo[0].gitUrl
+        const repo = await resolveGitUrl(defaultGitUrl)
+        if (repo?.data?.resolveGitUrl) {
+          setSelectedRepoId(repo.data.resolveGitUrl.sourceId)
+        }
+      }
+
+      setInitialzed(true)
+    }
+
+    if (!fetchingSources && !initialized) {
+      init()
+    }
+  }, [fetchingSources])
+
+  React.useEffect(() => {
+    if (initialized) {
+      onLoaded?.()
+    }
+  }, [initialized])
+
   React.useImperativeHandle(
     ref,
     () => {
@@ -563,22 +576,6 @@ function ChatRenderer(
     },
     []
   )
-
-  React.useEffect(() => {
-    const fetchWorkspaceGitRepo = () => {
-      if (provideWorkspaceGitRepoInfo) {
-        provideWorkspaceGitRepoInfo().then(repos => {
-          if (repos.length) {
-            setGitUrl(repos[0].gitUrl)
-          }
-        })
-      }
-    }
-
-    fetchWorkspaceGitRepo()
-    setInitialzed(true)
-    onLoaded?.()
-  }, [])
 
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
   if (!initialized) {
@@ -606,11 +603,11 @@ function ChatRenderer(
         chatInputRef,
         activeSelection,
         supportsOnApplyInEditorV2,
-        indexedRepository: gitUrl ? resolvedGitUrl?.resolveGitUrl : undefined,
         selectedRepoId,
         setSelectedRepoId,
         repos,
-        fetchingRepos: fetchingSources
+        fetchingSources,
+        initialized
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

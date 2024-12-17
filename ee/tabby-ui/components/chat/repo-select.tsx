@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import { useWindowSize } from '@uidotdev/usehooks'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
@@ -30,26 +29,20 @@ import LoadingWrapper from '@/components/loading-wrapper'
 import { SourceIcon } from '../source-icon'
 
 interface RepoSelectProps {
-  repos: ContextInfo['sources']
+  repos: ContextInfo['sources'] | undefined
   value: string | undefined
   onChange: (v: string | undefined) => void
   isInitializing?: boolean
-  // sourceId
-  workspaceRepoId?: string
 }
 
 export function RepoSelect({
   repos,
   value,
   onChange,
-  isInitializing,
-  workspaceRepoId
+  isInitializing
 }: RepoSelectProps) {
   const [open, setOpen] = useState(false)
   const commandListRef = useRef<HTMLDivElement>(null)
-
-  const { width } = useWindowSize()
-  const isExtraSmallScreen = typeof width === 'number' && width < 360
 
   const onSelectRepo = (v: string) => {
     onChange(v)
@@ -73,7 +66,7 @@ export function RepoSelect({
   const selectedRepoName = selectedRepo?.sourceName
 
   // if there's no repo, hide the repo select
-  if (!isInitializing && !repos.length) return null
+  if (!isInitializing && !repos?.length) return null
 
   return (
     <LoadingWrapper
@@ -156,7 +149,7 @@ export function RepoSelect({
             <CommandList className="max-h-[30vh]" ref={commandListRef}>
               <CommandEmpty>No context found</CommandEmpty>
               <CommandGroup>
-                {repos.map(repo => {
+                {repos?.map(repo => {
                   const isSelected = repo.sourceId === value
 
                   return (

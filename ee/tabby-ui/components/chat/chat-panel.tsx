@@ -73,11 +73,10 @@ function ChatPanelRenderer(
     removeRelevantContext,
     activeSelection,
     onCopyContent,
-    indexedRepository,
     selectedRepoId,
     setSelectedRepoId,
     repos,
-    fetchingRepos
+    initialized
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
@@ -240,8 +239,7 @@ function ChatPanelRenderer(
                 value={selectedRepoId}
                 onChange={onSelectRepo}
                 repos={repos}
-                workspaceRepoId={indexedRepository?.sourceId}
-                isInitializing={fetchingRepos}
+                isInitializing={!initialized}
               />
               {activeSelection ? (
                 <motion.div
