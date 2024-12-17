@@ -1,25 +1,33 @@
+import { useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from '@/components/ui/command'
 import {
   IconCheck,
   IconChevronUpDown,
   IconFolderGit,
   IconRemove
 } from '@/components/ui/icons'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
+import { SourceIcon } from '../source-icon'
 
 interface RepoSelectProps {
   repos: ContextInfo['sources']
@@ -37,38 +45,67 @@ export function RepoSelect({
   isInitializing,
   workspaceRepoId
 }: RepoSelectProps) {
+  const [open, setOpen] = useState(false)
+  const commandListRef = useRef<HTMLDivElement>(null)
+
   const { width } = useWindowSize()
-  const isExtraSmallScreen = typeof width === 'number' && width < 240
+  const isExtraSmallScreen = typeof width === 'number' && width < 360
 
   const onSelectRepo = (v: string) => {
     onChange(v)
   }
 
-  const isWorkspaceRepo = !!workspaceRepoId && workspaceRepoId === value
-  const selectedRepoName = repos?.find(
-    repo => repo.sourceId === value
-  )?.sourceName
+  const scrollCommandListToTop = () => {
+    requestAnimationFrame(() => {
+      if (commandListRef.current) {
+        commandListRef.current.scrollTop = 0
+      }
+    })
+  }
+
+  const onSearchChange = () => {
+    scrollCommandListToTop()
+  }
+
+  const selectedRepo = value
+    ? repos?.find(repo => repo.sourceId === value)
+    : undefined
+  const selectedRepoName = selectedRepo?.sourceName
 
   // if there's no repo, hide the repo select
-  if (!isInitializing || !repos.length) return null
+  if (!isInitializing && !repos.length) return null
 
   return (
     <LoadingWrapper
       loading={isInitializing}
       fallback={
         <div className="w-full pl-2">
-          <Skeleton className="h-3 w-[20%]" />
+          <Skeleton className="h-3 w-[10rem]" />
         </div>
       }
     >
-      <DropdownMenu>
+      <Popover open={open} onOpenChange={setOpen}>
         <Badge
           variant="outline"
-          className="h-7 min-w-[8rem] items-center gap-1 overflow-hidden break-all rounded-md pr-0 text-sm font-semibold"
+          className="h-7 items-center gap-1 overflow-hidden break-all rounded-md px-0 text-sm font-semibold hover:bg-muted/50"
         >
-          <DropdownMenuTrigger className="outline-none" asChild>
-            <div className="flex flex-1 cursor-pointer items-center gap-1.5 overflow-hidden">
-              <IconFolderGit className="shrink-0" />
+          <PopoverTrigger className="outline-none" asChild>
+            <div
+              className={cn(
+                'flex flex-1 cursor-pointer items-center gap-1.5 overflow-hidden pl-2.5',
+                {
+                  'min-w-[10rem]': !selectedRepo
+                }
+              )}
+            >
+              {selectedRepo ? (
+                <SourceIcon
+                  kind={selectedRepo.sourceKind}
+                  className="shrink-0 w-3.5 h-3.5"
+                />
+              ) : (
+                <IconFolderGit className="shrink-0" />
+              )}
               <div className="flex flex-1 items-center gap-1.5 truncate break-all">
                 <span
                   className={cn('truncate', {
@@ -78,15 +115,19 @@ export function RepoSelect({
                   {selectedRepoName || 'Workspace'}
                 </span>
               </div>
-              {!value && <IconChevronUpDown className="shrink-0" />}
+              {!value && (
+                <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                  <IconChevronUpDown />
+                </div>
+              )}
             </div>
-          </DropdownMenuTrigger>
+          </PopoverTrigger>
           {!!value && (
             <Button
               type="button"
               size="icon"
               variant="ghost"
-              className="h-7 w-7 shrink-0 rounded-l-none"
+              className="h-7 w-7 shrink-0 rounded-l-none bg-background"
               onClick={e => {
                 e.stopPropagation()
                 onChange(undefined)
@@ -96,47 +137,65 @@ export function RepoSelect({
             </Button>
           )}
         </Badge>
-        <DropdownMenuContent
+        <PopoverContent
           side="top"
           align="start"
-          className="dropdown-menu max-h-[30vh] min-w-[20rem] max-w-full overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
+          className="dropdown-menu w-[80vw] overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
         >
-          <DropdownMenuRadioGroup>
-            {repos.map(repo => {
-              const isSelected = repo.sourceId === value
-              return (
-                <DropdownMenuRadioItem
-                  value={repo.sourceId}
-                  key={repo.sourceId}
-                  className="flex cursor-pointer items-center py-2 pl-3"
-                  onSelect={() => onSelectRepo(repo.sourceId)}
-                >
-                  <div className="flex flex-1 items-center gap-2 truncate">
-                    <IconCheck
-                      className={cn(
-                        'shrink-0',
-                        repo.sourceId === value ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
-                    <span
-                      className={cn({
-                        'font-medium': isSelected
-                      })}
+          <Command>
+            <CommandInput
+              placeholder="Search context..."
+              onValueChange={onSearchChange}
+            />
+            <CommandList className="max-h-[30vh]" ref={commandListRef}>
+              <CommandEmpty>No context found</CommandEmpty>
+              <CommandGroup>
+                {repos.map(repo => {
+                  const isSelected = repo.sourceId === value
+
+                  return (
+                    <CommandItem
+                      key={repo.sourceId}
+                      onSelect={() => {
+                        onSelectRepo(repo.sourceId)
+                        setOpen(false)
+                      }}
+                      title={repo.sourceName}
                     >
-                      {repo.sourceName}
-                    </span>
-                  </div>
-                  {repo.sourceId === workspaceRepoId && (
-                    <span className="ml-1.5 shrink-0 text-muted-foreground">
-                      {isExtraSmallScreen ? 'Workspace' : 'Repo in workspace'}
-                    </span>
-                  )}
-                </DropdownMenuRadioItem>
-              )
-            })}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+                      <IconCheck
+                        className={cn(
+                          'shrink-0 mr-1',
+                          repo.sourceId === value ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                      <div className="flex-1 overflow-x-hidden flex items-center gap-1">
+                        <SourceIcon
+                          kind={repo.sourceKind}
+                          className="shrink-0"
+                        />
+                        <div
+                          className={cn('font-medium truncate', {
+                            'font-semibold': isSelected
+                          })}
+                        >
+                          {repo.sourceName}
+                        </div>
+                      </div>
+                      {repo.sourceId === workspaceRepoId && (
+                        <span className="ml-1.5 shrink-0 text-muted-foreground">
+                          {isExtraSmallScreen
+                            ? 'Workspace'
+                            : 'Repo in workspace'}
+                        </span>
+                      )}
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </LoadingWrapper>
   )
 }
