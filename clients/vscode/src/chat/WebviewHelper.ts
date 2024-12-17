@@ -13,7 +13,7 @@ import {
   commands,
   Location,
   LocationLink,
-  workspace
+  workspace,
 } from "vscode";
 import type {
   ServerApi,
@@ -710,11 +710,11 @@ export class WebviewHelper {
             activeGitUrl = pathParams.gitRemoteUrl;
             infoList.push({
               gitUrl: activeGitUrl,
-            })
+            });
           }
-        };
+        }
 
-        const workspaceFolder = workspace.workspaceFolders || []
+        const workspaceFolder = workspace.workspaceFolders || [];
         for (const folder of workspaceFolder) {
           const repo = this.gitProvider.getRepository(folder.uri);
           if (repo) {
