@@ -298,6 +298,7 @@ mod tests {
                 body: body.to_string(),
                 filepath: "".to_owned(),
                 git_url: "".to_owned(),
+                commit: "".to_owned(),
                 language: "".to_owned(),
                 start_line: 0,
             },

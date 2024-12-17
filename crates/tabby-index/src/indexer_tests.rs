@@ -206,7 +206,8 @@ mod builder_tests {
         let builder = Arc::new(create_code_builder(Some(Arc::new(embedding))));
 
         let repo = get_repository_config();
-        let code = CodeIntelligence::compute_source_file(&repo, &get_rust_source_file()).unwrap();
+        let code = CodeIntelligence::compute_source_file(&repo, "commit", &get_rust_source_file())
+            .unwrap();
         let index_id = code.to_index_id();
 
         let (id, s) = tokio::runtime::Runtime::new()

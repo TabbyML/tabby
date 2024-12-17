@@ -265,12 +265,14 @@ mod tests {
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();
-        let source_file = CodeIntelligence::compute_source_file(&config, &get_rust_source_file())
-            .expect("Failed to create source file");
+        let source_file =
+            CodeIntelligence::compute_source_file(&config, "commit", &get_rust_source_file())
+                .expect("Failed to create source file");
 
         // check source_file properties
         assert_eq!(source_file.language, "rust");
         assert_eq!(source_file.tags.len(), 3);
         assert_eq!(source_file.filepath, "rust.rs");
+        assert_eq!(source_file.commit, "commit");
     }
 }
