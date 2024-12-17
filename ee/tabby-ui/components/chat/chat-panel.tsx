@@ -132,7 +132,7 @@ function ChatPanelRenderer(
     }
   }
 
-  const onSelectRepo = (sourceId: string | null) => {
+  const onSelectRepo = (sourceId: string | undefined) => {
     setSelectedRepoId(sourceId)
 
     setTimeout(() => {

@@ -69,8 +69,8 @@ type ChatContextValue = {
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
   indexedRepository: ResolveGitUrlQuery['resolveGitUrl']
-  selectedRepoId: string | null
-  setSelectedRepoId: React.Dispatch<React.SetStateAction<string | null>>
+  selectedRepoId: string | undefined
+  setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
   repos: ContextInfo['sources']
   fetchingRepos: boolean
 }
@@ -152,9 +152,9 @@ function ChatRenderer(
   // gitUrl from workspace
   const [gitUrl, setGitUrl] = React.useState<string | undefined>()
   // sourceId
-  const [selectedRepoId, setSelectedRepoId] = React.useState<string | null>(
-    null
-  )
+  const [selectedRepoId, setSelectedRepoId] = React.useState<
+    string | undefined
+  >()
 
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection

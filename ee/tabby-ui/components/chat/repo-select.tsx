@@ -23,8 +23,8 @@ import { Button } from '../ui/button'
 
 interface RepoSelectProps {
   repos: ContextInfo['sources']
-  value: string | null | undefined
-  onChange: (v: string | null) => void
+  value: string | undefined
+  onChange: (v: string | undefined) => void
   isInitializing?: boolean
   // sourceId
   workspaceRepoId?: string
@@ -90,9 +90,8 @@ export function RepoSelect({
               variant="ghost"
               className="h-7 w-7 shrink-0 rounded-l-none"
               onClick={e => {
-                e.preventDefault()
                 e.stopPropagation()
-                onChange(null)
+                onChange(undefined)
               }}
             >
               <IconRemove />
