@@ -57,7 +57,6 @@ export default function ChatPage() {
   >([])
   const [pendingActiveSelection, setPendingActiveSelection] =
     useState<Context | null>(null)
-  const [pendingGitUrl, setPendingGitUrl] = useState<string | undefined>()
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
@@ -76,6 +75,10 @@ export default function ChatPage() {
   const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
     useState(false)
   const [supportsOnLookupSymbol, setSupportsOnLookupSymbol] = useState(false)
+  const [
+    supportsProvideWorkspaceGitRepoInfo,
+    setSupportsProvideWorkspaceGitRepoInfo
+  ] = useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -102,14 +105,6 @@ export default function ChatPage() {
       chatRef.current.updateActiveSelection(ctx)
     } else if (ctx) {
       setPendingActiveSelection(ctx)
-    }
-  }
-
-  const updateGitUrl = (gitUrl: string | undefined) => {
-    if (chatRef.current) {
-      chatRef.current.updateGitUrl(gitUrl)
-    } else if (gitUrl) {
-      setPendingGitUrl(gitUrl)
     }
   }
 
@@ -160,8 +155,7 @@ export default function ChatPage() {
       document.documentElement.className =
         themeClass + ` client client-${client}`
     },
-    updateActiveSelection,
-    updateGitUrl
+    updateActiveSelection
   })
 
   useEffect(() => {
@@ -248,6 +242,9 @@ export default function ChatPage() {
           ?.hasCapability('onApplyInEditorV2')
           .then(setSupportsOnApplyInEditorV2)
         server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
+        server
+          ?.hasCapability('provideWorkspaceGitRepoInfo')
+          .then(setSupportsProvideWorkspaceGitRepoInfo)
       }
 
       checkCapabilities()
@@ -272,14 +269,12 @@ export default function ChatPage() {
     setPendingRelevantContexts([])
     setPendingMessages([])
     setPendingActiveSelection(null)
-    setPendingGitUrl(undefined)
   }
 
   const onChatLoaded = () => {
     pendingRelevantContexts.forEach(addRelevantContext)
     pendingMessages.forEach(sendMessage)
     chatRef.current?.updateActiveSelection(pendingActiveSelection)
-    chatRef.current?.updateGitUrl(pendingGitUrl)
 
     clearPendingState()
     setChatLoaded(true)
@@ -407,6 +402,11 @@ export default function ChatPage() {
           (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
         }
         openInEditor={isInEditor && server?.openInEditor}
+        provideWorkspaceGitRepoInfo={
+          isInEditor && supportsProvideWorkspaceGitRepoInfo
+            ? server?.provideWorkspaceGitRepoInfo
+            : undefined
+        }
       />
     </ErrorBoundary>
   )

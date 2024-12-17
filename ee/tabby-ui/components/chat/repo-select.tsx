@@ -87,7 +87,13 @@ export function RepoSelect({
       <Popover open={open} onOpenChange={setOpen}>
         <Badge
           variant="outline"
-          className="h-7 items-center gap-1 overflow-hidden break-all rounded-md px-0 text-sm font-semibold hover:bg-muted/50"
+          className={cn(
+            'h-7 items-center gap-1 overflow-hidden break-all rounded-md px-0 text-sm font-semibold hover:bg-muted/50',
+            {
+              'border-dashed text-muted-foreground italic line-through':
+                !selectedRepo
+            }
+          )}
         >
           <PopoverTrigger className="outline-none" asChild>
             <div
@@ -116,7 +122,7 @@ export function RepoSelect({
                 </span>
               </div>
               {!value && (
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center text-foreground">
                   <IconChevronUpDown />
                 </div>
               )}

@@ -177,6 +177,13 @@ export interface SymbolInfo {
   target: FileLocation
 }
 
+/**
+ * Includes information about a git repository in workspace folder
+ */
+export interface GitRepoInfo {
+  gitUrl: string
+}
+
 export interface ServerApi {
   init: (request: InitRequest) => void
   sendMessage: (message: ChatMessage) => void
@@ -185,7 +192,6 @@ export interface ServerApi {
   addRelevantContext: (context: Context) => void
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: Context | null) => void
-  updateGitUrl?: (gitUrl: string | undefined) => void
 }
 
 export interface ClientApiMethods {
@@ -225,6 +231,9 @@ export interface ClientApiMethods {
    * @returns Whether the file location is opened successfully.
    */
   openInEditor: (target: FileLocation) => Promise<boolean>
+
+  // Provide all repos found in workspace folders.
+  provideWorkspaceGitRepoInfo?: () => Promise<GitRepoInfo[]>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -259,6 +268,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onKeyboardEvent: api.onKeyboardEvent,
       lookupSymbol: api.lookupSymbol,
       openInEditor: api.openInEditor,
+      provideWorkspaceGitRepoInfo: api.provideWorkspaceGitRepoInfo,
     },
   })
 }
@@ -273,7 +283,6 @@ export function createServer(api: ServerApi): ClientApi {
       addRelevantContext: api.addRelevantContext,
       updateTheme: api.updateTheme,
       updateActiveSelection: api.updateActiveSelection,
-      updateGitUrl: api.updateGitUrl,
     },
   })
 }

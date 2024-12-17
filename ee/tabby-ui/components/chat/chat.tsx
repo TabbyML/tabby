@@ -4,6 +4,7 @@ import type {
   Context,
   FileContext,
   FileLocation,
+  GitRepoInfo,
   LookupSymbolHint,
   NavigateOpts,
   SymbolInfo
@@ -86,7 +87,6 @@ export interface ChatRef {
   addRelevantContext: (context: Context) => void
   focus: () => void
   updateActiveSelection: (context: Context | null) => void
-  updateGitUrl: (gitUrl: string | undefined) => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -114,6 +114,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   openInEditor?: (target: FileLocation) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+  provideWorkspaceGitRepoInfo?: () => Promise<GitRepoInfo[]>
 }
 
 function ChatRenderer(
@@ -136,7 +137,8 @@ function ChatRenderer(
     onLookupSymbol,
     openInEditor,
     chatInputRef,
-    supportsOnApplyInEditorV2
+    supportsOnApplyInEditorV2,
+    provideWorkspaceGitRepoInfo
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -176,7 +178,6 @@ function ChatRenderer(
     )
   }, [contextInfoData])
 
-  // todo remove this
   const [{ data: resolvedGitUrl }] = useQuery({
     query: resolveGitUrlQuery,
     variables: {
@@ -544,18 +545,8 @@ function ChatRenderer(
     300
   )
 
-  const debouncedUpdateGitUrl = useDebounceCallback(
-    (url: string | undefined) => {
-      setGitUrl(url)
-    },
-    300
-  )
-
   const updateActiveSelection = (ctx: Context | null) => {
     debouncedUpdateActiveSelection.run(ctx)
-  }
-  const updateGitUrl = (gitUrl: string | undefined) => {
-    debouncedUpdateGitUrl.run(gitUrl)
   }
 
   React.useImperativeHandle(
@@ -567,14 +558,24 @@ function ChatRenderer(
         isLoading,
         addRelevantContext,
         focus: () => chatPanelRef.current?.focus(),
-        updateActiveSelection,
-        updateGitUrl
+        updateActiveSelection
       }
     },
     []
   )
 
   React.useEffect(() => {
+    const fetchWorkspaceGitRepo = () => {
+      if (provideWorkspaceGitRepoInfo) {
+        provideWorkspaceGitRepoInfo().then(repos => {
+          if (repos.length) {
+            setGitUrl(repos[0].gitUrl)
+          }
+        })
+      }
+    }
+
+    fetchWorkspaceGitRepo()
     setInitialzed(true)
     onLoaded?.()
   }, [])
