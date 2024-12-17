@@ -49,6 +49,9 @@ export function RepoSelect({
     repo => repo.sourceId === value
   )?.sourceName
 
+  // if there's no repo, hide the repo select
+  if (!isInitializing || !repos.length) return null
+
   return (
     <LoadingWrapper
       loading={isInitializing}
