@@ -101,7 +101,7 @@ export function RepoSelect({
               {selectedRepo ? (
                 <SourceIcon
                   kind={selectedRepo.sourceKind}
-                  className="shrink-0 w-3.5 h-3.5"
+                  className="h-3.5 w-3.5 shrink-0"
                 />
               ) : (
                 <IconFolderGit className="shrink-0" />
@@ -116,7 +116,7 @@ export function RepoSelect({
                 </span>
               </div>
               {!value && (
-                <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center">
                   <IconChevronUpDown />
                 </div>
               )}
@@ -164,17 +164,17 @@ export function RepoSelect({
                     >
                       <IconCheck
                         className={cn(
-                          'shrink-0 mr-1',
+                          'mr-1 shrink-0',
                           repo.sourceId === value ? 'opacity-100' : 'opacity-0'
                         )}
                       />
-                      <div className="flex-1 overflow-x-hidden flex items-center gap-1">
+                      <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
                         <SourceIcon
                           kind={repo.sourceKind}
                           className="shrink-0"
                         />
                         <div
-                          className={cn('font-medium truncate', {
+                          className={cn('truncate font-medium', {
                             'font-semibold': isSelected
                           })}
                         >
