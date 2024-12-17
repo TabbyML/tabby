@@ -83,8 +83,8 @@ export async function showFileContext(fileContext: FileContext, gitProvider: Git
 
 export async function getGitRemoteUrl(fileUri: Uri | undefined, gitProvider: GitProvider): Promise<string | undefined> {
   if (fileUri) {
-    const pathParams = await buildFilePathParams(fileUri, gitProvider)
-    return pathParams.gitRemoteUrl
+    const pathParams = await buildFilePathParams(fileUri, gitProvider);
+    return pathParams.gitRemoteUrl;
   }
 
   const workspaceFolder = workspace.workspaceFolders?.[0];

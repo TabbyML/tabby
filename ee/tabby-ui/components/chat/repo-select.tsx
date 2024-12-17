@@ -62,12 +62,12 @@ export function RepoSelect({
       <DropdownMenu>
         <Badge
           variant="outline"
-          className="h-7 items-center gap-1 overflow-hidden rounded-md text-sm font-semibold pr-0 min-w-[8rem] break-all"
+          className="h-7 min-w-[8rem] items-center gap-1 overflow-hidden break-all rounded-md pr-0 text-sm font-semibold"
         >
           <DropdownMenuTrigger className="outline-none" asChild>
-            <div className="cursor-pointer flex-1 flex items-center gap-1.5 overflow-hidden">
+            <div className="flex flex-1 cursor-pointer items-center gap-1.5 overflow-hidden">
               <IconFolderGit className="shrink-0" />
-              <div className="flex-1 flex items-center gap-1.5 truncate break-all">
+              <div className="flex flex-1 items-center gap-1.5 truncate break-all">
                 <span
                   className={cn('truncate', {
                     'text-muted-foreground': !selectedRepoName
@@ -112,10 +112,10 @@ export function RepoSelect({
                 <DropdownMenuRadioItem
                   value={repo.sourceId}
                   key={repo.sourceId}
-                  className="cursor-pointer py-2 pl-3 flex items-center"
+                  className="flex cursor-pointer items-center py-2 pl-3"
                   onSelect={() => onSelectRepo(repo.sourceId)}
                 >
-                  <div className="flex-1 truncate flex items-center gap-2">
+                  <div className="flex flex-1 items-center gap-2 truncate">
                     <IconCheck
                       className={cn(
                         'shrink-0',
@@ -131,7 +131,7 @@ export function RepoSelect({
                     </span>
                   </div>
                   {repo.sourceId === workspaceRepoId && (
-                    <span className="text-muted-foreground ml-1.5 shrink-0">
+                    <span className="ml-1.5 shrink-0 text-muted-foreground">
                       {isExtraSmallScreen ? 'Workspace' : 'Repo in workspace'}
                     </span>
                   )}
