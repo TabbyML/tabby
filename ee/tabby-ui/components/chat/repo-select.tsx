@@ -72,13 +72,8 @@ export function RepoSelect({
                     'text-muted-foreground': !selectedRepoName
                   })}
                 >
-                  {selectedRepoName || 'Select repo...'}
+                  {selectedRepoName || 'Workspace'}
                 </span>
-                {isWorkspaceRepo && (
-                  <span className="shrink-0 text-muted-foreground">
-                    Context
-                  </span>
-                )}
               </div>
               {!value && <IconChevronUpDown className="shrink-0" />}
             </div>
