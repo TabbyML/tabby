@@ -187,12 +187,12 @@ fn create_hit(scores: CodeSearchScores, doc: TantivyDocument) -> CodeSearchHit {
         .to_owned(),
         // commit is introduced in v0.23, but it is also a required field
         // so we need to handle the case where it's not present
-        commit: get_json_text_field_or_default(
+        commit: get_json_text_field_optional(
             &doc,
             schema.field_chunk_attributes,
             code::fields::CHUNK_COMMIT,
         )
-        .to_owned(),
+        .map(|s| s.to_owned()),
         language: get_json_text_field(
             &doc,
             schema.field_chunk_attributes,
@@ -236,16 +236,15 @@ fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name:
         .unwrap()
 }
 
-fn get_json_text_field_or_default<'a>(
+fn get_json_text_field_optional<'a>(
     doc: &'a TantivyDocument,
     field: schema::Field,
     name: &str,
-) -> &'a str {
+) -> Option<&'a str> {
     doc.get_first(field)
         .and_then(|value| value.as_object())
         .and_then(|mut obj| obj.find(|(k, _)| *k == name))
         .and_then(|(_, v)| v.as_str())
-        .unwrap_or("")
 }
 
 struct CodeSearchService {
@@ -298,7 +297,7 @@ mod tests {
                 body: body.to_string(),
                 filepath: "".to_owned(),
                 git_url: "".to_owned(),
-                commit: "".to_owned(),
+                commit: Some("".to_owned()),
                 language: "".to_owned(),
                 start_line: 0,
             },

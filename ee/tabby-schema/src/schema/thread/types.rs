@@ -72,7 +72,7 @@ pub struct MessageAttachmentClientCode {
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentCode {
     pub git_url: String,
-    pub commit: String,
+    pub commit: Option<String>,
     pub filepath: String,
     pub language: String,
     pub content: String,

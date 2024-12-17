@@ -49,7 +49,7 @@ impl RepositoryExt for CodeRepository {
             }
         }
 
-        get_commit_sha(&self)
+        get_commit_sha(self)
     }
 }
 
