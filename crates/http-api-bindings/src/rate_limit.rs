@@ -38,7 +38,7 @@ impl Embedding for RateLimitedEmbedding {
         self.rate_limiter.acquire(1).await;
         self.embedding
             .embed(prompt)
-            .instrument(info_span!("rate_limit_embed"))
+            .instrument(info_span!("rate_limited_compute_embedding"))
             .await
     }
 }

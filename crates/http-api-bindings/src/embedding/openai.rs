@@ -45,7 +45,7 @@ impl Embedding for OpenAIEmbeddingEngine {
             .client
             .embeddings()
             .create(request)
-            .instrument(info_span!("embed_openai"))
+            .instrument(info_span!("embedding", kind = "openai"))
             .await?;
         let data = resp
             .data

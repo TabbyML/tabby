@@ -128,7 +128,7 @@ async fn build_binarize_embedding_tokens(
 ) -> Result<Vec<String>> {
     let embedding = match embedding
         .embed(body)
-        .instrument(info_span!("embed", corpus = corpus::CODE))
+        .instrument(info_span!("index_compute_embedding", corpus = corpus::CODE))
         .await
     {
         Ok(x) => x,
