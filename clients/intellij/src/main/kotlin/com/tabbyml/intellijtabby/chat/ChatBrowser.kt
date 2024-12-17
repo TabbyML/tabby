@@ -4,16 +4,18 @@ import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.intellij.ide.BrowserUtil
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceOrNull
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.progress.util.BackgroundTaskUtil
@@ -27,6 +29,7 @@ import com.tabbyml.intellijtabby.events.CombinedState
 import com.tabbyml.intellijtabby.findVirtualFile
 import com.tabbyml.intellijtabby.git.GitProvider
 import com.tabbyml.intellijtabby.lsp.ConnectionService
+import com.tabbyml.intellijtabby.lsp.ConnectionService.InitializationException
 import com.tabbyml.intellijtabby.lsp.protocol.Config
 import com.tabbyml.intellijtabby.lsp.protocol.StatusInfo
 import com.tabbyml.intellijtabby.lsp.protocol.StatusRequestParams
@@ -43,6 +46,8 @@ import java.awt.Color
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.io.File
+import java.util.*
+import java.util.concurrent.CompletableFuture
 
 
 class ChatBrowser(private val project: Project) : JBCefBrowser(
@@ -57,7 +62,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     )
     .setEnableOpenDevToolsMenuItem(true)
 ) {
-  private val logger = Logger.getInstance(ChatBrowser::class.java)
+  private val logger = logger<ChatBrowser>()
   private val gson = Gson()
   private val combinedState = project.service<CombinedState>()
   private val gitProvider = project.service<GitProvider>()
@@ -66,17 +71,9 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
   private val scope = CoroutineScope(Dispatchers.IO)
   private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
 
-  private val reloadHandler = JBCefJSQuery.create(this as JBCefBrowserBase)
-  private val chatPanelRequestHandler = JBCefJSQuery.create(this as JBCefBrowserBase)
-
   private var currentConfig: Config.ServerConfig? = null
   private var isChatPanelLoaded = false
   private val pendingScripts: MutableList<String> = mutableListOf()
-
-  private data class ChatPanelRequest(
-    val method: String,
-    val params: List<Any?>,
-  )
 
   private data class FileContext(
     val kind: String = "file",
@@ -98,7 +95,9 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     component.background = bgColor
     setPageBackgroundColor("hsl(${bgColor.toHsl()})")
 
-    loadHTML(HTML_CONTENT)
+    val tabbyThreadsScript = loadTabbyThreadsScript()
+    val htmlContent = loadHtmlContent(tabbyThreadsScript)
+    loadHTML(htmlContent)
 
     jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
       override fun onLoadingStateChange(
@@ -112,17 +111,6 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         }
       }
     }, cefBrowser)
-
-    reloadHandler.addHandler {
-      reloadContent(true)
-      return@addHandler JBCefJSQuery.Response("")
-    }
-
-    chatPanelRequestHandler.addHandler { message ->
-      val request = gson.fromJson(message, ChatPanelRequest::class.java)
-      handleChatPanelRequest(request)
-      return@addHandler JBCefJSQuery.Response("")
-    }
 
     messageBusConnection.subscribe(CombinedState.Listener.TOPIC, object : CombinedState.Listener {
       override fun stateChanged(state: CombinedState.State) {
@@ -233,7 +221,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
   }
 
   private fun handleLoaded() {
-    jsInjectHandlers()
+    jsInjectFunctions()
+    jsCreateChatPanelClient()
     jsApplyStyle()
     reloadContent()
     component.isVisible = true
@@ -333,90 +322,10 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     }
   }
 
-  private fun handleChatPanelRequest(request: ChatPanelRequest) {
-    when (request.method) {
-      "navigate" -> {
-        logger.debug("navigate: request: ${request.params}")
-        val context = request.params.getOrNull(0)?.let {
-          gson.fromJson(gson.toJson(it), FileContext::class.java)
-        } ?: return
-        val options = request.params.getOrNull(1) as Map<*, *>?
-        if (options?.get("openInEditor") == true) {
-          navigateToFileContext(context)
-        } else {
-          currentConfig?.let { buildCodeBrowserUrl(it, context) }?.let { BrowserUtil.browse(it) }
-        }
-      }
-
-      "refresh" -> {
-        logger.debug("refresh: request: ${request.params}")
-        reloadContent(true)
-      }
-
-      "onSubmitMessage" -> {
-        logger.debug("onSubmitMessage: request: ${request.params}")
-        if (request.params.isNotEmpty()) {
-          val message = request.params[0] as String
-          val relevantContext: List<FileContext>? = request.params.getOrNull(1)?.let {
-            gson.fromJson(gson.toJson(it), object : TypeToken<List<FileContext?>?>() {}.type)
-          }
-          val activeContext = getActiveFileContext()
-          chatPanelSendMessage(message, null, relevantContext, activeContext)
-        }
-      }
-
-      "onApplyInEditor" -> {
-        logger.debug("onApplyInEditor: request: ${request.params}")
-        val content = request.params.getOrNull(0) as String? ?: return
-        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return
-        invokeLater {
-          WriteCommandAction.runWriteCommandAction(project) {
-            val start = editor.selectionModel.selectionStart
-            val end = editor.selectionModel.selectionEnd
-            editor.document.replaceString(start, end, content)
-            editor.caretModel.moveToOffset(start + content.length)
-          }
-        }
-      }
-
-      "onLoaded" -> {
-        logger.debug("onLoaded: request: ${request.params}")
-        val params = request.params.getOrNull(0) as Map<*, *>?
-        val apiVersion = params?.get("apiVersion") as String?
-        if (apiVersion != null) {
-          val error = checkChatPanelApiVersion(apiVersion)
-          if (error != null) {
-            showContent(error)
-            return
-          }
-        }
-        isChatPanelLoaded = true
-        chatPanelInit()
-        chatPanelUpdateTheme()
-        showContent()
-        pendingScripts.forEach { executeJs(it) }
-        pendingScripts.clear()
-      }
-
-      "onCopy" -> {
-        logger.debug("onCopy: request: ${request.params}")
-        val content = request.params.getOrNull(0) as String? ?: return
-        val stringSelection = StringSelection(content)
-        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-        clipboard.setContents(stringSelection, null)
-      }
-
-      "onKeyboardEvent" -> {
-        // nothing to do
-      }
-    }
-  }
-
   // chat panel api functions
 
   private fun chatPanelInit() {
-    val request = ChatPanelRequest(
-      "init",
+    val params =
       listOf(
         mapOf(
           "fetcherOptions" to mapOf(
@@ -424,9 +333,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
           )
         )
       )
-    )
-    logger.debug("chatPanelInit: $request")
-    jsSendRequestToChatPanel(request)
+    logger.debug("chatPanelInit: $params")
+    jsChatPanelClientInvoke("init", params)
   }
 
   private fun chatPanelSendMessage(
@@ -435,8 +343,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     relevantContext: List<FileContext>? = null,
     activeContext: FileContext? = null,
   ) {
-    val request = ChatPanelRequest(
-      "sendMessage",
+    val params =
       listOf(
         mapOf(
           "message" to message,
@@ -445,52 +352,174 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
           "activeContext" to activeContext,
         )
       )
-    )
-    logger.debug("chatPanelSendMessage: $request")
-    jsSendRequestToChatPanel(request)
+    logger.debug("chatPanelSendMessage: $params")
+    jsChatPanelClientInvoke("sendMessage", params)
   }
 
   private fun chatPanelAddRelevantContext(context: FileContext) {
-    val request = ChatPanelRequest(
-      "addRelevantContext",
-      listOf(context)
-    )
-    logger.debug("chatPanelAddRelevantContext: $request")
-    jsSendRequestToChatPanel(request)
+    val params = listOf(context)
+
+    logger.debug("chatPanelAddRelevantContext: $params")
+    jsChatPanelClientInvoke("addRelevantContext", params)
   }
 
   private fun chatPanelUpdateTheme() {
-    val request = ChatPanelRequest(
-      "updateTheme",
+    val params =
       listOf(
         buildCss(),
         if (isDarkTheme) "dark" else "light",
       )
-    )
-    logger.debug("chatPanelUpdateTheme: $request")
-    jsSendRequestToChatPanel(request)
+    logger.debug("chatPanelUpdateTheme: $params")
+    jsChatPanelClientInvoke("updateTheme", params)
   }
 
   private fun chatPanelUpdateActiveSelection(context: FileContext?) {
-    val request = ChatPanelRequest(
-      "updateActiveSelection",
-      listOf(context)
-    )
-    logger.debug("chatPanelUpdateActiveSelection: $request")
-    jsSendRequestToChatPanel(request)
+    val params = listOf(context)
+    logger.debug("chatPanelUpdateActiveSelection: $params")
+    jsChatPanelClientInvoke("updateActiveSelection", params)
   }
 
-  // js functions
+  // js handler functions to inject
 
-  private fun jsInjectHandlers() {
-    val script = String.format(
-      """
-        window.handleReload = function() { %s }
-        window.handleChatPanelRequest = function(message) { %s }
-      """.trimIndent(),
-      reloadHandler.inject(""),
-      chatPanelRequestHandler.inject("message"),
+  private fun createJsFunction(handler: (List<Any?>) -> Any?): String {
+    val jsQuery = JBCefJSQuery.create(this as JBCefBrowserBase)
+    jsQuery.addHandler { paramsJson ->
+      val params = gson.fromJson(paramsJson, object : TypeToken<List<Any?>>() {})
+      val result = handler(params)
+      val resultJson = gson.toJson(result)
+      return@addHandler JBCefJSQuery.Response(resultJson)
+    }
+    val injection = jsQuery.inject(
+      "paramsJson",
+      "function(response) { resolve(JSON.parse(response)); }",
+      "function(error_code, error_message) { reject(new Error(error_message)); }",
     )
+    return """
+      function(...args) {
+        return new Promise((resolve, reject) => {
+          const paramsJson = JSON.stringify(args);
+          $injection
+        });
+      }
+    """.trimIndent().trimStart()
+  }
+
+  private val jsReloadContent = createJsFunction { reloadContent(true) }
+
+  private val jsHandleChatPanelNavigate = createJsFunction { params ->
+    logger.debug("navigate: $params")
+    val context = params.getOrNull(0)?.let {
+      gson.fromJson(gson.toJson(it), FileContext::class.java)
+    } ?: return@createJsFunction Unit
+    val options = params.getOrNull(1) as Map<*, *>?
+    if (options?.get("openInEditor") == true) {
+      navigateToFileContext(context)
+    } else {
+      currentConfig?.let { buildCodeBrowserUrl(it, context) }?.let { BrowserUtil.browse(it) }
+    }
+  }
+
+  private val jsHandleChatPanelRefresh = createJsFunction {
+    logger.debug("refresh")
+    reloadContent(true)
+  }
+
+  private val jsHandleChatPanelOnSubmitMessage = createJsFunction { params ->
+    logger.debug("onSubmitMessage: $params")
+    if (params.isNotEmpty()) {
+      val message = params[0] as String
+      val relevantContext: List<FileContext>? = params.getOrNull(1)?.let {
+        gson.fromJson(gson.toJson(it), object : TypeToken<List<FileContext?>?>() {}.type)
+      }
+      val activeContext = getActiveFileContext()
+      chatPanelSendMessage(message, null, relevantContext, activeContext)
+    }
+  }
+
+  private val jsHandleChatPanelOnApplyInEditor = createJsFunction { params ->
+    logger.debug("onApplyInEditor: $params")
+    val content = params.getOrNull(0) as String? ?: return@createJsFunction Unit
+    val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return@createJsFunction Unit
+    invokeLater {
+      WriteCommandAction.runWriteCommandAction(project) {
+        val start = editor.selectionModel.selectionStart
+        val end = editor.selectionModel.selectionEnd
+        editor.document.replaceString(start, end, content)
+        editor.caretModel.moveToOffset(start + content.length)
+      }
+    }
+  }
+
+  private val jsHandleChatPanelOnLoaded = createJsFunction { params ->
+    logger.debug("onLoaded: $params")
+    val onLoadedParams = params.getOrNull(0) as Map<*, *>?
+    val apiVersion = onLoadedParams?.get("apiVersion") as String?
+    if (apiVersion != null) {
+      val error = checkChatPanelApiVersion(apiVersion)
+      if (error != null) {
+        showContent(error)
+        return@createJsFunction Unit
+      }
+    }
+    isChatPanelLoaded = true
+    chatPanelInit()
+    chatPanelUpdateTheme()
+    showContent()
+    pendingScripts.forEach { executeJs(it) }
+    pendingScripts.clear()
+  }
+
+  private val jsHandleChatPanelOnCopy = createJsFunction { params ->
+    logger.debug("onCopy: request: $params")
+    val content = params.getOrNull(0) as String? ?: return@createJsFunction Unit
+    val stringSelection = StringSelection(content)
+    val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+    clipboard.setContents(stringSelection, null)
+  }
+
+  private val jsHandleChatPanelOnKeyboardEvent = createJsFunction { params ->
+    logger.debug("onKeyboardEvent: request: $params")
+    // nothing to do
+  }
+
+  private val jsHandleChatPanelOpenInEditor = createJsFunction { params ->
+    logger.debug("openInEditor: request: $params")
+    //FIXME(@icycodes): not implemented
+    return@createJsFunction false
+  }
+
+  // functions to execute js scripts
+
+  private fun executeJs(script: String) {
+    cefBrowser.executeJavaScript(script, cefBrowser.url, 0)
+  }
+
+  private fun jsInjectFunctions() {
+    val script = """
+      if (!window.handleReload) {
+        window.handleReload = $jsReloadContent
+      }
+    """.trimIndent().trimStart()
+    executeJs(script)
+  }
+
+  private fun jsCreateChatPanelClient() {
+    val script = """
+      if (!window.tabbyChatPanelClient) {
+        window.tabbyChatPanelClient = TabbyThreads.createThreadFromIframe(getChatPanel(), {
+          expose: {
+            navigate: $jsHandleChatPanelNavigate,
+            refresh: $jsHandleChatPanelRefresh,
+            onSubmitMessage: $jsHandleChatPanelOnSubmitMessage,
+            onApplyInEditor: $jsHandleChatPanelOnApplyInEditor,
+            onLoaded: $jsHandleChatPanelOnLoaded,
+            onCopy: $jsHandleChatPanelOnCopy,
+            onKeyboardEvent: $jsHandleChatPanelOnKeyboardEvent,
+            openInEditor: $jsHandleChatPanelOpenInEditor,
+          }
+        })
+      }
+    """.trimIndent().trimStart()
     executeJs(script)
   }
 
@@ -514,23 +543,62 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private fun jsLoadChatPanel() {
     val config = currentConfig ?: return
-    val chatUrl = String.format("%s/chat?client=intellij", config.endpoint)
-    val script = String.format("loadChatPanel('%s')", chatUrl)
+    val chatUrl = "${config.endpoint}/chat?client=intellij"
+    val script = "loadChatPanel('$chatUrl')"
     executeJs(script)
   }
 
-  private fun jsSendRequestToChatPanel(request: ChatPanelRequest) {
-    val json = gson.toJson(request)
-    val script = String.format("sendRequestToChatPanel('%s')", escapeCharacters(json))
+  private val pendingChatPanelRequest = mutableMapOf<String, CompletableFuture<Any?>>()
+  private val jsChatPanelResponseHandlerInjection = JBCefJSQuery.create(this as JBCefBrowserBase).apply {
+    addHandler { results ->
+      logger.debug("Response from chat panel: $results")
+      val parsedResult = gson.fromJson(results, object : TypeToken<List<Any?>>() {})
+      val future = pendingChatPanelRequest.remove(parsedResult[0] as String)
+      if (parsedResult[1] is String) {
+        future?.completeExceptionally(Exception(parsedResult[1] as String))
+      } else {
+        future?.complete(parsedResult[2])
+      }
+      return@addHandler JBCefJSQuery.Response("")
+    }
+  }.inject("results")
+
+  private fun jsChatPanelClientInvoke(method: String, params: List<Any?>): CompletableFuture<Any?> {
+    val future = CompletableFuture<Any?>()
+    val uuid = UUID.randomUUID().toString()
+    pendingChatPanelRequest[uuid] = future
+    val paramsJson = escapeCharacters(gson.toJson(params))
+    val script = """
+      (function() {
+        const func = window.tabbyChatPanelClient['$method']
+        if (func && typeof func === 'function') {
+          const params = JSON.parse('$paramsJson')
+          const resultPromise = func(...params)
+          if (resultPromise && typeof resultPromise.then === 'function') {
+            resultPromise.then(result => {
+              const results = JSON.stringify(['$uuid', null, result])
+              $jsChatPanelResponseHandlerInjection
+            }).catch(error => {
+              const results = JSON.stringify(['$uuid', error.message, null])
+              $jsChatPanelResponseHandlerInjection
+            })
+          } else {
+            const results = JSON.stringify(['$uuid', null, resultPromise])
+            $jsChatPanelResponseHandlerInjection
+          }
+        } else {
+          const results = JSON.stringify(['$uuid', 'Method not found: $method', null])
+          $jsChatPanelResponseHandlerInjection
+        }
+      })()
+    """.trimIndent().trimStart()
     if (isChatPanelLoaded) {
+      logger.debug("Request to chat panel: $uuid, $method, $paramsJson")
       executeJs(script)
     } else {
       pendingScripts.add(script)
     }
-  }
-
-  private fun executeJs(script: String) {
-    cefBrowser.executeJavaScript(script, cefBrowser.url, 0)
+    return future
   }
 
   companion object {
@@ -653,7 +721,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       }.buildString()
     }
 
-    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.2.0"
+    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.4.0"
     private const val TABBY_SERVER_VERSION_RANGE = ">=0.18.0"
 
     private const val PROMPT_EXPLAIN: String = "Explain the selected code:"
@@ -661,7 +729,21 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     private const val PROMPT_GENERATE_DOCS: String = "Generate documentation for the selected code:"
     private const val PROMPT_GENERATE_TESTS: String = "Generate a unit test for the selected code:"
 
-    private const val HTML_CONTENT = """
+    private fun loadTabbyThreadsScript(): String {
+      val script =
+        PluginManagerCore.getPlugin(PluginId.getId("com.tabbyml.intellij-tabby"))
+          ?.pluginPath
+          ?.resolve("tabby-threads/iife/create-thread-from-iframe.js")
+          ?.toFile()
+      if (script?.exists() == true) {
+        logger<ChatBrowser>().info("Tabby-threads script path: ${script.absolutePath}")
+        return script.readText()
+      } else {
+        throw InitializationException("Tabby-threads script not found. Please reinstall Tabby plugin.")
+      }
+    }
+
+    private fun loadHtmlContent(script: String) = """
       <!DOCTYPE html>
       <html lang="en">
       
@@ -723,6 +805,9 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         </div>
         <iframe id="chat" style="display: none;"></iframe>
         <script>
+        $script
+        </script>
+        <script>
           function getChatPanel() {
             return document.getElementById("chat");
           }
@@ -755,26 +840,6 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
             document.documentElement.style.cssText = css;
           }
       
-          function sendRequestToChatPanel(request) {
-            const chat = getChatPanel();
-            // client to server requests
-            const { method, params } = JSON.parse(request);
-            if (method) {
-              // adapter for @quilted/threads requests
-              const data = [
-                0, // kind: Request
-                [uuid(), method, params],
-              ]
-              chat.contentWindow.postMessage(data, new URL(chat.src).origin);
-            }
-          }
-      
-          function uuid() {
-            return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-              (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-            );
-          }
-      
           window.addEventListener("focus", (event) => {
             const chat = getChatPanel();
             if (chat.style.cssText == "display: block;") {
@@ -783,33 +848,10 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
               }, 1);
             }
           });
-
-          window.addEventListener("message", (event) => {
-            const chat = getChatPanel();
-      
-            // server to client requests
-            if (event.source === chat.contentWindow) {      
-              // adapter for @quilted/threads requests
-              if (Array.isArray(event.data) && event.data.length >= 2) {
-                const [kind, data] = event.data;
-                if (kind === 0) {
-                  // 0: Request
-                  if (Array.isArray(data) && event.data.length >= 2) {
-                    const [_requestId, method, params] = data;
-                    // handleChatPanelRequest is a function injected by the client
-                    handleChatPanelRequest(JSON.stringify({ method, params }));
-                  }
-                } else {
-                  // 1: Response
-                  // ignored as current methods return void
-                }
-              }
-            }
-          });
         </script>
       </body>
       
       </html>
-    """
+    """.trimIndent().trimStart()
   }
 }

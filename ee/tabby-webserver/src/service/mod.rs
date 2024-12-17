@@ -9,6 +9,7 @@ pub mod event_logger;
 pub mod integration;
 pub mod job;
 mod license;
+mod notification;
 mod preset_web_documents_data;
 pub mod repository;
 mod setting;
@@ -22,14 +23,18 @@ use std::sync::Arc;
 use answer::AnswerService;
 use anyhow::Context;
 use async_trait::async_trait;
+pub use auth::create as new_auth_service;
 use axum::{
     body::Body,
     http::{HeaderName, HeaderValue, Request, StatusCode},
     middleware::Next,
     response::IntoResponse,
 };
+pub use email::new_email_service;
 use hyper::{HeaderMap, Uri};
 use juniper::ID;
+pub use license::new_license_service;
+pub use setting::create as new_setting_service;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
@@ -47,6 +52,7 @@ use tabby_schema::{
     is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
+    notification::NotificationService,
     policy,
     repository::RepositoryService,
     setting::SettingService,
@@ -58,9 +64,9 @@ use tabby_schema::{
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
 
-use self::{
-    analytic::new_analytic_service, email::new_email_service, license::new_license_service,
-};
+use self::analytic::new_analytic_service;
+use crate::rate_limit::UserRateLimiter;
+
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
@@ -68,6 +74,7 @@ struct ServerContext {
     chat: Option<Arc<dyn ChatCompletionStream>>,
     completion: Option<Arc<dyn CompletionStream>>,
     auth: Arc<dyn AuthenticationService>,
+    notification: Arc<dyn NotificationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
@@ -83,11 +90,14 @@ struct ServerContext {
     code: Arc<dyn CodeSearch>,
 
     setting: Arc<dyn SettingService>,
+
+    user_rate_limiter: UserRateLimiter,
 }
 
 impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
+        auth: Arc<dyn AuthenticationService>,
         chat: Option<Arc<dyn ChatCompletionStream>>,
         completion: Option<Arc<dyn CompletionStream>>,
         code: Arc<dyn CodeSearch>,
@@ -97,24 +107,21 @@ impl ServerContext {
         answer: Option<Arc<AnswerService>>,
         context: Arc<dyn ContextService>,
         web_documents: Arc<dyn WebDocumentService>,
+        mail: Arc<dyn EmailService>,
+        license: Arc<dyn LicenseService>,
+        setting: Arc<dyn SettingService>,
         db_conn: DbConn,
         embedding: Arc<dyn EmbeddingService>,
     ) -> Self {
-        let mail = Arc::new(
-            new_email_service(db_conn.clone())
-                .await
-                .expect("failed to initialize mail service"),
-        );
-        let license = Arc::new(
-            new_license_service(db_conn.clone())
-                .await
-                .expect("failed to initialize license service"),
-        );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
-        let setting = Arc::new(setting::create(db_conn.clone()));
-        let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
+        let thread = Arc::new(thread::create(
+            db_conn.clone(),
+            answer.clone(),
+            Some(auth.clone()),
+        ));
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
+        let notification = Arc::new(notification::create(db_conn.clone()));
 
         background_job::start(
             db_conn.clone(),
@@ -124,21 +131,18 @@ impl ServerContext {
             integration.clone(),
             repository.clone(),
             context.clone(),
+            license.clone(),
+            notification.clone(),
             embedding.clone(),
         )
         .await;
 
         Self {
-            mail: mail.clone(),
+            mail,
             embedding,
             chat,
             completion,
-            auth: Arc::new(auth::create(
-                db_conn.clone(),
-                mail,
-                license.clone(),
-                setting.clone(),
-            )),
+            auth,
             web_documents,
             thread,
             context,
@@ -152,7 +156,9 @@ impl ServerContext {
             setting,
             user_group,
             access_policy,
+            notification,
             db_conn,
+            user_rate_limiter: UserRateLimiter::default(),
         }
     }
 
@@ -223,6 +229,15 @@ impl WorkerService for ServerContext {
         }
 
         if let Some(user) = user {
+            // Apply rate limiting when `user` is not none.
+            if !self.user_rate_limiter.is_allowed(&user).await {
+                return axum::response::Response::builder()
+                    .status(StatusCode::TOO_MANY_REQUESTS)
+                    .body(Body::empty())
+                    .unwrap()
+                    .into_response();
+            }
+
             request.headers_mut().append(
                 HeaderName::from_static(USER_HEADER_FIELD_NAME),
                 HeaderValue::from_str(&user).expect("User must be valid header"),
@@ -280,6 +295,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn logger(&self) -> Arc<dyn EventLogger> {
         self.0.logger.clone()
+    }
+
+    fn notification(&self) -> Arc<dyn tabby_schema::notification::NotificationService> {
+        self.0.notification.clone()
     }
 
     fn job(&self) -> Arc<dyn JobService> {
@@ -341,6 +360,7 @@ impl ServiceLocator for ArcServerContext {
 
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
+    auth: Arc<dyn AuthenticationService>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
     completion: Option<Arc<dyn CompletionStream>>,
     code: Arc<dyn CodeSearch>,
@@ -350,12 +370,16 @@ pub async fn create_service_locator(
     answer: Option<Arc<AnswerService>>,
     context: Arc<dyn ContextService>,
     web_documents: Arc<dyn WebDocumentService>,
+    mail: Arc<dyn EmailService>,
+    license: Arc<dyn LicenseService>,
+    setting: Arc<dyn SettingService>,
     db: DbConn,
     embedding: Arc<dyn EmbeddingService>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(
             logger,
+            auth,
             chat,
             completion,
             code,
@@ -365,6 +389,9 @@ pub async fn create_service_locator(
             answer,
             context,
             web_documents,
+            mail,
+            license,
+            setting,
             db,
             embedding,
         )

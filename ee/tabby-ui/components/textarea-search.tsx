@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Editor } from '@tiptap/react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 
+import { NEWLINE_CHARACTER } from '@/lib/constants'
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { ThreadRunContexts } from '@/lib/types'
@@ -98,7 +99,11 @@ export default function TextAreaSearch({
       return
     }
 
-    const text = editor.getText().trim()
+    const text = editor
+      .getText({
+        blockSeparator: NEWLINE_CHARACTER
+      })
+      .trim()
     if (!text) return
 
     const mentions = getMentionsFromText(text, contextInfo?.sources)
@@ -175,7 +180,15 @@ export default function TextAreaSearch({
             autoFocus={autoFocus}
             onFocus={() => setIsFocus(true)}
             onBlur={() => setIsFocus(false)}
-            onUpdate={({ editor }) => setValue(editor.getText().trim())}
+            onUpdate={({ editor }) =>
+              setValue(
+                editor
+                  .getText({
+                    blockSeparator: NEWLINE_CHARACTER
+                  })
+                  .trim()
+              )
+            }
             ref={editorRef}
             placement={isFollowup ? 'bottom' : 'top'}
             className={cn(

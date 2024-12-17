@@ -2,7 +2,7 @@ use std::{fs, sync::Arc};
 
 pub use llama_cpp_server::PromptInfo;
 use tabby_common::config::ModelConfig;
-use tabby_download::download_model;
+use tabby_download::{download_model, ModelKind};
 use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream, Embedding};
 use tracing::info;
 
@@ -80,10 +80,10 @@ async fn load_completion_and_chat(
     (completion, prompt, chat)
 }
 
-pub async fn download_model_if_needed(model: &str) {
+pub async fn download_model_if_needed(model: &str, kind: ModelKind) {
     if fs::metadata(model).is_ok() {
         info!("Loading model from local path {}", model);
     } else {
-        download_model(model, true).await;
+        download_model(model, true, Some(kind)).await;
     }
 }

@@ -69,7 +69,10 @@ pub fn create(
         .route("/avatar/:id", routing::get(avatar).with_state(ctx.auth()))
         .nest("/oauth", oauth::routes(ctx.auth()));
 
-    let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));
+    let ui = ui.route(
+        "/graphiql",
+        routing::get(graphiql("/graphql", "/subscriptions")),
+    );
 
     let ui = ui.fallback(ui::handler);
 

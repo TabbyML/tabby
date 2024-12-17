@@ -512,6 +512,7 @@ type MessageAttachmentCodeScores {
 type MessageAttachmentIssueDoc {
   title: String!
   link: String!
+  author: User
   body: String!
   closed: Boolean!
 }
@@ -519,6 +520,7 @@ type MessageAttachmentIssueDoc {
 type MessageAttachmentPullDoc {
   title: String!
   link: String!
+  author: User
   body: String!
   patch: String!
   merged: Boolean!
@@ -574,6 +576,7 @@ type Mutation {
   refreshToken(refreshToken: String!): RefreshTokenResponse!
   createInvitation(email: String!): ID!
   sendTestEmail(to: String!): Boolean!
+  markNotificationsRead(notificationId: ID): Boolean!
   createGitRepository(name: String!, gitUrl: String!): ID!
   deleteGitRepository(id: ID!): Boolean!
   updateGitRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
@@ -611,6 +614,14 @@ type Mutation {
 
 type NetworkSetting {
   externalUrl: String!
+}
+
+type Notification {
+  id: ID!
+  content: String!
+  read: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type OAuthCredential {
@@ -711,6 +722,7 @@ type Query {
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTime!, end: DateTime!, users: [ID!], languages: [Language!]): [CompletionStats!]!
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
+  notifications: [Notification!]!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
   contextInfo: ContextInfo!

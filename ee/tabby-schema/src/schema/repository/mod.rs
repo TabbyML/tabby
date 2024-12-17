@@ -279,6 +279,4 @@ pub trait RepositoryService: Send + Sync {
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
 
     async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>>;
-
-    async fn resolve_source_id_by_git_url(&self, git_url: &str) -> Result<String>;
 }

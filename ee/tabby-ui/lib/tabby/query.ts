@@ -422,12 +422,22 @@ export const listThreadMessages = graphql(/* GraphQL */ `
               ... on MessageAttachmentIssueDoc {
                 title
                 link
+                author {
+                  id
+                  email
+                  name
+                }
                 body
                 closed
               }
               ... on MessageAttachmentPullDoc {
                 title
                 link
+                author {
+                  id
+                  email
+                  name
+                }
                 body
                 merged
               }
@@ -442,6 +452,23 @@ export const listThreadMessages = graphql(/* GraphQL */ `
         startCursor
         endCursor
       }
+    }
+  }
+`)
+
+export const setThreadPersistedMutation = graphql(/* GraphQL */ `
+  mutation SetThreadPersisted($threadId: ID!) {
+    setThreadPersisted(threadId: $threadId)
+  }
+`)
+
+export const notificationsQuery = graphql(/* GraphQL */ `
+  query Notifications {
+    notifications {
+      id
+      content
+      read
+      createdAt
     }
   }
 `)

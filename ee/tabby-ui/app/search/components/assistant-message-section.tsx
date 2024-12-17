@@ -12,7 +12,11 @@ import { Context } from 'tabby-chat-panel/index'
 import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
-import { MessageAttachmentCode } from '@/lib/gql/generates/graphql'
+import {
+  Maybe,
+  MessageAttachmentClientCode,
+  MessageAttachmentCode
+} from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
   AttachmentDocItem,
@@ -35,6 +39,11 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card'
+import {
   IconBlocks,
   IconBug,
   IconCheckCircled,
@@ -56,30 +65,35 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { ChatContext } from '@/components/chat/chat'
 import { CodeReferences } from '@/components/chat/code-references'
 import { CopyButton } from '@/components/copy-button'
 import {
   ErrorMessageBlock,
-  MessageMarkdown,
-  SiteFavicon
+  MessageMarkdown
 } from '@/components/message-markdown'
+import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
+import { SiteFavicon } from '@/components/site-favicon'
+import { UserAvatar } from '@/components/user-avatar'
 
 import { ConversationMessage, SearchContext, SOURCE_CARD_STYLE } from './search'
 
 export function AssistantMessageSection({
+  className,
   message,
   showRelatedQuestion,
   isLoading,
   isLastAssistantMessage,
   isDeletable,
-  className
+  clientCode
 }: {
+  className?: string
   message: ConversationMessage
   showRelatedQuestion: boolean
   isLoading?: boolean
   isLastAssistantMessage?: boolean
   isDeletable?: boolean
-  className?: string
+  clientCode?: Maybe<Array<MessageAttachmentClientCode>>
 }) {
   const {
     onRegenerateResponse,
@@ -93,6 +107,9 @@ export function AssistantMessageSection({
     isThreadOwner,
     onUpdateMessage
   } = useContext(SearchContext)
+
+  const { supportsOnApplyInEditorV2, onNavigateToContext } =
+    useContext(ChatContext)
 
   const [isEditing, setIsEditing] = useState(false)
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -130,16 +147,29 @@ export function AssistantMessageSection({
 
   const IconAnswer = isLoading ? IconSpinner : IconSparkles
 
-  const messageAttachmentDocs = message?.attachment?.doc
-  const messageAttachmentCode = message?.attachment?.code
+  const relevantCodeGitURL = message?.attachment?.code?.[0]?.gitUrl || ''
 
-  const totalHeightInRem = messageAttachmentDocs?.length
-    ? Math.ceil(messageAttachmentDocs.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(messageAttachmentDocs.length / 4) +
-      0.5
-    : 0
+  const clientCodeContexts: RelevantCodeContext[] = useMemo(() => {
+    if (!clientCode?.length) return []
+    return (
+      clientCode.map(code => {
+        const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
-  const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
+        return {
+          kind: 'file',
+          range: {
+            start: startLine,
+            end: endLine
+          },
+          filepath: code.filepath || '',
+          content: code.content,
+          git_url: relevantCodeGitURL
+        }
+      }) ?? []
+    )
+  }, [clientCode, relevantCodeGitURL])
+
+  const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
       message?.attachment?.code?.map(code => {
         const { startLine, endLine } = getRangeFromAttachmentCode(code)
@@ -159,7 +189,25 @@ export function AssistantMessageSection({
         }
       }) ?? []
     )
-  }, [message?.attachment?.code])
+  }, [clientCode, message?.attachment?.code])
+
+  const messageAttachmentClientCode = useMemo(() => {
+    return clientCode?.map(o => ({
+      ...o,
+      gitUrl: relevantCodeGitURL
+    }))
+  }, [clientCode, relevantCodeGitURL])
+
+  const messageAttachmentDocs = message?.attachment?.doc
+  const messageAttachmentCodeLen =
+    (messageAttachmentClientCode?.length || 0) +
+    (message.attachment?.code?.length || 0)
+
+  const totalHeightInRem = messageAttachmentDocs?.length
+    ? Math.ceil(messageAttachmentDocs.length / 4) * SOURCE_CARD_STYLE.expand +
+      0.5 * Math.floor(messageAttachmentDocs.length / 4) +
+      0.5
+    : 0
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
@@ -212,7 +260,9 @@ export function AssistantMessageSection({
   }
 
   const onCodeCitationClick = (code: MessageAttachmentCode) => {
-    openCodeBrowserTab(code)
+    if (code.gitUrl) {
+      openCodeBrowserTab(code)
+    }
   }
 
   const handleUpdateAssistantMessage = async (message: ConversationMessage) => {
@@ -291,14 +341,16 @@ export function AssistantMessageSection({
           )}
         </div>
 
-        {/* code search hits */}
-        {messageAttachmentCode && messageAttachmentCode.length > 0 && (
+        {/* attachment clientCode & code */}
+        {messageAttachmentCodeLen > 0 && (
           <CodeReferences
-            contexts={relevantCodeContexts}
+            clientContexts={clientCodeContexts}
+            contexts={serverCodeContexts}
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
             enableTooltip={enableDeveloperMode}
             showExternalLink={false}
+            showClientCodeIcon
             onTooltipClick={() => {
               setConversationIdForDev(message.id)
               setDevPanelOpen(true)
@@ -321,13 +373,15 @@ export function AssistantMessageSection({
             <MessageMarkdown
               message={message.content}
               attachmentDocs={messageAttachmentDocs}
-              attachmentCode={messageAttachmentCode}
+              attachmentClientCode={messageAttachmentClientCode}
+              attachmentCode={message.attachment?.code}
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
               contextInfo={contextInfo}
               fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
+              supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             />
             {/* if isEditing, do not display error message block */}
             {message.error && <ErrorMessageBlock error={message.error} />}
@@ -447,33 +501,40 @@ function SourceCard({
   }
 
   return (
-    <Tooltip
-      open={devTooltipOpen}
-      onOpenChange={onOpenChange}
-      delayDuration={0}
-    >
-      <TooltipTrigger asChild>
-        <div
-          className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 hover:bg-card/60"
-          style={{
-            height: showMore
-              ? `${SOURCE_CARD_STYLE.expand}rem`
-              : `${SOURCE_CARD_STYLE.compress}rem`,
-            transition: 'all 0.25s ease-out'
-          }}
-          onClick={() => window.open(source.link)}
-        >
-          <SourceCardContent source={source} showMore={showMore} />
-        </div>
-      </TooltipTrigger>
-      <TooltipContent
-        align="start"
-        className="cursor-pointer p-2"
-        onClick={onTootipClick}
+    <HoverCard openDelay={100} closeDelay={100}>
+      <Tooltip
+        open={devTooltipOpen}
+        onOpenChange={onOpenChange}
+        delayDuration={0}
       >
-        <p>Score: {source?.extra?.score ?? '-'}</p>
-      </TooltipContent>
-    </Tooltip>
+        <HoverCardTrigger asChild>
+          <TooltipTrigger asChild>
+            <div
+              className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 hover:bg-card/60"
+              style={{
+                height: showMore
+                  ? `${SOURCE_CARD_STYLE.expand}rem`
+                  : `${SOURCE_CARD_STYLE.compress}rem`,
+                transition: 'all 0.25s ease-out'
+              }}
+              onClick={() => window.open(source.link)}
+            >
+              <SourceCardContent source={source} showMore={showMore} />
+            </div>
+          </TooltipTrigger>
+        </HoverCardTrigger>
+        <TooltipContent
+          align="start"
+          className="cursor-pointer p-2"
+          onClick={onTootipClick}
+        >
+          <p>Score: {source?.extra?.score ?? '-'}</p>
+        </TooltipContent>
+      </Tooltip>
+      <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+        <DocDetailView relevantDocument={source} />
+      </HoverCardContent>
+    </HoverCard>
   )
 }
 
@@ -488,6 +549,10 @@ function SourceCardContent({
 
   const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
   const isPR = source.__typename === 'MessageAttachmentPullDoc'
+  const author =
+    source.__typename === 'MessageAttachmentWebDoc' ? undefined : source.author
+
+  const showAvatar = (isIssue || isPR) && !!author
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">
@@ -495,17 +560,25 @@ function SourceCardContent({
         <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
           {source.title}
         </p>
-        <p
-          className={cn(
-            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-            {
-              'line-clamp-2': showMore,
-              'line-clamp-1': !showMore
-            }
-          )}
-        >
-          {normalizedText(getContent(source))}
-        </p>
+
+        {showAvatar && (
+          <div className="flex items-center gap-1 overflow-x-hidden">
+            <UserAvatar user={author} className="h-3.5 w-3.5 shrink-0" />
+            <p className="truncate text-xs font-medium text-muted-foreground">
+              {author?.name}
+            </p>
+          </div>
+        )}
+        {(!showAvatar || showMore) && (
+          <p
+            className={cn(
+              ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+              !showAvatar && showMore ? 'line-clamp-2' : 'line-clamp-1'
+            )}
+          >
+            {normalizedText(getContent(source))}
+          </p>
+        )}
       </div>
       <div className="flex items-center text-xs text-muted-foreground">
         <div className="flex w-full flex-1 items-center justify-between gap-1">

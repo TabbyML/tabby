@@ -3,6 +3,7 @@
 import {
   createContext,
   CSSProperties,
+  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -31,6 +32,7 @@ import {
   InputMaybe,
   Maybe,
   Message,
+  MessageAttachmentClientCode,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -48,7 +50,8 @@ import { useMutation } from '@/lib/tabby/gql'
 import {
   contextInfoQuery,
   listThreadMessages,
-  listThreads
+  listThreads,
+  setThreadPersistedMutation
 } from '@/lib/tabby/query'
 import {
   AttachmentCodeItem,
@@ -66,6 +69,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconCheck,
   IconFileSearch,
+  IconInfoCircled,
   IconPlus,
   IconShare,
   IconStop
@@ -77,6 +81,11 @@ import {
 } from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import NotFoundPage from '@/components/not-found-page'
@@ -96,9 +105,15 @@ export type ConversationMessage = Omit<
   threadRelevantQuestions?: Maybe<string[]>
   error?: string
   attachment?: {
+    clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
     code: Maybe<Array<AttachmentCodeItem>> | undefined
     doc: Maybe<Array<AttachmentDocItem>> | undefined
   }
+}
+
+type ConversationPair = {
+  question: ConversationMessage | null
+  answer: ConversationMessage | null
 }
 
 type SearchContextValue = {
@@ -405,12 +420,18 @@ export function Search() {
     }
   }, [isReady])
 
-  const { isCopied: isShareLinkCopied, onCopy: onClickShare } = useShareThread({
-    threadIdFromURL,
-    threadIdFromStreaming: threadId,
-    streamingDone: !isLoading,
-    updateThreadURL
-  })
+  const persistenceDisabled = useMemo(() => {
+    return !threadIdFromURL && some(messages, message => !!message.error)
+  }, [threadIdFromURL, messages])
+
+  const { isCopied: isShareLinkCopied, onShare: onClickShare } = useShareThread(
+    {
+      threadIdFromURL,
+      threadIdFromStreaming: threadId,
+      streamingDone: !isLoading,
+      updateThreadURL
+    }
+  )
 
   // Handling the stream response from useThreadRun
   useEffect(() => {
@@ -440,6 +461,7 @@ export function Search() {
     // get and format scores from streaming answer
     if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
       currentAssistantMessage.attachment = {
+        clientCode: null,
         doc: currentAssistantMessage.attachment?.doc || null,
         code:
           answer.attachmentsCode.map(hit => ({
@@ -454,6 +476,7 @@ export function Search() {
     // get and format scores from streaming answer
     if (!currentAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
       currentAssistantMessage.attachment = {
+        clientCode: null,
         doc:
           answer.attachmentsDoc.map(hit => ({
             ...hit.doc,
@@ -606,7 +629,8 @@ export function Search() {
       content: '',
       attachment: {
         code: null,
-        doc: null
+        doc: null,
+        clientCode: null
       },
       error: undefined
     }
@@ -718,6 +742,25 @@ export function Search() {
     200
   )
 
+  const qaPairs = useMemo(() => {
+    const pairs: Array<ConversationPair> = []
+    let currentPair: ConversationPair = { question: null, answer: null }
+    messages.forEach(message => {
+      if (message.role === Role.User) {
+        currentPair.question = message
+      } else if (message.role === Role.Assistant) {
+        if (!currentPair.answer) {
+          // Take the first answer
+          currentPair.answer = message
+          pairs.push(currentPair)
+          currentPair = { question: null, answer: null }
+        }
+      }
+    })
+
+    return pairs
+  }, [messages])
+
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
@@ -728,6 +771,7 @@ export function Search() {
         error={
           (formatedThreadError || threadMessagesError) as ExtendedCombinedError
         }
+        threadIdFromURL={threadIdFromURL}
       />
     )
   }
@@ -776,35 +820,34 @@ export function Search() {
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
-                    {/* messages */}
-                    {messages.map((message, index) => {
-                      const isLastMessage = index === messages.length - 1
-                      if (message.role === Role.User) {
-                        return (
-                          <UserMessageSection
-                            className="pb-2 pt-8"
-                            key={message.id}
-                            message={message}
-                          />
-                        )
-                      } else if (message.role === Role.Assistant) {
-                        return (
-                          <>
+                    {qaPairs.map((pair, index) => {
+                      const isLastMessage = index === qaPairs.length - 1
+                      if (!pair.question) return null
+
+                      return (
+                        <Fragment key={pair.question.id}>
+                          {!!pair.question && (
+                            <UserMessageSection
+                              className="pb-2 pt-8"
+                              key={pair.question.id}
+                              message={pair.question}
+                            />
+                          )}
+                          {!!pair.answer && (
                             <AssistantMessageSection
-                              key={message.id}
+                              key={pair.answer.id}
                               className="pb-8 pt-2"
-                              message={message}
+                              message={pair.answer}
+                              clientCode={pair.question?.attachment?.clientCode}
                               isLoading={isLoading && isLastMessage}
                               isLastAssistantMessage={isLastMessage}
                               showRelatedQuestion={isLastMessage}
                               isDeletable={!isLoading && messages.length > 2}
                             />
-                            {!isLastMessage && <Separator />}
-                          </>
-                        )
-                      } else {
-                        return null
-                      }
+                          )}
+                          {!isLastMessage && <Separator />}
+                        </Fragment>
+                      )
                     })}
                   </div>
                 </div>
@@ -859,18 +902,31 @@ export function Search() {
                     </Button>
                   )}
                   {!stopButtonVisible && (
-                    <Button
-                      className="bg-background"
-                      variant="outline"
-                      onClick={onClickShare}
-                    >
-                      {isShareLinkCopied ? (
-                        <IconCheck className="mr-2 text-green-600" />
-                      ) : (
-                        <IconShare className="mr-2" />
-                      )}
-                      Share Link
-                    </Button>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button
+                            className="gap-2 bg-background"
+                            variant="outline"
+                            onClick={onClickShare}
+                            disabled={persistenceDisabled}
+                          >
+                            {persistenceDisabled ? (
+                              <IconInfoCircled />
+                            ) : isShareLinkCopied ? (
+                              <IconCheck className="text-green-600" />
+                            ) : (
+                              <IconShare />
+                            )}
+                            Share Link
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent hidden={!persistenceDisabled}>
+                        Please resolve errors in messages before sharing this
+                        thread.
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
                 {isThreadOwner && (
@@ -924,12 +980,6 @@ export function Search() {
   )
 }
 
-const setThreadPersistedMutation = graphql(/* GraphQL */ `
-  mutation SetThreadPersisted($threadId: ID!) {
-    setThreadPersisted(threadId: $threadId)
-  }
-`)
-
 const updateThreadMessageMutation = graphql(/* GraphQL */ `
   mutation UpdateThreadMessage($input: UpdateMessageInput!) {
     updateThreadMessage(input: $input)
@@ -938,8 +988,12 @@ const updateThreadMessageMutation = graphql(/* GraphQL */ `
 
 interface ThreadMessagesErrorViewProps {
   error: ExtendedCombinedError
+  threadIdFromURL?: string
 }
-function ThreadMessagesErrorView({ error }: ThreadMessagesErrorViewProps) {
+function ThreadMessagesErrorView({
+  error,
+  threadIdFromURL
+}: ThreadMessagesErrorViewProps) {
   let title = 'Something went wrong'
   let description =
     'Failed to fetch the thread, please refresh the page or start a new thread'
@@ -950,7 +1004,7 @@ function ThreadMessagesErrorView({ error }: ThreadMessagesErrorViewProps) {
 
   return (
     <div className="flex h-screen flex-col">
-      <Header />
+      <Header threadIdFromURL={threadIdFromURL} />
       <div className="flex-1">
         <div className="flex h-full flex-col items-center justify-center gap-2">
           <div className="flex items-center gap-2">
@@ -1020,7 +1074,7 @@ function useShareThread({
     threadIdFromStreaming &&
     updateThreadURL
 
-  const onCopy = async () => {
+  const onShare = async () => {
     if (isCopied) return
 
     let url = window.location.href
@@ -1033,7 +1087,7 @@ function useShareThread({
   }
 
   return {
-    onCopy,
+    onShare,
     isCopied
   }
 }

@@ -1,5 +1,6 @@
 use std::{collections::HashSet, sync::Arc};
 
+use anyhow::Result;
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
@@ -33,26 +34,40 @@ impl BuildStructuredDoc for WebDocument {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
+    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         let chunks: Vec<_> = TextSplitter::new(2048)
             .chunks(&self.body)
             .map(|x| x.to_owned())
             .collect();
 
-        let title_embedding_tokens = build_tokens(embedding.clone(), &self.title).await;
+        let title_embedding_tokens = match build_tokens(embedding.clone(), &self.title).await {
+            Ok(tokens) => tokens,
+            Err(e) => {
+                return Box::pin(stream! {
+                    yield tokio::spawn(async move {
+                        Err(anyhow::anyhow!("Failed to build tokens for title: {}", e))
+                    });
+                });
+            }
+        };
         let s = stream! {
             for chunk_text in chunks {
                 let title_embedding_tokens = title_embedding_tokens.clone();
                 let embedding = embedding.clone();
                 yield tokio::spawn(async move {
-                    let chunk_embedding_tokens = build_tokens(embedding.clone(), &chunk_text).await;
+                    let chunk_embedding_tokens = match build_tokens(embedding.clone(), &chunk_text).await {
+                        Ok(tokens) => tokens,
+                        Err(e) => {
+                            return Err(anyhow::anyhow!("Failed to build tokens for chunk: {}", e));
+                        }
+                    };
                     let chunk = json!({
                         fields::web::CHUNK_TEXT: chunk_text,
                     });
 
                     // Title embedding tokens are merged with chunk embedding tokens to enhance the search results.
                     let tokens = merge_tokens(vec![title_embedding_tokens, chunk_embedding_tokens]);
-                    (tokens, chunk)
+                    Ok((tokens, chunk))
                 });
             }
         };

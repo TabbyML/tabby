@@ -9,6 +9,7 @@ use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocIssueFields, StructuredDocState,
 };
 
+use super::error::octocrab_error_message;
 use crate::service::create_gitlab_client;
 
 pub async fn list_github_issues(
@@ -41,7 +42,7 @@ pub async fn list_github_issues(
                 .await {
                     Ok(x) => x,
                     Err(e) => {
-                        logkit::error!("Failed to fetch issues: {}", e);
+                        logkit::error!("Failed to fetch issues: {}",  octocrab_error_message(e));
                         break;
                     }
             };
@@ -60,11 +61,13 @@ pub async fn list_github_issues(
                     fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                         link: issue.html_url.to_string(),
                         title: issue.title,
+                        author_email: issue.user.email,
                         body: issue.body.unwrap_or_default(),
                         closed: issue.state == octocrab::models::IssueState::Closed,
                     })
                 };
                 yield (StructuredDocState {
+                    id: doc.id().to_string(),
                     updated_at: issue.updated_at,
                     deleted: false,
                 }, doc);
@@ -83,10 +86,16 @@ pub async fn list_github_issues(
 #[derive(Deserialize)]
 struct GitlabIssue {
     title: String,
+    author: GitlabAuthor,
     description: Option<String>,
     web_url: String,
     updated_at: DateTime<Utc>,
     state: String,
+}
+
+#[derive(Deserialize)]
+struct GitlabAuthor {
+    public_email: Option<String>,
 }
 
 pub async fn list_gitlab_issues(
@@ -119,11 +128,13 @@ pub async fn list_gitlab_issues(
                 source_id: source_id.to_owned(),
                 fields: StructuredDocFields::Issue(StructuredDocIssueFields {
                 link: issue.web_url,
+                author_email: issue.author.public_email,
                 title: issue.title,
                 body: issue.description.unwrap_or_default(),
                 closed: issue.state == "closed",
             })};
             yield (StructuredDocState {
+                id: doc.id().to_string(),
                 updated_at: issue.updated_at,
                 deleted: false,
             }, doc);

@@ -108,7 +108,8 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext } = React.useContext(ChatContext)
+  const { onNavigateToContext, supportsOnApplyInEditorV2 } =
+    React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -162,7 +163,11 @@ function UserMessageCard(props: { message: UserMessage }) {
 
       <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
-          <MessageMarkdown message={message.message} canWrapLongLines />
+          <MessageMarkdown
+            message={message.message}
+            canWrapLongLines
+            supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+          />
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
           </div>
@@ -252,8 +257,14 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     enableRegenerating,
     ...rest
   } = props
-  const { onNavigateToContext, onApplyInEditor, onCopyContent } =
-    React.useContext(ChatContext)
+  const {
+    onNavigateToContext,
+    onApplyInEditor,
+    onCopyContent,
+    onLookupSymbol,
+    openInEditor,
+    supportsOnApplyInEditorV2
+  } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
   const serverCode: Array<Context> = React.useMemo(() => {
@@ -287,30 +298,33 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   const attachmentDocsLen = 0
 
-  const attachmentCode: Array<AttachmentCodeItem> = useMemo(() => {
-    const formatedClientAttachmentCode =
-      clientCode?.map(o => ({
-        content: o.content,
-        filepath: o.filepath,
-        gitUrl: o.git_url,
-        startLine: o.range.start,
-        language: filename2prism(o.filepath ?? '')[0],
-        isClient: true
-      })) ?? []
-    const formatedServerAttachmentCode =
-      serverCode?.map(o => ({
-        content: o.content,
-        filepath: o.filepath,
-        gitUrl: o.git_url,
-        startLine: o.range.start,
-        language: filename2prism(o.filepath ?? '')[0],
-        isClient: false
-      })) ?? []
-    return compact([
-      ...formatedClientAttachmentCode,
-      ...formatedServerAttachmentCode
-    ])
-  }, [clientCode, serverCode])
+  const attachmentClientCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
+    useMemo(() => {
+      const formatedAttachmentClientCode =
+        clientCode?.map(o => ({
+          content: o.content,
+          filepath: o.filepath,
+          gitUrl: o.git_url,
+          startLine: o.range.start,
+          language: filename2prism(o.filepath ?? '')[0],
+          isClient: true
+        })) ?? []
+      return formatedAttachmentClientCode
+    }, [clientCode])
+
+  const attachmentCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
+    useMemo(() => {
+      const formatedServerAttachmentCode =
+        serverCode?.map(o => ({
+          content: o.content,
+          filepath: o.filepath,
+          gitUrl: o.git_url,
+          startLine: o.range.start,
+          language: filename2prism(o.filepath ?? '')[0],
+          isClient: false
+        })) ?? []
+      return compact([...formatedServerAttachmentCode])
+    }, [serverCode])
 
   const onCodeCitationMouseEnter = (index: number) => {
     setRelevantCodeHighlightIndex(index - 1 - (attachmentDocsLen || 0))
@@ -365,7 +379,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       <div className="w-full flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
         <CodeReferences
           contexts={serverCode}
-          userContexts={clientCode}
+          clientContexts={clientCode}
           onContextClick={(ctx, isInWorkspace) => {
             onNavigateToContext?.(ctx, {
               openInEditor: isInWorkspace
@@ -373,6 +387,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           }}
           // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
           showExternalLink={!!onApplyInEditor}
+          isInEditor={!!onApplyInEditor}
+          showClientCodeIcon={!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
         />
@@ -384,11 +400,16 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               message={message.message}
               onApplyInEditor={onApplyInEditor}
               onCopyContent={onCopyContent}
+              attachmentClientCode={attachmentClientCode}
               attachmentCode={attachmentCode}
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
               canWrapLongLines={!isLoading}
+              onLookupSymbol={onLookupSymbol}
+              openInEditor={openInEditor}
+              supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+              activeSelection={userMessage.activeContext}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>

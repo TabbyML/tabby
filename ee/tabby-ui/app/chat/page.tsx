@@ -71,6 +71,11 @@ export default function ChatPage() {
   const isInEditor = !!client || undefined
   const useMacOSKeyboardEventHandler = useRef<boolean>()
 
+  // server feature support check
+  const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
+    useState(false)
+  const [supportsOnLookupSymbol, setSupportsOnLookupSymbol] = useState(false)
+
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
       chatRef.current.sendUserChat(message)
@@ -227,6 +232,15 @@ export default function ChatPage() {
       server?.onLoaded({
         apiVersion: TABBY_CHAT_PANEL_API_VERSION
       })
+
+      const checkCapabilities = async () => {
+        server
+          ?.hasCapability('onApplyInEditorV2')
+          .then(setSupportsOnApplyInEditorV2)
+        server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
+      }
+
+      checkCapabilities()
     }
   }, [server])
 
@@ -369,7 +383,18 @@ export default function ChatPage() {
         maxWidth={client === 'vscode' ? '5xl' : undefined}
         onCopyContent={isInEditor && server?.onCopy}
         onSubmitMessage={isInEditor && server?.onSubmitMessage}
-        onApplyInEditor={isInEditor && server?.onApplyInEditor}
+        onApplyInEditor={
+          isInEditor &&
+          (supportsOnApplyInEditorV2
+            ? server?.onApplyInEditorV2
+            : server?.onApplyInEditor)
+        }
+        supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+        onLookupSymbol={
+          isInEditor &&
+          (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
+        }
+        openInEditor={isInEditor && server?.openInEditor}
       />
     </ErrorBoundary>
   )

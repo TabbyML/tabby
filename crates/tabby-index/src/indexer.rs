@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use anyhow::bail;
+use anyhow::{bail, Result};
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
 use serde_json::json;
@@ -20,7 +20,7 @@ use tantivy::{
     schema::{self, Value},
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
-use tokio::task::JoinHandle;
+use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::{debug, warn};
 
 use crate::tantivy_utils::open_or_create_index;
@@ -43,7 +43,7 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
     async fn build_chunk_attributes<'a>(
         &self,
         document: &'a T,
-    ) -> BoxStream<'a, JoinHandle<(Vec<String>, serde_json::Value)>>;
+    ) -> BoxStream<'a, JoinHandle<Result<(Vec<String>, serde_json::Value)>>>;
 }
 
 pub struct TantivyDocBuilder<T> {
@@ -76,24 +76,37 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
         let doc_id = id.clone();
         let doc_attributes = self.builder.build_attributes(&document).await;
         let s = stream! {
-            let mut failed_count: u64 = 0;
+            let (tx, mut rx) = mpsc::channel(32);
+
             for await chunk_doc in self.build_chunks(cloned_id, source_id.clone(), updated_at, document).await {
-                match chunk_doc.await {
-                    Ok((Some(doc), ok)) => {
-                        if !ok {
-                            failed_count += 1;
+                let tx = tx.clone();
+                let doc_id = doc_id.clone();
+                yield tokio::spawn(async move {
+                    match chunk_doc.await {
+                        Ok(Ok(doc)) => {
+                            Some(doc)
                         }
-                        yield tokio::spawn(async move { Some(doc) });
+                        Ok(Err(e)) => {
+                            warn!("Failed to build chunk for document '{}': {}", doc_id, e);
+                            tx.send(()).await.unwrap_or_else(|e| {
+                                warn!("Failed to send error signal for document '{}': {}", doc_id, e);
+                            });
+                            None
+                        }
+                        Err(e) => {
+                            warn!("Failed to call build chunk '{}': {}", doc_id, e);
+                            tx.send(()).await.unwrap_or_else(|e| {
+                                warn!("Failed to send error signal for document '{}': {}", doc_id, e);
+                            });
+                            None
+                        }
                     }
-                    Ok((None, _)) => {
-                        failed_count += 1;
-                    }
-                    Err(e) => {
-                        warn!("Failed to build chunk for document '{}': {}", doc_id, e);
-                        failed_count += 1;
-                    }
-                }
+                });
             };
+
+            // drop tx to signal the end of the stream
+            // the cloned is dropped in its own thread
+            drop(tx);
 
             let mut doc = doc! {
                 schema.field_id => doc_id,
@@ -102,11 +115,17 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                 schema.field_attributes => doc_attributes,
                 schema.field_updated_at => updated_at,
             };
-            if failed_count > 0 {
-                doc.add_u64(schema.field_failed_chunks_count, failed_count);
-            }
 
-            yield tokio::spawn(async move { Some(doc) });
+            yield tokio::spawn(async move {
+                let mut failed_count = 0;
+                while let Some(_) = rx.recv().await {
+                    failed_count += 1;
+                }
+                if failed_count > 0 {
+                    doc.add_u64(schema.field_failed_chunks_count, failed_count as u64);
+                }
+                Some(doc)
+             });
         };
 
         (id, s)
@@ -118,7 +137,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
         source_id: String,
         updated_at: tantivy::DateTime,
         document: T,
-    ) -> impl Stream<Item = JoinHandle<(Option<TantivyDocument>, bool)>> + '_ {
+    ) -> impl Stream<Item = JoinHandle<Result<TantivyDocument>>> + '_ {
         let kind = self.corpus;
         stream! {
             let schema = IndexSchema::instance();
@@ -126,15 +145,9 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                 let id = id.clone();
                 let source_id = source_id.clone();
 
-                // The tokens may be empty if the embedding call fails,
-                // but the attributes remain useful.
-                // Therefore, we return:
-                // the document, and
-                // a flag indicating whether the tokens were created successfully.
                 yield tokio::spawn(async move {
-                    let Ok((tokens, chunk_attributes)) = task.await else {
-                        return (None, false);
-                    };
+                    let built_chunk_attributes_result = task.await?;
+                    let (tokens, chunk_attributes) = built_chunk_attributes_result?;
 
                     let mut doc = doc! {
                         schema.field_id => id,
@@ -149,7 +162,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                         doc.add_text(schema.field_chunk_tokens, token);
                     }
 
-                    (Some(doc), !tokens.is_empty())
+                    Ok(doc)
                 });
             }
         }
@@ -252,10 +265,9 @@ impl Indexer {
         !docs.is_empty()
     }
 
-    /// Get the failed_chunks_count field for a document.
-    /// tracks the number of embedding indexing failed chunks for a document.
+    /// Check whether the document has failed chunks.
     ///
-    /// return 0 if the field is not found.
+    /// failed chunks tracks the number of embedding indexing failed chunks for a document.
     pub fn has_failed_chunks(&self, id: &str) -> bool {
         let schema = IndexSchema::instance();
         let query = schema.doc_has_failed_chunks(&self.corpus, id);
@@ -264,6 +276,19 @@ impl Indexer {
         };
 
         !docs.is_empty()
+    }
+
+    // Check whether the document has attribute field.
+    pub fn has_attribute_field(&self, id: &str, field: &str) -> bool {
+        let schema = IndexSchema::instance();
+        let query = schema.doc_has_attribute_field(&self.corpus, id, field);
+        match self.searcher.search(&query, &TopDocs::with_limit(1)) {
+            Ok(docs) => !docs.is_empty(),
+            Err(e) => {
+                debug!("query tantivy error: {}", e);
+                false
+            }
+        }
     }
 }
 

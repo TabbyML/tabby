@@ -80,6 +80,7 @@ export class Configurations extends EventEmitter implements Feature {
 
   private configForLsp: TabbyLspConfig = { server: defaultConfigData["server"] }; // config for lsp client
 
+  private lspConnection: Connection | undefined = undefined;
   private clientCapabilities: ClientCapabilities | undefined = undefined;
 
   constructor(private readonly dataStore: DataStore) {
@@ -138,6 +139,7 @@ export class Configurations extends EventEmitter implements Feature {
     clientCapabilities: ClientCapabilities,
     clientProvidedConfig: ClientProvidedConfig,
   ): Promise<ServerCapabilities> {
+    this.lspConnection = connection;
     this.clientCapabilities = clientCapabilities;
 
     this.updateClientProvidedConfig(clientProvidedConfig);
@@ -176,7 +178,16 @@ export class Configurations extends EventEmitter implements Feature {
     return this.configForLsp;
   }
 
-  updateClientProvidedConfig(config: ClientProvidedConfig) {
+  async refreshClientProvidedConfig(): Promise<boolean> {
+    if (this.clientCapabilities?.workspace?.configuration) {
+      const config = await this.lspConnection?.workspace.getConfiguration();
+      this.updateClientProvidedConfig(config);
+      return true;
+    }
+    return false;
+  }
+
+  private updateClientProvidedConfig(config: ClientProvidedConfig) {
     if (!deepEqual(config, this.clientProvided)) {
       const old = this.clientProvided;
       this.clientProvided = config;

@@ -163,10 +163,13 @@ impl ModelRegistry {
     }
 
     pub fn get_model_info(&self, name: &str) -> &ModelInfo {
-        self.models
-            .iter()
-            .find(|x| x.name == name)
-            .unwrap_or_else(|| panic!("Invalid model_id <{}/{}>", self.name, name))
+        match self.models.iter().find(|x| x.name == name) {
+            Some(model_info) => model_info,
+            None => panic!(
+                "Invalid `model_id` <{}/{}>; please consult https://github.com/{}/registry-tabby for the correct `model_id`.",
+                self.name, name, self.name
+            ),
+        }
     }
 }
 

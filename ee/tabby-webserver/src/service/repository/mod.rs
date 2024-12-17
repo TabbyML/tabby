@@ -114,7 +114,7 @@ impl RepositoryService for RepositoryServiceImpl {
             | RepositoryKind::GithubSelfHosted
             | RepositoryKind::GitlabSelfHosted => self
                 .third_party()
-                .get_provided_repository(id.clone())
+                .get_provided_repository(id)
                 .await
                 .map(|repo| to_repository(*kind, repo)),
         };
@@ -182,21 +182,6 @@ impl RepositoryService for RepositoryServiceImpl {
             .await;
 
         Ok(ret)
-    }
-
-    async fn resolve_source_id_by_git_url(&self, git_url: &str) -> Result<String> {
-        let git_url = RepositoryConfig::canonicalize_url(git_url);
-
-        // Only third_party repositories with a git_url could generates a web source (e.g Issues, PRs)
-        let tp = self.third_party();
-        let repos = tp
-            .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
-            .await?;
-        repos
-            .iter()
-            .find(|r| RepositoryConfig::canonicalize_url(&r.git_url) == git_url)
-            .map(|r| r.source_id())
-            .ok_or_else(|| anyhow::anyhow!("No web source found for git_url: {}", git_url).into())
     }
 }
 

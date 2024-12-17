@@ -24,6 +24,7 @@ import {
   ListIntegrationsQueryVariables,
   ListInvitationsQueryVariables,
   ListThreadsQueryVariables,
+  NotificationsQueryVariables,
   SourceIdAccessPoliciesQueryVariables,
   UpsertUserGroupMembershipInput
 } from '../gql/generates/graphql'
@@ -35,6 +36,7 @@ import {
   listRepositories,
   listSourceIdAccessPolicies,
   listThreads,
+  notificationsQuery,
   userGroupsQuery
 } from './query'
 import {
@@ -398,6 +400,60 @@ const client = new Client({
                         data.threads.edges = data.threads.edges.filter(
                           e => e.node.id !== args.id
                         )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          setThreadPersisted(result, args, cache, info) {
+            if (result.setThreadPersisted) {
+              const key = 'Query'
+              cache
+                .inspectFields(key)
+                .filter(field => {
+                  return (
+                    field.fieldName === 'threads' &&
+                    !field.arguments?.ids &&
+                    !!field.arguments?.before
+                  )
+                })
+                .forEach(field => {
+                  cache.invalidate(key, field.fieldName, field.arguments)
+                })
+            }
+          },
+          markNotificationsRead(result, args, cache) {
+            if (result.markNotificationsRead) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'notifications')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: notificationsQuery,
+                      variables: field.arguments as NotificationsQueryVariables
+                    },
+                    data => {
+                      if (data?.notifications) {
+                        const isMarkAllAsRead = !args.notificationId
+                        data.notifications = data.notifications.map(item => {
+                          if (isMarkAllAsRead) {
+                            return {
+                              ...item,
+                              read: true
+                            }
+                          } else {
+                            if (item.id === args.notificationId) {
+                              return {
+                                ...item,
+                                read: true
+                              }
+                            }
+                            return item
+                          }
+                        })
                       }
                       return data
                     }

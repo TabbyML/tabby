@@ -14,6 +14,6 @@ pub struct DownloadArgs {
 }
 
 pub async fn main(args: &DownloadArgs) {
-    download_model(&args.model, args.prefer_local_file).await;
+    download_model(&args.model, args.prefer_local_file, None).await;
     info!("model '{}' is ready", args.model);
 }

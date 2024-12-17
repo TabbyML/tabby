@@ -8,6 +8,7 @@ pub mod integration;
 pub mod interface;
 pub mod job;
 pub mod license;
+pub mod notification;
 pub mod repository;
 pub mod setting;
 pub mod thread;
@@ -40,6 +41,7 @@ use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLEnum, GraphQLObject,
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
+use notification::NotificationService;
 use repository::RepositoryGrepOutput;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
@@ -103,6 +105,7 @@ pub trait ServiceLocator: Send + Sync {
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
+    fn notification(&self) -> Arc<dyn NotificationService>;
 }
 
 pub struct Context {
@@ -525,6 +528,11 @@ impl Query {
             },
         )
         .await
+    }
+
+    async fn notifications(ctx: &Context) -> Result<Vec<notification::Notification>> {
+        let user = check_user(ctx).await?;
+        ctx.locator.notification().list(&user.id).await
     }
 
     async fn disk_usage_stats(ctx: &Context) -> Result<DiskUsageStats> {
@@ -988,6 +996,16 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn mark_notifications_read(ctx: &Context, notification_id: Option<ID>) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        ctx.locator
+            .notification()
+            .mark_read(&user.id, notification_id.as_ref())
+            .await?;
+        Ok(true)
+    }
+
     async fn create_git_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
         check_admin(ctx).await?;
         let input = repository::CreateGitRepositoryInput { name, git_url };
@@ -1178,7 +1196,7 @@ impl Mutation {
 
     /// Turn on persisted status for a thread.
     async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
-        let user = check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
         let svc = ctx.locator.thread();
         let Some(thread) = svc.get(&thread_id).await? else {
             return Err(CoreError::NotFound("Thread not found"));
@@ -1318,19 +1336,10 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
 
     error.errors().iter().for_each(|(field, kind)| match kind {
         validator::ValidationErrorsKind::Struct(e) => {
-            for (_, error) in e.0.iter() {
-                if let validator::ValidationErrorsKind::Field(field_errors) = error {
-                    for error in field_errors {
-                        let mut obj = Object::with_capacity(2);
-                        obj.add_field("path", Value::scalar(field.to_string()));
-                        obj.add_field(
-                            "message",
-                            Value::scalar(error.message.clone().unwrap_or_default().to_string()),
-                        );
-                        errors.push(obj.into());
-                    }
-                }
-            }
+            let mut obj = Object::with_capacity(2);
+            obj.add_field("path", field.to_string().into());
+            obj.add_field("message", Value::scalar(e.to_string()));
+            errors.push(obj.into());
         }
         validator::ValidationErrorsKind::List(_) => {
             warn!("List errors are not handled");

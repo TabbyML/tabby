@@ -102,6 +102,7 @@ export type AttachmentCodeItem =
     isClient?: boolean
     extra?: { scores?: MessageCodeSearchHit['scores'] }
   }
+
 // for rendering, including score
 export type AttachmentDocItem =
   ArrayElementType<ThreadAssistantMessageAttachmentDocHits>['doc'] & {

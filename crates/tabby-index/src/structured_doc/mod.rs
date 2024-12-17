@@ -3,6 +3,7 @@ mod types;
 
 use std::sync::Arc;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
@@ -37,7 +38,7 @@ impl IndexAttributeBuilder<StructuredDoc> for StructuredDocBuilder {
     async fn build_chunk_attributes<'a>(
         &self,
         document: &'a StructuredDoc,
-    ) -> BoxStream<'a, JoinHandle<(Vec<String>, serde_json::Value)>> {
+    ) -> BoxStream<'a, JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         let embedding = self.embedding.clone();
         document.build_chunk_attributes(embedding).await
     }

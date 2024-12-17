@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::Result;
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
@@ -13,6 +14,7 @@ use super::{build_tokens, BuildStructuredDoc};
 pub struct PullDocument {
     pub link: String,
     pub title: String,
+    pub author_email: Option<String>,
     pub body: String,
 
     /// The diff represents the code changes in this PR,
@@ -33,6 +35,7 @@ impl BuildStructuredDoc for PullDocument {
         json!({
             fields::pull::LINK: self.link,
             fields::pull::TITLE: self.title,
+            fields::pull::AUTHOR_EMAIL: self.author_email,
             fields::pull::BODY: self.body,
             fields::pull::DIFF: self.diff,
             fields::pull::MERGED: self.merged,
@@ -42,14 +45,19 @@ impl BuildStructuredDoc for PullDocument {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
+    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         // currently not indexing the diff
         let text = format!("{}\n\n{}", self.title, self.body);
         let s = stream! {
             yield tokio::spawn(async move {
-                let tokens = build_tokens(embedding, &text).await;
+                let tokens = match build_tokens(embedding, &text).await{
+                    Ok(tokens) => tokens,
+                    Err(e) => {
+                        return Err(anyhow::anyhow!("Failed to build tokens for text: {}", e));
+                    }
+                };
                 let chunk_attributes = json!({});
-                (tokens, chunk_attributes)
+                Ok((tokens, chunk_attributes))
             })
         };
 

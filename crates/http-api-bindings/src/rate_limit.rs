@@ -1,27 +1,27 @@
-use std::time::Duration;
-
 use async_openai::{
-    error::{ApiError, OpenAIError},
+    error::OpenAIError,
     types::{
         ChatCompletionResponseStream, CreateChatCompletionRequest, CreateChatCompletionResponse,
     },
 };
 use async_trait::async_trait;
 use futures::stream::BoxStream;
-use ratelimit::Ratelimiter;
+use leaky_bucket::RateLimiter;
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
+use tokio::time::Duration;
 
-fn new_rate_limiter(rpm: u64) -> Ratelimiter {
-    Ratelimiter::builder(rpm, Duration::from_secs(60))
-        .max_tokens(rpm)
-        .initial_available(rpm)
+fn new_rate_limiter(rpm: u64) -> RateLimiter {
+    let rps = (rpm as f64 / 60.0).ceil() as usize;
+    RateLimiter::builder()
+        .initial(rps)
+        .interval(Duration::from_secs(1))
+        .refill(rps)
         .build()
-        .expect("Failed to create RateLimiter, please check the HttpModelConfig.rate_limit configuration")
 }
 
 pub struct RateLimitedEmbedding {
     embedding: Box<dyn Embedding>,
-    rate_limiter: Ratelimiter,
+    rate_limiter: RateLimiter,
 }
 
 pub fn new_embedding(embedding: Box<dyn Embedding>, request_per_minute: u64) -> impl Embedding {
@@ -34,22 +34,14 @@ pub fn new_embedding(embedding: Box<dyn Embedding>, request_per_minute: u64) -> 
 #[async_trait]
 impl Embedding for RateLimitedEmbedding {
     async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
-        for _ in 0..5 {
-            if let Err(sleep) = self.rate_limiter.try_wait() {
-                tokio::time::sleep(sleep).await;
-                continue;
-            }
-
-            return self.embedding.embed(prompt).await;
-        }
-
-        anyhow::bail!("Rate limit exceeded for embedding computation");
+        self.rate_limiter.acquire(1).await;
+        self.embedding.embed(prompt).await
     }
 }
 
 pub struct RateLimitedCompletion {
     completion: Box<dyn CompletionStream>,
-    rate_limiter: Ratelimiter,
+    rate_limiter: RateLimiter,
 }
 
 pub fn new_completion(
@@ -65,23 +57,14 @@ pub fn new_completion(
 #[async_trait]
 impl CompletionStream for RateLimitedCompletion {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
-        for _ in 0..5 {
-            if let Err(sleep) = self.rate_limiter.try_wait() {
-                tokio::time::sleep(sleep).await;
-                continue;
-            }
-
-            return self.completion.generate(prompt, options).await;
-        }
-
-        // Return an empty stream if the rate limit is exceeded
-        Box::pin(futures::stream::empty())
+        self.rate_limiter.acquire(1).await;
+        self.completion.generate(prompt, options).await
     }
 }
 
 pub struct RateLimitedChatStream {
     completion: Box<dyn ChatCompletionStream>,
-    rate_limiter: Ratelimiter,
+    rate_limiter: RateLimiter,
 }
 
 pub fn new_chat(
@@ -100,41 +83,15 @@ impl ChatCompletionStream for RateLimitedChatStream {
         &self,
         request: CreateChatCompletionRequest,
     ) -> Result<CreateChatCompletionResponse, OpenAIError> {
-        for _ in 0..5 {
-            if let Err(sleep) = self.rate_limiter.try_wait() {
-                tokio::time::sleep(sleep).await;
-                continue;
-            }
-
-            return self.completion.chat(request).await;
-        }
-
-        Err(OpenAIError::ApiError(ApiError {
-            message: "Rate limit exceeded for chat completion".to_owned(),
-            r#type: None,
-            param: None,
-            code: None,
-        }))
+        self.rate_limiter.acquire(1).await;
+        self.completion.chat(request).await
     }
 
     async fn chat_stream(
         &self,
         request: CreateChatCompletionRequest,
     ) -> Result<ChatCompletionResponseStream, OpenAIError> {
-        for _ in 0..5 {
-            if let Err(sleep) = self.rate_limiter.try_wait() {
-                tokio::time::sleep(sleep).await;
-                continue;
-            }
-
-            return self.completion.chat_stream(request).await;
-        }
-
-        Err(OpenAIError::ApiError(ApiError {
-            message: "Rate limit exceeded for chat completion".to_owned(),
-            r#type: None,
-            param: None,
-            code: None,
-        }))
+        self.rate_limiter.acquire(1).await;
+        self.completion.chat_stream(request).await
     }
 }
