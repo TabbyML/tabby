@@ -126,7 +126,11 @@ async fn build_binarize_embedding_tokens(
     embedding: Arc<dyn Embedding>,
     body: &str,
 ) -> Result<Vec<String>> {
-    let embedding = match embedding.embed(body).instrument(info_span!("embed")).await {
+    let embedding = match embedding
+        .embed(body)
+        .instrument(info_span!("embed", corpus = corpus::CODE))
+        .await
+    {
         Ok(x) => x,
         Err(err) => {
             bail!("Failed to embed chunk text: {}", err);
