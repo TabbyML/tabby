@@ -162,7 +162,7 @@ export class Commands {
           if (selection) {
             switch (selection.label) {
               case "Website":
-                env.openExternal(Uri.parse("https://tabby.tabbyml.com/"));
+                env.openExternal(Uri.parse("https://www.tabbyml.com/"));
                 break;
               case "Tabby Slack Community":
                 env.openExternal(Uri.parse("https://links.tabbyml.com/join-slack-extensions/"));
