@@ -10,19 +10,23 @@ export function findClosestGitRepository(
     return undefined
   }
 
-  const repos = repositories.filter(repo => {
+  const filteredRepos = repositories.filter(repo => {
     const search = gitUrlParse(repo.url)
     const isSameResource =
       search.resource === targetSearch.resource || search.protocol === 'file'
     return isSameResource && search.name === targetSearch.name
   })
 
-  // If there're multiple matches, we pick the one with highest alphabetical order
-  return repos.sort((a, b) => {
-    const canonicalUrlA = canonicalizeUrl(a.url)
-    const canonicalUrlB = canonicalizeUrl(b.url)
-    return canonicalUrlB.localeCompare(canonicalUrlA)
-  })[0]
+  if (filteredRepos.length === 0) {
+    return undefined
+  } else {
+    // If there're multiple matches, we pick the one with highest alphabetical order
+    return filteredRepos.reduce((min, current) => {
+      const minUrl = canonicalizeUrl(min.url)
+      const currentUrl = canonicalizeUrl(current.url)
+      return minUrl > currentUrl ? min : current
+    })
+  }
 }
 
 export function canonicalizeUrl(url: string): string {
