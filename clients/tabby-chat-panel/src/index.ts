@@ -233,7 +233,7 @@ export interface ClientApiMethods {
   openInEditor: (target: FileLocation) => Promise<boolean>
 
   // Provide all repos found in workspace folders.
-  provideWorkspaceGitRepoInfo?: () => Promise<GitRepoInfo[]>
+  readWorkspaceGitRepositories?: () => Promise<GitRepoInfo[]>
 }
 
 export interface ClientApi extends ClientApiMethods {
