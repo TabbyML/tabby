@@ -16,10 +16,11 @@
     "build": "tsc --emitDeclarationOnly && rollup -c rollup.config.js"
   },
   "dependencies": {
-    "@quilted/signals": "0.2.1",
-    "@quilted/events": "2.0.0"
+    "@quilted/events": "2.0.0",
+    "@quilted/signals": "0.2.1"
   },
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-typescript": "^12.1.1",
     "rollup": "^4.27.3",
     "typescript": "^5.3.3"

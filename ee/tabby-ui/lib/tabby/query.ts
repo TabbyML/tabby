@@ -461,3 +461,14 @@ export const setThreadPersistedMutation = graphql(/* GraphQL */ `
     setThreadPersisted(threadId: $threadId)
   }
 `)
+
+export const notificationsQuery = graphql(/* GraphQL */ `
+  query Notifications {
+    notifications {
+      id
+      content
+      read
+      createdAt
+    }
+  }
+`)

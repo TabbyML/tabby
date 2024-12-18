@@ -4,7 +4,7 @@ The Tabby VSCode extension requires a Tabby server to work, following the instru
 
 ## Install Tabby Server
 
-[Tabby](https://tabby.tabbyml.com/) is an open-source project that supports self-hosting.  
+[Tabby](https://www.tabbyml.com/) is an open-source project that supports self-hosting.  
 You can choose any of the following methods to install Tabby:
 
 - [Homebrew](https://tabby.tabbyml.com/docs/quick-start/installation/apple/) for macOS with Apple M-series chips.
@@ -23,5 +23,5 @@ Visit [http://localhost:8080/](http://localhost:8080/) (or your server address) 
 
 ## [Online Supports](command:tabby.openOnlineHelp)
 
-Please refer to our [online documentation](https://tabby.tabbyml.com/) and our [Github repository](https://github.com/tabbyml/tabby) for more information.
+Please refer to our [online documentation](https://tabby.tabbyml.com/docs/) and our [Github repository](https://github.com/tabbyml/tabby) for more information.
 If you encounter any problems during server setup, please join our [Slack community](https://links.tabbyml.com/join-slack-extensions) for support or [open an issue](https://github.com/TabbyML/tabby/issues/new/choose).

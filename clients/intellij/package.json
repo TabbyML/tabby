@@ -2,6 +2,7 @@
   "name": "intellij-tabby",
   "private": true,
   "devDependencies": {
-    "tabby-agent": "workspace:*"
+    "tabby-agent": "workspace:*",
+    "tabby-threads": "workspace:*"
   }
 }

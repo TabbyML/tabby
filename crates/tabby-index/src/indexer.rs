@@ -84,7 +84,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
                 yield tokio::spawn(async move {
                     match chunk_doc.await {
                         Ok(Ok(doc)) => {
-                           Some(doc)
+                            Some(doc)
                         }
                         Ok(Err(e)) => {
                             warn!("Failed to build chunk for document '{}': {}", doc_id, e);

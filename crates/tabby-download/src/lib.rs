@@ -2,7 +2,7 @@
 use std::{fs, io};
 
 use aim_downloader::{bar::WrappedBar, error::DownloadError, hash::HashChecker, https};
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use tabby_common::registry::{parse_model_id, ModelInfo, ModelRegistry};
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
@@ -187,15 +187,56 @@ async fn download_file(
     Ok(())
 }
 
-pub async fn download_model(model_id: &str, prefer_local_file: bool) {
+pub enum ModelKind {
+    Embedding,
+    Completion,
+    Chat,
+}
+
+pub async fn download_model(model_id: &str, prefer_local_file: bool, kind: Option<ModelKind>) {
     let (registry, name) = parse_model_id(model_id);
 
     let registry = ModelRegistry::new(registry).await;
+
+    if let Some(kind) = kind {
+        let model_info = registry.get_model_info(name);
+        validate_model_kind(kind, model_info)
+            .context(
+                "Model validation has failed. For TabbyML models, please consult https://github.com/tabbyml/registry-tabby to locate the appropriate models.",
+            )
+            .unwrap();
+    }
 
     let handler = |err| panic!("Failed to fetch model '{}' due to '{}'", model_id, err);
     download_model_impl(&registry, name, prefer_local_file)
         .await
         .unwrap_or_else(handler)
+}
+
+fn validate_model_kind(kind: ModelKind, info: &ModelInfo) -> Result<()> {
+    match kind {
+        ModelKind::Embedding => Ok(()),
+        ModelKind::Completion => info
+            .prompt_template
+            .as_ref()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Model '{}' is not a completion model; it does not have a prompt template.",
+                    info.name
+                )
+            })
+            .map(|_| ()),
+        ModelKind::Chat => info
+            .chat_template
+            .as_ref()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Model '{}' is not a chat model, it does not have a chat template",
+                    info.name
+                )
+            })
+            .map(|_| ()),
+    }
 }
 
 #[cfg(test)]

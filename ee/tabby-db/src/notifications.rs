@@ -4,8 +4,8 @@ use sqlx::{prelude::*, query, query_as};
 
 use crate::DbConn;
 
-pub const NOTIFICATION_RECIPIENT_ALL_USER: &str = "all_user";
-pub const NOTIFICATION_RECIPIENT_ADMIN: &str = "admin";
+const NOTIFICATION_RECIPIENT_ALL_USER: &str = "all_user";
+const NOTIFICATION_RECIPIENT_ADMIN: &str = "admin";
 
 #[derive(FromRow)]
 pub struct NotificationDAO {
@@ -33,9 +33,12 @@ impl DbConn {
 
     pub async fn mark_notification_read(&self, id: i64, user_id: i64) -> Result<()> {
         query!(
-            "INSERT INTO read_notifications (notification_id, user_id) VALUES (?, ?)",
+            "INSERT INTO read_notifications (notification_id, user_id)
+             VALUES (?, ?)
+             ON CONFLICT (notification_id, user_id)
+             DO NOTHING",
             id,
-            user_id
+            user_id,
         )
         .execute(&self.pool)
         .await?;
@@ -71,7 +74,7 @@ ON
     notifications.id = read_notifications.notification_id
     AND read_notifications.user_id = ?
 WHERE
-    {}
+    ({})
     AND read_notifications.notification_id IS NULL;
         "#,
             recipient_clause
@@ -109,10 +112,10 @@ SELECT
     notifications.id,
     notifications.created_at,
     notifications.updated_at,
-    recipient,
-    content,
+    notifications.recipient,
+    notifications.content,
     CASE
-        WHEN read_notifications.user_id IS NOT NULL THEN 1
+        WHEN read_notifications.user_id = '{user_id}' THEN 1
         ELSE 0
     END AS read
 FROM
@@ -121,6 +124,7 @@ LEFT JOIN
     read_notifications
 ON
     notifications.id = read_notifications.notification_id
+    AND read_notifications.user_id = '{user_id}'
 WHERE
     ({recipient_clause})
     AND notifications.created_at > '{date_7days_ago}'
