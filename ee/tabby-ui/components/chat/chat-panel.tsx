@@ -323,6 +323,7 @@ function ChatPanelRenderer(
             setInput={setInput}
             isLoading={isLoading}
             chatInputRef={chatInputRef}
+            isInitializing={!initialized}
           />
           <FooterText className="hidden sm:block" />
         </div>

@@ -32,6 +32,7 @@ export interface PromptProps
   onSubmit: (value: string) => Promise<void>
   isLoading: boolean
   chatInputRef: React.RefObject<HTMLTextAreaElement>
+  isInitializing?: boolean
 }
 
 export interface PromptFormRef {
@@ -39,7 +40,14 @@ export interface PromptFormRef {
 }
 
 function PromptFormRenderer(
-  { onSubmit, input, setInput, isLoading, chatInputRef }: PromptProps,
+  {
+    onSubmit,
+    input,
+    setInput,
+    isLoading,
+    chatInputRef,
+    isInitializing
+  }: PromptProps,
   ref: React.ForwardedRef<PromptFormRef>
 ) {
   const { formRef, onKeyDown } = useEnterSubmit()
@@ -137,7 +145,7 @@ function PromptFormRenderer(
     HTMLFormElement
   > = async e => {
     e.preventDefault()
-    if (!input?.trim() || isLoading) {
+    if (!input?.trim() || isLoading || isInitializing) {
       return
     }
 
@@ -233,7 +241,7 @@ function PromptFormRenderer(
                         <Button
                           type="submit"
                           size="icon"
-                          disabled={isLoading || input === ''}
+                          disabled={isInitializing || isLoading || input === ''}
                         >
                           <IconArrowElbow />
                           <span className="sr-only">Send message</span>

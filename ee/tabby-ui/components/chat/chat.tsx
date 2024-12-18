@@ -38,7 +38,6 @@ import {
 } from '@/lib/types/chat'
 import { cn, nanoid } from '@/lib/utils'
 
-import { ListSkeleton } from '../skeleton'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
@@ -142,7 +141,7 @@ function ChatRenderer(
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
-  const [initialized, setInitialzed] = React.useState(false)
+  const [initialized, setInitialized] = React.useState(false)
   const [threadId, setThreadId] = React.useState<string | undefined>()
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
@@ -548,7 +547,7 @@ function ChatRenderer(
         }
       }
 
-      setInitialzed(true)
+      setInitialized(true)
     }
 
     if (!fetchingSources && !initialized) {
@@ -578,11 +577,6 @@ function ChatRenderer(
   )
 
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
-  if (!initialized) {
-    return (
-      <ListSkeleton className={`${chatMaxWidthClass} mx-auto pt-4 md:pt-10`} />
-    )
-  }
 
   return (
     <ChatContext.Provider
