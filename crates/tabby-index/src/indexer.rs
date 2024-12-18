@@ -197,11 +197,37 @@ impl Indexer {
             .expect("Failed to add document");
     }
 
+    pub async fn get_doc(&self, id: &str) -> Result<TantivyDocument> {
+        let schema = IndexSchema::instance();
+        let query = schema.doc_query(&self.corpus, id);
+        let docs = match self.searcher.search(&query, &TopDocs::with_limit(1)) {
+            Ok(docs) => docs,
+            Err(e) => {
+                debug!("query tantivy error: {}", e);
+                return Err(e.into());
+            }
+        };
+        if docs.is_empty() {
+            bail!("Document not found: {}", id);
+        }
+
+        self.searcher
+            .doc(docs.first().unwrap().1)
+            .map_err(|e| e.into())
+    }
+
     pub fn delete(&self, id: &str) {
         let schema = IndexSchema::instance();
         let _ = self
             .writer
             .delete_query(Box::new(schema.doc_query_with_chunks(&self.corpus, id)));
+    }
+
+    pub fn delete_doc(&self, id: &str) {
+        let schema = IndexSchema::instance();
+        let _ = self
+            .writer
+            .delete_query(Box::new(schema.doc_query(&self.corpus, id)));
     }
 
     pub fn commit(mut self) {

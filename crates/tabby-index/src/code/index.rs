@@ -3,8 +3,9 @@ use std::{pin::pin, sync::Arc};
 use async_stream::stream;
 use futures::StreamExt;
 use ignore::{DirEntry, Walk};
-use tabby_common::index::{code, corpus};
+use tabby_common::index::{self, code, corpus};
 use tabby_inference::Embedding;
+use tantivy::{doc, TantivyDocument};
 use tracing::warn;
 
 use super::{
@@ -101,7 +102,10 @@ async fn add_changed_documents(
 
             let id = SourceCode::to_index_id(&repository.source_id, &key).id;
 
+            // Skip if already indexed and has no failed chunks,
+            // when skip, we should check if the document needs to be backfilled.
             if !require_updates(cloned_index.clone(), &id) {
+                backfill_commit_if_needed(cloned_index.clone(), &id, commit);
                 continue;
             }
 
@@ -139,12 +143,7 @@ async fn add_changed_documents(
     count_docs
 }
 
-// 1. Backfill if the document is missing the commit field
-// 2. Skip if already indexed and has no failed chunks
 fn require_updates(indexer: Arc<Indexer>, id: &str) -> bool {
-    if should_backfill(indexer.clone(), id) {
-        return true;
-    }
     if indexer.is_indexed(id) && !indexer.has_failed_chunks(id) {
         return false;
     };
@@ -152,9 +151,17 @@ fn require_updates(indexer: Arc<Indexer>, id: &str) -> bool {
     true
 }
 
-fn should_backfill(indexer: Arc<Indexer>, id: &str) -> bool {
-    // v0.23.0 add the commit field to the code document.
-    !indexer.has_attribute_field(id, code::fields::ATTRIBUTE_COMMIT)
+// v0.23.0 add the commit field to the code document.
+async fn backfill_commit_if_needed(indexer: Arc<Indexer>, id: &str, commit: &str) -> Result<()> {
+    if indexer.has_attribute_field(id, code::fields::ATTRIBUTE_COMMIT) {
+        return Ok(());
+    }
+
+    let doc = indexer.get_doc(id).await?;
+    indexer.delete_doc(id);
+    indexer.add(create_document_with_commit(&doc, commit));
+
+    Ok(())
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {
@@ -163,6 +170,48 @@ fn is_valid_file(file: &SourceCode) -> bool {
         && file.alphanum_fraction >= MIN_ALPHA_NUM_FRACTION
         && file.num_lines <= MAX_NUMBER_OF_LINES
         && file.number_fraction <= MAX_NUMBER_FRACTION
+}
+
+fn create_document_with_commit(doc: &TantivyDocument, commit: &str) -> TantivyDocument {
+    let schema = tabby_common::index::IndexSchema::instance();
+    doc! {
+        schema.field_id => get_text(doc, schema.field_id),
+        schema.field_source_id => get_text(doc, schema.field_source_id).to_string(),
+        schema.field_corpus => get_text(doc, schema.field_corpus).to_string(),
+        schema.field_attributes => json!({
+            code::fields::ATTRIBUTE_COMMIT: commit,
+        }),
+        schema.field_updated_at => get_text(doc, schema.field_updated_at).to_string(),,
+        schema.field_failed_chunks_count => get_json_number_field(doc, schema.field_failed_chunks_count, code::fields::FAILED_CHUNKS_COUNT) as usize,
+    }
+}
+
+fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
+    doc.get_first(field).unwrap().as_str().unwrap()
+}
+
+fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> i64 {
+    doc.get_first(field)
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .find(|(k, _)| *k == name)
+        .unwrap()
+        .1
+        .as_i64()
+        .unwrap()
+}
+
+fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
+    doc.get_first(field)
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .find(|(k, _)| *k == name)
+        .unwrap()
+        .1
+        .as_str()
+        .unwrap()
 }
 
 #[cfg(test)]
