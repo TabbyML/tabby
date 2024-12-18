@@ -1,9 +1,19 @@
-import { go } from 'fuzzysort'
+import gitUrlParse from 'git-url-parse'
+import type { GitRepository } from 'tabby-chat-panel'
 
-export const findClosestRepositoryMatch = (
-  target: string,
-  gitUrls: string[]
-) => {
-  const results = go(target.replace(/\.git$/, ''), gitUrls)
-  return results.length > 0 ? results[0].target : null
+export function findClosestGitRepository(
+  repositories: GitRepository[],
+  gitUrl: string
+): GitRepository | undefined {
+  const gitSearch = gitUrlParse(gitUrl)
+  if (!gitSearch) {
+    return undefined
+  }
+
+  const repos = repositories.filter(repo => {
+    const search = gitUrlParse(repo.url)
+    return search.name === gitSearch.name
+  })
+  // If there're multiple matches, we pick the one with highest alphabetical order
+  return repos.sort((a, b) => b.url.localeCompare(a.url))[0]
 }

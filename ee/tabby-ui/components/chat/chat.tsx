@@ -34,7 +34,7 @@ import {
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
-import { cn, findClosestRepositoryMatch, nanoid } from '@/lib/utils'
+import { cn, findClosestGitRepository, nanoid } from '@/lib/utils'
 
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
@@ -539,10 +539,10 @@ function ChatRenderer(
       // get default repo
       if (workspaceGitRepositories?.length && repos?.length) {
         const defaultGitUrl = workspaceGitRepositories[0].url
-        const targetGirUrl = findClosestRepositoryMatch(
-          defaultGitUrl,
-          repos.map(x => x.gitUrl)
-        )
+        const targetGirUrl = findClosestGitRepository(
+          repos.map(x => ({ url: x.gitUrl })),
+          defaultGitUrl
+        )?.url
         if (targetGirUrl) {
           const repo = repos.find(x => x.gitUrl === targetGirUrl)
           if (repo) {
