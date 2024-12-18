@@ -37,7 +37,7 @@ export function ErrorView({
   }
 
   return (
-    <div className={cn('mx-auto max-w-md text-center mt-8', className)}>
+    <div className={cn('mx-auto mt-8 max-w-md text-center', className)}>
       <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
         {displayTitle}
       </h1>
