@@ -1,3 +1,9 @@
+## 1.9.1
+
+### Fixes & Improvements
+
+- Updated the chat panel to be compatible with Tabby server versions 0.21.2, 0.22.0, and later.
+
 ## 1.9.0
 
 ### Features
