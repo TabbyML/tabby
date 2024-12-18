@@ -243,7 +243,7 @@ export default function ChatPage() {
           .then(setSupportsOnApplyInEditorV2)
         server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
         server
-          ?.hasCapability('provideWorkspaceGitRepoInfo')
+          ?.hasCapability('readWorkspaceGitRepositories')
           .then(setSupportsProvideWorkspaceGitRepoInfo)
       }
 
@@ -402,9 +402,9 @@ export default function ChatPage() {
           (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
         }
         openInEditor={isInEditor && server?.openInEditor}
-        provideWorkspaceGitRepoInfo={
+        readWorkspaceGitRepositories={
           isInEditor && supportsProvideWorkspaceGitRepoInfo
-            ? server?.provideWorkspaceGitRepoInfo
+            ? server?.readWorkspaceGitRepositories
             : undefined
         }
       />

@@ -4,7 +4,7 @@ import type {
   Context,
   FileContext,
   FileLocation,
-  GitRepoInfo,
+  GitRepository,
   LookupSymbolHint,
   NavigateOpts,
   SymbolInfo
@@ -125,7 +125,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   openInEditor?: (target: FileLocation) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
-  provideWorkspaceGitRepoInfo?: () => Promise<GitRepoInfo[]>
+  readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
 }
 
 function ChatRenderer(
@@ -149,7 +149,7 @@ function ChatRenderer(
     openInEditor,
     chatInputRef,
     supportsOnApplyInEditorV2,
-    provideWorkspaceGitRepoInfo
+    readWorkspaceGitRepositories
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -526,8 +526,8 @@ function ChatRenderer(
   }
 
   const fetchWorkspaceGitRepo = () => {
-    if (provideWorkspaceGitRepoInfo) {
-      return provideWorkspaceGitRepoInfo()
+    if (readWorkspaceGitRepositories) {
+      return readWorkspaceGitRepositories()
     } else {
       return []
     }
@@ -535,10 +535,10 @@ function ChatRenderer(
 
   React.useEffect(() => {
     const init = async () => {
-      const gitRepoInfo = await fetchWorkspaceGitRepo()
+      const workspaceGitRepositories = await fetchWorkspaceGitRepo()
       // get default repo
-      if (gitRepoInfo?.length && repos?.length) {
-        const defaultGitUrl = gitRepoInfo[0].gitUrl
+      if (workspaceGitRepositories?.length && repos?.length) {
+        const defaultGitUrl = workspaceGitRepositories[0].url
         const targetGirUrl = findClosestRepositoryMatch(
           defaultGitUrl,
           repos.map(x => x.gitUrl)
