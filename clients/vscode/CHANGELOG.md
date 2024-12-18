@@ -1,3 +1,22 @@
+## 1.16.0
+
+### Features
+
+- **Chat**: 
+  - Symbols referenced in the chat response can now be clicked to navigate to their definitions. 
+  - **Note**: Requires updating the Tabby server to version 0.21.2, 0.22.0, or later.
+- **Code Completion**:
+  - Now provides inline completion even when the completion widget is open, based on the selected item in the widget.
+  - Automatically adds import statements if needed after accepting a completion that uses a symbol requiring an import.
+
+### Fixes & Improvements
+
+- Streamlined the `Tabby: Connect to Server...` command process and added a server history list for quick selection.
+- **Code Completion**: Added a post-processing filter to fix an issue where some code completions contained an extra space in the indentation for certain code completion models.
+- **Chat**: Improved the feature to automatically use the active selection code as context.
+- **Chat**: Fixed a bug where dragging the chat panel to the right or bottom side of the editor caused it to be blank.
+- The HTTP proxy in VSCode settings is no longer used by default. Added an option to enable it.
+
 ## 1.14.0
 
 ### Features
