@@ -497,6 +497,7 @@ type MessageAttachmentClientCode {
 
 type MessageAttachmentCode {
   gitUrl: String!
+  sourceId: String!
   filepath: String!
   language: String!
   content: String!
