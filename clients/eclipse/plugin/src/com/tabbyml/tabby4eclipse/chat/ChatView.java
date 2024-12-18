@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
@@ -54,8 +56,10 @@ public class ChatView extends ViewPart {
 
 	private boolean isHtmlLoaded = false;
 	private boolean isChatPanelLoaded = false;
-	private List<String> pendingScripts = new ArrayList<>();
 	private Config.ServerConfig currentConfig;
+
+	private List<String> pendingScripts = new ArrayList<>();
+	private Map<String, CompletableFuture<Object>> pendingChatPanelRequest = new HashMap<>();
 
 	private boolean isDark;
 	private RGB bgColor;
@@ -81,27 +85,8 @@ public class ChatView extends ViewPart {
 				handleLoaded();
 			}
 		});
-		// Inject callbacks
-		browserFunctions.add(new BrowserFunction(browser, "handleReload") {
-			@Override
-			public Object function(Object[] arguments) {
-				reloadContent(true);
-				return null;
-			}
-		});
-
-		browserFunctions.add(new BrowserFunction(browser, "handleChatPanelRequest") {
-			@Override
-			public Object function(Object[] arguments) {
-				if (arguments.length > 0) {
-					logger.info("HandleChatPanelRequest: " + arguments[0]);
-					Request request = gson.fromJson(arguments[0].toString(), Request.class);
-					handleChatPanelRequest(request);
-				}
-				return null;
-			}
-		});
-
+		
+		injectFunctions();
 		load();
 		serverConfigHolder.addConfigDidChangeListener(() -> {
 			reloadContent(false);
@@ -129,64 +114,64 @@ public class ChatView extends ViewPart {
 	}
 
 	public void explainSelectedText() {
-		sendRequestToChatPanel(new Request("sendMessage", new ArrayList<>() {
+		chatPanelClientInvoke("sendMessage", new ArrayList<>() {
 			{
 				ChatMessage chatMessage = new ChatMessage();
 				chatMessage.setMessage(ChatViewUtils.PROMPT_EXPLAIN);
 				chatMessage.setSelectContext(ChatViewUtils.getSelectedTextAsFileContext());
 				add(chatMessage);
 			}
-		}));
+		});
 	}
 
 	public void fixSelectedText() {
 		// FIXME(@icycodes): collect the diagnostic message provided by IDE or LSP
-		sendRequestToChatPanel(new Request("sendMessage", new ArrayList<>() {
+		chatPanelClientInvoke("sendMessage", new ArrayList<>() {
 			{
 				ChatMessage chatMessage = new ChatMessage();
 				chatMessage.setMessage(ChatViewUtils.PROMPT_FIX);
 				chatMessage.setSelectContext(ChatViewUtils.getSelectedTextAsFileContext());
 				add(chatMessage);
 			}
-		}));
+		});
 	}
 
 	public void generateDocsForSelectedText() {
-		sendRequestToChatPanel(new Request("sendMessage", new ArrayList<>() {
+		chatPanelClientInvoke("sendMessage", new ArrayList<>() {
 			{
 				ChatMessage chatMessage = new ChatMessage();
 				chatMessage.setMessage(ChatViewUtils.PROMPT_GENERATE_DOCS);
 				chatMessage.setSelectContext(ChatViewUtils.getSelectedTextAsFileContext());
 				add(chatMessage);
 			}
-		}));
+		});
 	}
 
 	public void generateTestsForSelectedText() {
-		sendRequestToChatPanel(new Request("sendMessage", new ArrayList<>() {
+		chatPanelClientInvoke("sendMessage", new ArrayList<>() {
 			{
 				ChatMessage chatMessage = new ChatMessage();
 				chatMessage.setMessage(ChatViewUtils.PROMPT_GENERATE_TESTS);
 				chatMessage.setSelectContext(ChatViewUtils.getSelectedTextAsFileContext());
 				add(chatMessage);
 			}
-		}));
+		});
 	}
 
 	public void addSelectedTextAsContext() {
-		sendRequestToChatPanel(new Request("addRelevantContext", new ArrayList<>() {
+		chatPanelClientInvoke("addRelevantContext", new ArrayList<>() {
 			{
 				add(ChatViewUtils.getSelectedTextAsFileContext());
 			}
-		}));
+		});
 	}
 
 	public void addActiveEditorAsContext() {
-		sendRequestToChatPanel(new Request("addRelevantContext", new ArrayList<>() {
+		chatPanelClientInvoke("addRelevantContext", new ArrayList<>() {
 			{
 				add(ChatViewUtils.getActiveEditorAsFileContext());
 			}
-		}));
+		});
 	}
 
 	private void setupThemeStyle() {
@@ -231,6 +216,167 @@ public class ChatView extends ViewPart {
 		return css;
 	}
 
+	private List<Object> parseArguments(final Object[] arguments) {
+		if (arguments.length < 1) {
+			return List.of();
+		}
+		return gson.fromJson(arguments[0].toString(), new TypeToken<List<Object>>(){});
+	}
+	
+	private Object serializeResult(final Object result) {
+		return gson.toJson(result);
+	}
+	
+	private void injectFunctions() {
+		browserFunctions.add(new BrowserFunction(browser, "handleTabbyChatPanelResponse") {
+			@Override
+			public Object function(Object[] arguments) {
+				List<Object> params = parseArguments(arguments);
+				logger.debug("Response from chat panel: " + params);
+				if (params.size() < 3) {
+					return null;
+				}
+				String uuid = (String) params.get(0);
+				String errorMessage = (String) params.get(1);
+				Object result = params.get(2);
+				
+				CompletableFuture<Object> future = pendingChatPanelRequest.remove(uuid);
+				if (future == null) {
+					return null;
+				}
+				
+				if (errorMessage != null && !errorMessage.isEmpty()) {
+					future.completeExceptionally(new Exception(errorMessage));
+				} else {
+					future.complete(result);
+				}
+				return null;
+			}
+		});
+		
+		browserFunctions.add(new BrowserFunction(browser, "handleReload") {
+			@Override
+			public Object function(Object[] arguments) {
+				logger.debug("handleReload");
+				reloadContent(true);
+				return null;
+			}
+		});
+		
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelNavigate") {
+			@Override
+			public Object function(Object[] arguments) {
+				List<Object> params = parseArguments(arguments);
+				logger.debug("tabbyChatPanelNavigate: " + params);
+				if (params.size() < 1) {
+					return null;
+				}
+				FileContext context = gson.fromJson(gson.toJson(params.get(0)), FileContext.class);
+				ChatViewUtils.navigateToFileContext(context);
+				return null;
+			}
+		});
+
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelRefresh") {
+			@Override
+			public Object function(Object[] arguments) {
+				logger.debug("tabbyChatPanelRefresh");
+				reloadContent(true);
+				return null;
+			}
+		});
+		
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelOnSubmitMessage") {
+			@Override
+			public Object function(Object[] arguments) {
+				List<Object> params = parseArguments(arguments);
+				if (params.size() < 1) {
+					return null;
+				}
+				String message = (String) params.get(0);
+				List<FileContext> relevantContexts = params.size() > 1
+						? relevantContexts = gson.fromJson(gson.toJson(params.get(1)), new TypeToken<List<FileContext>>() {
+						}.getType())
+						: null;
+				chatPanelClientInvoke("sendMessage", new ArrayList<>() {
+					{
+						ChatMessage chatMessage = new ChatMessage();
+						chatMessage.setMessage(message);
+						chatMessage.setRelevantContext(relevantContexts);
+						chatMessage.setActiveContext(ChatViewUtils.getSelectedTextAsFileContext());
+						add(chatMessage);
+					}
+				});
+				return null;
+			}
+		});
+
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelOnApplyInEditor") {
+			@Override
+			public Object function(Object[] arguments) {
+				List<Object> params = parseArguments(arguments);
+				if (params.size() < 1) {
+					return null;
+				}
+				String content = (String) params.get(0);
+				ChatViewUtils.applyContentInEditor(content);
+				return null;
+			}
+		});
+
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelOnLoaded") {
+			@Override
+			public Object function(Object[] arguments) {
+				List<Object> params = parseArguments(arguments);
+				if (params.size() < 1) {
+					return null;
+				}
+				Map<String, Object> onLoadedParams = (Map<String, Object>) params.get(0);
+				String apiVersion = (String) onLoadedParams.getOrDefault("apiVersion", "");
+				if (!apiVersion.isBlank()) {
+					String error = ChatViewUtils.checkChatPanelApiVersion(apiVersion);
+					if (error != null) {
+						updateContentToMessage(error);
+						return null;
+					}
+				}
+				initChatPanel();
+				return null;
+			}
+		});
+
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelOnCopy") {
+			@Override
+			public Object function(Object[] arguments) {
+				List<Object> params = parseArguments(arguments);
+				if (params.size() < 1) {
+					return null;
+				}
+				String content = (String) params.get(0);
+				ChatViewUtils.setClipboardContent(content);
+				return null;
+			}
+		});
+
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelOnKeyboardEvent") {
+			@Override
+			public Object function(Object[] arguments) {
+				// FIXME: For macOS and windows, the eclipse keyboard shortcuts are not
+				// available when browser is focused,
+				// we should handle keyboard events here.
+				return null;
+			}
+		});
+
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelOpenInEditor") {
+			@Override
+			public Object function(Object[] arguments) {
+				// FIXME: Not implemented
+				return serializeResult(false);
+			}
+		});
+	}
+	
 	private void load() {
 		try {
 			// Find chat panel html file
@@ -254,6 +400,7 @@ public class ChatView extends ViewPart {
 		isHtmlLoaded = true;
 		isChatPanelLoaded = false;
 		applyStyle();
+		createChatPanelClient();
 		reloadContent(false);
 	}
 
@@ -315,6 +462,15 @@ public class ChatView extends ViewPart {
 		showChatPanel(true);
 	}
 
+	
+	// execute js functions
+
+	private void executeScript(String script) {
+		browser.getDisplay().asyncExec(() -> {
+			browser.execute(script);
+		});
+	}
+	
 	private void showMessage(String message) {
 		if (message != null) {
 			executeScript(String.format("showMessage('%s')", message));
@@ -345,105 +501,9 @@ public class ChatView extends ViewPart {
 		browser.setVisible(true);
 	}
 
-	private void sendRequestToChatPanel(Request request) {
-		String json = gson.toJson(request);
-		String script = String.format("sendRequestToChatPanel('%s')", StringUtils.escapeCharacters(json));
-		if (isChatPanelLoaded) {
-			executeScript(script);
-		} else {
-			pendingScripts.add(script);
-		}
-	}
-
-	private void executeScript(String script) {
-		browser.getDisplay().asyncExec(() -> {
-			browser.execute(script);
-		});
-	}
-
-	private void handleChatPanelRequest(Request request) {
-		switch (request.getMethod()) {
-		case "navigate": {
-			List<Object> params = request.getParams();
-			if (params.size() < 1) {
-				return;
-			}
-			FileContext context = gson.fromJson(gson.toJson(params.get(0)), FileContext.class);
-			ChatViewUtils.navigateToFileContext(context);
-			break;
-		}
-		case "refresh": {
-			reloadContent(true);
-			break;
-		}
-		case "onSubmitMessage": {
-			List<Object> params = request.getParams();
-			if (params.size() < 1) {
-				return;
-			}
-			String message = (String) params.get(0);
-			List<FileContext> relevantContexts = params.size() > 1
-					? relevantContexts = gson.fromJson(gson.toJson(params.get(1)), new TypeToken<List<FileContext>>() {
-					}.getType())
-					: null;
-			sendRequestToChatPanel(new Request("sendMessage", new ArrayList<>() {
-				{
-					ChatMessage chatMessage = new ChatMessage();
-					chatMessage.setMessage(message);
-					chatMessage.setRelevantContext(relevantContexts);
-					chatMessage.setActiveContext(ChatViewUtils.getSelectedTextAsFileContext());
-					add(chatMessage);
-				}
-			}));
-			break;
-		}
-		case "onApplyInEditor": {
-			List<Object> params = request.getParams();
-			if (params.size() < 1) {
-				return;
-			}
-			String content = (String) params.get(0);
-			ChatViewUtils.applyContentInEditor(content);
-			break;
-		}
-		case "onLoaded": {
-			List<Object> params = request.getParams();
-			if (params.size() < 1) {
-				return;
-			}
-			Map<String, Object> onLoadedParams = (Map<String, Object>) params.get(0);
-			String apiVersion = (String) onLoadedParams.getOrDefault("apiVersion", "");
-			if (!apiVersion.isBlank()) {
-				String error = ChatViewUtils.checkChatPanelApiVersion(apiVersion);
-				if (error != null) {
-					updateContentToMessage(error);
-					return;
-				}
-			}
-			initChatPanel();
-			break;
-		}
-		case "onCopy": {
-			List<Object> params = request.getParams();
-			if (params.size() < 1) {
-				return;
-			}
-			String content = (String) params.get(0);
-			ChatViewUtils.setClipboardContent(content);
-			break;
-		}
-		case "onKeyboardEvent": {
-			// FIXME: For macOS and windows, the eclipse keyboard shortcuts are not
-			// available when browser is focused,
-			// we should handle keyboard events here.
-			break;
-		}
-		}
-	}
-
 	private void initChatPanel() {
 		isChatPanelLoaded = true;
-		sendRequestToChatPanel(new Request("init", new ArrayList<>() {
+		chatPanelClientInvoke("init", new ArrayList<>() {
 			{
 				add(new HashMap<>() {
 					{
@@ -455,13 +515,13 @@ public class ChatView extends ViewPart {
 					}
 				});
 			}
-		}));
-		sendRequestToChatPanel(new Request("updateTheme", new ArrayList<>() {
+		});
+		chatPanelClientInvoke("updateTheme", new ArrayList<>() {
 			{
 				add(buildCss());
 				add(isDark ? "dark" : "light");
 			}
-		}));
+		});
 		browser.getDisplay().timerExec(100, () -> {
 			updateContentToChatPanel();
 			pendingScripts.forEach((script) -> {
@@ -470,5 +530,101 @@ public class ChatView extends ViewPart {
 			pendingScripts.clear();
 		});
 	}
-
+	
+	private String wrapJsFunction(String name) {
+		return String.format(
+			String.join("\n",
+				"function(...args) {",
+				"  return new Promise((resolve, reject) => {",
+				"    const paramsJson = JSON.stringify(args)",
+				"    const result = %s(paramsJson)",
+				"    resolve(result)",
+				"  });",
+				"}"
+			),
+			name
+		);
+	}
+	
+	private void createChatPanelClient() {
+		String script = String.format(
+			String.join("\n",
+				"if (!window.tabbyChatPanelClient) {",
+				"  window.tabbyChatPanelClient = TabbyThreads.createThreadFromIframe(getChatPanel(), {",
+				"    expose: {",
+				"      navigate: %s,",
+				"      refresh: %s,",
+				"      onSubmitMessage: %s,",
+				"      onApplyInEditor: %s,",
+				"      onLoaded: %s,",
+				"      onCopy: %s,",
+				"      onKeyboardEvent: %s,",
+				"      openInEditor: %s,",
+				"    }",
+				"  })",
+				"}"
+			),
+			wrapJsFunction("tabbyChatPanelNavigate"),
+			wrapJsFunction("tabbyChatPanelRefresh"),
+			wrapJsFunction("tabbyChatPanelOnSubmitMessage"),
+			wrapJsFunction("tabbyChatPanelOnApplyInEditor"),
+			wrapJsFunction("tabbyChatPanelOnLoaded"),
+			wrapJsFunction("tabbyChatPanelOnCopy"),
+			wrapJsFunction("tabbyChatPanelOnKeyboardEvent"),
+			wrapJsFunction("tabbyChatPanelOpenInEditor")
+		);
+		executeScript(script);
+	}
+	
+	private CompletableFuture<Object> chatPanelClientInvoke(String method, List<Object> params) {
+		CompletableFuture<Object> future = new CompletableFuture<>();
+		String uuid = UUID.randomUUID().toString();
+		pendingChatPanelRequest.put(uuid, future);
+		String paramsJson = StringUtils.escapeCharacters(gson.toJson(params));
+		String responseCallbackFunction = "handleTabbyChatPanelResponse(results)";
+		String script = String.format(
+			String.join("\n",
+				"(function() {",
+				"  const func = window.tabbyChatPanelClient['%s']",
+				"  if (func && typeof func === 'function') {",
+				"    const params = JSON.parse('%s')",
+				"    const resultPromise = func(...params)",
+				"    if (resultPromise && typeof resultPromise.then === 'function') {",
+				"      resultPromise.then(result => {",
+				"        const results = JSON.stringify(['%s', null, result])",
+				"        %s",
+				"      }).catch(error => {",
+				"        const results = JSON.stringify(['%s', error.message, null])",
+				"        %s",
+				"      })",
+				"    } else {",
+				"      const results = JSON.stringify(['%s', null, resultPromise])",
+				"      %s",
+				"    }",
+				"  } else {",
+				"    const results = JSON.stringify(['%s', 'Method not found: %s', null])",
+				"    %s",
+				"  }",
+				"})()"
+			),
+			method,
+			paramsJson,
+			uuid,
+			responseCallbackFunction,
+			uuid,
+			responseCallbackFunction,
+			uuid,
+			responseCallbackFunction,
+			uuid,
+			method,
+			responseCallbackFunction
+		);
+		logger.debug("Request to chat panel: " + uuid + ", " + method + ", " + paramsJson);
+		if (isChatPanelLoaded) {
+			executeScript(script);
+		} else {
+			pendingScripts.add(script);
+		}
+		return future;
+	}
 }

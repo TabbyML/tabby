@@ -20,6 +20,9 @@ importers:
       tabby-agent:
         specifier: workspace:*
         version: link:../tabby-agent
+      tabby-threads:
+        specifier: workspace:*
+        version: link:../tabby-threads
 
   clients/intellij:
     devDependencies:
