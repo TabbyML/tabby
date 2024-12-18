@@ -181,7 +181,7 @@ export interface SymbolInfo {
  * Includes information about a git repository in workspace folder
  */
 export interface GitRepository {
-  gitUrl: string
+  url: string
 }
 
 export interface ServerApi {
