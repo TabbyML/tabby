@@ -1,6 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { findClosestGitRepository } from '../lib/utils/repository'
+import { findClosestGitRepository, canonicalizeUrl } from '../lib/utils/repository'
 import type { GitRepository } from 'tabby-chat-panel'
+
+describe('canonicalizeUrl', () => {
+  it('should remove auth info from URL', () => {
+    const result = canonicalizeUrl('https://abc:dev@github.com/');
+    expect(result).toBe('https://github.com/');
+  });
+
+  it('should remove token from URL', () => {
+    const result = canonicalizeUrl('https://token@github.com/TabbyML/tabby');
+    expect(result).toBe('https://github.com/TabbyML/tabby');
+  });
+
+  it('should return the same URL if no auth info is present', () => {
+    const result = canonicalizeUrl('https://github.com/TabbyML/tabby');
+    expect(result).toBe('https://github.com/TabbyML/tabby');
+  });
+
+  it('should remove .git suffix from URL', () => {
+    const result = canonicalizeUrl('https://github.com/TabbyML/tabby.git');
+    expect(result).toBe('https://github.com/TabbyML/tabby');
+  });
+
+  it('should handle file URLs correctly', () => {
+    const result = canonicalizeUrl('file:///home/TabbyML/tabby');
+    expect(result).toBe('file:///home/TabbyML/tabby');
+  });
+});
 
 describe('findClosestGitRepository', () => {
   it('should match .git suffix', () => {
