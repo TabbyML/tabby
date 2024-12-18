@@ -62,8 +62,10 @@ impl CodeBuilder {
 
 #[async_trait]
 impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
-    async fn build_attributes(&self, _source_code: &SourceCode) -> serde_json::Value {
-        json!({})
+    async fn build_attributes(&self, source_code: &SourceCode) -> serde_json::Value {
+        json!({
+            code::fields::ATTRIBUTE_COMMIT: source_code.commit,
+        })
     }
 
     async fn build_chunk_attributes<'a>(
@@ -102,7 +104,6 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
                 let attributes = json!({
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
                     code::fields::CHUNK_GIT_URL: source_code.git_url,
-                    code::fields::CHUNK_COMMIT: source_code.commit,
                     code::fields::CHUNK_LANGUAGE: source_code.language,
                     code::fields::CHUNK_BODY: body,
                     code::fields::CHUNK_START_LINE: start_line,

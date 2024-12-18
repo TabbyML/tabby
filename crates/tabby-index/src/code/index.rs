@@ -154,7 +154,7 @@ fn require_updates(indexer: Arc<Indexer>, id: &str) -> bool {
 
 fn should_backfill(indexer: Arc<Indexer>, id: &str) -> bool {
     // v0.23.0 add the commit field to the code document.
-    !indexer.has_attribute_field(id, code::fields::CHUNK_COMMIT)
+    !indexer.has_attribute_field(id, code::fields::ATTRIBUTE_COMMIT)
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {

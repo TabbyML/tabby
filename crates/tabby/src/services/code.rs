@@ -10,7 +10,7 @@ use tabby_common::{
     index::{
         self,
         code::{self, tokenize_code},
-        IndexSchema,
+        corpus, IndexSchema,
     },
 };
 use tabby_inference::Embedding;
@@ -76,15 +76,36 @@ impl CodeSearchImpl {
                 .await?
         };
 
-        Ok(merge_code_responses_by_rank(
-            &params,
-            docs_from_embedding,
-            docs_from_bm25,
-        ))
+        let mut merged_codes =
+            merge_code_responses_by_rank(&params, docs_from_embedding, docs_from_bm25);
+        add_doc_attribute(reader, &mut merged_codes).await;
+
+        Ok(merged_codes)
     }
 }
 
 const RANK_CONSTANT: f32 = 60.0;
+
+async fn add_doc_attribute(reader: &IndexReader, searched_code: &mut CodeSearchResponse) {
+    let schema = IndexSchema::instance();
+    for hit in searched_code.hits.iter_mut() {
+        let query = schema.doc_query(corpus::CODE, &hit.doc.file_id);
+        let doc = reader
+            .searcher()
+            .search(&query, &TopDocs::with_limit(1))
+            .unwrap();
+        if doc.len() == 0 {
+            continue;
+        }
+        let doc = reader.searcher().doc(doc[0].1).unwrap();
+        hit.doc.commit = get_json_text_field_optional(
+            &doc,
+            schema.field_attributes,
+            code::fields::ATTRIBUTE_COMMIT,
+        )
+        .map(|s| s.to_owned());
+    }
+}
 
 fn merge_code_responses_by_rank(
     params: &CodeSearchParams,
@@ -187,12 +208,7 @@ fn create_hit(scores: CodeSearchScores, doc: TantivyDocument) -> CodeSearchHit {
         .to_owned(),
         // commit is introduced in v0.23, but it is also a required field
         // so we need to handle the case where it's not present
-        commit: get_json_text_field_optional(
-            &doc,
-            schema.field_chunk_attributes,
-            code::fields::CHUNK_COMMIT,
-        )
-        .map(|s| s.to_owned()),
+        commit: None,
         language: get_json_text_field(
             &doc,
             schema.field_chunk_attributes,
