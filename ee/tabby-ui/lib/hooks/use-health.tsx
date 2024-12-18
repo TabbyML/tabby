@@ -23,8 +23,8 @@ export function useHealth(): SWRResponse<HealthInfo> {
     '/v1/health',
     (url: string) => {
       return fetcher(url, {
-        errorHandler: () => {
-          throw new Error('Unhealth')
+        errorHandler: response => {
+          throw new Error(response?.statusText.toString() || 'Unhealth')
         }
       })
     },

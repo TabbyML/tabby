@@ -31,7 +31,7 @@ function transformHealthInfoToChatWorker(healthInfo: HealthInfo) {
 }
 
 function useWorkers() {
-  const { data: healthInfo, isLoading: fetching } = useHealth()
+  const { data: healthInfo, isLoading, error } = useHealth()
 
   const groupedWorkers = React.useMemo(() => {
     const workers = []
@@ -45,7 +45,7 @@ function useWorkers() {
     return groupBy(workers, 'kind')
   }, [healthInfo])
 
-  return { data: groupedWorkers, fetching }
+  return { data: groupedWorkers, isLoading, error }
 }
 
 export { useWorkers }
