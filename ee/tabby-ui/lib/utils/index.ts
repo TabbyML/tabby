@@ -8,6 +8,7 @@ import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { Maybe } from '../gql/generates/graphql'
 
 export * from './chat'
+export * from './repository'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

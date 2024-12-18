@@ -541,7 +541,7 @@ impl Query {
     }
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
-        let user = check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
 
         ctx.locator
             .repository()
@@ -550,7 +550,7 @@ impl Query {
     }
 
     async fn context_info(ctx: &Context) -> Result<ContextInfo> {
-        let user = check_user_allow_auth_token(ctx).await?;
+        let user = check_user(ctx).await?;
         ctx.locator.context().read(Some(&user.policy)).await
     }
 

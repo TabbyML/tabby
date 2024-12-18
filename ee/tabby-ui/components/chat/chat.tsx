@@ -12,13 +12,13 @@ import type {
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
+import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
-  ContextInfo,
-  ContextSourceKind,
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
+  RepositorySourceListQuery,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -26,8 +26,6 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { client } from '@/lib/tabby/gql'
-import { contextInfoQuery, resolveGitUrlQuery } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
@@ -36,12 +34,26 @@ import {
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
-import { cn, nanoid } from '@/lib/utils'
+import { cn, findClosestRepositoryMatch, nanoid } from '@/lib/utils'
 
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
+
+const repositoryListQuery = graphql(/* GraphQL */ `
+  query RepositorySourceList {
+    repositoryList {
+      id
+      name
+      kind
+      gitUrl
+      sourceId
+      sourceName
+      sourceKind
+    }
+  }
+`)
 
 type ChatContextValue = {
   initialized: boolean
@@ -71,8 +83,8 @@ type ChatContextValue = {
   supportsOnApplyInEditorV2: boolean
   selectedRepoId: string | undefined
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
-  repos: ContextInfo['sources']
-  fetchingSources: boolean
+  repos: RepositorySourceListQuery['repositoryList'] | undefined
+  fetchingRepos: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -160,20 +172,11 @@ function ChatRenderer(
   )
 
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
-  const [{ data: contextInfoData, fetching: fetchingSources }] = useQuery({
-    query: contextInfoQuery
+
+  const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
+    query: repositoryListQuery
   })
-  const repos = React.useMemo(() => {
-    return (
-      contextInfoData?.contextInfo?.sources.filter(source => {
-        return [
-          ContextSourceKind.Git,
-          ContextSourceKind.Github,
-          ContextSourceKind.Gitlab
-        ].includes(source.sourceKind)
-      }) ?? []
-    )
-  }, [contextInfoData])
+  const repos = repositoryListData?.repositoryList
 
   const {
     sendUserMessage,
@@ -530,30 +533,31 @@ function ChatRenderer(
     }
   }
 
-  const resolveGitUrl = async (gitUrl: string | undefined) => {
-    if (!gitUrl) return undefined
-    return client.query(resolveGitUrlQuery, { gitUrl }).toPromise()
-  }
-
   React.useEffect(() => {
     const init = async () => {
       const gitRepoInfo = await fetchWorkspaceGitRepo()
       // get default repo
-      if (gitRepoInfo?.length) {
+      if (gitRepoInfo?.length && repos?.length) {
         const defaultGitUrl = gitRepoInfo[0].gitUrl
-        const repo = await resolveGitUrl(defaultGitUrl)
-        if (repo?.data?.resolveGitUrl) {
-          setSelectedRepoId(repo.data.resolveGitUrl.sourceId)
+        const targetGirUrl = findClosestRepositoryMatch(
+          defaultGitUrl,
+          repos.map(x => x.gitUrl)
+        )
+        if (targetGirUrl) {
+          const repo = repos.find(x => x.gitUrl === targetGirUrl)
+          if (repo) {
+            setSelectedRepoId(repo.sourceId)
+          }
         }
       }
 
       setInitialized(true)
     }
 
-    if (!fetchingSources && !initialized) {
+    if (!fetchingRepos && !initialized) {
       init()
     }
-  }, [fetchingSources])
+  }, [fetchingRepos])
 
   React.useEffect(() => {
     if (initialized) {
@@ -600,7 +604,7 @@ function ChatRenderer(
         selectedRepoId,
         setSelectedRepoId,
         repos,
-        fetchingSources,
+        fetchingRepos,
         initialized
       }}
     >
@@ -668,14 +672,4 @@ function formatThreadRunErrorMessage(error: ExtendedCombinedError | undefined) {
   }
 
   return error.message || 'Failed to fetch'
-}
-
-function isValidContextForCodeQuery(context: FileContext | undefined) {
-  if (!context) return false
-
-  const isUntitledFile =
-    context.filepath.startsWith('untitled:') &&
-    !filename2prism(context.filepath)[0]
-
-  return !isUntitledFile
 }

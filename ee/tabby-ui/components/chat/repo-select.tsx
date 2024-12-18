@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-import { ContextInfo } from '@/lib/gql/generates/graphql'
+import { RepositorySourceListQuery } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,7 @@ import LoadingWrapper from '@/components/loading-wrapper'
 import { SourceIcon } from '../source-icon'
 
 interface RepoSelectProps {
-  repos: ContextInfo['sources'] | undefined
+  repos: RepositorySourceListQuery['repositoryList'] | undefined
   value: string | undefined
   onChange: (v: string | undefined) => void
   isInitializing?: boolean
