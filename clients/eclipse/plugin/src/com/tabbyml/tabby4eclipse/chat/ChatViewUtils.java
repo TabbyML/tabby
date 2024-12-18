@@ -33,7 +33,7 @@ public class ChatViewUtils {
 	private static final String ID = "com.tabbyml.tabby4eclipse.views.chat";
 
 	private static final String MIN_SERVER_VERSION = "0.18.0";
-	private static final String CHAT_PANEL_API_VERSION = "0.2.0";
+	private static final String CHAT_PANEL_API_VERSION = "0.4.0";
 	private static Logger logger = new Logger("ChatView");
 
 	public static final String PROMPT_EXPLAIN = "Explain the selected code:";

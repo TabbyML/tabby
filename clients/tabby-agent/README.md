@@ -1,6 +1,6 @@
 # Tabby Agent
 
-The [tabby-agent](https://www.npmjs.com/package/tabby-agent) is an agent used for communication with the [Tabby](https://tabby.tabbyml.com) server. It is based on Node.js v18 and runs as a language server.
+The [tabby-agent](https://www.npmjs.com/package/tabby-agent) is an agent used for communication with the [Tabby](https://www.tabbyml.com) server. It is based on Node.js v18 and runs as a language server.
 
 **Breaking Changes**: The tabby-agent will only support running as a language server since version 1.7.0.
 

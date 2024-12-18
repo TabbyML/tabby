@@ -592,8 +592,9 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         }
       })()
     """.trimIndent().trimStart()
+    
+    logger.debug("Request to chat panel: $uuid, $method, $paramsJson")
     if (isChatPanelLoaded) {
-      logger.debug("Request to chat panel: $uuid, $method, $paramsJson")
       executeJs(script)
     } else {
       pendingScripts.add(script)

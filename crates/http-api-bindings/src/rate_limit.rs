@@ -9,6 +9,7 @@ use futures::stream::BoxStream;
 use leaky_bucket::RateLimiter;
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
 use tokio::time::Duration;
+use tracing::{info_span, Instrument};
 
 fn new_rate_limiter(rpm: u64) -> RateLimiter {
     let rps = (rpm as f64 / 60.0).ceil() as usize;
@@ -35,7 +36,10 @@ pub fn new_embedding(embedding: Box<dyn Embedding>, request_per_minute: u64) -> 
 impl Embedding for RateLimitedEmbedding {
     async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
         self.rate_limiter.acquire(1).await;
-        self.embedding.embed(prompt).await
+        self.embedding
+            .embed(prompt)
+            .instrument(info_span!("rate_limited_compute_embedding"))
+            .await
     }
 }
 

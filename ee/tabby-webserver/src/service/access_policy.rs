@@ -64,11 +64,8 @@ pub mod testutils {
 
     use super::*;
 
-    pub async fn make_policy() -> AccessPolicy {
-        AccessPolicy::new(
-            DbConn::new_in_memory().await.unwrap(),
-            &ID::from("nihao".to_string()),
-            false,
-        )
+    /// create a mock `AccessPolicy` for testing with admin permissions
+    pub async fn make_policy(db: DbConn) -> AccessPolicy {
+        AccessPolicy::new(db.clone(), &ID::from("nihao".to_string()), true)
     }
 }

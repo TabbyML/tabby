@@ -3,7 +3,7 @@
   "publisher": "TabbyML",
   "displayName": "Tabby",
   "description": "Tabby is a self-hosted AI coding assistant that can suggest multi-line code or full functions in real-time.",
-  "homepage": "https://tabby.tabbyml.com/",
+  "homepage": "https://www.tabbyml.com/",
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",

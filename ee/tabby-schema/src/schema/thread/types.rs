@@ -241,6 +241,7 @@ pub struct ThreadAssistantMessageCreated {
 
 #[derive(GraphQLObject)]
 pub struct ThreadAssistantMessageAttachmentsCode {
+    pub code_source_id: String,
     pub hits: Vec<MessageCodeSearchHit>,
 }
 

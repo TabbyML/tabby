@@ -312,7 +312,11 @@ export class WebviewHelper {
     }
 
     this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
+    this.pendingRelevantContexts = [];
+
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
+    this.pendingMessages = [];
+
     this.syncActiveSelection(window.activeTextEditor);
 
     const agentConfig = this.lspClient.agentConfig.current;
