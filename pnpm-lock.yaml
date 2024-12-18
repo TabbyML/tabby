@@ -224,9 +224,6 @@ importers:
 
   clients/tabby-chat-panel:
     dependencies:
-      git-url-parse:
-        specifier: ^16.0.0
-        version: 16.0.0
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -240,9 +237,6 @@ importers:
       '@antfu/ni':
         specifier: ^0.21.12
         version: 0.21.12
-      '@types/git-url-parse':
-        specifier: ^9.0.3
-        version: 9.0.3
       '@types/node':
         specifier: ^20.12.7
         version: 20.12.12
