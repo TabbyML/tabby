@@ -94,7 +94,7 @@ async fn add_doc_attribute(reader: &IndexReader, searched_code: &mut CodeSearchR
             .searcher()
             .search(&query, &TopDocs::with_limit(1))
             .unwrap();
-        if doc.len() == 0 {
+        if doc.is_empty() {
             continue;
         }
         let doc = reader.searcher().doc(doc[0].1).unwrap();
