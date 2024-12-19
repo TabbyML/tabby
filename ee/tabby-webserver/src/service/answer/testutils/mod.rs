@@ -148,6 +148,7 @@ impl CodeSearch for FakeCodeSearch {
                         file_id: "1".to_string(),
                         chunk_id: "chunk1".to_string(),
                         git_url: "https://github.com/test/repo".to_string(),
+                        commit: Some("commit".to_string()),
                     },
                     scores: CodeSearchScores {
                         bm25: 0.8,
@@ -164,6 +165,7 @@ impl CodeSearch for FakeCodeSearch {
                         file_id: "2".to_string(),
                         chunk_id: "chunk2".to_string(),
                         git_url: "https://github.com/test/repo".to_string(),
+                        commit: Some("commit".to_string()),
                     },
                     scores: CodeSearchScores {
                         bm25: 0.7,

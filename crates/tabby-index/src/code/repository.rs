@@ -12,11 +12,13 @@ use tracing::warn;
 use super::CodeRepository;
 
 trait RepositoryExt {
-    fn sync(&self) -> anyhow::Result<()>;
+    fn sync(&self) -> anyhow::Result<String>;
 }
 
 impl RepositoryExt for CodeRepository {
-    fn sync(&self) -> anyhow::Result<()> {
+    // sync clones the repository if it doesn't exist, otherwise it pulls the remote.
+    // and returns the git commit sha256.
+    fn sync(&self) -> anyhow::Result<String> {
         let dir = self.dir();
         let mut finished = false;
         if dir.exists() {
@@ -47,8 +49,15 @@ impl RepositoryExt for CodeRepository {
             }
         }
 
-        Ok(())
+        get_commit_sha(self)
     }
+}
+
+fn get_commit_sha(repository: &CodeRepository) -> anyhow::Result<String> {
+    let repo = git2::Repository::open(repository.dir())?;
+    let head = repo.head()?;
+    let commit = head.peel_to_commit()?;
+    Ok(commit.id().to_string())
 }
 
 fn pull_remote(path: &Path) -> bool {
@@ -71,16 +80,15 @@ fn pull_remote(path: &Path) -> bool {
     true
 }
 
-pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<()> {
+pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<String> {
     if repository.is_local_dir() {
         if !repository.dir().exists() {
-            panic!("Directory {} does not exist", repository.dir().display());
+            bail!("Directory {} does not exist", repository.dir().display());
         }
+        get_commit_sha(repository)
     } else {
-        repository.sync()?;
+        repository.sync()
     }
-
-    Ok(())
 }
 
 pub fn garbage_collection(repositories: &[CodeRepository]) {

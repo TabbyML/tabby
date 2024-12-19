@@ -38,9 +38,9 @@ impl CodeIndexer {
             "Building source code index: {}",
             repository.canonical_git_url()
         );
-        repository::sync_repository(repository)?;
+        let commit = repository::sync_repository(repository)?;
 
-        index::index_repository(embedding, repository).await;
+        index::index_repository(embedding, repository, &commit).await;
         index::garbage_collection().await;
 
         Ok(())
@@ -62,8 +62,10 @@ impl CodeBuilder {
 
 #[async_trait]
 impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
-    async fn build_attributes(&self, _source_code: &SourceCode) -> serde_json::Value {
-        json!({})
+    async fn build_attributes(&self, source_code: &SourceCode) -> serde_json::Value {
+        json!({
+            code::fields::ATTRIBUTE_COMMIT: source_code.commit,
+        })
     }
 
     async fn build_chunk_attributes<'a>(
