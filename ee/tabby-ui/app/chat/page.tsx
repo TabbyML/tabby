@@ -75,6 +75,10 @@ export default function ChatPage() {
   const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
     useState(false)
   const [supportsOnLookupSymbol, setSupportsOnLookupSymbol] = useState(false)
+  const [
+    supportsProvideWorkspaceGitRepoInfo,
+    setSupportsProvideWorkspaceGitRepoInfo
+  ] = useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -238,6 +242,9 @@ export default function ChatPage() {
           ?.hasCapability('onApplyInEditorV2')
           .then(setSupportsOnApplyInEditorV2)
         server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
+        server
+          ?.hasCapability('readWorkspaceGitRepositories')
+          .then(setSupportsProvideWorkspaceGitRepoInfo)
       }
 
       checkCapabilities()
@@ -395,6 +402,11 @@ export default function ChatPage() {
           (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
         }
         openInEditor={isInEditor && server?.openInEditor}
+        readWorkspaceGitRepositories={
+          isInEditor && supportsProvideWorkspaceGitRepoInfo
+            ? server?.readWorkspaceGitRepositories
+            : undefined
+        }
       />
     </ErrorBoundary>
   )

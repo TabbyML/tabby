@@ -177,6 +177,13 @@ export interface SymbolInfo {
   target: FileLocation
 }
 
+/**
+ * Includes information about a git repository in workspace folder
+ */
+export interface GitRepository {
+  url: string
+}
+
 export interface ServerApi {
   init: (request: InitRequest) => void
   sendMessage: (message: ChatMessage) => void
@@ -224,6 +231,9 @@ export interface ClientApiMethods {
    * @returns Whether the file location is opened successfully.
    */
   openInEditor: (target: FileLocation) => Promise<boolean>
+
+  // Provide all repos found in workspace folders.
+  readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -258,6 +268,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onKeyboardEvent: api.onKeyboardEvent,
       lookupSymbol: api.lookupSymbol,
       openInEditor: api.openInEditor,
+      readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
     },
   })
 }

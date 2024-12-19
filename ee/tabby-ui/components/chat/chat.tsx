@@ -4,17 +4,21 @@ import type {
   Context,
   FileContext,
   FileLocation,
+  GitRepository,
   LookupSymbolHint,
   NavigateOpts,
   SymbolInfo
 } from 'tabby-chat-panel'
+import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
+import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
+  RepositorySourceListQuery,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -30,15 +34,29 @@ import {
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
-import { cn, nanoid } from '@/lib/utils'
+import { cn, findClosestGitRepository, nanoid } from '@/lib/utils'
 
-import { ListSkeleton } from '../skeleton'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 
+const repositoryListQuery = graphql(/* GraphQL */ `
+  query RepositorySourceList {
+    repositoryList {
+      id
+      name
+      kind
+      gitUrl
+      sourceId
+      sourceName
+      sourceKind
+    }
+  }
+`)
+
 type ChatContextValue = {
+  initialized: boolean
   threadId: string | undefined
   isLoading: boolean
   qaPairs: QuestionAnswerPair[]
@@ -63,6 +81,10 @@ type ChatContextValue = {
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+  selectedRepoId: string | undefined
+  setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
+  repos: RepositorySourceListQuery['repositoryList'] | undefined
+  fetchingRepos: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -103,6 +125,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   openInEditor?: (target: FileLocation) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+  readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
 }
 
 function ChatRenderer(
@@ -125,11 +148,12 @@ function ChatRenderer(
     onLookupSymbol,
     openInEditor,
     chatInputRef,
-    supportsOnApplyInEditorV2
+    supportsOnApplyInEditorV2,
+    readWorkspaceGitRepositories
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
-  const [initialized, setInitialzed] = React.useState(false)
+  const [initialized, setInitialized] = React.useState(false)
   const [threadId, setThreadId] = React.useState<string | undefined>()
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
@@ -138,10 +162,21 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
+  // sourceId
+  const [selectedRepoId, setSelectedRepoId] = React.useState<
+    string | undefined
+  >()
+
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
+
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
+
+  const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
+    query: repositoryListQuery
+  })
+  const repos = repositoryListData?.repositoryList
 
   const {
     sendUserMessage,
@@ -196,8 +231,7 @@ function ChatRenderer(
       ]
       setQaPairs(nextQaPairs)
       const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user,
-        enableActiveSelection
+        qaPair.user
       )
 
       return regenerate({
@@ -354,30 +388,13 @@ function ChatRenderer(
   }, [error])
 
   const generateRequestPayload = (
-    userMessage: UserMessage,
-    enableActiveSelection?: boolean
+    userMessage: UserMessage
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
-    // use selectContext for code query by default
-    let contextForCodeQuery: FileContext | undefined = userMessage.selectContext
-
-    // if enableActiveSelection, use selectContext or activeContext for code query
-    if (enableActiveSelection) {
-      contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
-    }
-
-    // check context for codeQuery
-    if (!isValidContextForCodeQuery(contextForCodeQuery)) {
-      contextForCodeQuery = undefined
-    }
-
-    const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
+    const content = userMessage.message
+    const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
       ? {
-          content: contextForCodeQuery.content ?? '',
-          filepath: contextForCodeQuery.filepath,
-          language: contextForCodeQuery.filepath
-            ? filename2prism(contextForCodeQuery.filepath)[0] || 'plaintext'
-            : 'plaintext',
-          gitUrl: contextForCodeQuery?.git_url ?? ''
+          content,
+          sourceId: selectedRepoId
         }
       : null
 
@@ -385,6 +402,7 @@ function ChatRenderer(
       enableActiveSelection && !!userMessage.activeContext
     const clientSideFileContexts: FileContext[] = uniqWith(
       compact([
+        userMessage.selectContext,
         hasUsableActiveContext && userMessage.activeContext,
         ...(userMessage?.relevantContext || [])
       ]),
@@ -397,8 +415,6 @@ function ChatRenderer(
         filepath: o.filepath,
         startLine: o.range.start
       }))
-
-    const content = userMessage.message
 
     return [
       {
@@ -459,9 +475,7 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      sendUserMessage(
-        ...generateRequestPayload(newUserMessage, enableActiveSelection)
-      )
+      sendUserMessage(...generateRequestPayload(newUserMessage))
     }
   )
 
@@ -511,6 +525,43 @@ function ChatRenderer(
     debouncedUpdateActiveSelection.run(ctx)
   }
 
+  const fetchWorkspaceGitRepo = () => {
+    if (readWorkspaceGitRepositories) {
+      return readWorkspaceGitRepositories()
+    } else {
+      return []
+    }
+  }
+
+  React.useEffect(() => {
+    const init = async () => {
+      const workspaceGitRepositories = await fetchWorkspaceGitRepo()
+      // get default repo
+      if (workspaceGitRepositories?.length && repos?.length) {
+        const defaultGitUrl = workspaceGitRepositories[0].url
+        const repo = findClosestGitRepository(
+          repos.map(x => ({ url: x.gitUrl, sourceId: x.sourceId })),
+          defaultGitUrl
+        )
+        if (repo) {
+          setSelectedRepoId(repo.sourceId)
+        }
+      }
+
+      setInitialized(true)
+    }
+
+    if (!fetchingRepos && !initialized) {
+      init()
+    }
+  }, [fetchingRepos])
+
+  React.useEffect(() => {
+    if (initialized) {
+      onLoaded?.()
+    }
+  }, [initialized])
+
   React.useImperativeHandle(
     ref,
     () => {
@@ -526,17 +577,7 @@ function ChatRenderer(
     []
   )
 
-  React.useEffect(() => {
-    setInitialzed(true)
-    onLoaded?.()
-  }, [])
-
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
-  if (!initialized) {
-    return (
-      <ListSkeleton className={`${chatMaxWidthClass} mx-auto pt-4 md:pt-10`} />
-    )
-  }
 
   return (
     <ChatContext.Provider
@@ -556,7 +597,12 @@ function ChatRenderer(
         removeRelevantContext,
         chatInputRef,
         activeSelection,
-        supportsOnApplyInEditorV2
+        supportsOnApplyInEditorV2,
+        selectedRepoId,
+        setSelectedRepoId,
+        repos,
+        fetchingRepos,
+        initialized
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
@@ -623,14 +669,4 @@ function formatThreadRunErrorMessage(error: ExtendedCombinedError | undefined) {
   }
 
   return error.message || 'Failed to fetch'
-}
-
-function isValidContextForCodeQuery(context: FileContext | undefined) {
-  if (!context) return false
-
-  const isUntitledFile =
-    context.filepath.startsWith('untitled:') &&
-    !filename2prism(context.filepath)[0]
-
-  return !isUntitledFile
 }

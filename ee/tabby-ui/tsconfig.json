@@ -29,7 +29,9 @@
     "next-auth.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
-, "lib/patch-fetch.js"  ],
+    ".next/types/**/*.ts",
+    "lib/patch-fetch.js",
+    "test"
+  ],
   "exclude": ["node_modules"]
 }

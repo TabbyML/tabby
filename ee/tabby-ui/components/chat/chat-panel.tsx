@@ -20,6 +20,7 @@ import {
   IconCheck,
   IconEye,
   IconEyeOff,
+  IconFileText,
   IconRefresh,
   IconRemove,
   IconShare,
@@ -32,6 +33,7 @@ import { FooterText } from '@/components/footer'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat'
+import { RepoSelect } from './repo-select'
 
 export interface ChatPanelProps
   extends Pick<UseChatHelpers, 'stop' | 'input' | 'setInput'> {
@@ -70,11 +72,16 @@ function ChatPanelRenderer(
     relevantContext,
     removeRelevantContext,
     activeSelection,
-    onCopyContent
+    onCopyContent,
+    selectedRepoId,
+    setSelectedRepoId,
+    repos,
+    initialized
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
+
   const [persisting, setPerisiting] = useState(false)
   const { width } = useWindowSize()
   const isExtraSmallScreen = typeof width === 'number' && width < 376
@@ -122,6 +129,14 @@ function ChatPanelRenderer(
     } finally {
       setPerisiting(false)
     }
+  }
+
+  const onSelectRepo = (sourceId: string | undefined) => {
+    setSelectedRepoId(sourceId)
+
+    setTimeout(() => {
+      chatInputRef.current?.focus()
+    })
   }
 
   React.useImperativeHandle(
@@ -220,8 +235,15 @@ function ChatPanelRenderer(
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
           <div className="flex flex-wrap gap-2">
             <AnimatePresence presenceAffectsLayout>
+              <RepoSelect
+                value={selectedRepoId}
+                onChange={onSelectRepo}
+                repos={repos}
+                isInitializing={!initialized}
+              />
               {activeSelection ? (
                 <motion.div
+                  key="active-selection"
                   initial={{ opacity: 0, scale: 0.9, y: -5 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{
@@ -240,6 +262,7 @@ function ChatPanelRenderer(
                       }
                     )}
                   >
+                    <IconFileText />
                     <ContextLabel
                       context={activeSelection}
                       className="flex-1 truncate"
@@ -300,6 +323,7 @@ function ChatPanelRenderer(
             setInput={setInput}
             isLoading={isLoading}
             chatInputRef={chatInputRef}
+            isInitializing={!initialized}
           />
           <FooterText className="hidden sm:block" />
         </div>
