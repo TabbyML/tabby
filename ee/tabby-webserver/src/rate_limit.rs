@@ -20,7 +20,12 @@ impl Default for UserRateLimiter {
 }
 
 impl UserRateLimiter {
-    pub async fn is_allowed(&self, user_id: &str) -> bool {
+    pub async fn is_allowed(&self, uri: &axum::http::Uri, user_id: &str) -> bool {
+        // Do not limit health check requests.
+        if uri.path().ends_with("/v1/health") || uri.path().ends_with("/v1beta/health") {
+            return true
+        }
+
         let mut rate_limiters = self.rate_limiters.lock().await;
         let rate_limiter = rate_limiters.cache_get_or_set_with(user_id.to_string(), || {
             // Create a new rate limiter for this user.
