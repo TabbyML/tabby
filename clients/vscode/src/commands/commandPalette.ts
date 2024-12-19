@@ -1,10 +1,13 @@
-import { commands, window, Command, QuickPick, QuickPickItem, QuickPickItemKind } from "vscode";
+import { commands, window, Command, QuickPick, QuickPickItem, QuickPickItemKind, ThemeIcon } from "vscode";
 import { State as LanguageClientState } from "vscode-languageclient";
 import { Client } from "../lsp/Client";
 import { Config } from "../Config";
 
+const MENU_ITEM_INDENT_SPACING = "      ";
+
 interface CommandPaletteItem extends QuickPickItem {
   command?: string | Command | (() => void | Promise<void>);
+  picked?: boolean;
 }
 
 export class CommandPalette {
@@ -16,58 +19,80 @@ export class CommandPalette {
   show() {
     const quickPick: QuickPick<CommandPaletteItem> = window.createQuickPick();
     quickPick.title = "Tabby Command Palette";
-
     const items: CommandPaletteItem[] = [];
 
-    items.push(this.itemForStatus());
+    items.push({ label: "status", kind: QuickPickItemKind.Separator }, this.itemForStatus(), {
+      label: "settings",
+      kind: QuickPickItemKind.Separator,
+    });
+
+    // Status section
     this.client.status.on("didChange", () => {
-      items[0] = this.itemForStatus();
+      items[1] = this.itemForStatus();
       quickPick.items = items;
     });
 
+    // Features section
+    const validStatuses = ["ready", "readyForAutoTrigger", "readyForManualTrigger"];
+    if (validStatuses.includes(this.client.status.current?.status || "")) {
+      const iconPath = this.config.inlineCompletionTriggerMode === "automatic" ? new ThemeIcon("check") : undefined;
+      const labelPrefix = iconPath ? "" : MENU_ITEM_INDENT_SPACING;
+
+      items.push(
+        { label: "enable/disable features", kind: QuickPickItemKind.Separator },
+        {
+          label: labelPrefix + "Code Completion",
+          detail: MENU_ITEM_INDENT_SPACING + "Toggle between automatic and manual completion mode",
+          picked: this.config.inlineCompletionTriggerMode === "automatic",
+          command: "tabby.toggleInlineCompletionTriggerMode",
+          iconPath: iconPath,
+          alwaysShow: true,
+        },
+      );
+    }
+
+    // Chat section
     if (this.client.chat.isAvailable) {
       items.push({
-        label: "$(comment) Chat",
+        label: "Chat",
         command: "tabby.chatView.focus",
+        iconPath: new ThemeIcon("comment"),
       });
     }
 
+    // Settings section
     items.push(
+      { label: "settings", kind: QuickPickItemKind.Separator },
       {
-        label: "",
-        kind: QuickPickItemKind.Separator,
-      },
-      {
-        label: this.config.inlineCompletionTriggerMode === "manual" ? "Enable Completions" : "Disable Completions",
-        command: "tabby.toggleInlineCompletionTriggerMode",
-      },
-      {
-        label: "",
-        kind: QuickPickItemKind.Separator,
-      },
-      {
-        label: "$(plug) Connect to Server...",
+        label: "Connect to Server",
         command: "tabby.connectToServer",
+        iconPath: new ThemeIcon("plug"),
       },
       {
-        label: "$(settings) Settings...",
+        label: "Settings",
         command: "tabby.openSettings",
+        iconPath: new ThemeIcon("settings"),
       },
       {
-        label: "$(gear) Agent Settings...",
+        label: "Agent Settings",
         command: "tabby.openTabbyAgentSettings",
+        iconPath: new ThemeIcon("tools"),
       },
       {
-        label: "$(output) Show Logs...",
+        label: "Show Logs",
         command: "tabby.outputPanel.focus",
+        iconPath: new ThemeIcon("output"),
       },
+    );
+
+    // Help section
+    items.push(
+      { label: "help & support", kind: QuickPickItemKind.Separator },
       {
-        label: "",
-        kind: QuickPickItemKind.Separator,
-      },
-      {
-        label: "$(question) Help",
+        label: "Help",
+        description: "Open online documentation",
         command: "tabby.openOnlineHelp",
+        iconPath: new ThemeIcon("question"),
       },
     );
 
@@ -91,12 +116,13 @@ export class CommandPalette {
   }
 
   private itemForStatus(): CommandPaletteItem {
+    const STATUS_PREFIX = MENU_ITEM_INDENT_SPACING + "Status: ";
     const languageClientState = this.client.languageClient.state;
     switch (languageClientState) {
       case LanguageClientState.Stopped:
       case LanguageClientState.Starting: {
         return {
-          label: "$(loading~spin) Initializing...",
+          label: `${STATUS_PREFIX}Initializing...`,
         };
       }
       case LanguageClientState.Running: {
@@ -104,19 +130,19 @@ export class CommandPalette {
         switch (statusInfo?.status) {
           case "connecting": {
             return {
-              label: "$(loading~spin) Connecting...",
+              label: `${STATUS_PREFIX}Connecting...`,
             };
           }
           case "unauthorized": {
             return {
-              label: "$(key) Unauthorized",
+              label: `${STATUS_PREFIX}Unauthorized`,
               description: "Update the settings to connect to Tabby Server",
               command: "tabby.connectToServer",
             };
           }
           case "disconnected": {
             return {
-              label: "$(debug-disconnect) Disconnected",
+              label: `${STATUS_PREFIX}Disconnected`,
               description: "Update the settings to connect to Tabby Server",
               command: "tabby.connectToServer",
             };
@@ -126,14 +152,14 @@ export class CommandPalette {
           case "readyForManualTrigger":
           case "fetching": {
             return {
-              label: "$(check) Ready",
+              label: `${STATUS_PREFIX}Ready`,
               description: this.client.agentConfig.current?.server.endpoint,
               command: "tabby.outputPanel.focus",
             };
           }
           case "completionResponseSlow": {
             return {
-              label: "$(warning) Slow Response",
+              label: `${STATUS_PREFIX}Slow Response`,
               description: "Completion requests appear to take too much time.",
               command: async () => {
                 const currentStatusInfo = await this.client.status.fetchAgentStatusInfo();
@@ -162,7 +188,7 @@ export class CommandPalette {
           }
           default: {
             return {
-              label: "$(warning) Unknown Status",
+              label: `${STATUS_PREFIX}Unknown Status`,
               description: "Please check the logs for more information.",
               command: "tabby.outputPanel.focus",
             };
