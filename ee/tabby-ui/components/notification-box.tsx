@@ -21,7 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger
 } from './ui/dropdown-menu'
-import { IconArrowRight, IconBell, IconCheck } from './ui/icons'
+import { IconBell, IconCheck } from './ui/icons'
 import { Separator } from './ui/separator'
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
 
@@ -156,7 +156,7 @@ interface NotificationItemProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 function NotificationItem({ data }: NotificationItemProps) {
-  const { type, title, content } = resolveNotification(data.content)
+  const { title, content } = resolveNotification(data.content)
 
   const markNotificationsRead = useMutation(markNotificationsReadMutation)
 
@@ -166,26 +166,16 @@ function NotificationItem({ data }: NotificationItemProps) {
     })
   }
 
-  const onAction = () => {
-    onClickMarkRead()
-
-    if (type === 'license_will_expire') {
-      return window.open('/settings/subscription')
-    }
-  }
-
   return (
-    <div className="group space-y-1.5">
-      <div className="space-y-1.5" onClick={onAction}>
-        <div className="flex cursor-pointer items-center gap-1.5 overflow-hidden text-sm font-medium">
+    <div className="space-y-1.5">
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5 overflow-hidden text-sm font-medium">
           {!data.read && (
             <span className="h-2 w-2 shrink-0 rounded-full bg-red-400"></span>
           )}
-          <span className="flex-1 truncate group-hover:opacity-70">
-            {title}
-          </span>
+          <span className="flex-1 truncate">{title}</span>
         </div>
-        <div className="cursor-pointer whitespace-pre-wrap break-words text-sm text-muted-foreground group-hover:opacity-70">
+        <div className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
           {content}
         </div>
       </div>
@@ -194,14 +184,6 @@ function NotificationItem({ data }: NotificationItemProps) {
           {formatNotificationTime(data.createdAt)}
         </span>
         <div className="flex items-center gap-1.5">
-          <Button
-            variant="link"
-            className="flex h-auto items-center gap-0.5 p-1 text-xs text-muted-foreground"
-            onClick={onAction}
-          >
-            <IconArrowRight className="h-3 w-3" />
-            Detail
-          </Button>
           {!data.read && (
             <Button
               variant="link"
@@ -223,16 +205,7 @@ function resolveNotification(content: string) {
   const title = content.split('\n')[0]
   const _content = content.split('\n').slice(1).join('\n')
 
-  if (content.startsWith('Your license will expire')) {
-    return {
-      type: 'license_will_expire',
-      title,
-      content: _content
-    }
-  }
-
   return {
-    type: '',
     title,
     content: _content
   }
