@@ -76,38 +76,17 @@ impl CodeSearchImpl {
                 .await?
         };
 
-        let mut merged_codes =
-            merge_code_responses_by_rank(&params, docs_from_embedding, docs_from_bm25);
-        add_doc_attribute(reader, &mut merged_codes).await;
-
-        Ok(merged_codes)
+        Ok(
+            merge_code_responses_by_rank(reader, &params, docs_from_embedding, docs_from_bm25)
+                .await,
+        )
     }
 }
 
 const RANK_CONSTANT: f32 = 60.0;
 
-async fn add_doc_attribute(reader: &IndexReader, searched_code: &mut CodeSearchResponse) {
-    let schema = IndexSchema::instance();
-    for hit in searched_code.hits.iter_mut() {
-        let query = schema.doc_query(corpus::CODE, &hit.doc.file_id);
-        let doc = reader
-            .searcher()
-            .search(&query, &TopDocs::with_limit(1))
-            .unwrap();
-        if doc.is_empty() {
-            continue;
-        }
-        let doc = reader.searcher().doc(doc[0].1).unwrap();
-        hit.doc.commit = get_json_text_field_optional(
-            &doc,
-            schema.field_attributes,
-            code::fields::ATTRIBUTE_COMMIT,
-        )
-        .map(|s| s.to_owned());
-    }
-}
-
-fn merge_code_responses_by_rank(
+async fn merge_code_responses_by_rank(
+    reader: &IndexReader,
     params: &CodeSearchParams,
     embedding_resp: Vec<(f32, TantivyDocument)>,
     bm25_resp: Vec<(f32, TantivyDocument)>,
@@ -139,9 +118,13 @@ fn merge_code_responses_by_rank(
         }
     }
 
-    let mut scored_hits: Vec<CodeSearchHit> = scored_hits
+    let scored_hits_futures: Vec<_> = scored_hits
         .into_values()
-        .map(|(scores, doc)| create_hit(scores, doc))
+        .map(|(scores, doc)| create_hit(reader, scores, doc))
+        .collect();
+    let mut scored_hits: Vec<CodeSearchHit> = futures::future::join_all(scored_hits_futures)
+        .await
+        .into_iter()
         .collect();
     scored_hits.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
     retain_at_most_two_hits_per_file(&mut scored_hits);
@@ -183,10 +166,17 @@ fn get_chunk_id(doc: &TantivyDocument) -> &str {
     get_text(doc, schema.field_chunk_id)
 }
 
-fn create_hit(scores: CodeSearchScores, doc: TantivyDocument) -> CodeSearchHit {
+async fn create_hit(
+    reader: &IndexReader,
+    scores: CodeSearchScores,
+    doc: TantivyDocument,
+) -> CodeSearchHit {
     let schema = IndexSchema::instance();
+    let file_id = get_text(&doc, schema.field_id).to_owned();
+    let commit = get_commit(reader, &file_id).await;
+
     let doc = CodeSearchDocument {
-        file_id: get_text(&doc, schema.field_id).to_owned(),
+        file_id,
         chunk_id: get_text(&doc, schema.field_chunk_id).to_owned(),
         body: get_json_text_field(
             &doc,
@@ -208,7 +198,7 @@ fn create_hit(scores: CodeSearchScores, doc: TantivyDocument) -> CodeSearchHit {
         .to_owned(),
         // commit is introduced in v0.23, but it is also a required field
         // so we need to handle the case where it's not present
-        commit: None,
+        commit,
         language: get_json_text_field(
             &doc,
             schema.field_chunk_attributes,
@@ -222,6 +212,26 @@ fn create_hit(scores: CodeSearchScores, doc: TantivyDocument) -> CodeSearchHit {
         ) as usize,
     };
     CodeSearchHit { scores, doc }
+}
+
+async fn get_commit(reader: &IndexReader, id: &str) -> Option<String> {
+    let schema = IndexSchema::instance();
+    let query = schema.doc_query(corpus::CODE, id);
+    let doc = reader
+        .searcher()
+        .search(&query, &TopDocs::with_limit(1))
+        .ok()?;
+    if doc.is_empty() {
+        return None;
+    }
+
+    let doc = reader.searcher().doc(doc[0].1).ok()?;
+    get_json_text_field_optional(
+        &doc,
+        schema.field_attributes,
+        code::fields::ATTRIBUTE_COMMIT,
+    )
+    .map(|s| s.to_owned())
 }
 
 fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
