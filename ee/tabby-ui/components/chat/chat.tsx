@@ -539,15 +539,12 @@ function ChatRenderer(
       // get default repo
       if (workspaceGitRepositories?.length && repos?.length) {
         const defaultGitUrl = workspaceGitRepositories[0].url
-        const targetGirUrl = findClosestGitRepository(
-          repos.map(x => ({ url: x.gitUrl })),
+        const repo = findClosestGitRepository(
+          repos.map(x => ({ url: x.gitUrl, sourceId: x.sourceId })),
           defaultGitUrl
-        )?.url
-        if (targetGirUrl) {
-          const repo = repos.find(x => x.gitUrl === targetGirUrl)
-          if (repo) {
-            setSelectedRepoId(repo.sourceId)
-          }
+        )
+        if (repo) {
+          setSelectedRepoId(repo.sourceId)
         }
       }
 
