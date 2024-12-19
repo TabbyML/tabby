@@ -167,6 +167,22 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
             }
         }
     }
+
+    pub async fn backfill_attribute(&self, origin: &TantivyDocument, doc: &T) -> TantivyDocument {
+        let schema = IndexSchema::instance();
+        let mut doc = doc! {
+            schema.field_id => get_text(origin, schema.field_id),
+            schema.field_source_id => get_text(origin, schema.field_source_id).to_string(),
+            schema.field_corpus => get_text(origin, schema.field_corpus).to_string(),
+            schema.field_attributes => self.builder.build_attributes(doc).await,
+            schema.field_updated_at => get_date(origin, schema.field_updated_at),
+        };
+        if let Some(failed_chunks) = get_number_optional(origin, schema.field_failed_chunks_count) {
+            doc.add_u64(schema.field_failed_chunks_count, failed_chunks as u64);
+        }
+
+        doc
+    }
 }
 
 pub struct Indexer {
@@ -394,4 +410,12 @@ impl IndexGarbageCollector {
 
 fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
     doc.get_first(field).unwrap().as_str().unwrap()
+}
+
+fn get_date(doc: &TantivyDocument, field: schema::Field) -> tantivy::DateTime {
+    doc.get_first(field).unwrap().as_datetime().unwrap()
+}
+
+fn get_number_optional(doc: &TantivyDocument, field: schema::Field) -> Option<i64> {
+    doc.get_first(field)?.as_i64()
 }

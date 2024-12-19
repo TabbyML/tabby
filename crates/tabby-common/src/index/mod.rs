@@ -276,6 +276,11 @@ impl IndexSchema {
                     FIELD_ATTRIBUTES, field
                 ))),
             ),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
         ])
     }
 
