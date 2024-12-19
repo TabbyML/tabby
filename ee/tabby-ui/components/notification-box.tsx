@@ -156,7 +156,7 @@ interface NotificationItemProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 function NotificationItem({ data }: NotificationItemProps) {
-  const { type, title, content } = resolveNotification(data.content)
+  const { title, content } = resolveNotification(data.content)
 
   const markNotificationsRead = useMutation(markNotificationsReadMutation)
 
@@ -205,16 +205,7 @@ function resolveNotification(content: string) {
   const title = content.split('\n')[0]
   const _content = content.split('\n').slice(1).join('\n')
 
-  if (content.startsWith('Your license will expire')) {
-    return {
-      type: 'license_will_expire',
-      title,
-      content: _content
-    }
-  }
-
   return {
-    type: '',
     title,
     content: _content
   }
