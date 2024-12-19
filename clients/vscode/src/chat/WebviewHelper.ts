@@ -4,7 +4,6 @@ import {
   env,
   TextEditor,
   window,
-  Range,
   Selection,
   TextDocument,
   Webview,
@@ -13,6 +12,8 @@ import {
   commands,
   Location,
   LocationLink,
+  Position,
+  Range,
 } from "vscode";
 import type {
   ServerApi,
@@ -23,6 +24,8 @@ import type {
   LookupSymbolHint,
   SymbolInfo,
   FileLocation,
+  LookupDefinitionsHint,
+  Filepath,
 } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -441,6 +444,15 @@ export class WebviewHelper {
       });
     };
 
+    // get definition locations
+    const getDefinitionLocations = async (uri: Uri, position: Position) => {
+      return await commands.executeCommand<Location[] | LocationLink[]>(
+        "vscode.executeDefinitionProvider",
+        uri,
+        position,
+      );
+    };
+
     return createClient(webview, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
@@ -606,11 +618,7 @@ export class WebviewHelper {
             while ((match = matchRegExp.exec(content)) !== null) {
               const offset = offsetInDocument + match.index;
               const position = document.positionAt(offset);
-              const locations = await commands.executeCommand<Location[] | LocationLink[]>(
-                "vscode.executeDefinitionProvider",
-                document.uri,
-                position,
-              );
+              const locations = await getDefinitionLocations(document.uri, position);
               if (locations && locations.length > 0) {
                 const location = locations[0];
                 if (location) {
@@ -697,6 +705,244 @@ export class WebviewHelper {
           this.logger.error("Failed to go to location:", fileLocation, error);
           return false;
         }
+      },
+      lookupDefinitions: async (context: LookupDefinitionsHint): Promise<SymbolInfo[]> => {
+        if (!context?.filepath) {
+          this.logger.info("lookupDefinitions: Missing filepath in context.");
+          return [];
+        }
+
+        const uri = chatPanelFilepathToLocalUri(context.filepath, this.gitProvider);
+        if (!uri) {
+          this.logger.info("lookupDefinitions: Could not resolve local URI for:", context.filepath);
+          return [];
+        }
+
+        const document = await openTextDocument({ filePath: uri.toString(true) }, this.gitProvider);
+        if (!document) {
+          this.logger.info("lookupDefinitions: File not found:", context.filepath);
+          return [];
+        }
+
+        let snippetRange: Range;
+        if (context.location) {
+          const vsRange = chatPanelLocationToVSCodeRange(context.location);
+          if (vsRange) {
+            snippetRange = vsRange.isEmpty ? new Range(vsRange.start.line, 0, document.lineCount, 0) : vsRange;
+          } else {
+            snippetRange = new Range(0, 0, document.lineCount, 0);
+          }
+        } else {
+          snippetRange = new Range(0, 0, document.lineCount, 0);
+        }
+
+        const text = document.getText(snippetRange);
+        if (!text) {
+          this.logger.info("lookupDefinitions: No text found in the specified range.");
+          return [];
+        }
+
+        const words = text.split(/\b/);
+        const symbolInfos: SymbolInfo[] = [];
+
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i]?.trim();
+          if (!word || word.match(/^\W+$/)) {
+            continue;
+          }
+
+          let pos = 0;
+          for (let j = 0; j < i; j++) {
+            const word = words[j];
+            if (word) {
+              pos += word.length;
+            }
+          }
+
+          const prefixText = text.slice(0, pos);
+          const lines = prefixText.split("\n");
+
+          if (lines.length === 0) {
+            this.logger.debug("lookupDefinitions: Empty lines array encountered unexpectedly.");
+            continue;
+          }
+
+          const wordLine = snippetRange.start.line + (lines.length - 1);
+          const lastLine = lines[lines.length - 1];
+          const wordChar = lines.length > 1 && lastLine ? lastLine.length : pos;
+
+          if (wordLine < 0 || wordLine >= document.lineCount) {
+            this.logger.debug("lookupDefinitions: Calculated word line is out of range, skipping.", { wordLine });
+            continue;
+          }
+
+          if (wordChar < 0) {
+            this.logger.debug("lookupDefinitions: Calculated character index is negative, skipping.", { wordChar });
+            continue;
+          }
+
+          const position = new Position(wordLine, wordChar);
+
+          let definitionResults: (Location | LocationLink)[] | undefined;
+          try {
+            definitionResults = await getDefinitionLocations(document.uri, position);
+          } catch (error) {
+            this.logger.error(`lookupDefinitions: Error executing definition provider for "${word}":`, error);
+            continue;
+          }
+
+          if (!definitionResults || definitionResults.length === 0) {
+            continue;
+          }
+
+          for (const result of definitionResults) {
+            let targetUri: Uri;
+            let targetRange: Range;
+
+            if ("targetUri" in result) {
+              targetUri = result.targetUri;
+              targetRange = result.targetSelectionRange ?? result.targetRange;
+            } else {
+              targetUri = result.uri;
+              targetRange = result.range;
+            }
+
+            if (!targetUri || !targetRange) {
+              this.logger.debug("lookupDefinitions: Location is missing required properties, skipping.", result);
+              continue;
+            }
+
+            const sourceFilepath = localUriToChatPanelFilepath(document.uri, this.gitProvider);
+            const targetFilepath = localUriToChatPanelFilepath(targetUri, this.gitProvider);
+
+            if (!sourceFilepath || !targetFilepath) {
+              this.logger.debug("lookupDefinitions: Could not convert source/target URI to filepath, skipping.", {
+                sourceUri: document.uri.toString(true),
+                targetUri: targetUri.toString(true),
+              });
+              continue;
+            }
+
+            const sourceLocation: FileLocation = {
+              filepath: sourceFilepath,
+              location: vscodePositionToChatPanelPosition(position),
+            };
+
+            const targetPositionRange = vscodeRangeToChatPanelPositionRange(targetRange);
+            if (!targetPositionRange) {
+              this.logger.debug(
+                "lookupDefinitions: Could not convert target range to chat panel position range, skipping.",
+                targetRange,
+              );
+              continue;
+            }
+
+            const targetLocation: FileLocation = {
+              filepath: targetFilepath,
+              location: targetPositionRange,
+            };
+
+            symbolInfos.push({
+              source: sourceLocation,
+              target: targetLocation,
+            });
+          }
+        }
+
+        const getActualFilepath = (filepath: Filepath | undefined): string => {
+          if (!filepath) {
+            this.logger.info("No filepath provided.");
+            return "";
+          }
+          if (filepath.kind === "git") {
+            return filepath.filepath;
+          } else {
+            return filepath.uri;
+          }
+        };
+
+        // remove target location inside the context location
+        const filteredSymbolInfos = symbolInfos
+          .filter((symbolInfo) => {
+            if (!context.location) {
+              this.logger.info("No context location, keeping symbol");
+              return true;
+            }
+            const contextActualPath = getActualFilepath(context.filepath);
+            const targetActualPath = getActualFilepath(symbolInfo.target.filepath);
+            if (contextActualPath !== targetActualPath) {
+              return true;
+            }
+            const contextRange = chatPanelLocationToVSCodeRange(context.location);
+            if (!contextRange) {
+              this.logger.warn("Could not convert context location to VS Code range", context.location);
+              return true;
+            }
+            const targetRange = chatPanelLocationToVSCodeRange(symbolInfo.target.location);
+            if (!targetRange) {
+              this.logger.warn("Could not convert target location to VS Code range", symbolInfo.target.location);
+              return true;
+            }
+            const isOutsideRange =
+              targetRange.end.isBefore(contextRange.start) || targetRange.start.isAfter(contextRange.end);
+            return isOutsideRange;
+          })
+          // deal with overlapping target ranges
+          .filter((currentSymbol, index, array) => {
+            if (index === 0) return true;
+
+            const currentFilepath = getActualFilepath(currentSymbol.target.filepath);
+            const currentRange = chatPanelLocationToVSCodeRange(currentSymbol.target.location);
+
+            if (!currentRange) {
+              this.logger.warn(
+                "Could not convert current target location to VS Code range",
+                currentSymbol.target.location,
+              );
+              return true;
+            }
+
+            for (let i = 0; i < index; i++) {
+              const prevSymbol = array[i];
+              if (!prevSymbol) {
+                continue;
+              }
+              const prevFilepath = getActualFilepath(prevSymbol.target.filepath);
+
+              if (prevFilepath !== currentFilepath) {
+                continue;
+              }
+
+              const prevRange = chatPanelLocationToVSCodeRange(prevSymbol.target.location);
+              if (!prevRange) {
+                continue;
+              }
+
+              const hasOverlap = !(
+                currentRange.end.isBefore(prevRange.start) || currentRange.start.isAfter(prevRange.end)
+              );
+
+              if (hasOverlap) {
+                this.logger.info("Found overlapping ranges:", {
+                  current: currentRange,
+                  previous: prevRange,
+                });
+
+                const mergedStart = currentRange.start.isBefore(prevRange.start) ? currentRange.start : prevRange.start;
+                const mergedEnd = currentRange.end.isAfter(prevRange.end) ? currentRange.end : prevRange.end;
+
+                const mergedRange = new Range(mergedStart, mergedEnd);
+
+                prevSymbol.target.location = vscodeRangeToChatPanelPositionRange(mergedRange);
+
+                this.logger.info("Merged Lookup Definition range:", mergedRange);
+                return false;
+              }
+            }
+            return true;
+          });
+
+        return filteredSymbolInfos;
       },
     });
   }
