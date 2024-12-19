@@ -32,6 +32,7 @@ pub struct CodeSearchDocument {
     pub git_url: String,
 
     // FIXME(kweizh): This should be a required field after 0.25.0.
+    // commit represents the specific revision at which the file was last edited.
     pub commit: Option<String>,
 
     pub language: String,
