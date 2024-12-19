@@ -230,7 +230,11 @@ impl WorkerService for ServerContext {
 
         if let Some(user) = user {
             // Apply rate limiting when `user` is not none.
-            if !self.user_rate_limiter.is_allowed(&user).await {
+            if !self
+                .user_rate_limiter
+                .is_allowed(request.uri(), &user)
+                .await
+            {
                 return axum::response::Response::builder()
                     .status(StatusCode::TOO_MANY_REQUESTS)
                     .body(Body::empty())
