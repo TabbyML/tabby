@@ -198,7 +198,7 @@ export const autoClosingPairs: AutoClosingPair[] = [
   },
 ];
 
-export const regOnlyAutoClosingCloseChars = /^([)\]}>"'`]|(\/>))*$/g;
+export const regOnlyAutoClosingCloseChars = /^([)\]}>"'`]|(\/>)|[;,])*$/g;
 
 // FIXME: This function is not good enough, it can not handle escaped characters.
 export function findUnpairedAutoClosingChars(input: string): string[] {
