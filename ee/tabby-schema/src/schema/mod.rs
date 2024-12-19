@@ -549,6 +549,30 @@ impl Query {
             .await
     }
 
+    async fn resolve_git_url(ctx: &Context, git_url: String) -> Result<Option<Repository>> {
+        let user = check_user_and_auth_token(ctx, true).await?;
+
+        let context_info = ctx.locator.context().read(Some(&user.policy)).await?;
+        let target_source_id: Option<String> = context_info
+            .helper()
+            .allowed_code_repository()
+            .closest_match(&git_url)
+            .map(String::from);
+        let repos = ctx
+            .locator
+            .repository()
+            .repository_list(Some(&user.policy))
+            .await?;
+
+        // Iterate through repositories and find matching source_id
+        let matching_repo = repos.iter().find(|repo| {
+            // Match repo source_id with your target
+            Some(&repo.source_id) == target_source_id.as_ref()
+        });
+
+        Ok(matching_repo.cloned())
+    }
+
     async fn context_info(ctx: &Context) -> Result<ContextInfo> {
         let user = check_user(ctx).await?;
         ctx.locator.context().read(Some(&user.policy)).await

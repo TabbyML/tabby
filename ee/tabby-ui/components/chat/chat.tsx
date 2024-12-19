@@ -40,6 +40,10 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
+import { createRequest } from '@urql/core'
+import { client } from '@/lib/tabby/gql'
+import { ResolveGitUrlQuery } from '@/lib/gql/generates/graphql'
+import { resolveGitUrlQuery, repositoryListQuery } from '@/lib/tabby/query'
 
 const repositoryListQuery = graphql(/* GraphQL */ `
   query RepositorySourceList {
@@ -126,6 +130,19 @@ interface ChatProps extends React.ComponentProps<'div'> {
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
+}
+
+async function resolveGitUrl(gitUrl: string): Promise<
+  ResolveGitUrlQuery['resolveGitUrl']
+> {
+  const query = client.createRequestOperation(
+    'query',
+    createRequest(resolveGitUrlQuery, { gitUrl })
+  )
+
+  return client
+    .executeQuery(query)
+    .then(data => console.log('data', data)) as any
 }
 
 function ChatRenderer(
@@ -516,6 +533,9 @@ function ChatRenderer(
 
   const debouncedUpdateActiveSelection = useDebounceCallback(
     (ctx: Context | null) => {
+      console.log('ctx', ctx);
+      // if (ctx?.git_url) resolveGitUrl(ctx.git_url)
+
       setActiveSelection(ctx)
     },
     300

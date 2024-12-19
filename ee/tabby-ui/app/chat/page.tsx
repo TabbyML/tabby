@@ -274,6 +274,7 @@ export default function ChatPage() {
   const onChatLoaded = () => {
     pendingRelevantContexts.forEach(addRelevantContext)
     pendingMessages.forEach(sendMessage)
+
     chatRef.current?.updateActiveSelection(pendingActiveSelection)
 
     clearPendingState()
