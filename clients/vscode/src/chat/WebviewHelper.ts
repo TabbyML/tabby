@@ -13,6 +13,7 @@ import {
   commands,
   Location,
   LocationLink,
+  workspace,
 } from "vscode";
 import type {
   ServerApi,
@@ -23,6 +24,7 @@ import type {
   LookupSymbolHint,
   SymbolInfo,
   FileLocation,
+  GitRepository,
 } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -33,7 +35,7 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { Client as LspClient } from "../lsp/Client";
 import { isBrowser } from "../env";
-import { getFileContextFromSelection, showFileContext, openTextDocument } from "./fileContext";
+import { getFileContextFromSelection, showFileContext, openTextDocument, buildFilePathParams } from "./fileContext";
 import {
   localUriToChatPanelFilepath,
   chatPanelFilepathToLocalUri,
@@ -697,6 +699,34 @@ export class WebviewHelper {
           this.logger.error("Failed to go to location:", fileLocation, error);
           return false;
         }
+      },
+      readWorkspaceGitRepositories: async (): Promise<GitRepository[]> => {
+        const activeTextEditor = window.activeTextEditor;
+        const infoList: GitRepository[] = [];
+        let activeGitUrl: string | undefined;
+        if (activeTextEditor) {
+          const pathParams = await buildFilePathParams(activeTextEditor.document.uri, this.gitProvider);
+          if (pathParams.gitRemoteUrl) {
+            activeGitUrl = pathParams.gitRemoteUrl;
+            infoList.push({
+              url: activeGitUrl,
+            });
+          }
+        }
+
+        const workspaceFolder = workspace.workspaceFolders || [];
+        for (const folder of workspaceFolder) {
+          const repo = this.gitProvider.getRepository(folder.uri);
+          if (repo) {
+            const gitRemoteUrl = this.gitProvider.getDefaultRemoteUrl(repo);
+            if (gitRemoteUrl && gitRemoteUrl !== activeGitUrl) {
+              infoList.push({
+                url: gitRemoteUrl,
+              });
+            }
+          }
+        }
+        return infoList;
       },
     });
   }
