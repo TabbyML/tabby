@@ -63,6 +63,7 @@ impl ThreadServiceImpl {
                 id: message.id.as_id(),
                 thread_id: message.thread_id.as_id(),
                 role: thread::Role::from_enum_str(&message.role)?,
+                code_source_id: message.code_source_id,
                 content: message.content,
                 attachment,
                 created_at: message.created_at,

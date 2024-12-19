@@ -740,6 +740,7 @@ mod tests {
         tabby_schema::thread::Message {
             id: id.as_id(),
             thread_id: ID::new("0"),
+            code_source_id: None,
             content: content.to_owned(),
             role,
             attachment: attachment.unwrap_or_default(),

@@ -20,6 +20,7 @@ pub enum Role {
 pub struct Message {
     pub id: ID,
     pub thread_id: ID,
+    pub code_source_id: Option<String>,
     pub role: Role,
     pub content: String,
 
