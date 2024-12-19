@@ -3,6 +3,7 @@
 import { HTMLAttributes, useMemo } from 'react'
 import { TabsContent } from '@radix-ui/react-tabs'
 import moment from 'moment'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -33,8 +34,15 @@ const markNotificationsReadMutation = graphql(/* GraphQL */ `
 `)
 
 export function NotificationBox({ className, ...rest }: Props) {
-  const [{ data, fetching }] = useQuery({
+  const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: notificationsQuery
+  })
+
+  useSWR('refresh_notifications', () => reexecuteQuery(), {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    revalidateOnMount: false,
+    refreshInterval: 1000 * 60 * 10 // 10 mins
   })
 
   const notifications = useMemo(() => {
