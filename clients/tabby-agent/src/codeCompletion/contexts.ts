@@ -2,7 +2,7 @@ import type { components as TabbyApiComponents } from "tabby-openapi/compatible"
 import type { ConfigData } from "../config/type";
 import path from "path";
 import hashObject from "object-hash";
-import { splitLines, isBlank, regOnlyAutoClosingCloseChars, findUnpairedAutoClosingChars } from "../utils/string";
+import { splitLines, isBlank, regOnlyAutoClosingCloseChars } from "../utils/string";
 
 export type CompletionRequest = {
   filepath: string;
@@ -95,6 +95,9 @@ export class CompletionContext {
   currSeg: string = "";
   withCorrectCompletionItem: boolean = false; // weather we are using completionItem or not
 
+  // is current suffix is at end of line excluding auto closed char
+  lineEnd: RegExpMatchArray | null = null;
+
   constructor(request: CompletionRequest) {
     this.filepath = request.filepath;
     this.language = request.language;
@@ -119,13 +122,13 @@ export class CompletionContext {
     this.relevantSnippetsFromChangedFiles = request.relevantSnippetsFromChangedFiles;
     this.snippetsFromOpenedFiles = request.relevantSnippetsFromOpenedFiles;
 
-    const lineEnd = isAtLineEndExcludingAutoClosedChar(this.currentLineSuffix);
-    this.mode = lineEnd ? "default" : "fill-in-line";
+    this.lineEnd = isAtLineEndExcludingAutoClosedChar(this.currentLineSuffix);
+    this.mode = this.lineEnd ? "default" : "fill-in-line";
     this.hash = hashObject({
       filepath: this.filepath,
       language: this.language,
       prefix: this.prefix,
-      currentLineSuffix: lineEnd ? "" : this.currentLineSuffix,
+      currentLineSuffix: this.lineEnd ? "" : this.currentLineSuffix,
       nextLines: this.suffixLines.slice(1).join(""),
       position: this.position,
       clipboard: this.clipboard,
@@ -211,21 +214,9 @@ export class CompletionContext {
     // prefix && suffix
     const prefix = this.prefixLines.slice(Math.max(this.prefixLines.length - config.maxPrefixLines, 0)).join("");
     let suffix = this.suffixLines.slice(0, config.maxSuffixLines).join("");
-
-    // TODO: maybe move this part to string utils
-    // remove first unpaired bracket in segment
-    const unpairedChars = findUnpairedAutoClosingChars(suffix).join("");
-    if (unpairedChars.length > 0) {
-      const firstIndex = suffix.trimStart().indexOf(unpairedChars);
-      if (firstIndex == 0) {
-        suffix = suffix.substring(unpairedChars.length);
-      }
-    }
-
-    // deal with suffix only semicolon
-    if (suffix.trimStart().startsWith(";")) {
-      const semicolonIndex = suffix.indexOf(";");
-      suffix = suffix.substring(semicolonIndex + 1);
+    // if it's end of line, we don't need to include the suffix
+    if (this.lineEnd) {
+      suffix = "\n" + suffix.split("\n").slice(1).join("\n");
     }
 
     // filepath && git_url
