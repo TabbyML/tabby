@@ -38,16 +38,12 @@ export function NotificationBox({ className, ...rest }: Props) {
     query: notificationsQuery
   })
 
-  useSWR(
-    'refresh_notifications',
-    () => {
-      reexecuteQuery()
-    },
-    {
-      refreshInterval: 1000 * 60 * 10, // 10 mins
-      revalidateOnMount: false
-    }
-  )
+  useSWR('refresh_notifications', () => reexecuteQuery(), {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    revalidateOnMount: false,
+    refreshInterval: 1000 * 60 * 10 // 10 mins
+  })
 
   const notifications = useMemo(() => {
     return data?.notifications.slice().reverse()
