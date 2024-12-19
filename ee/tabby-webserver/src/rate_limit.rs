@@ -23,7 +23,7 @@ impl UserRateLimiter {
     pub async fn is_allowed(&self, uri: &axum::http::Uri, user_id: &str) -> bool {
         // Do not limit health check requests.
         if uri.path().ends_with("/v1/health") || uri.path().ends_with("/v1beta/health") {
-            return true
+            return true;
         }
 
         let mut rate_limiters = self.rate_limiters.lock().await;
