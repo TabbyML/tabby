@@ -476,6 +476,7 @@ type LicenseInfo {
 type Message {
   id: ID!
   threadId: ID!
+  codeSourceId: String
   role: Role!
   content: String!
   attachment: MessageAttachment!
