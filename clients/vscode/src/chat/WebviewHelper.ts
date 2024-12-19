@@ -13,7 +13,7 @@ import {
   commands,
   Location,
   LocationLink,
-  workspace
+  workspace,
 } from "vscode";
 import type {
   ServerApi,
@@ -24,7 +24,7 @@ import type {
   LookupSymbolHint,
   SymbolInfo,
   FileLocation,
-  GitRepository
+  GitRepository,
 } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
