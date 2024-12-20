@@ -1,9 +1,22 @@
 import type { TextEditor, TextDocument } from "vscode";
 import type { FileContext } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
-import { workspace, window, Position, Range, Selection, TextEditorRevealType, Uri, ViewColumn, commands } from "vscode";
+import {
+  workspace,
+  window,
+  Position,
+  Range,
+  Selection,
+  TextEditorRevealType,
+  Uri,
+  ViewColumn,
+  commands,
+  NotebookRange,
+  NotebookEditorRevealType,
+} from "vscode";
 import path from "path";
 import { getLogger } from "../logger";
+import { parseVscodeNotebookCellURI } from "./utils";
 
 const logger = getLogger("FileContext");
 
@@ -57,6 +70,15 @@ export async function showFileContext(fileContext: FileContext, gitProvider: Git
     return;
   }
 
+  if (fileContext.filepath.startsWith("vscode-notebook-cell")) {
+    const uri = Uri.parse(fileContext.filepath);
+    const cellUri = parseVscodeNotebookCellURI(uri);
+    if (cellUri?.scheme === "untitled") {
+      showUntitledNotebookCellContext(uri);
+      return;
+    }
+  }
+
   const document = await openTextDocument(
     {
       filePath: fileContext.filepath,
@@ -67,7 +89,6 @@ export async function showFileContext(fileContext: FileContext, gitProvider: Git
   if (!document) {
     throw new Error(`File not found: ${fileContext.filepath}`);
   }
-
   const editor = await window.showTextDocument(document, {
     viewColumn: ViewColumn.Active,
     preview: false,
@@ -79,6 +100,27 @@ export async function showFileContext(fileContext: FileContext, gitProvider: Git
   const end = new Position(fileContext.range.end, 0);
   editor.selection = new Selection(start, end);
   editor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
+}
+
+async function showUntitledNotebookCellContext(uri: Uri) {
+  const notebookDocument = workspace.notebookDocuments.find((notebook) => {
+    return notebook.getCells().some((cell) => cell.document.uri.toString() === uri.toString());
+  });
+
+  if (notebookDocument) {
+    const notebookEditor = await window.showNotebookDocument(notebookDocument);
+    const targetCell = notebookDocument.getCells().find((cell) => cell.document.uri.toString() === uri.toString());
+    if (notebookEditor && targetCell) {
+      const cellIndex = targetCell.index
+      // FIXME(@jueliang) set selection
+      notebookEditor.revealRange(new NotebookRange(cellIndex, cellIndex), NotebookEditorRevealType.InCenter)
+
+    } else {
+      throw new Error(`Cell not found in notebook: ${uri.toString()}`);
+    }
+  } else {
+    throw new Error(`Notebook not found for URI: ${uri.toString()}`);
+  }
 }
 
 export async function buildFilePathParams(uri: Uri, gitProvider: GitProvider): Promise<FilePathParams> {
@@ -105,18 +147,39 @@ export async function buildFilePathParams(uri: Uri, gitProvider: GitProvider): P
   };
 }
 
+async function openTextDocumentByAbsoluteFilepath(absoluteFilepath: Uri) {
+  if (!absoluteFilepath.scheme) {
+    return null;
+  }
+
+  if (absoluteFilepath.scheme.startsWith("vscode-notebook-cell")) {
+    const cell = parseVscodeNotebookCellURI(absoluteFilepath);
+    if (cell?.scheme === "untitled") {
+      const notebookDocument = workspace.notebookDocuments.find((notebook) => {
+        return (
+          notebook.isUntitled &&
+          notebook.getCells().some((cell) => cell.document.uri.toString() === absoluteFilepath.toString())
+        );
+      });
+      if (notebookDocument && typeof cell?.handle === "number") {
+        const notebookCell = notebookDocument.cellAt(cell.handle);
+        return notebookCell.document;
+      }
+    }
+  }
+
+  return await workspace.openTextDocument(absoluteFilepath);
+}
+
 export async function openTextDocument(
   filePathParams: FilePathParams,
   gitProvider: GitProvider,
 ): Promise<TextDocument | null> {
   const { filePath, gitRemoteUrl } = filePathParams;
-
   // Try parse as absolute path
   try {
     const absoluteFilepath = Uri.parse(filePath, true);
-    if (absoluteFilepath.scheme) {
-      return await workspace.openTextDocument(absoluteFilepath);
-    }
+    return openTextDocumentByAbsoluteFilepath(absoluteFilepath);
   } catch (err) {
     // ignore
   }
@@ -127,7 +190,7 @@ export async function openTextDocument(
     if (localGitRoot) {
       try {
         const absoluteFilepath = Uri.joinPath(localGitRoot, filePath);
-        return await workspace.openTextDocument(absoluteFilepath);
+        return await openTextDocumentByAbsoluteFilepath(absoluteFilepath);
       } catch (err) {
         // ignore
       }
@@ -138,7 +201,7 @@ export async function openTextDocument(
     // Try find file in workspace folder
     const absoluteFilepath = Uri.joinPath(root.uri, filePath);
     try {
-      return await workspace.openTextDocument(absoluteFilepath);
+      return await openTextDocumentByAbsoluteFilepath(absoluteFilepath);
     } catch (err) {
       // ignore
     }
@@ -148,7 +211,7 @@ export async function openTextDocument(
     if (localGitRoot) {
       try {
         const absoluteFilepath = Uri.joinPath(localGitRoot, filePath);
-        return await workspace.openTextDocument(absoluteFilepath);
+        return await openTextDocumentByAbsoluteFilepath(absoluteFilepath);
       } catch (err) {
         // ignore
       }
@@ -160,7 +223,7 @@ export async function openTextDocument(
   const files = await workspace.findFiles(filePath, undefined, 1);
   if (files[0]) {
     try {
-      return await workspace.openTextDocument(files[0]);
+      return await openTextDocumentByAbsoluteFilepath(files[0]);
     } catch (err) {
       // ignore
     }
