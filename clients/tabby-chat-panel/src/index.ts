@@ -300,7 +300,9 @@ export type AtKind = 'symbol' | 'file'
  * Represents as Symbol At Info in the file.
  */
 export interface SymbolAtInfo {
-  kind: 'symbol'
+  // this means trying to query symbol in this at action
+  // it's different then actual SymbolKind
+  atKind: 'symbol'
   name: string
   location: FileLocation
 }
@@ -309,10 +311,12 @@ export interface SymbolAtInfo {
  * Represents as File At Info in the file.
  */
 export interface FileAtInfo {
-  kind: 'file'
+  atKind: 'file'
   name: string
   filepath: Filepath
 }
+
+export interface AtInputOpts { query?: string, limit?: number }
 
 export type AtInfo = SymbolAtInfo | FileAtInfo
 
@@ -372,7 +376,7 @@ export interface ClientApiMethods {
    * @param kind passing what kind of At info client want to get
    * @returns AtInfo array
    */
-  provideAtInfo?: (kind: 'symbol' | 'file') => Promise<AtInfo[] | null>
+  provideAtInfo?: (kind: 'symbol' | 'file', opts?: AtInputOpts) => Promise<AtInfo[] | null>
 }
 
 export interface ClientApi extends ClientApiMethods {
