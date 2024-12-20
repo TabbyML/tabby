@@ -82,9 +82,9 @@ export function LicenseBanner() {
   return (
     <div
       className={cn(
-        'flex items-center justify-between border-b bg-secondary px-4 text-secondary-foreground transition-[height,opacity] md:px-5',
+        'flex items-center justify-between bg-secondary px-4 text-secondary-foreground transition-[height,opacity] md:px-5',
         {
-          'opacity-100 pointer-events-auto': isShowLicenseBanner,
+          'opacity-100 pointer-events-auto border-b': isShowLicenseBanner,
           'opacity-0 pointer-events-none': !isShowLicenseBanner
         }
       )}
