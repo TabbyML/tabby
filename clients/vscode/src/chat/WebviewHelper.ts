@@ -30,6 +30,7 @@ import type {
   GitRepository,
   AtInfo,
   AtKind,
+  AtInputOpts,
 } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -50,9 +51,8 @@ import {
   getAllowedSymbolKinds,
   vscodeSymbolToAtInfo,
   isDocumentSymbol,
-  fileInfoToAtInfo,
+  uriToAtInfo,
 } from "./utils";
-import { FilesMonitor } from "./filesMonitor";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -66,7 +66,6 @@ export class WebviewHelper {
     private readonly lspClient: LspClient,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-    private readonly filesMonitor: FilesMonitor | undefined,
   ) {}
 
   static getColorThemeString(kind: ColorThemeKind) {
@@ -740,39 +739,69 @@ export class WebviewHelper {
         }
         return infoList;
       },
-      provideAtInfo: async (kind: AtKind): Promise<AtInfo[] | null> => {
+      provideAtInfo: async (kind: AtKind, opts?: AtInputOpts): Promise<AtInfo[] | null> => {
+        // Common parameters
+        const maxResults = opts?.limit || 50;
+        const query = opts?.query?.toLowerCase();
+
         switch (kind) {
           case "symbol": {
             const editor = window.activeTextEditor;
             if (!editor) return null;
-
             const document = editor.document;
-            const symbols = await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
+
+            // Try document symbols first
+            const documentSymbols = await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
               "vscode.executeDocumentSymbolProvider",
               document.uri,
             );
 
-            if (!symbols || symbols.length === 0) return null;
+            let results: AtInfo[] = [];
 
-            const results: AtInfo[] = [];
-            const processSymbol = (symbol: DocumentSymbol | SymbolInformation) => {
-              if (getAllowedSymbolKinds().includes(symbol.kind)) {
-                results.push(vscodeSymbolToAtInfo(symbol, document.uri, this.gitProvider));
-              }
-              if (isDocumentSymbol(symbol)) {
-                symbol.children.forEach(processSymbol);
-              }
-            };
-            symbols.forEach(processSymbol);
+            if (documentSymbols && documentSymbols.length > 0) {
+              const processSymbol = (symbol: DocumentSymbol | SymbolInformation) => {
+                if (results.length >= maxResults) return;
 
-            return results;
+                const symbolName = symbol.name.toLowerCase();
+                if (query && !symbolName.includes(query)) return;
+
+                if (getAllowedSymbolKinds().includes(symbol.kind)) {
+                  results.push(vscodeSymbolToAtInfo(symbol, document.uri, this.gitProvider));
+                }
+                if (isDocumentSymbol(symbol)) {
+                  symbol.children.forEach(processSymbol);
+                }
+              };
+              documentSymbols.forEach(processSymbol);
+            }
+
+            // Try workspace symbols if no document symbols found
+            if (results.length === 0 && query) {
+              const workspaceSymbols = await commands.executeCommand<SymbolInformation[]>(
+                "vscode.executeWorkspaceSymbolProvider",
+                query,
+              );
+
+              if (workspaceSymbols) {
+                results = workspaceSymbols
+                  .filter((symbol) => getAllowedSymbolKinds().includes(symbol.kind))
+                  .slice(0, maxResults)
+                  .map((symbol) => vscodeSymbolToAtInfo(symbol, symbol.location.uri, this.gitProvider));
+              }
+            }
+
+            return results.length > 0 ? results : null;
           }
           case "file": {
-            if (this.filesMonitor) {
-              const files = this.filesMonitor.getWorkspaceFiles();
-              return files.map((file) => fileInfoToAtInfo(file, this.gitProvider));
+            // hack way to only get prefix match
+            const globPattern = query ? `**/${query}*` : "**/*";
+            try {
+              const files = await workspace.findFiles(globPattern, null, maxResults);
+              return files.map((uri) => uriToAtInfo(uri, this.gitProvider));
+            } catch (error) {
+              this.logger.error("Failed to find files:", error);
+              return null;
             }
-            return null;
           }
         }
       },
