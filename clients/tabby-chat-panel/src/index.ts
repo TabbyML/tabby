@@ -44,12 +44,20 @@ export interface LineRange {
    */
   end: number
 }
-
+/**
+ * Represents a range of lines in a notebook file.
+ */
+interface NotebookCellRange extends LineRange {
+  /**
+   * 0-based cell index
+   */
+  cellIndex: number
+}
 /**
  * Represents a location in a file.
  * It could be a 1-based line number, a line range, a position or a position range.
  */
-export type Location = number | LineRange | Position | PositionRange
+export type Location = number | LineRange | Position | PositionRange | NotebookCellRange
 
 /**
  * Represents a client-side file context.

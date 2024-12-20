@@ -71,6 +71,12 @@ export function vscodeRangeToChatPanelPositionRange(range: VSCodeRange): Positio
   };
 }
 
+// FIXME(jueliang) is it neccessary?
+export function chatPanelNotebookCellRangeToVSCodeRange(lineRange: LineRange): VSCodeRange {
+  // Do not minus 1 from end line number, as we want to include the last line.
+  return new VSCodeRange(Math.max(0, lineRange.start - 1), 0, lineRange.end, 0);
+}
+
 export function chatPanelPositionRangeToVSCodeRange(positionRange: PositionRange): VSCodeRange {
   return new VSCodeRange(
     chatPanelPositionToVSCodePosition(positionRange.start),
@@ -102,4 +108,28 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   }
   logger.warn(`Invalid location params.`, location);
   return null;
+}
+
+export function parseVscodeNotebookCellURI(uri: Uri) {
+  if (!uri.scheme) return undefined;
+  if (!uri.scheme.startsWith("vscode-notebook-cell")) return undefined;
+
+  const _lengths = ["W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f"];
+  const _padRegexp = new RegExp(`^[${_lengths.join("")}]+`);
+  const _radix = 7;
+  const fragment = uri.fragment.split("#").pop() || "";
+  const idx = fragment.indexOf("s");
+  if (idx < 0) {
+    return undefined;
+  }
+  const handle = parseInt(fragment.substring(0, idx).replace(_padRegexp, ""), _radix);
+  const scheme = Buffer.from(fragment.substring(idx + 1), "base64").toString("utf-8");
+
+  if (isNaN(handle)) {
+    return undefined;
+  }
+  return {
+    handle,
+    scheme,
+  };
 }

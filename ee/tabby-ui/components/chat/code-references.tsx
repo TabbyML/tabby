@@ -2,7 +2,7 @@ import React, { forwardRef, useEffect, useState } from 'react'
 import { isNil } from 'lodash-es'
 
 import { RelevantCodeContext } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, resolveFileNameForDisplay } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -16,6 +16,7 @@ import {
   AccordionTrigger
 } from '../ui/accordion'
 import { IconExternalLink, IconFile, IconFileSearch2 } from '../ui/icons'
+import { VSCODE_NOTEBOOK_CELL_SCHEME } from '@/lib/constants'
 
 interface ContextReferencesProps {
   isInEditor?: boolean
@@ -85,9 +86,8 @@ export const CodeReferences = forwardRef<
           <AccordionTrigger
             className={cn('my-0 py-2 font-semibold', triggerClassname)}
           >
-            <span className="mr-2">{`Read ${totalContextLength} file${
-              isMultipleReferences ? 's' : ''
-            }`}</span>
+            <span className="mr-2">{`Read ${totalContextLength} file${isMultipleReferences ? 's' : ''
+              }`}</span>
           </AccordionTrigger>
           <AccordionContent className="space-y-2">
             {clientContexts?.map((item, index) => {
@@ -151,8 +151,9 @@ function ContextItem({
     !isNil(context.range?.end) &&
     context.range.start < context.range.end
   const pathSegments = context.filepath.split('/')
-  const fileName = pathSegments[pathSegments.length - 1]
   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+  const isVscodeNotebookCell = path.startsWith(VSCODE_NOTEBOOK_CELL_SCHEME)
+  const showPath = !!path && !isVscodeNotebookCell
   const scores = context?.extra?.scores
   const onTooltipOpenChange = (v: boolean) => {
     if (!enableTooltip || !scores) return
@@ -178,7 +179,7 @@ function ContextItem({
           <div className="flex items-center gap-1 overflow-hidden">
             <IconFile className="shrink-0" />
             <div className="flex-1 truncate" title={context.filepath}>
-              <span>{fileName}</span>
+              <span>{resolveFileNameForDisplay(context.filepath)}</span>
               {context.range ? (
                 <>
                   {context.range?.start && (
@@ -193,7 +194,10 @@ function ContextItem({
                   )}
                 </>
               ) : null}
-              <span className="ml-2 text-xs text-muted-foreground">{path}</span>
+              {/* FIXME(jueliang) */}
+              {showPath && (
+                <span className="ml-2 text-xs text-muted-foreground">{path}</span>
+              )}
             </div>
             {showClientCodeIcon && (
               <IconFileSearch2 className="shrink-0 text-muted-foreground" />
