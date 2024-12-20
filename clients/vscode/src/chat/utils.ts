@@ -18,7 +18,6 @@ import type {
 } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
-import { WorkspaceFile } from "./filesMonitor";
 
 const logger = getLogger("chat/utils");
 
@@ -140,7 +139,7 @@ export function vscodeSymbolToAtInfo(
 ): AtInfo {
   if (isDocumentSymbol(symbol)) {
     return {
-      kind: "symbol",
+      atKind: "symbol",
       name: symbol.name,
       location: {
         filepath: localUriToChatPanelFilepath(documentUri, gitProvider),
@@ -149,7 +148,7 @@ export function vscodeSymbolToAtInfo(
     };
   }
   return {
-    kind: "symbol",
+    atKind: "symbol",
     name: symbol.name,
     location: {
       filepath: localUriToChatPanelFilepath(documentUri, gitProvider),
@@ -158,10 +157,10 @@ export function vscodeSymbolToAtInfo(
   };
 }
 
-export function fileInfoToAtInfo(file: WorkspaceFile, gitProvider: GitProvider): AtInfo {
+export function uriToAtInfo(uri: Uri, gitProvider: GitProvider): AtInfo {
   return {
-    kind: "file",
-    name: file.filename,
-    filepath: localUriToChatPanelFilepath(Uri.file(file.fsPath), gitProvider),
+    atKind: "file",
+    name: path.basename(uri.fsPath),
+    filepath: localUriToChatPanelFilepath(uri, gitProvider),
   };
 }

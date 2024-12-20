@@ -4,7 +4,6 @@ import { WebviewHelper } from "./WebviewHelper";
 import { Client } from "../lsp/Client";
 import type { LogOutputChannel } from "../logger";
 import { GitProvider } from "../git/GitProvider";
-import { FilesMonitor } from "./filesMonitor";
 
 export class ChatSideViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
@@ -16,9 +15,8 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     client: Client,
     logger: LogOutputChannel,
     gitProvider: GitProvider,
-    filesMonitor: FilesMonitor,
   ) {
-    this.webviewHelper = new WebviewHelper(context, client, logger, gitProvider, filesMonitor);
+    this.webviewHelper = new WebviewHelper(context, client, logger, gitProvider);
   }
 
   // The method is called when the chat panel first opened
