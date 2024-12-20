@@ -372,11 +372,17 @@ export interface ClientApiMethods {
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
 
   /**
-   * Return a AtInfo List with kind of file
+   * Return a SymbolAtInfo List with kind of file
    * @param kind passing what kind of At info client want to get
-   * @returns AtInfo array
+   * @returns SymbolAtInfo array
    */
-  provideAtInfo?: (kind: 'symbol' | 'file', opts?: AtInputOpts) => Promise<AtInfo[] | null>
+  provideSymbolAtInfo?: (opts?: AtInputOpts) => Promise<SymbolAtInfo[] | null>
+
+  getSymbolAtInfoContent?: (info: SymbolAtInfo) => Promise<string | null>
+
+  provideFileAtInfo?: (opts?: AtInputOpts) => Promise<FileAtInfo[] | null>
+
+  getFileAtInfoContent?: (info: FileAtInfo) => Promise<string | null>
 }
 
 export interface ClientApi extends ClientApiMethods {

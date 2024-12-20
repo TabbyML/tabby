@@ -14,7 +14,8 @@ import type {
   LineRange,
   PositionRange,
   Location,
-  AtInfo,
+  SymbolAtInfo,
+  FileAtInfo,
 } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
@@ -136,7 +137,7 @@ export function vscodeSymbolToAtInfo(
   symbol: DocumentSymbol | SymbolInformation,
   documentUri: Uri,
   gitProvider: GitProvider,
-): AtInfo {
+): SymbolAtInfo {
   if (isDocumentSymbol(symbol)) {
     return {
       atKind: "symbol",
@@ -157,7 +158,7 @@ export function vscodeSymbolToAtInfo(
   };
 }
 
-export function uriToAtInfo(uri: Uri, gitProvider: GitProvider): AtInfo {
+export function uriToFileAtInfo(uri: Uri, gitProvider: GitProvider): FileAtInfo {
   return {
     atKind: "file",
     name: path.basename(uri.fsPath),

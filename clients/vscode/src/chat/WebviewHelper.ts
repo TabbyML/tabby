@@ -28,9 +28,9 @@ import type {
   SymbolInfo,
   FileLocation,
   GitRepository,
-  AtInfo,
-  AtKind,
   AtInputOpts,
+  SymbolAtInfo,
+  FileAtInfo,
 } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -49,9 +49,9 @@ import {
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
   getAllowedSymbolKinds,
-  vscodeSymbolToAtInfo,
+  vscodeSymbolToAtInfo as vscodeSymbolToSymbolAtInfo,
   isDocumentSymbol,
-  uriToAtInfo,
+  uriToFileAtInfo,
 } from "./utils";
 
 export class WebviewHelper {
@@ -739,70 +739,95 @@ export class WebviewHelper {
         }
         return infoList;
       },
-      provideAtInfo: async (kind: AtKind, opts?: AtInputOpts): Promise<AtInfo[] | null> => {
-        // Common parameters
+      provideSymbolAtInfo: async (opts?: AtInputOpts): Promise<SymbolAtInfo[] | null> => {
         const maxResults = opts?.limit || 50;
         const query = opts?.query?.toLowerCase();
 
-        switch (kind) {
-          case "symbol": {
-            const editor = window.activeTextEditor;
-            if (!editor) return null;
-            const document = editor.document;
+        const editor = window.activeTextEditor;
+        if (!editor) return null;
+        const document = editor.document;
 
-            // Try document symbols first
-            const documentSymbols = await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
-              "vscode.executeDocumentSymbolProvider",
-              document.uri,
-            );
+        // Try document symbols first
+        const documentSymbols = await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
+          "vscode.executeDocumentSymbolProvider",
+          document.uri,
+        );
 
-            let results: AtInfo[] = [];
+        let results: SymbolAtInfo[] = [];
 
-            if (documentSymbols && documentSymbols.length > 0) {
-              const processSymbol = (symbol: DocumentSymbol | SymbolInformation) => {
-                if (results.length >= maxResults) return;
+        if (documentSymbols && documentSymbols.length > 0) {
+          const processSymbol = (symbol: DocumentSymbol | SymbolInformation) => {
+            if (results.length >= maxResults) return;
 
-                const symbolName = symbol.name.toLowerCase();
-                if (query && !symbolName.includes(query)) return;
+            const symbolName = symbol.name.toLowerCase();
+            if (query && !symbolName.includes(query)) return;
 
-                if (getAllowedSymbolKinds().includes(symbol.kind)) {
-                  results.push(vscodeSymbolToAtInfo(symbol, document.uri, this.gitProvider));
-                }
-                if (isDocumentSymbol(symbol)) {
-                  symbol.children.forEach(processSymbol);
-                }
-              };
-              documentSymbols.forEach(processSymbol);
+            if (getAllowedSymbolKinds().includes(symbol.kind)) {
+              results.push(vscodeSymbolToSymbolAtInfo(symbol, document.uri, this.gitProvider));
             }
-
-            // Try workspace symbols if no document symbols found
-            if (results.length === 0 && query) {
-              const workspaceSymbols = await commands.executeCommand<SymbolInformation[]>(
-                "vscode.executeWorkspaceSymbolProvider",
-                query,
-              );
-
-              if (workspaceSymbols) {
-                results = workspaceSymbols
-                  .filter((symbol) => getAllowedSymbolKinds().includes(symbol.kind))
-                  .slice(0, maxResults)
-                  .map((symbol) => vscodeSymbolToAtInfo(symbol, symbol.location.uri, this.gitProvider));
-              }
+            if (isDocumentSymbol(symbol)) {
+              symbol.children.forEach(processSymbol);
             }
+          };
+          documentSymbols.forEach(processSymbol);
+        }
 
-            return results.length > 0 ? results : null;
+        // Try workspace symbols if no document symbols found
+        if (results.length === 0 && query) {
+          const workspaceSymbols = await commands.executeCommand<SymbolInformation[]>(
+            "vscode.executeWorkspaceSymbolProvider",
+            query,
+          );
+
+          if (workspaceSymbols) {
+            results = workspaceSymbols
+              .filter((symbol) => getAllowedSymbolKinds().includes(symbol.kind))
+              .slice(0, maxResults)
+              .map((symbol) => vscodeSymbolToSymbolAtInfo(symbol, symbol.location.uri, this.gitProvider));
           }
-          case "file": {
-            // hack way to only get prefix match
-            const globPattern = query ? `**/${query}*` : "**/*";
-            try {
-              const files = await workspace.findFiles(globPattern, null, maxResults);
-              return files.map((uri) => uriToAtInfo(uri, this.gitProvider));
-            } catch (error) {
-              this.logger.error("Failed to find files:", error);
-              return null;
-            }
-          }
+        }
+
+        return results.length > 0 ? results : null;
+      },
+
+      provideFileAtInfo: async (opts?: AtInputOpts): Promise<FileAtInfo[] | null> => {
+        const maxResults = opts?.limit || 50;
+        const query = opts?.query?.toLowerCase();
+
+        const globPattern = query ? `**/${query}*` : "**/*";
+        try {
+          const files = await workspace.findFiles(globPattern, null, maxResults);
+          return files.map((uri) => uriToFileAtInfo(uri, this.gitProvider));
+        } catch (error) {
+          this.logger.error("Failed to find files:", error);
+          return null;
+        }
+      },
+      getSymbolAtInfoContent: async (info: SymbolAtInfo): Promise<string | null> => {
+        try {
+          const uri = chatPanelFilepathToLocalUri(info.location.filepath, this.gitProvider);
+          if (!uri) return null;
+
+          const document = await workspace.openTextDocument(uri);
+          const range = chatPanelLocationToVSCodeRange(info.location.location);
+          if (!range) return null;
+
+          return document.getText(range);
+        } catch (error) {
+          this.logger.error("Failed to get symbol content:", error);
+          return null;
+        }
+      },
+      getFileAtInfoContent: async (info: FileAtInfo): Promise<string | null> => {
+        try {
+          const uri = chatPanelFilepathToLocalUri(info.filepath, this.gitProvider);
+          if (!uri) return null;
+
+          const document = await workspace.openTextDocument(uri);
+          return document.getText();
+        } catch (error) {
+          this.logger.error("Failed to get file content:", error);
+          return null;
         }
       },
     });
