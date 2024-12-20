@@ -1,6 +1,22 @@
 import path from "path";
-import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
-import type { Filepath, Position as ChatPanelPosition, LineRange, PositionRange, Location } from "tabby-chat-panel";
+import {
+  Position as VSCodePosition,
+  Range as VSCodeRange,
+  Uri,
+  workspace,
+  DocumentSymbol,
+  SymbolInformation,
+  SymbolKind,
+} from "vscode";
+import type {
+  Filepath,
+  Position as ChatPanelPosition,
+  LineRange,
+  PositionRange,
+  Location,
+  SymbolAtInfo,
+  FileAtInfo,
+} from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 
@@ -99,4 +115,53 @@ export function chatPanelLocationToVSCodeRange(location: Location): VSCodeRange 
   }
   logger.warn(`Invalid location params.`, location);
   return null;
+}
+
+export function isDocumentSymbol(symbol: DocumentSymbol | SymbolInformation): symbol is DocumentSymbol {
+  return "children" in symbol;
+}
+
+// FIXME: All allow symbol kinds, could be change later
+export function getAllowedSymbolKinds(): SymbolKind[] {
+  return [
+    SymbolKind.Class,
+    SymbolKind.Function,
+    SymbolKind.Method,
+    SymbolKind.Interface,
+    SymbolKind.Enum,
+    SymbolKind.Struct,
+  ];
+}
+
+export function vscodeSymbolToSymbolAtInfo(
+  symbol: DocumentSymbol | SymbolInformation,
+  documentUri: Uri,
+  gitProvider: GitProvider,
+): SymbolAtInfo {
+  if (isDocumentSymbol(symbol)) {
+    return {
+      atKind: "symbol",
+      name: symbol.name,
+      location: {
+        filepath: localUriToChatPanelFilepath(documentUri, gitProvider),
+        location: vscodeRangeToChatPanelPositionRange(symbol.range),
+      },
+    };
+  }
+  return {
+    atKind: "symbol",
+    name: symbol.name,
+    location: {
+      filepath: localUriToChatPanelFilepath(documentUri, gitProvider),
+      location: vscodeRangeToChatPanelPositionRange(symbol.location.range),
+    },
+  };
+}
+
+export function uriToFileAtFileInfo(uri: Uri, gitProvider: GitProvider): FileAtInfo {
+  return {
+    atKind: "file",
+    name: path.basename(uri.fsPath),
+    filepath: localUriToChatPanelFilepath(uri, gitProvider),
+  };
 }
