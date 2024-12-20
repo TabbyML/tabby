@@ -1,6 +1,7 @@
 import React, { forwardRef, useEffect, useState } from 'react'
 import { isNil } from 'lodash-es'
 
+import { VSCODE_NOTEBOOK_CELL_SCHEME } from '@/lib/constants'
 import { RelevantCodeContext } from '@/lib/types'
 import { cn, resolveFileNameForDisplay } from '@/lib/utils'
 import {
@@ -16,7 +17,6 @@ import {
   AccordionTrigger
 } from '../ui/accordion'
 import { IconExternalLink, IconFile, IconFileSearch2 } from '../ui/icons'
-import { VSCODE_NOTEBOOK_CELL_SCHEME } from '@/lib/constants'
 
 interface ContextReferencesProps {
   isInEditor?: boolean
@@ -86,8 +86,9 @@ export const CodeReferences = forwardRef<
           <AccordionTrigger
             className={cn('my-0 py-2 font-semibold', triggerClassname)}
           >
-            <span className="mr-2">{`Read ${totalContextLength} file${isMultipleReferences ? 's' : ''
-              }`}</span>
+            <span className="mr-2">{`Read ${totalContextLength} file${
+              isMultipleReferences ? 's' : ''
+            }`}</span>
           </AccordionTrigger>
           <AccordionContent className="space-y-2">
             {clientContexts?.map((item, index) => {
