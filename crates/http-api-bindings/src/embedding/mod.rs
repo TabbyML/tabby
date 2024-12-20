@@ -5,11 +5,11 @@ use core::panic;
 use std::sync::Arc;
 
 use llama::LlamaCppEngine;
+use openai::OpenAIEmbeddingEngine;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
 
 use super::rate_limit;
-use openai::OpenAIEmbeddingEngine;
 
 pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
     let engine = match config.kind.as_str() {

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
-use tracing::{info_span, Instrument};
+use tracing::Instrument;
 
 use crate::{create_reqwest_client, embedding_info_span};
 

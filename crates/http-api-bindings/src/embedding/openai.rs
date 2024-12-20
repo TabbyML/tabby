@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
-use tracing::{info_span, Instrument};
+use tracing::Instrument;
 
 use crate::embedding_info_span;
 
@@ -108,7 +108,11 @@ mod tests {
     #[ignore]
     async fn test_voyage_embedding() {
         let api_key = std::env::var("VOYAGE_API_KEY").expect("VOYAGE_API_KEY must be set");
-        let engine = OpenAIEmbeddingEngine::create("https://api.voyageai.com/v1", "voyage-code-2", Some(&api_key));
+        let engine = OpenAIEmbeddingEngine::create(
+            "https://api.voyageai.com/v1",
+            "voyage-code-2",
+            Some(&api_key),
+        );
         let embedding = engine.embed("Hello, world!").await.unwrap();
         assert_eq!(embedding.len(), 1536);
     }
