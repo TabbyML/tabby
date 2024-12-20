@@ -369,6 +369,19 @@ export interface ClientApiMethods {
 
   // Provide all repos found in workspace folders.
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
+
+  /**
+ * Return a SymbolAtInfo List with kind of file
+ * @param kind passing what kind of At info client want to get
+ * @returns SymbolAtInfo array
+ */
+  provideSymbolAtInfo?: (opts?: AtInputOpts) => Promise<SymbolAtInfo[] | null>
+
+  getSymbolAtInfoContent?: (info: SymbolAtInfo) => Promise<string | null>
+
+  provideFileAtInfo?: (opts?: AtInputOpts) => Promise<FileAtInfo[] | null>
+
+  getFileAtInfoContent?: (info: FileAtInfo) => Promise<string | null>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -404,6 +417,10 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       lookupSymbol: api.lookupSymbol,
       openInEditor: api.openInEditor,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
+      provideSymbolAtInfo: api.provideSymbolAtInfo,
+      getSymbolAtInfoContent: api.getSymbolAtInfoContent,
+      provideFileAtInfo: api.provideFileAtInfo,
+      getFileAtInfoContent: api.getFileAtInfoContent,
     },
   })
 }
