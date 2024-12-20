@@ -16,7 +16,7 @@ export class ChatPanelViewProvider {
     gitProvider: GitProvider,
   ) {
     const logger = getLogger();
-    this.webviewHelper = new WebviewHelper(context, client, logger, gitProvider);
+    this.webviewHelper = new WebviewHelper(context, client, logger, gitProvider, undefined);
   }
 
   // The method is called when the chat panel first opened

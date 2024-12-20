@@ -36,6 +36,7 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       lookupSymbol: api.lookupSymbol,
       openInEditor: api.openInEditor,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
+      provideAtInfo: api.provideAtInfo,
     },
   });
 }

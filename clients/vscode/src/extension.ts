@@ -13,6 +13,7 @@ import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
 import { Commands } from "./commands";
 import { CodeActions } from "./CodeActions";
 import { isBrowser } from "./env";
+import { FilesMonitor } from "./chat/filesMonitor";
 
 const logger = getLogger();
 let client: Client | undefined = undefined;
@@ -57,8 +58,9 @@ export async function activate(context: ExtensionContext) {
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
 
+  const filesMonitor = new FilesMonitor(context);
   // Register chat panel
-  const chatViewProvider = new ChatSideViewProvider(context, client, logger, gitProvider);
+  const chatViewProvider = new ChatSideViewProvider(context, client, logger, gitProvider, filesMonitor);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },

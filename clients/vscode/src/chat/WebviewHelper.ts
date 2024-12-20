@@ -14,6 +14,9 @@ import {
   Location,
   LocationLink,
   workspace,
+  SymbolKind,
+  DocumentSymbol,
+  SymbolInformation,
 } from "vscode";
 import type {
   ServerApi,
@@ -25,6 +28,8 @@ import type {
   SymbolInfo,
   FileLocation,
   GitRepository,
+  AtInfo,
+  AtKind,
 } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -42,7 +47,12 @@ import {
   vscodePositionToChatPanelPosition,
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
+  getAllowedSymbolKinds,
+  vscodeSymbolToAtInfo,
+  isDocumentSymbol,
+  fileInfoToAtInfo,
 } from "./utils";
+import { FilesMonitor } from "./filesMonitor";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -56,6 +66,7 @@ export class WebviewHelper {
     private readonly lspClient: LspClient,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
+    private readonly filesMonitor: FilesMonitor | undefined,
   ) {}
 
   static getColorThemeString(kind: ColorThemeKind) {
@@ -71,6 +82,7 @@ export class WebviewHelper {
 
   public setWebview(webview: Webview) {
     this.webview = webview;
+    SymbolKind;
   }
 
   public setClient(client: ServerApi) {
@@ -727,6 +739,42 @@ export class WebviewHelper {
           }
         }
         return infoList;
+      },
+      provideAtInfo: async (kind: AtKind): Promise<AtInfo[] | null> => {
+        switch (kind) {
+          case "symbol": {
+            const editor = window.activeTextEditor;
+            if (!editor) return null;
+
+            const document = editor.document;
+            const symbols = await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
+              "vscode.executeDocumentSymbolProvider",
+              document.uri,
+            );
+
+            if (!symbols || symbols.length === 0) return null;
+
+            const results: AtInfo[] = [];
+            const processSymbol = (symbol: DocumentSymbol | SymbolInformation) => {
+              if (getAllowedSymbolKinds().includes(symbol.kind)) {
+                results.push(vscodeSymbolToAtInfo(symbol, document.uri, this.gitProvider));
+              }
+              if (isDocumentSymbol(symbol)) {
+                symbol.children.forEach(processSymbol);
+              }
+            };
+            symbols.forEach(processSymbol);
+
+            return results;
+          }
+          case "file": {
+            if (this.filesMonitor) {
+              const files = this.filesMonitor.getWorkspaceFiles();
+              return files.map((file) => fileInfoToAtInfo(file, this.gitProvider));
+            }
+            return null;
+          }
+        }
       },
     });
   }
