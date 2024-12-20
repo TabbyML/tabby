@@ -126,7 +126,10 @@ function UserMessageCard(props: { message: UserMessage }) {
     selectCode = {
       filepath,
       isMultiLine:
-        !isNil(range?.start) && !isNil(range?.end) && range.start < range.end
+        !!range &&
+        !isNil(range?.start) &&
+        !isNil(range?.end) &&
+        range.start < range.end
     }
   }
   return (
@@ -189,7 +192,7 @@ function UserMessageCard(props: { message: UserMessage }) {
                   <span>:{message.selectContext?.range.start}</span>
                 )}
                 {selectCode.isMultiLine && (
-                  <span>-{message.selectContext?.range.end}</span>
+                  <span>-{message.selectContext?.range?.end}</span>
                 )}
               </p>
             </div>
@@ -270,20 +273,13 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     React.useState<number | undefined>(undefined)
   const serverCode: Array<Context> = React.useMemo(() => {
     return (
-      message?.relevant_code?.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
-        return {
-          kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
-          filepath: code.filepath,
-          content: code.content,
-          git_url: code.gitUrl
-        }
-      }) ?? []
+      message?.relevant_code?.map(code => ({
+        kind: 'file',
+        range: getRangeFromAttachmentCode(code),
+        filepath: code.filepath,
+        content: code.content,
+        git_url: code.gitUrl
+      })) ?? []
     )
   }, [message?.relevant_code])
 
@@ -299,19 +295,22 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   const attachmentDocsLen = 0
 
-  const attachmentClientCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
-    useMemo(() => {
-      const formatedAttachmentClientCode =
-        clientCode?.map(o => ({
-          content: o.content,
-          filepath: o.filepath,
-          gitUrl: o.git_url,
-          startLine: o.range.start,
-          language: filename2prism(o.filepath ?? '')[0],
-          isClient: true
-        })) ?? []
-      return formatedAttachmentClientCode
-    }, [clientCode])
+  const attachmentClientCode: Array<
+    Omit<AttachmentCodeItem, '__typename' | 'startLine'> & {
+      startLine: number | undefined
+    }
+  > = useMemo(() => {
+    const formatedAttachmentClientCode =
+      clientCode?.map(o => ({
+        content: o.content,
+        filepath: o.filepath,
+        gitUrl: o.git_url,
+        startLine: o.range ? o.range.start : undefined,
+        language: filename2prism(o.filepath ?? '')[0],
+        isClient: true
+      })) ?? []
+    return formatedAttachmentClientCode
+  }, [clientCode])
 
   const attachmentCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
     useMemo(() => {
@@ -320,7 +319,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           content: o.content,
           filepath: o.filepath,
           gitUrl: o.git_url,
-          startLine: o.range.start,
+          // for server attachment code, startLine will not be undefined
+          startLine: o.range?.start ?? 1,
           language: filename2prism(o.filepath ?? '')[0],
           isClient: false
         })) ?? []
@@ -352,16 +352,12 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   }
 
   const onCodeCitationClick = (code: AttachmentCodeItem) => {
-    const { startLine, endLine } = getRangeFromAttachmentCode(code)
     const ctx: Context = {
       git_url: code.gitUrl,
       content: code.content,
       filepath: code.filepath,
       kind: 'file',
-      range: {
-        start: startLine,
-        end: endLine
-      }
+      range: getRangeFromAttachmentCode(code)
     }
     onContextClick(ctx, code.isClient)
   }

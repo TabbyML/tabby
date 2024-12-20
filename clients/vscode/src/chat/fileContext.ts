@@ -25,10 +25,7 @@ export async function getFileContext(
         start: editor.selection.start.line + 1,
         end: editor.selection.end.line + 1,
       }
-    : {
-        start: 1,
-        end: editor.document.lineCount,
-      };
+    : undefined;
 
   const filepath = localUriToChatPanelFilepath(editor.document.uri, gitProvider);
 

@@ -174,7 +174,7 @@ export function MessageMarkdown({
 
     setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
     const hints: LookupSymbolHint[] = []
-    if (activeSelection) {
+    if (activeSelection && activeSelection?.range) {
       // FIXME(@icycodes): this is intended to convert the filepath to Filepath type
       // We should remove this after FileContext.filepath use type Filepath instead of string
       let filepath: Filepath

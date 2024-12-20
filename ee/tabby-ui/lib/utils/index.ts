@@ -152,22 +152,22 @@ export function formatLineHashForLocation(location: Location | undefined) {
 export function getRangeFromAttachmentCode(code: {
   startLine?: Maybe<number>
   content: string
-}) {
-  const startLine = code?.startLine ?? 0
-  const lineCount = code?.content.split('\n').length
-  const endLine = startLine + lineCount - 1
+}): LineRange | undefined {
+  if (!code?.startLine) return undefined
+
+  const start = code.startLine
+  const lineCount = code.content.split('\n').length
+  const end = start + lineCount - 1
 
   return {
-    startLine,
-    endLine,
-    isValid: !!startLine,
-    isMultiLine: !!startLine && startLine <= endLine
+    start,
+    end
   }
 }
 
 export function getRangeTextFromAttachmentCode(code: AttachmentCodeItem) {
-  const { startLine, endLine } = getRangeFromAttachmentCode(code)
-  return formatLineHashForCodeBrowser({ start: startLine, end: endLine })
+  const range = getRangeFromAttachmentCode(code)
+  return formatLineHashForCodeBrowser(range)
 }
 
 export function getContent(item: AttachmentDocItem) {
