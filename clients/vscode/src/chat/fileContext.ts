@@ -111,10 +111,9 @@ async function showUntitledNotebookCellContext(uri: Uri) {
     const notebookEditor = await window.showNotebookDocument(notebookDocument);
     const targetCell = notebookDocument.getCells().find((cell) => cell.document.uri.toString() === uri.toString());
     if (notebookEditor && targetCell) {
-      const cellIndex = targetCell.index
+      const cellIndex = targetCell.index;
       // FIXME(@jueliang) set selection
-      notebookEditor.revealRange(new NotebookRange(cellIndex, cellIndex), NotebookEditorRevealType.InCenter)
-
+      notebookEditor.revealRange(new NotebookRange(cellIndex, cellIndex), NotebookEditorRevealType.InCenter);
     } else {
       throw new Error(`Cell not found in notebook: ${uri.toString()}`);
     }

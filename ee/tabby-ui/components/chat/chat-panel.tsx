@@ -13,7 +13,11 @@ import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
-import { cn, getTitleFromMessages, resolveFileNameForDisplay } from '@/lib/utils'
+import {
+  cn,
+  getTitleFromMessages,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
