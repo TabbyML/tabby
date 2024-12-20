@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
+use tracing::{info_span, Instrument};
 
-use crate::create_reqwest_client;
+use crate::{create_reqwest_client, embedding_info_span};
 
 pub struct LlamaCppEngine {
     client: reqwest::Client,
@@ -44,7 +45,10 @@ impl Embedding for LlamaCppEngine {
             request = request.bearer_auth(api_key);
         }
 
-        let response = request.send().await?;
+        let response = request
+            .send()
+            .instrument(embedding_info_span!("llamacpp"))
+            .await?;
         if response.status().is_server_error() {
             let error = response.text().await?;
             return Err(anyhow::anyhow!(
