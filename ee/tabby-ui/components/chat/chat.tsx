@@ -1,7 +1,9 @@
 import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type {
+  AtInputOpts,
   Context,
+  FileAtInfo,
   FileContext,
   FileLocation,
   GitRepository,
@@ -85,6 +87,8 @@ type ChatContextValue = {
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
   repos: RepositorySourceListQuery['repositoryList'] | undefined
   fetchingRepos: boolean
+  provideFileAtInfo?: (opts?: AtInputOpts) => Promise<FileAtInfo[] | null>
+  getFileAtInfoContent?: (info: FileAtInfo) => Promise<string | null>
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -126,6 +130,8 @@ interface ChatProps extends React.ComponentProps<'div'> {
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
+  provideFileAtInfo?: (opts?: AtInputOpts) => Promise<FileAtInfo[] | null>
+  getFileAtInfoContent?: (info: FileAtInfo) => Promise<string | null>
 }
 
 function ChatRenderer(
@@ -149,7 +155,9 @@ function ChatRenderer(
     openInEditor,
     chatInputRef,
     supportsOnApplyInEditorV2,
-    readWorkspaceGitRepositories
+    readWorkspaceGitRepositories,
+    provideFileAtInfo,
+    getFileAtInfoContent
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -602,7 +610,9 @@ function ChatRenderer(
         setSelectedRepoId,
         repos,
         fetchingRepos,
-        initialized
+        initialized,
+        provideFileAtInfo,
+        getFileAtInfoContent
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

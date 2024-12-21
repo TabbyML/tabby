@@ -1,31 +1,31 @@
-import * as React from 'react'
+/* eslint-disable no-console */
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Extension } from '@tiptap/core'
+import Document from '@tiptap/extension-document'
+import Paragraph from '@tiptap/extension-paragraph'
+import Placeholder from '@tiptap/extension-placeholder'
+import Text from '@tiptap/extension-text'
+import { EditorContent, useEditor } from '@tiptap/react'
 import { UseChatHelpers } from 'ai/react'
-import { debounce, has } from 'lodash-es'
-import useSWR from 'swr'
 
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
-import fetcher from '@/lib/tabby/fetcher'
-import type { ISearchHit, SearchReponse } from '@/lib/types'
-import { cn } from '@/lib/utils'
-import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  IconArrowElbow,
-  IconEdit,
-  IconSymbolFunction
-} from '@/components/ui/icons'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { IconArrowElbow } from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import {
-  SearchableSelect,
-  SearchableSelectAnchor,
-  SearchableSelectContent,
-  SearchableSelectOption,
-  SearchableSelectTextarea
-} from '@/components/searchable-select'
+
+import { Popover, PopoverContent } from '../ui/popover'
+import { ChatContext } from './chat'
+import { FileList } from './FileList'
+import { SuggestionItem } from './types'
+
+import './prompt-form.css'
+
+import { CategoryMenu } from './editor/CategoryMenu'
+import { MentionExtension } from './editor/mention-extension'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -39,280 +39,416 @@ export interface PromptFormRef {
   focus: () => void
 }
 
+type MenuView = 'categories' | 'files' | 'symbols'
+
+interface MenuState {
+  view: MenuView
+  category?: 'file' | 'symbol'
+}
+
+interface SuggestionState {
+  items: SuggestionItem[]
+  command: (item: {
+    id: string
+    label: string
+    category: 'file' | 'symbol'
+  }) => void
+  clientRect: () => DOMRect | null
+  selectedIndex: number
+}
+
+const CustomKeyboardShortcuts = Extension.create({
+  addKeyboardShortcuts() {
+    return {
+      'Shift-Enter': () => {
+        console.log('[CustomKeyboardShortcuts] Shift-Enter pressed')
+        return this.editor.commands.first(({ commands }) => [
+          () => commands.newlineInCode(),
+          () => commands.createParagraphNear(),
+          () => commands.liftEmptyBlock(),
+          () => commands.splitBlock()
+        ])
+      }
+    }
+  }
+})
+
 function PromptFormRenderer(
   {
     onSubmit,
     input,
     setInput,
     isLoading,
-    chatInputRef,
-    isInitializing
+    isInitializing,
+    chatInputRef
   }: PromptProps,
   ref: React.ForwardedRef<PromptFormRef>
 ) {
-  const { formRef, onKeyDown } = useEnterSubmit()
-  const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
-    string | null
-  >(null)
-  const [suggestionOpen, setSuggestionOpen] = React.useState(false)
-  // store the input selection for replacing inputValue
-  const prevInputSelectionEnd = React.useRef<number>()
-  // for updating the input selection after replacing
-  const nextInputSelectionRange = React.useRef<[number, number]>()
-  const [options, setOptions] = React.useState<SearchReponse['hits']>([])
-  const [selectedCompletionsMap, setSelectedCompletionsMap] = React.useState<
-    Record<string, ISearchHit>
-  >({})
+  const { formRef } = useEnterSubmit()
+  const { provideFileAtInfo } = React.useContext(ChatContext)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const selectedItemRef = useRef<HTMLButtonElement>(null)
 
-  const { data: completionData } = useSWR<SearchReponse>(
-    queryCompletionUrl,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 0,
-      errorRetryCount: 0
-    }
-  )
+  const [suggestionState, setSuggestionState] =
+    useState<SuggestionState | null>(null)
+  const suggestionRef = useRef<Omit<
+    SuggestionState,
+    'clientRect' | 'selectedIndex'
+  > | null>(null)
 
-  React.useEffect(() => {
-    const suggestions = completionData?.hits ?? []
-    setOptions(suggestions)
-    setSuggestionOpen(!!suggestions?.length)
-  }, [completionData?.hits])
+  const [menuState, setMenuState] = useState<MenuState>({ view: 'categories' })
 
-  React.useImperativeHandle(ref, () => ({
-    focus: () => chatInputRef.current?.focus()
-  }))
+  const categoryItems: {
+    label: string
+    category: 'file' | 'symbol'
+  }[] = [
+    { label: 'Files', category: 'file' },
+    { label: 'Symbols', category: 'symbol' }
+  ]
 
-  React.useEffect(() => {
-    if (
-      input &&
-      chatInputRef.current &&
-      chatInputRef.current !== document.activeElement
-    ) {
-      chatInputRef.current.focus()
-    }
-  }, [input, chatInputRef])
+  const [categorySelectedIndex, setCategorySelectedIndex] = useState(0)
 
-  React.useLayoutEffect(() => {
-    if (nextInputSelectionRange.current?.length) {
-      chatInputRef.current?.setSelectionRange?.(
-        nextInputSelectionRange.current[0],
-        nextInputSelectionRange.current[1]
-      )
-      nextInputSelectionRange.current = undefined
-    }
-  }, [chatInputRef])
-
-  const handleSearchCompletion = React.useMemo(() => {
-    return debounce((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.target?.value ?? ''
-      const end = e.target?.selectionEnd ?? 0
-      const queryNameMatches = getSearchCompletionQueryName(value, end)
-      const queryName = queryNameMatches?.[1]
-      if (queryName) {
-        const query = encodeURIComponent(`name:${queryName} AND kind:function`)
-        const url = `/v1beta/search?q=${query}`
-        setQueryCompletionUrl(url)
-      } else {
-        setOptions([])
-        setSuggestionOpen(false)
-      }
-    }, 200)
+  const updateSelectedIndex = useCallback((index: number) => {
+    console.log('[PromptForm] Updating mention suggestion index:', index)
+    setSuggestionState(prev =>
+      prev ? { ...prev, selectedIndex: index } : null
+    )
   }, [])
 
-  const handleCompletionSelect = (item: ISearchHit) => {
-    const selectionEnd = prevInputSelectionEnd.current ?? 0
-    const queryNameMatches = getSearchCompletionQueryName(input, selectionEnd)
-    if (queryNameMatches) {
-      setSelectedCompletionsMap({
-        ...selectedCompletionsMap,
-        [`@${item.doc?.name}`]: item
-      })
-      const replaceString = `@${item?.doc?.name} `
-      const prevInput = input
-        .substring(0, selectionEnd)
-        .replace(new RegExp(queryNameMatches[0]), '')
-      const nextSelectionEnd = prevInput.length + replaceString.length
-      nextInputSelectionRange.current = [nextSelectionEnd, nextSelectionEnd]
-      setInput(prevInput + replaceString + input.slice(selectionEnd))
-    }
-    setOptions([])
-    setSuggestionOpen(false)
-  }
+  const scrollToSelected = useCallback(
+    (containerEl: HTMLElement | null, selectedEl: HTMLElement | null) => {
+      console.log('[PromptForm] Scrolling to selected element')
+      if (!containerEl || !selectedEl) return
 
-  const handlePromptSubmit: React.FormEventHandler<
-    HTMLFormElement
-  > = async e => {
+      const containerRect = containerEl.getBoundingClientRect()
+      const selectedRect = selectedEl.getBoundingClientRect()
+
+      if (selectedRect.bottom > containerRect.bottom) {
+        containerEl.scrollTop += selectedRect.bottom - containerRect.bottom
+      } else if (selectedRect.top < containerRect.top) {
+        containerEl.scrollTop -= containerRect.top - selectedRect.top
+      }
+    },
+    []
+  )
+
+  useEffect(() => {
+    if (suggestionState?.selectedIndex !== undefined) {
+      console.log('[PromptForm] Selected index changed, updating scroll')
+      scrollToSelected(popoverRef.current, selectedItemRef.current)
+    }
+  }, [suggestionState?.selectedIndex, scrollToSelected])
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      console.log('[PromptForm] Key pressed in mention suggestions:', event.key)
+      const currentSuggestion = suggestionRef.current
+      if (!currentSuggestion?.items?.length) return false
+
+      switch (event.key) {
+        case 'ArrowUp': {
+          event.preventDefault()
+          console.log('[PromptForm] Handling ArrowUp')
+          setSuggestionState(prev => {
+            if (!prev) return null
+            const newIndex =
+              prev.selectedIndex > 0
+                ? prev.selectedIndex - 1
+                : currentSuggestion.items.length - 1
+            return { ...prev, selectedIndex: newIndex }
+          })
+          return true
+        }
+
+        case 'ArrowDown': {
+          event.preventDefault()
+          console.log('[PromptForm] Handling ArrowDown')
+          setSuggestionState(prev => {
+            if (!prev) return null
+            const newIndex =
+              prev.selectedIndex < currentSuggestion.items.length - 1
+                ? prev.selectedIndex + 1
+                : 0
+            return { ...prev, selectedIndex: newIndex }
+          })
+          return true
+        }
+
+        case 'Enter': {
+          event.preventDefault()
+          console.log('[PromptForm] Handling Enter')
+          const selectedItem =
+            currentSuggestion.items[suggestionState?.selectedIndex ?? 0]
+          if (selectedItem) {
+            currentSuggestion.command({
+              id: selectedItem.id,
+              label: selectedItem.label,
+              category: selectedItem.category
+            })
+          }
+          return true
+        }
+
+        default:
+          return false
+      }
+    },
+    [suggestionState?.selectedIndex]
+  )
+
+  useEffect(() => {
+    function handleCategoryKeyDown(e: KeyboardEvent) {
+      if (suggestionState) return
+
+      if (menuState.view === 'categories') {
+        console.log('[PromptForm] Key pressed in categories:', e.key)
+
+        switch (e.key) {
+          case 'ArrowUp': {
+            e.preventDefault()
+            setCategorySelectedIndex(
+              prev => (prev - 1 + categoryItems.length) % categoryItems.length
+            )
+            break
+          }
+          case 'ArrowDown': {
+            e.preventDefault()
+            setCategorySelectedIndex(prev => (prev + 1) % categoryItems.length)
+            break
+          }
+          case 'Enter': {
+            e.preventDefault()
+            const selectedCategory = categoryItems[categorySelectedIndex]
+            setMenuState({
+              view: selectedCategory.category === 'file' ? 'files' : 'symbols',
+              category: selectedCategory.category
+            })
+            break
+          }
+          default:
+            break
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleCategoryKeyDown)
+    return () => window.removeEventListener('keydown', handleCategoryKeyDown)
+  }, [suggestionState, menuState, categoryItems, categorySelectedIndex])
+
+  const editor = useEditor({
+    extensions: [
+      Document,
+      Paragraph,
+      Text,
+      CustomKeyboardShortcuts,
+      Placeholder.configure({
+        showOnlyWhenEditable: true,
+        placeholder: 'Ask anything...'
+      }),
+      MentionExtension.configure({
+        HTMLAttributes: {
+          class: 'mention'
+        },
+        suggestion: {
+          char: '@',
+          allowSpaces: true,
+          items: async ({ query }) => {
+            console.log('[MentionExtension] Fetching items for query:', query)
+            if (!provideFileAtInfo) return []
+            try {
+              const files = await provideFileAtInfo({ query })
+              console.log('[MentionExtension] Files fetched:', files?.length)
+              if (!files) return []
+              return files.map(file => ({
+                type: 'source',
+                category: 'file' as const,
+                id: file.name,
+                label: file.name,
+                filepath: file.filepath,
+                data: {
+                  sourceId: file.name,
+                  sourceName: file.name,
+                  sourceKind: 'file'
+                }
+              }))
+            } catch (error) {
+              console.error('[MentionExtension] Error fetching files:', error)
+              return []
+            }
+          },
+          render: () => ({
+            onStart: props => {
+              console.log('[MentionExtension] Suggestion started')
+              const newState = {
+                items: props.items,
+                command: props.command,
+                clientRect: props.clientRect!,
+                selectedIndex: 0
+              }
+              suggestionRef.current = {
+                items: props.items,
+                command: props.command
+              }
+              setSuggestionState(newState)
+            },
+            onUpdate: props => {
+              console.log('[MentionExtension] Suggestion updated')
+              const newState = {
+                items: props.items,
+                command: props.command,
+                clientRect: props.clientRect!,
+                selectedIndex: 0
+              }
+              suggestionRef.current = {
+                items: props.items,
+                command: props.command
+              }
+              setSuggestionState(newState)
+            },
+            onKeyDown: ({ event }) => {
+              console.log(
+                '[MentionExtension] Key down in suggestion:',
+                event.key
+              )
+              if (['ArrowUp', 'ArrowDown', 'Enter'].includes(event.key)) {
+                return handleKeyDown(event)
+              }
+              return false
+            },
+            onExit: () => {
+              console.log('[MentionExtension] Exiting suggestion')
+              setMenuState({ view: 'categories' })
+              suggestionRef.current = null
+              setSuggestionState(null)
+            }
+          })
+        }
+      })
+    ],
+    content: input,
+    onUpdate: ({ editor }) => {
+      console.log('[PromptForm] Editor content updated')
+      setInput(editor.getText())
+    }
+  })
+
+  React.useImperativeHandle(ref, () => ({
+    focus: () => {
+      console.log('[PromptForm] Focus requested')
+      editor?.commands.focus()
+    }
+  }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('[PromptForm] Form submitted')
+
     if (!input?.trim() || isLoading || isInitializing) {
+      console.log(
+        '[PromptForm] Submit prevented - empty input or loading state'
+      )
       return
     }
 
-    let finalInput = input
-    Object.keys(selectedCompletionsMap).forEach(key => {
-      const completion = selectedCompletionsMap[key]
-      if (!completion?.doc) return
-      finalInput = finalInput.replaceAll(
-        key,
-        `\n${'```'}${completion.doc?.language ?? ''}\n${
-          completion.doc.body ?? ''
-        }\n${'```'}\n`
-      )
-    })
-
-    setInput('')
-    await onSubmit(finalInput)
-  }
-
-  const handleTextareaKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    isOpen: boolean
-  ) => {
-    if (e.key === 'Enter' && isOpen) {
-      e.preventDefault()
-    } else if (
-      isOpen &&
-      ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)
-    ) {
-      setOptions([])
-      setSuggestionOpen(false)
-    } else {
-      if (!isOpen) {
-        ;(e as any).preventDownshiftDefault = true
-      }
-      onKeyDown(e)
-    }
+    await onSubmit(input)
+    editor?.commands.setContent('')
   }
 
   return (
-    <form onSubmit={handlePromptSubmit} ref={formRef}>
-      <SearchableSelect
-        options={options}
-        onSelect={handleCompletionSelect}
-        open={suggestionOpen}
-        onOpenChange={isOpen => {
-          if (isOpen && options?.length) {
-            setSuggestionOpen(isOpen)
-          } else {
-            setSuggestionOpen(false)
-            setOptions([])
-          }
-        }}
-      >
-        {({ open, highlightedIndex }) => {
-          const highlightedOption = options?.[highlightedIndex]
+    <>
+      <form onSubmit={handleSubmit} ref={formRef}>
+        <div className="bg-background relative flex max-h-60 w-full grow flex-col overflow-hidden px-8 sm:rounded-md sm:border sm:px-12">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-background hover:bg-background absolute left-0 top-4 h-8 w-8 rounded-full p-0 sm:left-4"
+          >
+            <span className="sr-only">Edit message</span>
+          </Button>
 
-          return (
-            <>
-              <SearchableSelectAnchor>
-                <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
-                  <span
-                    className={cn(
-                      buttonVariants({ size: 'sm', variant: 'ghost' }),
-                      'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 hover:bg-background sm:left-4'
-                    )}
-                  >
-                    <IconEdit />
-                  </span>
-                  <SearchableSelectTextarea
-                    tabIndex={0}
-                    rows={1}
-                    placeholder="Ask a question."
-                    spellCheck={false}
-                    className="min-h-[60px] w-full resize-none bg-transparent py-[1.3rem] pr-4 focus-within:outline-none sm:pl-4"
-                    value={input}
-                    ref={chatInputRef}
-                    onChange={e => {
-                      if (has(e, 'target.value')) {
-                        prevInputSelectionEnd.current = e.target.selectionEnd
-                        setInput(e.target.value)
-                        // TODO: Temporarily disabling the current search function. Will be replaced with a different search functionality in the future.
-                        // handleSearchCompletion(e)
-                      } else {
-                        prevInputSelectionEnd.current = undefined
-                      }
-                    }}
-                    onKeyDown={e => handleTextareaKeyDown(e, open)}
-                  />
-                  <div className="absolute right-0 top-4 sm:right-4">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="submit"
-                          size="icon"
-                          disabled={isInitializing || isLoading || input === ''}
-                        >
-                          <IconArrowElbow />
-                          <span className="sr-only">Send message</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Send message</TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              </SearchableSelectAnchor>
-              <SearchableSelectContent
-                align="start"
-                side="top"
-                onOpenAutoFocus={e => e.preventDefault()}
-                className="w-[60vw] md:w-[430px]"
-              >
-                <Popover open={open && !!highlightedOption}>
-                  <PopoverAnchor asChild>
-                    <div className="max-h-[300px] overflow-y-scroll">
-                      {open &&
-                        !!options?.length &&
-                        options.map((item, index) => (
-                          <SearchableSelectOption
-                            item={item}
-                            index={index}
-                            key={item?.id}
-                          >
-                            <div className="flex w-full items-center justify-between gap-8 overflow-x-hidden">
-                              <div className="flex items-center gap-1">
-                                <IconForCompletionKind kind={item?.doc?.kind} />
-                                <div className="max-w-[200px] truncate">
-                                  {item?.doc?.name}(...)
-                                </div>
-                              </div>
-                              <div className="flex-1 truncate text-right text-sm text-muted-foreground">
-                                {item?.doc?.body}
-                              </div>
-                            </div>
-                          </SearchableSelectOption>
-                        ))}
-                    </div>
-                  </PopoverAnchor>
-                  <PopoverContent
-                    asChild
-                    align="start"
-                    side="right"
-                    alignOffset={-4}
-                    onOpenAutoFocus={e => e.preventDefault()}
-                    onKeyDownCapture={e => e.preventDefault()}
-                    className="rounded-none"
-                    collisionPadding={{ bottom: 120 }}
-                  >
-                    <div className="flex max-h-[70vh] w-[20vw] flex-col overflow-y-auto px-2 md:w-[240px] lg:w-[340px]">
-                      <div className="mb-2">
-                        {highlightedOption?.doc?.kind
-                          ? `(${highlightedOption?.doc?.kind}) `
-                          : ''}
-                        {highlightedOption?.doc?.name}
-                      </div>
-                      <div className="flex-1 whitespace-pre-wrap break-all text-muted-foreground">
-                        {highlightedOption?.doc?.body}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </SearchableSelectContent>
-            </>
-          )
-        }}
-      </SearchableSelect>
-    </form>
+          <div className="min-h-[60px] w-full resize-none bg-transparent py-[1.3rem] focus-within:outline-none sm:pl-4">
+            <EditorContent
+              editor={editor}
+              className="prose dark:prose-invert prose-p:my-0 focus:outline-none"
+            />
+          </div>
+
+          <div className="absolute right-0 top-4 sm:right-4">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={isInitializing || isLoading || input === ''}
+                >
+                  <IconArrowElbow />
+                  <span className="sr-only">Send message</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Send message</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+      </form>
+
+      {suggestionState && (
+        <Popover open={true} modal={false}>
+          <PopoverContent
+            ref={popoverRef}
+            className="p-0 w-[280px] overflow-y-auto"
+            style={{
+              position: 'absolute',
+              left: suggestionState.clientRect()?.left ?? 0,
+              top:
+                (suggestionState.clientRect()?.top ?? 0) -
+                (menuState.view === 'categories'
+                  ? 70
+                  : menuState.view === 'files' &&
+                    suggestionState.items.length > 0
+                  ? Math.min(suggestionState.items.length * 42, 4 * 42)
+                  : 70),
+              height: 'auto',
+              maxHeight: '200px'
+            }}
+            align="start"
+            onOpenAutoFocus={e => e.preventDefault()}
+            onPointerDownOutside={e => e.preventDefault()}
+            onFocusOutside={e => e.preventDefault()}
+          >
+            {menuState.view === 'categories' ? (
+              <CategoryMenu
+                items={categoryItems}
+                selectedIndex={categorySelectedIndex}
+                onSelect={cat => {
+                  console.log('[PromptForm] Category selected:', cat)
+                  setMenuState({
+                    view: cat === 'file' ? 'files' : 'symbols',
+                    category: cat
+                  })
+                }}
+                onUpdateSelectedIndex={index => {
+                  setCategorySelectedIndex(index)
+                }}
+              />
+            ) : menuState.view === 'files' ? (
+              <FileList
+                items={suggestionState.items}
+                selectedIndex={suggestionState.selectedIndex}
+                onSelect={item => {
+                  console.log('[PromptForm] File selected:', item)
+                  suggestionState.command(item)
+                }}
+                onUpdateSelectedIndex={updateSelectedIndex}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center px-3 py-2.5 text-sm text-muted-foreground/70">
+                Symbol search coming soon...
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      )}
+    </>
   )
 }
 
@@ -320,29 +456,4 @@ export const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
   PromptFormRenderer
 )
 
-/**
- * Retrieves the name of the completion query from a given string@.
- * @param {string} val - The input string to search for the completion query name.
- * @param {number | undefined} selectionEnd - The index at which the selection ends in the input string.
- * @return {string | undefined} - The name of the completion query if found, otherwise undefined.
- */
-export function getSearchCompletionQueryName(
-  val: string,
-  selectionEnd: number | undefined
-): RegExpExecArray | null {
-  const queryString = val.substring(0, selectionEnd)
-  const matches = /@(\w+)$/.exec(queryString)
-  return matches
-}
-
-function IconForCompletionKind({
-  kind,
-  ...rest
-}: { kind: string | undefined } & React.ComponentProps<'svg'>) {
-  switch (kind) {
-    case 'function':
-      return <IconSymbolFunction {...rest} />
-    default:
-      return <IconSymbolFunction {...rest} />
-  }
-}
+export default PromptForm
