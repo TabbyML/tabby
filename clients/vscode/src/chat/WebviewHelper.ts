@@ -53,6 +53,8 @@ import {
   uriToFileAtFileInfo,
 } from "./utils";
 
+import path from "path";
+
 export class WebviewHelper {
   webview?: Webview;
   client?: ServerApi;
@@ -787,15 +789,33 @@ export class WebviewHelper {
 
         return results.length > 0 ? results : null;
       },
-
       provideFileAtInfo: async (opts?: AtInputOpts): Promise<FileAtInfo[] | null> => {
         const maxResults = opts?.limit || 50;
-        const query = opts?.query?.toLowerCase();
+        const query = opts?.query;
 
-        const globPattern = query ? `**/${query}*` : "**/*";
+        const globPattern = "**/*";
+        const excludePattern = "**/node_modules/**";
         try {
-          const files = await workspace.findFiles(globPattern, null, maxResults);
-          return files.map((uri) => uriToFileAtFileInfo(uri, this.gitProvider));
+          const files = await workspace.findFiles(globPattern, excludePattern);
+
+          // start with
+          const filteredFiles = query
+            ? files.filter((uri) => 
+                 path.basename(uri.fsPath).toLowerCase().startsWith(query.toLowerCase());
+              )
+            : files;
+
+          // sort
+          const sortedFiles = filteredFiles.sort((a, b) => {
+            const nameA = a.fsPath.toLowerCase();
+            const nameB = b.fsPath.toLowerCase();
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+          });
+          
+          // limit
+          const limitedFiles = sortedFiles.slice(0, maxResults);
+
+          return limitedFiles.map((uri) => uriToFileAtInfo(uri, this.gitProvider));
         } catch (error) {
           this.logger.error("Failed to find files:", error);
           return null;
