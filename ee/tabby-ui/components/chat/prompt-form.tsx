@@ -357,11 +357,11 @@ function PromptFormRenderer(
   return (
     <>
       <form onSubmit={handleSubmit} ref={formRef}>
-        <div className="bg-background relative flex max-h-60 w-full grow flex-col overflow-hidden px-8 sm:rounded-md sm:border sm:px-12">
+        <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
           <Button
             variant="ghost"
             size="icon"
-            className="bg-background hover:bg-background absolute left-0 top-4 h-8 w-8 rounded-full p-0 sm:left-4"
+            className="absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 hover:bg-background sm:left-4"
           >
             <span className="sr-only">Edit message</span>
           </Button>
@@ -369,7 +369,7 @@ function PromptFormRenderer(
           <div className="min-h-[60px] w-full resize-none bg-transparent py-[1.3rem] focus-within:outline-none sm:pl-4">
             <EditorContent
               editor={editor}
-              className="prose dark:prose-invert prose-p:my-0 focus:outline-none"
+              className="prose dark:prose-invert focus:outline-none prose-p:my-0"
             />
           </div>
 
@@ -395,7 +395,7 @@ function PromptFormRenderer(
         <Popover open={true} modal={false}>
           <PopoverContent
             ref={popoverRef}
-            className="p-0 w-[280px] overflow-y-auto"
+            className="w-[280px] overflow-y-auto p-0"
             style={{
               position: 'absolute',
               left: suggestionState.clientRect()?.left ?? 0,
@@ -441,7 +441,7 @@ function PromptFormRenderer(
                 onUpdateSelectedIndex={updateSelectedIndex}
               />
             ) : (
-              <div className="h-full flex items-center justify-center px-3 py-2.5 text-sm text-muted-foreground/70">
+              <div className="flex h-full items-center justify-center px-3 py-2.5 text-sm text-muted-foreground/70">
                 Symbol search coming soon...
               </div>
             )}

@@ -20,7 +20,7 @@ export const CategoryMenu: React.FC<CategoryMenuProps> = ({
   console.log('[CategoryMenu] Rendering component with items:', items)
 
   return (
-    <div className="flex flex-col w-full h-full divide-y divide-border/30">
+    <div className="flex h-full w-full flex-col divide-y divide-border/30">
       {items.map((item, idx) => {
         const isSelected = idx === selectedIndex
 
@@ -42,7 +42,7 @@ export const CategoryMenu: React.FC<CategoryMenuProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <svg
-                className="w-3.5 h-3.5 text-muted-foreground/70"
+                className="h-3.5 w-3.5 text-muted-foreground/70"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
