@@ -36,6 +36,10 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       lookupSymbol: api.lookupSymbol,
       openInEditor: api.openInEditor,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
+      provideSymbolAtInfo: api.provideSymbolAtInfo,
+      getSymbolAtInfoContent: api.getSymbolAtInfoContent,
+      provideFileAtInfo: api.provideFileAtInfo,
+      getFileAtInfoContent: api.getFileAtInfoContent,
     },
   });
 }
