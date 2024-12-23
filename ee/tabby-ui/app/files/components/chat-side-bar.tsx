@@ -119,7 +119,10 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             gitUrl
           }
         })
-        client.executeCommand(getCommand(pendingEvent))
+        // FIXME: this delay is a workaround for waiting for the active selection to be updated
+        setTimeout(() => {
+          client.executeCommand(getCommand(pendingEvent))
+        }, 500)
       }
       execute()
     }

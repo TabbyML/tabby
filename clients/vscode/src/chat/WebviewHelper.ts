@@ -46,7 +46,7 @@ import {
 export class WebviewHelper {
   webview?: Webview;
   client?: ServerApi;
-  private pendingActions: (() => void)[] = [];
+  private pendingActions: (() => Promise<void>)[] = [];
   private isChatPageDisplayed = false;
 
   constructor(
@@ -284,10 +284,12 @@ export class WebviewHelper {
 
   public addRelevantContext(context: ClientFileContext) {
     if (this.client) {
+      this.logger.info(`Adding relevant context: ${context}`);
       this.client.addRelevantContext(context);
     } else {
-      this.pendingActions.push(() => {
-        this.client?.addRelevantContext(context);
+      this.pendingActions.push(async () => {
+        this.logger.info(`Adding pending relevant context: ${context}`);
+        await this.client?.addRelevantContext(context);
       });
     }
   }
@@ -297,9 +299,9 @@ export class WebviewHelper {
       this.logger.info(`Executing command: ${command}`);
       this.client.executeCommand(command);
     } else {
-      this.pendingActions.push(() => {
+      this.pendingActions.push(async () => {
         this.logger.info(`Executing pending command: ${command}`);
-        this.client?.executeCommand(command);
+        await this.client?.executeCommand(command);
       });
     }
   }
@@ -320,10 +322,12 @@ export class WebviewHelper {
       return;
     }
 
-    this.pendingActions.forEach((fn) => fn());
-    this.pendingActions = [];
+    await this.syncActiveSelection(window.activeTextEditor);
 
-    this.syncActiveSelection(window.activeTextEditor);
+    this.pendingActions.forEach(async (fn) => {
+      await fn();
+    });
+    this.pendingActions = [];
 
     const agentConfig = this.lspClient.agentConfig.current;
     if (agentConfig?.server.token) {
@@ -332,7 +336,7 @@ export class WebviewHelper {
       const isMac = isBrowser
         ? navigator.userAgent.toLowerCase().includes("mac")
         : process.platform.toLowerCase().includes("darwin");
-      this.client?.init({
+      await this.client?.init({
         fetcherOptions: {
           authorization: agentConfig.server.token,
         },
@@ -343,12 +347,12 @@ export class WebviewHelper {
 
   public async syncActiveSelection(editor: TextEditor | undefined) {
     if (!editor || !this.isSupportedSchemeForActiveSelection(editor.document.uri.scheme)) {
-      this.syncActiveSelectionToChatPanel(null);
+      await this.syncActiveSelectionToChatPanel(null);
       return;
     }
 
     const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-    this.syncActiveSelectionToChatPanel(fileContext);
+    await this.syncActiveSelectionToChatPanel(fileContext);
   }
 
   public addAgentEventListeners() {
