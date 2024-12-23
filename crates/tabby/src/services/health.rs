@@ -3,7 +3,7 @@ use std::env::consts::ARCH;
 use anyhow::Result;
 use nvml_wrapper::Nvml;
 use serde::{Deserialize, Serialize};
-use sysinfo::{CpuExt, System, SystemExt};
+use sysinfo::System;
 use tabby_common::config::{ModelConfig, ModelConfigGroup};
 use utoipa::ToSchema;
 
@@ -65,7 +65,7 @@ fn to_model_name(model: &Option<ModelConfig>) -> Option<String> {
 
 pub fn read_cpu_info() -> (String, usize) {
     let mut system = System::new_all();
-    system.refresh_cpu();
+    system.refresh_cpu_all();
     let cpus = system.cpus();
     let count = cpus.len();
     let info = if count > 0 {
