@@ -2,7 +2,7 @@ import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type {
   ChatCommand,
-  ClientFileContext,
+  EditorContext,
   FileLocation,
   GitRepository,
   LookupSymbolHint,
@@ -37,7 +37,7 @@ import {
 } from '@/lib/types/chat'
 import {
   cn,
-  convertClientFileContext,
+  convertEditorContext,
   findClosestGitRepository,
   getFileLocationFromContext,
   getPromptForChatCommand,
@@ -103,9 +103,9 @@ export interface ChatRef {
   executeCommand: (command: ChatCommand) => Promise<void>
   stop: () => void
   isLoading: boolean
-  addRelevantContext: (context: ClientFileContext) => void
+  addRelevantContext: (context: EditorContext) => void
   focus: () => void
-  updateActiveSelection: (context: ClientFileContext | null) => void
+  updateActiveSelection: (context: EditorContext | null) => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -511,8 +511,8 @@ function ChatRenderer(
     setRelevantContext(oldValue => appendContextAndDedupe(oldValue, context))
   })
 
-  const addRelevantContext = (clientFileContext: ClientFileContext) => {
-    const context = convertClientFileContext(clientFileContext)
+  const addRelevantContext = (editorContext: EditorContext) => {
+    const context = convertEditorContext(editorContext)
     handleAddRelevantContext.current?.(context)
   }
 
@@ -534,12 +534,8 @@ function ChatRenderer(
     300
   )
 
-  const updateActiveSelection = (
-    clientFileContext: ClientFileContext | null
-  ) => {
-    const context = clientFileContext
-      ? convertClientFileContext(clientFileContext)
-      : null
+  const updateActiveSelection = (editorContext: EditorContext | null) => {
+    const context = editorContext ? convertEditorContext(editorContext) : null
     debouncedUpdateActiveSelection.run(context)
   }
 

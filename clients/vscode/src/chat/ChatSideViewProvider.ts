@@ -1,5 +1,5 @@
 import { ExtensionContext, WebviewViewProvider, WebviewView, window } from "vscode";
-import type { ServerApi, ChatCommand, ClientFileContext } from "tabby-chat-panel";
+import type { ServerApi, ChatCommand, EditorContext } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
 import { Client } from "../lsp/Client";
 import type { LogOutputChannel } from "../logger";
@@ -64,7 +64,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     this.webviewHelper.executeCommand(command);
   }
 
-  public addRelevantContext(context: ClientFileContext) {
+  public addRelevantContext(context: EditorContext) {
     this.webviewHelper.addRelevantContext(context);
   }
 }

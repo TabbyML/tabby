@@ -3,7 +3,7 @@ import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
 import type {
   ChatCommand,
-  ClientFileContext,
+  EditorContext,
   FileLocation,
   Filepath,
   LineRange,
@@ -195,8 +195,8 @@ export function getPromptForChatCommand(command: ChatCommand) {
   }
 }
 
-export function convertClientFileContext(
-  clientFileContext: ClientFileContext
+export function convertEditorContext(
+  editorContext: EditorContext
 ): FileContext {
   const convertRange = (range: LineRange | PositionRange | undefined) => {
     // FIXME: If the range is not provided, the whole file is considered.
@@ -231,9 +231,9 @@ export function convertClientFileContext(
 
   return {
     kind: 'file',
-    content: clientFileContext.content,
-    range: convertRange(clientFileContext.range),
-    ...convertFilepath(clientFileContext.filepath)
+    content: editorContext.content,
+    range: convertRange(editorContext.range),
+    ...convertFilepath(editorContext.filepath)
   }
 }
 

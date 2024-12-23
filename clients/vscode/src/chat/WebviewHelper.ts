@@ -18,7 +18,7 @@ import {
 import type {
   ServerApi,
   ChatCommand,
-  ClientFileContext,
+  EditorContext,
   OnLoadedParams,
   LookupSymbolHint,
   SymbolInfo,
@@ -268,7 +268,7 @@ export class WebviewHelper {
     return supportedSchemes.includes(scheme);
   }
 
-  public async syncActiveSelectionToChatPanel(context: ClientFileContext | null) {
+  public async syncActiveSelectionToChatPanel(context: EditorContext | null) {
     try {
       await this.client?.updateActiveSelection(context);
     } catch {
@@ -282,7 +282,7 @@ export class WebviewHelper {
     }
   }
 
-  public addRelevantContext(context: ClientFileContext) {
+  public addRelevantContext(context: EditorContext) {
     if (this.client) {
       this.logger.info(`Adding relevant context: ${context}`);
       this.client.addRelevantContext(context);

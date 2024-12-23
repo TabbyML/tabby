@@ -12,7 +12,7 @@ import remarkMath from 'remark-math'
 import {
   TABBY_CHAT_PANEL_API_VERSION,
   type ChatCommand,
-  type ClientFileContext,
+  type EditorContext,
   type ErrorMessage,
   type FetcherOptions,
   type FileLocation,
@@ -53,10 +53,10 @@ export default function ChatPage() {
   const [activeChatId, setActiveChatId] = useState('')
   const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
-    ClientFileContext[]
+    EditorContext[]
   >([])
   const [pendingActiveSelection, setPendingActiveSelection] =
-    useState<ClientFileContext | null>(null)
+    useState<EditorContext | null>(null)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
@@ -88,7 +88,7 @@ export default function ChatPage() {
     }
   }
 
-  const addRelevantContext = (ctx: ClientFileContext) => {
+  const addRelevantContext = (ctx: EditorContext) => {
     if (chatRef.current) {
       chatRef.current.addRelevantContext(ctx)
     } else {
@@ -98,7 +98,7 @@ export default function ChatPage() {
     }
   }
 
-  const updateActiveSelection = (ctx: ClientFileContext | null) => {
+  const updateActiveSelection = (ctx: EditorContext | null) => {
     if (chatRef.current) {
       chatRef.current.updateActiveSelection(ctx)
     } else if (ctx) {
@@ -130,7 +130,7 @@ export default function ChatPage() {
     cleanError: () => {
       setErrorMessage(null)
     },
-    addRelevantContext: (context: ClientFileContext) => {
+    addRelevantContext: (context: EditorContext) => {
       return addRelevantContext(context)
     },
     updateTheme: (style, themeClass) => {
@@ -153,7 +153,7 @@ export default function ChatPage() {
       document.documentElement.className =
         themeClass + ` client client-${client}`
     },
-    updateActiveSelection: (context: ClientFileContext | null) => {
+    updateActiveSelection: (context: EditorContext | null) => {
       return updateActiveSelection(context)
     }
   })

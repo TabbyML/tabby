@@ -53,9 +53,9 @@ export type Location = number | LineRange | Position | PositionRange
 
 /**
  * Represents a client-side file context.
- * This type should only be used for send context from client to server.
+ * This type should only be used for sending context from client to server.
  */
-export interface ClientFileContext {
+export interface EditorFileContext {
   kind: 'file'
 
   /**
@@ -77,9 +77,9 @@ export interface ClientFileContext {
 
 /**
  * Represents a client-side context.
- * This type should only be used for send context from client to server.
+ * This type should only be used for sending context from client to server.
  */
-export type ClientSideContext = ClientFileContext
+export type EditorContext = EditorFileContext
 
 export interface FetcherOptions {
   authorization: string
@@ -220,9 +220,9 @@ export interface ServerApi {
 
   showError: (error: ErrorMessage) => void
   cleanError: () => void
-  addRelevantContext: (context: ClientSideContext) => void
+  addRelevantContext: (context: EditorContext) => void
   updateTheme: (style: string, themeClass: string) => void
-  updateActiveSelection: (context: ClientFileContext | null) => void
+  updateActiveSelection: (context: EditorContext | null) => void
 }
 
 export interface ClientApiMethods {

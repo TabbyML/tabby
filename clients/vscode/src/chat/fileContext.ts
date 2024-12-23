@@ -1,12 +1,12 @@
 import type { TextEditor } from "vscode";
-import type { ClientFileContext } from "tabby-chat-panel";
+import type { EditorContext } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { localUriToChatPanelFilepath } from "./utils";
 
 export async function getFileContextFromSelection(
   editor: TextEditor,
   gitProvider: GitProvider,
-): Promise<ClientFileContext | null> {
+): Promise<EditorContext | null> {
   return getFileContext(editor, gitProvider, true);
 }
 
@@ -14,7 +14,7 @@ export async function getFileContext(
   editor: TextEditor,
   gitProvider: GitProvider,
   useSelection = false,
-): Promise<ClientFileContext | null> {
+): Promise<EditorContext | null> {
   const text = editor.document.getText(useSelection ? editor.selection : undefined);
   if (!text || text.trim().length < 1) {
     return null;
