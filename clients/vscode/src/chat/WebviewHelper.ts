@@ -17,9 +17,8 @@ import {
 } from "vscode";
 import type {
   ServerApi,
-  ChatMessage,
-  Context,
-  NavigateOpts,
+  ChatCommand,
+  ClientFileContext,
   OnLoadedParams,
   LookupSymbolHint,
   SymbolInfo,
@@ -35,7 +34,7 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { Client as LspClient } from "../lsp/Client";
 import { isBrowser } from "../env";
-import { getFileContextFromSelection, showFileContext, openTextDocument, buildFilePathParams } from "./fileContext";
+import { getFileContextFromSelection } from "./fileContext";
 import {
   localUriToChatPanelFilepath,
   chatPanelFilepathToLocalUri,
@@ -47,8 +46,7 @@ import {
 export class WebviewHelper {
   webview?: Webview;
   client?: ServerApi;
-  private pendingMessages: ChatMessage[] = [];
-  private pendingRelevantContexts: Context[] = [];
+  private pendingActions: (() => void)[] = [];
   private isChatPageDisplayed = false;
 
   constructor(
@@ -270,12 +268,7 @@ export class WebviewHelper {
     return supportedSchemes.includes(scheme);
   }
 
-  public sendMessageToChatPanel(message: ChatMessage) {
-    this.logger.info(`Sending message to chat panel: ${JSON.stringify(message)}`);
-    this.client?.sendMessage(message);
-  }
-
-  public async syncActiveSelectionToChatPanel(context: Context | null) {
+  public async syncActiveSelectionToChatPanel(context: ClientFileContext | null) {
     try {
       await this.client?.updateActiveSelection(context);
     } catch {
@@ -289,11 +282,25 @@ export class WebviewHelper {
     }
   }
 
-  public addRelevantContext(context: Context) {
-    if (!this.client) {
-      this.pendingRelevantContexts.push(context);
+  public addRelevantContext(context: ClientFileContext) {
+    if (this.client) {
+      this.client.addRelevantContext(context);
     } else {
-      this.client?.addRelevantContext(context);
+      this.pendingActions.push(() => {
+        this.client?.addRelevantContext(context);
+      });
+    }
+  }
+
+  public executeCommand(command: ChatCommand) {
+    if (this.client) {
+      this.logger.info(`Executing command: ${command}`);
+      this.client.executeCommand(command);
+    } else {
+      this.pendingActions.push(() => {
+        this.logger.info(`Executing pending command: ${command}`);
+        this.client?.executeCommand(command);
+      });
     }
   }
 
@@ -313,11 +320,8 @@ export class WebviewHelper {
       return;
     }
 
-    this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
-    this.pendingRelevantContexts = [];
-
-    this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
-    this.pendingMessages = [];
+    this.pendingActions.forEach((fn) => fn());
+    this.pendingActions = [];
 
     this.syncActiveSelection(window.activeTextEditor);
 
@@ -334,32 +338,6 @@ export class WebviewHelper {
         },
         useMacOSKeyboardEventHandler: isMac,
       });
-    }
-  }
-
-  public formatLineHashForCodeBrowser(
-    range:
-      | {
-          start: number;
-          end?: number;
-        }
-      | undefined,
-  ): string {
-    if (!range) return "";
-    const { start, end } = range;
-    if (typeof start !== "number") return "";
-    if (start === end) return `L${start}`;
-    return [start, end]
-      .map((num) => (typeof num === "number" ? `L${num}` : undefined))
-      .filter((o) => o !== undefined)
-      .join("-");
-  }
-
-  public sendMessage(message: ChatMessage) {
-    if (!this.client) {
-      this.pendingMessages.push(message);
-    } else {
-      this.sendMessageToChatPanel(message);
     }
   }
 
@@ -444,54 +422,10 @@ export class WebviewHelper {
     };
 
     return createClient(webview, {
-      navigate: async (context: Context, opts?: NavigateOpts) => {
-        if (opts?.openInEditor) {
-          showFileContext(context, this.gitProvider);
-          return;
-        }
-
-        if (context?.filepath && context?.git_url) {
-          const agentConfig = this.lspClient.agentConfig.current;
-
-          const url = new URL(`${agentConfig?.server.endpoint}/files`);
-          const searchParams = new URLSearchParams();
-
-          searchParams.append("redirect_filepath", context.filepath);
-          searchParams.append("redirect_git_url", context.git_url);
-          url.search = searchParams.toString();
-
-          const lineHash = this.formatLineHashForCodeBrowser(context.range);
-          if (lineHash) {
-            url.hash = lineHash;
-          }
-
-          await env.openExternal(Uri.parse(url.toString()));
-        }
-      },
       refresh: async () => {
         const agentConfig = await this.lspClient.agentConfig.fetchAgentConfig();
         await this.displayChatPage(agentConfig.server.endpoint, { force: true });
         return;
-      },
-      onSubmitMessage: async (msg: string, relevantContext?: Context[]) => {
-        const editor = window.activeTextEditor;
-        const chatMessage: ChatMessage = {
-          message: msg,
-          relevantContext: [],
-        };
-        // FIXME: after synchronizing the activeSelection, perhaps there's no need to include activeSelection in the message.
-        if (editor && this.isSupportedSchemeForActiveSelection(editor.document.uri.scheme)) {
-          const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-          if (fileContext)
-            // active selection
-            chatMessage.activeContext = fileContext;
-        }
-        if (relevantContext) {
-          chatMessage.relevantContext = chatMessage.relevantContext?.concat(relevantContext);
-        }
-
-        // FIXME: maybe deduplicate on chatMessage.relevantContext
-        this.sendMessage(chatMessage);
       },
       onApplyInEditor: async (content: string) => {
         const editor = window.activeTextEditor;
@@ -593,7 +527,14 @@ export class WebviewHelper {
           if (!uri) {
             continue;
           }
-          const document = await openTextDocument({ filePath: uri.toString(true) }, this.gitProvider);
+
+          let document: TextDocument;
+          try {
+            document = await workspace.openTextDocument(uri);
+          } catch (error) {
+            this.logger.debug("Failed to open document:", uri, error);
+            continue;
+          }
           if (!document) {
             continue;
           }
@@ -685,6 +626,16 @@ export class WebviewHelper {
           return false;
         }
 
+        if (uri.scheme === "output") {
+          try {
+            await commands.executeCommand(`workbench.action.output.show.${uri.fsPath}`);
+            return true;
+          } catch (error) {
+            this.logger.error("Failed to open output channel:", fileLocation, error);
+            return false;
+          }
+        }
+
         const targetRange = chatPanelLocationToVSCodeRange(fileLocation.location) ?? new Range(0, 0, 0, 0);
         try {
           await commands.executeCommand(
@@ -700,17 +651,22 @@ export class WebviewHelper {
           return false;
         }
       },
+      openExternal: async (url: string) => {
+        await env.openExternal(Uri.parse(url));
+      },
       readWorkspaceGitRepositories: async (): Promise<GitRepository[]> => {
         const activeTextEditor = window.activeTextEditor;
         const infoList: GitRepository[] = [];
         let activeGitUrl: string | undefined;
         if (activeTextEditor) {
-          const pathParams = await buildFilePathParams(activeTextEditor.document.uri, this.gitProvider);
-          if (pathParams.gitRemoteUrl) {
-            activeGitUrl = pathParams.gitRemoteUrl;
-            infoList.push({
-              url: activeGitUrl,
-            });
+          const repo = this.gitProvider.getRepository(activeTextEditor.document.uri);
+          if (repo) {
+            const gitRemoteUrl = this.gitProvider.getDefaultRemoteUrl(repo);
+            if (gitRemoteUrl) {
+              infoList.push({
+                url: gitRemoteUrl,
+              });
+            }
           }
         }
 

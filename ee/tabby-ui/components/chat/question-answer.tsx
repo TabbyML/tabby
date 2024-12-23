@@ -5,12 +5,12 @@ import React, { useMemo } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
-import type { Context } from 'tabby-chat-panel'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
+  Context,
   AssistantMessage,
   AttachmentCodeItem,
   QuestionAnswerPair,
@@ -19,7 +19,9 @@ import {
 import {
   cn,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
+  getRangeTextFromAttachmentCode,
+  getFileLocationFromContext,
+  buildCodeBrowserUrlForContext,
 } from '@/lib/utils'
 
 import { CopyButton } from '../copy-button'
@@ -108,7 +110,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext, supportsOnApplyInEditorV2 } =
+  const { openInEditor, supportsOnApplyInEditorV2 } =
     React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
@@ -175,11 +177,10 @@ function UserMessageCard(props: { message: UserMessage }) {
           {selectCode && message.selectContext && (
             <div
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
-              onClick={() =>
-                onNavigateToContext?.(message.selectContext!, {
-                  openInEditor: true
-                })
-              }
+              onClick={() => {
+                const context = message.selectContext!
+                openInEditor(getFileLocationFromContext(context))
+              }}
             >
               <IconFile className="h-3 w-3" />
               <p className="flex-1 truncate pr-1">
@@ -258,11 +259,11 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     ...rest
   } = props
   const {
-    onNavigateToContext,
     onApplyInEditor,
     onCopyContent,
     onLookupSymbol,
     openInEditor,
+    openExternal,
     supportsOnApplyInEditorV2
   } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
@@ -334,6 +335,29 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     setRelevantCodeHighlightIndex(undefined)
   }
 
+  // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
+  const isInEditor = !!onApplyInEditor
+
+  const onContextClick = (context: Context, isClient?: boolean) => {
+    // When isInEditor is false, we are in the code browser.
+    // The `openInEditor` function implementation as `openInCodeBrowser`,
+    // and will navigate to target without opening a new tab.
+    // So we use `openInEditor` here.
+    if (isClient || !isInEditor) {
+      openInEditor({
+        filepath: {
+          kind: 'git',
+          filepath: context.filepath,
+          gitUrl: context.git_url
+        },
+        location: context.range
+      })
+    } else {
+      const url = buildCodeBrowserUrlForContext(window.location.href, context)
+      openExternal(url)
+    }
+  }
+
   const onCodeCitationClick = (code: AttachmentCodeItem) => {
     const { startLine, endLine } = getRangeFromAttachmentCode(code)
     const ctx: Context = {
@@ -346,9 +370,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         end: endLine
       }
     }
-    onNavigateToContext?.(ctx, {
-      openInEditor: code.isClient
-    })
+    onContextClick(ctx, code.isClient)
   }
 
   return (
@@ -380,15 +402,10 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         <CodeReferences
           contexts={serverCode}
           clientContexts={clientCode}
-          onContextClick={(ctx, isInWorkspace) => {
-            onNavigateToContext?.(ctx, {
-              openInEditor: isInWorkspace
-            })
-          }}
-          // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
-          showExternalLink={!!onApplyInEditor}
-          isInEditor={!!onApplyInEditor}
-          showClientCodeIcon={!onApplyInEditor}
+          onContextClick={onContextClick}
+          showExternalLink={isInEditor}
+          isInEditor={isInEditor}
+          showClientCodeIcon={!isInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
         />

@@ -5,7 +5,7 @@ import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compact } from 'lodash-es'
 import { toast } from 'sonner'
-import type { Context } from 'tabby-chat-panel'
+import type { Context } from '@/lib/types'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
