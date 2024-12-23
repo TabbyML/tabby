@@ -10,6 +10,13 @@ enum AuthMethod {
   LOGIN
 }
 
+enum AuthProviderKind {
+  OAUTH_GITHUB
+  OAUTH_GOOGLE
+  OAUTH_GITLAB
+  LDAP
+}
+
 "Represents the kind of context source."
 enum ContextSourceKind {
   GIT
@@ -59,6 +66,12 @@ enum Language {
   CPP
   SOLIDITY
   OTHER
+}
+
+enum LdapEncryptionKind {
+  NONE
+  START_TLS
+  LDAPS
 }
 
 enum LicenseStatus {
@@ -231,6 +244,19 @@ input UpdateIntegrationInput {
   kind: IntegrationKind!
 }
 
+input UpdateLdapCredentialInput {
+  host: String!
+  port: Int!
+  bindDn: String!
+  bindPassword: String!
+  baseDn: String!
+  userFilter: String!
+  encryption: LdapEncryptionKind!
+  skipTlsVerify: Boolean!
+  emailAttribute: String!
+  nameAttribute: String!
+}
+
 input UpdateMessageInput {
   id: ID!
   threadId: ID!
@@ -287,6 +313,10 @@ interface User {
   [2]: https://docs.rs/chrono/latest/chrono/struct.DateTime.html
 """
 scalar DateTime
+
+type AuthProvider {
+  kind: AuthProviderKind!
+}
 
 type CompletionStats {
   start: DateTime!
@@ -464,6 +494,21 @@ type JobStats {
   pending: Int!
 }
 
+type LdapCredential {
+  host: String!
+  port: Int!
+  bindDn: String!
+  bindPassword: String!
+  baseDn: String!
+  userFilter: String!
+  encryption: LdapEncryptionKind!
+  skipTlsVerify: Boolean!
+  emailAttribute: String!
+  nameAttribute: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
 type LicenseInfo {
   type: LicenseType!
   status: LicenseStatus!
@@ -585,6 +630,8 @@ type Mutation {
   deleteInvitation(id: ID!): ID!
   updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!
+  updateLdapCredential(input: UpdateLdapCredentialInput!): Boolean!
+  deleteLdapCredential: Boolean!
   updateEmailSetting(input: EmailSettingInput!): Boolean!
   updateSecuritySetting(input: SecuritySettingInput!): Boolean!
   updateNetworkSetting(input: NetworkSettingInput!): Boolean!
@@ -716,8 +763,11 @@ type Query {
     * `func_name lang:go`
   """
   repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): RepositoryGrepOutput!
+  authProviders: [AuthProvider!]!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
+  ldapCredential: LdapCredential
+  testLdapCredential: Boolean!
   serverInfo: ServerInfo!
   license: LicenseInfo!
   jobs: [String!]!
