@@ -1,5 +1,6 @@
-use std::{pin::pin, sync::Arc};
+use std::{path::Path, pin::pin, sync::Arc};
 
+use anyhow::Result;
 use async_stream::stream;
 use futures::StreamExt;
 use ignore::{DirEntry, Walk};
@@ -12,7 +13,7 @@ use super::{
     intelligence::{CodeIntelligence, SourceCode},
     CodeRepository,
 };
-use crate::indexer::Indexer;
+use crate::indexer::{Indexer, TantivyDocBuilder};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -101,7 +102,19 @@ async fn add_changed_documents(
 
             let id = SourceCode::to_index_id(&repository.source_id, &key).id;
 
+            // Skip if already indexed and has no failed chunks,
+            // when skip, we should check if the document needs to be backfilled.
             if !require_updates(cloned_index.clone(), &id) {
+                backfill_commit_in_doc_if_needed(
+                    builder.clone(),
+                    cloned_index.clone(),
+                    &id,
+                    repository,
+                    commit,
+                    file.path()).await.unwrap_or_else(|e| {
+                        warn!("Failed to backfill commit for {id}: {e}");
+                    }
+                );
                 continue;
             }
 
@@ -139,12 +152,7 @@ async fn add_changed_documents(
     count_docs
 }
 
-// 1. Backfill if the document is missing the commit field
-// 2. Skip if already indexed and has no failed chunks
 fn require_updates(indexer: Arc<Indexer>, id: &str) -> bool {
-    if should_backfill(indexer.clone(), id) {
-        return true;
-    }
     if indexer.is_indexed(id) && !indexer.has_failed_chunks(id) {
         return false;
     };
@@ -152,9 +160,32 @@ fn require_updates(indexer: Arc<Indexer>, id: &str) -> bool {
     true
 }
 
-fn should_backfill(indexer: Arc<Indexer>, id: &str) -> bool {
-    // v0.23.0 add the commit field to the code document.
-    !indexer.has_attribute_field(id, code::fields::ATTRIBUTE_COMMIT)
+// v0.23.0 add the commit field to the code document.
+async fn backfill_commit_in_doc_if_needed(
+    builder: Arc<TantivyDocBuilder<SourceCode>>,
+    indexer: Arc<Indexer>,
+    id: &str,
+    repository: &CodeRepository,
+    commit: &str,
+    path: &Path,
+) -> Result<()> {
+    if indexer.has_attribute_field(id, code::fields::ATTRIBUTE_COMMIT) {
+        return Ok(());
+    }
+
+    let code = CodeIntelligence::compute_source_file(repository, commit, path)
+        .ok_or_else(|| anyhow::anyhow!("Failed to compute source file"))?;
+    if !is_valid_file(&code) {
+        anyhow::bail!("Invalid file");
+    }
+
+    let origin = indexer.get_doc(id).await?;
+    indexer.delete_doc(id);
+    indexer
+        .add(builder.backfill_doc_attributes(&origin, &code).await)
+        .await;
+
+    Ok(())
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {
