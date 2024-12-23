@@ -10,18 +10,18 @@ import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
-  Context,
   AssistantMessage,
   AttachmentCodeItem,
+  Context,
   QuestionAnswerPair,
   UserMessage
 } from '@/lib/types/chat'
 import {
-  cn,
-  getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode,
-  getFileLocationFromContext,
   buildCodeBrowserUrlForContext,
+  cn,
+  getFileLocationFromContext,
+  getRangeFromAttachmentCode,
+  getRangeTextFromAttachmentCode
 } from '@/lib/utils'
 
 import { CopyButton } from '../copy-button'

@@ -6,7 +6,7 @@ import type {
   FileLocation,
   GitRepository,
   LookupSymbolHint,
-  SymbolInfo,
+  SymbolInfo
 } from 'tabby-chat-panel'
 import { useQuery } from 'urql'
 
@@ -27,9 +27,9 @@ import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
+  AssistantMessage,
   Context,
   FileContext,
-  AssistantMessage,
   MessageActionType,
   QuestionAnswerPair,
   UserMessage,
@@ -37,10 +37,10 @@ import {
 } from '@/lib/types/chat'
 import {
   cn,
-  findClosestGitRepository,
-  getPromptForChatCommand,
   convertClientFileContext,
+  findClosestGitRepository,
   getFileLocationFromContext,
+  getPromptForChatCommand,
   nanoid
 } from '@/lib/utils'
 
@@ -530,8 +530,12 @@ function ChatRenderer(
     300
   )
 
-  const updateActiveSelection = (clientFileContext: ClientFileContext | null) => {
-    const context = clientFileContext ? convertClientFileContext(clientFileContext) : null
+  const updateActiveSelection = (
+    clientFileContext: ClientFileContext | null
+  ) => {
+    const context = clientFileContext
+      ? convertClientFileContext(clientFileContext)
+      : null
     debouncedUpdateActiveSelection.run(context)
   }
 

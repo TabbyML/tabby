@@ -78,7 +78,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     },
     openExternal: async (url: string) => {
       window.open(url, '_blank')
-    },
+    }
   })
 
   const getCommand = ({ action }: QuickActionEventPayload) => {

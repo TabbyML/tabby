@@ -53,7 +53,7 @@ export default function ChatPage() {
   const [activeChatId, setActiveChatId] = useState('')
   const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
-  ClientFileContext[]
+    ClientFileContext[]
   >([])
   const [pendingActiveSelection, setPendingActiveSelection] =
     useState<ClientFileContext | null>(null)
