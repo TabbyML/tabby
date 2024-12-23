@@ -8,7 +8,7 @@ pub struct UserRateLimiter {
     rate_limiters: Mutex<TimedCache<String, ratelimit::Ratelimiter>>,
 }
 
-static USER_REQUEST_LIMIT_PER_MINUTE: u64 = 30;
+static USER_REQUEST_LIMIT_PER_MINUTE: u64 = 60;
 
 impl Default for UserRateLimiter {
     fn default() -> Self {
