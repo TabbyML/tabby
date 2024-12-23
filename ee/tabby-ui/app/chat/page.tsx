@@ -79,6 +79,10 @@ export default function ChatPage() {
     supportsProvideWorkspaceGitRepoInfo,
     setSupportsProvideWorkspaceGitRepoInfo
   ] = useState(false)
+  const [supportProvideFileAtInfo, setSupportProvideFileAtInfo] =
+    useState(false)
+  const [supportGetFileAtInfoContent, setSupportGetFileAtInfoContent] =
+    useState(false)
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -245,6 +249,12 @@ export default function ChatPage() {
         server
           ?.hasCapability('readWorkspaceGitRepositories')
           .then(setSupportsProvideWorkspaceGitRepoInfo)
+        server
+          ?.hasCapability('provideFileAtInfo')
+          .then(setSupportProvideFileAtInfo)
+        server
+          ?.hasCapability('getFileAtInfoContent')
+          .then(setSupportGetFileAtInfoContent)
       }
 
       checkCapabilities()
@@ -405,6 +415,16 @@ export default function ChatPage() {
         readWorkspaceGitRepositories={
           isInEditor && supportsProvideWorkspaceGitRepoInfo
             ? server?.readWorkspaceGitRepositories
+            : undefined
+        }
+        provideFileAtInfo={
+          isInEditor && supportProvideFileAtInfo
+            ? server?.provideFileAtInfo
+            : undefined
+        }
+        getFileAtInfoContent={
+          isInEditor && supportGetFileAtInfoContent
+            ? server?.getFileAtInfoContent
             : undefined
         }
       />
