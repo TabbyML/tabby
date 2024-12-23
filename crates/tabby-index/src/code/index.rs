@@ -105,7 +105,7 @@ async fn add_changed_documents(
             // Skip if already indexed and has no failed chunks,
             // when skip, we should check if the document needs to be backfilled.
             if !require_updates(cloned_index.clone(), &id) {
-                backfill_commit_if_needed(
+                backfill_commit_in_doc_if_needed(
                     builder.clone(),
                     cloned_index.clone(),
                     &id,
@@ -161,7 +161,7 @@ fn require_updates(indexer: Arc<Indexer>, id: &str) -> bool {
 }
 
 // v0.23.0 add the commit field to the code document.
-async fn backfill_commit_if_needed(
+async fn backfill_commit_in_doc_if_needed(
     builder: Arc<TantivyDocBuilder<SourceCode>>,
     indexer: Arc<Indexer>,
     id: &str,
@@ -182,7 +182,7 @@ async fn backfill_commit_if_needed(
     let origin = indexer.get_doc(id).await?;
     indexer.delete_doc(id);
     indexer
-        .add(builder.backfill_attribute(&origin, &code).await)
+        .add(builder.backfill_doc_attributes(&origin, &code).await)
         .await;
 
     Ok(())

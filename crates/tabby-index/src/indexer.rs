@@ -168,7 +168,11 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
         }
     }
 
-    pub async fn backfill_attribute(&self, origin: &TantivyDocument, doc: &T) -> TantivyDocument {
+    pub async fn backfill_doc_attributes(
+        &self,
+        origin: &TantivyDocument,
+        doc: &T,
+    ) -> TantivyDocument {
         let schema = IndexSchema::instance();
         let mut doc = doc! {
             schema.field_id => get_text(origin, schema.field_id),
