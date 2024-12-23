@@ -83,6 +83,11 @@ export function chatPanelLineRangeToVSCodeRange(lineRange: LineRange): VSCodeRan
   return new VSCodeRange(Math.max(0, lineRange.start - 1), 0, lineRange.end, 0);
 }
 
+export function chatPanelNotebookCellRangeToVSCodeRange(lineRange: LineRange): VSCodeRange {
+  // Do not minus 1 from end line number, as we want to include the last line.
+  return new VSCodeRange(Math.max(0, lineRange.start - 1), 0, lineRange.end, 0);
+}
+
 export function chatPanelLocationToVSCodeRange(location: Location): VSCodeRange | null {
   if (typeof location === "number") {
     const position = new VSCodePosition(Math.max(0, location - 1), 0);
@@ -99,4 +104,28 @@ export function chatPanelLocationToVSCodeRange(location: Location): VSCodeRange 
   }
   logger.warn(`Invalid location params.`, location);
   return null;
+}
+
+export function parseVscodeNotebookCellURI(uri: Uri) {
+  if (!uri.scheme) return undefined;
+  if (!uri.scheme.startsWith("vscode-notebook-cell")) return undefined;
+
+  const _lengths = ["W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f"];
+  const _padRegexp = new RegExp(`^[${_lengths.join("")}]+`);
+  const _radix = 7;
+  const fragment = uri.fragment.split("#").pop() || "";
+  const idx = fragment.indexOf("s");
+  if (idx < 0) {
+    return undefined;
+  }
+  const handle = parseInt(fragment.substring(0, idx).replace(_padRegexp, ""), _radix);
+  const scheme = Buffer.from(fragment.substring(idx + 1), "base64").toString("utf-8");
+
+  if (isNaN(handle)) {
+    return undefined;
+  }
+  return {
+    handle,
+    scheme,
+  };
 }

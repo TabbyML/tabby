@@ -15,3 +15,5 @@ export * as regex from './regex'
 export const ERROR_CODE_NOT_FOUND = 'NOT_FOUND'
 
 export const NEWLINE_CHARACTER = '\n'
+
+export const VSCODE_NOTEBOOK_CELL_SCHEME = 'vscode-notebook-cell'
