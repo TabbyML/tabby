@@ -28,8 +28,8 @@ use async_openai::{
     },
 };
 use auth::{
-    AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
-    UserSecured,
+    AuthProvider, AuthenticationService, Invitation, LdapCredential, RefreshTokenResponse,
+    RegisterResponse, TokenAuthResponse, UpdateLdapCredentialInput, UserSecured,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
@@ -429,6 +429,10 @@ impl Query {
         Ok(RepositoryGrepOutput { files, elapsed_ms })
     }
 
+    async fn auth_providers(ctx: &Context) -> Result<Vec<AuthProvider>> {
+        Ok(vec![])
+    }
+
     async fn oauth_credential(
         ctx: &Context,
         provider: OAuthProvider,
@@ -440,6 +444,16 @@ impl Query {
     async fn oauth_callback_url(ctx: &Context, provider: OAuthProvider) -> Result<String> {
         check_admin(ctx).await?;
         ctx.locator.auth().oauth_callback_url(provider).await
+    }
+
+    async fn ldap_credential(ctx: &Context) -> Result<Option<LdapCredential>> {
+        check_admin(ctx).await?;
+        Ok(None)
+    }
+
+    async fn test_ldap_credential(ctx: &Context) -> Result<bool> {
+        check_admin(ctx).await?;
+        Ok(false)
     }
 
     async fn server_info(ctx: &Context) -> Result<ServerInfo> {
@@ -1055,6 +1069,21 @@ impl Mutation {
     async fn delete_oauth_credential(ctx: &Context, provider: OAuthProvider) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.auth().delete_oauth_credential(provider).await?;
+        Ok(true)
+    }
+
+    async fn update_ldap_credential(
+        ctx: &Context,
+        input: UpdateLdapCredentialInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        check_license(ctx, &[LicenseType::Enterprise]).await?;
+        input.validate()?;
+        Ok(true)
+    }
+
+    async fn delete_ldap_credential(ctx: &Context) -> Result<bool> {
+        check_admin(ctx).await?;
         Ok(true)
     }
 

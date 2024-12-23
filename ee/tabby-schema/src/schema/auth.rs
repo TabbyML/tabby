@@ -322,6 +322,19 @@ pub enum OAuthProvider {
     Gitlab,
 }
 
+#[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum AuthProviderKind {
+    OAuthGithub,
+    OAuthGoogle,
+    OAuthGitlab,
+    Ldap,
+}
+
+#[derive(GraphQLObject)]
+pub struct AuthProvider {
+    pub kind: AuthProviderKind,
+}
+
 #[derive(GraphQLObject)]
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
@@ -346,6 +359,44 @@ pub struct UpdateOAuthCredentialInput {
         message = "Client secret cannot be empty"
     ))]
     pub client_secret: Option<String>,
+}
+
+#[derive(GraphQLEnum)]
+pub enum LdapEncryptionKind {
+    None,
+    StartTLS,
+    LDAPS,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct UpdateLdapCredentialInput {
+    host: String,
+    port: i32,
+    bind_dn: String,
+    bind_password: String,
+    base_dn: String,
+    user_filter: String,
+    encryption: LdapEncryptionKind,
+    skip_tls_verify: bool,
+    email_attribute: String,
+    name_attribute: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct LdapCredential {
+    host: String,
+    port: i32,
+    bind_dn: String,
+    bind_password: String,
+    base_dn: String,
+    user_filter: String,
+    encryption: LdapEncryptionKind,
+    skip_tls_verify: bool,
+    email_attribute: String,
+    name_attribute: String,
+
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[async_trait]

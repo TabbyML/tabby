@@ -2,6 +2,7 @@
 mod axum;
 mod hub;
 mod jwt;
+mod ldap;
 mod oauth;
 mod path;
 mod rate_limit;
