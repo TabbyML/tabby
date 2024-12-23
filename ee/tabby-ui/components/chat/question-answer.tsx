@@ -344,14 +344,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     // and will navigate to target without opening a new tab.
     // So we use `openInEditor` here.
     if (isClient || !isInEditor) {
-      openInEditor({
-        filepath: {
-          kind: 'git',
-          filepath: context.filepath,
-          gitUrl: context.git_url
-        },
-        location: context.range
-      })
+      openInEditor(getFileLocationFromContext(context))
     } else {
       const url = buildCodeBrowserUrlForContext(window.location.href, context)
       openExternal(url)

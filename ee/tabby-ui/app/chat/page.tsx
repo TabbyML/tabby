@@ -278,9 +278,14 @@ export default function ChatPage() {
     pendingRelevantContexts.forEach(context => {
       currentChatRef.addRelevantContext(context)
     })
+
     currentChatRef.updateActiveSelection(pendingActiveSelection)
+
     if (pendingCommand) {
-      currentChatRef.executeCommand(pendingCommand)
+      // FIXME: this delay is a workaround for waiting for the active selection to be updated
+      setTimeout(() => {
+        currentChatRef.executeCommand(pendingCommand)
+      }, 500)
     }
 
     clearPendingState()

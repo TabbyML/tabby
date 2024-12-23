@@ -487,12 +487,16 @@ function ChatRenderer(
     return handleSendUserChat.current?.(userMessage)
   }
 
-  const executeCommand = async (command: ChatCommand) => {
+  const handleExecuteCommand = useLatest(async (command: ChatCommand) => {
     const prompt = getPromptForChatCommand(command)
     sendUserChat({
       message: prompt,
       selectContext: activeSelection ?? undefined
     })
+  })
+
+  const executeCommand = async (command: ChatCommand) => {
+    return handleExecuteCommand.current?.(command)
   }
 
   const handleSubmit = async (value: string) => {
