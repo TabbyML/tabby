@@ -12,7 +12,11 @@ import { ArrayElementType } from './common'
 export interface FileContext {
   kind: 'file'
   filepath: string
-  range: { start: number; end: number }
+  /**
+   * The range of the selected content in the file.
+   * If the range is not provided, the whole file is considered.
+   */
+  range?: { start: number; end: number }
   content: string
   git_url: string
 }

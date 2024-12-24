@@ -161,7 +161,7 @@ export interface FileLocation {
    * The location in the file.
    * It could be a 1-based line number, a line range, a position or a position range.
    */
-  location: Location
+  location?: Location
 }
 
 /**
