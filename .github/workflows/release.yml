@@ -360,8 +360,8 @@ jobs:
         if: github.event_name == 'push'
         with:
           allowUpdates: true
-          prerelease: ${{ env.STABLE_RELEASE == 'false' }}
-          makeLatest: ${{ env.STABLE_RELEASE == 'true' }}
+          prerelease: true
+          makeLatest: false
           artifacts: "dist/tabby_*.zip,dist/tabby_*.tar.gz"
           tag: ${{ github.ref_name }}
           removeArtifacts: true
