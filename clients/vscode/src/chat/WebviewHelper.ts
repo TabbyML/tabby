@@ -640,7 +640,9 @@ export class WebviewHelper {
           }
         }
 
-        const targetRange = fileLocation.location ? chatPanelLocationToVSCodeRange(fileLocation.location) ?? new Range(0, 0, 0, 0) : new Range(0, 0, 0, 0);
+        const targetRange = fileLocation.location
+          ? chatPanelLocationToVSCodeRange(fileLocation.location) ?? new Range(0, 0, 0, 0)
+          : new Range(0, 0, 0, 0);
         try {
           await commands.executeCommand(
             "editor.action.goToLocations",
