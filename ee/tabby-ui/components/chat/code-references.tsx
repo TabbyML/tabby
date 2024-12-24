@@ -146,6 +146,7 @@ function ContextItem({
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const isMultiLine =
+    context.range &&
     !isNil(context.range?.start) &&
     !isNil(context.range?.end) &&
     context.range.start < context.range.end
@@ -178,16 +179,20 @@ function ContextItem({
             <IconFile className="shrink-0" />
             <div className="flex-1 truncate" title={context.filepath}>
               <span>{fileName}</span>
-              {context.range?.start && (
-                <span className="text-muted-foreground">
-                  :{context.range.start}
-                </span>
-              )}
-              {isMultiLine && (
-                <span className="text-muted-foreground">
-                  -{context.range.end}
-                </span>
-              )}
+              {context.range ? (
+                <>
+                  {context.range?.start && (
+                    <span className="text-muted-foreground">
+                      :{context.range.start}
+                    </span>
+                  )}
+                  {isMultiLine && (
+                    <span className="text-muted-foreground">
+                      -{context.range.end}
+                    </span>
+                  )}
+                </>
+              ) : null}
               <span className="ml-2 text-xs text-muted-foreground">{path}</span>
             </div>
             {showClientCodeIcon && (

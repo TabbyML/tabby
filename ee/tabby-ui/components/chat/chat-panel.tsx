@@ -284,10 +284,11 @@ function ChatPanelRenderer(
                 </motion.div>
               ) : null}
               {relevantContext.map((item, idx) => {
+                // `git_url + filepath + range` as unique key
+                const key = `${item.git_url}_${item.filepath}_${item.range?.start}_${item.range?.end}`
                 return (
                   <motion.div
-                    // `filepath + range` as unique key
-                    key={item.filepath + item.range.start + item.range.end}
+                    key={key}
                     initial={{ opacity: 0, scale: 0.9, y: -5 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{
@@ -344,15 +345,16 @@ function ContextLabel({
   className?: string
 }) {
   const [fileName] = context.filepath.split('/').slice(-1)
-  const line =
-    context.range.start === context.range.end
+  const line = context.range
+    ? context.range.start === context.range.end
       ? `:${context.range.start}`
       : `:${context.range.start}-${context.range.end}`
+    : ''
 
   return (
     <span className={cn('truncate', className)}>
       {fileName}
-      <span className="text-muted-foreground">{line}</span>
+      {!!context.range && <span className="text-muted-foreground">{line}</span>}
     </span>
   )
 }

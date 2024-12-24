@@ -152,14 +152,9 @@ export function AssistantMessageSection({
     if (!clientCode?.length) return []
     return (
       clientCode.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
         return {
           kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
+          range: getRangeFromAttachmentCode(code),
           filepath: code.filepath || '',
           content: code.content,
           git_url: relevantCodeGitURL
@@ -171,14 +166,9 @@ export function AssistantMessageSection({
   const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
       message?.attachment?.code?.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
         return {
           kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
+          range: getRangeFromAttachmentCode(code),
           filepath: code.filepath,
           content: code.content,
           git_url: code.gitUrl,
@@ -216,10 +206,7 @@ export function AssistantMessageSection({
     searchParams.append('redirect_git_url', ctx.git_url)
     url.search = searchParams.toString()
 
-    const lineHash = formatLineHashForCodeBrowser({
-      start: ctx.range.start,
-      end: ctx.range.end
-    })
+    const lineHash = formatLineHashForCodeBrowser(ctx.range)
     if (lineHash) {
       url.hash = lineHash
     }
@@ -238,7 +225,7 @@ export function AssistantMessageSection({
   }
 
   const openCodeBrowserTab = (code: MessageAttachmentCode) => {
-    const { startLine, endLine } = getRangeFromAttachmentCode(code)
+    const range = getRangeFromAttachmentCode(code)
 
     if (!code.filepath) return
     const url = new URL(`${window.location.origin}/files`)
@@ -247,10 +234,7 @@ export function AssistantMessageSection({
     searchParams.append('redirect_git_url', code.gitUrl)
     url.search = searchParams.toString()
 
-    const lineHash = formatLineHashForCodeBrowser({
-      start: startLine,
-      end: endLine
-    })
+    const lineHash = formatLineHashForCodeBrowser(range)
     if (lineHash) {
       url.hash = lineHash
     }

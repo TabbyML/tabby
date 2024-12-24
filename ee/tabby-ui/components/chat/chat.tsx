@@ -417,7 +417,7 @@ function ChatRenderer(
       clientSideFileContexts.map(o => ({
         content: o.content,
         filepath: o.filepath,
-        startLine: o.range.start
+        startLine: o.range?.start
       }))
 
     return [
