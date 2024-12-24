@@ -1,5 +1,6 @@
 import React, { RefObject, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
+import { Editor } from '@tiptap/core'
 import { useWindowSize } from '@uidotdev/usehooks'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -47,14 +48,14 @@ export interface ChatPanelProps
 
 export interface ChatPanelRef {
   focus: () => void
+  setInput: (input: string) => void
+  input: string
 }
 
 function ChatPanelRenderer(
   {
     stop,
     reload,
-    input,
-    setInput,
     className,
     onSubmit,
     chatMaxWidthClass,
@@ -138,14 +139,17 @@ function ChatPanelRenderer(
       chatInputRef.current?.focus()
     })
   }
-
   React.useImperativeHandle(
     ref,
     () => {
       return {
         focus: () => {
           promptFormRef.current?.focus()
-        }
+        },
+        setInput: str => {
+          promptFormRef.current?.setInput(str)
+        },
+        input: promptFormRef.current?.input ?? ''
       }
     },
     []
@@ -319,10 +323,7 @@ function ChatPanelRenderer(
           <PromptForm
             ref={promptFormRef}
             onSubmit={onSubmit}
-            input={input}
-            setInput={setInput}
             isLoading={isLoading}
-            chatInputRef={chatInputRef}
             isInitializing={!initialized}
           />
           <FooterText className="hidden sm:block" />

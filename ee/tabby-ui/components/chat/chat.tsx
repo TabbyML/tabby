@@ -41,6 +41,10 @@ import { cn, findClosestGitRepository, nanoid } from '@/lib/utils'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
+import {
+  extractAtSourceFromString,
+  isFileAtInfo
+} from './prompt-form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
 
 const repositoryListQuery = graphql(/* GraphQL */ `
@@ -165,7 +169,6 @@ function ChatRenderer(
   const [threadId, setThreadId] = React.useState<string | undefined>()
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
-  const [input, setInput] = React.useState<string>('')
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
@@ -180,6 +183,12 @@ function ChatRenderer(
   )
 
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
+
+  // both set/get input from prompt form
+  const setInput = (str: string) => {
+    chatPanelRef.current?.setInput(str)
+  }
+  const input = chatPanelRef.current?.input ?? ''
 
   const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
     query: repositoryListQuery
@@ -492,11 +501,23 @@ function ChatRenderer(
   }
 
   const handleSubmit = async (value: string) => {
+    const { text, atInfos } = extractAtSourceFromString(value)
+
+    // TODO: handle @{AtInfos} here into
+    atInfos.forEach(async atInfo => {
+      if (isFileAtInfo(atInfo)) {
+        const res = await getFileAtInfoContent?.(atInfo)
+        console.log('file at info content:', res)
+      } else {
+        console.log('symbol at info:', atInfo)
+      }
+    })
+
     if (onSubmitMessage) {
-      onSubmitMessage(value, relevantContext)
+      onSubmitMessage(text, relevantContext)
     } else {
       sendUserChat({
-        message: value,
+        message: text,
         relevantContext: relevantContext
       })
     }
