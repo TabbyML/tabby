@@ -83,7 +83,10 @@ export function chatPanelLineRangeToVSCodeRange(lineRange: LineRange): VSCodeRan
   return new VSCodeRange(Math.max(0, lineRange.start - 1), 0, lineRange.end, 0);
 }
 
-export function chatPanelLocationToVSCodeRange(location: Location): VSCodeRange | null {
+export function chatPanelLocationToVSCodeRange(location: Location | undefined): VSCodeRange | null {
+  if (!location) {
+    return null
+  }
   if (typeof location === "number") {
     const position = new VSCodePosition(Math.max(0, location - 1), 0);
     return new VSCodeRange(position, position);
