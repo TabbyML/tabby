@@ -51,6 +51,8 @@ export interface PromptProps {
 
 export interface PromptFormRef {
   focus: () => void
+  setInput: (value: string) => void
+  input: string
 }
 
 function PromptFormRenderer(
