@@ -11,12 +11,12 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import {
   TABBY_CHAT_PANEL_API_VERSION,
-  type ChatMessage,
-  type Context,
+  type ChatCommand,
+  type EditorContext,
   type ErrorMessage,
   type FetcherOptions,
-  type InitRequest,
-  type NavigateOpts
+  type FileLocation,
+  type InitRequest
 } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
@@ -51,12 +51,12 @@ export default function ChatPage() {
     null
   )
   const [activeChatId, setActiveChatId] = useState('')
-  const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([])
+  const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
-    Context[]
+    EditorContext[]
   >([])
   const [pendingActiveSelection, setPendingActiveSelection] =
-    useState<Context | null>(null)
+    useState<EditorContext | null>(null)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
@@ -80,17 +80,15 @@ export default function ChatPage() {
     setSupportsProvideWorkspaceGitRepoInfo
   ] = useState(false)
 
-  const sendMessage = (message: ChatMessage) => {
+  const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
-      chatRef.current.sendUserChat(message)
+      chatRef.current.executeCommand(command)
     } else {
-      const newPendingMessages = [...pendingMessages]
-      newPendingMessages.push(message)
-      setPendingMessages(newPendingMessages)
+      setPendingCommand(command)
     }
   }
 
-  const addRelevantContext = (ctx: Context) => {
+  const addRelevantContext = (ctx: EditorContext) => {
     if (chatRef.current) {
       chatRef.current.addRelevantContext(ctx)
     } else {
@@ -100,7 +98,7 @@ export default function ChatPage() {
     }
   }
 
-  const updateActiveSelection = (ctx: Context | null) => {
+  const updateActiveSelection = (ctx: EditorContext | null) => {
     if (chatRef.current) {
       chatRef.current.updateActiveSelection(ctx)
     } else if (ctx) {
@@ -123,8 +121,8 @@ export default function ChatPage() {
       useMacOSKeyboardEventHandler.current =
         request.useMacOSKeyboardEventHandler
     },
-    sendMessage: (message: ChatMessage) => {
-      return sendMessage(message)
+    executeCommand: async (command: ChatCommand) => {
+      return executeCommand(command)
     },
     showError: (errorMessage: ErrorMessage) => {
       setErrorMessage(errorMessage)
@@ -132,7 +130,7 @@ export default function ChatPage() {
     cleanError: () => {
       setErrorMessage(null)
     },
-    addRelevantContext: context => {
+    addRelevantContext: (context: EditorContext) => {
       return addRelevantContext(context)
     },
     updateTheme: (style, themeClass) => {
@@ -155,7 +153,9 @@ export default function ChatPage() {
       document.documentElement.className =
         themeClass + ` client client-${client}`
     },
-    updateActiveSelection
+    updateActiveSelection: (context: EditorContext | null) => {
+      return updateActiveSelection(context)
+    }
   })
 
   useEffect(() => {
@@ -267,21 +267,37 @@ export default function ChatPage() {
 
   const clearPendingState = () => {
     setPendingRelevantContexts([])
-    setPendingMessages([])
+    setPendingCommand(undefined)
     setPendingActiveSelection(null)
   }
 
   const onChatLoaded = () => {
-    pendingRelevantContexts.forEach(addRelevantContext)
-    pendingMessages.forEach(sendMessage)
-    chatRef.current?.updateActiveSelection(pendingActiveSelection)
+    const currentChatRef = chatRef.current
+    if (!currentChatRef) return
+
+    pendingRelevantContexts.forEach(context => {
+      currentChatRef.addRelevantContext(context)
+    })
+
+    currentChatRef.updateActiveSelection(pendingActiveSelection)
+
+    if (pendingCommand) {
+      // FIXME: this delay is a workaround for waiting for the active selection to be updated
+      setTimeout(() => {
+        currentChatRef.executeCommand(pendingCommand)
+      }, 500)
+    }
 
     clearPendingState()
     setChatLoaded(true)
   }
 
-  const onNavigateToContext = (context: Context, opts?: NavigateOpts) => {
-    server?.navigate(context, opts)
+  const openInEditor = async (fileLocation: FileLocation) => {
+    return server?.openInEditor(fileLocation) ?? false
+  }
+
+  const openExternal = async (url: string) => {
+    return server?.openExternal(url)
   }
 
   const refresh = async () => {
@@ -385,11 +401,9 @@ export default function ChatPage() {
         key={activeChatId}
         ref={chatRef}
         chatInputRef={chatInputRef}
-        onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
         maxWidth={client === 'vscode' ? '5xl' : undefined}
         onCopyContent={isInEditor && server?.onCopy}
-        onSubmitMessage={isInEditor && server?.onSubmitMessage}
         onApplyInEditor={
           isInEditor &&
           (supportsOnApplyInEditorV2
@@ -401,7 +415,8 @@ export default function ChatPage() {
           isInEditor &&
           (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
         }
-        openInEditor={isInEditor && server?.openInEditor}
+        openInEditor={openInEditor}
+        openExternal={openExternal}
         readWorkspaceGitRepositories={
           isInEditor && supportsProvideWorkspaceGitRepoInfo
             ? server?.readWorkspaceGitRepositories

@@ -1,8 +1,8 @@
 import { createContext } from 'react'
-import { FileContext, FileLocation, SymbolInfo } from 'tabby-chat-panel/index'
+import { FileLocation, SymbolInfo } from 'tabby-chat-panel/index'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
-import { AttachmentCodeItem } from '@/lib/types'
+import { AttachmentCodeItem, FileContext } from '@/lib/types'
 
 export type MessageMarkdownContextValue = {
   onCopyContent?: ((value: string) => void) | undefined

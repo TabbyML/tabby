@@ -1,5 +1,5 @@
 import { ExtensionContext, window, WebviewPanel } from "vscode";
-import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
+import type { ServerApi, ChatCommand, EditorContext } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
 import { Client } from "../lsp/Client";
 import { GitProvider } from "../git/GitProvider";
@@ -57,11 +57,11 @@ export class ChatPanelViewProvider {
     return this.webview;
   }
 
-  public sendMessage(message: ChatMessage) {
-    this.webviewHelper.sendMessage(message);
+  public executeCommand(command: ChatCommand) {
+    this.webviewHelper.executeCommand(command);
   }
 
-  public addRelevantContext(context: Context) {
+  public addRelevantContext(context: EditorContext) {
     this.webviewHelper.addRelevantContext(context);
   }
 }

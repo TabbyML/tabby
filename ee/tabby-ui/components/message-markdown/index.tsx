@@ -8,7 +8,7 @@ import {
   Maybe,
   MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
+import { AttachmentCodeItem, AttachmentDocItem, FileContext } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   HoverCard,
@@ -20,7 +20,6 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 import './style.css'
 
 import {
-  FileContext,
   FileLocation,
   Filepath,
   LookupSymbolHint,

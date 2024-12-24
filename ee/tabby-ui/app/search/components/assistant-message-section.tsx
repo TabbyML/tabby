@@ -8,7 +8,6 @@ import { compact, isEmpty } from 'lodash-es'
 import { marked } from 'marked'
 import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
-import { Context } from 'tabby-chat-panel/index'
 import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
@@ -20,6 +19,7 @@ import {
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
   AttachmentDocItem,
+  Context,
   ExtendedCombinedError,
   RelevantCodeContext
 } from '@/lib/types'
@@ -108,8 +108,7 @@ export function AssistantMessageSection({
     onUpdateMessage
   } = useContext(SearchContext)
 
-  const { supportsOnApplyInEditorV2, onNavigateToContext } =
-    useContext(ChatContext)
+  const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
 
   const [isEditing, setIsEditing] = useState(false)
   const [showMoreSource, setShowMoreSource] = useState(false)

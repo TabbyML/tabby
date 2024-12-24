@@ -16,6 +16,7 @@ import {
 import os from "os";
 import path from "path";
 import { StatusIssuesName } from "tabby-agent";
+import type { ChatCommand } from "tabby-chat-panel";
 import { Client } from "../lsp/Client";
 import { Config } from "../Config";
 import { ContextVariables } from "../ContextVariables";
@@ -50,20 +51,17 @@ export class Commands {
     this.context.subscriptions.push(...registrations);
   }
 
-  private async sendMessageToChatPanel(msg: string) {
+  private async chatPanelExecuteCommand(command: ChatCommand) {
     const editor = window.activeTextEditor;
     if (editor) {
       commands.executeCommand("tabby.chatView.focus");
-      const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-      if (!fileContext) {
+
+      if (editor.selection.isEmpty) {
         window.showInformationMessage("No selected codes");
         return;
       }
 
-      this.chatViewProvider.sendMessage({
-        message: msg,
-        selectContext: fileContext,
-      });
+      this.chatViewProvider.executeCommand(command);
     } else {
       window.showInformationMessage("No active editor");
     }
@@ -224,8 +222,11 @@ export class Commands {
     "status.resetIgnoredIssues": () => {
       this.client.status.editIgnoredIssues({ operation: "removeAll", issues: [] });
     },
-    "chat.explainCodeBlock": async (userCommand?: string) => {
-      this.sendMessageToChatPanel("Explain the selected code:".concat(userCommand ? `\n${userCommand}` : ""));
+    "chat.explainCodeBlock": async (/* userCommand?: string */) => {
+      // @FIXME(@icycodes): The `userCommand` is not being used
+      // When invoked from code-action/quick-fix, it contains the error message provided by the IDE
+
+      this.chatPanelExecuteCommand("explain");
     },
     "chat.addRelevantContext": async () => {
       this.addRelevantContext();
@@ -244,13 +245,13 @@ export class Commands {
       }
     },
     "chat.fixCodeBlock": async () => {
-      this.sendMessageToChatPanel("Identify and fix potential bugs in the selected code:");
+      this.chatPanelExecuteCommand("fix");
     },
     "chat.generateCodeBlockDoc": async () => {
-      this.sendMessageToChatPanel("Generate documentation for the selected code:");
+      this.chatPanelExecuteCommand("generate-docs");
     },
     "chat.generateCodeBlockTest": async () => {
-      this.sendMessageToChatPanel("Generate a unit test for the selected code:");
+      this.chatPanelExecuteCommand("generate-tests");
     },
     "chat.createPanel": async () => {
       const panel = window.createWebviewPanel("tabby.chatView", "Tabby", ViewColumn.One, {

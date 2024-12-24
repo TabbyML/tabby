@@ -25,9 +25,7 @@ export function createThreadFromWebview<Self = Record<string, never>, Target = R
 export function createClient(webview: Webview, api: ClientApiMethods): ServerApi {
   return createThreadFromWebview(webview, {
     expose: {
-      navigate: api.navigate,
       refresh: api.refresh,
-      onSubmitMessage: api.onSubmitMessage,
       onApplyInEditor: api.onApplyInEditor,
       onApplyInEditorV2: api.onApplyInEditorV2,
       onLoaded: api.onLoaded,
@@ -35,6 +33,7 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       onKeyboardEvent: api.onKeyboardEvent,
       lookupSymbol: api.lookupSymbol,
       openInEditor: api.openInEditor,
+      openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
     },
   });
