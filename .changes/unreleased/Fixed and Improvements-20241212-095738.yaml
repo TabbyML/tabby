@@ -1,3 +1,0 @@
-kind: Fixed and Improvements
-body: Refactors the pull request indexing process to enhance the speed of incremental indexing for pull docs.
-time: 2024-12-12T09:57:38.860665+08:00
