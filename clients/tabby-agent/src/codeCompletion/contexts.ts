@@ -95,6 +95,9 @@ export class CompletionContext {
   currSeg: string = "";
   withCorrectCompletionItem: boolean = false; // weather we are using completionItem or not
 
+  // is current suffix is at end of line excluding auto closed char
+  lineEnd: RegExpMatchArray | null = null;
+
   constructor(request: CompletionRequest) {
     this.filepath = request.filepath;
     this.language = request.language;
@@ -119,13 +122,13 @@ export class CompletionContext {
     this.relevantSnippetsFromChangedFiles = request.relevantSnippetsFromChangedFiles;
     this.snippetsFromOpenedFiles = request.relevantSnippetsFromOpenedFiles;
 
-    const lineEnd = isAtLineEndExcludingAutoClosedChar(this.currentLineSuffix);
-    this.mode = lineEnd ? "default" : "fill-in-line";
+    this.lineEnd = isAtLineEndExcludingAutoClosedChar(this.currentLineSuffix);
+    this.mode = this.lineEnd ? "default" : "fill-in-line";
     this.hash = hashObject({
       filepath: this.filepath,
       language: this.language,
       prefix: this.prefix,
-      currentLineSuffix: lineEnd ? "" : this.currentLineSuffix,
+      currentLineSuffix: this.lineEnd ? "" : this.currentLineSuffix,
       nextLines: this.suffixLines.slice(1).join(""),
       position: this.position,
       clipboard: this.clipboard,
@@ -209,7 +212,11 @@ export class CompletionContext {
   buildSegments(config: ConfigData["completion"]["prompt"]): TabbyApiComponents["schemas"]["Segments"] {
     // prefix && suffix
     const prefix = this.prefixLines.slice(Math.max(this.prefixLines.length - config.maxPrefixLines, 0)).join("");
-    const suffix = this.suffixLines.slice(0, config.maxSuffixLines).join("");
+    let suffix = this.suffixLines.slice(0, config.maxSuffixLines).join("");
+    // if it's end of line, we don't need to include the suffix
+    if (this.lineEnd) {
+      suffix = "\n" + suffix.split("\n").slice(1).join("\n");
+    }
 
     // filepath && git_url
     let relativeFilepathRoot: string | undefined = undefined;
