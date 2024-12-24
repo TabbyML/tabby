@@ -274,7 +274,7 @@ export interface ClientApi extends ClientApiMethods {
   /**
    * Checks if the client supports this capability.
    * This method is designed to check capability across different clients (IDEs).
-   * Note: This method should not be used to ensure compatibility across different API versions.
+   * Note: This method should not be used to ensure compatibility across different chat panel SDK versions.
    */
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 }
