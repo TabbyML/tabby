@@ -211,7 +211,7 @@
 <polygon fill="none" stroke="black" points="72.5,-1327 72.5,-1349.5 92.75,-1349.5 92.75,-1327 72.5,-1327"/>
 <text text-anchor="start" x="80.75" y="-1333.2" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="92.75,-1327 92.75,-1349.5 181.25,-1349.5 181.25,-1327 92.75,-1327"/>
-<text text-anchor="start" x="109.25" y="-1333.2" font-family="Times,serif" font-size="14.00">smtp_port</text>
+<text text-anchor="start" x="126.12" y="-1333.2" font-family="Times,serif" font-size="14.00">port</text>
 <polygon fill="none" stroke="black" points="72.5,-1304.5 72.5,-1327 92.75,-1327 92.75,-1304.5 72.5,-1304.5"/>
 <text text-anchor="start" x="80.75" y="-1310.7" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="92.75,-1304.5 92.75,-1327 181.25,-1327 181.25,-1304.5 92.75,-1304.5"/>
