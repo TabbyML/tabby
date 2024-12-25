@@ -205,11 +205,11 @@ async fn create_hit(
             code::fields::CHUNK_LANGUAGE,
         )
         .to_owned(),
-        start_line: Some(get_json_number_field(
+        start_line: get_optional_json_number_field(
             &doc,
             schema.field_chunk_attributes,
             code::fields::CHUNK_START_LINE,
-        ) as usize),
+        ),
     };
     CodeSearchHit { scores, doc }
 }
@@ -238,16 +238,19 @@ fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
     doc.get_first(field).unwrap().as_str().unwrap()
 }
 
-fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> i64 {
+fn get_optional_json_number_field(
+    doc: &TantivyDocument,
+    field: schema::Field,
+    name: &str,
+) -> Option<usize> {
     doc.get_first(field)
         .unwrap()
         .as_object()
         .unwrap()
-        .find(|(k, _)| *k == name)
-        .unwrap()
+        .find(|(k, _)| *k == name)?
         .1
         .as_i64()
-        .unwrap()
+        .map(|x| x as usize)
 }
 
 fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
