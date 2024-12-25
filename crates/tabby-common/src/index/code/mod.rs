@@ -16,6 +16,8 @@ pub mod fields {
     pub const CHUNK_FILEPATH: &str = "chunk_filepath";
     pub const CHUNK_LANGUAGE: &str = "chunk_language";
     pub const CHUNK_BODY: &str = "chunk_body";
+
+    // Optional field, when None, it means this chunk contains entire content of the file.
     pub const CHUNK_START_LINE: &str = "chunk_start_line";
 }
 

@@ -101,14 +101,16 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
         let source_code = source_code.clone();
         let s = stream! {
             for await (start_line, body) in CodeIntelligence::chunks(&text, &source_code.language) {
-                let attributes = json!({
+                let mut attributes = json!({
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
                     code::fields::CHUNK_GIT_URL: source_code.git_url,
                     code::fields::CHUNK_LANGUAGE: source_code.language,
                     code::fields::CHUNK_BODY: body,
-                    code::fields::CHUNK_START_LINE: start_line,
                 });
 
+                if text.len() == body.len() {
+                    attributes[code::fields::CHUNK_START_LINE] = start_line.into();
+                }
                 let embedding = embedding.clone();
                 let rewritten_body = format!("```{}\n{}\n```", source_code.filepath, body);
                 yield tokio::spawn(async move {
