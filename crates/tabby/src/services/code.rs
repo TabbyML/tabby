@@ -205,11 +205,11 @@ async fn create_hit(
             code::fields::CHUNK_LANGUAGE,
         )
         .to_owned(),
-        start_line: get_json_number_field(
+        start_line: Some(get_json_number_field(
             &doc,
             schema.field_chunk_attributes,
             code::fields::CHUNK_START_LINE,
-        ) as usize,
+        ) as usize),
     };
     CodeSearchHit { scores, doc }
 }
@@ -325,7 +325,7 @@ mod tests {
                 git_url: "".to_owned(),
                 commit: Some("".to_owned()),
                 language: "".to_owned(),
-                start_line: 0,
+                start_line: Some(0),
             },
         };
 

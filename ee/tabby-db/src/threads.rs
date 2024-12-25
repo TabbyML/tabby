@@ -81,7 +81,9 @@ pub struct ThreadMessageAttachmentCode {
     pub language: String,
     pub filepath: String,
     pub content: String,
-    pub start_line: usize,
+
+    /// When start line is `None`, it represents the entire file.
+    pub start_line: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -143,7 +143,7 @@ impl CodeSearch for FakeCodeSearch {
                     doc: CodeSearchDocument {
                         filepath: "src/lib.rs".to_string(),
                         body: "fn add(a: i32, b: i32) -> i32 {\n    a + b\n}".to_string(),
-                        start_line: 1,
+                        start_line: Some(1),
                         language: "rust".to_string(),
                         file_id: "1".to_string(),
                         chunk_id: "chunk1".to_string(),
@@ -160,7 +160,7 @@ impl CodeSearch for FakeCodeSearch {
                     doc: CodeSearchDocument {
                         filepath: "src/main.rs".to_string(),
                         body: "fn main() {\n    println!(\"Hello World\");\n}".to_string(),
-                        start_line: 1,
+                        start_line: Some(1),
                         language: "rust".to_string(),
                         file_id: "2".to_string(),
                         chunk_id: "chunk2".to_string(),

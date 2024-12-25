@@ -77,7 +77,9 @@ pub struct MessageAttachmentCode {
     pub filepath: String,
     pub language: String,
     pub content: String,
-    pub start_line: i32,
+
+    /// When start line is `None`, it represents the entire file.
+    pub start_line: Option<i32>,
 }
 
 impl From<CodeSearchDocument> for MessageAttachmentCode {
@@ -88,7 +90,7 @@ impl From<CodeSearchDocument> for MessageAttachmentCode {
             filepath: doc.filepath,
             language: doc.language,
             content: doc.body,
-            start_line: doc.start_line as i32,
+            start_line: doc.start_line.map(|x| x as i32),
         }
     }
 }

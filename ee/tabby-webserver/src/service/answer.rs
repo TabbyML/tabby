@@ -596,7 +596,9 @@ pub async fn merge_code_snippets(
                 insert_hit.scores.embedding /= num_files;
                 insert_hit.scores.rrf /= num_files;
                 insert_hit.doc.body = file_content;
-                insert_hit.doc.start_line = 1;
+
+                // When we use entire file content, mark start_line as None.
+                insert_hit.doc.start_line = None;
                 result.push(insert_hit);
             }
         } else {
@@ -772,7 +774,7 @@ mod tests {
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "from flask import Flask\n\napp = Flask(__name__)\n\n@app.route('/')\ndef hello():\n    return 'Hello, World!'".to_owned(),
-                start_line: 1,
+                start_line: Some(1),
             }],
             client_code: vec![],
         };
@@ -806,7 +808,7 @@ mod tests {
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "print('Hello, server!')".to_owned(),
-                start_line: 1,
+                start_line: Some(1),
             }],
             client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
                 filepath: Some("client.py".to_owned()),
@@ -983,7 +985,7 @@ mod tests {
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "print('Hello, server!')".to_owned(),
-                start_line: 1,
+                start_line: Some(1),
             }],
             client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
                 filepath: Some("client.py".to_owned()),
@@ -1045,7 +1047,7 @@ mod tests {
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "print('Hello, server!')".to_owned(),
-                start_line: 1,
+                start_line: Some(1),
             }],
             client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
                 filepath: Some("client.py".to_owned()),
@@ -1341,7 +1343,7 @@ mod tests {
                     git_url: "https://github.com/test/repo.git".to_string(),
                     commit: Some("commit".to_string()),
                     language: "rust".to_string(),
-                    start_line: 1,
+                    start_line: Some(1),
                 },
                 scores: CodeSearchScores {
                     bm25: 0.5,
@@ -1358,7 +1360,7 @@ mod tests {
                     git_url: "https://github.com/test/repo.git".to_string(),
                     commit: Some("commit".to_string()),
                     language: "rust".to_string(),
-                    start_line: 3,
+                    start_line: Some(3),
                 },
                 scores: CodeSearchScores {
                     bm25: 0.6,

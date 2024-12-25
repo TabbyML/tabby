@@ -36,7 +36,9 @@ pub struct CodeSearchDocument {
     pub commit: Option<String>,
 
     pub language: String,
-    pub start_line: usize,
+
+    /// When start line is `None`, it represents the entire file.
+    pub start_line: Option<usize>,
 }
 
 #[derive(Error, Debug)]
