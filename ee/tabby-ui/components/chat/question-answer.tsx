@@ -319,8 +319,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           content: o.content,
           filepath: o.filepath,
           gitUrl: o.git_url,
-          // for server attachment code, startLine will not be undefined
-          startLine: o.range?.start ?? 1,
+          startLine: o.range?.start,
           language: filename2prism(o.filepath ?? '')[0],
           isClient: false
         })) ?? []
