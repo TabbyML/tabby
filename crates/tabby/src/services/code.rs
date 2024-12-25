@@ -279,7 +279,7 @@ mod tests {
                 filepath: "".to_owned(),
                 git_url: "".to_owned(),
                 language: "".to_owned(),
-                start_line: 0,
+                start_line: Some(0),
             },
         };
 
