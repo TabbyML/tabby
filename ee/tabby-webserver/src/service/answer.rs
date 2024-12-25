@@ -596,7 +596,9 @@ pub async fn merge_code_snippets(
                 insert_hit.scores.embedding /= num_files;
                 insert_hit.scores.rrf /= num_files;
                 insert_hit.doc.body = file_content;
-                insert_hit.doc.start_line = 1;
+
+                // When we use entire file content, mark start_line as None.
+                insert_hit.doc.start_line = None;
                 result.push(insert_hit);
             }
         } else {

@@ -191,11 +191,11 @@ fn create_hit(scores: CodeSearchScores, doc: TantivyDocument) -> CodeSearchHit {
             code::fields::CHUNK_LANGUAGE,
         )
         .to_owned(),
-        start_line: get_json_number_field(
+        start_line: Some(get_json_number_field(
             &doc,
             schema.field_chunk_attributes,
             code::fields::CHUNK_START_LINE,
-        ) as usize,
+        ) as usize),
     };
     CodeSearchHit { scores, doc }
 }

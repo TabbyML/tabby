@@ -205,7 +205,7 @@ impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
             filepath: value.filepath,
             language: value.language,
             content: value.content,
-            start_line: value.start_line as i32,
+            start_line: value.start_line.map(|x| x as i32),
         }
     }
 }
@@ -217,7 +217,7 @@ impl From<&thread::MessageAttachmentCode> for ThreadMessageAttachmentCode {
             filepath: val.filepath.clone(),
             language: val.language.clone(),
             content: val.content.clone(),
-            start_line: val.start_line as usize,
+            start_line: val.start_line.map(|x| x as usize),
         }
     }
 }
