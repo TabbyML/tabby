@@ -460,9 +460,7 @@ function ChatRenderer(
         selectContext: userMessage.selectContext,
         // For forward compatibility
         activeContext:
-          enableActiveSelection && activeSelection
-            ? activeSelection
-            : undefined
+          enableActiveSelection && activeSelection ? activeSelection : undefined
       }
 
       const nextQaPairs = [
