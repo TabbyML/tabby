@@ -394,17 +394,9 @@ function ChatRenderer(
   const generateRequestPayload = (
     userMessage: UserMessage
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
-    const content = userMessage.message
-    const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
-      ? {
-          content,
-          sourceId: selectedRepoId
-        }
-      : null
-
     const hasUsableActiveContext =
       enableActiveSelection && !!userMessage.activeContext
-    const clientSideFileContexts: FileContext[] = uniqWith(
+    const clientFileContexts: FileContext[] = uniqWith(
       compact([
         userMessage.selectContext,
         hasUsableActiveContext && userMessage.activeContext,
@@ -413,12 +405,22 @@ function ChatRenderer(
       isEqual
     )
 
-    const attachmentCode: MessageAttachmentCodeInput[] =
-      clientSideFileContexts.map(o => ({
+    const attachmentCode: MessageAttachmentCodeInput[] = clientFileContexts.map(
+      o => ({
         content: o.content,
         filepath: o.filepath,
         startLine: o.range?.start
-      }))
+      })
+    )
+
+    const content = userMessage.message
+    const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
+      ? {
+          content,
+          sourceId: selectedRepoId,
+          filepath: attachmentCode?.[0]?.filepath
+        }
+      : null
 
     return [
       {
@@ -450,7 +452,6 @@ function ChatRenderer(
         }\n${'```'}\n`
       }
 
-      const finalActiveContext = activeSelection || userMessage.activeContext
       const newUserMessage: UserMessage = {
         ...userMessage,
         message: userMessage.message + selectCodeSnippet,
@@ -459,9 +460,7 @@ function ChatRenderer(
         selectContext: userMessage.selectContext,
         // For forward compatibility
         activeContext:
-          enableActiveSelection && finalActiveContext
-            ? finalActiveContext
-            : undefined
+          enableActiveSelection && activeSelection ? activeSelection : undefined
       }
 
       const nextQaPairs = [
