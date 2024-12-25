@@ -1,6 +1,15 @@
 import path from "path";
-import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
-import type { Filepath, Position as ChatPanelPosition, LineRange, PositionRange, Location } from "tabby-chat-panel";
+import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace, TextEditor, NotebookRange } from "vscode";
+import type {
+  Filepath,
+  Position as ChatPanelPosition,
+  LineRange,
+  PositionRange,
+  Location,
+  FilepathInGitRepository,
+  EditorFileContext,
+  NotebookCellRange,
+} from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 
@@ -14,9 +23,12 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
     repo = gitProvider.getRepository(workspaceFolder.uri);
   }
   const gitRemoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-
   if (repo && gitRemoteUrl) {
-    const relativeFilePath = path.relative(repo.rootUri.toString(true), uri.toString(true));
+    // todo check if is file or untitled ?
+    const uriFilePath =
+      uri.scheme === "vscode-notebook-cell" ? uri.with({ scheme: "file" }).toString(true) : uri.toString(true);
+    const relativeFilePath = path.relative(repo.rootUri.toString(true), uriFilePath);
+    logger.info(repo.rootUri.toString(true), uriFilePath, relativeFilePath);
     if (!relativeFilePath.startsWith("..")) {
       return {
         kind: "git",
@@ -30,6 +42,32 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
     kind: "uri",
     uri: uri.toString(true),
   };
+}
+
+export function localRangeToChatPanelRange(editor: TextEditor, useSelection?: boolean) {
+  const uri = editor.document.uri;
+  let range: EditorFileContext["range"];
+  if (uri.scheme == "vscode-notebook-cell") {
+    const notebook = parseVscodeNotebookCellURI(uri);
+    range = {
+      cellIndex: notebook?.handle || 0,
+    } as NotebookCellRange;
+  }
+  if (useSelection) {
+    range = {
+      ...range,
+      start: editor.selection.start.line + 1,
+      end: editor.selection.end.line + 1,
+    };
+  }
+
+  return range;
+}
+
+export function vscodeNoteCellUriToChagePanelRange(uri: Uri) {
+  if (uri.scheme !== "vscode-notebook-cell") return undefined;
+  const notebook = parseVscodeNotebookCellURI(uri);
+  return notebook;
 }
 
 export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: GitProvider): Uri | null {
@@ -46,11 +84,32 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
   } else if (filepath.kind === "git") {
     const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(filepath.gitUrl);
     if (localGitRoot) {
+      const extname = path.extname(filepath.filepath);
+      // In VSCode, handle Jupyter Notebook files specially
+      if (extname.startsWith(".ipynb")) {
+        return chatPanelFilepathToVscodeNotebookCellUri(localGitRoot, filepath);
+      }
+
       return Uri.joinPath(localGitRoot, filepath.filepath);
     }
   }
   logger.warn(`Invalid filepath params.`, filepath);
   return null;
+}
+
+function chatPanelFilepathToVscodeNotebookCellUri(root: Uri, filepath: FilepathInGitRepository) {
+  if (filepath.kind !== "git") {
+    logger.warn(`Invalid filepath params.`, filepath);
+    return null;
+  }
+
+  const parsedUrl = new URL(filepath.filepath, "file://");
+  const hash = parsedUrl.hash;
+  const cleanPath = parsedUrl.pathname;
+  // FIXME clean up newuri after testing
+  const newuri = Uri.joinPath(root, cleanPath).with({ scheme: "vscode-notebook-cell", fragment: hash.slice(1) });
+  logger.info(newuri.toString(true));
+  return newuri;
 }
 
 export function vscodePositionToChatPanelPosition(position: VSCodePosition): ChatPanelPosition {
@@ -96,6 +155,9 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   if (typeof location === "number") {
     const position = new VSCodePosition(Math.max(0, location - 1), 0);
     return new VSCodeRange(position, position);
+  } else if ("cellIndex" in location) {
+    // FIXME cellIndex?
+    return chatPanelLineRangeToVSCodeRange(location as LineRange);
   } else if ("line" in location) {
     const position = chatPanelPositionToVSCodePosition(location);
     return new VSCodeRange(position, position);
@@ -110,26 +172,26 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   return null;
 }
 
-export function parseVscodeNotebookCellURI(uri: Uri) {
-  if (!uri.scheme) return undefined;
-  if (!uri.scheme.startsWith("vscode-notebook-cell")) return undefined;
+export function parseVscodeNotebookCellURI(cell: Uri) {
+  if (!cell.scheme) return undefined;
+  if (!cell.scheme.startsWith("vscode-notebook-cell")) return undefined;
 
   const _lengths = ["W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f"];
   const _padRegexp = new RegExp(`^[${_lengths.join("")}]+`);
   const _radix = 7;
-  const fragment = uri.fragment.split("#").pop() || "";
+  const fragment = cell.fragment.split("#").pop() || "";
   const idx = fragment.indexOf("s");
   if (idx < 0) {
     return undefined;
   }
   const handle = parseInt(fragment.substring(0, idx).replace(_padRegexp, ""), _radix);
-  const scheme = Buffer.from(fragment.substring(idx + 1), "base64").toString("utf-8");
+  const _scheme = Buffer.from(fragment.substring(idx + 1), "base64").toString("utf-8");
 
   if (isNaN(handle)) {
     return undefined;
   }
   return {
     handle,
-    scheme,
+    scheme: _scheme,
   };
 }

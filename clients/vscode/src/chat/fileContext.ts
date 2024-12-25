@@ -1,7 +1,7 @@
 import type { TextEditor } from "vscode";
 import type { EditorContext } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
-import { localUriToChatPanelFilepath } from "./utils";
+import { localRangeToChatPanelRange, localUriToChatPanelFilepath } from "./utils";
 
 export async function getFileContextFromSelection(
   editor: TextEditor,
@@ -20,14 +20,9 @@ export async function getFileContext(
     return null;
   }
   const content = useSelection ? alignIndent(text) : text;
-  const range = useSelection
-    ? {
-        start: editor.selection.start.line + 1,
-        end: editor.selection.end.line + 1,
-      }
-    : undefined;
 
   const filepath = localUriToChatPanelFilepath(editor.document.uri, gitProvider);
+  const range = localRangeToChatPanelRange(editor, useSelection);
 
   return {
     kind: "file",

@@ -13,7 +13,11 @@ import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
 import type { Context } from '@/lib/types'
-import { cn, getTitleFromMessages, resolveFileNameForDisplay } from '@/lib/utils'
+import {
+  cn,
+  getTitleFromMessages,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -354,6 +358,6 @@ function ContextLabel({
     <span className={cn('truncate', className)}>
       {resolveFileNameForDisplay(context.filepath)}
       {!!context.range && <span className="text-muted-foreground">{line}</span>}
-    </span >
+    </span>
   )
 }

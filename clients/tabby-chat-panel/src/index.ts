@@ -47,11 +47,19 @@ export interface LineRange {
 /**
  * Represents a range of lines in a notebook file.
  */
-interface NotebookCellRange extends LineRange {
+export interface NotebookCellRange {
   /**
    * 0-based cell index
    */
   cellIndex: number
+  /**
+   * 1-based line number
+   */
+  start?: number
+  /**
+   * 1-based line number
+   */
+  end?: number
 }
 /**
  * Represents a location in a file.
@@ -75,7 +83,7 @@ export interface EditorFileContext {
    * The range of the selected content in the file.
    * If the range is not provided, the whole file is considered.
    */
-  range?: LineRange | PositionRange
+  range?: LineRange | PositionRange | NotebookCellRange
 
   /**
    * The content of the file context.

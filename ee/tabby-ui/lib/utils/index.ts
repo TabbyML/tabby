@@ -8,6 +8,7 @@ import type {
   Filepath,
   LineRange,
   Location,
+  NotebookCellRange,
   Position,
   PositionRange
 } from 'tabby-chat-panel'
@@ -198,7 +199,9 @@ export function getPromptForChatCommand(command: ChatCommand) {
 export function convertEditorContext(
   editorContext: EditorContext
 ): FileContext {
-  const convertRange = (range: LineRange | PositionRange | undefined) => {
+  const convertRange = (
+    range: LineRange | PositionRange | NotebookCellRange | undefined
+  ) => {
     // If the range is not provided, the whole file is considered.
     if (!range) {
       return undefined
@@ -255,6 +258,7 @@ export function getFilepathFromContext(context: FileContext): Filepath {
 export function getFileLocationFromContext(context: FileContext): FileLocation {
   return {
     filepath: getFilepathFromContext(context),
+    // FIXME
     location: context.range
   }
 }

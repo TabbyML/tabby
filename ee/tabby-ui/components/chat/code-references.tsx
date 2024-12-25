@@ -154,7 +154,9 @@ function ContextItem({
   const pathSegments = context.filepath.split('/')
   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
   const isVscodeNotebookCell = path.startsWith(VSCODE_NOTEBOOK_CELL_SCHEME)
-  const showPath = !!path && !isVscodeNotebookCell
+  // const showPath = !!path && !isVscodeNotebookCell
+  // todo
+  const showPath = true
   const scores = context?.extra?.scores
   const onTooltipOpenChange = (v: boolean) => {
     if (!enableTooltip || !scores) return
@@ -197,7 +199,9 @@ function ContextItem({
               ) : null}
               {/* FIXME(jueliang) */}
               {showPath && (
-                <span className="ml-2 text-xs text-muted-foreground">{path}</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {path}
+                </span>
               )}
             </div>
             {showClientCodeIcon && (
