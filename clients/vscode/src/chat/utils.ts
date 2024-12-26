@@ -39,11 +39,11 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
   };
 }
 
-export function vscodeNoteCellUriToChagePanelRange(uri: Uri) {
-  if (uri.scheme !== "vscode-notebook-cell") return undefined;
-  const notebook = parseVscodeNotebookCellURI(uri);
-  return notebook;
-}
+// export function vscodeNoteCellUriToChagePanelRange(uri: Uri) {
+//   if (uri.scheme !== "vscode-notebook-cell") return undefined;
+//   const notebook = parseVscodeNotebookCellURI(uri);
+//   return notebook;
+// }
 
 export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: GitProvider): Uri | null {
   if (filepath.kind === "uri") {
