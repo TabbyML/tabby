@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{prelude::FromRow, query, query_scalar};
+use sqlx::query;
 
 use crate::DbConn;
 
@@ -145,7 +145,7 @@ mod tests {
         assert_eq!(res.base_dn, "base_dn");
         assert_eq!(res.user_filter, "user_filter");
         assert_eq!(res.encryption, "encryption");
-        assert_eq!(res.skip_tls_verify, true);
+        assert!(res.skip_tls_verify);
         assert_eq!(res.email_attribute, "email_attribute");
         assert_eq!(res.name_attribute, "name_attribute");
         let created_at = res.created_at;
@@ -179,7 +179,7 @@ mod tests {
         assert_eq!(res.base_dn, "base_dn_2");
         assert_eq!(res.user_filter, "user_filter_2");
         assert_eq!(res.encryption, "encryption_2");
-        assert_eq!(res.skip_tls_verify, false);
+        assert!(!res.skip_tls_verify);
         assert_eq!(res.email_attribute, "email_attribute_2");
         assert_eq!(res.name_attribute, "name_attribute_2");
         assert_eq!(res.created_at, created_at);
