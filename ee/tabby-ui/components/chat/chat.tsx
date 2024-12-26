@@ -11,7 +11,6 @@ import type {
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
-import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
   CreateMessageInput,
