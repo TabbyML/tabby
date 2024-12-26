@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use sqlx::migrate::MigrateError;
-
 use sqlx_migrate_validate::{Validate, ValidateError, Validator};
 
 async fn prepare() -> sqlx::sqlite::SqliteConnection {

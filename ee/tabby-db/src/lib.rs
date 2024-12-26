@@ -165,12 +165,16 @@ impl DbConn {
     /// for prod - db.backup-${date}.sqlite
     /// for non-prod - dev-db.backup-${date}.sqlite
     async fn backup_db(db_file: &Path, pool: &SqlitePool) -> Result<()> {
-        use sqlx_migrate_validate::{Validate, Validator};
+        use sqlx_migrate_validate::Validate;
 
         let mut conn = pool.acquire().await?;
-        if sqlx::migrate!("./migrations").validate(&mut *conn).await.is_ok() {
+        if sqlx::migrate!("./migrations")
+            .validate(&mut *conn)
+            .await
+            .is_ok()
+        {
             // No migration is needed, skip the backup.
-            return Ok(())
+            return Ok(());
         }
 
         if !tokio::fs::try_exists(db_file).await? {
