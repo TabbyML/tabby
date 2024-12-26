@@ -255,7 +255,6 @@ export function getFilepathFromContext(context: FileContext): Filepath {
 export function getFileLocationFromContext(context: FileContext): FileLocation {
   return {
     filepath: getFilepathFromContext(context),
-    // FIXME
     location: context.range
   }
 }
