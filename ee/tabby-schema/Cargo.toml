@@ -30,6 +30,7 @@ validator = { version = "0.18.1", features = ["derive"] }
 regex.workspace = true
 hash-ids.workspace = true
 url.workspace = true
+ldap3.workspace = true
 
 [dev-dependencies]
 tabby-db = { path = "../../ee/tabby-db", features = ["testutils"]}

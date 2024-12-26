@@ -67,6 +67,15 @@ pub struct TokenAuthInput {
     pub password: String,
 }
 
+/// Input parameters for token_auth_ldap mutation
+#[derive(Validate)]
+pub struct TokenAuthLdapInput<'a> {
+    #[validate(length(min = 1, code = "user_id", message = "User ID should not be empty"))]
+    pub user_id: &'a str,
+    #[validate(length(min = 1, code = "password", message = "Password should not be empty"))]
+    pub password: &'a str,
+}
+
 /// Input parameters for register mutation
 /// `validate` attribute is used to validate the input parameters
 ///   - `code` argument specifies which parameter causes the failure
@@ -411,6 +420,8 @@ pub trait AuthenticationService: Send + Sync {
     async fn allow_self_signup(&self) -> Result<bool>;
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse>;
+
+    async fn token_auth_ldap(&self, email: &str, password: &str) -> Result<TokenAuthResponse>;
 
     async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;

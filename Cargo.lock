@@ -5482,6 +5482,7 @@ dependencies = [
  "hash-ids",
  "juniper",
  "lazy_static",
+ "ldap3",
  "regex",
  "serde",
  "strum 0.24.1",
