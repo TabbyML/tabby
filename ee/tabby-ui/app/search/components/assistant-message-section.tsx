@@ -76,7 +76,9 @@ import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
 import { UserAvatar } from '@/components/user-avatar'
 
-import { ConversationMessage, SearchContext, SOURCE_CARD_STYLE } from './search'
+import { SOURCE_CARD_STYLE } from './search'
+import { SearchContext } from './search-context'
+import { ConversationMessage } from './types'
 
 export function AssistantMessageSection({
   className,

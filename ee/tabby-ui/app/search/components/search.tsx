@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  createContext,
   CSSProperties,
   Fragment,
   useEffect,
@@ -27,13 +26,8 @@ import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
-  ContextInfo,
   DocQueryInput,
   InputMaybe,
-  Maybe,
-  Message,
-  MessageAttachmentClientCode,
-  RepositorySourceListQuery,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -59,12 +53,7 @@ import {
   repositorySourceListQuery,
   setThreadPersistedMutation
 } from '@/lib/tabby/query'
-import {
-  AttachmentCodeItem,
-  AttachmentDocItem,
-  ExtendedCombinedError,
-  ThreadRunContexts
-} from '@/lib/types'
+import { ExtendedCombinedError, ThreadRunContexts } from '@/lib/types'
 import {
   cn,
   getMentionsFromText,
@@ -101,49 +90,9 @@ import { AssistantMessageSection } from './assistant-message-section'
 import { DevPanel } from './dev-panel'
 import { Header } from './header'
 import { MessagesSkeleton } from './messages-skeleton'
+import { SearchContext } from './search-context'
+import { ConversationMessage, ConversationPair } from './types'
 import { UserMessageSection } from './user-message-section'
-
-export type ConversationMessage = Omit<
-  Message,
-  '__typename' | 'updatedAt' | 'createdAt' | 'attachment' | 'threadId'
-> & {
-  threadId?: string
-  threadRelevantQuestions?: Maybe<string[]>
-  error?: string
-  attachment?: {
-    clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
-    code: Maybe<Array<AttachmentCodeItem>> | undefined
-    doc: Maybe<Array<AttachmentDocItem>> | undefined
-  }
-}
-
-type ConversationPair = {
-  question: ConversationMessage | null
-  answer: ConversationMessage | null
-}
-
-type SearchContextValue = {
-  // flag for initialize the pathname
-  isPathnameInitialized: boolean
-  isLoading: boolean
-  onRegenerateResponse: (id: string) => void
-  onSubmitSearch: (question: string) => void
-  setDevPanelOpen: (v: boolean) => void
-  setConversationIdForDev: (v: string | undefined) => void
-  enableDeveloperMode: boolean
-  contextInfo: ContextInfo | undefined
-  fetchingContextInfo: boolean
-  onDeleteMessage: (id: string) => void
-  isThreadOwner: boolean
-  onUpdateMessage: (
-    message: ConversationMessage
-  ) => Promise<ExtendedCombinedError | undefined>
-  repositories: RepositorySourceListQuery['repositoryList'] | undefined
-}
-
-export const SearchContext = createContext<SearchContextValue>(
-  {} as SearchContextValue
-)
 
 export const SOURCE_CARD_STYLE = {
   compress: 5.3,
