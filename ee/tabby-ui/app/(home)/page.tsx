@@ -15,7 +15,11 @@ import {
   useIsFetchingServerInfo
 } from '@/lib/hooks/use-server-info'
 import { setThreadsPageNo } from '@/lib/stores/answer-engine-store'
-import { updateSelectedModel } from '@/lib/stores/chat-actions'
+import {
+  updateSelectedModel,
+  updateSelectedRepo
+} from '@/lib/stores/chat-actions'
+import { useChatStore } from '@/lib/stores/chat-store'
 import {
   clearHomeScrollPosition,
   setHomeScrollPosition,
@@ -56,6 +60,7 @@ function MainPanel() {
   const scrollY = useStore(useScrollStore, state => state.homePage)
 
   const { selectedModel, isModelLoading, models } = useSelectedModel()
+  const selectedRepoId = useChatStore(state => state.selectedRepo)
 
   const showMainSection = !!data?.me || !isFetchingServerInfo
 
@@ -83,6 +88,10 @@ function MainPanel() {
 
   const handleSelectModel = (model: string) => {
     updateSelectedModel(model)
+  }
+
+  const onSelectedRepo = (sourceId: string | undefined) => {
+    updateSelectedRepo(sourceId)
   }
 
   const onSearch = (question: string, ctx?: ThreadRunContexts) => {
@@ -157,7 +166,9 @@ function MainPanel() {
                   contextInfo={contextInfoData?.contextInfo}
                   fetchingContextInfo={fetchingContextInfo}
                   modelName={selectedModel}
-                  onModelSelect={handleSelectModel}
+                  onSelectModel={handleSelectModel}
+                  repoSourceId={selectedRepoId}
+                  onSelectRepo={onSelectedRepo}
                   isModelLoading={isModelLoading}
                   models={models}
                 />

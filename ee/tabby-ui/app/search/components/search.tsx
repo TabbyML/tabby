@@ -44,7 +44,11 @@ import { useSelectedModel } from '@/lib/hooks/use-models'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
-import { updateSelectedModel } from '@/lib/stores/chat-actions'
+import {
+  updateSelectedModel,
+  updateSelectedRepo
+} from '@/lib/stores/chat-actions'
+import { useChatStore } from '@/lib/stores/chat-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
@@ -336,7 +340,7 @@ export function Search() {
   const isLoadingRef = useLatest(isLoading)
 
   const { selectedModel, isModelLoading, models } = useSelectedModel()
-
+  const selectedRepoId = useChatStore(state => state.selectedRepo)
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
   }, [messageIdForDev, messages])
@@ -726,8 +730,12 @@ export function Search() {
     )
   }
 
-  const onModelSelect = (model: string) => {
+  const onSelectModel = (model: string) => {
     updateSelectedModel(model)
+  }
+
+  const onSelectedRepo = (sourceId: string | undefined) => {
+    updateSelectedRepo(sourceId)
   }
 
   const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
@@ -944,7 +952,9 @@ export function Search() {
                       contextInfo={contextInfoData?.contextInfo}
                       fetchingContextInfo={fetchingContextInfo}
                       modelName={selectedModel}
-                      onModelSelect={onModelSelect}
+                      onSelectModel={onSelectModel}
+                      repoSourceId={selectedRepoId}
+                      onSelectRepo={onSelectedRepo}
                       isModelLoading={isModelLoading}
                       models={models}
                     />

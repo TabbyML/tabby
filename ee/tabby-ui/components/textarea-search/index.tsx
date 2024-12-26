@@ -12,39 +12,30 @@ import {
   checkSourcesAvailability,
   cn,
   getMentionsFromText,
-  getThreadRunContextsFromMentions
+  getThreadRunContextsFromMentions,
+  isCodeSourceContext
 } from '@/lib/utils'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-import LoadingWrapper from './loading-wrapper'
-import { PromptEditor, PromptEditorRef } from './prompt-editor'
-import { Button } from './ui/button'
-import {
-  IconArrowRight,
-  IconAtSign,
-  IconBox,
-  IconCheck,
-  IconHash,
-  IconSpinner
-} from './ui/icons'
-import { Separator } from './ui/separator'
-import { Skeleton } from './ui/skeleton'
+import LoadingWrapper from '../loading-wrapper'
+import { PromptEditor, PromptEditorRef } from '../prompt-editor'
+import { Button } from '../ui/button'
+import { IconArrowRight, IconAtSign, IconSpinner } from '../ui/icons'
+import { Separator } from '../ui/separator'
+import { Skeleton } from '../ui/skeleton'
+import { ModelSelect } from './model-select'
+import { RepoSelect } from './repo-select'
 
 export default function TextAreaSearch({
   onSearch,
-  onModelSelect,
   modelName,
+  onSelectModel,
+  repoSourceId,
+  onSelectRepo,
   className,
   placeholder,
   showBetaBadge,
@@ -59,9 +50,13 @@ export default function TextAreaSearch({
   models
 }: {
   onSearch: (value: string, ctx: ThreadRunContexts) => void
-  onModelSelect: (v: string) => void
+  onSelectModel: (v: string) => void
   isModelLoading: boolean
+  // selected model
   modelName: string | undefined
+  // selected repo
+  repoSourceId: string | undefined
+  onSelectRepo: (id: string | undefined) => void
   className?: string
   placeholder?: string
   showBetaBadge?: boolean
@@ -88,7 +83,14 @@ export default function TextAreaSearch({
   }
 
   const handleSelectModel = (v: string) => {
-    onModelSelect(v)
+    onSelectModel(v)
+    setTimeout(() => {
+      focusTextarea()
+    })
+  }
+
+  const handleSelectRepo = (id: string | undefined) => {
+    onSelectRepo(id)
     setTimeout(() => {
       focusTextarea()
     })
@@ -145,11 +147,17 @@ export default function TextAreaSearch({
       .run()
   }
 
-  const { hasCodebaseSource, hasDocumentSource } = useMemo(() => {
+  const { hasDocumentSource } = useMemo(() => {
     return checkSourcesAvailability(contextInfo?.sources)
   }, [contextInfo?.sources])
 
+  const repos = useMemo(() => {
+    return contextInfo?.sources.filter(x => isCodeSourceContext(x.sourceKind))
+  }, [contextInfo?.sources])
+
   const showModelSelect = !!models?.length
+  const showRepoSelect = !!repos?.length
+  const showBottomBar = showModelSelect || showRepoSelect
 
   return (
     <div
@@ -199,19 +207,31 @@ export default function TextAreaSearch({
               }
             )}
             editorClassName={
-              isFollowup && showModelSelect
-                ? 'min-h-[1.75rem]'
-                : 'min-h-[3.5em]'
+              isFollowup && showBottomBar ? 'min-h-[1.75rem]' : 'min-h-[3.5em]'
             }
           />
-          {isFollowup && showModelSelect && (
-            <div className="-ml-2 mb-2 flex">
-              <ModelSelect
-                isInitializing={isModelLoading}
-                models={models}
-                value={modelName}
-                onChange={handleSelectModel}
-              />
+          {isFollowup && showBottomBar && (
+            <div
+              className="-ml-2 mb-2 flex items-center gap-2"
+              onClick={e => e.stopPropagation()}
+            >
+              {showRepoSelect && (
+                <RepoSelect
+                  isInitializing={fetchingContextInfo}
+                  repos={repos}
+                  value={repoSourceId}
+                  onChange={handleSelectRepo}
+                />
+              )}
+              <Separator orientation="vertical" className="h-5" />
+              {showModelSelect && (
+                <ModelSelect
+                  isInitializing={isModelLoading}
+                  models={models}
+                  value={modelName}
+                  onChange={handleSelectModel}
+                />
+              )}
             </div>
           )}
         </div>
@@ -256,25 +276,6 @@ export default function TextAreaSearch({
               </div>
             }
           >
-            {/* mention codebase */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="gap-2 px-1.5 py-1 text-foreground/70"
-                  onClick={e => onInsertMention('#')}
-                  disabled={!hasCodebaseSource}
-                >
-                  <IconHash />
-                  Codebase
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-md">
-                Select a codebase to chat with
-              </TooltipContent>
-            </Tooltip>
-            <Separator orientation="vertical" className="h-5" />
-
             {/* mention docs */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -293,6 +294,15 @@ export default function TextAreaSearch({
               </TooltipContent>
             </Tooltip>
 
+            {/* select codebase */}
+            <Separator orientation="vertical" className="h-5" />
+            <RepoSelect
+              repos={repos}
+              value={repoSourceId}
+              onChange={handleSelectRepo}
+              isInitializing={fetchingContextInfo}
+            />
+
             {/* model select */}
             {!!models?.length && (
               <>
@@ -308,85 +318,6 @@ export default function TextAreaSearch({
         </div>
       )}
     </div>
-  )
-}
-
-interface ModelSelectProps {
-  models: Maybe<Array<string>> | undefined
-  value: string | undefined
-  onChange: (v: string) => void
-  isInitializing?: boolean
-}
-
-function ModelSelect({
-  models,
-  value,
-  onChange,
-  isInitializing
-}: ModelSelectProps) {
-  const onModelSelect = (v: string) => {
-    onChange(v)
-  }
-
-  return (
-    <LoadingWrapper
-      loading={isInitializing}
-      fallback={
-        <div className="w-full pl-2">
-          <Skeleton className="h-3 w-[20%]" />
-        </div>
-      }
-    >
-      {!!models?.length && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="gap-2 px-1.5 py-1 text-foreground/70"
-            >
-              <IconBox />
-              {value}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="bottom"
-            align="start"
-            className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
-          >
-            <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
-              {models.map(model => {
-                const isSelected = model === value
-                return (
-                  <DropdownMenuRadioItem
-                    onClick={e => {
-                      onModelSelect(model)
-                      e.stopPropagation()
-                    }}
-                    value={model}
-                    key={model}
-                    className="cursor-pointer py-2 pl-3"
-                  >
-                    <IconCheck
-                      className={cn(
-                        'mr-2 shrink-0',
-                        model === value ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
-                    <span
-                      className={cn({
-                        'font-medium': isSelected
-                      })}
-                    >
-                      {model}
-                    </span>
-                  </DropdownMenuRadioItem>
-                )
-              })}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </LoadingWrapper>
   )
 }
 

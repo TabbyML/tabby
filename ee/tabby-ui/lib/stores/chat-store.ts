@@ -8,12 +8,14 @@ const excludeFromState = ['activeChatId']
 export interface ChatState {
   activeChatId: string | undefined
   selectedModel: string | undefined
+  selectedRepo: string | undefined
   enableActiveSelection: boolean
 }
 
 const initialState: ChatState = {
   activeChatId: nanoid(),
   selectedModel: undefined,
+  selectedRepo: undefined,
   enableActiveSelection: true
 }
 
