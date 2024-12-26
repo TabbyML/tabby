@@ -60,7 +60,7 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
     const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(filepath.gitUrl);
     if (localGitRoot) {
       const extname = path.extname(filepath.filepath);
-      
+
       // handling for Jupyter Notebook (.ipynb) files
       if (extname.startsWith(".ipynb")) {
         return chatPanelFilepathToVscodeNotebookCellUri(localGitRoot, filepath);
