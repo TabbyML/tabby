@@ -1,6 +1,5 @@
 CREATE TABLE ldap_credential(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  name VARCHAR(255) NOT NULL,
 
   host STRING NOT NULL,
   port INTEGER NOT NULL DEFAULT 389,
@@ -20,8 +19,5 @@ CREATE TABLE ldap_credential(
   name_attribute STRING NOT NULL DEFAULT 'name',
 
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-
-  --- name is unique to distinguish different LDAP configurations
-  CONSTRAINT idx_unique_name UNIQUE(name)
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
 );

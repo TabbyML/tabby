@@ -122,136 +122,132 @@
 <!-- invitations -->
 <g id="node4" class="node">
 <title>invitations</title>
-<polygon fill="none" stroke="black" points="86,-745.75 86,-768.25 167.75,-768.25 167.75,-745.75 86,-745.75"/>
-<text text-anchor="start" x="96.5" y="-752.95" font-family="Times,serif" font-weight="bold" font-size="14.00">invitations</text>
-<polygon fill="none" stroke="black" points="86,-721 86,-745.75 106.25,-745.75 106.25,-721 86,-721"/>
-<text text-anchor="start" x="89" y="-729.45" font-family="Times,serif" font-size="14.00">🔑</text>
-<polygon fill="none" stroke="black" points="106.25,-721 106.25,-745.75 167.75,-745.75 167.75,-721 106.25,-721"/>
-<text text-anchor="start" x="131.75" y="-728.33" font-family="Times,serif" font-size="14.00">id</text>
-<polygon fill="none" stroke="black" points="86,-698.5 86,-721 106.25,-721 106.25,-698.5 86,-698.5"/>
-<text text-anchor="start" x="94.25" y="-704.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="106.25,-698.5 106.25,-721 167.75,-721 167.75,-698.5 106.25,-698.5"/>
-<text text-anchor="start" x="121.62" y="-704.7" font-family="Times,serif" font-size="14.00">email</text>
-<polygon fill="none" stroke="black" points="86,-676 86,-698.5 106.25,-698.5 106.25,-676 86,-676"/>
-<text text-anchor="start" x="94.25" y="-682.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="106.25,-676 106.25,-698.5 167.75,-698.5 167.75,-676 106.25,-676"/>
-<text text-anchor="start" x="124.25" y="-682.2" font-family="Times,serif" font-size="14.00">code</text>
-<polygon fill="none" stroke="black" points="86,-653.5 86,-676 106.25,-676 106.25,-653.5 86,-653.5"/>
-<text text-anchor="start" x="94.25" y="-659.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="106.25,-653.5 106.25,-676 167.75,-676 167.75,-653.5 106.25,-653.5"/>
-<text text-anchor="start" x="109.25" y="-659.7" font-family="Times,serif" font-size="14.00">created_at</text>
+<polygon fill="none" stroke="black" points="86,-748.75 86,-771.25 167.75,-771.25 167.75,-748.75 86,-748.75"/>
+<text text-anchor="start" x="96.5" y="-755.95" font-family="Times,serif" font-weight="bold" font-size="14.00">invitations</text>
+<polygon fill="none" stroke="black" points="86,-724 86,-748.75 106.25,-748.75 106.25,-724 86,-724"/>
+<text text-anchor="start" x="89" y="-732.45" font-family="Times,serif" font-size="14.00">🔑</text>
+<polygon fill="none" stroke="black" points="106.25,-724 106.25,-748.75 167.75,-748.75 167.75,-724 106.25,-724"/>
+<text text-anchor="start" x="131.75" y="-731.33" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="86,-701.5 86,-724 106.25,-724 106.25,-701.5 86,-701.5"/>
+<text text-anchor="start" x="94.25" y="-707.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="106.25,-701.5 106.25,-724 167.75,-724 167.75,-701.5 106.25,-701.5"/>
+<text text-anchor="start" x="121.62" y="-707.7" font-family="Times,serif" font-size="14.00">email</text>
+<polygon fill="none" stroke="black" points="86,-679 86,-701.5 106.25,-701.5 106.25,-679 86,-679"/>
+<text text-anchor="start" x="94.25" y="-685.2" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="106.25,-679 106.25,-701.5 167.75,-701.5 167.75,-679 106.25,-679"/>
+<text text-anchor="start" x="124.25" y="-685.2" font-family="Times,serif" font-size="14.00">code</text>
+<polygon fill="none" stroke="black" points="86,-656.5 86,-679 106.25,-679 106.25,-656.5 86,-656.5"/>
+<text text-anchor="start" x="94.25" y="-662.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="106.25,-656.5 106.25,-679 167.75,-679 167.75,-656.5 106.25,-656.5"/>
+<text text-anchor="start" x="109.25" y="-662.7" font-family="Times,serif" font-size="14.00">created_at</text>
 </g>
 <!-- job_runs -->
 <g id="node5" class="node">
 <title>job_runs</title>
-<polygon fill="none" stroke="black" points="84.12,-1050.5 84.12,-1073 169.62,-1073 169.62,-1050.5 84.12,-1050.5"/>
-<text text-anchor="start" x="101" y="-1057.7" font-family="Times,serif" font-weight="bold" font-size="14.00">job_runs</text>
-<polygon fill="none" stroke="black" points="84.12,-1025.75 84.12,-1050.5 104.38,-1050.5 104.38,-1025.75 84.12,-1025.75"/>
-<text text-anchor="start" x="87.12" y="-1034.2" font-family="Times,serif" font-size="14.00">🔑</text>
-<polygon fill="none" stroke="black" points="104.38,-1025.75 104.38,-1050.5 169.62,-1050.5 169.62,-1025.75 104.38,-1025.75"/>
-<text text-anchor="start" x="131.75" y="-1033.08" font-family="Times,serif" font-size="14.00">id</text>
-<polygon fill="none" stroke="black" points="84.12,-1003.25 84.12,-1025.75 104.38,-1025.75 104.38,-1003.25 84.12,-1003.25"/>
-<text text-anchor="start" x="92.38" y="-1009.45" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-1003.25 104.38,-1025.75 169.62,-1025.75 169.62,-1003.25 104.38,-1003.25"/>
-<text text-anchor="start" x="128.38" y="-1009.45" font-family="Times,serif" font-size="14.00">job</text>
-<polygon fill="none" stroke="black" points="84.12,-980.75 84.12,-1003.25 104.38,-1003.25 104.38,-980.75 84.12,-980.75"/>
-<text text-anchor="start" x="92.38" y="-986.95" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-980.75 104.38,-1003.25 169.62,-1003.25 169.62,-980.75 104.38,-980.75"/>
-<text text-anchor="start" x="117.5" y="-986.95" font-family="Times,serif" font-size="14.00">start_ts</text>
-<polygon fill="none" stroke="black" points="84.12,-958.25 84.12,-980.75 104.38,-980.75 104.38,-958.25 84.12,-958.25"/>
-<text text-anchor="start" x="92.38" y="-964.45" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-958.25 104.38,-980.75 169.62,-980.75 169.62,-958.25 104.38,-958.25"/>
-<text text-anchor="start" x="119.38" y="-964.45" font-family="Times,serif" font-size="14.00">end_ts</text>
-<polygon fill="none" stroke="black" points="84.12,-935.75 84.12,-958.25 104.38,-958.25 104.38,-935.75 84.12,-935.75"/>
-<text text-anchor="start" x="92.38" y="-941.95" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-935.75 104.38,-958.25 169.62,-958.25 169.62,-935.75 104.38,-935.75"/>
-<text text-anchor="start" x="110.75" y="-941.95" font-family="Times,serif" font-size="14.00">exit_code</text>
-<polygon fill="none" stroke="black" points="84.12,-913.25 84.12,-935.75 104.38,-935.75 104.38,-913.25 84.12,-913.25"/>
-<text text-anchor="start" x="92.38" y="-919.45" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-913.25 104.38,-935.75 169.62,-935.75 169.62,-913.25 104.38,-913.25"/>
-<text text-anchor="start" x="120.5" y="-919.45" font-family="Times,serif" font-size="14.00">stdout</text>
-<polygon fill="none" stroke="black" points="84.12,-890.75 84.12,-913.25 104.38,-913.25 104.38,-890.75 84.12,-890.75"/>
-<text text-anchor="start" x="92.38" y="-896.95" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-890.75 104.38,-913.25 169.62,-913.25 169.62,-890.75 104.38,-890.75"/>
-<text text-anchor="start" x="121.62" y="-896.95" font-family="Times,serif" font-size="14.00">stderr</text>
-<polygon fill="none" stroke="black" points="84.12,-868.25 84.12,-890.75 104.38,-890.75 104.38,-868.25 84.12,-868.25"/>
-<text text-anchor="start" x="92.38" y="-874.45" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-868.25 104.38,-890.75 169.62,-890.75 169.62,-868.25 104.38,-868.25"/>
-<text text-anchor="start" x="109.25" y="-874.45" font-family="Times,serif" font-size="14.00">created_at</text>
-<polygon fill="none" stroke="black" points="84.12,-845.75 84.12,-868.25 104.38,-868.25 104.38,-845.75 84.12,-845.75"/>
-<text text-anchor="start" x="92.38" y="-851.95" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-845.75 104.38,-868.25 169.62,-868.25 169.62,-845.75 104.38,-845.75"/>
-<text text-anchor="start" x="107.38" y="-851.95" font-family="Times,serif" font-size="14.00">updated_at</text>
-<polygon fill="none" stroke="black" points="84.12,-823.25 84.12,-845.75 104.38,-845.75 104.38,-823.25 84.12,-823.25"/>
-<text text-anchor="start" x="92.38" y="-829.45" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-823.25 104.38,-845.75 169.62,-845.75 169.62,-823.25 104.38,-823.25"/>
-<text text-anchor="start" x="109.62" y="-829.45" font-family="Times,serif" font-size="14.00">command</text>
-<polygon fill="none" stroke="black" points="84.12,-800.75 84.12,-823.25 104.38,-823.25 104.38,-800.75 84.12,-800.75"/>
-<text text-anchor="start" x="92.38" y="-806.95" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="104.38,-800.75 104.38,-823.25 169.62,-823.25 169.62,-800.75 104.38,-800.75"/>
-<text text-anchor="start" x="110.75" y="-806.95" font-family="Times,serif" font-size="14.00">started_at</text>
+<polygon fill="none" stroke="black" points="84.12,-1064.5 84.12,-1087 169.62,-1087 169.62,-1064.5 84.12,-1064.5"/>
+<text text-anchor="start" x="101" y="-1071.7" font-family="Times,serif" font-weight="bold" font-size="14.00">job_runs</text>
+<polygon fill="none" stroke="black" points="84.12,-1039.75 84.12,-1064.5 104.38,-1064.5 104.38,-1039.75 84.12,-1039.75"/>
+<text text-anchor="start" x="87.12" y="-1048.2" font-family="Times,serif" font-size="14.00">🔑</text>
+<polygon fill="none" stroke="black" points="104.38,-1039.75 104.38,-1064.5 169.62,-1064.5 169.62,-1039.75 104.38,-1039.75"/>
+<text text-anchor="start" x="131.75" y="-1047.08" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="84.12,-1017.25 84.12,-1039.75 104.38,-1039.75 104.38,-1017.25 84.12,-1017.25"/>
+<text text-anchor="start" x="92.38" y="-1023.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-1017.25 104.38,-1039.75 169.62,-1039.75 169.62,-1017.25 104.38,-1017.25"/>
+<text text-anchor="start" x="128.38" y="-1023.45" font-family="Times,serif" font-size="14.00">job</text>
+<polygon fill="none" stroke="black" points="84.12,-994.75 84.12,-1017.25 104.38,-1017.25 104.38,-994.75 84.12,-994.75"/>
+<text text-anchor="start" x="92.38" y="-1000.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-994.75 104.38,-1017.25 169.62,-1017.25 169.62,-994.75 104.38,-994.75"/>
+<text text-anchor="start" x="117.5" y="-1000.95" font-family="Times,serif" font-size="14.00">start_ts</text>
+<polygon fill="none" stroke="black" points="84.12,-972.25 84.12,-994.75 104.38,-994.75 104.38,-972.25 84.12,-972.25"/>
+<text text-anchor="start" x="92.38" y="-978.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-972.25 104.38,-994.75 169.62,-994.75 169.62,-972.25 104.38,-972.25"/>
+<text text-anchor="start" x="119.38" y="-978.45" font-family="Times,serif" font-size="14.00">end_ts</text>
+<polygon fill="none" stroke="black" points="84.12,-949.75 84.12,-972.25 104.38,-972.25 104.38,-949.75 84.12,-949.75"/>
+<text text-anchor="start" x="92.38" y="-955.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-949.75 104.38,-972.25 169.62,-972.25 169.62,-949.75 104.38,-949.75"/>
+<text text-anchor="start" x="110.75" y="-955.95" font-family="Times,serif" font-size="14.00">exit_code</text>
+<polygon fill="none" stroke="black" points="84.12,-927.25 84.12,-949.75 104.38,-949.75 104.38,-927.25 84.12,-927.25"/>
+<text text-anchor="start" x="92.38" y="-933.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-927.25 104.38,-949.75 169.62,-949.75 169.62,-927.25 104.38,-927.25"/>
+<text text-anchor="start" x="120.5" y="-933.45" font-family="Times,serif" font-size="14.00">stdout</text>
+<polygon fill="none" stroke="black" points="84.12,-904.75 84.12,-927.25 104.38,-927.25 104.38,-904.75 84.12,-904.75"/>
+<text text-anchor="start" x="92.38" y="-910.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-904.75 104.38,-927.25 169.62,-927.25 169.62,-904.75 104.38,-904.75"/>
+<text text-anchor="start" x="121.62" y="-910.95" font-family="Times,serif" font-size="14.00">stderr</text>
+<polygon fill="none" stroke="black" points="84.12,-882.25 84.12,-904.75 104.38,-904.75 104.38,-882.25 84.12,-882.25"/>
+<text text-anchor="start" x="92.38" y="-888.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-882.25 104.38,-904.75 169.62,-904.75 169.62,-882.25 104.38,-882.25"/>
+<text text-anchor="start" x="109.25" y="-888.45" font-family="Times,serif" font-size="14.00">created_at</text>
+<polygon fill="none" stroke="black" points="84.12,-859.75 84.12,-882.25 104.38,-882.25 104.38,-859.75 84.12,-859.75"/>
+<text text-anchor="start" x="92.38" y="-865.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-859.75 104.38,-882.25 169.62,-882.25 169.62,-859.75 104.38,-859.75"/>
+<text text-anchor="start" x="107.38" y="-865.95" font-family="Times,serif" font-size="14.00">updated_at</text>
+<polygon fill="none" stroke="black" points="84.12,-837.25 84.12,-859.75 104.38,-859.75 104.38,-837.25 84.12,-837.25"/>
+<text text-anchor="start" x="92.38" y="-843.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-837.25 104.38,-859.75 169.62,-859.75 169.62,-837.25 104.38,-837.25"/>
+<text text-anchor="start" x="109.62" y="-843.45" font-family="Times,serif" font-size="14.00">command</text>
+<polygon fill="none" stroke="black" points="84.12,-814.75 84.12,-837.25 104.38,-837.25 104.38,-814.75 84.12,-814.75"/>
+<text text-anchor="start" x="92.38" y="-820.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-814.75 104.38,-837.25 169.62,-837.25 169.62,-814.75 104.38,-814.75"/>
+<text text-anchor="start" x="110.75" y="-820.95" font-family="Times,serif" font-size="14.00">started_at</text>
 </g>
 <!-- ldap_credential -->
 <g id="node6" class="node">
 <title>ldap_credential</title>
-<polygon fill="none" stroke="black" points="72.5,-1419.25 72.5,-1441.75 181.25,-1441.75 181.25,-1419.25 72.5,-1419.25"/>
-<text text-anchor="start" x="81.88" y="-1426.45" font-family="Times,serif" font-weight="bold" font-size="14.00">ldap_credential</text>
-<polygon fill="none" stroke="black" points="72.5,-1394.5 72.5,-1419.25 92.75,-1419.25 92.75,-1394.5 72.5,-1394.5"/>
-<text text-anchor="start" x="75.5" y="-1402.95" font-family="Times,serif" font-size="14.00">🔑</text>
-<polygon fill="none" stroke="black" points="92.75,-1394.5 92.75,-1419.25 181.25,-1419.25 181.25,-1394.5 92.75,-1394.5"/>
-<text text-anchor="start" x="131.75" y="-1401.83" font-family="Times,serif" font-size="14.00">id</text>
-<polygon fill="none" stroke="black" points="72.5,-1372 72.5,-1394.5 92.75,-1394.5 92.75,-1372 72.5,-1372"/>
-<text text-anchor="start" x="80.75" y="-1378.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1372 92.75,-1394.5 181.25,-1394.5 181.25,-1372 92.75,-1372"/>
-<text text-anchor="start" x="122" y="-1378.2" font-family="Times,serif" font-size="14.00">name</text>
-<polygon fill="none" stroke="black" points="72.5,-1349.5 72.5,-1372 92.75,-1372 92.75,-1349.5 72.5,-1349.5"/>
-<text text-anchor="start" x="80.75" y="-1355.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1349.5 92.75,-1372 181.25,-1372 181.25,-1349.5 92.75,-1349.5"/>
-<text text-anchor="start" x="125.75" y="-1355.7" font-family="Times,serif" font-size="14.00">host</text>
-<polygon fill="none" stroke="black" points="72.5,-1327 72.5,-1349.5 92.75,-1349.5 92.75,-1327 72.5,-1327"/>
-<text text-anchor="start" x="80.75" y="-1333.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1327 92.75,-1349.5 181.25,-1349.5 181.25,-1327 92.75,-1327"/>
-<text text-anchor="start" x="126.12" y="-1333.2" font-family="Times,serif" font-size="14.00">port</text>
-<polygon fill="none" stroke="black" points="72.5,-1304.5 72.5,-1327 92.75,-1327 92.75,-1304.5 72.5,-1304.5"/>
-<text text-anchor="start" x="80.75" y="-1310.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1304.5 92.75,-1327 181.25,-1327 181.25,-1304.5 92.75,-1304.5"/>
-<text text-anchor="start" x="114.88" y="-1310.7" font-family="Times,serif" font-size="14.00">bind_dn</text>
-<polygon fill="none" stroke="black" points="72.5,-1282 72.5,-1304.5 92.75,-1304.5 92.75,-1282 72.5,-1282"/>
-<text text-anchor="start" x="80.75" y="-1288.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1282 92.75,-1304.5 181.25,-1304.5 181.25,-1282 92.75,-1282"/>
-<text text-anchor="start" x="96.12" y="-1288.2" font-family="Times,serif" font-size="14.00">bind_password</text>
-<polygon fill="none" stroke="black" points="72.5,-1259.5 72.5,-1282 92.75,-1282 92.75,-1259.5 72.5,-1259.5"/>
-<text text-anchor="start" x="80.75" y="-1265.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1259.5 92.75,-1282 181.25,-1282 181.25,-1259.5 92.75,-1259.5"/>
-<text text-anchor="start" x="114.88" y="-1265.7" font-family="Times,serif" font-size="14.00">base_dn</text>
-<polygon fill="none" stroke="black" points="72.5,-1237 72.5,-1259.5 92.75,-1259.5 92.75,-1237 72.5,-1237"/>
-<text text-anchor="start" x="80.75" y="-1243.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1237 92.75,-1259.5 181.25,-1259.5 181.25,-1237 92.75,-1237"/>
-<text text-anchor="start" x="109.25" y="-1243.2" font-family="Times,serif" font-size="14.00">user_filter</text>
-<polygon fill="none" stroke="black" points="72.5,-1214.5 72.5,-1237 92.75,-1237 92.75,-1214.5 72.5,-1214.5"/>
-<text text-anchor="start" x="80.75" y="-1220.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1214.5 92.75,-1237 181.25,-1237 181.25,-1214.5 92.75,-1214.5"/>
-<text text-anchor="start" x="108.12" y="-1220.7" font-family="Times,serif" font-size="14.00">encryption</text>
-<polygon fill="none" stroke="black" points="72.5,-1192 72.5,-1214.5 92.75,-1214.5 92.75,-1192 72.5,-1192"/>
-<text text-anchor="start" x="80.75" y="-1198.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1192 92.75,-1214.5 181.25,-1214.5 181.25,-1192 92.75,-1192"/>
-<text text-anchor="start" x="96.5" y="-1198.2" font-family="Times,serif" font-size="14.00">skip_tls_verify</text>
-<polygon fill="none" stroke="black" points="72.5,-1169.5 72.5,-1192 92.75,-1192 92.75,-1169.5 72.5,-1169.5"/>
-<text text-anchor="start" x="80.75" y="-1175.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1169.5 92.75,-1192 181.25,-1192 181.25,-1169.5 92.75,-1169.5"/>
-<text text-anchor="start" x="95.75" y="-1175.7" font-family="Times,serif" font-size="14.00">email_attribute</text>
-<polygon fill="none" stroke="black" points="72.5,-1147 72.5,-1169.5 92.75,-1169.5 92.75,-1147 72.5,-1147"/>
-<text text-anchor="start" x="80.75" y="-1153.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1147 92.75,-1169.5 181.25,-1169.5 181.25,-1147 92.75,-1147"/>
-<text text-anchor="start" x="96.12" y="-1153.2" font-family="Times,serif" font-size="14.00">name_attribute</text>
-<polygon fill="none" stroke="black" points="72.5,-1124.5 72.5,-1147 92.75,-1147 92.75,-1124.5 72.5,-1124.5"/>
-<text text-anchor="start" x="80.75" y="-1130.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1124.5 92.75,-1147 181.25,-1147 181.25,-1124.5 92.75,-1124.5"/>
-<text text-anchor="start" x="109.25" y="-1130.7" font-family="Times,serif" font-size="14.00">created_at</text>
-<polygon fill="none" stroke="black" points="72.5,-1102 72.5,-1124.5 92.75,-1124.5 92.75,-1102 72.5,-1102"/>
-<text text-anchor="start" x="80.75" y="-1108.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="92.75,-1102 92.75,-1124.5 181.25,-1124.5 181.25,-1102 92.75,-1102"/>
-<text text-anchor="start" x="107.38" y="-1108.2" font-family="Times,serif" font-size="14.00">updated_at</text>
+<polygon fill="none" stroke="black" points="72.5,-1416 72.5,-1438.5 181.25,-1438.5 181.25,-1416 72.5,-1416"/>
+<text text-anchor="start" x="81.88" y="-1423.2" font-family="Times,serif" font-weight="bold" font-size="14.00">ldap_credential</text>
+<polygon fill="none" stroke="black" points="72.5,-1391.25 72.5,-1416 92.75,-1416 92.75,-1391.25 72.5,-1391.25"/>
+<text text-anchor="start" x="75.5" y="-1399.7" font-family="Times,serif" font-size="14.00">🔑</text>
+<polygon fill="none" stroke="black" points="92.75,-1391.25 92.75,-1416 181.25,-1416 181.25,-1391.25 92.75,-1391.25"/>
+<text text-anchor="start" x="131.75" y="-1398.58" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="72.5,-1368.75 72.5,-1391.25 92.75,-1391.25 92.75,-1368.75 72.5,-1368.75"/>
+<text text-anchor="start" x="80.75" y="-1374.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1368.75 92.75,-1391.25 181.25,-1391.25 181.25,-1368.75 92.75,-1368.75"/>
+<text text-anchor="start" x="125.75" y="-1374.95" font-family="Times,serif" font-size="14.00">host</text>
+<polygon fill="none" stroke="black" points="72.5,-1346.25 72.5,-1368.75 92.75,-1368.75 92.75,-1346.25 72.5,-1346.25"/>
+<text text-anchor="start" x="80.75" y="-1352.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1346.25 92.75,-1368.75 181.25,-1368.75 181.25,-1346.25 92.75,-1346.25"/>
+<text text-anchor="start" x="126.12" y="-1352.45" font-family="Times,serif" font-size="14.00">port</text>
+<polygon fill="none" stroke="black" points="72.5,-1323.75 72.5,-1346.25 92.75,-1346.25 92.75,-1323.75 72.5,-1323.75"/>
+<text text-anchor="start" x="80.75" y="-1329.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1323.75 92.75,-1346.25 181.25,-1346.25 181.25,-1323.75 92.75,-1323.75"/>
+<text text-anchor="start" x="114.88" y="-1329.95" font-family="Times,serif" font-size="14.00">bind_dn</text>
+<polygon fill="none" stroke="black" points="72.5,-1301.25 72.5,-1323.75 92.75,-1323.75 92.75,-1301.25 72.5,-1301.25"/>
+<text text-anchor="start" x="80.75" y="-1307.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1301.25 92.75,-1323.75 181.25,-1323.75 181.25,-1301.25 92.75,-1301.25"/>
+<text text-anchor="start" x="96.12" y="-1307.45" font-family="Times,serif" font-size="14.00">bind_password</text>
+<polygon fill="none" stroke="black" points="72.5,-1278.75 72.5,-1301.25 92.75,-1301.25 92.75,-1278.75 72.5,-1278.75"/>
+<text text-anchor="start" x="80.75" y="-1284.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1278.75 92.75,-1301.25 181.25,-1301.25 181.25,-1278.75 92.75,-1278.75"/>
+<text text-anchor="start" x="114.88" y="-1284.95" font-family="Times,serif" font-size="14.00">base_dn</text>
+<polygon fill="none" stroke="black" points="72.5,-1256.25 72.5,-1278.75 92.75,-1278.75 92.75,-1256.25 72.5,-1256.25"/>
+<text text-anchor="start" x="80.75" y="-1262.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1256.25 92.75,-1278.75 181.25,-1278.75 181.25,-1256.25 92.75,-1256.25"/>
+<text text-anchor="start" x="109.25" y="-1262.45" font-family="Times,serif" font-size="14.00">user_filter</text>
+<polygon fill="none" stroke="black" points="72.5,-1233.75 72.5,-1256.25 92.75,-1256.25 92.75,-1233.75 72.5,-1233.75"/>
+<text text-anchor="start" x="80.75" y="-1239.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1233.75 92.75,-1256.25 181.25,-1256.25 181.25,-1233.75 92.75,-1233.75"/>
+<text text-anchor="start" x="108.12" y="-1239.95" font-family="Times,serif" font-size="14.00">encryption</text>
+<polygon fill="none" stroke="black" points="72.5,-1211.25 72.5,-1233.75 92.75,-1233.75 92.75,-1211.25 72.5,-1211.25"/>
+<text text-anchor="start" x="80.75" y="-1217.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1211.25 92.75,-1233.75 181.25,-1233.75 181.25,-1211.25 92.75,-1211.25"/>
+<text text-anchor="start" x="96.5" y="-1217.45" font-family="Times,serif" font-size="14.00">skip_tls_verify</text>
+<polygon fill="none" stroke="black" points="72.5,-1188.75 72.5,-1211.25 92.75,-1211.25 92.75,-1188.75 72.5,-1188.75"/>
+<text text-anchor="start" x="80.75" y="-1194.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1188.75 92.75,-1211.25 181.25,-1211.25 181.25,-1188.75 92.75,-1188.75"/>
+<text text-anchor="start" x="95.75" y="-1194.95" font-family="Times,serif" font-size="14.00">email_attribute</text>
+<polygon fill="none" stroke="black" points="72.5,-1166.25 72.5,-1188.75 92.75,-1188.75 92.75,-1166.25 72.5,-1166.25"/>
+<text text-anchor="start" x="80.75" y="-1172.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1166.25 92.75,-1188.75 181.25,-1188.75 181.25,-1166.25 92.75,-1166.25"/>
+<text text-anchor="start" x="96.12" y="-1172.45" font-family="Times,serif" font-size="14.00">name_attribute</text>
+<polygon fill="none" stroke="black" points="72.5,-1143.75 72.5,-1166.25 92.75,-1166.25 92.75,-1143.75 72.5,-1143.75"/>
+<text text-anchor="start" x="80.75" y="-1149.95" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1143.75 92.75,-1166.25 181.25,-1166.25 181.25,-1143.75 92.75,-1143.75"/>
+<text text-anchor="start" x="109.25" y="-1149.95" font-family="Times,serif" font-size="14.00">created_at</text>
+<polygon fill="none" stroke="black" points="72.5,-1121.25 72.5,-1143.75 92.75,-1143.75 92.75,-1121.25 72.5,-1121.25"/>
+<text text-anchor="start" x="80.75" y="-1127.45" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="92.75,-1121.25 92.75,-1143.75 181.25,-1143.75 181.25,-1121.25 92.75,-1121.25"/>
+<text text-anchor="start" x="107.38" y="-1127.45" font-family="Times,serif" font-size="14.00">updated_at</text>
 </g>
 <!-- notifications -->
 <g id="node7" class="node">
