@@ -1,5 +1,5 @@
 import path from "path";
-import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace, TextEditor, NotebookRange } from "vscode";
+import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
 import type {
   Filepath,
   Position as ChatPanelPosition,
@@ -7,8 +7,6 @@ import type {
   PositionRange,
   Location,
   FilepathInGitRepository,
-  EditorFileContext,
-  NotebookCellRange,
 } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
@@ -24,11 +22,9 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
   }
   const gitRemoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
   if (repo && gitRemoteUrl) {
-    // todo check if is file or untitled ?
     const uriFilePath =
       uri.scheme === "vscode-notebook-cell" ? uri.with({ scheme: "file" }).toString(true) : uri.toString(true);
     const relativeFilePath = path.relative(repo.rootUri.toString(true), uriFilePath);
-    logger.info(repo.rootUri.toString(true), uriFilePath, relativeFilePath);
     if (!relativeFilePath.startsWith("..")) {
       return {
         kind: "git",
@@ -37,31 +33,10 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
       };
     }
   }
-
   return {
     kind: "uri",
     uri: uri.toString(true),
   };
-}
-
-export function localRangeToChatPanelRange(editor: TextEditor, useSelection?: boolean) {
-  const uri = editor.document.uri;
-  let range: EditorFileContext["range"];
-  if (uri.scheme == "vscode-notebook-cell") {
-    const notebook = parseVscodeNotebookCellURI(uri);
-    range = {
-      cellIndex: notebook?.handle || 0,
-    } as NotebookCellRange;
-  }
-  if (useSelection) {
-    range = {
-      ...range,
-      start: editor.selection.start.line + 1,
-      end: editor.selection.end.line + 1,
-    };
-  }
-
-  return range;
 }
 
 export function vscodeNoteCellUriToChagePanelRange(uri: Uri) {
@@ -85,7 +60,8 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
     const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(filepath.gitUrl);
     if (localGitRoot) {
       const extname = path.extname(filepath.filepath);
-      // In VSCode, handle Jupyter Notebook files specially
+      
+      // handling for Jupyter Notebook (.ipynb) files
       if (extname.startsWith(".ipynb")) {
         return chatPanelFilepathToVscodeNotebookCellUri(localGitRoot, filepath);
       }
@@ -106,10 +82,7 @@ function chatPanelFilepathToVscodeNotebookCellUri(root: Uri, filepath: FilepathI
   const parsedUrl = new URL(filepath.filepath, "file://");
   const hash = parsedUrl.hash;
   const cleanPath = parsedUrl.pathname;
-  // FIXME clean up newuri after testing
-  const newuri = Uri.joinPath(root, cleanPath).with({ scheme: "vscode-notebook-cell", fragment: hash.slice(1) });
-  logger.info(newuri.toString(true));
-  return newuri;
+  return Uri.joinPath(root, cleanPath).with({ scheme: "vscode-notebook-cell", fragment: hash.slice(1) });
 }
 
 export function vscodePositionToChatPanelPosition(position: VSCodePosition): ChatPanelPosition {
@@ -128,12 +101,6 @@ export function vscodeRangeToChatPanelPositionRange(range: VSCodeRange): Positio
     start: vscodePositionToChatPanelPosition(range.start),
     end: vscodePositionToChatPanelPosition(range.end),
   };
-}
-
-// FIXME(jueliang) is it neccessary?
-export function chatPanelNotebookCellRangeToVSCodeRange(lineRange: LineRange): VSCodeRange {
-  // Do not minus 1 from end line number, as we want to include the last line.
-  return new VSCodeRange(Math.max(0, lineRange.start - 1), 0, lineRange.end, 0);
 }
 
 export function chatPanelPositionRangeToVSCodeRange(positionRange: PositionRange): VSCodeRange {

@@ -7,7 +7,6 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 
-import { VSCODE_NOTEBOOK_CELL_SCHEME } from '../constants'
 import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
@@ -107,13 +106,12 @@ export function checkSourcesAvailability(
   return { hasCodebaseSource, hasDocumentSource }
 }
 
-function parseVscodeNotebookCellURI(uri: string) {
-  if (!uri.startsWith(VSCODE_NOTEBOOK_CELL_SCHEME)) return undefined
+function parseNotebookCellFragment(fragment: string) {
+  if (!fragment) return undefined
 
   const _lengths = ['W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f']
   const _padRegexp = new RegExp(`^[${_lengths.join('')}]+`)
   const _radix = 7
-  const fragment = uri.split('#').pop() || ''
   const idx = fragment.indexOf('s')
   if (idx < 0) {
     return undefined
@@ -136,17 +134,20 @@ function parseVscodeNotebookCellURI(uri: string) {
 }
 
 export function resolveFileNameForDisplay(uri: string) {
-  const regexPattern = `(?:${VSCODE_NOTEBOOK_CELL_SCHEME}:)?(.*?)(\\?|#|$)`
-  const regex = new RegExp(regexPattern)
-
-  const pathSegments = uri.split('/')
-  const fileName = pathSegments[pathSegments.length - 1]
-  const match = fileName.match(regex)
-  const displayName = match ? match[1] : null
-  const notebook = parseVscodeNotebookCellURI(uri)
-
-  if (displayName && notebook) {
-    return `${displayName} · Cell ${(notebook.handle || 0) + 1}`
+  let url: URL
+  try {
+    url = new URL(uri)
+  } catch (e) {
+    url = new URL(uri, 'file://')
   }
-  return displayName
+  const filename = url.pathname.split('/').pop() || ''
+  const extname = filename.includes('.') ? `.${filename.split('.').pop()}` : ''
+  const isNotebook = extname.startsWith('.ipynb')
+  const hash = url.hash ? url.hash.substring(1) : ''
+  const notebook = parseNotebookCellFragment(hash)
+
+  if (isNotebook && notebook) {
+    return `${filename} · Cell ${(notebook.handle || 0) + 1}`
+  }
+  return filename
 }

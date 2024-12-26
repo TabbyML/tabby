@@ -45,27 +45,10 @@ export interface LineRange {
   end: number
 }
 /**
- * Represents a range of lines in a notebook file.
- */
-export interface NotebookCellRange {
-  /**
-   * 0-based cell index
-   */
-  cellIndex: number
-  /**
-   * 1-based line number
-   */
-  start?: number
-  /**
-   * 1-based line number
-   */
-  end?: number
-}
-/**
  * Represents a location in a file.
  * It could be a 1-based line number, a line range, a position or a position range.
  */
-export type Location = number | LineRange | Position | PositionRange | NotebookCellRange
+export type Location = number | LineRange | Position | PositionRange
 
 /**
  * Represents a client-side file context.
@@ -83,8 +66,21 @@ export interface EditorFileContext {
    * The range of the selected content in the file.
    * If the range is not provided, the whole file is considered.
    */
-  range?: LineRange | PositionRange | NotebookCellRange
-
+  range?: LineRange | PositionRange
+  /**
+   * The information of a jupyter notebook file
+   */
+  notebookCell?: {
+    /**
+     * numeric identifier of the cell
+     */
+    handle: number
+    /**
+     * The scheme of the notebook cell document
+     * eg: 'file', 'untitled'
+     */
+    scheme: string
+  }
   /**
    * The content of the file context.
    */
