@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use anyhow::{anyhow, Context};
 use argon2::{
@@ -29,6 +30,7 @@ use super::{graphql_pagination_to_filter, UserSecuredExt};
 use crate::{
     bail,
     jwt::{generate_jwt, validate_jwt},
+    ldap::{self, LdapClient},
     oauth::{self, OAuthClient},
 };
 
@@ -320,6 +322,34 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(resp)
     }
 
+    async fn token_auth_ldap(&self, user_id: &str, password: &str) -> Result<TokenAuthResponse> {
+        let client = ldap::new_ldap_client(
+            "ldap://localhost:3890".to_string(),
+            "cn=admin,ou=people,dc=ikw,dc=app".to_string(),
+            "password".to_string(),
+            "ou=people,dc=ikw,dc=app".to_string(),
+            "(&(objectClass=inetOrgPerson)(uid=%s))".to_string(),
+            "mail".to_string(),
+            "cn".to_string(),
+        );
+        let license = self
+            .license
+            .read()
+            .await
+            .context("Failed to read license info")?;
+
+        ldap_login(
+            Arc::new(Mutex::new(client)),
+            &self.db,
+            &*self.setting,
+            &license,
+            &*self.mail,
+            user_id,
+            password,
+        )
+        .await
+    }
+
     async fn refresh_token(&self, token: String) -> Result<RefreshTokenResponse> {
         let Some(refresh_token) = self.db.get_refresh_token(&token).await? else {
             bail!("Invalid refresh token");
@@ -580,6 +610,28 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 }
 
+async fn ldap_login(
+    client: Arc<Mutex<dyn LdapClient>>,
+    db: &DbConn,
+    setting: &dyn SettingService,
+    license: &LicenseInfo,
+    mail: &dyn EmailService,
+    user_id: &str,
+    password: &str,
+) -> Result<TokenAuthResponse> {
+    let user = client.lock().await.validate(user_id, password).await?;
+    let user_id = get_or_create_sso_user(license, db, setting, mail, &user.email, &user.name)
+        .await
+        .map_err(|e| CoreError::Other(anyhow!("fail to get or create ldap user: {}", e)))?;
+
+    let refresh_token = db.create_refresh_token(user_id).await?;
+    let access_token = generate_jwt(user_id.as_id())
+        .map_err(|e| CoreError::Other(anyhow!("fail to create access_token: {}", e)))?;
+
+    let resp = TokenAuthResponse::new(access_token, refresh_token);
+    Ok(resp)
+}
+
 async fn oauth_login(
     client: Arc<dyn OAuthClient>,
     code: String,
@@ -591,7 +643,7 @@ async fn oauth_login(
     let access_token = client.exchange_code_for_token(code).await?;
     let email = client.fetch_user_email(&access_token).await?;
     let name = client.fetch_user_full_name(&access_token).await?;
-    let user_id = get_or_create_oauth_user(license, db, setting, mail, &email, &name).await?;
+    let user_id = get_or_create_sso_user(license, db, setting, mail, &email, &name).await?;
 
     let refresh_token = db.create_refresh_token(user_id).await?;
 
@@ -604,7 +656,7 @@ async fn oauth_login(
     Ok(resp)
 }
 
-async fn get_or_create_oauth_user(
+async fn get_or_create_sso_user(
     license: &LicenseInfo,
     db: &DbConn,
     setting: &dyn SettingService,
@@ -638,7 +690,7 @@ async fn get_or_create_oauth_user(
         // it's ok to set password to null here, because
         // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
         // 2. `password_verify` will always return false for empty password hash read from user table
-        // so user created here is only able to login by github oauth, normal login won't work
+        // so user created here is only able to login by github oauth, or ldap, normal login won't work
 
         let res = db.create_user(email.to_owned(), None, false, name).await?;
         if let Err(e) = mail.send_signup(email.to_string()).await {
@@ -1039,7 +1091,7 @@ mod tests {
         service.db.update_user_active(id, false).await.unwrap();
         let setting = service.setting;
 
-        let res = get_or_create_oauth_user(
+        let res = get_or_create_sso_user(
             &license,
             &service.db,
             &*setting,
@@ -1056,7 +1108,7 @@ mod tests {
             .await
             .unwrap();
 
-        let res = get_or_create_oauth_user(
+        let res = get_or_create_sso_user(
             &license,
             &service.db,
             &*setting,
@@ -1074,7 +1126,7 @@ mod tests {
         tokio::time::sleep(Duration::milliseconds(50).to_std().unwrap()).await;
         assert_eq!(mail.list_mail().await[0].subject, "Welcome to Tabby!");
 
-        let res = get_or_create_oauth_user(
+        let res = get_or_create_sso_user(
             &license,
             &service.db,
             &*setting,
@@ -1091,7 +1143,7 @@ mod tests {
             .await
             .unwrap();
 
-        let res = get_or_create_oauth_user(
+        let res = get_or_create_sso_user(
             &license,
             &service.db,
             &*setting,

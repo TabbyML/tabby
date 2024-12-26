@@ -80,6 +80,13 @@ impl AuthenticationService for FakeAuthService {
         ))
     }
 
+    async fn token_auth_ldap(&self, _user_id: &str, _password: &str) -> Result<TokenAuthResponse> {
+        Ok(TokenAuthResponse::new(
+            "access_token".to_string(),
+            "refresh_token".to_string(),
+        ))
+    }
+
     async fn refresh_token(&self, _token: String) -> Result<RefreshTokenResponse> {
         Ok(RefreshTokenResponse::new(
             "access_token".to_string(),

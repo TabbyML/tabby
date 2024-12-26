@@ -41,6 +41,7 @@ use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLEnum, GraphQLObject,
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
+use ldap3::result::LdapError;
 use notification::NotificationService;
 use repository::RepositoryGrepOutput;
 use tabby_common::{
@@ -143,6 +144,12 @@ pub enum CoreError {
 
     #[error("{0}")]
     Other(#[from] anyhow::Error),
+}
+
+impl From<LdapError> for CoreError {
+    fn from(err: LdapError) -> Self {
+        Self::Other(err.into())
+    }
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
@@ -986,6 +993,22 @@ impl Mutation {
         ctx.locator
             .auth()
             .token_auth(input.email, input.password)
+            .await
+    }
+
+    async fn token_auth_ldap(
+        ctx: &Context,
+        user_id: String,
+        password: String,
+    ) -> Result<TokenAuthResponse> {
+        let input = auth::TokenAuthLdapInput {
+            user_id: &user_id,
+            password: &password,
+        };
+        input.validate()?;
+        ctx.locator
+            .auth()
+            .token_auth_ldap(&user_id, &password)
             .await
     }
 
