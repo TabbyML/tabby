@@ -5376,6 +5376,7 @@ dependencies = [
  "serde",
  "sql_query_builder",
  "sqlx",
+ "sqlx-migrate-validate",
  "tabby-db-macros",
  "tokio",
  "uuid",

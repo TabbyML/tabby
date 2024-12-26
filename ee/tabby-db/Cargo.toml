@@ -26,6 +26,7 @@ sqlx = { workspace = true, features = [
     "macros",
     "json",
 ] }
+sqlx-migrate-validate = { path = "../../crates/sqlx-migrate-validate" }
 
 [dev-dependencies]
 assert_matches.workspace = true
