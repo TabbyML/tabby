@@ -105,7 +105,8 @@ export function AssistantMessageSection({
     fetchingContextInfo,
     onDeleteMessage,
     isThreadOwner,
-    onUpdateMessage
+    onUpdateMessage,
+    repositories
   } = useContext(SearchContext)
 
   const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
@@ -146,7 +147,15 @@ export function AssistantMessageSection({
 
   const IconAnswer = isLoading ? IconSpinner : IconSparkles
 
-  const relevantCodeGitURL = message?.attachment?.code?.[0]?.gitUrl || ''
+  // match gitUrl for clientCode with codeSourceId
+  const clientCodeGitUrl = useMemo(() => {
+    if (!message.codeSourceId || !repositories?.length) return ''
+
+    const target = repositories.find(
+      info => info.sourceId === message.codeSourceId
+    )
+    return target?.gitUrl ?? ''
+  }, [message.codeSourceId, repositories])
 
   const clientCodeContexts: RelevantCodeContext[] = useMemo(() => {
     if (!clientCode?.length) return []
@@ -157,11 +166,11 @@ export function AssistantMessageSection({
           range: getRangeFromAttachmentCode(code),
           filepath: code.filepath || '',
           content: code.content,
-          git_url: relevantCodeGitURL
+          git_url: clientCodeGitUrl
         }
       }) ?? []
     )
-  }, [clientCode, relevantCodeGitURL])
+  }, [clientCode, clientCodeGitUrl])
 
   const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
@@ -183,9 +192,9 @@ export function AssistantMessageSection({
   const messageAttachmentClientCode = useMemo(() => {
     return clientCode?.map(o => ({
       ...o,
-      gitUrl: relevantCodeGitURL
+      gitUrl: clientCodeGitUrl
     }))
-  }, [clientCode, relevantCodeGitURL])
+  }, [clientCode, clientCodeGitUrl])
 
   const messageAttachmentDocs = message?.attachment?.doc
   const messageAttachmentCodeLen =

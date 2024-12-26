@@ -25,6 +25,7 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
+import { repositorySourceListQuery } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
@@ -48,20 +49,6 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
-
-const repositoryListQuery = graphql(/* GraphQL */ `
-  query RepositorySourceList {
-    repositoryList {
-      id
-      name
-      kind
-      gitUrl
-      sourceId
-      sourceName
-      sourceKind
-    }
-  }
-`)
 
 type ChatContextValue = {
   initialized: boolean
@@ -180,7 +167,7 @@ function ChatRenderer(
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
-    query: repositoryListQuery
+    query: repositorySourceListQuery
   })
   const repos = repositoryListData?.repositoryList
 

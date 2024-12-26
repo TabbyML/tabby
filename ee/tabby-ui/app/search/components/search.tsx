@@ -33,6 +33,7 @@ import {
   Maybe,
   Message,
   MessageAttachmentClientCode,
+  RepositorySourceListQuery,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -55,6 +56,7 @@ import {
   contextInfoQuery,
   listThreadMessages,
   listThreads,
+  repositorySourceListQuery,
   setThreadPersistedMutation
 } from '@/lib/tabby/query'
 import {
@@ -136,6 +138,7 @@ type SearchContextValue = {
   onUpdateMessage: (
     message: ConversationMessage
   ) => Promise<ExtendedCombinedError | undefined>
+  repositories: RepositorySourceListQuery['repositoryList'] | undefined
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -223,6 +226,10 @@ export function Search() {
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
   })
+  const [{ data: repositorySourceListData, fetching: fetchingRepos }] =
+    useQuery({
+      query: repositorySourceListQuery
+    })
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
 
@@ -579,7 +586,7 @@ export function Search() {
     }
 
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(ctx)
+      getSourceInputs(selectedRepoId, ctx)
 
     const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
       ? { sourceId: sourceIdForCodeQuery, content: question }
@@ -645,7 +652,10 @@ export function Search() {
     )
 
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(getThreadRunContextsFromMentions(mentions))
+      getSourceInputs(
+        selectedRepoId,
+        getThreadRunContextsFromMentions(mentions)
+      )
 
     const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
       ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }
@@ -814,7 +824,8 @@ export function Search() {
         fetchingContextInfo,
         onDeleteMessage,
         isThreadOwner,
-        onUpdateMessage
+        onUpdateMessage,
+        repositories: repositorySourceListData?.repositoryList
       }}
     >
       <div className="transition-all" style={style}>
@@ -1036,17 +1047,24 @@ function ThreadMessagesErrorView({
   )
 }
 
-function getSourceInputs(ctx: ThreadRunContexts | undefined) {
+function getSourceInputs(
+  repositorySourceId: string | undefined,
+  ctx: ThreadRunContexts | undefined
+) {
   let sourceIdsForDocQuery: string[] = []
   let sourceIdForCodeQuery: string | undefined
   let searchPublic = false
 
   if (ctx) {
     sourceIdsForDocQuery = uniq(
-      compact([ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds))
+      // Compatible with existing user messages
+      compact(
+        [repositorySourceId, ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds)
+      )
     )
     searchPublic = ctx.searchPublic ?? false
-    sourceIdForCodeQuery = ctx.codeSourceIds?.[0] ?? undefined
+    sourceIdForCodeQuery =
+      repositorySourceId || ctx.codeSourceIds?.[0] || undefined
   }
   return {
     sourceIdsForDocQuery,
