@@ -76,7 +76,6 @@ impl TryFrom<LdapCredentialDAO> for LdapCredential {
             host: val.host,
             port: val.port as i32,
             bind_dn: val.bind_dn,
-            bind_password: val.bind_password,
             base_dn: val.base_dn,
             user_filter: val.user_filter,
             encryption: LdapEncryptionKind::from_enum_str(&val.encryption)?,

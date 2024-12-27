@@ -387,21 +387,21 @@ pub struct UpdateLdapCredentialInput {
     pub host: String,
     pub port: i32,
 
-    #[validate(length(min = 1, code = "bind_dn", message = "bind_dn cannot be empty"))]
+    #[validate(length(min = 1, code = "bindDn", message = "bindDn cannot be empty"))]
     pub bind_dn: String,
     #[validate(length(
         min = 1,
-        code = "bind_password",
-        message = "bind_password cannot be empty"
+        code = "bindPassword",
+        message = "bindPassword cannot be empty"
     ))]
     pub bind_password: String,
 
-    #[validate(length(min = 1, code = "base_dn", message = "base_dn cannot be empty"))]
+    #[validate(length(min = 1, code = "baseDn", message = "baseDn cannot be empty"))]
     pub base_dn: String,
     #[validate(length(
         min = 1,
-        code = "user_filter",
-        message = "user_filter cannot be empty, and should be in the format of `(uid=%s)`"
+        code = "userFilter",
+        message = "userFilter cannot be empty, and should be in the format of `(uid=%s)`"
     ))]
     pub user_filter: String,
 
@@ -410,14 +410,14 @@ pub struct UpdateLdapCredentialInput {
 
     #[validate(length(
         min = 1,
-        code = "email_attribute",
-        message = "email_attribute cannot be empty"
+        code = "emailAttribute",
+        message = "emailAttribute cannot be empty"
     ))]
     pub email_attribute: String,
     #[validate(length(
         min = 1,
-        code = "name_attribute",
-        message = "name_attribute cannot be empty"
+        code = "nameAttribute",
+        message = "nameAttribute cannot be empty"
     ))]
     pub name_attribute: String,
 }
@@ -427,7 +427,6 @@ pub struct LdapCredential {
     pub host: String,
     pub port: i32,
     pub bind_dn: String,
-    pub bind_password: String,
     pub base_dn: String,
     pub user_filter: String,
     pub encryption: LdapEncryptionKind,
@@ -510,7 +509,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
 
     async fn read_ldap_credential(&self) -> Result<Option<LdapCredential>>;
-    async fn test_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()>;
+    async fn test_ldap_connection(&self, input: UpdateLdapCredentialInput) -> Result<()>;
     async fn update_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()>;
     async fn delete_ldap_credential(&self) -> Result<()>;
 

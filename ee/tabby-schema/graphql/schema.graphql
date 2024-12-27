@@ -498,7 +498,6 @@ type LdapCredential {
   host: String!
   port: Int!
   bindDn: String!
-  bindPassword: String!
   baseDn: String!
   userFilter: String!
   encryption: LdapEncryptionKind!
@@ -631,7 +630,7 @@ type Mutation {
   deleteInvitation(id: ID!): ID!
   updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!
-  testLdapCredential(input: UpdateLdapCredentialInput!): Boolean!
+  testLdapConnection(input: UpdateLdapCredentialInput!): Boolean!
   updateLdapCredential(input: UpdateLdapCredentialInput!): Boolean!
   deleteLdapCredential: Boolean!
   updateEmailSetting(input: EmailSettingInput!): Boolean!

@@ -1090,10 +1090,10 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn test_ldap_credential(ctx: &Context, input: UpdateLdapCredentialInput) -> Result<bool> {
+    async fn test_ldap_connection(ctx: &Context, input: UpdateLdapCredentialInput) -> Result<bool> {
         check_admin(ctx).await?;
         check_license(ctx, &[LicenseType::Enterprise]).await?;
-        ctx.locator.auth().test_ldap_credential(input).await?;
+        ctx.locator.auth().test_ldap_connection(input).await?;
         Ok(true)
     }
 
