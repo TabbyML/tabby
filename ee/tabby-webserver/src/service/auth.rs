@@ -13,9 +13,10 @@ use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
 use tabby_schema::{
     auth::{
-        AuthenticationService, Invitation, JWTPayload, OAuthCredential, OAuthError, OAuthProvider,
-        OAuthResponse, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
-        TokenAuthResponse, UpdateOAuthCredentialInput, UserSecured,
+        AuthenticationService, Invitation, JWTPayload, LdapCredential, OAuthCredential, OAuthError,
+        OAuthProvider, OAuthResponse, RefreshTokenResponse, RegisterResponse,
+        RequestInvitationInput, TokenAuthResponse, UpdateLdapCredentialInput,
+        UpdateOAuthCredentialInput, UserSecured,
     },
     email::EmailService,
     is_demo_mode,
@@ -323,15 +324,6 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn token_auth_ldap(&self, user_id: &str, password: &str) -> Result<TokenAuthResponse> {
-        let client = ldap::new_ldap_client(
-            "ldap://localhost:3890".to_string(),
-            "cn=admin,ou=people,dc=ikw,dc=app".to_string(),
-            "password".to_string(),
-            "ou=people,dc=ikw,dc=app".to_string(),
-            "(&(objectClass=inetOrgPerson)(uid=%s))".to_string(),
-            "mail".to_string(),
-            "cn".to_string(),
-        );
         let license = self
             .license
             .read()
@@ -339,7 +331,6 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .context("Failed to read license info")?;
 
         ldap_login(
-            Arc::new(Mutex::new(client)),
             &self.db,
             &*self.setting,
             &license,
@@ -581,6 +572,60 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
+    async fn read_ldap_credential(&self) -> Result<Option<LdapCredential>> {
+        let credential = self.db.read_ldap_credential().await?;
+        match credential {
+            Some(c) => Ok(Some(c.try_into()?)),
+            None => Ok(None),
+        }
+    }
+
+    async fn test_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()> {
+        let mut client = ldap::new_ldap_client(
+            input.host,
+            input.port as i64,
+            input.bind_dn,
+            input.bind_password,
+            input.base_dn,
+            input.user_filter,
+            input.email_attribute,
+            input.name_attribute,
+        );
+
+        if let Err(e) = client.validate("", "").await {
+            if e.to_string().contains("User not found") {
+                return Ok(());
+            } else {
+                bail!("Failed to connect to LDAP server: {e}");
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn update_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()> {
+        self.db
+            .update_ldap_credential(
+                &input.host,
+                input.port,
+                &input.bind_dn,
+                &input.bind_password,
+                &input.base_dn,
+                &input.user_filter,
+                &input.encryption.as_enum_str(),
+                input.skip_tls_verify,
+                &input.email_attribute,
+                &input.name_attribute,
+            )
+            .await?;
+        Ok(())
+    }
+
+    async fn delete_ldap_credential(&self) -> Result<()> {
+        self.db.delete_ldap_credential().await?;
+        Ok(())
+    }
+
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
@@ -611,7 +656,6 @@ impl AuthenticationService for AuthenticationServiceImpl {
 }
 
 async fn ldap_login(
-    client: Arc<Mutex<dyn LdapClient>>,
     db: &DbConn,
     setting: &dyn SettingService,
     license: &LicenseInfo,
@@ -619,7 +663,24 @@ async fn ldap_login(
     user_id: &str,
     password: &str,
 ) -> Result<TokenAuthResponse> {
-    let user = client.lock().await.validate(user_id, password).await?;
+    let credential = db.read_ldap_credential().await?;
+    if credential.is_none() {
+        bail!("LDAP is not configured");
+    }
+
+    let credential = credential.unwrap();
+    let mut client = ldap::new_ldap_client(
+        credential.host,
+        credential.port,
+        credential.bind_dn,
+        credential.bind_password,
+        credential.base_dn,
+        credential.user_filter,
+        credential.email_attribute,
+        credential.name_attribute,
+    );
+
+    let user = client.validate(user_id, password).await?;
     let user_id = get_or_create_sso_user(license, db, setting, mail, &user.email, &user.name)
         .await
         .map_err(|e| CoreError::Other(anyhow!("fail to get or create ldap user: {}", e)))?;

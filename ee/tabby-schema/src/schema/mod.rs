@@ -455,12 +455,7 @@ impl Query {
 
     async fn ldap_credential(ctx: &Context) -> Result<Option<LdapCredential>> {
         check_admin(ctx).await?;
-        Ok(None)
-    }
-
-    async fn test_ldap_credential(ctx: &Context) -> Result<bool> {
-        check_admin(ctx).await?;
-        Ok(false)
+        ctx.locator.auth().read_ldap_credential().await
     }
 
     async fn server_info(ctx: &Context) -> Result<ServerInfo> {
@@ -1095,6 +1090,12 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn test_ldap_credential(ctx: &Context, input: UpdateLdapCredentialInput) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator.auth().test_ldap_credential(input).await?;
+        Ok(true)
+    }
+
     async fn update_ldap_credential(
         ctx: &Context,
         input: UpdateLdapCredentialInput,
@@ -1102,11 +1103,14 @@ impl Mutation {
         check_admin(ctx).await?;
         check_license(ctx, &[LicenseType::Enterprise]).await?;
         input.validate()?;
+
+        ctx.locator.auth().update_ldap_credential(input).await?;
         Ok(true)
     }
 
     async fn delete_ldap_credential(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
+        ctx.locator.auth().delete_ldap_credential().await?;
         Ok(true)
     }
 
