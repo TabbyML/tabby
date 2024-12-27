@@ -107,18 +107,20 @@ export function checkSourcesAvailability(
 }
 
 /**
- * url e.g: path/to/file.ipynb#handle=1
- * @param uri
+ * url e.g #cell=1
+ * @param fragment
  * @returns
  */
-function parseNotebookCellUri(fragment: string) {
+function parseNotebookCellUriFragment(fragment: string) {
   if (!fragment) return undefined
   try {
-    if (!fragment.startsWith('cell=')) {
+    const searchParams = new URLSearchParams(fragment)
+    const cellString = searchParams.get('cell')?.toString()
+    if (!cellString) {
       return undefined
     }
 
-    const handle = parseInt(fragment.slice('cell='.length), 10)
+    const handle = parseInt(cellString, 10)
 
     if (isNaN(handle)) {
       return undefined
@@ -142,7 +144,7 @@ export function resolveFileNameForDisplay(uri: string) {
   const extname = filename.includes('.') ? `.${filename.split('.').pop()}` : ''
   const isNotebook = extname.startsWith('.ipynb')
   const hash = url.hash ? url.hash.substring(1) : ''
-  const cell = parseNotebookCellUri(hash)
+  const cell = parseNotebookCellUriFragment(hash)
   if (isNotebook && cell) {
     return `${filename} · Cell ${(cell.handle || 0) + 1}`
   }

@@ -202,7 +202,13 @@ export function AssistantMessageSection({
     if (!ctx.filepath) return
     const url = new URL(`${window.location.origin}/files`)
     const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', ctx.filepath)
+
+    const filePathUrl = new URL(ctx.filepath, window.location.origin)
+
+    searchParams.append(
+      'redirect_filepath',
+      filePathUrl.pathname.replace(/^\//, '')
+    )
     searchParams.append('redirect_git_url', ctx.git_url)
     url.search = searchParams.toString()
 
