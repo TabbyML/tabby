@@ -631,6 +631,7 @@ type Mutation {
   deleteInvitation(id: ID!): ID!
   updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!
+  testLdapCredential(input: UpdateLdapCredentialInput!): Boolean!
   updateLdapCredential(input: UpdateLdapCredentialInput!): Boolean!
   deleteLdapCredential: Boolean!
   updateEmailSetting(input: EmailSettingInput!): Boolean!
@@ -768,7 +769,6 @@ type Query {
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   ldapCredential: LdapCredential
-  testLdapCredential: Boolean!
   serverInfo: ServerInfo!
   license: LicenseInfo!
   jobs: [String!]!

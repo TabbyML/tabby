@@ -379,30 +379,61 @@ pub enum LdapEncryptionKind {
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct UpdateLdapCredentialInput {
-    host: String,
-    port: i32,
-    bind_dn: String,
-    bind_password: String,
-    base_dn: String,
-    user_filter: String,
-    encryption: LdapEncryptionKind,
-    skip_tls_verify: bool,
-    email_attribute: String,
-    name_attribute: String,
+    #[validate(length(
+        min = 1,
+        code = "host",
+        message = "host should not be empty and should be a valid hostname or IP address"
+    ))]
+    pub host: String,
+    pub port: i32,
+
+    #[validate(length(min = 1, code = "bind_dn", message = "bind_dn cannot be empty"))]
+    pub bind_dn: String,
+    #[validate(length(
+        min = 1,
+        code = "bind_password",
+        message = "bind_password cannot be empty"
+    ))]
+    pub bind_password: String,
+
+    #[validate(length(min = 1, code = "base_dn", message = "base_dn cannot be empty"))]
+    pub base_dn: String,
+    #[validate(length(
+        min = 1,
+        code = "user_filter",
+        message = "user_filter cannot be empty, and should be in the format of `(uid=%s)`"
+    ))]
+    pub user_filter: String,
+
+    pub encryption: LdapEncryptionKind,
+    pub skip_tls_verify: bool,
+
+    #[validate(length(
+        min = 1,
+        code = "email_attribute",
+        message = "email_attribute cannot be empty"
+    ))]
+    pub email_attribute: String,
+    #[validate(length(
+        min = 1,
+        code = "name_attribute",
+        message = "name_attribute cannot be empty"
+    ))]
+    pub name_attribute: String,
 }
 
 #[derive(GraphQLObject)]
 pub struct LdapCredential {
-    host: String,
-    port: i32,
-    bind_dn: String,
-    bind_password: String,
-    base_dn: String,
-    user_filter: String,
-    encryption: LdapEncryptionKind,
-    skip_tls_verify: bool,
-    email_attribute: String,
-    name_attribute: String,
+    pub host: String,
+    pub port: i32,
+    pub bind_dn: String,
+    pub bind_password: String,
+    pub base_dn: String,
+    pub user_filter: String,
+    pub encryption: LdapEncryptionKind,
+    pub skip_tls_verify: bool,
+    pub email_attribute: String,
+    pub name_attribute: String,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -476,8 +507,13 @@ pub trait AuthenticationService: Send + Sync {
     ) -> Result<Option<OAuthCredential>>;
 
     async fn update_oauth_credential(&self, input: UpdateOAuthCredentialInput) -> Result<()>;
-
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
+
+    async fn read_ldap_credential(&self) -> Result<Option<LdapCredential>>;
+    async fn test_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()>;
+    async fn update_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()>;
+    async fn delete_ldap_credential(&self) -> Result<()>;
+
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()>;
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()>;
     async fn update_user_avatar(&self, id: &ID, avatar: Option<Box<[u8]>>) -> Result<()>;

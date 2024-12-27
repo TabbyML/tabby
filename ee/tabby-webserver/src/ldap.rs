@@ -9,7 +9,8 @@ pub trait LdapClient: Send + Sync {
 }
 
 pub fn new_ldap_client(
-    address: String,
+    host: String,
+    port: i64,
     bind_dn: String,
     bind_password: String,
     base_dn: String,
@@ -18,7 +19,7 @@ pub fn new_ldap_client(
     name_attr: String,
 ) -> impl LdapClient {
     LdapClientImpl {
-        address,
+        address: format!("ldap://{}:{}", host, port),
         bind_dn,
         bind_password,
         base_dn,
