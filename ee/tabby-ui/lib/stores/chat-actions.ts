@@ -10,7 +10,7 @@ export const updateSelectedModel = (model: string | undefined) => {
   set(() => ({ selectedModel: model }))
 }
 
-export const updateSelectedCodeSourceId = (sourceId: string | undefined) => {
+export const updateSelectedRepoSourceId = (sourceId: string | undefined) => {
   set(() => ({ selectedRepoSourceId: sourceId }))
 }
 

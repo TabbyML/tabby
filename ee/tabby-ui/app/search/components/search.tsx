@@ -41,7 +41,7 @@ import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import {
-  updateSelectedCodeSourceId,
+  updateSelectedRepoSourceId,
   updateSelectedModel
 } from '@/lib/stores/chat-actions'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
@@ -690,7 +690,7 @@ export function Search() {
   }
 
   const onSelectedRepo = (sourceId: string | undefined) => {
-    updateSelectedCodeSourceId(sourceId)
+    updateSelectedRepoSourceId(sourceId)
   }
 
   const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {

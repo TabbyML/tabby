@@ -17,7 +17,7 @@ import {
 } from '@/lib/hooks/use-server-info'
 import { setThreadsPageNo } from '@/lib/stores/answer-engine-store'
 import {
-  updateSelectedCodeSourceId,
+  updateSelectedRepoSourceId,
   updateSelectedModel
 } from '@/lib/stores/chat-actions'
 import {
@@ -91,7 +91,7 @@ function MainPanel() {
   }
 
   const onSelectedRepo = (sourceId: string | undefined) => {
-    updateSelectedCodeSourceId(sourceId)
+    updateSelectedRepoSourceId(sourceId)
   }
 
   const onSearch = (question: string, ctx?: ThreadRunContexts) => {
