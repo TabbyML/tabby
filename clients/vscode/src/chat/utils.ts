@@ -21,7 +21,7 @@ enum Schemes {
   vscodeUserdata = "vscode-userdata",
 }
 
-export function isSupportedSchemeForActiveSelection(scheme: string) {
+export function isSupportedSchemeForActiveSelection(scheme: string): boolean {
   const supportedSchemes: string[] = [Schemes.file, Schemes.untitled, Schemes.vscodeNotebookCell];
   return supportedSchemes.includes(scheme);
 }
@@ -101,7 +101,7 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
   return null;
 }
 
-function chatPanelFilepathToVscodeNotebookCellUri(root: Uri, filepath: FilepathInGitRepository) {
+function chatPanelFilepathToVscodeNotebookCellUri(root: Uri, filepath: FilepathInGitRepository): Uri | null {
   if (filepath.kind !== "git") {
     logger.warn(`Invalid filepath params.`, filepath);
     return null;
