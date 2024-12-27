@@ -67,20 +67,20 @@ export interface EditorFileContext {
    * If the range is not provided, the whole file is considered.
    */
   range?: LineRange | PositionRange
-  /**
-   * The information of a jupyter notebook file
-   */
-  notebookCell?: {
-    /**
-     * numeric identifier of the cell
-     */
-    handle: number
-    /**
-     * The scheme of the notebook cell document
-     * eg: 'file', 'untitled'
-     */
-    scheme: string
-  }
+  // /**
+  //  * The information of a jupyter notebook file
+  //  */
+  // notebookCell?: {
+  //   /**
+  //    * numeric identifier of the cell
+  //    */
+  //   handle: number
+  //   /**
+  //    * The scheme of the notebook cell document
+  //    * eg: 'file', 'untitled'
+  //    */
+  //   scheme: string
+  // }
   /**
    * The content of the file context.
    */
