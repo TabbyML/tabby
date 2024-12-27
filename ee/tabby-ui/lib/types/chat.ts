@@ -19,6 +19,7 @@ export interface FileContext {
   range?: { start: number; end: number }
   content: string
   git_url: string
+  commit?: string
 }
 
 export type Context = FileContext

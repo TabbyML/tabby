@@ -24,6 +24,7 @@ import {
   RelevantCodeContext
 } from '@/lib/types'
 import {
+  buildCodeBrowserUrlForContext,
   cn,
   formatLineHashForCodeBrowser,
   getContent,
@@ -172,13 +173,14 @@ export function AssistantMessageSection({
           filepath: code.filepath,
           content: code.content,
           git_url: code.gitUrl,
+          commit: code.commit ?? undefined,
           extra: {
             scores: code?.extra?.scores
           }
         }
       }) ?? []
     )
-  }, [clientCode, message?.attachment?.code])
+  }, [message?.attachment?.code])
 
   const messageAttachmentClientCode = useMemo(() => {
     return clientCode?.map(o => ({
@@ -200,18 +202,8 @@ export function AssistantMessageSection({
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
-    const url = new URL(`${window.location.origin}/files`)
-    const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', ctx.filepath)
-    searchParams.append('redirect_git_url', ctx.git_url)
-    url.search = searchParams.toString()
-
-    const lineHash = formatLineHashForCodeBrowser(ctx.range)
-    if (lineHash) {
-      url.hash = lineHash
-    }
-
-    window.open(url.toString())
+    const url = buildCodeBrowserUrlForContext(window.location.origin, ctx)
+    window.open(url, '_blank')
   }
 
   const onCodeCitationMouseEnter = (index: number) => {
@@ -232,6 +224,9 @@ export function AssistantMessageSection({
     const searchParams = new URLSearchParams()
     searchParams.append('redirect_filepath', code.filepath)
     searchParams.append('redirect_git_url', code.gitUrl)
+    if (code.commit) {
+      searchParams.append('redirect_rev', code.commit)
+    }
     url.search = searchParams.toString()
 
     const lineHash = formatLineHashForCodeBrowser(range)

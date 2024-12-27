@@ -192,7 +192,12 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         })
       } else {
         const setParams: Record<string, string> = {}
-        let delList = ['redirect_filepath', 'redirect_git_url', 'line']
+        let delList = [
+          'redirect_filepath',
+          'redirect_git_url',
+          'redirect_rev',
+          'line'
+        ]
         if (options?.plain) {
           setParams['plain'] = '1'
         } else {
@@ -501,13 +506,19 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       const repos = await fetchAllRepositories()
       const redirect_filepath = searchParams.get('redirect_filepath')
       const redirect_git_url = searchParams.get('redirect_git_url')
+      const redirect_rev = searchParams.get('redirect_rev')
 
       if (repos?.length && redirect_filepath && redirect_git_url) {
         const targetRepo = repos.find(repo => repo.gitUrl === redirect_git_url)
         if (targetRepo) {
-          // use default rev
-          const defaultRef = getDefaultRepoRef(targetRepo.refs)
-          const refName = resolveRepoRef(defaultRef)?.name || ''
+          let refName = ''
+          if (redirect_rev) {
+            refName = redirect_rev
+          } else {
+            // use default rev
+            const defaultRef = getDefaultRepoRef(targetRepo.refs)
+            refName = resolveRepoRef(defaultRef)?.name || ''
+          }
 
           const lineRangeInHash = parseLineNumberFromHash(window.location.hash)
           const isValidLineHash = !isNil(lineRangeInHash?.start)
