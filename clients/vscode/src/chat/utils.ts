@@ -72,8 +72,12 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
   if (filepath.kind === "uri") {
     try {
       if (isNotebook) {
-        return generateLocalNotebookCellUri(Uri.parse(filepath.uri), 0);
+        const handle = chatPanelFilePathToNotebookCellHandle(filepath.uri);
+        if (typeof handle === 'number') {
+          return generateLocalNotebookCellUri(Uri.parse(filepath.uri), handle);
+        }
       }
+
       return Uri.parse(filepath.uri, true);
     } catch (e) {
       // FIXME(@icycodes): this is a hack for uri is relative filepaths in workspaces
@@ -103,26 +107,33 @@ function chatPanelFilepathToVscodeNotebookCellUri(root: Uri, filepath: FilepathI
     return null;
   }
 
-  const fileUri = Uri.parse(filepath.filepath);
-  const fragment = fileUri.fragment;
+  const filePathUri = Uri.parse(filepath.filepath);
+  const notebookUri = Uri.joinPath(root, filePathUri.path);
 
-  const uri = Uri.joinPath(root, fileUri.path);
+  const handle = chatPanelFilePathToNotebookCellHandle(filepath.filepath)
+  if (typeof handle === "undefined") {
+    logger.warn(`Invalid filepath params.`, filepath);
+    return null;
+  }
+  return generateLocalNotebookCellUri(notebookUri, handle);
+}
 
+function chatPanelFilePathToNotebookCellHandle(filepath: string): number | undefined {
   let handle: number | undefined;
 
+  const fileUri = Uri.parse(filepath);
+  const fragment = fileUri.fragment;
   const searchParams = new URLSearchParams(fragment);
-
   if (searchParams.has("cell")) {
     const cellString = searchParams.get("cell")?.toString() || "";
     handle = parseInt(cellString, 10);
   }
 
   if (typeof handle === "undefined" || isNaN(handle)) {
-    logger.warn(`Invalid handle in filepath.`, filepath.filepath);
-    return null;
+    return undefined
   }
 
-  return generateLocalNotebookCellUri(uri, handle);
+  return handle
 }
 
 export function vscodePositionToChatPanelPosition(position: VSCodePosition): ChatPanelPosition {
