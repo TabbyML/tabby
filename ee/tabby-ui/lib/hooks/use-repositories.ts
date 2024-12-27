@@ -15,7 +15,7 @@ export function useRepositorySources() {
 export function useSelectedRepository() {
   const [{ data, fetching }] = useRepositorySources()
   const repos = data?.repositoryList
-  const repoId = useChatStore(state => state.selectedCodeSourceId)
+  const repoId = useChatStore(state => state.selectedRepoSourceId)
 
   const selectedRepository = useMemo(() => {
     if (!repos?.length || !repoId) return undefined
