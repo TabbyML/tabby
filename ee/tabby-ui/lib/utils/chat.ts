@@ -106,30 +106,28 @@ export function checkSourcesAvailability(
   return { hasCodebaseSource, hasDocumentSource }
 }
 
-function parseNotebookCellFragment(fragment: string) {
+/**
+ * url e.g: path/to/file.ipynb#handle=1
+ * @param uri
+ * @returns
+ */
+function parseNotebookCellUri(fragment: string) {
   if (!fragment) return undefined
+  try {
+    if (!fragment.startsWith('cell=')) {
+      return undefined
+    }
 
-  const _lengths = ['W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f']
-  const _padRegexp = new RegExp(`^[${_lengths.join('')}]+`)
-  const _radix = 7
-  const idx = fragment.indexOf('s')
-  if (idx < 0) {
-    return undefined
-  }
-  const handle = parseInt(
-    fragment.substring(0, idx).replace(_padRegexp, ''),
-    _radix
-  )
-  const scheme = Buffer.from(fragment.substring(idx + 1), 'base64').toString(
-    'utf-8'
-  )
+    const handle = parseInt(fragment.slice('cell='.length), 10)
 
-  if (isNaN(handle)) {
+    if (isNaN(handle)) {
+      return undefined
+    }
+    return {
+      handle
+    }
+  } catch (error) {
     return undefined
-  }
-  return {
-    handle,
-    scheme
   }
 }
 
@@ -144,10 +142,9 @@ export function resolveFileNameForDisplay(uri: string) {
   const extname = filename.includes('.') ? `.${filename.split('.').pop()}` : ''
   const isNotebook = extname.startsWith('.ipynb')
   const hash = url.hash ? url.hash.substring(1) : ''
-  const notebook = parseNotebookCellFragment(hash)
-
-  if (isNotebook && notebook) {
-    return `${filename} · Cell ${(notebook.handle || 0) + 1}`
+  const cell = parseNotebookCellUri(hash)
+  if (isNotebook && cell) {
+    return `${filename} · Cell ${(cell.handle || 0) + 1}`
   }
   return filename
 }

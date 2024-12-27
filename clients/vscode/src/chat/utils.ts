@@ -10,6 +10,7 @@ import type {
 } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
+import { Schemes } from "./chat";
 
 const logger = getLogger("chat/utils");
 
@@ -22,8 +23,12 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
   }
   const gitRemoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
   if (repo && gitRemoteUrl) {
-    const uriFilePath =
-      uri.scheme === "vscode-notebook-cell" ? uri.with({ scheme: "file" }).toString(true) : uri.toString(true);
+    let uriFilePath: string = uri.toString(true);
+
+    if (uri.scheme === Schemes.vscodeNotebookCell) {
+      uriFilePath = localUriToUriFilePath(uri);
+    }
+
     const relativeFilePath = path.relative(repo.rootUri.toString(true), uriFilePath);
     if (!relativeFilePath.startsWith("..")) {
       return {
@@ -33,10 +38,24 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
       };
     }
   }
+
   return {
     kind: "uri",
-    uri: uri.toString(true),
+    uri: localUriToUriFilePath(uri),
   };
+}
+
+function localUriToUriFilePath(uri: Uri): string {
+  let uriFilePath = uri.toString(true);
+
+  if (uri.scheme === Schemes.vscodeNotebookCell) {
+    const notebook = parseNotebookCellUri(uri);
+    if (notebook) {
+      // add fragment `#cell={number}` to filepath
+      uriFilePath = uri.with({ scheme: notebook.notebook.scheme, fragment: `cell=${notebook.handle}` }).toString(true);
+    }
+  }
+  return uriFilePath;
 }
 
 export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: GitProvider): Uri | null {
@@ -73,10 +92,24 @@ function chatPanelFilepathToVscodeNotebookCellUri(root: Uri, filepath: FilepathI
     return null;
   }
 
-  const parsedUrl = new URL(filepath.filepath, "file://");
-  const hash = parsedUrl.hash;
-  const cleanPath = parsedUrl.pathname;
-  return Uri.joinPath(root, cleanPath).with({ scheme: "vscode-notebook-cell", fragment: hash.slice(1) });
+  const uri = Uri.joinPath(root, filepath.filepath);
+  let handle: number | undefined;
+  const fragment = uri.fragment;
+  if (fragment.startsWith("cell=")) {
+    const handleStr = fragment.slice("cell=".length);
+    const _handle = parseInt(handleStr, 10);
+    if (isNaN(_handle)) {
+      return uri;
+    }
+  }
+
+  if (typeof handle === "undefined") {
+    logger.warn(`Invalid handle in filepath.`, filepath.filepath);
+    return uri;
+  }
+
+  const cellUri = generateNotebookCellUri(uri, handle);
+  return cellUri;
 }
 
 export function vscodePositionToChatPanelPosition(position: VSCodePosition): ChatPanelPosition {
@@ -128,4 +161,35 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   }
   logger.warn(`Invalid location params.`, location);
   return null;
+}
+
+const nb_lengths = ["W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f"];
+const nb_padRegexp = new RegExp(`^[${nb_lengths.join("")}]+`);
+const nb_radix = 7;
+export function parseNotebookCellUri(cell: Uri): { notebook: Uri; handle: number } | undefined {
+  if (cell.scheme !== Schemes.vscodeNotebookCell) {
+    return undefined;
+  }
+
+  const idx = cell.fragment.indexOf("s");
+  if (idx < 0) {
+    return undefined;
+  }
+
+  const handle = parseInt(cell.fragment.substring(0, idx).replace(nb_padRegexp, ""), nb_radix);
+  const _scheme = Buffer.from(cell.fragment.substring(idx + 1), "base64").toString("utf-8");
+  if (isNaN(handle)) {
+    return undefined;
+  }
+  return {
+    handle,
+    notebook: cell.with({ scheme: _scheme, fragment: "" }),
+  };
+}
+
+export function generateNotebookCellUri(notebook: Uri, handle: number): Uri {
+  const s = handle.toString(nb_radix);
+  const p = s.length < nb_lengths.length ? nb_lengths[s.length - 1] : "z";
+  const fragment = `${p}${s}s${Buffer.from(notebook.scheme).toString("base64")}`;
+  return notebook.with({ scheme: Schemes.vscodeNotebookCell, fragment });
 }

@@ -17,20 +17,6 @@ export interface FileContext {
    * If the range is not provided, the whole file is considered.
    */
   range?: { start: number; end: number }
-  // /**
-  //  * The info of jupyter notebook cell
-  //  */
-  // notebookCell?: {
-  //   /**
-  //    * numeric identifier of the cell
-  //    */
-  //   handle: number
-  //   /**
-  //    * The scheme of the document in notebook cell
-  //    * eg 'file', 'untitled'
-  //    */
-  //   scheme: string
-  // }
   content: string
   git_url: string
 }

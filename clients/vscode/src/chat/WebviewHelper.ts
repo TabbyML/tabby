@@ -42,6 +42,7 @@ import {
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
 } from "./utils";
+import { Schemes } from "./chat";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -264,7 +265,7 @@ export class WebviewHelper {
   }
 
   public isSupportedSchemeForActiveSelection(scheme: string) {
-    const supportedSchemes = ["file", "untitled", "vscode-notebook-cell"];
+    const supportedSchemes: string[] = [Schemes.file, Schemes.untitled, Schemes.vscodeNotebookCell];
     return supportedSchemes.includes(scheme);
   }
 
