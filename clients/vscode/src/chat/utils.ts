@@ -116,9 +116,6 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   if (typeof location === "number") {
     const position = new VSCodePosition(Math.max(0, location - 1), 0);
     return new VSCodeRange(position, position);
-  } else if ("cellIndex" in location) {
-    // FIXME cellIndex?
-    return chatPanelLineRangeToVSCodeRange(location as LineRange);
   } else if ("line" in location) {
     const position = chatPanelPositionToVSCodePosition(location);
     return new VSCodeRange(position, position);
@@ -131,28 +128,4 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   }
   logger.warn(`Invalid location params.`, location);
   return null;
-}
-
-export function parseVscodeNotebookCellURI(cell: Uri) {
-  if (!cell.scheme) return undefined;
-  if (!cell.scheme.startsWith("vscode-notebook-cell")) return undefined;
-
-  const _lengths = ["W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f"];
-  const _padRegexp = new RegExp(`^[${_lengths.join("")}]+`);
-  const _radix = 7;
-  const fragment = cell.fragment.split("#").pop() || "";
-  const idx = fragment.indexOf("s");
-  if (idx < 0) {
-    return undefined;
-  }
-  const handle = parseInt(fragment.substring(0, idx).replace(_padRegexp, ""), _radix);
-  const _scheme = Buffer.from(fragment.substring(idx + 1), "base64").toString("utf-8");
-
-  if (isNaN(handle)) {
-    return undefined;
-  }
-  return {
-    handle,
-    scheme: _scheme,
-  };
 }
