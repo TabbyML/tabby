@@ -10,9 +10,21 @@ import type {
 } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
-import { Schemes } from "./chat";
 
 const logger = getLogger("chat/utils");
+
+enum Schemes {
+  file = "file",
+  untitled = "untitled",
+  vscodeNotebookCell = "vscode-notebook-cell",
+  vscodeVfs = "vscode-vfs",
+  vscodeUserdata = "vscode-userdata",
+}
+
+export function isSupportedSchemeForActiveSelection(scheme: string) {
+  const supportedSchemes: string[] = [Schemes.file, Schemes.untitled, Schemes.vscodeNotebookCell];
+  return supportedSchemes.includes(scheme);
+}
 
 export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider): Filepath {
   const workspaceFolder = workspace.getWorkspaceFolder(uri);
