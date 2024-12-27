@@ -402,6 +402,7 @@ export const listThreadMessages = graphql(/* GraphQL */ `
           attachment {
             code {
               gitUrl
+              commit
               filepath
               language
               content

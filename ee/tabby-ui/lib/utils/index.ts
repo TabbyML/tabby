@@ -269,6 +269,10 @@ export function buildCodeBrowserUrlForContext(
   const searchParams = new URLSearchParams()
   searchParams.append('redirect_filepath', context.filepath)
   searchParams.append('redirect_git_url', context.git_url)
+  if (context.commit) {
+    searchParams.append('redirect_rev', context.commit)
+  }
+
   url.search = searchParams.toString()
 
   url.hash = formatLineHashForCodeBrowser(context.range)

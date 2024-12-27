@@ -41,6 +41,7 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
         hits {
           code {
             gitUrl
+            commit
             filepath
             language
             content
@@ -118,6 +119,7 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
         hits {
           code {
             gitUrl
+            commit
             filepath
             language
             content
