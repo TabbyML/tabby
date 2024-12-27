@@ -32,21 +32,21 @@ export function useModels(): SWRResponse<ModelInfo> {
 }
 
 export function useSelectedModel() {
-  const { data: modelData, isLoading: isFetchingModel } = useModels()
+  const { data: modelData, isLoading } = useModels()
 
   const selectedModel = useStore(useChatStore, state => state.selectedModel)
 
   useEffect(() => {
-    if (!isFetchingModel) {
+    if (!isLoading) {
       // init model
       const validModel = getModelFromModelInfo(selectedModel, modelData?.chat)
       updateSelectedModel(validModel)
     }
-  }, [isFetchingModel])
+  }, [isLoading])
 
   return {
     // fetching model data or trying to get selected model from localstorage
-    isModelLoading: isFetchingModel,
+    isFetchingModels: isLoading,
     selectedModel,
     models: modelData?.chat
   }

@@ -46,12 +46,12 @@ export default function TextAreaSearch({
   isFollowup,
   contextInfo,
   fetchingContextInfo,
-  isModelLoading,
+  isInitializingResources,
   models
 }: {
   onSearch: (value: string, ctx: ThreadRunContexts) => void
   onSelectModel: (v: string) => void
-  isModelLoading: boolean
+  isInitializingResources: boolean
   // selected model
   modelName: string | undefined
   // selected repo
@@ -97,7 +97,7 @@ export default function TextAreaSearch({
   }
 
   const handleSubmit = (editor: Editor | undefined | null) => {
-    if (!editor || isLoading || isModelLoading) {
+    if (!editor || isLoading || isInitializingResources) {
       return
     }
 
@@ -226,7 +226,7 @@ export default function TextAreaSearch({
               <Separator orientation="vertical" className="h-5" />
               {showModelSelect && (
                 <ModelSelect
-                  isInitializing={isModelLoading}
+                  isInitializing={isInitializingResources}
                   models={models}
                   value={modelName}
                   onChange={handleSelectModel}
@@ -243,7 +243,7 @@ export default function TextAreaSearch({
                 'bg-primary text-primary-foreground cursor-pointer':
                   value.length > 0,
                 '!bg-muted !text-primary !cursor-default':
-                  isLoading || value.length === 0 || isModelLoading,
+                  isLoading || value.length === 0 || isInitializingResources,
                 'mr-1.5': !showBetaBadge
               }
             )}
@@ -268,7 +268,7 @@ export default function TextAreaSearch({
           onClick={e => e.stopPropagation()}
         >
           <LoadingWrapper
-            loading={isModelLoading || fetchingContextInfo}
+            loading={isInitializingResources || fetchingContextInfo}
             delay={0}
             fallback={
               <div className="flex h-8 w-[40%] items-center">

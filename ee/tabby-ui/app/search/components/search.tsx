@@ -36,21 +36,20 @@ import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
+import { useSelectedRepository } from '@/lib/hooks/use-repositories'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import {
-  updateSelectedModel,
-  updateSelectedRepo
+  updateSelectedCodeSourceId,
+  updateSelectedModel
 } from '@/lib/stores/chat-actions'
-import { useChatStore } from '@/lib/stores/chat-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
   contextInfoQuery,
   listThreadMessages,
   listThreads,
-  repositorySourceListQuery,
   setThreadPersistedMutation
 } from '@/lib/tabby/query'
 import { ExtendedCombinedError, ThreadRunContexts } from '@/lib/types'
@@ -175,10 +174,6 @@ export function Search() {
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
   })
-  const [{ data: repositorySourceListData, fetching: fetchingRepos }] =
-    useQuery({
-      query: repositorySourceListQuery
-    })
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
 
@@ -295,8 +290,9 @@ export function Search() {
 
   const isLoadingRef = useLatest(isLoading)
 
-  const { selectedModel, isModelLoading, models } = useSelectedModel()
-  const selectedRepoId = useChatStore(state => state.selectedRepo)
+  const { selectedModel, isFetchingModels, models } = useSelectedModel()
+  const { selectedRepository, isFetchingRepositories, repos } =
+    useSelectedRepository()
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
   }, [messageIdForDev, messages])
@@ -535,7 +531,7 @@ export function Search() {
     }
 
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(selectedRepoId, ctx)
+      getSourceInputs(selectedRepository?.sourceId, ctx)
 
     const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
       ? { sourceId: sourceIdForCodeQuery, content: question }
@@ -602,7 +598,7 @@ export function Search() {
 
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
       getSourceInputs(
-        selectedRepoId,
+        selectedRepository?.sourceId,
         getThreadRunContextsFromMentions(mentions)
       )
 
@@ -694,7 +690,7 @@ export function Search() {
   }
 
   const onSelectedRepo = (sourceId: string | undefined) => {
-    updateSelectedRepo(sourceId)
+    updateSelectedCodeSourceId(sourceId)
   }
 
   const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
@@ -774,7 +770,7 @@ export function Search() {
         onDeleteMessage,
         isThreadOwner,
         onUpdateMessage,
-        repositories: repositorySourceListData?.repositoryList
+        repositories: repos
       }}
     >
       <div className="transition-all" style={style}>
@@ -913,9 +909,11 @@ export function Search() {
                       fetchingContextInfo={fetchingContextInfo}
                       modelName={selectedModel}
                       onSelectModel={onSelectModel}
-                      repoSourceId={selectedRepoId}
+                      repoSourceId={selectedRepository?.sourceId}
                       onSelectRepo={onSelectedRepo}
-                      isModelLoading={isModelLoading}
+                      isInitializingResources={
+                        isFetchingModels || isFetchingRepositories
+                      }
                       models={models}
                     />
                   </div>
