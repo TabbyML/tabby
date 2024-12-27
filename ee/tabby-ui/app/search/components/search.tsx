@@ -41,8 +41,8 @@ import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import {
-  updateSelectedRepoSourceId,
-  updateSelectedModel
+  updateSelectedModel,
+  updateSelectedRepoSourceId
 } from '@/lib/stores/chat-actions'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'

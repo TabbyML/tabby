@@ -17,8 +17,8 @@ import {
 } from '@/lib/hooks/use-server-info'
 import { setThreadsPageNo } from '@/lib/stores/answer-engine-store'
 import {
-  updateSelectedRepoSourceId,
-  updateSelectedModel
+  updateSelectedModel,
+  updateSelectedRepoSourceId
 } from '@/lib/stores/chat-actions'
 import {
   clearHomeScrollPosition,
