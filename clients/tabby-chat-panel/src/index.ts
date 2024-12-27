@@ -44,6 +44,7 @@ export interface LineRange {
    */
   end: number
 }
+
 /**
  * Represents a location in a file.
  * It could be a 1-based line number, a line range, a position or a position range.
@@ -67,6 +68,10 @@ export interface EditorFileContext {
    * If the range is not provided, the whole file is considered.
    */
   range?: LineRange | PositionRange
+
+  /**
+   * The content of the file context.
+   */
   content: string
 }
 
