@@ -73,7 +73,7 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
     try {
       if (isNotebook) {
         const handle = chatPanelFilePathToNotebookCellHandle(filepath.uri);
-        if (typeof handle === 'number') {
+        if (typeof handle === "number") {
           return generateLocalNotebookCellUri(Uri.parse(filepath.uri), handle);
         }
       }
@@ -110,7 +110,7 @@ function chatPanelFilepathToVscodeNotebookCellUri(root: Uri, filepath: FilepathI
   const filePathUri = Uri.parse(filepath.filepath);
   const notebookUri = Uri.joinPath(root, filePathUri.path);
 
-  const handle = chatPanelFilePathToNotebookCellHandle(filepath.filepath)
+  const handle = chatPanelFilePathToNotebookCellHandle(filepath.filepath);
   if (typeof handle === "undefined") {
     logger.warn(`Invalid filepath params.`, filepath);
     return null;
@@ -130,10 +130,10 @@ function chatPanelFilePathToNotebookCellHandle(filepath: string): number | undef
   }
 
   if (typeof handle === "undefined" || isNaN(handle)) {
-    return undefined
+    return undefined;
   }
 
-  return handle
+  return handle;
 }
 
 export function vscodePositionToChatPanelPosition(position: VSCodePosition): ChatPanelPosition {
