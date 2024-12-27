@@ -3,23 +3,8 @@
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
 
-import { graphql } from '@/lib/gql/generates'
-
-import { useChatStore } from '../stores/chat-store'
-
-const repositorySourceListQuery = graphql(/* GraphQL */ `
-  query RepositorySourceList {
-    repositoryList {
-      id
-      name
-      kind
-      gitUrl
-      sourceId
-      sourceName
-      sourceKind
-    }
-  }
-`)
+import { useChatStore } from '@/lib/stores/chat-store'
+import { repositorySourceListQuery } from '@/lib/tabby/query'
 
 export function useRepositorySources() {
   return useQuery({

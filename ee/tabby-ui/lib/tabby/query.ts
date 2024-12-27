@@ -473,3 +473,17 @@ export const notificationsQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const repositorySourceListQuery = graphql(/* GraphQL */ `
+  query RepositorySourceList {
+    repositoryList {
+      id
+      name
+      kind
+      gitUrl
+      sourceId
+      sourceName
+      sourceKind
+    }
+  }
+`)
