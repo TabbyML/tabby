@@ -98,6 +98,7 @@ export interface OnLoadedParams {
   apiVersion: string
 }
 
+// @deprecated
 export interface ErrorMessage {
   title?: string
   content: string
@@ -219,8 +220,11 @@ export interface ServerApi {
    */
   executeCommand: (command: ChatCommand) => Promise<void>
 
+  // @deprecated
   showError: (error: ErrorMessage) => void
+  // @deprecated
   cleanError: () => void
+
   addRelevantContext: (context: EditorContext) => void
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: EditorContext | null) => void

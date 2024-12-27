@@ -37,6 +37,9 @@ export default defineConfig(async (options: Options): Promise<Options[]> => {
     platform: "node",
     target: "node18",
     sourcemap: true,
+    loader: {
+      ".html": "text",
+    },
     define: {
       "process.env.IS_BROWSER": "false",
     },
@@ -58,6 +61,9 @@ export default defineConfig(async (options: Options): Promise<Options[]> => {
     outDir: "dist/browser",
     platform: "browser",
     sourcemap: true,
+    loader: {
+      ".html": "text",
+    },
     define: {
       "process.env.IS_BROWSER": "true",
     },

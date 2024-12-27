@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <!--{{RELOAD_COUNT}}-->
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="{{URI_STYLESHEET}}" rel="stylesheet" />
+    <link href="{{SERVER_ENDPOINT}}" rel="preconnect" />
+  </head>
+
+  <body>
+    <main class="static-content" id="loading-overlay">
+      <div class="avatar">
+        <img src="{{URI_AVATAR_TABBY}}" />
+        <p>Tabby</p>
+      </div>
+      <h4 class="title">Welcome to Tabby Chat!</h4>
+      <p>Just a moment while we get things ready...</p>
+      <span class="loader"></span>
+    </main>
+
+    <iframe id="chat" allow="clipboard-read; clipboard-write"></iframe>
+
+    <script defer>
+      const vscode = acquireVsCodeApi();
+      const chatIframe = document.getElementById("chat");
+      const loadingOverlay = document.getElementById("loading-overlay");
+
+      chatIframe.onload = () => {
+        vscode.postMessage({
+          action: "chatIframeLoaded",
+        });
+      };
+      chatIframe.src = encodeURI("{{SERVER_ENDPOINT}}/chat?client=vscode");
+
+      const syncStyle = () => {
+        const parentHtmlStyle = document.documentElement.getAttribute("style");
+        vscode.postMessage({
+          action: "syncStyle",
+          style: parentHtmlStyle,
+        });
+      };
+
+      const styleObserver = new MutationObserver(() => {
+        syncStyle();
+      });
+
+      styleObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["style"],
+      });
+
+      const showChatIframe = () => {
+        syncStyle();
+        loadingOverlay.style.display = "none";
+        chatIframe.style.display = "block";
+      };
+
+      const checkFocused = () => {
+        vscode.postMessage({
+          action: "checkFocusedResult",
+          focused: document.hasFocus(),
+        });
+      };
+
+      window.addEventListener("message", (event) => {
+        if (event.data) {
+          if (event.data.action === "dispatchKeyboardEvent") {
+            window.dispatchEvent(new KeyboardEvent(event.data.type, event.data.event));
+          } else if (event.data.action === "showChatPanel") {
+            showChatIframe();
+          } else if (event.data.action === "checkFocused") {
+            checkFocused();
+          } else if (event.data.action === "postMessageToChatPanel") {
+            chatIframe.contentWindow.postMessage(event.data.message, "*");
+          } else {
+            vscode.postMessage(event.data);
+          }
+        }
+      });
+
+      window.addEventListener("focus", (e) => {
+        setTimeout(() => {
+          chatIframe.contentWindow.focus();
+        }, 0);
+      });
+    </script>
+  </body>
+</html>

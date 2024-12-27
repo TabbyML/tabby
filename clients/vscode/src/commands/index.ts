@@ -8,7 +8,7 @@ import {
   Uri,
   ProgressLocation,
   ThemeIcon,
-  ViewColumn,
+  TextEditor,
   Range,
   CodeAction,
   CodeActionKind,
@@ -16,13 +16,12 @@ import {
 import os from "os";
 import path from "path";
 import { StatusIssuesName } from "tabby-agent";
-import type { ChatCommand } from "tabby-chat-panel";
 import { Client } from "../lsp/Client";
 import { Config } from "../Config";
 import { ContextVariables } from "../ContextVariables";
 import { InlineCompletionProvider } from "../InlineCompletionProvider";
-import { ChatSideViewProvider } from "../chat/ChatSideViewProvider";
-import { ChatPanelViewProvider } from "../chat/ChatPanelViewProvider";
+import { ChatSidePanelProvider } from "../chat/sidePanel";
+import { createChatPanel } from "../chat/chatPanel";
 import { getFileContextFromSelection, getFileContext } from "../chat/fileContext";
 import { GitProvider, Repository } from "../git/GitProvider";
 import { showOutputPanel } from "../logger";
@@ -39,7 +38,7 @@ export class Commands {
     private readonly config: Config,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
-    private readonly chatViewProvider: ChatSideViewProvider,
+    private readonly chatSidePanelProvider: ChatSidePanelProvider,
     private readonly gitProvider: GitProvider,
   ) {}
 
@@ -49,42 +48,6 @@ export class Commands {
       return commands.registerCommand(commandName, handler, this);
     });
     this.context.subscriptions.push(...registrations);
-  }
-
-  private async chatPanelExecuteCommand(command: ChatCommand) {
-    const editor = window.activeTextEditor;
-    if (editor) {
-      commands.executeCommand("tabby.chatView.focus");
-
-      if (editor.selection.isEmpty) {
-        window.showInformationMessage("No selected codes");
-        return;
-      }
-
-      this.chatViewProvider.executeCommand(command);
-    } else {
-      window.showInformationMessage("No active editor");
-    }
-  }
-
-  private addRelevantContext() {
-    const editor = window.activeTextEditor;
-    if (!editor) {
-      window.showInformationMessage("No active editor");
-      return;
-    }
-
-    const addContext = async () => {
-      const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-      if (fileContext) {
-        this.chatViewProvider.addRelevantContext(fileContext);
-      }
-    };
-    commands.executeCommand("tabby.chatView.focus");
-
-    if (this.chatViewProvider.webview?.visible) {
-      addContext();
-    }
   }
 
   commands: Record<string, (...args: never[]) => void> = {
@@ -109,6 +72,9 @@ export class Commands {
         const widget = new ConnectToServerWidget(this.client, this.config);
         widget.show();
       }
+    },
+    reconnectToServer: async () => {
+      await this.client.status.fetchAgentStatusInfo({ recheckConnection: true });
     },
     openSettings: () => {
       commands.executeCommand("workbench.action.openSettings", "@ext:TabbyML.vscode-tabby");
@@ -172,6 +138,9 @@ export class Commands {
           }
         });
     },
+    openExternal: async (url: string) => {
+      await env.openExternal(Uri.parse(url));
+    },
     openKeybindings: () => {
       commands.executeCommand("workbench.action.openGlobalKeybindings", "Tabby");
     },
@@ -222,45 +191,62 @@ export class Commands {
     "status.resetIgnoredIssues": () => {
       this.client.status.editIgnoredIssues({ operation: "removeAll", issues: [] });
     },
+    "chat.toggleFocus": async () => {
+      if (await this.chatSidePanelProvider.chatWebview.isFocused()) {
+        await commands.executeCommand("workbench.action.focusActiveEditorGroup");
+      } else {
+        await commands.executeCommand("tabby.chatView.focus");
+      }
+    },
     "chat.explainCodeBlock": async (/* userCommand?: string */) => {
       // @FIXME(@icycodes): The `userCommand` is not being used
       // When invoked from code-action/quick-fix, it contains the error message provided by the IDE
-
-      this.chatPanelExecuteCommand("explain");
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.executeCommand("explain");
+      });
     },
     "chat.addRelevantContext": async () => {
-      this.addRelevantContext();
+      ensureHasEditorSelection(async (editor) => {
+        await commands.executeCommand("tabby.chatView.focus");
+        const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
+        if (fileContext) {
+          this.chatSidePanelProvider.addRelevantContext(fileContext);
+        }
+      });
     },
     "chat.addFileContext": async () => {
       const editor = window.activeTextEditor;
       if (editor) {
+        await commands.executeCommand("tabby.chatView.focus");
         const fileContext = await getFileContext(editor, this.gitProvider);
         if (fileContext) {
-          commands.executeCommand("tabby.chatView.focus").then(async () => {
-            this.chatViewProvider.addRelevantContext(fileContext);
-          });
+          this.chatSidePanelProvider.addRelevantContext(fileContext);
         }
       } else {
-        window.showInformationMessage("No active editor");
+        window.showInformationMessage("No active editor.");
       }
     },
     "chat.fixCodeBlock": async () => {
-      this.chatPanelExecuteCommand("fix");
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.executeCommand("fix");
+      });
     },
     "chat.generateCodeBlockDoc": async () => {
-      this.chatPanelExecuteCommand("generate-docs");
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.executeCommand("generate-docs");
+      });
     },
     "chat.generateCodeBlockTest": async () => {
-      this.chatPanelExecuteCommand("generate-tests");
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.executeCommand("generate-tests");
+      });
     },
     "chat.createPanel": async () => {
-      const panel = window.createWebviewPanel("tabby.chatView", "Tabby", ViewColumn.One, {
-        retainContextWhenHidden: true,
-      });
-
-      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client, this.gitProvider);
-
-      chatPanelViewProvider.resolveWebviewView(panel);
+      await createChatPanel(this.context, this.client, this.gitProvider);
     },
     "chat.edit.start": async (userCommand?: string, range?: Range) => {
       const editor = window.activeTextEditor;
@@ -383,6 +369,15 @@ export class Commands {
       );
     },
   };
+}
+
+function ensureHasEditorSelection(callback: (editor: TextEditor) => void) {
+  const editor = window.activeTextEditor;
+  if (editor && !editor.selection.isEmpty) {
+    callback(editor);
+  } else {
+    window.showInformationMessage("No selected codes.");
+  }
 }
 
 async function applyQuickFixes(uri: Uri, range: Range): Promise<void> {

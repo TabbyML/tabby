@@ -9,7 +9,7 @@ import { Config } from "./Config";
 import { GitProvider } from "./git/GitProvider";
 import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
-import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
+import { ChatSidePanelProvider } from "./chat/sidePanel";
 import { Commands } from "./commands";
 import { CodeActions } from "./CodeActions";
 import { isBrowser } from "./env";
@@ -58,7 +58,7 @@ export async function activate(context: ExtensionContext) {
   client.registerGitProvider(gitProvider);
 
   // Register chat panel
-  const chatViewProvider = new ChatSideViewProvider(context, client, logger, gitProvider);
+  const chatViewProvider = new ChatSidePanelProvider(context, client, contextVariables, gitProvider);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },
