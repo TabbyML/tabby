@@ -14,12 +14,13 @@ members = [
     "crates/llama-cpp-server",
     "crates/ollama-api-bindings",
     "crates/tabby-index-cli",
+    "crates/hash-ids",
+    "crates/sqlx-migrate-validate",
 
     "ee/tabby-webserver",
     "ee/tabby-db",
     "ee/tabby-db-macros",
     "ee/tabby-schema",
-    "crates/hash-ids", "crates/sqlx-migrate-validate",
 ]
 
 [workspace.package]
