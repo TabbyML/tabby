@@ -580,7 +580,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
     }
 
-    async fn test_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()> {
+    async fn test_ldap_connection(&self, input: UpdateLdapCredentialInput) -> Result<()> {
         let mut client = ldap::new_ldap_client(
             input.host,
             input.port as i64,
