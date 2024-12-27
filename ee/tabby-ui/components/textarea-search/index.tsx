@@ -223,7 +223,9 @@ export default function TextAreaSearch({
                   onChange={handleSelectRepo}
                 />
               )}
-              <Separator orientation="vertical" className="h-5" />
+              {showRepoSelect && showModelSelect && (
+                <Separator orientation="vertical" className="h-5" />
+              )}
               {showModelSelect && (
                 <ModelSelect
                   isInitializing={isInitializingResources}
