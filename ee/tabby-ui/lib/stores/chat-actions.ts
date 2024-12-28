@@ -10,6 +10,10 @@ export const updateSelectedModel = (model: string | undefined) => {
   set(() => ({ selectedModel: model }))
 }
 
+export const updateSelectedRepoSourceId = (sourceId: string | undefined) => {
+  set(() => ({ selectedRepoSourceId: sourceId }))
+}
+
 export const updateEnableActiveSelection = (enable: boolean) => {
   set(() => ({ enableActiveSelection: enable }))
 }

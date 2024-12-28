@@ -278,7 +278,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         range: getRangeFromAttachmentCode(code),
         filepath: code.filepath,
         content: code.content,
-        git_url: code.gitUrl
+        git_url: code.gitUrl,
+        commit: code.commit ?? undefined
       })) ?? []
     )
   }, [message?.relevant_code])

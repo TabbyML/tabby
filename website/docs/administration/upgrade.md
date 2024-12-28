@@ -11,6 +11,8 @@ Before upgrade, make sure to [back up](../backup) the database.
 
 Tabby is a fast-evolving project, and we are constantly adding new features and fixing bugs. To keep up with the latest improvements, you should regularly upgrade your Tabby installation.
 
+*Warning: Tabby does not support downgrade. Make sure to back up your meta data before upgrading.*
+
 # Upgrade Procedure
 
 The standard procedure for upgrading Tabby involves the following steps:

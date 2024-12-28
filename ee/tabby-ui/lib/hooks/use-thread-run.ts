@@ -38,9 +38,11 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
         questions
       }
       ... on ThreadAssistantMessageAttachmentsCode {
+        codeSourceId
         hits {
           code {
             gitUrl
+            commit
             filepath
             language
             content
@@ -115,9 +117,11 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
         questions
       }
       ... on ThreadAssistantMessageAttachmentsCode {
+        codeSourceId
         hits {
           code {
             gitUrl
+            commit
             filepath
             language
             content
@@ -188,13 +192,11 @@ const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
     )
   }
 `)
-
-type ID = string
-
 export interface AnswerStream {
-  threadId?: ID
-  userMessageId?: ID
-  assistantMessageId?: ID
+  threadId?: string
+  userMessageId?: string
+  assistantMessageId?: string
+  codeSourceId?: string
   relevantQuestions?: Array<string>
   attachmentsCode?: ThreadAssistantMessageAttachmentCodeHits
   attachmentsDoc?: ThreadAssistantMessageAttachmentDocHits
@@ -274,6 +276,7 @@ export function useThreadRun({
         break
       case 'ThreadAssistantMessageAttachmentsCode':
         x.attachmentsCode = data.hits
+        x.codeSourceId = data.codeSourceId
         break
       case 'ThreadAssistantMessageAttachmentsDoc':
         x.attachmentsDoc = data.hits

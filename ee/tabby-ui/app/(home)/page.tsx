@@ -10,12 +10,16 @@ import { useStore } from 'zustand'
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
+import { useSelectedRepository } from '@/lib/hooks/use-repositories'
 import {
   useIsChatEnabled,
   useIsFetchingServerInfo
 } from '@/lib/hooks/use-server-info'
 import { setThreadsPageNo } from '@/lib/stores/answer-engine-store'
-import { updateSelectedModel } from '@/lib/stores/chat-actions'
+import {
+  updateSelectedModel,
+  updateSelectedRepoSourceId
+} from '@/lib/stores/chat-actions'
 import {
   clearHomeScrollPosition,
   setHomeScrollPosition,
@@ -55,7 +59,8 @@ function MainPanel() {
   })
   const scrollY = useStore(useScrollStore, state => state.homePage)
 
-  const { selectedModel, isModelLoading, models } = useSelectedModel()
+  const { selectedModel, isFetchingModels, models } = useSelectedModel()
+  const { selectedRepository, isFetchingRepositories } = useSelectedRepository()
 
   const showMainSection = !!data?.me || !isFetchingServerInfo
 
@@ -83,6 +88,10 @@ function MainPanel() {
 
   const handleSelectModel = (model: string) => {
     updateSelectedModel(model)
+  }
+
+  const onSelectedRepo = (sourceId: string | undefined) => {
+    updateSelectedRepoSourceId(sourceId)
   }
 
   const onSearch = (question: string, ctx?: ThreadRunContexts) => {
@@ -157,8 +166,12 @@ function MainPanel() {
                   contextInfo={contextInfoData?.contextInfo}
                   fetchingContextInfo={fetchingContextInfo}
                   modelName={selectedModel}
-                  onModelSelect={handleSelectModel}
-                  isModelLoading={isModelLoading}
+                  onSelectModel={handleSelectModel}
+                  repoSourceId={selectedRepository?.sourceId}
+                  onSelectRepo={onSelectedRepo}
+                  isInitializingResources={
+                    isFetchingModels || isFetchingRepositories
+                  }
                   models={models}
                 />
               </AnimationWrapper>
