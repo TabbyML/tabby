@@ -91,7 +91,7 @@ impl CompletionStream for OpenAICompletionEngine {
         let mut request = CompletionRequest {
             model: self.model_name.clone(),
             max_tokens: options.max_decoding_tokens,
-            temperature: 1_f32,
+            temperature: options.sampling_temperature,
             stream: true,
             presence_penalty: options.presence_penalty,
             ..Default::default()
@@ -127,11 +127,8 @@ impl CompletionStream for OpenAICompletionEngine {
                 role: "user".to_string(),
                 content: format!("{SYS_PMT}\n{prompt}"),
             }];
-
-            debug!("messages:{:?}", request.messages);
         }
 
-        debug!("messages: {:?}", request.messages);
         let mut request = self.client.post(&self.api_endpoint).json(&request);
         if let Some(api_key) = &self.api_key {
             request = request.bearer_auth(api_key);
@@ -153,7 +150,7 @@ impl CompletionStream for OpenAICompletionEngine {
 
                             if self.model_name ==  LEGACY_MODEL_NAME{
                                 if let Some(text) = choice.text.clone(){
-                                yield text;
+                                    yield text;
                                 }
                             }
                             else if let Some(delta) =  choice.delta.clone(){
