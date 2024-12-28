@@ -328,6 +328,9 @@ importers:
       '@types/semver':
         specifier: ^7.5.8
         version: 7.5.8
+      '@types/uuid':
+        specifier: ^9.0.0
+        version: 9.0.8
       '@types/vscode':
         specifier: ^1.82.0
         version: 1.89.0
@@ -360,10 +363,10 @@ importers:
         version: 5.2.0
       esbuild-plugin-copy:
         specifier: ^2.1.1
-        version: 2.1.1(esbuild@0.20.2)
+        version: 2.1.1(esbuild@0.19.12)
       esbuild-plugin-polyfill-node:
         specifier: ^0.3.0
-        version: 0.3.0(esbuild@0.20.2)
+        version: 0.3.0(esbuild@0.19.12)
       eslint:
         specifier: ^8.55.0
         version: 8.57.0
@@ -406,6 +409,9 @@ importers:
       typescript:
         specifier: ^5.3.2
         version: 5.4.5
+      uuid:
+        specifier: ^9.0.0
+        version: 9.0.1
       vscode-languageclient:
         specifier: ^9.0.1
         version: 9.0.1
@@ -16760,11 +16766,11 @@ snapshots:
       is-date-object: 1.0.5
       is-symbol: 1.0.4
 
-  esbuild-plugin-copy@2.1.1(esbuild@0.20.2):
+  esbuild-plugin-copy@2.1.1(esbuild@0.19.12):
     dependencies:
       chalk: 4.1.2
       chokidar: 3.6.0
-      esbuild: 0.20.2
+      esbuild: 0.19.12
       fs-extra: 10.1.0
       globby: 11.1.0
 
@@ -16772,12 +16778,6 @@ snapshots:
     dependencies:
       '@jspm/core': 2.0.1
       esbuild: 0.19.12
-      import-meta-resolve: 3.1.1
-
-  esbuild-plugin-polyfill-node@0.3.0(esbuild@0.20.2):
-    dependencies:
-      '@jspm/core': 2.0.1
-      esbuild: 0.20.2
       import-meta-resolve: 3.1.1
 
   esbuild@0.19.11:
@@ -20249,13 +20249,13 @@ snapshots:
       postcss: 8.4.31
       ts-node: 10.9.2(@types/node@17.0.45)(typescript@5.2.2)
 
-  postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.3.3)):
+  postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5)):
     dependencies:
       lilconfig: 3.1.1
       yaml: 2.4.2
     optionalDependencies:
       postcss: 8.4.38
-      ts-node: 10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.3.3)
+      ts-node: 10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5)
 
   postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2):
     dependencies:
@@ -20263,7 +20263,7 @@ snapshots:
       yaml: 2.4.2
     optionalDependencies:
       postcss: 8.4.38
-      ts-node: 10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5)
+      ts-node: 10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.3.3)
 
   postcss-merge-longhand@7.0.0(postcss@8.4.38):
     dependencies:
@@ -22110,7 +22110,7 @@ snapshots:
       execa: 5.1.1
       globby: 11.1.0
       joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.3.3))
+      postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2)
       resolve-from: 5.0.0
       rollup: 4.17.2
       source-map: 0.8.0-beta.0
@@ -22134,7 +22134,7 @@ snapshots:
       execa: 5.1.1
       globby: 11.1.0
       joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2)
+      postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5))
       resolve-from: 5.0.0
       rollup: 4.17.2
       source-map: 0.8.0-beta.0

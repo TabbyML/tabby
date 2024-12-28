@@ -1,5 +1,5 @@
 import path from "path";
-import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
+import { TextEditor, Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
 import type {
   Filepath,
   Position as ChatPanelPosition,
@@ -13,22 +13,26 @@ import { getLogger } from "../logger";
 
 const logger = getLogger("chat/utils");
 
-enum Schemes {
+enum DocumentSchemes {
   file = "file",
   untitled = "untitled",
   vscodeNotebookCell = "vscode-notebook-cell",
   vscodeVfs = "vscode-vfs",
-  vscodeUserdata = "vscode-userdata",
 }
 
-export function isSupportedSchemeForActiveSelection(scheme: string): boolean {
-  const supportedSchemes: string[] = [Schemes.file, Schemes.untitled, Schemes.vscodeNotebookCell];
-  return supportedSchemes.includes(scheme);
+export function isValidForSyncActiveEditorSelection(editor: TextEditor): boolean {
+  const supportedSchemes: string[] = [
+    DocumentSchemes.file,
+    DocumentSchemes.untitled,
+    DocumentSchemes.vscodeNotebookCell,
+    DocumentSchemes.vscodeVfs,
+  ];
+  return supportedSchemes.includes(editor.document.uri.scheme);
 }
 
 export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider): Filepath {
   let uriFilePath = uri.toString(true);
-  if (uri.scheme === Schemes.vscodeNotebookCell) {
+  if (uri.scheme === DocumentSchemes.vscodeNotebookCell) {
     const notebook = parseNotebookCellUri(uri);
     if (notebook) {
       // add fragment `#cell={number}` to filepath
@@ -191,7 +195,7 @@ const nb_lengths = ["W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f"];
 const nb_padRegexp = new RegExp(`^[${nb_lengths.join("")}]+`);
 const nb_radix = 7;
 export function parseNotebookCellUri(cell: Uri): { notebook: Uri; handle: number } | undefined {
-  if (cell.scheme !== Schemes.vscodeNotebookCell) {
+  if (cell.scheme !== DocumentSchemes.vscodeNotebookCell) {
     return undefined;
   }
 
@@ -215,5 +219,5 @@ export function generateLocalNotebookCellUri(notebook: Uri, handle: number): Uri
   const s = handle.toString(nb_radix);
   const p = s.length < nb_lengths.length ? nb_lengths[s.length - 1] : "z";
   const fragment = `${p}${s}s${Buffer.from(notebook.scheme).toString("base64")}`;
-  return notebook.with({ scheme: Schemes.vscodeNotebookCell, fragment });
+  return notebook.with({ scheme: DocumentSchemes.vscodeNotebookCell, fragment });
 }
