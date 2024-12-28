@@ -41,6 +41,7 @@ import {
   vscodePositionToChatPanelPosition,
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
+  isSupportedSchemeForActiveSelection,
 } from "./utils";
 
 export class WebviewHelper {
@@ -263,11 +264,6 @@ export class WebviewHelper {
     }
   }
 
-  public isSupportedSchemeForActiveSelection(scheme: string) {
-    const supportedSchemes = ["file", "untitled"];
-    return supportedSchemes.includes(scheme);
-  }
-
   public async syncActiveSelectionToChatPanel(context: EditorContext | null) {
     try {
       await this.client?.updateActiveSelection(context);
@@ -346,7 +342,7 @@ export class WebviewHelper {
   }
 
   public async syncActiveSelection(editor: TextEditor | undefined) {
-    if (!editor || !this.isSupportedSchemeForActiveSelection(editor.document.uri.scheme)) {
+    if (!editor || !isSupportedSchemeForActiveSelection(editor.document.uri.scheme)) {
       await this.syncActiveSelectionToChatPanel(null);
       return;
     }
@@ -374,7 +370,7 @@ export class WebviewHelper {
 
     window.onDidChangeTextEditorSelection((e) => {
       // This listener only handles text files.
-      if (!this.isSupportedSchemeForActiveSelection(e.textEditor.document.uri.scheme)) {
+      if (!isSupportedSchemeForActiveSelection(e.textEditor.document.uri.scheme)) {
         return;
       }
       this.syncActiveSelection(e.textEditor);
