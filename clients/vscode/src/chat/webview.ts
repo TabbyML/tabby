@@ -453,7 +453,6 @@ export class ChatWebview {
 
   private checkStatusAndLoadContent() {
     const statusInfo = this.lspClient.status.current;
-    console.log("statusInfo", statusInfo);
     const error = this.checkStatusInfo(statusInfo);
     if (error) {
       this.currentConfig = undefined;
@@ -517,7 +516,7 @@ export class ChatWebview {
     }
 
     if (statusInfo.status === "unauthorized") {
-      return "Your token is invalid.<br/><a href='command:tabby.connectToServer'><b>Connect To Server</b></a>";
+      return "Your token is invalid.<br/><a href='command:tabby.updateToken'><b>Update Token</b></a>";
     }
 
     if (statusInfo.status === "disconnected") {

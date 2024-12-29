@@ -13,14 +13,21 @@ export class ContextVariables {
     private readonly client: Client,
     private readonly config: Config,
   ) {
+    this.status = client.status.current?.status;
+    this.client.status.on("didChange", () => {
+      this.status = client.status.current?.status;
+    });
+
     this.chatEnabled = this.client.chat.isAvailable;
-    this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
     this.client.chat.on("didChangeAvailability", (params: boolean) => {
       this.chatEnabled = params;
     });
+
+    this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
     this.config.on("updated", () => {
       this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
     });
+
     this.updateChatEditResolving();
     window.onDidChangeTextEditorSelection((params) => {
       if (params.textEditor === window.activeTextEditor) {
@@ -49,6 +56,12 @@ export class ContextVariables {
     }
     this.chatEditResolving = false;
   }
+
+  set status(value: string | undefined) {
+    commands.executeCommand("setContext", "tabby.status", value);
+  }
+
+  // FIXME(@icycodes): context variables should not have getters
 
   get chatEnabled(): boolean {
     return this.chatEnabledValue;

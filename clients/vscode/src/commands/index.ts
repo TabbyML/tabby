@@ -66,8 +66,8 @@ export class Commands {
       await this.config.updateInlineCompletionTriggerMode(target);
     },
     connectToServer: async (endpoint?: string | undefined) => {
-      if (endpoint) {
-        this.config.updateServerEndpoint(endpoint);
+      if (endpoint !== undefined) {
+        await this.config.updateServerEndpoint(endpoint);
       } else {
         const widget = new ConnectToServerWidget(this.client, this.config);
         widget.show();
@@ -75,6 +75,24 @@ export class Commands {
     },
     reconnectToServer: async () => {
       await this.client.status.fetchAgentStatusInfo({ recheckConnection: true });
+    },
+    updateToken: async (token?: string | undefined) => {
+      const endpoint = this.config.serverEndpoint;
+      if (token) {
+        if (endpoint == "") {
+          return;
+        }
+        const serverRecords = this.config.serverRecords;
+        serverRecords.set(endpoint, { token, updatedAt: Date.now() });
+        await this.config.updateServerRecords(serverRecords);
+      } else {
+        if (endpoint == "") {
+          await commands.executeCommand("tabby.openTabbyAgentSettings");
+        } else {
+          const widget = new ConnectToServerWidget(this.client, this.config);
+          widget.showUpdateTokenWidget();
+        }
+      }
     },
     openSettings: () => {
       commands.executeCommand("workbench.action.openSettings", "@ext:TabbyML.vscode-tabby");

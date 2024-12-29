@@ -23,6 +23,12 @@ export class ConnectToServerWidget {
     private config: Config,
   ) {}
 
+  /**
+   * Show the widget to connect to a Tabby Server:
+   * 1. Input the URL of the Tabby Server, show the recent server list for quick selection.
+   * 2. If no token saved for the server, ask for the token.
+   * 3. Ensure the connection to the server.
+   */
   async show(): Promise<void> {
     return new Promise((resolve) => {
       const quickPick = this.quickPick;
@@ -46,6 +52,7 @@ export class ConnectToServerWidget {
                 title: "Enter your token",
                 placeHolder: "auth_" + "*".repeat(32),
                 password: true,
+                ignoreFocusOut: true,
               });
               if (token == undefined) {
                 // User canceled
@@ -81,14 +88,25 @@ export class ConnectToServerWidget {
     });
   }
 
-  private async updateToken(): Promise<void> {
+  /**
+   * Show the widget to update the token for the current server:
+   * 1. Ask for the new token.
+   * 2. Ensure the connection to the server.
+   */
+  async showUpdateTokenWidget(): Promise<void> {
     const serverRecords = this.config.serverRecords;
     const endpoint = this.config.serverEndpoint;
+
+    if (endpoint == "") {
+      // Should not reach here
+      throw new Error("This method should not be called when using the config from Tabby Agent Settings.");
+    }
 
     const token = await window.showInputBox({
       title: "Your token is invalid. Please update your token",
       placeHolder: "auth_" + "*".repeat(32),
       password: true,
+      ignoreFocusOut: true,
     });
     if (token == undefined) {
       // User canceled
@@ -119,9 +137,9 @@ export class ConnectToServerWidget {
           modal: true,
           detail: statusInfo.helpMessage,
         },
-        "Retry",
+        "Select Server",
       );
-      if (selected == "Retry") {
+      if (selected == "Select Server") {
         const newWidget = new ConnectToServerWidget(this.client, this.config);
         await newWidget.show();
       }
@@ -142,7 +160,7 @@ export class ConnectToServerWidget {
           "Update Token",
         );
         if (selected == "Update Token") {
-          await this.updateToken();
+          await this.showUpdateTokenWidget();
         }
       }
     }
@@ -159,15 +177,14 @@ export class ConnectToServerWidget {
           label: endpoint,
           description: isCurrent ? "Current" : "",
           iconPath: new ThemeIcon("server"),
-          buttons:
-            isCurrent || endpoint == defaultEndpoint
-              ? []
-              : [
-                  {
-                    iconPath: new ThemeIcon("settings-remove"),
-                    tooltip: "Remove from Recent Server List",
-                  },
-                ],
+          buttons: isCurrent
+            ? []
+            : [
+                {
+                  iconPath: new ThemeIcon("settings-remove"),
+                  tooltip: "Remove from Recent Server List",
+                },
+              ],
           endpoint,
           ...record,
         };
