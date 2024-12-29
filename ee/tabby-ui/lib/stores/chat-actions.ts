@@ -1,4 +1,4 @@
-import { useChatStore } from './chat-store'
+import { ChatState, useChatStore } from './chat-store'
 
 const set = useChatStore.setState
 
@@ -16,4 +16,10 @@ export const updateSelectedRepoSourceId = (sourceId: string | undefined) => {
 
 export const updateEnableActiveSelection = (enable: boolean) => {
   set(() => ({ enableActiveSelection: enable }))
+}
+
+export const updatePendingUserMessage = (
+  message: ChatState['pendingUserMessage']
+) => {
+  set(() => ({ pendingUserMessage: message }))
 }
