@@ -50,6 +50,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.updateToken",
+        "title": "Update Token...",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.openSettings",
         "title": "Open Settings",
         "category": "Tabby"
@@ -159,6 +164,10 @@
         {
           "command": "tabby.inlineCompletion.trigger",
           "when": "tabby.inlineCompletionTriggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
+        },
+        {
+          "command": "tabby.updateToken",
+          "when": "tabby.status === 'unauthorized'"
         },
         {
           "command": "tabby.openTabbyAgentSettings",

@@ -32,6 +32,8 @@ const mergeFunction = deepmergeCustom({
       const nonBlankStringValues = values.filter((value) => typeof value === "string" && !isBlank(value));
       if (nonBlankStringValues.length > 0) {
         return utils.defaultMergeFunctions.mergeOthers(nonBlankStringValues);
+      } else {
+        return "";
       }
     }
     return utils.actions.defaultMerge;
