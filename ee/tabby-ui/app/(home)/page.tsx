@@ -7,7 +7,6 @@ import tabbyUrl from '@/assets/logo-dark.png'
 import { useQuery } from 'urql'
 import { useStore } from 'zustand'
 
-import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import { useSelectedRepository } from '@/lib/hooks/use-repositories'
@@ -17,6 +16,7 @@ import {
 } from '@/lib/hooks/use-server-info'
 import { setThreadsPageNo } from '@/lib/stores/answer-engine-store'
 import {
+  updatePendingUserMessage,
   updateSelectedModel,
   updateSelectedRepoSourceId
 } from '@/lib/stores/chat-actions'
@@ -94,13 +94,12 @@ function MainPanel() {
     updateSelectedRepoSourceId(sourceId)
   }
 
-  const onSearch = (question: string, ctx?: ThreadRunContexts) => {
+  const onSearch = (question: string, context?: ThreadRunContexts) => {
     setIsLoading(true)
-    sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS,
-      JSON.stringify(ctx)
-    )
+    updatePendingUserMessage({
+      content: question,
+      context
+    })
     router.push('/search')
   }
 
