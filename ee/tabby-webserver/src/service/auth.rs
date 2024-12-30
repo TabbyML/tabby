@@ -582,8 +582,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn test_ldap_connection(&self, input: UpdateLdapCredentialInput) -> Result<()> {
         let mut client = ldap::new_ldap_client(
-            input.host,
+            input.host.as_ref(),
             input.port as i64,
+            input.encryption.as_enum_str(),
+            input.skip_tls_verify,
             input.bind_dn,
             input.bind_password,
             input.base_dn,
@@ -670,8 +672,10 @@ async fn ldap_login(
 
     let credential = credential.unwrap();
     let mut client = ldap::new_ldap_client(
-        credential.host,
+        credential.host.as_ref(),
         credential.port,
+        credential.encryption.as_str(),
+        credential.skip_tls_verify,
         credential.bind_dn,
         credential.bind_password,
         credential.base_dn,
