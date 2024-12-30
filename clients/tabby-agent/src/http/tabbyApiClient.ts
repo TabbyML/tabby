@@ -49,7 +49,7 @@ export class TabbyApiClient extends EventEmitter {
 
   private readonly completionRequestStats = new RequestStats();
   private completionResponseIssue: "highTimeoutRate" | "slowResponseTime" | undefined = undefined;
-  private rateLimited = false;
+  private rateLimited: boolean = false;
 
   private connectionErrorMessage: string | undefined = undefined;
   private serverHealth: TabbyApiComponents["schemas"]["HealthState"] | undefined = undefined;
@@ -175,6 +175,14 @@ export class TabbyApiClient extends EventEmitter {
         this.logger.info(`Completion response issue detected: ${issue}.`);
       }
       this.emit("hasCompletionResponseTimeIssueUpdated", !!issue);
+    }
+  }
+
+  private updateIsRateLimited(isRateLimited: boolean) {
+    if (this.rateLimited != isRateLimited) {
+      this.logger.debug(`updateIsRateLimited, next:${isRateLimited}`)
+      this.rateLimited = isRateLimited;
+      this.emit('isRateLimitedUpdated', isRateLimited);
     }
   }
 
@@ -401,6 +409,8 @@ export class TabbyApiClient extends EventEmitter {
       }
       throw error; // rethrow error
     } finally {
+      this.updateIsRateLimited(statsData.rateLimited);
+
       if (!statsData.notAvailable) {
         stats?.addRequestStatsEntry(statsData);
       }

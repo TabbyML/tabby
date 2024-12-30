@@ -70,6 +70,9 @@ export class StatusProvider extends EventEmitter implements Feature {
     this.tabbyApiClient.on("hasCompletionResponseTimeIssueUpdated", async () => {
       this.notify();
     });
+    this.tabbyApiClient.on('isRateLimitedUpdated', async () => {
+      this.notify();
+    })
 
     this.configurations.on(
       "clientProvidedConfigUpdated",
