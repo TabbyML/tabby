@@ -849,7 +849,8 @@ export type StatusInfo = {
     | "readyForAutoTrigger"
     | "readyForManualTrigger"
     | "fetching"
-    | "completionResponseSlow";
+    | "completionResponseSlow"
+    | "rateLimited";
   tooltip?: string;
   /**
    * The health information of the server if available.

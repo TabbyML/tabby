@@ -26,6 +26,7 @@ import {
   isUnauthorizedError,
   isCanceledError,
   isTimeoutError,
+  isRateLimitedError,
 } from "../utils/error";
 import { RequestStats } from "./statistics";
 
@@ -48,6 +49,7 @@ export class TabbyApiClient extends EventEmitter {
 
   private readonly completionRequestStats = new RequestStats();
   private completionResponseIssue: "highTimeoutRate" | "slowResponseTime" | undefined = undefined;
+  private rateLimited = false;
 
   private connectionErrorMessage: string | undefined = undefined;
   private serverHealth: TabbyApiComponents["schemas"]["HealthState"] | undefined = undefined;
@@ -214,6 +216,10 @@ export class TabbyApiClient extends EventEmitter {
     return !!this.completionResponseIssue;
   }
 
+  isRateLimited(): boolean {
+    return this.rateLimited;
+  }
+
   getServerHealth(): TabbyApiComponents["schemas"]["HealthState"] | undefined {
     return this.serverHealth;
   }
@@ -334,6 +340,7 @@ export class TabbyApiClient extends EventEmitter {
     }
   }
 
+  // todo
   async fetchCompletion(
     request: TabbyApiComponents["schemas"]["CompletionRequest"],
     signal?: AbortSignal,
@@ -353,6 +360,7 @@ export class TabbyApiClient extends EventEmitter {
       canceled: false,
       timeout: false,
       notAvailable: false,
+      rateLimited: false
     };
 
     try {
@@ -383,6 +391,9 @@ export class TabbyApiClient extends EventEmitter {
         this.logger.debug(`Completion request failed due to unauthorized. [${requestId}]`);
         statsData.notAvailable = true;
         this.connect(); // schedule a reconnection
+      } else if (isRateLimitedError(error)) {
+        this.logger.debug(`Completion request failed due to rate limiting. [${requestId}]`);
+        statsData.rateLimited = true
       } else {
         this.logger.error(`Completion request failed. [${requestId}]`, error);
         statsData.notAvailable = true;
