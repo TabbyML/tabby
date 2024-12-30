@@ -418,7 +418,7 @@ export default function ChatPage() {
         openInEditor={openInEditor}
         openExternal={openExternal}
         readWorkspaceGitRepositories={
-          isInEditor && supportsProvideWorkspaceGitRepoInfo
+          supportsProvideWorkspaceGitRepoInfo
             ? server?.readWorkspaceGitRepositories
             : undefined
         }

@@ -1,8 +1,9 @@
 import React from 'react'
 import { find } from 'lodash-es'
-import type { FileLocation } from 'tabby-chat-panel'
+import type { FileLocation, GitRepository } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
+import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
@@ -16,9 +17,12 @@ import { SourceCodeBrowserContext } from './source-code-browser'
 import { generateEntryPath, getDefaultRepoRef, resolveRepoRef } from './utils'
 
 interface ChatSideBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
+  activeRepo: RepositoryListQuery['repositoryList'][0] | undefined
+}
 
 export const ChatSideBar: React.FC<ChatSideBarProps> = ({
+  activeRepo,
   className,
   ...props
 }) => {
@@ -60,6 +64,12 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     return false
   }
 
+  const readWorkspaceGitRepositories = useLatest(() => {
+    if (!activeRepo) return []
+    const list: GitRepository[] = [{ url: activeRepo.gitUrl }]
+    return list
+  })
+
   const client = useClient(iframeRef, {
     refresh: async () => {
       window.location.reload()
@@ -78,6 +88,9 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     },
     openExternal: async (url: string) => {
       window.open(url, '_blank')
+    },
+    readWorkspaceGitRepositories: async () => {
+      return readWorkspaceGitRepositories.current()
     }
   })
 

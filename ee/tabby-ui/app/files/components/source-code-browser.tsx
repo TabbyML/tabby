@@ -736,7 +736,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           ref={chatSideBarPanelRef}
           onCollapse={() => setChatSideBarVisible(false)}
         >
-          <ChatSideBar />
+          <ChatSideBar activeRepo={activeRepo} />
         </ResizablePanel>
       </>
     </ResizablePanelGroup>
