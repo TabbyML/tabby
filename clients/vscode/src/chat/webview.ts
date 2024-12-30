@@ -14,6 +14,7 @@ import {
   ProgressLocation,
   Location,
   LocationLink,
+  Position,
 } from "vscode";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import type {
@@ -25,6 +26,7 @@ import type {
   SymbolInfo,
   FileLocation,
   GitRepository,
+  LookupDefinitionsHint,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import type { StatusInfo, Config } from "tabby-agent";
@@ -35,15 +37,15 @@ import { isBrowser } from "../env";
 import { getLogger } from "../logger";
 import { getFileContextFromSelection } from "./fileContext";
 import {
-  localUriToChatPanelFilepath,
   chatPanelFilepathToLocalUri,
-  vscodePositionToChatPanelPosition,
-  vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
+  convertDefinitionToSymbolInfo,
+  getDefinitionLocations,
 } from "./utils";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
+import { filterSymbolInfosByContextAndOverlap } from "./definitions";
 
 export class ChatWebview {
   private readonly logger = getLogger("ChatWebView");
@@ -184,6 +186,14 @@ export class ChatWebview {
     }
   }
 
+  private async getDefinitionLocations(uri: Uri, position: Position) {
+    return await commands.executeCommand<Location[] | LocationLink[]>(
+      "vscode.executeDefinitionProvider",
+      uri,
+      position,
+    );
+  }
+
   private createChatPanelApiClient(): ServerApi | undefined {
     const webview = this.webview;
     if (!webview) {
@@ -310,40 +320,13 @@ export class ChatWebview {
             while ((match = matchRegExp.exec(content)) !== null) {
               const offset = offsetInDocument + match.index;
               const position = document.positionAt(offset);
-              const locations = await commands.executeCommand<Location[] | LocationLink[]>(
-                "vscode.executeDefinitionProvider",
-                document.uri,
-                position,
-              );
-              if (locations && locations.length > 0) {
-                const location = locations[0];
-                if (location) {
-                  if ("targetUri" in location) {
-                    const targetLocation = location.targetSelectionRange ?? location.targetRange;
-                    return {
-                      source: {
-                        filepath: localUriToChatPanelFilepath(document.uri, this.gitProvider),
-                        location: vscodePositionToChatPanelPosition(position),
-                      },
-                      target: {
-                        filepath: localUriToChatPanelFilepath(location.targetUri, this.gitProvider),
-                        location: vscodeRangeToChatPanelPositionRange(targetLocation),
-                      },
-                    };
-                  } else if ("uri" in location) {
-                    return {
-                      source: {
-                        filepath: localUriToChatPanelFilepath(document.uri, this.gitProvider),
-                        location: vscodePositionToChatPanelPosition(position),
-                      },
-                      target: {
-                        filepath: localUriToChatPanelFilepath(location.uri, this.gitProvider),
-                        location: vscodeRangeToChatPanelPositionRange(location.range),
-                      },
-                    };
-                  }
-                }
+              // get definitions
+              const locations = await this.getDefinitionLocations(document.uri, position);
+              if (!locations || locations.length === 0 || !locations[0]) {
+                continue;
               }
+
+              return convertDefinitionToSymbolInfo(document, position, locations[0], this.gitProvider);
             }
             return undefined;
           };
@@ -448,7 +431,92 @@ export class ChatWebview {
         }
         return infoList;
       },
+
+      lookupDefinitions: async (context: LookupDefinitionsHint): Promise<SymbolInfo[]> => {
+        if (!context?.filepath) {
+          this.logger.info("lookupDefinitions: Missing filepath in context.");
+          return [];
+        }
+
+        // convert ChatPanel filepath to a local URI
+        const uri = chatPanelFilepathToLocalUri(context.filepath, this.gitProvider);
+        if (!uri) {
+          this.logger.info("lookupDefinitions: Could not resolve local URI for:", context.filepath);
+          return [];
+        }
+
+        // open the document
+        let document;
+        try {
+          document = await workspace.openTextDocument(uri);
+        } catch (e) {
+          this.logger.info("lookupDefinitions: Can't open file:", uri);
+          return [];
+        }
+
+        // determine the snippet range and get its text
+        const snippetRange = this.getSnippetRange(document, context);
+        const snippetText = document.getText(snippetRange);
+
+        // split the text into words
+        const words = snippetText.split(/\b/);
+
+        // Use an offset accumulator to track each word's position
+        let offset = 0;
+
+        // Map each word to an async definition lookup
+        const tasks = words.map((rawWord) => {
+          const currentOffset = offset;
+          offset += rawWord.length;
+
+          const trimmedWord = rawWord.trim();
+          if (!trimmedWord || trimmedWord.match(/^\W+$/)) {
+            return Promise.resolve<SymbolInfo[]>([]);
+          }
+
+          const position = document.positionAt(document.offsetAt(snippetRange.start) + currentOffset);
+
+          return getDefinitionLocations(document.uri, position)
+            .then((definitions) => {
+              if (!definitions || definitions.length === 0) {
+                return [];
+              }
+              const result: SymbolInfo[] = [];
+              definitions.forEach((def) => {
+                const info = convertDefinitionToSymbolInfo(document, position, def, this.gitProvider);
+                if (info) {
+                  result.push(info);
+                }
+              });
+              return result;
+            })
+            .catch((err) => {
+              this.logger.error(`lookupDefinitions: DefinitionProvider error: ${err}`);
+              return [];
+            });
+        });
+
+        // await all lookups in parallel and flatten the results
+        const symbolInfosArrays = await Promise.all(tasks);
+        const symbolInfos = symbolInfosArrays.flat();
+
+        // filter and merge final results
+        return filterSymbolInfosByContextAndOverlap(symbolInfos, context);
+      },
     });
+  }
+  /**
+   * Helper: decide snippet range from context.location or entire doc.
+   */
+  private getSnippetRange(document: TextDocument, context: LookupDefinitionsHint): Range {
+    if (!context.location) {
+      return new Range(0, 0, document.lineCount, 0);
+    }
+    const vsRange = chatPanelLocationToVSCodeRange(context.location);
+    if (!vsRange || vsRange.isEmpty) {
+      return new Range(0, 0, document.lineCount, 0);
+    }
+    return vsRange;
   }
 
   private checkStatusAndLoadContent() {

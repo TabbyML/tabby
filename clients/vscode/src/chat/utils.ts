@@ -1,12 +1,23 @@
 import path from "path";
-import { TextEditor, Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
+import {
+  TextEditor,
+  Position as VSCodePosition,
+  Range as VSCodeRange,
+  Uri,
+  workspace,
+  TextDocument,
+  commands,
+  LocationLink,
+  Location as VSCodeLocation,
+} from "vscode";
 import type {
   Filepath,
   Position as ChatPanelPosition,
   LineRange,
   PositionRange,
-  Location,
+  Location as ChatPanelLocation,
   FilepathInGitRepository,
+  SymbolInfo,
 } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
@@ -170,7 +181,7 @@ export function chatPanelLineRangeToVSCodeRange(lineRange: LineRange): VSCodeRan
   return new VSCodeRange(Math.max(0, lineRange.start - 1), 0, lineRange.end, 0);
 }
 
-export function chatPanelLocationToVSCodeRange(location: Location | undefined): VSCodeRange | null {
+export function chatPanelLocationToVSCodeRange(location: ChatPanelLocation | undefined): VSCodeRange | null {
   if (!location) {
     return null;
   }
@@ -220,4 +231,70 @@ export function generateLocalNotebookCellUri(notebook: Uri, handle: number): Uri
   const p = s.length < nb_lengths.length ? nb_lengths[s.length - 1] : "z";
   const fragment = `${p}${s}s${Buffer.from(notebook.scheme).toString("base64")}`;
   return notebook.with({ scheme: DocumentSchemes.vscodeNotebookCell, fragment });
+}
+
+/**
+ * Calls the built-in VSCode definition provider and returns an array of definitions
+ * (Location or LocationLink).
+ */
+export async function getDefinitionLocations(
+  uri: Uri,
+  position: VSCodePosition,
+): Promise<(VSCodeLocation | LocationLink)[]> {
+  const results = await commands.executeCommand<VSCodeLocation[] | LocationLink[]>(
+    "vscode.executeDefinitionProvider",
+    uri,
+    position,
+  );
+  return results ?? [];
+}
+
+/**
+ * Converts a single VS Code Definition result (Location or LocationLink)
+ * into a SymbolInfo object for the chat panel.
+ */
+export function convertDefinitionToSymbolInfo(
+  document: TextDocument,
+  position: VSCodePosition,
+  definition: VSCodeLocation | LocationLink,
+  gitProvider: GitProvider,
+): SymbolInfo | undefined {
+  let targetUri: Uri | undefined;
+  let targetRange: VSCodeRange | undefined;
+
+  if ("targetUri" in definition) {
+    // LocationLink
+    targetUri = definition.targetUri;
+    targetRange = definition.targetSelectionRange ?? definition.targetRange;
+  } else {
+    // Location
+    targetUri = definition.uri;
+    targetRange = definition.range;
+  }
+
+  if (!targetUri || !targetRange) {
+    return undefined;
+  }
+
+  return {
+    source: {
+      filepath: localUriToChatPanelFilepath(document.uri, gitProvider),
+      location: vscodePositionToChatPanelPosition(position),
+    },
+    target: {
+      filepath: localUriToChatPanelFilepath(targetUri, gitProvider),
+      location: vscodeRangeToChatPanelPositionRange(targetRange),
+    },
+  };
+}
+
+/**
+ * Gets the string path (either from 'kind=git' or 'kind=uri').
+ */
+export function getActualChatPanelFilepath(filepath: Filepath): string {
+  if (filepath.kind === "git") {
+    return filepath.filepath;
+  } else {
+    return filepath.uri;
+  }
 }
