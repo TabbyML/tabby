@@ -360,7 +360,7 @@ export class TabbyApiClient extends EventEmitter {
       canceled: false,
       timeout: false,
       notAvailable: false,
-      rateLimited: false
+      rateLimited: false,
     };
 
     try {
@@ -393,7 +393,7 @@ export class TabbyApiClient extends EventEmitter {
         this.connect(); // schedule a reconnection
       } else if (isRateLimitedError(error)) {
         this.logger.debug(`Completion request failed due to rate limiting. [${requestId}]`);
-        statsData.rateLimited = true
+        statsData.rateLimited = true;
       } else {
         this.logger.error(`Completion request failed. [${requestId}]`, error);
         statsData.notAvailable = true;

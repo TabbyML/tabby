@@ -206,7 +206,7 @@ export class StatusProvider extends EventEmitter implements Feature {
           if (this.tabbyApiClient.hasCompletionResponseTimeIssue() && !ignored.includes("completionResponseSlow")) {
             statusInfo = { status: "completionResponseSlow" };
           } else if (this.tabbyApiClient.isRateLimited()) {
-            statusInfo = { status: "rateLimited" }
+            statusInfo = { status: "rateLimited" };
           } else if (this.tabbyApiClient.isFetchingCompletion()) {
             statusInfo = { status: "fetching" };
           } else {
