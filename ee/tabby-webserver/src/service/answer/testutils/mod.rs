@@ -11,7 +11,10 @@ use async_openai::{
 use axum::async_trait;
 use juniper::ID;
 use tabby_common::api::{
-    code::{CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery, CodeSearchResponse},
+    code::{
+        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
+        CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
+    },
     structured_doc::{
         DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse,
         DocSearchWebDocument,
@@ -134,7 +137,44 @@ impl CodeSearch for FakeCodeSearch {
         _query: CodeSearchQuery,
         _params: CodeSearchParams,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
-        Ok(CodeSearchResponse { hits: vec![] })
+        Ok(CodeSearchResponse {
+            hits: vec![
+                CodeSearchHit {
+                    doc: CodeSearchDocument {
+                        filepath: "src/lib.rs".to_string(),
+                        body: "fn add(a: i32, b: i32) -> i32 {\n    a + b\n}".to_string(),
+                        start_line: Some(1),
+                        language: "rust".to_string(),
+                        file_id: "1".to_string(),
+                        chunk_id: "chunk1".to_string(),
+                        git_url: "https://github.com/test/repo".to_string(),
+                        commit: Some("commit".to_string()),
+                    },
+                    scores: CodeSearchScores {
+                        bm25: 0.8,
+                        embedding: 0.9,
+                        rrf: 0.85,
+                    },
+                },
+                CodeSearchHit {
+                    doc: CodeSearchDocument {
+                        filepath: "src/main.rs".to_string(),
+                        body: "fn main() {\n    println!(\"Hello World\");\n}".to_string(),
+                        start_line: Some(1),
+                        language: "rust".to_string(),
+                        file_id: "2".to_string(),
+                        chunk_id: "chunk2".to_string(),
+                        git_url: "https://github.com/test/repo".to_string(),
+                        commit: Some("commit".to_string()),
+                    },
+                    scores: CodeSearchScores {
+                        bm25: 0.7,
+                        embedding: 0.8,
+                        rrf: 0.75,
+                    },
+                },
+            ],
+        })
     }
 }
 

@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CopyButton } from '@/components/copy-button'
+import { ErrorView } from '@/components/error-view'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import WorkerCard from './worker-card'
@@ -48,8 +49,8 @@ function toBadgeString(str: string) {
 }
 
 export default function Workers() {
-  const { data: healthInfo } = useHealth()
-  const { data: workers, fetching } = useWorkers()
+  const { data: healthInfo, error: healthError } = useHealth()
+  const { data: workers, isLoading, error: workersError } = useWorkers()
   const [{ data: registrationTokenRes }, reexecuteQuery] = useQuery({
     query: getRegistrationTokenDocument
   })
@@ -59,6 +60,12 @@ export default function Workers() {
       reexecuteQuery()
     }
   })
+
+  const error = healthError || workersError
+
+  if (error) {
+    return <ErrorView title={error?.message} />
+  }
 
   if (!healthInfo) return
 
@@ -84,7 +91,7 @@ export default function Workers() {
       <Usage />
       <Separator />
       <LoadingWrapper
-        loading={fetching}
+        loading={isLoading}
         fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
       >
         <>

@@ -182,6 +182,7 @@ CREATE TABLE thread_messages(
   doc_attachments BLOB,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  code_source_id VARCHAR(255),
   FOREIGN KEY(thread_id) REFERENCES threads(id) ON DELETE CASCADE
 );
 CREATE TABLE web_documents(

@@ -8,7 +8,7 @@ pub struct UserRateLimiter {
     rate_limiters: Mutex<TimedCache<String, ratelimit::Ratelimiter>>,
 }
 
-static USER_REQUEST_LIMIT_PER_MINUTE: u64 = 30;
+static USER_REQUEST_LIMIT_PER_MINUTE: u64 = 60;
 
 impl Default for UserRateLimiter {
     fn default() -> Self {
@@ -20,7 +20,12 @@ impl Default for UserRateLimiter {
 }
 
 impl UserRateLimiter {
-    pub async fn is_allowed(&self, user_id: &str) -> bool {
+    pub async fn is_allowed(&self, uri: &axum::http::Uri, user_id: &str) -> bool {
+        // Do not limit health check requests.
+        if uri.path().ends_with("/v1/health") || uri.path().ends_with("/v1beta/health") {
+            return true;
+        }
+
         let mut rate_limiters = self.rate_limiters.lock().await;
         let rate_limiter = rate_limiters.cache_get_or_set_with(user_id.to_string(), || {
             // Create a new rate limiter for this user.
@@ -50,12 +55,18 @@ mod tests {
         let user_id = "test_user";
         let rate_limiter = UserRateLimiter::default();
 
+        let uri: axum::http::Uri = "/v1/completions".parse().unwrap();
+        let healthcheck_uri: axum::http::Uri = "/v1/health".parse().unwrap();
+
         // Test that the first `USER_REQUEST_LIMIT_PER_MINUTE` requests are allowed
         for _ in 0..USER_REQUEST_LIMIT_PER_MINUTE {
-            assert!(rate_limiter.is_allowed(user_id).await);
+            assert!(rate_limiter.is_allowed(&uri, user_id).await);
         }
 
         // Test that the 201st request is not allowed
-        assert!(!rate_limiter.is_allowed(user_id).await);
+        assert!(!rate_limiter.is_allowed(&uri, user_id).await);
+
+        // Test that health check requests are not limited
+        assert!(rate_limiter.is_allowed(&healthcheck_uri, user_id).await);
     }
 }

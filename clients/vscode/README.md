@@ -6,7 +6,7 @@
 [![Open VSX](https://img.shields.io/open-vsx/dt/TabbyML/vscode-tabby?label=Open-VSX)](https://open-vsx.org/extension/TabbyML/vscode-tabby)
 [![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)
 
-[Tabby](https://tabby.tabbyml.com/) is an open-source, self-hosted AI coding assistant designed to help you write code more efficiently.
+[Tabby](https://www.tabbyml.com/) is an open-source, self-hosted AI coding assistant designed to help you write code more efficiently.
 
 ## Installation
 
@@ -39,6 +39,6 @@ That's it! You can now start using Tabby in VSCode. Use the `Tabby: Quick Start`
 
 ## Additional Resources
 
-- [Online Documentation](https://tabby.tabbyml.com/)
+- [Online Documentation](https://tabby.tabbyml.com/docs/)
 - [GitHub Repository](https://github.com/TabbyML/tabby/): Feel free to [Report Issues](https://github.com/TabbyML/tabby/issues/new/choose) or [Contribute](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md)
 - [Slack Community](https://links.tabbyml.com/join-slack): Participate in discussions, seek assistance, and share your insights on Tabby.

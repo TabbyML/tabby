@@ -1,0 +1,3 @@
+kind: Fixed and Improvements
+body: Backup database only when there's pending schema migrations
+time: 2024-12-26T20:23:37.914517+08:00

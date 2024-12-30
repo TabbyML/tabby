@@ -1,13 +1,13 @@
 import React from 'react'
 import { find } from 'lodash-es'
-import type { Context } from 'tabby-chat-panel'
+import type { FileLocation } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
+import { cn, formatLineHashForLocation } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
 
@@ -28,13 +28,14 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const activeChatId = useChatStore(state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const repoMapRef = useLatest(repoMap)
-  const onNavigate = async (context: Context) => {
-    if (context?.filepath && context?.git_url) {
-      const lineHash = formatLineHashForCodeBrowser(context?.range)
+  const openInCodeBrowser = async (fileLocation: FileLocation) => {
+    const { filepath, location } = fileLocation
+    if (filepath.kind === 'git') {
+      const lineHash = formatLineHashForLocation(location)
       const repoMap = repoMapRef.current
       const matchedRepositoryKey = find(
         Object.keys(repoMap),
-        key => repoMap?.[key]?.gitUrl === context.git_url
+        key => repoMap?.[key]?.gitUrl === filepath.gitUrl
       )
       if (matchedRepositoryKey) {
         const targetRepo = repoMap[matchedRepositoryKey]
@@ -42,31 +43,24 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
           // navigate to files of the default branch
           const refName = resolveRepoRef(defaultRef)?.name
-          const detectedLanguage = context.filepath
-            ? filename2prism(context.filepath)[0]
-            : undefined
+          const detectedLanguage = filename2prism(filepath.filepath)[0]
           const isMarkdown = detectedLanguage === 'markdown'
           updateActivePath(
-            generateEntryPath(
-              targetRepo,
-              refName,
-              context.filepath,
-              context.kind
-            ),
+            generateEntryPath(targetRepo, refName, filepath.filepath, 'file'),
             {
               hash: lineHash,
               replace: false,
               plain: isMarkdown && !!lineHash
             }
           )
-          return
+          return true
         }
       }
     }
+    return false
   }
 
   const client = useClient(iframeRef, {
-    navigate: onNavigate,
     refresh: async () => {
       window.location.reload()
 
@@ -75,33 +69,27 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         setTimeout(() => resolve(null), 1000)
       })
     },
-    async onSubmitMessage(_msg, _relevantContext) {},
     onApplyInEditor(_content) {},
     onLoaded() {},
     onCopy(_content) {},
     onKeyboardEvent() {},
-    async openInEditor() {
-      return false
+    openInEditor: async (fileLocation: FileLocation) => {
+      return openInCodeBrowser(fileLocation)
+    },
+    openExternal: async (url: string) => {
+      window.open(url, '_blank')
     }
   })
 
-  const getPrompt = ({ action }: QuickActionEventPayload) => {
-    let builtInPrompt = ''
+  const getCommand = ({ action }: QuickActionEventPayload) => {
     switch (action) {
       case 'explain':
-        builtInPrompt = 'Explain the selected code:'
-        break
+        return 'explain'
       case 'generate_unittest':
-        builtInPrompt = 'Generate a unit test for the selected code:'
-        break
+        return 'generate-tests'
       case 'generate_doc':
-        builtInPrompt = 'Generate documentation for the selected code:'
-        break
-      default:
-        break
+        return 'generate-docs'
     }
-
-    return builtInPrompt
   }
 
   React.useEffect(() => {
@@ -116,20 +104,27 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
 
   React.useEffect(() => {
     if (pendingEvent && client) {
-      const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
-      client.sendMessage({
-        message: getPrompt(pendingEvent),
-        selectContext: {
+      const execute = async () => {
+        const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
+        client.updateActiveSelection({
           kind: 'file',
           content: code,
           range: {
             start: lineFrom,
             end: lineTo ?? lineFrom
           },
-          filepath: path,
-          git_url: gitUrl
-        }
-      })
+          filepath: {
+            kind: 'git',
+            filepath: path,
+            gitUrl
+          }
+        })
+        // FIXME: this delay is a workaround for waiting for the active selection to be updated
+        setTimeout(() => {
+          client.executeCommand(getCommand(pendingEvent))
+        }, 500)
+      }
+      execute()
     }
     setPendingEvent(undefined)
   }, [pendingEvent, client])

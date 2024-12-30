@@ -1,13 +1,14 @@
 import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type {
-  Context,
-  FileContext,
+  ChatCommand,
+  EditorContext,
   FileLocation,
+  GitRepository,
   LookupSymbolHint,
-  NavigateOpts,
   SymbolInfo
 } from 'tabby-chat-panel'
+import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import {
@@ -15,6 +16,7 @@ import {
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
+  RepositorySourceListQuery,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -22,23 +24,33 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
+import { repositorySourceListQuery } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
+  Context,
+  FileContext,
   MessageActionType,
   QuestionAnswerPair,
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
-import { cn, nanoid } from '@/lib/utils'
+import {
+  cn,
+  convertEditorContext,
+  findClosestGitRepository,
+  getFileLocationFromContext,
+  getPromptForChatCommand,
+  nanoid
+} from '@/lib/utils'
 
-import { ListSkeleton } from '../skeleton'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
+  initialized: boolean
   threadId: string | undefined
   isLoading: boolean
   qaPairs: QuestionAnswerPair[]
@@ -46,7 +58,6 @@ type ChatContextValue = {
     userMessageId: string,
     action: MessageActionType
   ) => void
-  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
@@ -57,12 +68,17 @@ type ChatContextValue = {
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
   ) => Promise<SymbolInfo | undefined>
-  openInEditor?: (target: FileLocation) => void
+  openInEditor: (target: FileLocation) => Promise<boolean>
+  openExternal: (url: string) => Promise<void>
   relevantContext: Context[]
   activeSelection: Context | null
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+  selectedRepoId: string | undefined
+  setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
+  repos: RepositorySourceListQuery['repositoryList'] | undefined
+  fetchingRepos: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -70,12 +86,12 @@ export const ChatContext = React.createContext<ChatContextValue>(
 )
 
 export interface ChatRef {
-  sendUserChat: (message: UserMessageWithOptionalId) => void
+  executeCommand: (command: ChatCommand) => Promise<void>
   stop: () => void
   isLoading: boolean
-  addRelevantContext: (context: Context) => void
+  addRelevantContext: (context: EditorContext) => void
   focus: () => void
-  updateActiveSelection: (context: Context | null) => void
+  updateActiveSelection: (context: EditorContext | null) => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -84,7 +100,6 @@ interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
   onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
-  onNavigateToContext: (context: Context, opts?: NavigateOpts) => void
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
@@ -92,7 +107,6 @@ interface ChatProps extends React.ComponentProps<'div'> {
   welcomeMessage?: string
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
-  onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?:
     | ((content: string) => void)
     | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
@@ -100,9 +114,11 @@ interface ChatProps extends React.ComponentProps<'div'> {
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
   ) => Promise<SymbolInfo | undefined>
-  openInEditor?: (target: FileLocation) => void
+  openInEditor: (target: FileLocation) => Promise<boolean>
+  openExternal: (url: string) => Promise<void>
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
+  readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
 }
 
 function ChatRenderer(
@@ -112,7 +128,6 @@ function ChatRenderer(
     initialMessages,
     onLoaded,
     onThreadUpdates,
-    onNavigateToContext,
     container,
     docQuery,
     generateRelevantQuestions,
@@ -120,16 +135,17 @@ function ChatRenderer(
     welcomeMessage,
     promptFormClassname,
     onCopyContent,
-    onSubmitMessage,
     onApplyInEditor,
     onLookupSymbol,
     openInEditor,
+    openExternal,
     chatInputRef,
-    supportsOnApplyInEditorV2
+    supportsOnApplyInEditorV2,
+    readWorkspaceGitRepositories
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
-  const [initialized, setInitialzed] = React.useState(false)
+  const [initialized, setInitialized] = React.useState(false)
   const [threadId, setThreadId] = React.useState<string | undefined>()
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
@@ -138,10 +154,21 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
+  // sourceId
+  const [selectedRepoId, setSelectedRepoId] = React.useState<
+    string | undefined
+  >()
+
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
+
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
+
+  const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
+    query: repositorySourceListQuery
+  })
+  const repos = repositoryListData?.repositoryList
 
   const {
     sendUserMessage,
@@ -196,8 +223,7 @@ function ChatRenderer(
       ]
       setQaPairs(nextQaPairs)
       const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user,
-        enableActiveSelection
+        qaPair.user
       )
 
       return regenerate({
@@ -231,9 +257,7 @@ function ChatRenderer(
     setQaPairs(nextQaPairs)
     setInput(userMessage.message)
     if (userMessage.activeContext) {
-      onNavigateToContext(userMessage.activeContext, {
-        openInEditor: true
-      })
+      openInEditor(getFileLocationFromContext(userMessage.activeContext))
     }
 
     deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
@@ -354,51 +378,35 @@ function ChatRenderer(
   }, [error])
 
   const generateRequestPayload = (
-    userMessage: UserMessage,
-    enableActiveSelection?: boolean
+    userMessage: UserMessage
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
-    // use selectContext for code query by default
-    let contextForCodeQuery: FileContext | undefined = userMessage.selectContext
-
-    // if enableActiveSelection, use selectContext or activeContext for code query
-    if (enableActiveSelection) {
-      contextForCodeQuery = contextForCodeQuery || userMessage.activeContext
-    }
-
-    // check context for codeQuery
-    if (!isValidContextForCodeQuery(contextForCodeQuery)) {
-      contextForCodeQuery = undefined
-    }
-
-    const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
-      ? {
-          content: contextForCodeQuery.content ?? '',
-          filepath: contextForCodeQuery.filepath,
-          language: contextForCodeQuery.filepath
-            ? filename2prism(contextForCodeQuery.filepath)[0] || 'plaintext'
-            : 'plaintext',
-          gitUrl: contextForCodeQuery?.git_url ?? ''
-        }
-      : null
-
     const hasUsableActiveContext =
       enableActiveSelection && !!userMessage.activeContext
-    const clientSideFileContexts: FileContext[] = uniqWith(
+    const clientFileContexts: FileContext[] = uniqWith(
       compact([
+        userMessage.selectContext,
         hasUsableActiveContext && userMessage.activeContext,
         ...(userMessage?.relevantContext || [])
       ]),
       isEqual
     )
 
-    const attachmentCode: MessageAttachmentCodeInput[] =
-      clientSideFileContexts.map(o => ({
+    const attachmentCode: MessageAttachmentCodeInput[] = clientFileContexts.map(
+      o => ({
         content: o.content,
         filepath: o.filepath,
-        startLine: o.range.start
-      }))
+        startLine: o.range?.start
+      })
+    )
 
     const content = userMessage.message
+    const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
+      ? {
+          content,
+          sourceId: selectedRepoId,
+          filepath: attachmentCode?.[0]?.filepath
+        }
+      : null
 
     return [
       {
@@ -430,7 +438,6 @@ function ChatRenderer(
         }\n${'```'}\n`
       }
 
-      const finalActiveContext = activeSelection || userMessage.activeContext
       const newUserMessage: UserMessage = {
         ...userMessage,
         message: userMessage.message + selectCodeSnippet,
@@ -439,9 +446,7 @@ function ChatRenderer(
         selectContext: userMessage.selectContext,
         // For forward compatibility
         activeContext:
-          enableActiveSelection && finalActiveContext
-            ? finalActiveContext
-            : undefined
+          enableActiveSelection && activeSelection ? activeSelection : undefined
       }
 
       const nextQaPairs = [
@@ -459,9 +464,7 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      sendUserMessage(
-        ...generateRequestPayload(newUserMessage, enableActiveSelection)
-      )
+      sendUserMessage(...generateRequestPayload(newUserMessage))
     }
   )
 
@@ -469,15 +472,23 @@ function ChatRenderer(
     return handleSendUserChat.current?.(userMessage)
   }
 
+  const handleExecuteCommand = useLatest(async (command: ChatCommand) => {
+    const prompt = getPromptForChatCommand(command)
+    sendUserChat({
+      message: prompt,
+      selectContext: activeSelection ?? undefined
+    })
+  })
+
+  const executeCommand = async (command: ChatCommand) => {
+    return handleExecuteCommand.current?.(command)
+  }
+
   const handleSubmit = async (value: string) => {
-    if (onSubmitMessage) {
-      onSubmitMessage(value, relevantContext)
-    } else {
-      sendUserChat({
-        message: value,
-        relevantContext: relevantContext
-      })
-    }
+    sendUserChat({
+      message: value,
+      relevantContext: relevantContext
+    })
     setRelevantContext([])
   }
 
@@ -485,7 +496,8 @@ function ChatRenderer(
     setRelevantContext(oldValue => appendContextAndDedupe(oldValue, context))
   })
 
-  const addRelevantContext = (context: Context) => {
+  const addRelevantContext = (editorContext: EditorContext) => {
+    const context = convertEditorContext(editorContext)
     handleAddRelevantContext.current?.(context)
   }
 
@@ -507,15 +519,53 @@ function ChatRenderer(
     300
   )
 
-  const updateActiveSelection = (ctx: Context | null) => {
-    debouncedUpdateActiveSelection.run(ctx)
+  const updateActiveSelection = (editorContext: EditorContext | null) => {
+    const context = editorContext ? convertEditorContext(editorContext) : null
+    debouncedUpdateActiveSelection.run(context)
   }
+
+  const fetchWorkspaceGitRepo = () => {
+    if (readWorkspaceGitRepositories) {
+      return readWorkspaceGitRepositories()
+    } else {
+      return []
+    }
+  }
+
+  React.useEffect(() => {
+    const init = async () => {
+      const workspaceGitRepositories = await fetchWorkspaceGitRepo()
+      // get default repo
+      if (workspaceGitRepositories?.length && repos?.length) {
+        const defaultGitUrl = workspaceGitRepositories[0].url
+        const repo = findClosestGitRepository(
+          repos.map(x => ({ url: x.gitUrl, sourceId: x.sourceId })),
+          defaultGitUrl
+        )
+        if (repo) {
+          setSelectedRepoId(repo.sourceId)
+        }
+      }
+
+      setInitialized(true)
+    }
+
+    if (!fetchingRepos && !initialized) {
+      init()
+    }
+  }, [fetchingRepos])
+
+  React.useEffect(() => {
+    if (initialized) {
+      onLoaded?.()
+    }
+  }, [initialized])
 
   React.useImperativeHandle(
     ref,
     () => {
       return {
-        sendUserChat,
+        executeCommand,
         stop,
         isLoading,
         addRelevantContext,
@@ -526,17 +576,7 @@ function ChatRenderer(
     []
   )
 
-  React.useEffect(() => {
-    setInitialzed(true)
-    onLoaded?.()
-  }, [])
-
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
-  if (!initialized) {
-    return (
-      <ListSkeleton className={`${chatMaxWidthClass} mx-auto pt-4 md:pt-10`} />
-    )
-  }
 
   return (
     <ChatContext.Provider
@@ -544,7 +584,6 @@ function ChatRenderer(
         threadId,
         isLoading,
         qaPairs,
-        onNavigateToContext,
         handleMessageAction,
         onClearMessages,
         container,
@@ -552,11 +591,17 @@ function ChatRenderer(
         onApplyInEditor,
         onLookupSymbol,
         openInEditor,
+        openExternal,
         relevantContext,
         removeRelevantContext,
         chatInputRef,
         activeSelection,
-        supportsOnApplyInEditorV2
+        supportsOnApplyInEditorV2,
+        selectedRepoId,
+        setSelectedRepoId,
+        repos,
+        fetchingRepos,
+        initialized
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
@@ -623,14 +668,4 @@ function formatThreadRunErrorMessage(error: ExtendedCombinedError | undefined) {
   }
 
   return error.message || 'Failed to fetch'
-}
-
-function isValidContextForCodeQuery(context: FileContext | undefined) {
-  if (!context) return false
-
-  const isUntitledFile =
-    context.filepath.startsWith('untitled:') &&
-    !filename2prism(context.filepath)[0]
-
-  return !isUntitledFile
 }

@@ -71,14 +71,16 @@ tasks {
     }
   }
 
-  register("buildAgent") {
+  register("buildDependencies") {
     exec {
       commandLine("pnpm", "turbo", "build")
     }
   }
 
   prepareSandbox {
-    dependsOn("buildAgent")
+    dependsOn("buildDependencies")
+
+    // Copy the tabby-agent to the sandbox
     from(
       fileTree("node_modules/tabby-agent/dist/") {
         include("node/**/*")
@@ -86,6 +88,15 @@ tasks {
       }
     ) {
       into("intellij-tabby/tabby-agent/")
+    }
+
+    // Copy the tabby-threads `create-thread-from-iframe` to the sandbox
+    from(
+      fileTree("node_modules/tabby-threads/dist/") {
+        include("iife/create-thread-from-iframe.js")
+      }
+    ) {
+      into("intellij-tabby/tabby-threads/")
     }
   }
 }

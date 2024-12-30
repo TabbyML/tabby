@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  createContext,
   CSSProperties,
   Fragment,
   useEffect,
@@ -27,12 +26,8 @@ import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
-  ContextInfo,
   DocQueryInput,
   InputMaybe,
-  Maybe,
-  Message,
-  MessageAttachmentClientCode,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -41,10 +36,14 @@ import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
+import { useSelectedRepository } from '@/lib/hooks/use-repositories'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
-import { updateSelectedModel } from '@/lib/stores/chat-actions'
+import {
+  updateSelectedModel,
+  updateSelectedRepoSourceId
+} from '@/lib/stores/chat-actions'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
@@ -53,12 +52,7 @@ import {
   listThreads,
   setThreadPersistedMutation
 } from '@/lib/tabby/query'
-import {
-  AttachmentCodeItem,
-  AttachmentDocItem,
-  ExtendedCombinedError,
-  ThreadRunContexts
-} from '@/lib/types'
+import { ExtendedCombinedError, ThreadRunContexts } from '@/lib/types'
 import {
   cn,
   getMentionsFromText,
@@ -95,48 +89,9 @@ import { AssistantMessageSection } from './assistant-message-section'
 import { DevPanel } from './dev-panel'
 import { Header } from './header'
 import { MessagesSkeleton } from './messages-skeleton'
+import { SearchContext } from './search-context'
+import { ConversationMessage, ConversationPair } from './types'
 import { UserMessageSection } from './user-message-section'
-
-export type ConversationMessage = Omit<
-  Message,
-  '__typename' | 'updatedAt' | 'createdAt' | 'attachment' | 'threadId'
-> & {
-  threadId?: string
-  threadRelevantQuestions?: Maybe<string[]>
-  error?: string
-  attachment?: {
-    clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
-    code: Maybe<Array<AttachmentCodeItem>> | undefined
-    doc: Maybe<Array<AttachmentDocItem>> | undefined
-  }
-}
-
-type ConversationPair = {
-  question: ConversationMessage | null
-  answer: ConversationMessage | null
-}
-
-type SearchContextValue = {
-  // flag for initialize the pathname
-  isPathnameInitialized: boolean
-  isLoading: boolean
-  onRegenerateResponse: (id: string) => void
-  onSubmitSearch: (question: string) => void
-  setDevPanelOpen: (v: boolean) => void
-  setConversationIdForDev: (v: string | undefined) => void
-  enableDeveloperMode: boolean
-  contextInfo: ContextInfo | undefined
-  fetchingContextInfo: boolean
-  onDeleteMessage: (id: string) => void
-  isThreadOwner: boolean
-  onUpdateMessage: (
-    message: ConversationMessage
-  ) => Promise<ExtendedCombinedError | undefined>
-}
-
-export const SearchContext = createContext<SearchContextValue>(
-  {} as SearchContextValue
-)
 
 export const SOURCE_CARD_STYLE = {
   compress: 5.3,
@@ -335,8 +290,9 @@ export function Search() {
 
   const isLoadingRef = useLatest(isLoading)
 
-  const { selectedModel, isModelLoading, models } = useSelectedModel()
-
+  const { selectedModel, isFetchingModels, models } = useSelectedModel()
+  const { selectedRepository, isFetchingRepositories, repos } =
+    useSelectedRepository()
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
   }, [messageIdForDev, messages])
@@ -575,7 +531,7 @@ export function Search() {
     }
 
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(ctx)
+      getSourceInputs(selectedRepository?.sourceId, ctx)
 
     const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
       ? { sourceId: sourceIdForCodeQuery, content: question }
@@ -641,7 +597,10 @@ export function Search() {
     )
 
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(getThreadRunContextsFromMentions(mentions))
+      getSourceInputs(
+        selectedRepository?.sourceId,
+        getThreadRunContextsFromMentions(mentions)
+      )
 
     const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
       ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }
@@ -726,8 +685,12 @@ export function Search() {
     )
   }
 
-  const onModelSelect = (model: string) => {
+  const onSelectModel = (model: string) => {
     updateSelectedModel(model)
+  }
+
+  const onSelectedRepo = (sourceId: string | undefined) => {
+    updateSelectedRepoSourceId(sourceId)
   }
 
   const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
@@ -806,7 +769,8 @@ export function Search() {
         fetchingContextInfo,
         onDeleteMessage,
         isThreadOwner,
-        onUpdateMessage
+        onUpdateMessage,
+        repositories: repos
       }}
     >
       <div className="transition-all" style={style}>
@@ -944,8 +908,12 @@ export function Search() {
                       contextInfo={contextInfoData?.contextInfo}
                       fetchingContextInfo={fetchingContextInfo}
                       modelName={selectedModel}
-                      onModelSelect={onModelSelect}
-                      isModelLoading={isModelLoading}
+                      onSelectModel={onSelectModel}
+                      repoSourceId={selectedRepository?.sourceId}
+                      onSelectRepo={onSelectedRepo}
+                      isInitializingResources={
+                        isFetchingModels || isFetchingRepositories
+                      }
                       models={models}
                     />
                   </div>
@@ -1026,17 +994,24 @@ function ThreadMessagesErrorView({
   )
 }
 
-function getSourceInputs(ctx: ThreadRunContexts | undefined) {
+function getSourceInputs(
+  repositorySourceId: string | undefined,
+  ctx: ThreadRunContexts | undefined
+) {
   let sourceIdsForDocQuery: string[] = []
   let sourceIdForCodeQuery: string | undefined
   let searchPublic = false
 
   if (ctx) {
     sourceIdsForDocQuery = uniq(
-      compact([ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds))
+      // Compatible with existing user messages
+      compact(
+        [repositorySourceId, ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds)
+      )
     )
     searchPublic = ctx.searchPublic ?? false
-    sourceIdForCodeQuery = ctx.codeSourceIds?.[0] ?? undefined
+    sourceIdForCodeQuery =
+      repositorySourceId || ctx.codeSourceIds?.[0] || undefined
   }
   return {
     sourceIdsForDocQuery,

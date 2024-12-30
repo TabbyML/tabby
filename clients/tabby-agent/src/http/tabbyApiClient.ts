@@ -526,7 +526,7 @@ export class TabbyApiClient extends EventEmitter {
       helpMessageForRunningLargeModelOnCPU +=
         `Your Tabby server is running model <i>${serverHealthState?.model}</i> on CPU. ` +
         "This model may be performing poorly due to its large parameter size, please consider trying smaller models or switch to GPU. " +
-        "You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/'>online documentation</a>.<br/>";
+        "You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/docs/'>online documentation</a>.<br/>";
     }
     let commonHelpMessage = "";
     if (helpMessageForRunningLargeModelOnCPU.length == 0) {
@@ -534,7 +534,7 @@ export class TabbyApiClient extends EventEmitter {
         serverHealthState?.model ?? ""
       }</i> may be performing poorly due to its large parameter size. `;
       commonHelpMessage +=
-        "Please consider trying smaller models. You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/'>online documentation</a>.</li>";
+        "Please consider trying smaller models. You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/docs/'>online documentation</a>.</li>";
     }
     const host = new URL(this.endpoint ?? "http://localhost:8080").host;
     if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("0.0.0.0"))) {

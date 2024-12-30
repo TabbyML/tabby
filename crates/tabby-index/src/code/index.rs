@@ -1,9 +1,10 @@
-use std::{pin::pin, sync::Arc};
+use std::{path::Path, pin::pin, sync::Arc};
 
+use anyhow::Result;
 use async_stream::stream;
 use futures::StreamExt;
 use ignore::{DirEntry, Walk};
-use tabby_common::index::corpus;
+use tabby_common::index::{code, corpus};
 use tabby_inference::Embedding;
 use tracing::warn;
 
@@ -12,7 +13,7 @@ use super::{
     intelligence::{CodeIntelligence, SourceCode},
     CodeRepository,
 };
-use crate::indexer::Indexer;
+use crate::indexer::{Indexer, TantivyDocBuilder};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -21,7 +22,11 @@ static MIN_ALPHA_NUM_FRACTION: f32 = 0.25f32;
 static MAX_NUMBER_OF_LINES: usize = 100000;
 static MAX_NUMBER_FRACTION: f32 = 0.5f32;
 
-pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
+pub async fn index_repository(
+    embedding: Arc<dyn Embedding>,
+    repository: &CodeRepository,
+    commit: &str,
+) {
     let total_files = Walk::new(repository.dir()).count();
     let file_stream = stream! {
         for file in Walk::new(repository.dir()) {
@@ -45,7 +50,7 @@ pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &CodeRe
     let mut count_chunks = 0;
     while let Some(files) = file_stream.next().await {
         count_files += files.len();
-        count_chunks += add_changed_documents(repository, embedding.clone(), files).await;
+        count_chunks += add_changed_documents(repository, commit, embedding.clone(), files).await;
         logkit::info!("Processed {count_files}/{total_files} files, updated {count_chunks} chunks",);
     }
 }
@@ -79,6 +84,7 @@ pub async fn garbage_collection() {
 
 async fn add_changed_documents(
     repository: &CodeRepository,
+    commit: &str,
     embedding: Arc<dyn Embedding>,
     files: Vec<DirEntry>,
 ) -> usize {
@@ -96,12 +102,23 @@ async fn add_changed_documents(
 
             let id = SourceCode::to_index_id(&repository.source_id, &key).id;
 
-            // Skip if already indexed and has no failed chunks
+            // Skip if already indexed and has no failed chunks,
+            // when skip, we should check if the document needs to be backfilled.
             if !require_updates(cloned_index.clone(), &id) {
+                backfill_commit_in_doc_if_needed(
+                    builder.clone(),
+                    cloned_index.clone(),
+                    &id,
+                    repository,
+                    commit,
+                    file.path()).await.unwrap_or_else(|e| {
+                        warn!("Failed to backfill commit for {id}: {e}");
+                    }
+                );
                 continue;
             }
 
-            let Some(code) = CodeIntelligence::compute_source_file(repository, file.path()) else {
+            let Some(code) = CodeIntelligence::compute_source_file(repository, commit, file.path()) else {
                 continue;
             };
 
@@ -141,6 +158,34 @@ fn require_updates(indexer: Arc<Indexer>, id: &str) -> bool {
     };
 
     true
+}
+
+// v0.23.0 add the commit field to the code document.
+async fn backfill_commit_in_doc_if_needed(
+    builder: Arc<TantivyDocBuilder<SourceCode>>,
+    indexer: Arc<Indexer>,
+    id: &str,
+    repository: &CodeRepository,
+    commit: &str,
+    path: &Path,
+) -> Result<()> {
+    if indexer.has_attribute_field(id, code::fields::ATTRIBUTE_COMMIT) {
+        return Ok(());
+    }
+
+    let code = CodeIntelligence::compute_source_file(repository, commit, path)
+        .ok_or_else(|| anyhow::anyhow!("Failed to compute source file"))?;
+    if !is_valid_file(&code) {
+        anyhow::bail!("Invalid file");
+    }
+
+    let origin = indexer.get_doc(id).await?;
+    indexer.delete_doc(id);
+    indexer
+        .add(builder.backfill_doc_attributes(&origin, &code).await)
+        .await;
+
+    Ok(())
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {

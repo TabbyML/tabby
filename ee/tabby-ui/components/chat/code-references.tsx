@@ -2,7 +2,7 @@ import React, { forwardRef, useEffect, useState } from 'react'
 import { isNil } from 'lodash-es'
 
 import { RelevantCodeContext } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, resolveFileNameForDisplay } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -146,11 +146,11 @@ function ContextItem({
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const isMultiLine =
+    context.range &&
     !isNil(context.range?.start) &&
     !isNil(context.range?.end) &&
     context.range.start < context.range.end
   const pathSegments = context.filepath.split('/')
-  const fileName = pathSegments[pathSegments.length - 1]
   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
   const scores = context?.extra?.scores
   const onTooltipOpenChange = (v: boolean) => {
@@ -177,17 +177,21 @@ function ContextItem({
           <div className="flex items-center gap-1 overflow-hidden">
             <IconFile className="shrink-0" />
             <div className="flex-1 truncate" title={context.filepath}>
-              <span>{fileName}</span>
-              {context.range?.start && (
-                <span className="text-muted-foreground">
-                  :{context.range.start}
-                </span>
-              )}
-              {isMultiLine && (
-                <span className="text-muted-foreground">
-                  -{context.range.end}
-                </span>
-              )}
+              <span>{resolveFileNameForDisplay(context.filepath)}</span>
+              {context.range ? (
+                <>
+                  {context.range?.start && (
+                    <span className="text-muted-foreground">
+                      :{context.range.start}
+                    </span>
+                  )}
+                  {isMultiLine && (
+                    <span className="text-muted-foreground">
+                      -{context.range.end}
+                    </span>
+                  )}
+                </>
+              ) : null}
               <span className="ml-2 text-xs text-muted-foreground">{path}</span>
             </div>
             {showClientCodeIcon && (

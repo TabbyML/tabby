@@ -1,4 +1,3 @@
-import type { ChatMessage, Context } from 'tabby-chat-panel'
 import type { components } from 'tabby-openapi'
 
 import {
@@ -10,8 +9,33 @@ import {
 } from '../gql/generates/graphql'
 import { ArrayElementType } from './common'
 
-export interface UserMessage extends ChatMessage {
+export interface FileContext {
+  kind: 'file'
+  filepath: string
+  /**
+   * The range of the selected content in the file.
+   * If the range is not provided, the whole file is considered.
+   */
+  range?: { start: number; end: number }
+  content: string
+  git_url: string
+  commit?: string
+}
+
+export type Context = FileContext
+
+export interface UserMessage {
   id: string
+  message: string
+
+  // Client side context - displayed in user message
+  selectContext?: Context
+
+  // Client side contexts - displayed in assistant message
+  relevantContext?: Array<Context>
+
+  // Client side active selection context - displayed in assistant message
+  activeContext?: Context
 }
 
 export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {

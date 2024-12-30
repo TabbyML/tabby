@@ -5,7 +5,6 @@ import React, { useMemo } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
-import type { Context } from 'tabby-chat-panel'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
@@ -13,11 +12,14 @@ import { filename2prism } from '@/lib/language-utils'
 import {
   AssistantMessage,
   AttachmentCodeItem,
+  Context,
   QuestionAnswerPair,
   UserMessage
 } from '@/lib/types/chat'
 import {
+  buildCodeBrowserUrlForContext,
   cn,
+  getFileLocationFromContext,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
@@ -108,7 +110,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext, supportsOnApplyInEditorV2 } =
+  const { openInEditor, supportsOnApplyInEditorV2 } =
     React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
@@ -124,7 +126,10 @@ function UserMessageCard(props: { message: UserMessage }) {
     selectCode = {
       filepath,
       isMultiLine:
-        !isNil(range?.start) && !isNil(range?.end) && range.start < range.end
+        !!range &&
+        !isNil(range?.start) &&
+        !isNil(range?.end) &&
+        range.start < range.end
     }
   }
   return (
@@ -175,11 +180,10 @@ function UserMessageCard(props: { message: UserMessage }) {
           {selectCode && message.selectContext && (
             <div
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
-              onClick={() =>
-                onNavigateToContext?.(message.selectContext!, {
-                  openInEditor: true
-                })
-              }
+              onClick={() => {
+                const context = message.selectContext!
+                openInEditor(getFileLocationFromContext(context))
+              }}
             >
               <IconFile className="h-3 w-3" />
               <p className="flex-1 truncate pr-1">
@@ -188,7 +192,7 @@ function UserMessageCard(props: { message: UserMessage }) {
                   <span>:{message.selectContext?.range.start}</span>
                 )}
                 {selectCode.isMultiLine && (
-                  <span>-{message.selectContext?.range.end}</span>
+                  <span>-{message.selectContext?.range?.end}</span>
                 )}
               </p>
             </div>
@@ -258,31 +262,25 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     ...rest
   } = props
   const {
-    onNavigateToContext,
     onApplyInEditor,
     onCopyContent,
     onLookupSymbol,
     openInEditor,
+    openExternal,
     supportsOnApplyInEditorV2
   } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
   const serverCode: Array<Context> = React.useMemo(() => {
     return (
-      message?.relevant_code?.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
-        return {
-          kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
-          filepath: code.filepath,
-          content: code.content,
-          git_url: code.gitUrl
-        }
-      }) ?? []
+      message?.relevant_code?.map(code => ({
+        kind: 'file',
+        range: getRangeFromAttachmentCode(code),
+        filepath: code.filepath,
+        content: code.content,
+        git_url: code.gitUrl,
+        commit: code.commit ?? undefined
+      })) ?? []
     )
   }, [message?.relevant_code])
 
@@ -298,19 +296,22 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   const attachmentDocsLen = 0
 
-  const attachmentClientCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
-    useMemo(() => {
-      const formatedAttachmentClientCode =
-        clientCode?.map(o => ({
-          content: o.content,
-          filepath: o.filepath,
-          gitUrl: o.git_url,
-          startLine: o.range.start,
-          language: filename2prism(o.filepath ?? '')[0],
-          isClient: true
-        })) ?? []
-      return formatedAttachmentClientCode
-    }, [clientCode])
+  const attachmentClientCode: Array<
+    Omit<AttachmentCodeItem, '__typename' | 'startLine'> & {
+      startLine: number | undefined
+    }
+  > = useMemo(() => {
+    const formatedAttachmentClientCode =
+      clientCode?.map(o => ({
+        content: o.content,
+        filepath: o.filepath,
+        gitUrl: o.git_url,
+        startLine: o.range ? o.range.start : undefined,
+        language: filename2prism(o.filepath ?? '')[0],
+        isClient: true
+      })) ?? []
+    return formatedAttachmentClientCode
+  }, [clientCode])
 
   const attachmentCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
     useMemo(() => {
@@ -319,7 +320,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           content: o.content,
           filepath: o.filepath,
           gitUrl: o.git_url,
-          startLine: o.range.start,
+          startLine: o.range?.start,
           language: filename2prism(o.filepath ?? '')[0],
           isClient: false
         })) ?? []
@@ -334,21 +335,31 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     setRelevantCodeHighlightIndex(undefined)
   }
 
+  // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
+  const isInEditor = !!onApplyInEditor
+
+  const onContextClick = (context: Context, isClient?: boolean) => {
+    // When isInEditor is false, we are in the code browser.
+    // The `openInEditor` function implementation as `openInCodeBrowser`,
+    // and will navigate to target without opening a new tab.
+    // So we use `openInEditor` here.
+    if (isClient || !isInEditor) {
+      openInEditor(getFileLocationFromContext(context))
+    } else {
+      const url = buildCodeBrowserUrlForContext(window.location.href, context)
+      openExternal(url)
+    }
+  }
+
   const onCodeCitationClick = (code: AttachmentCodeItem) => {
-    const { startLine, endLine } = getRangeFromAttachmentCode(code)
     const ctx: Context = {
       git_url: code.gitUrl,
       content: code.content,
       filepath: code.filepath,
       kind: 'file',
-      range: {
-        start: startLine,
-        end: endLine
-      }
+      range: getRangeFromAttachmentCode(code)
     }
-    onNavigateToContext?.(ctx, {
-      openInEditor: code.isClient
-    })
+    onContextClick(ctx, code.isClient)
   }
 
   return (
@@ -380,15 +391,10 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         <CodeReferences
           contexts={serverCode}
           clientContexts={clientCode}
-          onContextClick={(ctx, isInWorkspace) => {
-            onNavigateToContext?.(ctx, {
-              openInEditor: isInWorkspace
-            })
-          }}
-          // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
-          showExternalLink={!!onApplyInEditor}
-          isInEditor={!!onApplyInEditor}
-          showClientCodeIcon={!onApplyInEditor}
+          onContextClick={onContextClick}
+          showExternalLink={isInEditor}
+          isInEditor={isInEditor}
+          showClientCodeIcon={!isInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
         />

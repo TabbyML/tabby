@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils'
 import { ChatContext } from '@/components/chat/chat'
 import { MessageMarkdown } from '@/components/message-markdown'
 
-import { ConversationMessage, SearchContext } from './search'
+import { SearchContext } from './search-context'
+import { ConversationMessage } from './types'
 
 interface QuestionBlockProps extends HTMLAttributes<HTMLDivElement> {
   message: ConversationMessage

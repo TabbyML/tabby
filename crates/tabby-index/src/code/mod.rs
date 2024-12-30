@@ -11,7 +11,7 @@ use tabby_common::{
 };
 use tabby_inference::Embedding;
 use tokio::task::JoinHandle;
-use tracing::warn;
+use tracing::{info_span, warn, Instrument};
 
 use self::intelligence::SourceCode;
 use crate::{
@@ -38,9 +38,9 @@ impl CodeIndexer {
             "Building source code index: {}",
             repository.canonical_git_url()
         );
-        repository::sync_repository(repository)?;
+        let commit = repository::sync_repository(repository)?;
 
-        index::index_repository(embedding, repository).await;
+        index::index_repository(embedding, repository, &commit).await;
         index::garbage_collection().await;
 
         Ok(())
@@ -62,8 +62,10 @@ impl CodeBuilder {
 
 #[async_trait]
 impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
-    async fn build_attributes(&self, _source_code: &SourceCode) -> serde_json::Value {
-        json!({})
+    async fn build_attributes(&self, source_code: &SourceCode) -> serde_json::Value {
+        json!({
+            code::fields::ATTRIBUTE_COMMIT: source_code.commit,
+        })
     }
 
     async fn build_chunk_attributes<'a>(
@@ -99,14 +101,16 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
         let source_code = source_code.clone();
         let s = stream! {
             for await (start_line, body) in CodeIntelligence::chunks(&text, &source_code.language) {
-                let attributes = json!({
+                let mut attributes = json!({
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
                     code::fields::CHUNK_GIT_URL: source_code.git_url,
                     code::fields::CHUNK_LANGUAGE: source_code.language,
                     code::fields::CHUNK_BODY: body,
-                    code::fields::CHUNK_START_LINE: start_line,
                 });
 
+                if text.len() == body.len() {
+                    attributes[code::fields::CHUNK_START_LINE] = start_line.into();
+                }
                 let embedding = embedding.clone();
                 let rewritten_body = format!("```{}\n{}\n```", source_code.filepath, body);
                 yield tokio::spawn(async move {
@@ -126,7 +130,11 @@ async fn build_binarize_embedding_tokens(
     embedding: Arc<dyn Embedding>,
     body: &str,
 ) -> Result<Vec<String>> {
-    let embedding = match embedding.embed(body).await {
+    let embedding = match embedding
+        .embed(body)
+        .instrument(info_span!("index_compute_embedding", corpus = corpus::CODE))
+        .await
+    {
         Ok(x) => x,
         Err(err) => {
             bail!("Failed to embed chunk text: {}", err);

@@ -12,6 +12,7 @@ pub struct SourceCode {
     pub source_file_id: String,
     pub source_id: String,
     pub git_url: String,
+    pub commit: String,
     pub basedir: String,
     pub filepath: String,
     pub language: String,

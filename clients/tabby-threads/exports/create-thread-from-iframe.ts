@@ -1,0 +1,1 @@
+export { createThreadFromIframe } from "../source";

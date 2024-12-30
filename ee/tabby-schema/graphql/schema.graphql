@@ -169,7 +169,7 @@ input EmailSettingInput {
 
 input MessageAttachmentCodeInput {
   filepath: String
-  startLine: Int
+  "When start line is `None`, it represents the entire file." startLine: Int
   content: String!
 }
 
@@ -476,6 +476,7 @@ type LicenseInfo {
 type Message {
   id: ID!
   threadId: ID!
+  codeSourceId: String
   role: Role!
   content: String!
   attachment: MessageAttachment!
@@ -497,10 +498,12 @@ type MessageAttachmentClientCode {
 
 type MessageAttachmentCode {
   gitUrl: String!
+  commit: String
   filepath: String!
   language: String!
   content: String!
-  startLine: Int!
+  "When start line is `None`, it represents the entire file."
+  startLine: Int
 }
 
 type MessageAttachmentCodeScores {
@@ -812,6 +815,7 @@ type Thread {
 }
 
 type ThreadAssistantMessageAttachmentsCode {
+  codeSourceId: String!
   hits: [MessageCodeSearchHit!]!
 }
 

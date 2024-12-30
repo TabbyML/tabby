@@ -5,7 +5,6 @@ import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compact } from 'lodash-es'
 import { toast } from 'sonner'
-import type { Context } from 'tabby-chat-panel'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -13,13 +12,19 @@ import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
-import { cn, getTitleFromMessages } from '@/lib/utils'
+import type { Context } from '@/lib/types'
+import {
+  cn,
+  getTitleFromMessages,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   IconCheck,
   IconEye,
   IconEyeOff,
+  IconFileText,
   IconRefresh,
   IconRemove,
   IconShare,
@@ -32,6 +37,7 @@ import { FooterText } from '@/components/footer'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat'
+import { RepoSelect } from './repo-select'
 
 export interface ChatPanelProps
   extends Pick<UseChatHelpers, 'stop' | 'input' | 'setInput'> {
@@ -70,11 +76,16 @@ function ChatPanelRenderer(
     relevantContext,
     removeRelevantContext,
     activeSelection,
-    onCopyContent
+    onCopyContent,
+    selectedRepoId,
+    setSelectedRepoId,
+    repos,
+    initialized
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
+
   const [persisting, setPerisiting] = useState(false)
   const { width } = useWindowSize()
   const isExtraSmallScreen = typeof width === 'number' && width < 376
@@ -122,6 +133,14 @@ function ChatPanelRenderer(
     } finally {
       setPerisiting(false)
     }
+  }
+
+  const onSelectRepo = (sourceId: string | undefined) => {
+    setSelectedRepoId(sourceId)
+
+    setTimeout(() => {
+      chatInputRef.current?.focus()
+    })
   }
 
   React.useImperativeHandle(
@@ -220,8 +239,15 @@ function ChatPanelRenderer(
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
           <div className="flex flex-wrap gap-2">
             <AnimatePresence presenceAffectsLayout>
+              <RepoSelect
+                value={selectedRepoId}
+                onChange={onSelectRepo}
+                repos={repos}
+                isInitializing={!initialized}
+              />
               {activeSelection ? (
                 <motion.div
+                  key="active-selection"
                   initial={{ opacity: 0, scale: 0.9, y: -5 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{
@@ -240,6 +266,7 @@ function ChatPanelRenderer(
                       }
                     )}
                   >
+                    <IconFileText />
                     <ContextLabel
                       context={activeSelection}
                       className="flex-1 truncate"
@@ -261,10 +288,11 @@ function ChatPanelRenderer(
                 </motion.div>
               ) : null}
               {relevantContext.map((item, idx) => {
+                // `git_url + filepath + range` as unique key
+                const key = `${item.git_url}_${item.filepath}_${item.range?.start}_${item.range?.end}`
                 return (
                   <motion.div
-                    // `filepath + range` as unique key
-                    key={item.filepath + item.range.start + item.range.end}
+                    key={key}
                     initial={{ opacity: 0, scale: 0.9, y: -5 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{
@@ -300,6 +328,7 @@ function ChatPanelRenderer(
             setInput={setInput}
             isLoading={isLoading}
             chatInputRef={chatInputRef}
+            isInitializing={!initialized}
           />
           <FooterText className="hidden sm:block" />
         </div>
@@ -319,16 +348,16 @@ function ContextLabel({
   context: Context
   className?: string
 }) {
-  const [fileName] = context.filepath.split('/').slice(-1)
-  const line =
-    context.range.start === context.range.end
+  const line = context.range
+    ? context.range.start === context.range.end
       ? `:${context.range.start}`
       : `:${context.range.start}-${context.range.end}`
+    : ''
 
   return (
     <span className={cn('truncate', className)}>
-      {fileName}
-      <span className="text-muted-foreground">{line}</span>
+      {resolveFileNameForDisplay(context.filepath)}
+      {!!context.range && <span className="text-muted-foreground">{line}</span>}
     </span>
   )
 }

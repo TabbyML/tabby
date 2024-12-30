@@ -1,0 +1,16 @@
+[package]
+name = "sqlx-migrate-validate"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+async-trait.workspace = true
+sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
+
+[dev-dependencies]
+anyhow.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+sqlx-rt = { version = "0.6", features = [ "runtime-tokio-rustls" ] }
