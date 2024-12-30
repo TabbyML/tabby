@@ -279,7 +279,9 @@ export default function ChatPage() {
       currentChatRef.addRelevantContext(context)
     })
 
-    currentChatRef.updateActiveSelection(pendingActiveSelection)
+    if (pendingActiveSelection) {
+      currentChatRef.updateActiveSelection(pendingActiveSelection)
+    }
 
     if (pendingCommand) {
       // FIXME: this delay is a workaround for waiting for the active selection to be updated

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { find } from 'lodash-es'
 import type { FileLocation, GitRepository } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
@@ -27,10 +27,12 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   ...props
 }) => {
   const [{ data }] = useMe()
+  const [initialized, setInitialized] = useState(false)
   const { pendingEvent, setPendingEvent, repoMap, updateActivePath } =
     React.useContext(SourceCodeBrowserContext)
   const activeChatId = useChatStore(state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
+  const executedCommand = useRef(false)
   const repoMapRef = useLatest(repoMap)
   const openInCodeBrowser = async (fileLocation: FileLocation) => {
     const { filepath, location } = fileLocation
@@ -80,7 +82,9 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       })
     },
     onApplyInEditor(_content) {},
-    onLoaded() {},
+    onLoaded() {
+      setInitialized(true)
+    },
     onCopy(_content) {},
     onKeyboardEvent() {},
     openInEditor: async (fileLocation: FileLocation) => {
@@ -90,7 +94,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       window.open(url, '_blank')
     },
     readWorkspaceGitRepositories: async () => {
-      return readWorkspaceGitRepositories.current()
+      return readWorkspaceGitRepositories.current?.()
     }
   })
 
@@ -113,10 +117,10 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         }
       })
     }
-  }, [iframeRef?.current, client, data])
+  }, [iframeRef?.current, client?.init, data])
 
   React.useEffect(() => {
-    if (pendingEvent && client) {
+    if (pendingEvent && client && initialized) {
       const execute = async () => {
         const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
         client.updateActiveSelection({
@@ -132,17 +136,18 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             gitUrl
           }
         })
+        const command = getCommand(pendingEvent)
         // FIXME: this delay is a workaround for waiting for the active selection to be updated
         setTimeout(() => {
-          client.executeCommand(getCommand(pendingEvent))
-        }, 500)
+          client.executeCommand(command)
+        }, 800)
+        setPendingEvent(undefined)
       }
+
       execute()
     }
-    setPendingEvent(undefined)
-  }, [pendingEvent, client])
+  }, [initialized, pendingEvent])
 
-  if (!data?.me) return <></>
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
       <Header />

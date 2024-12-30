@@ -749,7 +749,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           ref={chatSideBarPanelRef}
           onCollapse={() => setChatSideBarVisible(false)}
         >
-          {chatSidebarInitialized && <ChatSideBar activeRepo={activeRepo} />}
+          {chatSidebarInitialized ? (
+            <ChatSideBar activeRepo={activeRepo} />
+          ) : null}
         </ResizablePanel>
       </>
     </ResizablePanelGroup>
