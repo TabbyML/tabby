@@ -28,8 +28,9 @@ use async_openai::{
     },
 };
 use auth::{
-    AuthProvider, AuthenticationService, Invitation, LdapCredential, RefreshTokenResponse,
-    RegisterResponse, TokenAuthResponse, UpdateLdapCredentialInput, UserSecured,
+    AuthProvider, AuthProviderKind, AuthenticationService, Invitation, LdapCredential,
+    RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UpdateLdapCredentialInput,
+    UserSecured,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
@@ -44,6 +45,7 @@ use juniper::{
 use ldap3::result::LdapError;
 use notification::NotificationService;
 use repository::RepositoryGrepOutput;
+use strum::IntoEnumIterator;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     config::CompletionConfig,
@@ -437,7 +439,26 @@ impl Query {
     }
 
     async fn auth_providers(ctx: &Context) -> Result<Vec<AuthProvider>> {
-        Ok(vec![])
+        let mut providers = vec![];
+
+        let auth = ctx.locator.auth();
+        for x in OAuthProvider::iter() {
+            if auth
+                .read_oauth_credential(x.clone())
+                .await
+                .is_ok_and(|x| x.is_some())
+            {
+                providers.push(x.into());
+            }
+        }
+
+        if auth.read_ldap_credential().await.is_ok_and(|x| x.is_some()) {
+            providers.push(AuthProvider {
+                kind: AuthProviderKind::Ldap,
+            });
+        }
+
+        Ok(providers)
     }
 
     async fn oauth_credential(

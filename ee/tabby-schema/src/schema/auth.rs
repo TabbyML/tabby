@@ -339,6 +339,22 @@ pub enum AuthProviderKind {
     Ldap,
 }
 
+impl From<OAuthProvider> for AuthProvider {
+    fn from(provider: OAuthProvider) -> Self {
+        match provider {
+            OAuthProvider::Github => AuthProvider {
+                kind: AuthProviderKind::OAuthGithub,
+            },
+            OAuthProvider::Google => AuthProvider {
+                kind: AuthProviderKind::OAuthGoogle,
+            },
+            OAuthProvider::Gitlab => AuthProvider {
+                kind: AuthProviderKind::OAuthGitlab,
+            },
+        }
+    }
+}
+
 #[derive(GraphQLObject)]
 pub struct AuthProvider {
     pub kind: AuthProviderKind,
