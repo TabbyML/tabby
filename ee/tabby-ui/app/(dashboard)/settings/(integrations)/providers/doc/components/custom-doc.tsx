@@ -25,6 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
   Table,
   TableBody,
@@ -216,135 +217,138 @@ export default function CustomDocument() {
   return (
     <>
       <LoadingWrapper loading={fetching}>
-        <Table className="min-w-[300px] table-fixed border-b">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="flex items-center gap-1.5">
-                Name
-                <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="relative shrink-0"
+        <ScrollArea>
+          <Table className="min-w-[400px] border-b">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="flex items-center gap-1.5">
+                  Name
+                  <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="relative shrink-0"
+                      >
+                        <IconListFilter />
+                        {!!debouncedFilterPattern && (
+                          <div className="absolute right-0 top-1 h-1.5 w-1.5 rounded-full bg-red-400"></div>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" side="right" className="p-1">
+                      <div className="relative">
+                        <IconSearch
+                          className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
+                          onClick={() => inputRef.current?.focus()}
+                        />
+                        <Input
+                          size={30}
+                          className="w-48 px-8"
+                          value={filterPattern}
+                          onChange={e => setFilterPattern(e.target.value)}
+                          ref={inputRef}
+                          placeholder="Search..."
+                          onKeyDown={onInputKeyDown}
+                        />
+                        {filterPattern ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
+                            onClick={clearFilter}
+                          >
+                            <IconClose />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <div>
+                    <Link
+                      href={`./doc/new`}
+                      className={buttonVariants({
+                        size: 'icon',
+                        variant: 'ghost'
+                      })}
                     >
-                      <IconListFilter />
-                      {!!debouncedFilterPattern && (
-                        <div className="absolute right-0 top-1 h-1.5 w-1.5 rounded-full bg-red-400"></div>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" side="right" className="p-1">
-                    <div className="relative">
-                      <IconSearch
-                        className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
-                        onClick={() => inputRef.current?.focus()}
-                      />
-                      <Input
-                        size={30}
-                        className="w-48 px-8"
-                        value={filterPattern}
-                        onChange={e => setFilterPattern(e.target.value)}
-                        ref={inputRef}
-                        placeholder="Search..."
-                        onKeyDown={onInputKeyDown}
-                      />
-                      {filterPattern ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
-                          onClick={clearFilter}
-                        >
-                          <IconClose />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <div>
-                  <Link
-                    href={`./doc/new`}
-                    className={buttonVariants({
-                      size: 'icon',
-                      variant: 'ghost'
-                    })}
-                  >
-                    <IconPlus />
-                  </Link>
-                </div>
-              </TableHead>
-              <TableHead className="w-[140px]">Access</TableHead>
-              <TableHead className="w-[180px]">Job</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!currentList?.length && !fetching ? (
-              <TableRow className="hover:bg-background">
-                <TableCell colSpan={4} className="h-[100px] text-center">
-                  {!list?.length ? (
-                    <div className="my-4 flex flex-col items-center gap-4">
-                      No data
-                      <Link href={`./doc/new`} className={buttonVariants()}>
-                        <IconPlus />
-                        Add
-                      </Link>
-                    </div>
-                  ) : (
-                    'No matches data'
-                  )}
-                </TableCell>
+                      <IconPlus />
+                    </Link>
+                  </div>
+                </TableHead>
+                <TableHead className="w-[140px]">Access</TableHead>
+                <TableHead>Job</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
-            ) : (
-              <>
-                {currentList?.map(x => {
-                  return (
-                    <TableRow key={x.node.id}>
-                      <TableCell className="break-all lg:break-words">
-                        <p>{x.node.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {x.node.url}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <AccessPolicyView
-                          sourceId={x.node.sourceId}
-                          sourceName={x.node.name}
-                          fetchingUserGroups={fetchingUserGroups}
-                          userGroups={userGroupData?.userGroups}
-                          editable
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <JobInfoView
-                          jobInfo={x.node.jobInfo}
-                          onTrigger={async () => {
-                            if (x.node?.jobInfo?.command) {
-                              handleTriggerJobRun(
-                                x.node.id,
-                                x.node?.jobInfo.command
-                              )
-                            }
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="hover-destructive"
-                          onClick={() => handleDeleteCustomDoc(x.node.id)}
-                        >
-                          <IconTrash />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {!currentList?.length && !fetching ? (
+                <TableRow className="hover:bg-background">
+                  <TableCell colSpan={4} className="h-[100px] text-center">
+                    {!list?.length ? (
+                      <div className="my-4 flex flex-col items-center gap-4">
+                        No data
+                        <Link href={`./doc/new`} className={buttonVariants()}>
+                          <IconPlus />
+                          Add
+                        </Link>
+                      </div>
+                    ) : (
+                      'No matches data'
+                    )}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <>
+                  {currentList?.map(x => {
+                    return (
+                      <TableRow key={x.node.id}>
+                        <TableCell className="break-all lg:break-words">
+                          <p>{x.node.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {x.node.url}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <AccessPolicyView
+                            sourceId={x.node.sourceId}
+                            sourceName={x.node.name}
+                            fetchingUserGroups={fetchingUserGroups}
+                            userGroups={userGroupData?.userGroups}
+                            editable
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <JobInfoView
+                            jobInfo={x.node.jobInfo}
+                            onTrigger={async () => {
+                              if (x.node?.jobInfo?.command) {
+                                handleTriggerJobRun(
+                                  x.node.id,
+                                  x.node?.jobInfo.command
+                                )
+                              }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="icon"
+                            variant="hover-destructive"
+                            onClick={() => handleDeleteCustomDoc(x.node.id)}
+                          >
+                            <IconTrash />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </>
+              )}
+            </TableBody>
+          </Table>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         <QuickNavPagination
           className="mt-2 flex justify-end"
           page={page}

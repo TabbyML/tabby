@@ -10,7 +10,7 @@ export const Email = () => {
     <div>
       <Input
         disabled
-        className="w-[350px]"
+        className="w-full md:w-[350px]"
         value={data?.me?.email}
         onChange={noop}
       />
