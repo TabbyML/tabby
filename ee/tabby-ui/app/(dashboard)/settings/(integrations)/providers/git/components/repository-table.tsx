@@ -133,7 +133,7 @@ export default function RepositoryTable() {
     <>
       <LoadingWrapper loading={fetching}>
         <ScrollArea>
-          <Table className="border-t min-w-[400px]">
+          <Table className="min-w-[400px] border-t">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[25%]">Name</TableHead>
