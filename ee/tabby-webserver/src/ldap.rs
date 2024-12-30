@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use async_trait::async_trait;
-use ldap3::{drive, LdapConnAsync, Scope, SearchEntry};
-use tabby_schema::{CoreError, Result};
+use ldap3::{drive, LdapConnAsync, LdapConnSettings, Scope, SearchEntry};
+use tabby_schema::{email::Encryption, CoreError, Result};
 
 #[async_trait]
 pub trait LdapClient: Send + Sync {
@@ -9,8 +9,10 @@ pub trait LdapClient: Send + Sync {
 }
 
 pub fn new_ldap_client(
-    host: String,
+    host: &str,
     port: i64,
+    encryption: &str,
+    skip_verify_tls: bool,
     bind_dn: String,
     bind_password: String,
     base_dn: String,
@@ -18,14 +20,31 @@ pub fn new_ldap_client(
     email_attr: String,
     name_attr: String,
 ) -> impl LdapClient {
+    let mut settings = LdapConnSettings::new();
+    if encryption == "starttls" {
+        settings = settings.set_starttls(true);
+    };
+    if skip_verify_tls {
+        settings = settings.set_no_tls_verify(true);
+    };
+
+    let schema = if encryption == "ldaps" {
+        "ldaps"
+    } else {
+        "ldap"
+    };
+
     LdapClientImpl {
-        address: format!("ldap://{}:{}", host, port),
+        address: format!("{}://{}:{}", schema, host, port),
         bind_dn,
         bind_password,
         base_dn,
         user_filter,
+
         email_attr,
         name_attr,
+
+        settings,
     }
 }
 
@@ -38,6 +57,8 @@ pub struct LdapClientImpl {
 
     email_attr: String,
     name_attr: String,
+
+    settings: LdapConnSettings,
 }
 
 pub struct LdapUser {
@@ -48,7 +69,8 @@ pub struct LdapUser {
 #[async_trait]
 impl LdapClient for LdapClientImpl {
     async fn validate(&mut self, user: &str, password: &str) -> Result<LdapUser> {
-        let (connection, mut client) = LdapConnAsync::new(&self.address).await?;
+        let (connection, mut client) =
+            LdapConnAsync::with_settings(self.settings.clone(), &self.address).await?;
         drive!(connection);
 
         // use bind_dn to search
