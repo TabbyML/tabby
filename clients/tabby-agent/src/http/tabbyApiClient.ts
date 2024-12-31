@@ -180,9 +180,9 @@ export class TabbyApiClient extends EventEmitter {
 
   private updateIsRateLimited(isRateLimited: boolean) {
     if (this.rateLimited != isRateLimited) {
-      this.logger.debug(`updateIsRateLimited, next:${isRateLimited}`)
+      this.logger.debug(`updateIsRateLimited, next:${isRateLimited}`);
       this.rateLimited = isRateLimited;
-      this.emit('isRateLimitedUpdated', isRateLimited);
+      this.emit("isRateLimitedUpdated", isRateLimited);
     }
   }
 

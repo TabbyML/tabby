@@ -214,7 +214,7 @@ export class CommandPalette {
               label: `${STATUS_PREFIX}Too Many Request`,
               description: "Request limit exceeded, please try again later.",
               command: "tabby.outputPanel.focus",
-            }
+            };
           }
           default: {
             return {
