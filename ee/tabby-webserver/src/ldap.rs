@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use async_trait::async_trait;
 use ldap3::{drive, LdapConnAsync, LdapConnSettings, Scope, SearchEntry};
-use tabby_schema::{email::Encryption, CoreError, Result};
+use tabby_schema::{CoreError, Result};
 
 #[async_trait]
 pub trait LdapClient: Send + Sync {
@@ -119,16 +119,5 @@ impl LdapClient for LdapClientImpl {
             }
             .into())
         }
-    }
-}
-
-#[cfg(test)]
-pub mod test_client {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_ldap_client() {
-        let mut client = new_ldap_client();
-        client.validate("kw", "password").await.unwrap();
     }
 }

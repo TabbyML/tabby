@@ -386,7 +386,7 @@ pub struct UpdateOAuthCredentialInput {
     pub client_secret: Option<String>,
 }
 
-#[derive(GraphQLEnum)]
+#[derive(GraphQLEnum, PartialEq, Debug)]
 pub enum LdapEncryptionKind {
     None,
     StartTLS,
