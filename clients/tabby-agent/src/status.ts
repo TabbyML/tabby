@@ -208,7 +208,10 @@ export class StatusProvider extends EventEmitter implements Feature {
           const ignored = this.dataStore.data.statusIgnoredIssues ?? [];
           if (this.tabbyApiClient.isRateLimited()) {
             statusInfo = { status: "rateLimited" };
-          } else if (this.tabbyApiClient.hasCompletionResponseTimeIssue() && !ignored.includes("completionResponseSlow")) {
+          } else if (
+            this.tabbyApiClient.hasCompletionResponseTimeIssue() &&
+            !ignored.includes("completionResponseSlow")
+          ) {
             statusInfo = { status: "completionResponseSlow" };
           } else if (this.tabbyApiClient.isFetchingCompletion()) {
             statusInfo = { status: "fetching" };
