@@ -118,7 +118,7 @@ export class CodeLensProvider implements Feature {
             });
           } else if (!previewBlockMarkers.includes("x")) {
             // TODO: read keybinds from LSP client, then send to LSP server to avoid hardcode.
-            const acceptShortcut = isBrowser ? '' : ` (${process.platform === 'darwin' ? 'cmd+enter' : 'ctrl+enter'})`
+            const acceptShortcut = isBrowser ? "" : ` (${process.platform === "darwin" ? "cmd+enter" : "ctrl+enter"})`;
             lineCodeLenses.push({
               range: codeLensRange,
               command: {
@@ -132,7 +132,7 @@ export class CodeLensProvider implements Feature {
               },
             });
 
-            const discardShortcut = isBrowser ? '' : ` (esc)`
+            const discardShortcut = isBrowser ? "" : ` (esc)`;
             lineCodeLenses.push({
               range: codeLensRange,
               command: {
