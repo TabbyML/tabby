@@ -348,7 +348,6 @@ export class TabbyApiClient extends EventEmitter {
     }
   }
 
-  // todo
   async fetchCompletion(
     request: TabbyApiComponents["schemas"]["CompletionRequest"],
     signal?: AbortSignal,
