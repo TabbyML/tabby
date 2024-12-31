@@ -2,19 +2,20 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, NotificationDAO, OAuthCredentialDAO,
-    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc,
-    ThreadMessageAttachmentWebDoc, UserEventDAO,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
+    OAuthCredentialDAO, ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode,
+    ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
+    ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc, UserEventDAO,
 };
 
 use crate::{
+    auth::LdapEncryptionKind,
     integration::{Integration, IntegrationKind, IntegrationStatus},
     interface::UserValue,
     notification::{Notification, NotificationRecipient},
     repository::RepositoryKind,
     schema::{
-        auth::{self, OAuthCredential, OAuthProvider},
+        auth::{self, LdapCredential, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
         job,
         repository::{
@@ -63,6 +64,26 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
             created_at: val.created_at,
             updated_at: val.updated_at,
             client_secret: val.client_secret,
+        })
+    }
+}
+
+impl TryFrom<LdapCredentialDAO> for LdapCredential {
+    type Error = anyhow::Error;
+
+    fn try_from(val: LdapCredentialDAO) -> Result<Self, Self::Error> {
+        Ok(LdapCredential {
+            host: val.host,
+            port: val.port as i32,
+            bind_dn: val.bind_dn,
+            base_dn: val.base_dn,
+            user_filter: val.user_filter,
+            encryption: LdapEncryptionKind::from_enum_str(&val.encryption)?,
+            skip_tls_verify: val.skip_tls_verify,
+            email_attribute: val.email_attribute,
+            name_attribute: val.name_attribute,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
         })
     }
 }
@@ -443,6 +464,25 @@ impl DbEnum for OAuthProvider {
             "google" => Ok(OAuthProvider::Google),
             "gitlab" => Ok(OAuthProvider::Gitlab),
             _ => bail!("Invalid OAuth credential type"),
+        }
+    }
+}
+
+impl DbEnum for LdapEncryptionKind {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            LdapEncryptionKind::None => "none",
+            LdapEncryptionKind::StartTLS => "starttls",
+            LdapEncryptionKind::LDAPS => "ldaps",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "none" => Ok(LdapEncryptionKind::None),
+            "starttls" => Ok(LdapEncryptionKind::StartTLS),
+            "ldaps" => Ok(LdapEncryptionKind::LDAPS),
+            _ => bail!("Invalid Ldap encryption kind"),
         }
     }
 }
