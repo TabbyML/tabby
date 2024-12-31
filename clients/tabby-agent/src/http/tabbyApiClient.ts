@@ -402,7 +402,7 @@ export class TabbyApiClient extends EventEmitter {
       } else if (isRateLimitedError(error)) {
         this.logger.debug(`Completion request failed due to rate limiting. [${requestId}]`);
         statsData.notAvailable = true;
-        this.updateIsRateLimited(true)
+        this.updateIsRateLimited(true);
       } else {
         this.logger.error(`Completion request failed. [${requestId}]`, error);
         statsData.notAvailable = true;
