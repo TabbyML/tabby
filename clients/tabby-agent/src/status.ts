@@ -270,7 +270,7 @@ export class StatusProvider extends EventEmitter implements Feature {
         statusInfo.tooltip = "Tabby: Slow Completion Response Detected";
         break;
       case "rateLimited":
-        statusInfo.tooltip = "Tabby: Too many request";
+        statusInfo.tooltip = "Tabby: Too Many Requests";
         break;
       default:
         break;
