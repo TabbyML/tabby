@@ -26,7 +26,7 @@ import {
   isUnauthorizedError,
   isCanceledError,
   isTimeoutError,
-  isRateLimitedError,
+  isRateLimitExceededError,
 } from "../utils/error";
 import { RequestStats } from "./statistics";
 
@@ -399,7 +399,7 @@ export class TabbyApiClient extends EventEmitter {
         statsData.notAvailable = true;
         this.updateIsRateLimitExceeded(false);
         this.connect(); // schedule a reconnection
-      } else if (isRateLimitedError(error)) {
+      } else if (isRateLimitExceededError(error)) {
         this.logger.debug(`Completion request failed due to rate limiting. [${requestId}]`);
         statsData.notAvailable = true;
         this.updateIsRateLimitExceeded(true);

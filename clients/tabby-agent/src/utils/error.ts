@@ -35,7 +35,7 @@ export function isUnauthorizedError(error: any) {
   return error instanceof HttpError && [401, 403].includes(error.status);
 }
 
-export function isRateLimitedError(error: any) {
+export function isRateLimitExceededError(error: any) {
   return error instanceof HttpError && error.status === 429;
 }
 
