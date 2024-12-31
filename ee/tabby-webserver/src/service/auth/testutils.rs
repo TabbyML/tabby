@@ -3,13 +3,42 @@ use chrono::{Duration, Utc};
 use juniper::ID;
 use tabby_schema::{
     auth::{
-        AuthenticationService, Invitation, JWTPayload, OAuthCredential, OAuthError, OAuthProvider,
-        OAuthResponse, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
-        TokenAuthResponse, UpdateOAuthCredentialInput, UserSecured,
+        AuthenticationService, Invitation, JWTPayload, LdapCredential, OAuthCredential, OAuthError,
+        OAuthProvider, OAuthResponse, RefreshTokenResponse, RegisterResponse,
+        RequestInvitationInput, TokenAuthResponse, UpdateLdapCredentialInput,
+        UpdateOAuthCredentialInput, UserSecured,
     },
     Result,
 };
 use tokio::task::JoinHandle;
+
+use crate::ldap::{LdapClient, LdapUser};
+
+pub struct FakeLdapClient<'a> {
+    pub state: &'a str,
+}
+
+#[async_trait]
+impl<'a> LdapClient for FakeLdapClient<'a> {
+    async fn validate(&mut self, user_id: &str, _password: &str) -> Result<LdapUser> {
+        match self.state {
+            "not_found" => Err(ldap3::LdapError::LdapResult {
+                result: ldap3::LdapResult {
+                    rc: 32,
+                    matched: user_id.to_string(),
+                    text: "User not found".to_string(),
+                    refs: vec![],
+                    ctrls: vec![],
+                },
+            }
+            .into()),
+            _ => Ok(LdapUser {
+                email: "user@example.com".to_string(),
+                name: "Test User".to_string(),
+            }),
+        }
+    }
+}
 
 pub struct FakeAuthService {
     users: Vec<UserSecured>,
@@ -178,6 +207,22 @@ impl AuthenticationService for FakeAuthService {
         _last: Option<usize>,
     ) -> Result<Vec<Invitation>> {
         Ok(vec![])
+    }
+
+    async fn read_ldap_credential(&self) -> Result<Option<LdapCredential>> {
+        Ok(None)
+    }
+
+    async fn test_ldap_connection(&self, _credential: UpdateLdapCredentialInput) -> Result<()> {
+        Ok(())
+    }
+
+    async fn update_ldap_credential(&self, _input: UpdateLdapCredentialInput) -> Result<()> {
+        Ok(())
+    }
+
+    async fn delete_ldap_credential(&self) -> Result<()> {
+        Ok(())
     }
 
     async fn oauth(
