@@ -211,8 +211,8 @@ export class CommandPalette {
           }
           case "rateLimited": {
             return {
-              label: `${STATUS_PREFIX}Too Many Request`,
-              description: "Request limit exceeded, please try again later.",
+              label: `${STATUS_PREFIX}Too Many Requests`,
+              description: "Request limit exceeded",
               command: "tabby.outputPanel.focus",
             };
           }
