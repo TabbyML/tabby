@@ -209,7 +209,7 @@ export class CommandPalette {
               },
             };
           }
-          case "rateLimited": {
+          case 'rateLimitExceeded': {
             return {
               label: `${STATUS_PREFIX}Too Many Requests`,
               description: "Request limit exceeded",

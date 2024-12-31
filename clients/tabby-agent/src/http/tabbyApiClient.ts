@@ -49,7 +49,7 @@ export class TabbyApiClient extends EventEmitter {
 
   private readonly completionRequestStats = new RequestStats();
   private completionResponseIssue: "highTimeoutRate" | "slowResponseTime" | undefined = undefined;
-  private rateLimited: boolean = false;
+  private rateLimitExceeded: boolean = false;
 
   private connectionErrorMessage: string | undefined = undefined;
   private serverHealth: TabbyApiComponents["schemas"]["HealthState"] | undefined = undefined;
@@ -178,11 +178,11 @@ export class TabbyApiClient extends EventEmitter {
     }
   }
 
-  private updateIsRateLimited(isRateLimited: boolean) {
-    if (this.rateLimited != isRateLimited) {
-      this.logger.debug(`updateIsRateLimited: ${isRateLimited}`);
-      this.rateLimited = isRateLimited;
-      this.emit("isRateLimitedUpdated", isRateLimited);
+  private updateIsRateLimitExceeded(isRateLimitExceeded: boolean) {
+    if (this.rateLimitExceeded != isRateLimitExceeded) {
+      this.logger.debug(`updateIsRateLimitExceeded: ${isRateLimitExceeded}`);
+      this.rateLimitExceeded = isRateLimitExceeded;
+      this.emit("isRateLimitExceededUpdated", isRateLimitExceeded);
     }
   }
 
@@ -224,8 +224,8 @@ export class TabbyApiClient extends EventEmitter {
     return !!this.completionResponseIssue;
   }
 
-  isRateLimited(): boolean {
-    return this.rateLimited;
+  isRateLimitExceeded(): boolean {
+    return this.rateLimitExceeded;
   }
 
   getServerHealth(): TabbyApiComponents["schemas"]["HealthState"] | undefined {
@@ -384,7 +384,7 @@ export class TabbyApiClient extends EventEmitter {
       }
       this.logger.trace(`Completion response data: [${requestId}]`, response.data);
       statsData.latency = performance.now() - requestStartedAt;
-      this.updateIsRateLimited(false);
+      this.updateIsRateLimitExceeded(false);
       return response.data;
     } catch (error) {
       this.updateIsFetchingCompletion(false);
@@ -397,16 +397,16 @@ export class TabbyApiClient extends EventEmitter {
       } else if (isUnauthorizedError(error)) {
         this.logger.debug(`Completion request failed due to unauthorized. [${requestId}]`);
         statsData.notAvailable = true;
-        this.updateIsRateLimited(false);
+        this.updateIsRateLimitExceeded(false);
         this.connect(); // schedule a reconnection
       } else if (isRateLimitedError(error)) {
         this.logger.debug(`Completion request failed due to rate limiting. [${requestId}]`);
         statsData.notAvailable = true;
-        this.updateIsRateLimited(true);
+        this.updateIsRateLimitExceeded(true);
       } else {
         this.logger.error(`Completion request failed. [${requestId}]`, error);
         statsData.notAvailable = true;
-        this.updateIsRateLimited(false);
+        this.updateIsRateLimitExceeded(false);
         this.connect(); // schedule a reconnection
       }
       throw error; // rethrow error
