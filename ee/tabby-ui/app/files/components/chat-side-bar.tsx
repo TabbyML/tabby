@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { find } from 'lodash-es'
-import type { FileLocation } from 'tabby-chat-panel'
+import type { FileLocation, GitRepository } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
+import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
@@ -16,17 +17,22 @@ import { SourceCodeBrowserContext } from './source-code-browser'
 import { generateEntryPath, getDefaultRepoRef, resolveRepoRef } from './utils'
 
 interface ChatSideBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
+  activeRepo: RepositoryListQuery['repositoryList'][0] | undefined
+}
 
 export const ChatSideBar: React.FC<ChatSideBarProps> = ({
+  activeRepo,
   className,
   ...props
 }) => {
   const [{ data }] = useMe()
+  const [initialized, setInitialized] = useState(false)
   const { pendingEvent, setPendingEvent, repoMap, updateActivePath } =
     React.useContext(SourceCodeBrowserContext)
   const activeChatId = useChatStore(state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
+  const executedCommand = useRef(false)
   const repoMapRef = useLatest(repoMap)
   const openInCodeBrowser = async (fileLocation: FileLocation) => {
     const { filepath, location } = fileLocation
@@ -60,6 +66,12 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     return false
   }
 
+  const readWorkspaceGitRepositories = useLatest(() => {
+    if (!activeRepo) return []
+    const list: GitRepository[] = [{ url: activeRepo.gitUrl }]
+    return list
+  })
+
   const client = useClient(iframeRef, {
     refresh: async () => {
       window.location.reload()
@@ -70,7 +82,9 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       })
     },
     onApplyInEditor(_content) {},
-    onLoaded() {},
+    onLoaded() {
+      setInitialized(true)
+    },
     onCopy(_content) {},
     onKeyboardEvent() {},
     openInEditor: async (fileLocation: FileLocation) => {
@@ -78,6 +92,9 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     },
     openExternal: async (url: string) => {
       window.open(url, '_blank')
+    },
+    readWorkspaceGitRepositories: async () => {
+      return readWorkspaceGitRepositories.current?.()
     }
   })
 
@@ -100,10 +117,10 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         }
       })
     }
-  }, [iframeRef?.current, client, data])
+  }, [iframeRef?.current, client?.init, data])
 
   React.useEffect(() => {
-    if (pendingEvent && client) {
+    if (pendingEvent && client && initialized) {
       const execute = async () => {
         const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
         client.updateActiveSelection({
@@ -119,17 +136,18 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             gitUrl
           }
         })
+        const command = getCommand(pendingEvent)
         // FIXME: this delay is a workaround for waiting for the active selection to be updated
         setTimeout(() => {
-          client.executeCommand(getCommand(pendingEvent))
+          client.executeCommand(command)
         }, 500)
+        setPendingEvent(undefined)
       }
+
       execute()
     }
-    setPendingEvent(undefined)
-  }, [pendingEvent, client])
+  }, [initialized, pendingEvent])
 
-  if (!data?.me) return <></>
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
       <Header />

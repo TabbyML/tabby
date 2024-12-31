@@ -379,6 +379,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const { progress, setProgress } = useTopbarProgress()
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
+  const [chatSidebarInitialized, setChatSidebarInitialized] = useState(false)
+
   const searchQuery = searchParams.get('q')?.toString()
 
   const parsedEntryInfo = React.useMemo(() => {
@@ -619,12 +621,23 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [fetchingRawFile, fetchingTreeEntries])
 
   React.useEffect(() => {
-    if (chatSideBarVisible) {
-      chatSideBarPanelRef.current?.expand()
-      chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
-    } else {
-      chatSideBarPanelRef.current?.collapse()
+    const initChatSidebar = () => {
+      if (chatSideBarVisible && !chatSidebarInitialized) {
+        setChatSidebarInitialized(true)
+      }
     }
+
+    const toggleChatSidebarPanel = () => {
+      if (chatSideBarVisible) {
+        chatSideBarPanelRef.current?.expand()
+        chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
+      } else {
+        chatSideBarPanelRef.current?.collapse()
+      }
+    }
+
+    initChatSidebar()
+    toggleChatSidebarPanel()
   }, [chatSideBarVisible])
 
   React.useEffect(() => {
@@ -736,7 +749,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           ref={chatSideBarPanelRef}
           onCollapse={() => setChatSideBarVisible(false)}
         >
-          <ChatSideBar />
+          {chatSidebarInitialized ? (
+            <ChatSideBar activeRepo={activeRepo} />
+          ) : null}
         </ResizablePanel>
       </>
     </ResizablePanelGroup>
