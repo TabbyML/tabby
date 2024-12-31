@@ -1,6 +1,6 @@
 [package]
 name = "tabby-download"
-version = "0.21.0-dev.0"
+version = "0.23.0-rc0"
 edition = "2021"
 
 [dependencies]
