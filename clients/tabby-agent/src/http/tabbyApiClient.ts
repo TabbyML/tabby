@@ -180,7 +180,7 @@ export class TabbyApiClient extends EventEmitter {
 
   private updateIsRateLimited(isRateLimited: boolean) {
     if (this.rateLimited != isRateLimited) {
-      this.logger.debug(`updateIsRateLimited, next:${isRateLimited}`);
+      this.logger.debug(`updateIsRateLimited: ${isRateLimited}`);
       this.rateLimited = isRateLimited;
       this.emit("isRateLimitedUpdated", isRateLimited);
     }
@@ -401,6 +401,7 @@ export class TabbyApiClient extends EventEmitter {
       } else if (isRateLimitedError(error)) {
         this.logger.debug(`Completion request failed due to rate limiting. [${requestId}]`);
         statsData.rateLimited = true;
+        statsData.notAvailable = true;
       } else {
         this.logger.error(`Completion request failed. [${requestId}]`, error);
         statsData.notAvailable = true;
@@ -413,6 +414,7 @@ export class TabbyApiClient extends EventEmitter {
       if (!statsData.notAvailable) {
         stats?.addRequestStatsEntry(statsData);
       }
+
       if (!statsData.notAvailable && !statsData.canceled) {
         this.completionRequestStats.add(statsData.latency);
         const statsResult = this.completionRequestStats.stats();
