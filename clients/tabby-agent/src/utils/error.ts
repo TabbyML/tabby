@@ -35,6 +35,10 @@ export function isUnauthorizedError(error: any) {
   return error instanceof HttpError && [401, 403].includes(error.status);
 }
 
+export function isRateLimitExceededError(error: any) {
+  return error instanceof HttpError && error.status === 429;
+}
+
 export function errorToString(error: Error) {
   let message = error.message || error.toString();
   if (error.cause instanceof Error) {

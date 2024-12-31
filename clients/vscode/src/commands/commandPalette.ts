@@ -209,6 +209,13 @@ export class CommandPalette {
               },
             };
           }
+          case "rateLimitExceeded": {
+            return {
+              label: `${STATUS_PREFIX}Too Many Requests`,
+              description: "Request limit exceeded",
+              command: "tabby.outputPanel.focus",
+            };
+          }
           default: {
             return {
               label: `${STATUS_PREFIX}Unknown Status`,

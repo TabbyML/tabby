@@ -70,6 +70,9 @@ export class StatusProvider extends EventEmitter implements Feature {
     this.tabbyApiClient.on("hasCompletionResponseTimeIssueUpdated", async () => {
       this.notify();
     });
+    this.tabbyApiClient.on("isRateLimitExceededUpdated", async () => {
+      this.notify();
+    });
 
     this.configurations.on(
       "clientProvidedConfigUpdated",
@@ -203,7 +206,12 @@ export class StatusProvider extends EventEmitter implements Feature {
       case "ready":
         {
           const ignored = this.dataStore.data.statusIgnoredIssues ?? [];
-          if (this.tabbyApiClient.hasCompletionResponseTimeIssue() && !ignored.includes("completionResponseSlow")) {
+          if (this.tabbyApiClient.isRateLimitExceeded()) {
+            statusInfo = { status: "rateLimitExceeded" };
+          } else if (
+            this.tabbyApiClient.hasCompletionResponseTimeIssue() &&
+            !ignored.includes("completionResponseSlow")
+          ) {
             statusInfo = { status: "completionResponseSlow" };
           } else if (this.tabbyApiClient.isFetchingCompletion()) {
             statusInfo = { status: "fetching" };
@@ -263,6 +271,9 @@ export class StatusProvider extends EventEmitter implements Feature {
         break;
       case "completionResponseSlow":
         statusInfo.tooltip = "Tabby: Slow Completion Response Detected";
+        break;
+      case "rateLimitExceeded":
+        statusInfo.tooltip = "Tabby: Too Many Requests";
         break;
       default:
         break;
