@@ -241,8 +241,6 @@ export class ChatWebview {
         // 1. Send pending actions
         // 2. Call the client's init method
         // 3. Show the chat panel (call syncStyle underlay)
-        // await this.notifyActiveEditorSelectionChange(window.activeTextEditor);
-
         this.pendingActions.forEach(async (fn) => {
           await fn();
         });
