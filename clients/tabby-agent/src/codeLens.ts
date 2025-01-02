@@ -11,7 +11,6 @@ import {
 import { ClientCapabilities, ServerCapabilities, CodeLens, CodeLensType, ChangesPreviewLineType } from "./protocol";
 import { TextDocuments } from "./lsp/textDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { isBrowser } from "./env";
 
 const codeLensType: CodeLensType = "previewChanges";
 const changesPreviewLineType = {
@@ -117,12 +116,10 @@ export class CodeLensProvider implements Feature {
               },
             });
           } else if (!previewBlockMarkers.includes("x")) {
-            // TODO: read keybinds from LSP client, then send to LSP server to avoid hardcode.
-            const acceptShortcut = isBrowser ? "" : ` (${process.platform === "darwin" ? "cmd+enter" : "ctrl+enter"})`;
             lineCodeLenses.push({
               range: codeLensRange,
               command: {
-                title: `$(check)Accept${acceptShortcut}`,
+                title: `$(check)Accept`,
                 command: "tabby/chat/edit/resolve",
                 arguments: [{ location: codeLensLocation, action: "accept" }],
               },
@@ -132,11 +129,10 @@ export class CodeLensProvider implements Feature {
               },
             });
 
-            const discardShortcut = isBrowser ? "" : ` (esc)`;
             lineCodeLenses.push({
               range: codeLensRange,
               command: {
-                title: `$(remove-close)Discard${discardShortcut}`,
+                title: `$(remove-close)Discard`,
                 command: "tabby/chat/edit/resolve",
                 arguments: [{ location: codeLensLocation, action: "discard" }],
               },

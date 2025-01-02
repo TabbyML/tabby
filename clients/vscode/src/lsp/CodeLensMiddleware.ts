@@ -12,6 +12,7 @@ import {
 import { CodeLensMiddleware as VscodeLspCodeLensMiddleware, ProvideCodeLensesSignature } from "vscode-languageclient";
 import { CodeLens as TabbyCodeLens } from "tabby-agent";
 import { findTextEditor } from "./vscodeWindowUtils";
+import { isBrowser } from "../env";
 
 type CodeLens = VscodeCodeLens & TabbyCodeLens;
 
@@ -74,16 +75,22 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     if (!editor) {
       return codeLenses;
     }
+
+    if (!codeLenses) {
+      return [];
+    }
+
     this.removeDecorations(editor);
     const result =
       codeLenses
-        ?.map((codeLens) => this.handleCodeLens(codeLens, editor))
-        .filter((codeLens): codeLens is CodeLens => codeLens !== null) ?? [];
+        .map((codeLens) => this.handleCodeLens(codeLens, editor))
+        .filter((codeLens): codeLens is CodeLens => codeLens !== null);
     this.purgeDecorationMap();
     return result;
   }
 
   private handleCodeLens(codeLens: CodeLens, editor: TextEditor): CodeLens | null {
+    this.addShortcut(codeLens);
     if (!codeLens.data || codeLens.data.type !== "previewChanges") {
       return codeLens;
     }
@@ -104,6 +111,19 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
       return codeLens;
     }
     return null;
+  }
+
+  private addShortcut(codeLens: CodeLens) {    
+    if (codeLens.command?.arguments?.[0].action === "accept") {
+      // TODO: read keybinds from LSP client, then send to LSP server to avoid hardcode.
+      const acceptShortcut = isBrowser ? '' : ` (${process.platform === 'darwin' ? 'cmd+enter' : 'ctrl+enter'})`;
+
+      codeLens.command.title += (acceptShortcut);
+    } else if (codeLens.command?.arguments?.[0].action === "discard") {
+      const discardShortcut = isBrowser ? '' : ` (esc)`;
+
+      codeLens.command.title += (discardShortcut);
+    }
   }
 
   private addDecorationRange(editor: TextEditor, decorationType: TextEditorDecorationType, range: Range) {
