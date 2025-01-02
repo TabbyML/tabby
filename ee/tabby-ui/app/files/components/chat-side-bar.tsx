@@ -97,7 +97,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       return readWorkspaceGitRepositories.current?.()
     },
     getActiveEditorSelection: async() => {
-      // FIXME implement
+      // FIXME(@jueliang) implement
       return null
     },
   })
