@@ -46,9 +46,8 @@ const convertToHSLColor = (style: string) => {
 }
 
 export default function ChatPage() {
-  // if chat component loaded
   const [isChatComponentLoaded, setIsChatComponentLoaded] = useState(false)
-  const [isServerInitialized, setIsServerInitialized] = useState(false)
+  const [isServerLoaded, setIsServerLoaded] = useState(false)
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
     null
   )
@@ -256,7 +255,7 @@ export default function ChatPage() {
 
       checkCapabilities().then(() => {
         setTimeout(() => {
-          setIsServerInitialized(true)
+          setIsServerLoaded(true)
         })
       })
     }
@@ -266,7 +265,7 @@ export default function ChatPage() {
     if (!isChatComponentLoaded) return
     if (
       width &&
-      isServerInitialized &&
+      isServerLoaded &&
       fetcherOptions &&
       !errorMessage &&
       !prevWidthRef.current
@@ -384,7 +383,7 @@ export default function ChatPage() {
     )
   }
 
-  if (!isServerInitialized || !fetcherOptions) {
+  if (!isServerLoaded || !fetcherOptions) {
     return (
       <StaticContent>
         <>
