@@ -1,4 +1,7 @@
-import { createThreadFromIframe, createThreadFromInsideIframe } from 'tabby-threads'
+import {
+  createThreadFromIframe,
+  createThreadFromInsideIframe,
+} from 'tabby-threads'
 import { version } from '../package.json'
 
 export const TABBY_CHAT_PANEL_API_VERSION: string = version
@@ -182,6 +185,21 @@ export interface LookupSymbolHint {
 }
 
 /**
+ * Represents a hint to help find definitions.
+ */
+export interface LookupDefinitionsHint {
+  /**
+   * The filepath of the file to search the symbol.
+   */
+  filepath?: Filepath
+
+  /**
+   * Using LineRange to confirm the specific code block of the file
+   */
+  location?: LineRange
+}
+
+/**
  * Includes information about a symbol returned by the {@link ClientApiMethods.lookupSymbol} method.
  */
 export interface SymbolInfo {
@@ -209,7 +227,11 @@ export interface GitRepository {
  * - 'generate-docs': Generate documentation for the selected code.
  * - 'generate-tests': Generate tests for the selected code.
  */
-export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
+export type ChatCommand =
+  | 'explain'
+  | 'fix'
+  | 'generate-docs'
+  | 'generate-tests'
 
 export interface ServerApi {
   init: (request: InitRequest) => void
@@ -248,7 +270,10 @@ export interface ClientApiMethods {
   // On user copy content to clipboard.
   onCopy: (content: string) => void
 
-  onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
+  onKeyboardEvent: (
+    type: 'keydown' | 'keyup' | 'keypress',
+    event: KeyboardEventInit
+  ) => void
 
   /**
    * Find the target symbol and return the symbol information.
@@ -256,7 +281,10 @@ export interface ClientApiMethods {
    * @param hints The optional {@link LookupSymbolHint} list to help find the symbol. The hints should be sorted by priority.
    * @returns The symbol information if found, otherwise undefined.
    */
-  lookupSymbol?: (symbol: string, hints?: LookupSymbolHint[] | undefined) => Promise<SymbolInfo | undefined>
+  lookupSymbol?: (
+    symbol: string,
+    hints?: LookupSymbolHint[] | undefined
+  ) => Promise<SymbolInfo | undefined>
 
   /**
    * Open the target file location in the editor.
@@ -273,6 +301,8 @@ export interface ClientApiMethods {
 
   // Provide all repos found in workspace folders.
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
+
+  lookupDefinitions?: (hint: LookupDefinitionsHint) => Promise<SymbolInfo[]>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -284,7 +314,10 @@ export interface ClientApi extends ClientApiMethods {
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 }
 
-export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
+export function createClient(
+  target: HTMLIFrameElement,
+  api: ClientApiMethods,
+): ServerApi {
   return createThreadFromIframe(target, {
     expose: {
       refresh: api.refresh,
@@ -297,6 +330,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       openInEditor: api.openInEditor,
       openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
+      lookupDefinitions: api.lookupDefinitions,
     },
   })
 }
