@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Months, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
 use tabby_schema::context::ContextService;
+use tracing::error;
 
 use super::helper::Job;
 
@@ -36,5 +37,158 @@ impl DbMaintainanceJob {
         db.delete_unused_source_id_read_access_policy(&active_source_ids)
             .await?;
         Ok(())
+    }
+
+    pub async fn retention(now: DateTime<Utc>, db: DbConn) -> tabby_schema::Result<()> {
+        if let Some(three_months_ago) = now.checked_sub_months(Months::new(3)) {
+            if let Err(e) = db.delete_jobs_before(three_months_ago).await {
+                error!(
+                    "Failed to clean up and retain only the last 3 months of jobs: {:?}",
+                    e
+                );
+            }
+
+            if let Err(e) = db.delete_user_events_before(three_months_ago).await {
+                error!(
+                    "Failed to clean up and retain only the last 3 months of user events: {:?}",
+                    e
+                );
+            }
+        };
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{DateTime, Utc};
+    use tabby_db::DbConn;
+
+    #[tokio::test]
+    async fn test_retention_should_delete() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let cases = vec![
+            (
+                "2024-04-30T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+                "2024-01-30T12:12:11Z".parse::<DateTime<Utc>>().unwrap(),
+            ),
+            (
+                "2024-04-30T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+                "2024-01-29T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+            ),
+            (
+                "2024-05-01T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+                "2024-01-31T12:12:11Z".parse::<DateTime<Utc>>().unwrap(),
+            ),
+        ];
+
+        let user_id = db
+            .create_user("user@test.com".to_string(), None, true, None)
+            .await
+            .unwrap();
+        for (now, created) in cases {
+            db.create_user_event(
+                user_id,
+                "test".to_string(),
+                created.timestamp_millis() as u128,
+                "".to_string(),
+            )
+            .await
+            .unwrap();
+
+            let events = db
+                .list_user_events(
+                    None,
+                    None,
+                    false,
+                    vec![user_id],
+                    created.checked_sub_days(chrono::Days::new(1)).unwrap(),
+                    now,
+                )
+                .await
+                .unwrap();
+            assert_eq!(events.len(), 1);
+
+            DbMaintainanceJob::retention(now, db.clone()).await.unwrap();
+
+            let events = db
+                .list_user_events(
+                    None,
+                    None,
+                    false,
+                    vec![user_id],
+                    created.checked_sub_days(chrono::Days::new(1)).unwrap(),
+                    now,
+                )
+                .await
+                .unwrap();
+            assert_eq!(events.len(), 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_retention_should_not_delete() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let cases = vec![
+            (
+                "2024-04-30T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+                "2024-01-31T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+            ),
+            (
+                "2024-04-30T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+                "2024-01-30T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+            ),
+            (
+                "2024-04-30T12:12:12Z".parse::<DateTime<Utc>>().unwrap(),
+                "2024-04-30T12:12:11Z".parse::<DateTime<Utc>>().unwrap(),
+            ),
+        ];
+
+        let user_id = db
+            .create_user("user@test.com".to_string(), None, true, None)
+            .await
+            .unwrap();
+        for (now, created) in cases {
+            db.create_user_event(
+                user_id,
+                "test".to_string(),
+                created.timestamp_millis() as u128,
+                "".to_string(),
+            )
+            .await
+            .unwrap();
+
+            let events = db
+                .list_user_events(
+                    None,
+                    None,
+                    false,
+                    vec![user_id],
+                    created.checked_sub_days(chrono::Days::new(1)).unwrap(),
+                    now,
+                )
+                .await
+                .unwrap();
+            assert_eq!(events.len(), 1);
+
+            DbMaintainanceJob::retention(now, db.clone()).await.unwrap();
+
+            let events = db
+                .list_user_events(
+                    None,
+                    None,
+                    false,
+                    vec![user_id],
+                    created.checked_sub_days(chrono::Days::new(1)).unwrap(),
+                    now,
+                )
+                .await
+                .unwrap();
+            assert_eq!(events.len(), 1);
+
+            // clean up for next iteration
+            db.delete_user_events_before(now).await.unwrap();
+        }
     }
 }

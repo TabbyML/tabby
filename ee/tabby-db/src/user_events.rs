@@ -73,4 +73,14 @@ impl DbConn {
 
         Ok(events)
     }
+
+    pub async fn delete_user_events_before(&self, before: DateTime<Utc>) -> Result<usize> {
+        let before = before.as_sqlite_datetime();
+        let num_deleted = query!("delete FROM user_events WHERE created_at < ?", before,)
+            .execute(&self.pool)
+            .await?
+            .rows_affected();
+
+        Ok(num_deleted as usize)
+    }
 }

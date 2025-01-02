@@ -107,6 +107,19 @@ impl DbConn {
         Ok(num_deleted as usize)
     }
 
+    pub async fn delete_jobs_before(&self, before: DateTime<Utc>) -> Result<usize> {
+        let before = before.as_sqlite_datetime();
+        let num_deleted = query!(
+            "delete FROM job_runs WHERE updated_at < ? AND exit_code IS NOT NULL",
+            before,
+        )
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
+
+        Ok(num_deleted as usize)
+    }
+
     pub async fn list_job_runs_with_filter(
         &self,
         ids: Option<Vec<i32>>,
