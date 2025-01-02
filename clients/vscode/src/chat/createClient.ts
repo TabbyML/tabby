@@ -35,7 +35,7 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       openInEditor: api.openInEditor,
       openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
-      getActiveEditorSelection: api.getActiveEditorSelection
+      getActiveEditorSelection: api.getActiveEditorSelection,
     },
   });
 }

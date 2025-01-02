@@ -449,15 +449,15 @@ export class ChatWebview {
         return infoList;
       },
 
-      getActiveEditorSelection: async(): Promise<EditorFileContext | null> => {
+      getActiveEditorSelection: async (): Promise<EditorFileContext | null> => {
         const editor = window.activeTextEditor;
-        if (!editor)  {
-          return null
+        if (!editor) {
+          return null;
         }
 
         const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-        return fileContext
-      }
+        return fileContext;
+      },
     });
   }
 
