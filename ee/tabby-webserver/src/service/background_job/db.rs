@@ -61,9 +61,10 @@ impl DbMaintainanceJob {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use chrono::{DateTime, Utc};
     use tabby_db::DbConn;
+
+    use super::*;
 
     #[tokio::test]
     async fn test_retention_should_delete() {
