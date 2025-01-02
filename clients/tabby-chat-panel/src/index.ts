@@ -277,7 +277,7 @@ export interface ClientApiMethods {
   /**
    * @returns The active selection of active editor.
    */
-  getActiveEditorSelection?: () => Promise<EditorFileContext | null>
+  getActiveEditorSelection: () => Promise<EditorFileContext | null>
 }
 
 export interface ClientApi extends ClientApiMethods {

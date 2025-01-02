@@ -79,10 +79,6 @@ export default function ChatPage() {
     supportsReadWorkspaceGitRepoInfo,
     setSupportsReadWorkspaceGitRepoInfo
   ] = useState(false)
-  const [
-    supportsGetActiveEditorSelection,
-    setSupportsGetActiveEditorSelection
-  ] = useState(false)
 
   const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
@@ -248,9 +244,6 @@ export default function ChatPage() {
         server
           ?.hasCapability('readWorkspaceGitRepositories')
           .then(setSupportsReadWorkspaceGitRepoInfo)
-        server
-          ?.hasCapability('getActiveEditorSelection')
-          .then(setSupportsGetActiveEditorSelection)
       }
 
       checkCapabilities().then(() => {
@@ -307,6 +300,10 @@ export default function ChatPage() {
 
   const openExternal = async (url: string) => {
     return server?.openExternal(url)
+  }
+
+  const getActiveEditorSelection = async () => {
+    return server?.getActiveEditorSelection() ?? null
   }
 
   const refresh = async () => {
@@ -431,11 +428,7 @@ export default function ChatPage() {
             ? server?.readWorkspaceGitRepositories
             : undefined
         }
-        getActiveEditorSelection={
-          supportsGetActiveEditorSelection
-            ? server?.getActiveEditorSelection
-            : undefined
-        }
+        getActiveEditorSelection={getActiveEditorSelection}
       />
     </ErrorBoundary>
   )
