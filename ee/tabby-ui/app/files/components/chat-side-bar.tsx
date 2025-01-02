@@ -1,6 +1,10 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { find } from 'lodash-es'
-import type { FileLocation, GitRepository } from 'tabby-chat-panel'
+import type {
+  EditorContext,
+  FileLocation,
+  GitRepository
+} from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
 import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
@@ -32,7 +36,6 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     React.useContext(SourceCodeBrowserContext)
   const activeChatId = useChatStore(state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
-  const executedCommand = useRef(false)
   const repoMapRef = useLatest(repoMap)
   const openInCodeBrowser = async (fileLocation: FileLocation) => {
     const { filepath, location } = fileLocation
@@ -72,6 +75,25 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     return list
   })
 
+  const getActiveEditorSelection = useLatest(() => {
+    if (!pendingEvent) return null
+    const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
+    const activeSelection: EditorContext = {
+      kind: 'file',
+      content: code,
+      range: {
+        start: lineFrom,
+        end: lineTo ?? lineFrom
+      },
+      filepath: {
+        kind: 'git',
+        filepath: path,
+        gitUrl
+      }
+    }
+    return activeSelection
+  })
+
   const client = useClient(iframeRef, {
     refresh: async () => {
       window.location.reload()
@@ -94,12 +116,11 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       window.open(url, '_blank')
     },
     readWorkspaceGitRepositories: async () => {
-      return readWorkspaceGitRepositories.current?.()
+      return readWorkspaceGitRepositories.current()
     },
-    getActiveEditorSelection: async() => {
-      // FIXME(@jueliang) implement
-      return null
-    },
+    getActiveEditorSelection: async () => {
+      return getActiveEditorSelection.current()
+    }
   })
 
   const getCommand = ({ action }: QuickActionEventPayload) => {
@@ -126,25 +147,9 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   React.useEffect(() => {
     if (pendingEvent && client && initialized) {
       const execute = async () => {
-        const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
-        client.updateActiveSelection({
-          kind: 'file',
-          content: code,
-          range: {
-            start: lineFrom,
-            end: lineTo ?? lineFrom
-          },
-          filepath: {
-            kind: 'git',
-            filepath: path,
-            gitUrl
-          }
-        })
+        // todo notify activeselection change
         const command = getCommand(pendingEvent)
-        // FIXME: this delay is a workaround for waiting for the active selection to be updated
-        setTimeout(() => {
-          client.executeCommand(command)
-        }, 500)
+        client.executeCommand(command)
         setPendingEvent(undefined)
       }
 

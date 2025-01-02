@@ -3,6 +3,7 @@ import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type {
   ChatCommand,
   EditorContext,
+  EditorFileContext,
   FileLocation,
   GitRepository,
   LookupSymbolHint,
@@ -98,7 +99,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
   initialMessages?: QuestionAnswerPair[]
-  onLoaded?: () => void
+  onLoaded?: () => Promise<void>
   onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
   container?: HTMLDivElement
   docQuery?: boolean
@@ -119,6 +120,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   chatInputRef: RefObject<HTMLTextAreaElement>
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
+  getActiveEditorSelection?: () => Promise<EditorFileContext | null>
 }
 
 function ChatRenderer(
@@ -141,10 +143,12 @@ function ChatRenderer(
     openExternal,
     chatInputRef,
     supportsOnApplyInEditorV2,
-    readWorkspaceGitRepositories
+    readWorkspaceGitRepositories,
+    getActiveEditorSelection
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
+  const [isDataSetup, setIsDataSetup] = React.useState(false)
   const [initialized, setInitialized] = React.useState(false)
   const [threadId, setThreadId] = React.useState<string | undefined>()
   const isOnLoadExecuted = React.useRef(false)
@@ -516,7 +520,7 @@ function ChatRenderer(
     (ctx: Context | null) => {
       setActiveSelection(ctx)
     },
-    300
+    200
   )
 
   const updateActiveSelection = (editorContext: EditorContext | null) => {
@@ -532,10 +536,18 @@ function ChatRenderer(
     }
   }
 
+  const initActiveEditorSelection = async () => {
+    return getActiveEditorSelection?.()
+  }
+
   React.useEffect(() => {
     const init = async () => {
-      const workspaceGitRepositories = await fetchWorkspaceGitRepo()
-      // get default repo
+      const [workspaceGitRepositories, activeEditorSelecition] =
+        await Promise.all([
+          fetchWorkspaceGitRepo(),
+          initActiveEditorSelection()
+        ])
+      // get default repository
       if (workspaceGitRepositories?.length && repos?.length) {
         const defaultGitUrl = workspaceGitRepositories[0].url
         const repo = findClosestGitRepository(
@@ -547,19 +559,26 @@ function ChatRenderer(
         }
       }
 
-      setInitialized(true)
+      // update active selection
+      if (activeEditorSelecition) {
+        const context = convertEditorContext(activeEditorSelecition)
+        setActiveSelection(context)
+      }
     }
 
-    if (!fetchingRepos && !initialized) {
-      init()
+    if (!fetchingRepos && !isDataSetup) {
+      init().finally(() => {
+        setIsDataSetup(true)
+      })
     }
-  }, [fetchingRepos])
+  }, [fetchingRepos, isDataSetup])
 
   React.useEffect(() => {
-    if (initialized) {
+    if (isDataSetup) {
       onLoaded?.()
+      setInitialized(true)
     }
-  }, [initialized])
+  }, [isDataSetup])
 
   React.useImperativeHandle(
     ref,
@@ -609,21 +628,23 @@ function ChatRenderer(
           className={`w-full px-4 md:pl-10 md:pr-[3.75rem] ${chatMaxWidthClass}`}
         >
           {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
-          <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
-            {qaPairs?.length ? (
-              <QuestionAnswerList
-                messages={qaPairs}
-                chatMaxWidthClass={chatMaxWidthClass}
-              />
-            ) : (
-              <EmptyScreen
-                setInput={setInput}
-                chatMaxWidthClass={chatMaxWidthClass}
-                welcomeMessage={welcomeMessage}
-              />
-            )}
-            <ChatScrollAnchor trackVisibility={isLoading} />
-          </div>
+          {initialized && (
+            <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
+              {qaPairs?.length ? (
+                <QuestionAnswerList
+                  messages={qaPairs}
+                  chatMaxWidthClass={chatMaxWidthClass}
+                />
+              ) : (
+                <EmptyScreen
+                  setInput={setInput}
+                  chatMaxWidthClass={chatMaxWidthClass}
+                  welcomeMessage={welcomeMessage}
+                />
+              )}
+              <ChatScrollAnchor trackVisibility={isLoading} />
+            </div>
+          )}
           <ChatPanel
             onSubmit={handleSubmit}
             className={cn('fixed inset-x-0 bottom-0', promptFormClassname)}

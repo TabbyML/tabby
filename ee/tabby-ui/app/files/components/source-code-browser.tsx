@@ -361,6 +361,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     setInitialized,
     chatSideBarVisible,
     setChatSideBarVisible,
+    pendingEvent,
     setPendingEvent,
     repoMap,
     setRepoMap,
@@ -655,8 +656,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     const onCallCompletion = (data: QuickActionEventPayload) => {
-      setChatSideBarVisible(true)
       setPendingEvent(data)
+      // setTimeout(() => {
+      //   setChatSideBarVisible(true)
+      // })
     }
     emitter.on('code_browser_quick_action', onCallCompletion)
 
@@ -664,6 +667,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       emitter.off('code_browser_quick_action', onCallCompletion)
     }
   }, [])
+
+  React.useEffect(() => {
+    if (pendingEvent && !chatSideBarVisible) {
+      setChatSideBarVisible(true)
+    }
+  }, [pendingEvent])
 
   return (
     <ResizablePanelGroup
