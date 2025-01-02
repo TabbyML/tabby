@@ -25,6 +25,7 @@ import type {
   SymbolInfo,
   FileLocation,
   GitRepository,
+  EditorFileContext,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import type { StatusInfo, Config } from "tabby-agent";
@@ -101,14 +102,14 @@ export class ChatWebview {
     this.disposables.push(
       window.onDidChangeActiveTextEditor((editor) => {
         if (this.chatPanelLoaded) {
-          this.syncActiveEditorSelection(editor);
+          this.notifyActiveEditorSelectionChange(editor);
         }
       }),
     );
     this.disposables.push(
       window.onDidChangeTextEditorSelection((event) => {
         if (event.textEditor === window.activeTextEditor && this.chatPanelLoaded) {
-          this.syncActiveEditorSelection(event.textEditor);
+          this.notifyActiveEditorSelectionChange(event.textEditor);
         }
       }),
     );
@@ -237,11 +238,10 @@ export class ChatWebview {
 
         this.chatPanelLoaded = true;
 
-        // 1. Sync the active editor selection
-        // 2. Send pending actions
-        // 3. Call the client's init method
-        // 4. Show the chat panel (call syncStyle underlay)
-        await this.syncActiveEditorSelection(window.activeTextEditor);
+        // 1. Send pending actions
+        // 2. Call the client's init method
+        // 3. Show the chat panel (call syncStyle underlay)
+        // await this.notifyActiveEditorSelectionChange(window.activeTextEditor);
 
         this.pendingActions.forEach(async (fn) => {
           await fn();
@@ -448,6 +448,16 @@ export class ChatWebview {
         }
         return infoList;
       },
+
+      getActiveEditorSelection: async(): Promise<EditorFileContext | null> => {
+        const editor = window.activeTextEditor;
+        if (!editor)  {
+          return null
+        }
+
+        const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
+        return fileContext
+      }
     });
   }
 
@@ -635,7 +645,7 @@ export class ChatWebview {
     );
   }
 
-  private async syncActiveEditorSelection(editor: TextEditor | undefined) {
+  private async notifyActiveEditorSelectionChange(editor: TextEditor | undefined) {
     if (!editor || !isValidForSyncActiveEditorSelection(editor)) {
       await this.client?.updateActiveSelection(null);
       return;
