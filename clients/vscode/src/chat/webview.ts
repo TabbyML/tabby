@@ -451,7 +451,7 @@ export class ChatWebview {
 
       getActiveEditorSelection: async (): Promise<EditorFileContext | null> => {
         const editor = window.activeTextEditor;
-        if (!editor) {
+        if (!editor || !isValidForSyncActiveEditorSelection(editor)) {
           return null;
         }
 
