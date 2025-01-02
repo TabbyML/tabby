@@ -96,10 +96,10 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     readWorkspaceGitRepositories: async () => {
       return readWorkspaceGitRepositories.current?.()
     },
-    getActiveEditorSelection: async() => {
+    getActiveEditorSelection: async () => {
       // FIXME(@jueliang) implement
       return null
-    },
+    }
   })
 
   const getCommand = ({ action }: QuickActionEventPayload) => {

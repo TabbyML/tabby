@@ -81,10 +81,9 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     }
 
     this.removeDecorations(editor);
-    const result =
-      codeLenses
-        .map((codeLens) => this.handleCodeLens(codeLens, editor))
-        .filter((codeLens): codeLens is CodeLens => codeLens !== null);
+    const result = codeLenses
+      .map((codeLens) => this.handleCodeLens(codeLens, editor))
+      .filter((codeLens): codeLens is CodeLens => codeLens !== null);
     this.purgeDecorationMap();
     return result;
   }
@@ -113,16 +112,16 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     return null;
   }
 
-  private addShortcut(codeLens: CodeLens) {    
+  private addShortcut(codeLens: CodeLens) {
     if (codeLens.command?.arguments?.[0].action === "accept") {
       // TODO: read keybinds from LSP client, then send to LSP server to avoid hardcode.
-      const acceptShortcut = isBrowser ? '' : ` (${process.platform === 'darwin' ? 'cmd+enter' : 'ctrl+enter'})`;
+      const acceptShortcut = isBrowser ? "" : ` (${process.platform === "darwin" ? "cmd+enter" : "ctrl+enter"})`;
 
-      codeLens.command.title += (acceptShortcut);
+      codeLens.command.title += acceptShortcut;
     } else if (codeLens.command?.arguments?.[0].action === "discard") {
-      const discardShortcut = isBrowser ? '' : ` (esc)`;
+      const discardShortcut = isBrowser ? "" : ` (esc)`;
 
-      codeLens.command.title += (discardShortcut);
+      codeLens.command.title += discardShortcut;
     }
   }
 
