@@ -17,6 +17,7 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
   Table,
   TableBody,
@@ -131,78 +132,81 @@ export default function RepositoryTable() {
   return (
     <>
       <LoadingWrapper loading={fetching}>
-        <Table className="table-fixed border-t">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[25%]">Name</TableHead>
-              <TableHead className="w-[45%]">Git URL</TableHead>
-              <TableHead className="w-[140px]">Access</TableHead>
-              <TableHead className="w-[180px]">Job</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!currentPageRepos?.length && currentPage === 1 ? (
+        <ScrollArea>
+          <Table className="min-w-[400px] border-t">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="h-[100px] text-center">
-                  No Data
-                </TableCell>
+                <TableHead className="w-[25%]">Name</TableHead>
+                <TableHead className="w-[45%]">Git URL</TableHead>
+                <TableHead className="w-[140px]">Access</TableHead>
+                <TableHead>Job</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
-            ) : (
-              <>
-                {currentPageRepos?.map(x => {
-                  return (
-                    <TableRow key={x.node.id}>
-                      <TableCell
-                        className="break-all lg:break-words"
-                        title={x.node.name}
-                      >
-                        {x.node.name}
-                      </TableCell>
-                      <TableCell
-                        className="break-all lg:break-words"
-                        title={x.node.gitUrl}
-                      >
-                        {x.node.gitUrl}
-                      </TableCell>
-                      <TableCell className="break-all lg:break-words">
-                        <AccessPolicyView
-                          sourceId={x.node.sourceId}
-                          sourceName={x.node.name}
-                          fetchingUserGroups={fetchingUserGroups}
-                          userGroups={userGroupData?.userGroups}
-                          editable
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <JobInfoView
-                          jobInfo={x.node.jobInfo}
-                          onTrigger={() =>
-                            handleTriggerJobRun(x.node.jobInfo.command)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="hover-destructive"
-                          onClick={() =>
-                            handleDeleteRepository(
-                              x.node.id,
-                              currentPageRepos.length === 1
-                            )
-                          }
+            </TableHeader>
+            <TableBody>
+              {!currentPageRepos?.length && currentPage === 1 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-[100px] text-center">
+                    No Data
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <>
+                  {currentPageRepos?.map(x => {
+                    return (
+                      <TableRow key={x.node.id}>
+                        <TableCell
+                          className="break-all lg:break-words"
+                          title={x.node.name}
                         >
-                          <IconTrash />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </>
-            )}
-          </TableBody>
-        </Table>
+                          {x.node.name}
+                        </TableCell>
+                        <TableCell
+                          className="break-all lg:break-words"
+                          title={x.node.gitUrl}
+                        >
+                          {x.node.gitUrl}
+                        </TableCell>
+                        <TableCell className="break-all lg:break-words">
+                          <AccessPolicyView
+                            sourceId={x.node.sourceId}
+                            sourceName={x.node.name}
+                            fetchingUserGroups={fetchingUserGroups}
+                            userGroups={userGroupData?.userGroups}
+                            editable
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <JobInfoView
+                            jobInfo={x.node.jobInfo}
+                            onTrigger={() =>
+                              handleTriggerJobRun(x.node.jobInfo.command)
+                            }
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="icon"
+                            variant="hover-destructive"
+                            onClick={() =>
+                              handleDeleteRepository(
+                                x.node.id,
+                                currentPageRepos.length === 1
+                              )
+                            }
+                          >
+                            <IconTrash />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </>
+              )}
+            </TableBody>
+          </Table>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         {showPagination && (
           <Pagination className="my-4">
             <PaginationContent>

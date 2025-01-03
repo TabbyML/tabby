@@ -46,7 +46,8 @@ const convertToHSLColor = (style: string) => {
 }
 
 export default function ChatPage() {
-  const [isInit, setIsInit] = useState(false)
+  const [isChatComponentLoaded, setIsChatComponentLoaded] = useState(false)
+  const [isServerLoaded, setIsServerLoaded] = useState(false)
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
     null
   )
@@ -61,7 +62,6 @@ export default function ChatPage() {
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
   const chatRef = useRef<ChatRef>(null)
-  const [chatLoaded, setChatLoaded] = useState(false)
   const { width } = useWindowSize()
   const prevWidthRef = useRef(width)
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -76,8 +76,8 @@ export default function ChatPage() {
     useState(false)
   const [supportsOnLookupSymbol, setSupportsOnLookupSymbol] = useState(false)
   const [
-    supportsProvideWorkspaceGitRepoInfo,
-    setSupportsProvideWorkspaceGitRepoInfo
+    supportsReadWorkspaceGitRepoInfo,
+    setSupportsReadWorkspaceGitRepoInfo
   ] = useState(false)
 
   const executeCommand = (command: ChatCommand) => {
@@ -116,7 +116,6 @@ export default function ChatPage() {
       }
 
       setActiveChatId(nanoid())
-      setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
       useMacOSKeyboardEventHandler.current =
         request.useMacOSKeyboardEventHandler
@@ -244,18 +243,20 @@ export default function ChatPage() {
         server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
         server
           ?.hasCapability('readWorkspaceGitRepositories')
-          .then(setSupportsProvideWorkspaceGitRepoInfo)
+          .then(setSupportsReadWorkspaceGitRepoInfo)
       }
 
-      checkCapabilities()
+      checkCapabilities().then(() => {
+        setIsServerLoaded(true)
+      })
     }
   }, [server])
 
   useLayoutEffect(() => {
-    if (!chatLoaded) return
+    if (!isChatComponentLoaded) return
     if (
       width &&
-      isInit &&
+      isServerLoaded &&
       fetcherOptions &&
       !errorMessage &&
       !prevWidthRef.current
@@ -263,7 +264,7 @@ export default function ChatPage() {
       chatRef.current?.focus()
     }
     prevWidthRef.current = width
-  }, [width, chatLoaded])
+  }, [width, isChatComponentLoaded])
 
   const clearPendingState = () => {
     setPendingRelevantContexts([])
@@ -279,17 +280,16 @@ export default function ChatPage() {
       currentChatRef.addRelevantContext(context)
     })
 
-    currentChatRef.updateActiveSelection(pendingActiveSelection)
+    if (pendingActiveSelection) {
+      currentChatRef.updateActiveSelection(pendingActiveSelection)
+    }
 
     if (pendingCommand) {
-      // FIXME: this delay is a workaround for waiting for the active selection to be updated
-      setTimeout(() => {
-        currentChatRef.executeCommand(pendingCommand)
-      }, 500)
+      currentChatRef.executeCommand(pendingCommand)
     }
 
     clearPendingState()
-    setChatLoaded(true)
+    setIsChatComponentLoaded(true)
   }
 
   const openInEditor = async (fileLocation: FileLocation) => {
@@ -298,6 +298,10 @@ export default function ChatPage() {
 
   const openExternal = async (url: string) => {
     return server?.openExternal(url)
+  }
+
+  const getActiveEditorSelection = async () => {
+    return server?.getActiveEditorSelection() ?? null
   }
 
   const refresh = async () => {
@@ -374,7 +378,7 @@ export default function ChatPage() {
     )
   }
 
-  if (!isInit || !fetcherOptions) {
+  if (!isServerLoaded || !fetcherOptions) {
     return (
       <StaticContent>
         <>
@@ -418,10 +422,11 @@ export default function ChatPage() {
         openInEditor={openInEditor}
         openExternal={openExternal}
         readWorkspaceGitRepositories={
-          isInEditor && supportsProvideWorkspaceGitRepoInfo
+          supportsReadWorkspaceGitRepoInfo
             ? server?.readWorkspaceGitRepositories
             : undefined
         }
+        getActiveEditorSelection={getActiveEditorSelection}
       />
     </ErrorBoundary>
   )

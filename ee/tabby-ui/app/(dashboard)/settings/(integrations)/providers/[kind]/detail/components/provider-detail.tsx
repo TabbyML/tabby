@@ -284,111 +284,114 @@ const ActiveRepoTable: React.FC<{
   return (
     <>
       <LoadingWrapper loading={fetching}>
-        <Table className="table-fixed">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[25%]">Name</TableHead>
-              <TableHead className="w-[35%]">URL</TableHead>
-              <TableHead className="w-[140px]">Access</TableHead>
-              <TableHead className="w-[180px]">Job</TableHead>
-              <TableHead className="w-[60px] text-right">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shadow-none"
-                  onClick={e => setOpen(true)}
-                >
-                  <IconPlus />
-                </Button>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {activeRepos?.length || recentlyActivatedRepositories?.length ? (
-              <>
-                {recentlyActivatedRepositories?.map(x => {
-                  return (
-                    <TableRow key={x.node.id} className="!bg-muted/80">
-                      <TableCell className="break-all lg:break-words">
-                        {x.node.displayName}
-                      </TableCell>
-                      <TableCell className="break-all lg:break-words">
-                        {x.node.gitUrl}
-                      </TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="flex justify-end">
-                        <div
-                          className={buttonVariants({
-                            variant: 'ghost',
-                            size: 'icon'
-                          })}
-                        >
-                          <IconSpinner />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-                {activeRepos?.map(x => {
-                  return (
-                    <TableRow key={x.node.id}>
-                      <TableCell className="break-all lg:break-words">
-                        {x.node.displayName}
-                      </TableCell>
-                      <TableCell className="break-all lg:break-words">
-                        {x.node.gitUrl}
-                      </TableCell>
-                      <TableCell className="break-all lg:break-words">
-                        <AccessPolicyView
-                          sourceId={x.node.sourceId}
-                          sourceName={x.node.displayName}
-                          editable
-                          fetchingUserGroups={fetchingUserGroups}
-                          userGroups={userGroupData?.userGroups}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <JobInfoView
-                          jobInfo={x.node.jobInfo}
-                          onTrigger={() =>
-                            handleTriggerJobRun(x.node.jobInfo.command)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="hover-destructive"
-                          onClick={e =>
-                            handleDelete(x, activeRepos?.length === 1)
-                          }
-                        >
-                          <IconTrash />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </>
-            ) : (
+        <ScrollArea>
+          <Table className="min-w-[400px]">
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-[100px] text-center hover:bg-background"
-                >
-                  <div className="mt-4 flex flex-col items-center gap-4">
-                    <span>No repositories</span>
-                    <Button onClick={e => setOpen(true)} className="gap-1">
-                      <IconPlus />
-                      Add
-                    </Button>
-                  </div>
-                </TableCell>
+                <TableHead className="w-[25%]">Name</TableHead>
+                <TableHead className="w-[35%]">URL</TableHead>
+                <TableHead className="w-[140px]">Access</TableHead>
+                <TableHead>Job</TableHead>
+                <TableHead className="w-[60px] text-right">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shadow-none"
+                    onClick={e => setOpen(true)}
+                  >
+                    <IconPlus />
+                  </Button>
+                </TableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {activeRepos?.length || recentlyActivatedRepositories?.length ? (
+                <>
+                  {recentlyActivatedRepositories?.map(x => {
+                    return (
+                      <TableRow key={x.node.id} className="!bg-muted/80">
+                        <TableCell className="break-all lg:break-words">
+                          {x.node.displayName}
+                        </TableCell>
+                        <TableCell className="break-all lg:break-words">
+                          {x.node.gitUrl}
+                        </TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="flex justify-end">
+                          <div
+                            className={buttonVariants({
+                              variant: 'ghost',
+                              size: 'icon'
+                            })}
+                          >
+                            <IconSpinner />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                  {activeRepos?.map(x => {
+                    return (
+                      <TableRow key={x.node.id}>
+                        <TableCell className="break-all lg:break-words">
+                          {x.node.displayName}
+                        </TableCell>
+                        <TableCell className="break-all lg:break-words">
+                          {x.node.gitUrl}
+                        </TableCell>
+                        <TableCell className="break-all lg:break-words">
+                          <AccessPolicyView
+                            sourceId={x.node.sourceId}
+                            sourceName={x.node.displayName}
+                            editable
+                            fetchingUserGroups={fetchingUserGroups}
+                            userGroups={userGroupData?.userGroups}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <JobInfoView
+                            jobInfo={x.node.jobInfo}
+                            onTrigger={() =>
+                              handleTriggerJobRun(x.node.jobInfo.command)
+                            }
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="icon"
+                            variant="hover-destructive"
+                            onClick={e =>
+                              handleDelete(x, activeRepos?.length === 1)
+                            }
+                          >
+                            <IconTrash />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </>
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="h-[100px] text-center hover:bg-background"
+                  >
+                    <div className="mt-4 flex flex-col items-center gap-4">
+                      <span>No repositories</span>
+                      <Button onClick={e => setOpen(true)} className="gap-1">
+                        <IconPlus />
+                        Add
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         {(page > 1 || pageInfo?.hasNextPage) && (
           <div className="mt-2 flex justify-end">
             <div className="flex w-[100px] items-center justify-center text-sm font-medium">

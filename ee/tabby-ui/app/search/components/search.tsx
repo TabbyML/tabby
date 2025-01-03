@@ -17,11 +17,7 @@ import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
-import {
-  ERROR_CODE_NOT_FOUND,
-  SESSION_STORAGE_KEY,
-  SLUG_TITLE_MAX_LENGTH
-} from '@/lib/constants'
+import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import {
@@ -41,9 +37,11 @@ import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import {
+  updatePendingUserMessage,
   updateSelectedModel,
   updateSelectedRepoSourceId
 } from '@/lib/stores/chat-actions'
+import { useChatStore } from '@/lib/stores/chat-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
@@ -82,6 +80,7 @@ import {
 } from '@/components/ui/tooltip'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import LoadingWrapper from '@/components/loading-wrapper'
 import NotFoundPage from '@/components/not-found-page'
 import TextAreaSearch from '@/components/textarea-search'
 
@@ -104,6 +103,7 @@ const TEMP_MSG_ID_PREFIX = '_temp_msg_'
 const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
 
 export function Search() {
+  const pendingUserMessage = useChatStore(state => state.pendingUserMessage)
   const [{ data: meData }] = useMe()
   const { updateUrlComponents, pathname } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
@@ -111,7 +111,7 @@ export function Search() {
   const isChatEnabled = useIsChatEnabled()
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [stopButtonVisible, setStopButtonVisible] = useState(true)
-  const [isReady, setIsReady] = useState(false)
+  const [isReady, setIsReady] = useState(!!pendingUserMessage?.content)
   const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
   const [currentAssistantMessageId, setCurrentAssistantMessageId] =
     useState<string>('')
@@ -334,25 +334,10 @@ export function Search() {
 
       initializing.current = true
 
-      // initial UserMessage from home page
-      const initialMessage = sessionStorage.getItem(
-        SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
-      )
-      // initial extra context from home page
-      const initialThreadRunContextStr = sessionStorage.getItem(
-        SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS
-      )
-
-      const initialThreadRunContext = initialThreadRunContextStr
-        ? JSON.parse(initialThreadRunContextStr)
-        : undefined
-
-      if (initialMessage) {
-        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
-
-        setIsReady(true)
-        onSubmitSearch(initialMessage, initialThreadRunContext)
+      if (pendingUserMessage?.content) {
+        // setIsReady(true)
+        onSubmitSearch(pendingUserMessage.content, pendingUserMessage.context)
+        updatePendingUserMessage(undefined)
         return
       }
 
@@ -728,6 +713,10 @@ export function Search() {
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
 
+  if (!isChatEnabled) {
+    return null
+  }
+
   if (isReady && (formatedThreadError || threadMessagesError)) {
     return (
       <ThreadMessagesErrorView
@@ -737,22 +726,6 @@ export function Search() {
         threadIdFromURL={threadIdFromURL}
       />
     )
-  }
-
-  if (!isReady && (isFetchingMessages || threadMessagesStale)) {
-    return (
-      <div>
-        <Header />
-        <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
-          <MessagesSkeleton />
-          <MessagesSkeleton />
-        </div>
-      </div>
-    )
-  }
-
-  if (!isChatEnabled || !isReady) {
-    return <></>
   }
 
   return (
@@ -780,146 +753,158 @@ export function Search() {
               threadIdFromURL={threadIdFromURL}
               streamingDone={!isLoading}
             />
-            <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
-              <ScrollArea className="h-full" ref={contentContainerRef}>
-                <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
-                  <div className="flex flex-col">
-                    {qaPairs.map((pair, index) => {
-                      const isLastMessage = index === qaPairs.length - 1
-                      if (!pair.question) return null
-
-                      return (
-                        <Fragment key={pair.question.id}>
-                          {!!pair.question && (
-                            <UserMessageSection
-                              className="pb-2 pt-8"
-                              key={pair.question.id}
-                              message={pair.question}
-                            />
-                          )}
-                          {!!pair.answer && (
-                            <AssistantMessageSection
-                              key={pair.answer.id}
-                              className="pb-8 pt-2"
-                              message={pair.answer}
-                              clientCode={pair.question?.attachment?.clientCode}
-                              isLoading={isLoading && isLastMessage}
-                              isLastAssistantMessage={isLastMessage}
-                              showRelatedQuestion={isLastMessage}
-                              isDeletable={!isLoading && messages.length > 2}
-                            />
-                          )}
-                          {!isLastMessage && <Separator />}
-                        </Fragment>
-                      )
-                    })}
-                  </div>
+            <LoadingWrapper
+              loading={!isReady}
+              fallback={
+                <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
+                  <MessagesSkeleton />
+                  <MessagesSkeleton />
                 </div>
-              </ScrollArea>
+              }
+            >
+              <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
+                <ScrollArea className="h-full" ref={contentContainerRef}>
+                  <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
+                    <div className="flex flex-col">
+                      {qaPairs.map((pair, index) => {
+                        const isLastMessage = index === qaPairs.length - 1
+                        if (!pair.question) return null
 
-              <ButtonScrollToBottom
-                className={cn(
-                  '!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]',
-                  {
-                    hidden: devPanelOpen
-                  }
-                )}
-                container={contentContainerRef.current as HTMLDivElement}
-                offset={100}
-                // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
-                // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
-                style={
-                  theme === 'dark'
-                    ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                    : {}
-                }
-              />
-
-              <div
-                className={cn(
-                  'fixed bottom-5 left-0 z-30 flex min-h-[3rem] w-full flex-col items-center gap-y-2',
-                  {
-                    'opacity-100 translate-y-0': showSearchInput,
-                    'opacity-0 translate-y-10': !showSearchInput,
-                    hidden: devPanelOpen
-                  }
-                )}
-                style={Object.assign(
-                  { transition: 'all 0.35s ease-out' },
-                  theme === 'dark'
-                    ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                    : {}
-                )}
-              >
-                <div
-                  className={cn('absolute flex items-center gap-4')}
-                  style={isThreadOwner ? { top: '-2.5rem' } : undefined}
-                >
-                  {stopButtonVisible && (
-                    <Button
-                      className="bg-background"
-                      variant="outline"
-                      onClick={() => stop()}
-                    >
-                      <IconStop className="mr-2" />
-                      Stop generating
-                    </Button>
-                  )}
-                  {!stopButtonVisible && (
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger asChild>
-                        <span tabIndex={0}>
-                          <Button
-                            className="gap-2 bg-background"
-                            variant="outline"
-                            onClick={onClickShare}
-                            disabled={persistenceDisabled}
-                          >
-                            {persistenceDisabled ? (
-                              <IconInfoCircled />
-                            ) : isShareLinkCopied ? (
-                              <IconCheck className="text-green-600" />
-                            ) : (
-                              <IconShare />
+                        return (
+                          <Fragment key={pair.question.id}>
+                            {!!pair.question && (
+                              <UserMessageSection
+                                className="pb-2 pt-8"
+                                key={pair.question.id}
+                                message={pair.question}
+                              />
                             )}
-                            Share Link
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent hidden={!persistenceDisabled}>
-                        Please resolve errors in messages before sharing this
-                        thread.
-                      </TooltipContent>
-                    </Tooltip>
+                            {!!pair.answer && (
+                              <AssistantMessageSection
+                                key={pair.answer.id}
+                                className="pb-8 pt-2"
+                                message={pair.answer}
+                                clientCode={
+                                  pair.question?.attachment?.clientCode
+                                }
+                                isLoading={isLoading && isLastMessage}
+                                isLastAssistantMessage={isLastMessage}
+                                showRelatedQuestion={isLastMessage}
+                                isDeletable={!isLoading && messages.length > 2}
+                              />
+                            )}
+                            {!isLastMessage && <Separator />}
+                          </Fragment>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </ScrollArea>
+
+                <ButtonScrollToBottom
+                  className={cn(
+                    '!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]',
+                    {
+                      hidden: devPanelOpen
+                    }
+                  )}
+                  container={contentContainerRef.current as HTMLDivElement}
+                  offset={100}
+                  // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
+                  // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
+                  style={
+                    theme === 'dark'
+                      ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                      : {}
+                  }
+                />
+
+                <div
+                  className={cn(
+                    'fixed bottom-5 left-0 z-30 flex min-h-[3rem] w-full flex-col items-center gap-y-2',
+                    {
+                      'opacity-100 translate-y-0': showSearchInput,
+                      'opacity-0 translate-y-10': !showSearchInput,
+                      hidden: devPanelOpen
+                    }
+                  )}
+                  style={Object.assign(
+                    { transition: 'all 0.35s ease-out' },
+                    theme === 'dark'
+                      ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                      : {}
+                  )}
+                >
+                  <div
+                    className={cn('absolute flex items-center gap-4')}
+                    style={isThreadOwner ? { top: '-2.5rem' } : undefined}
+                  >
+                    {stopButtonVisible && (
+                      <Button
+                        className="bg-background"
+                        variant="outline"
+                        onClick={() => stop()}
+                      >
+                        <IconStop className="mr-2" />
+                        Stop generating
+                      </Button>
+                    )}
+                    {!stopButtonVisible && (
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0}>
+                            <Button
+                              className="gap-2 bg-background"
+                              variant="outline"
+                              onClick={onClickShare}
+                              disabled={persistenceDisabled}
+                            >
+                              {persistenceDisabled ? (
+                                <IconInfoCircled />
+                              ) : isShareLinkCopied ? (
+                                <IconCheck className="text-green-600" />
+                              ) : (
+                                <IconShare />
+                              )}
+                              Share Link
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent hidden={!persistenceDisabled}>
+                          Please resolve errors in messages before sharing this
+                          thread.
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                  {isThreadOwner && (
+                    <div
+                      className={cn(
+                        'relative z-20 flex justify-center self-stretch px-4'
+                      )}
+                    >
+                      <TextAreaSearch
+                        onSearch={onSubmitSearch}
+                        className="min-h-[5rem] lg:max-w-4xl"
+                        placeholder="Ask a follow up question"
+                        isFollowup
+                        isLoading={isLoading}
+                        contextInfo={contextInfoData?.contextInfo}
+                        fetchingContextInfo={fetchingContextInfo}
+                        modelName={selectedModel}
+                        onSelectModel={onSelectModel}
+                        repoSourceId={selectedRepository?.sourceId}
+                        onSelectRepo={onSelectedRepo}
+                        isInitializingResources={
+                          isFetchingModels || isFetchingRepositories
+                        }
+                        models={models}
+                      />
+                    </div>
                   )}
                 </div>
-                {isThreadOwner && (
-                  <div
-                    className={cn(
-                      'relative z-20 flex justify-center self-stretch px-4'
-                    )}
-                  >
-                    <TextAreaSearch
-                      onSearch={onSubmitSearch}
-                      className="min-h-[5rem] lg:max-w-4xl"
-                      placeholder="Ask a follow up question"
-                      isFollowup
-                      isLoading={isLoading}
-                      contextInfo={contextInfoData?.contextInfo}
-                      fetchingContextInfo={fetchingContextInfo}
-                      modelName={selectedModel}
-                      onSelectModel={onSelectModel}
-                      repoSourceId={selectedRepository?.sourceId}
-                      onSelectRepo={onSelectedRepo}
-                      isInitializingResources={
-                        isFetchingModels || isFetchingRepositories
-                      }
-                      models={models}
-                    />
-                  </div>
-                )}
-              </div>
-            </main>
+              </main>
+            </LoadingWrapper>
           </ResizablePanel>
           <ResizableHandle
             className={cn(

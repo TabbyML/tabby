@@ -273,6 +273,11 @@ export interface ClientApiMethods {
 
   // Provide all repos found in workspace folders.
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
+
+  /**
+   * @returns The active selection of active editor.
+   */
+  getActiveEditorSelection: () => Promise<EditorFileContext | null>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -297,6 +302,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       openInEditor: api.openInEditor,
       openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
+      getActiveEditorSelection: api.getActiveEditorSelection,
     },
   })
 }

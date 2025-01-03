@@ -67,7 +67,7 @@ const selectedLinesField = StateField.define<SelectedLinesRange>({
 const LineMenuButton = ({ isMulti }: { isMulti?: boolean }) => {
   const onCopyLines = () => {
     emitter.emit('line_menu_action', {
-      action: 'copy_line'
+      action: 'copy-line'
     })
   }
 
@@ -86,7 +86,7 @@ const LineMenuButton = ({ isMulti }: { isMulti?: boolean }) => {
           className="cursor-pointer"
           onSelect={e => {
             emitter.emit('line_menu_action', {
-              action: 'copy_permalink'
+              action: 'copy-permalink'
             })
           }}
         >

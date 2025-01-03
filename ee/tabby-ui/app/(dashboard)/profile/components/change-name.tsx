@@ -81,7 +81,7 @@ const ChangeNameForm: React.FC<ChangeNameFormProps> = ({
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input className="w-[350px]" {...field} />
+                <Input className="w-full md:w-[350px]" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

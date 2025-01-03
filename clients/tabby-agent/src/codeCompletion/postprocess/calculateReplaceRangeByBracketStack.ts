@@ -1,23 +1,20 @@
 import { logger } from "./base";
 import { CompletionItem } from "../solution";
-import { isBlank, findUnpairedAutoClosingChars } from "../../utils/string";
 
 export function calculateReplaceRangeByBracketStack(item: CompletionItem): CompletionItem {
   const context = item.context;
   const { currentLineSuffix } = context;
-  const suffixText = currentLineSuffix.trimEnd();
-  if (isBlank(suffixText)) {
-    return item;
-  }
-  const unpaired = findUnpairedAutoClosingChars(item.text).join("");
-  if (isBlank(unpaired)) {
+
+  if (!context.lineEnd) {
     return item;
   }
 
   let modified: CompletionItem | undefined = undefined;
-  if (suffixText.startsWith(unpaired)) {
-    modified = item.withSuffix(unpaired);
-  } else if (unpaired.startsWith(suffixText)) {
+  const suffixText = context.currentLineSuffix.trimEnd();
+  const lineEnd = context.lineEnd[0];
+  if (suffixText.startsWith(lineEnd)) {
+    modified = item.withSuffix(lineEnd);
+  } else if (lineEnd.startsWith(suffixText)) {
     modified = item.withSuffix(suffixText);
   }
   if (modified) {
@@ -25,7 +22,7 @@ export function calculateReplaceRangeByBracketStack(item: CompletionItem): Compl
       position: context.position,
       currentLineSuffix,
       completionText: item.text,
-      unpaired,
+      lineEnd,
       replaceSuffix: item.replaceSuffix,
     });
     return modified;
