@@ -275,7 +275,7 @@ export default function ChatPage() {
     setPendingActiveSelection(null)
   }
 
-  const onChatLoaded = async () => {
+  const onChatLoaded = () => {
     const currentChatRef = chatRef.current
     if (!currentChatRef) return
 
@@ -288,11 +288,11 @@ export default function ChatPage() {
     }
 
     if (pendingCommand) {
-      await currentChatRef.executeCommand(pendingCommand)
+      currentChatRef.executeCommand(pendingCommand)
     }
 
     clearPendingState()
-    await setIsChatComponentLoaded(true)
+    setIsChatComponentLoaded(true)
   }
 
   const openInEditor = async (fileLocation: FileLocation) => {
