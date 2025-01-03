@@ -154,6 +154,10 @@ pub async fn start(
                     if let Err(err) = LicenseCheckJob::cron(now, license_service.clone(), notification_service.clone()).await {
                         warn!("License check job failed: {err:?}");
                     }
+
+                    if let Err(err) = DbMaintainanceJob::retention(now, db.clone()).await {
+                        warn!("Database retention failed: {:?}", err);
+                    }
                 }
                 else => {
                     warn!("Background job channel closed");
