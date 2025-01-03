@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.EditorFactoryEvent
+import com.intellij.openapi.editor.event.SelectionEvent
 import com.tabbyml.intellijtabby.safeSyncPublisher
 
 class EditorFactoryListener : com.intellij.openapi.editor.event.EditorFactoryListener {
@@ -25,6 +26,13 @@ class EditorFactoryListener : com.intellij.openapi.editor.event.EditorFactoryLis
       }
     }
 
+    val selectionListener = object : com.intellij.openapi.editor.event.SelectionListener {
+      override fun selectionChanged(event: SelectionEvent) {
+        logger.debug("SelectionListener: selectionChanged $editor $event")
+        project.safeSyncPublisher(SelectionListener.TOPIC)?.selectionChanged(editor, event)
+      }
+    }
+
     val documentListener = object : com.intellij.openapi.editor.event.DocumentListener {
       override fun documentChanged(event: DocumentEvent) {
         logger.debug("DocumentListener: documentChanged $editor $event")
@@ -33,10 +41,12 @@ class EditorFactoryListener : com.intellij.openapi.editor.event.EditorFactoryLis
     }
 
     editor.caretModel.addCaretListener(caretListener)
+    editor.selectionModel.addSelectionListener(selectionListener)
     editor.document.addDocumentListener(documentListener)
 
     listeners[editor] = Disposable {
       editor.caretModel.removeCaretListener(caretListener)
+      editor.selectionModel.removeSelectionListener(selectionListener)
       editor.document.removeDocumentListener(documentListener)
     }
   }
