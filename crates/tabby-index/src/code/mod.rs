@@ -108,7 +108,9 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
                     code::fields::CHUNK_BODY: body,
                 });
 
-                if text.len() == body.len() {
+                // When text length is not equal to body length, it means this chunk is not the entire
+                // content of the file, thus we need to record the start line.
+                if text.len() != body.len() {
                     attributes[code::fields::CHUNK_START_LINE] = start_line.into();
                 }
                 let embedding = embedding.clone();
