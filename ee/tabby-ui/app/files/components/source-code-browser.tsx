@@ -615,12 +615,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [fetchingRawFile, fetchingTreeEntries])
 
   React.useEffect(() => {
-    // const initChatSidebar = () => {
-    //   if (chatSideBarVisible && !chatSidebarLoaded) {
-    //     setChatSidebarInitialized(true)
-    //   }
-    // }
-
     const toggleChatSidebarPanel = () => {
       if (chatSideBarVisible) {
         chatSideBarPanelRef.current?.expand()
@@ -630,7 +624,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       }
     }
 
-    // initChatSidebar()
     toggleChatSidebarPanel()
   }, [chatSideBarVisible])
 

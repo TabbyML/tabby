@@ -156,7 +156,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   React.useEffect(() => {
     const onClickLineMenu = (data: LineMenuActionEventPayload) => {
       if (typeof lineNumber !== 'number') return
-      if (data.action === 'copy_permalink') {
+      if (data.action === 'copy-permalink') {
         const _link = generateEntryPath(
           activeRepo,
           activeRepoRef?.ref?.commit ?? activeRepoRef?.name,
@@ -182,7 +182,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
         copyToClipboard(link.toString())
         return
       }
-      if (data.action === 'copy_line') {
+      if (data.action === 'copy-line') {
         if (!editorView) return
         const line = editorView.state.doc.line(lineNumber)
         let endLine: Line | undefined = undefined

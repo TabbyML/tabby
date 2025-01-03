@@ -520,7 +520,7 @@ function ChatRenderer(
     (ctx: Context | null) => {
       setActiveSelection(ctx)
     },
-    200
+    300
   )
 
   const updateActiveSelection = (editorContext: EditorContext | null) => {

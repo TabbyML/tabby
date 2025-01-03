@@ -1,7 +1,7 @@
 import mitt from 'mitt'
 import { ChatCommand, EditorFileContext } from 'tabby-chat-panel/index'
 
-type LineMenuAction = 'copy_line' | 'copy_permalink'
+type LineMenuAction = 'copy-line' | 'copy-permalink'
 
 type LineMenuActionEventPayload = {
   action: LineMenuAction

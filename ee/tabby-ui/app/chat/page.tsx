@@ -247,9 +247,10 @@ export default function ChatPage() {
       }
 
       checkCapabilities().then(() => {
-        setTimeout(() => {
-          setIsServerLoaded(true)
-        })
+        setIsServerLoaded(true)
+        // setTimeout(() => {
+        //   setIsServerLoaded(true)
+        // })
       })
     }
   }, [server])
