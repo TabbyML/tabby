@@ -99,7 +99,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
   initialMessages?: QuestionAnswerPair[]
-  onLoaded?: () => Promise<void>
+  onLoaded?: () => void
   onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
   container?: HTMLDivElement
   docQuery?: boolean

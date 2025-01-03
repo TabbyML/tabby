@@ -1,33 +1,20 @@
 import mitt from 'mitt'
+import { ChatCommand, EditorFileContext } from 'tabby-chat-panel/index'
 
-type CodeBrowserQuickAction = 'explain' | 'generate_unittest' | 'generate_doc'
 type LineMenuAction = 'copy_line' | 'copy_permalink'
-
-type QuickActionEventPayload = {
-  action: CodeBrowserQuickAction
-  code: string
-  language?: string
-  path: string
-  lineFrom: number
-  lineTo?: number
-  gitUrl: string
-}
 
 type LineMenuActionEventPayload = {
   action: LineMenuAction
 }
 
-type CodeBrowserQuickActionEvents = {
-  code_browser_quick_action: QuickActionEventPayload
+type SelectionChangeEventPayload = EditorFileContext | null
+
+type CodeBrowserEvents = {
+  quick_action_command: ChatCommand
   line_menu_action: LineMenuActionEventPayload
+  selection_change: SelectionChangeEventPayload
 }
 
-const emitter = mitt<CodeBrowserQuickActionEvents>()
+export const emitter = mitt<CodeBrowserEvents>()
 
-export type {
-  CodeBrowserQuickAction,
-  QuickActionEventPayload,
-  LineMenuAction,
-  LineMenuActionEventPayload
-}
-export { emitter }
+export type { LineMenuAction, LineMenuActionEventPayload }

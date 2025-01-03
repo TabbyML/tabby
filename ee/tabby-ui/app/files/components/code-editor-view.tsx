@@ -16,11 +16,10 @@ import { highlightTagExtension } from '@/components/codemirror/tag-range-highlig
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
 import { emitter, LineMenuActionEventPayload } from '../lib/event-emitter'
-import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-extension'
 import {
   selectLinesGutter,
   setSelectedLines
-} from './line-menu-extension/line-menu-extension'
+} from '../lib/line-menu-extension/line-menu-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import {
   generateEntryPath,
@@ -29,13 +28,17 @@ import {
   viewModelToKind
 } from './utils'
 
-import './line-menu-extension/line-menu.css'
+import '../lib/line-menu-extension/line-menu.css'
+
+import { EditorFileContext } from 'tabby-chat-panel/index'
 
 import { useLatest } from '@/lib/hooks/use-latest'
 import { filename2prism } from '@/lib/language-utils'
 
-import { search } from './editor-search-extension/search'
-import { SearchPanel } from './editor-search-extension/search-panel'
+import { ActionBarWidgetExtension } from '../lib/action-bar-widget/action-bar-widget-extension'
+import { search } from '../lib/editor-search-extension/search'
+import { SearchPanel } from '../lib/editor-search-extension/search-panel'
+import { SelectionChangeExtension } from '../lib/selection-extension'
 
 interface CodeEditorViewProps {
   value: string
@@ -43,11 +46,7 @@ interface CodeEditorViewProps {
   className?: string
 }
 
-const CodeEditorView: React.FC<CodeEditorViewProps> = ({
-  value,
-  language,
-  className
-}) => {
+const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = React.useMemo(() => {
     return []
@@ -63,13 +62,14 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
     activePath,
     activeEntryInfo,
     activeRepo,
-    activeRepoRef
+    activeRepoRef,
+    textEditorViewRef
   } = React.useContext(SourceCodeBrowserContext)
   const { basename } = activeEntryInfo
   const gitUrl = activeRepo?.gitUrl ?? ''
 
   const extensions = React.useMemo(() => {
-    let result: Extension[] = [
+    const result: Extension[] = [
       selectLinesGutter({
         onSelectLine: range => {
           if (!range) {
@@ -104,6 +104,39 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
         createPanel: config => new SearchPanel(config)
       })
     ]
+    if (isChatEnabled) {
+      result.push(
+        SelectionChangeExtension(
+          (
+            context: {
+              content: string
+              startLine: number
+              endLine: number
+            } | null
+          ) => {
+            const editorFileContext: EditorFileContext | null =
+              context && activeEntryInfo.basename && activeRepo
+                ? {
+                    kind: 'file',
+                    filepath: {
+                      kind: 'git',
+                      filepath: activeEntryInfo.basename,
+                      gitUrl: activeRepo?.gitUrl
+                    },
+                    range: {
+                      start: context.startLine,
+                      end: context.endLine
+                    },
+                    content: context.content
+                  }
+                : null
+
+            emitter.emit('selection_change', editorFileContext)
+          }
+        )
+      )
+    }
+
     if (isChatEnabled && activePath && basename) {
       result.push(
         ActionBarWidgetExtension({ language, path: basename, gitUrl })
@@ -233,6 +266,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
     }
 
     window.addEventListener('keydown', handleKeyDown)
+    textEditorViewRef.current = editorView
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)

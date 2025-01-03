@@ -2,6 +2,7 @@
 
 import React, { PropsWithChildren, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import type { EditorView } from '@codemirror/view'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
@@ -27,7 +28,6 @@ import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
-import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
 import { BlobModeView } from './blob-mode-view'
 import { ChatSideBar } from './chat-side-bar'
 import { CodeSearchBar } from './code-search-bar'
@@ -128,8 +128,6 @@ type SourceCodeBrowserContextValue = {
   fileTreeData: TFileTreeNode[]
   chatSideBarVisible: boolean
   setChatSideBarVisible: React.Dispatch<React.SetStateAction<boolean>>
-  pendingEvent: QuickActionEventPayload | undefined
-  setPendingEvent: (d: QuickActionEventPayload | undefined) => void
   isChatEnabled: boolean | undefined
   activeRepo: RepositoryItem | undefined
   activeRepoRef:
@@ -144,6 +142,7 @@ type SourceCodeBrowserContextValue = {
   prevActivePath: React.MutableRefObject<string | undefined>
   error: Error | undefined
   setError: (e: Error | undefined) => void
+  textEditorViewRef: React.MutableRefObject<EditorView | null>
 }
 
 const SourceCodeBrowserContext =
@@ -171,12 +170,9 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   >({})
   const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(new Set())
   const [chatSideBarVisible, setChatSideBarVisible] = React.useState(false)
-  const [pendingEvent, setPendingEvent] = React.useState<
-    QuickActionEventPayload | undefined
-  >()
   const [error, setError] = useState<Error | undefined>()
   const prevActivePath = React.useRef<string | undefined>()
-
+  const textEditorViewRef = React.useRef<EditorView | null>(null)
   const updateActivePath: SourceCodeBrowserContextValue['updateActivePath'] =
     React.useCallback(async (path, options) => {
       const replace = options?.replace
@@ -326,8 +322,6 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         fileTreeData,
         chatSideBarVisible,
         setChatSideBarVisible,
-        pendingEvent,
-        setPendingEvent,
         isChatEnabled,
         repoMap,
         setRepoMap,
@@ -337,7 +331,8 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         activeEntryInfo,
         prevActivePath,
         error,
-        setError
+        setError,
+        textEditorViewRef
       }}
     >
       {children}
@@ -361,8 +356,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     setInitialized,
     chatSideBarVisible,
     setChatSideBarVisible,
-    pendingEvent,
-    setPendingEvent,
     repoMap,
     setRepoMap,
     activeRepo,
@@ -380,7 +373,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const { progress, setProgress } = useTopbarProgress()
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
-  const [chatSidebarInitialized, setChatSidebarInitialized] = useState(false)
+  // const [chatSidebarLoaded, setChatSidebarInitialized] = useState(false)
 
   const searchQuery = searchParams.get('q')?.toString()
 
@@ -622,11 +615,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [fetchingRawFile, fetchingTreeEntries])
 
   React.useEffect(() => {
-    const initChatSidebar = () => {
-      if (chatSideBarVisible && !chatSidebarInitialized) {
-        setChatSidebarInitialized(true)
-      }
-    }
+    // const initChatSidebar = () => {
+    //   if (chatSideBarVisible && !chatSidebarLoaded) {
+    //     setChatSidebarInitialized(true)
+    //   }
+    // }
 
     const toggleChatSidebarPanel = () => {
       if (chatSideBarVisible) {
@@ -637,7 +630,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       }
     }
 
-    initChatSidebar()
+    // initChatSidebar()
     toggleChatSidebarPanel()
   }, [chatSideBarVisible])
 
@@ -653,26 +646,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       setExpandedKeys(new Set())
     }
   }, [activeEntryInfo])
-
-  React.useEffect(() => {
-    const onCallCompletion = (data: QuickActionEventPayload) => {
-      setPendingEvent(data)
-      // setTimeout(() => {
-      //   setChatSideBarVisible(true)
-      // })
-    }
-    emitter.on('code_browser_quick_action', onCallCompletion)
-
-    return () => {
-      emitter.off('code_browser_quick_action', onCallCompletion)
-    }
-  }, [])
-
-  React.useEffect(() => {
-    if (pendingEvent && !chatSideBarVisible) {
-      setChatSideBarVisible(true)
-    }
-  }, [pendingEvent])
 
   return (
     <ResizablePanelGroup
@@ -758,9 +731,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           ref={chatSideBarPanelRef}
           onCollapse={() => setChatSideBarVisible(false)}
         >
-          {chatSidebarInitialized ? (
-            <ChatSideBar activeRepo={activeRepo} />
-          ) : null}
+          <ChatSideBar activeRepo={activeRepo} />
         </ResizablePanel>
       </>
     </ResizablePanelGroup>

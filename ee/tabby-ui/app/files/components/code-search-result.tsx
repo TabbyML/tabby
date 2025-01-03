@@ -14,8 +14,8 @@ import { filename2prism } from '@/lib/language-utils'
 import CodeEditor from '@/components/codemirror/codemirror'
 import { lineClickExtension } from '@/components/codemirror/line-click-extension'
 
+import { searchMatchExtension } from '../lib/search-match-extension'
 import { SourceCodeSearchResult as SourceCodeSearchResultType } from './code-search-result-view'
-import { searchMatchExtension } from './search-match-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { generateEntryPath } from './utils'
 

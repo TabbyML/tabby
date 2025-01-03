@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { find } from 'lodash-es'
 import type {
-  EditorContext,
+  ChatCommand,
+  EditorFileContext,
   FileLocation,
   GitRepository
 } from 'tabby-chat-panel'
@@ -16,27 +17,120 @@ import { cn, formatLineHashForLocation } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
 
-import { QuickActionEventPayload } from '../lib/event-emitter'
+import { emitter } from '../lib/event-emitter'
+import { getActiveSelection } from '../lib/selection-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { generateEntryPath, getDefaultRepoRef, resolveRepoRef } from './utils'
 
 interface ChatSideBarProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
   activeRepo: RepositoryListQuery['repositoryList'][0] | undefined
+  pendingCommand?: ChatCommand
+}
+export const ChatSideBar: React.FC<ChatSideBarProps> = props => {
+  const [shouldInit, setShouldInit] = useState(false)
+  const { chatSideBarVisible, setChatSideBarVisible } = React.useContext(
+    SourceCodeBrowserContext
+  )
+  const [pendingCommand, setPendingCommand] = React.useState<
+    ChatCommand | undefined
+  >()
+
+  React.useEffect(() => {
+    if (chatSideBarVisible && !shouldInit) {
+      setShouldInit(true)
+    }
+  }, [chatSideBarVisible])
+
+  React.useEffect(() => {
+    const quickActionCallback = (command: ChatCommand) => {
+      setChatSideBarVisible(true)
+
+      if (!shouldInit) {
+        setPendingCommand(command)
+      }
+    }
+
+    emitter.on('quick_action_command', quickActionCallback)
+    return () => {
+      emitter.off('quick_action_command', quickActionCallback)
+    }
+  }, [])
+
+  if (!shouldInit) return null
+
+  return <ChatSideBarRenderer pendingCommand={pendingCommand} {...props} />
 }
 
-export const ChatSideBar: React.FC<ChatSideBarProps> = ({
+function ChatSideBarRenderer({
   activeRepo,
   className,
+  pendingCommand,
   ...props
-}) => {
+}: ChatSideBarProps) {
   const [{ data }] = useMe()
-  const [initialized, setInitialized] = useState(false)
-  const { pendingEvent, setPendingEvent, repoMap, updateActivePath } =
+  const [isLoaded, setIsLoaded] = useState(false)
+  const { repoMap, updateActivePath, activeEntryInfo, textEditorViewRef } =
     React.useContext(SourceCodeBrowserContext)
   const activeChatId = useChatStore(state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const repoMapRef = useLatest(repoMap)
+
+  const client = useClient(iframeRef, {
+    refresh: async () => {
+      window.location.reload()
+
+      // Ensure the loading effect is maintained
+      await new Promise(resolve => {
+        setTimeout(() => resolve(null), 1000)
+      })
+    },
+    onApplyInEditor(_content) {},
+    onLoaded() {
+      setIsLoaded(true)
+    },
+    onCopy(_content) {},
+    onKeyboardEvent() {},
+    openInEditor: async (fileLocation: FileLocation) => {
+      return openInCodeBrowser(fileLocation)
+    },
+    openExternal: async (url: string) => {
+      window.open(url, '_blank')
+    },
+    readWorkspaceGitRepositories: async () => {
+      return readWorkspaceGitRepositories.current()
+    },
+    getActiveEditorSelection: async () => {
+      return getActiveEditorSelection.current()
+    }
+  })
+
+  React.useEffect(() => {
+    const quickActionCallback = (command: ChatCommand) => {
+      client?.executeCommand(command)
+    }
+
+    emitter.on('quick_action_command', quickActionCallback)
+
+    return () => {
+      emitter.off('quick_action_command', quickActionCallback)
+    }
+  }, [client])
+
+  React.useEffect(() => {
+    const notifyActiveEditorSelectionChange = (
+      editorFileContext: EditorFileContext | null
+    ) => {
+      client?.updateActiveSelection(editorFileContext)
+    }
+
+    emitter.on('selection_change', notifyActiveEditorSelectionChange)
+
+    return () => {
+      emitter.off('selection_change', notifyActiveEditorSelectionChange)
+    }
+  }, [client])
+
   const openInCodeBrowser = async (fileLocation: FileLocation) => {
     const { filepath, location } = fileLocation
     if (filepath.kind === 'git') {
@@ -76,86 +170,47 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   })
 
   const getActiveEditorSelection = useLatest(() => {
-    if (!pendingEvent) return null
-    const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
-    const activeSelection: EditorContext = {
-      kind: 'file',
-      content: code,
-      range: {
-        start: lineFrom,
-        end: lineTo ?? lineFrom
-      },
-      filepath: {
-        kind: 'git',
-        filepath: path,
-        gitUrl
-      }
-    }
-    return activeSelection
+    if (!textEditorViewRef.current || !activeEntryInfo) return null
+
+    const context = getActiveSelection(textEditorViewRef.current)
+    const editorFileContext: EditorFileContext | null =
+      context && activeEntryInfo.basename && activeRepo
+        ? {
+            kind: 'file',
+            filepath: {
+              kind: 'git',
+              filepath: activeEntryInfo.basename,
+              gitUrl: activeRepo?.gitUrl
+            },
+            range: {
+              start: context.startLine,
+              end: context.endLine
+            },
+            content: context.content
+          }
+        : null
+    return editorFileContext
   })
-
-  const client = useClient(iframeRef, {
-    refresh: async () => {
-      window.location.reload()
-
-      // Ensure the loading effect is maintained
-      await new Promise(resolve => {
-        setTimeout(() => resolve(null), 1000)
-      })
-    },
-    onApplyInEditor(_content) {},
-    onLoaded() {
-      setInitialized(true)
-    },
-    onCopy(_content) {},
-    onKeyboardEvent() {},
-    openInEditor: async (fileLocation: FileLocation) => {
-      return openInCodeBrowser(fileLocation)
-    },
-    openExternal: async (url: string) => {
-      window.open(url, '_blank')
-    },
-    readWorkspaceGitRepositories: async () => {
-      return readWorkspaceGitRepositories.current()
-    },
-    getActiveEditorSelection: async () => {
-      return getActiveEditorSelection.current()
-    }
-  })
-
-  const getCommand = ({ action }: QuickActionEventPayload) => {
-    switch (action) {
-      case 'explain':
-        return 'explain'
-      case 'generate_unittest':
-        return 'generate-tests'
-      case 'generate_doc':
-        return 'generate-docs'
-    }
-  }
 
   React.useEffect(() => {
-    if (iframeRef?.current && data) {
-      client?.init({
+    if (client && data && isLoaded) {
+      client.init({
         fetcherOptions: {
           authorization: data.me.authToken
         }
       })
     }
-  }, [iframeRef?.current, client?.init, data])
+  }, [iframeRef?.current, data, isLoaded])
 
   React.useEffect(() => {
-    if (pendingEvent && client && initialized) {
+    if (pendingCommand && client && isLoaded) {
       const execute = async () => {
-        // todo notify activeselection change
-        const command = getCommand(pendingEvent)
-        client.executeCommand(command)
-        setPendingEvent(undefined)
+        client.executeCommand(pendingCommand)
       }
 
       execute()
     }
-  }, [initialized, pendingEvent])
+  }, [isLoaded])
 
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
