@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
+import { ChatCommand } from 'tabby-chat-panel/index'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { IconChevronUpDown } from '@/components/ui/icons'
 
-import { CodeBrowserQuickAction, emitter } from '../../lib/event-emitter'
+import { emitter } from '../../lib/event-emitter'
 
 interface ActionBarWidgetProps extends React.HTMLAttributes<HTMLDivElement> {
   text: string
@@ -32,16 +33,8 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
   gitUrl,
   ...props
 }) => {
-  const handleAction = (action: CodeBrowserQuickAction) => {
-    emitter.emit('code_browser_quick_action', {
-      action,
-      code: text,
-      language,
-      path,
-      lineFrom,
-      lineTo,
-      gitUrl
-    })
+  const onTriggerCommand = (command: ChatCommand) => {
+    emitter.emit('quick_action_command', command)
   }
 
   return (
@@ -56,7 +49,7 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
       <Button
         size="sm"
         variant="outline"
-        onClick={e => handleAction('explain')}
+        onClick={e => onTriggerCommand('explain')}
       >
         Explain
       </Button>
@@ -70,13 +63,13 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
         <DropdownMenuContent align="start">
           <DropdownMenuItem
             className="cursor-pointer"
-            onSelect={() => handleAction('generate_unittest')}
+            onSelect={() => onTriggerCommand('generate-tests')}
           >
             Unit Test
           </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer"
-            onSelect={() => handleAction('generate_doc')}
+            onSelect={() => onTriggerCommand('generate-docs')}
           >
             Documentation
           </DropdownMenuItem>
