@@ -28,7 +28,7 @@ interface ChatSideBarProps
   pendingCommand?: ChatCommand
 }
 export const ChatSideBar: React.FC<ChatSideBarProps> = props => {
-  const [shouldInit, setShouldInit] = useState(false)
+  const [shouldInitialize, setShouldInitialize] = useState(false)
   const { chatSideBarVisible, setChatSideBarVisible } = React.useContext(
     SourceCodeBrowserContext
   )
@@ -37,8 +37,8 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = props => {
   >()
 
   React.useEffect(() => {
-    if (chatSideBarVisible && !shouldInit) {
-      setShouldInit(true)
+    if (chatSideBarVisible && !shouldInitialize) {
+      setShouldInitialize(true)
     }
   }, [chatSideBarVisible])
 
@@ -46,7 +46,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = props => {
     const quickActionCallback = (command: ChatCommand) => {
       setChatSideBarVisible(true)
 
-      if (!shouldInit) {
+      if (!shouldInitialize) {
         setPendingCommand(command)
       }
     }
@@ -57,7 +57,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = props => {
     }
   }, [])
 
-  if (!shouldInit) return null
+  if (!shouldInitialize) return null
 
   return <ChatSideBarRenderer pendingCommand={pendingCommand} {...props} />
 }
