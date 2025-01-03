@@ -1,7 +1,6 @@
 package com.tabbyml.intellijtabby.chat
 
 import com.google.gson.Gson
-import com.intellij.openapi.diagnostic.logger
 
 abstract class Filepath(
   val kind: String
