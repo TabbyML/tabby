@@ -373,7 +373,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const { progress, setProgress } = useTopbarProgress()
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
-  // const [chatSidebarLoaded, setChatSidebarInitialized] = useState(false)
 
   const searchQuery = searchParams.get('q')?.toString()
 
