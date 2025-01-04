@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_openai::config::OpenAIConfig;
+use async_openai_alt::config::OpenAIConfig;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::{ChatCompletionStream, ExtendedOpenAIConfig};
 
@@ -34,7 +34,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
     let config = builder.build().expect("Failed to build config");
 
     let engine = Box::new(
-        async_openai::Client::with_config(config)
+        async_openai_alt::Client::with_config(config)
             .with_http_client(create_reqwest_client(api_endpoint)),
     );
 

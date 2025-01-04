@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_openai::{
+use async_openai_alt::{
     error::OpenAIError,
     types::{
         ChatChoice, ChatChoiceStream, ChatCompletionResponseMessage, ChatCompletionResponseStream,
@@ -44,7 +44,7 @@ impl ChatCompletionStream for FakeChatCompletionStream {
         _request: CreateChatCompletionRequest,
     ) -> Result<CreateChatCompletionResponse, OpenAIError> {
         if self.return_error {
-            return Err(OpenAIError::ApiError(async_openai::error::ApiError {
+            return Err(OpenAIError::ApiError(async_openai_alt::error::ApiError {
                 message: "error".to_string(),
                 code: None,
                 param: None,

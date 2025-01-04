@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_openai::error::OpenAIError;
+use async_openai_alt::error::OpenAIError;
 use axum::{
     extract::State,
     response::sse::{Event, KeepAlive, Sse},
@@ -36,7 +36,7 @@ pub async fn chat_completions_utoipa(_request: Json<serde_json::Value>) -> Statu
 pub async fn chat_completions(
     State(state): State<Arc<dyn ChatCompletionStream>>,
     TypedHeader(MaybeUser(user)): TypedHeader<MaybeUser>,
-    Json(mut request): Json<async_openai::types::CreateChatCompletionRequest>,
+    Json(mut request): Json<async_openai_alt::types::CreateChatCompletionRequest>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, anyhow::Error>>>, StatusCode> {
     if let Some(user) = user {
         request.user.replace(user);

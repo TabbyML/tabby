@@ -1,4 +1,4 @@
-use async_openai::{
+use async_openai_alt::{
     config::OpenAIConfig,
     error::OpenAIError,
     types::{
@@ -85,7 +85,7 @@ impl ExtendedOpenAIConfig {
     }
 }
 
-impl async_openai::config::Config for ExtendedOpenAIConfig {
+impl async_openai_alt::config::Config for ExtendedOpenAIConfig {
     fn headers(&self) -> reqwest::header::HeaderMap {
         self.base.headers()
     }
@@ -108,7 +108,7 @@ impl async_openai::config::Config for ExtendedOpenAIConfig {
 }
 
 #[async_trait]
-impl ChatCompletionStream for async_openai::Client<ExtendedOpenAIConfig> {
+impl ChatCompletionStream for async_openai_alt::Client<ExtendedOpenAIConfig> {
     async fn chat(
         &self,
         request: CreateChatCompletionRequest,

@@ -20,7 +20,7 @@ pub mod worker;
 use std::{sync::Arc, time::Instant};
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
-use async_openai::{
+use async_openai_alt::{
     error::OpenAIError,
     types::{
         ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
