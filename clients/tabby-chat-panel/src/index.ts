@@ -382,7 +382,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       getActiveEditorSelection: api.getActiveEditorSelection,
       fetchSessionState: api.fetchSessionState,
       storeSessionState: api.storeSessionState,
-      provideFileAtInfo: api.listFileInWorkspace,
+      listFileInWorkspace: api.listFileInWorkspace,
       readFileContent: api.readFileContent,
     },
   })
