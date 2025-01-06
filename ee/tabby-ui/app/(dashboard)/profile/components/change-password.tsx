@@ -95,7 +95,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
                 <FormLabel required>Old password</FormLabel>
                 <FormControl>
                   <Input
-                    className="w-[350px]"
+                    className="w-full md:w-[350px]"
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
@@ -117,7 +117,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
                 <FormLabel required>New password</FormLabel>
                 <FormControl>
                   <Input
-                    className="w-[350px]"
+                    className="w-full md:w-[350px]"
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
@@ -145,7 +145,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
               <FormLabel required>Confirm new password</FormLabel>
               <FormControl>
                 <Input
-                  className="w-[350px]"
+                  className="w-full md:w-[350px]"
                   autoCapitalize="none"
                   autoComplete="off"
                   autoCorrect="off"

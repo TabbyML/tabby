@@ -93,7 +93,8 @@ export class StatusBarItem {
             this.setTooltip(statusInfo.tooltip);
             break;
           }
-          case "completionResponseSlow": {
+          case "completionResponseSlow":
+          case "rateLimitExceeded": {
             this.setColorWarning();
             this.setIcon(iconWarning);
             this.setTooltip(statusInfo.tooltip);

@@ -8,7 +8,6 @@ import { compact, isEmpty } from 'lodash-es'
 import { marked } from 'marked'
 import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
-import { Context } from 'tabby-chat-panel/index'
 import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
@@ -20,10 +19,12 @@ import {
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
   AttachmentDocItem,
+  Context,
   ExtendedCombinedError,
   RelevantCodeContext
 } from '@/lib/types'
 import {
+  buildCodeBrowserUrlForContext,
   cn,
   formatLineHashForCodeBrowser,
   getContent,
@@ -76,7 +77,9 @@ import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
 import { UserAvatar } from '@/components/user-avatar'
 
-import { ConversationMessage, SearchContext, SOURCE_CARD_STYLE } from './search'
+import { SOURCE_CARD_STYLE } from './search'
+import { SearchContext } from './search-context'
+import { ConversationMessage } from './types'
 
 export function AssistantMessageSection({
   className,
@@ -105,11 +108,11 @@ export function AssistantMessageSection({
     fetchingContextInfo,
     onDeleteMessage,
     isThreadOwner,
-    onUpdateMessage
+    onUpdateMessage,
+    repositories
   } = useContext(SearchContext)
 
-  const { supportsOnApplyInEditorV2, onNavigateToContext } =
-    useContext(ChatContext)
+  const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
 
   const [isEditing, setIsEditing] = useState(false)
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -147,56 +150,55 @@ export function AssistantMessageSection({
 
   const IconAnswer = isLoading ? IconSpinner : IconSparkles
 
-  const relevantCodeGitURL = message?.attachment?.code?.[0]?.gitUrl || ''
+  // match gitUrl for clientCode with codeSourceId
+  const clientCodeGitUrl = useMemo(() => {
+    if (!message.codeSourceId || !repositories?.length) return ''
+
+    const target = repositories.find(
+      info => info.sourceId === message.codeSourceId
+    )
+    return target?.gitUrl ?? ''
+  }, [message.codeSourceId, repositories])
 
   const clientCodeContexts: RelevantCodeContext[] = useMemo(() => {
     if (!clientCode?.length) return []
     return (
       clientCode.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
         return {
           kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
+          range: getRangeFromAttachmentCode(code),
           filepath: code.filepath || '',
           content: code.content,
-          git_url: relevantCodeGitURL
+          git_url: clientCodeGitUrl
         }
       }) ?? []
     )
-  }, [clientCode, relevantCodeGitURL])
+  }, [clientCode, clientCodeGitUrl])
 
   const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
       message?.attachment?.code?.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
         return {
           kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
+          range: getRangeFromAttachmentCode(code),
           filepath: code.filepath,
           content: code.content,
           git_url: code.gitUrl,
+          commit: code.commit ?? undefined,
           extra: {
             scores: code?.extra?.scores
           }
         }
       }) ?? []
     )
-  }, [clientCode, message?.attachment?.code])
+  }, [message?.attachment?.code])
 
   const messageAttachmentClientCode = useMemo(() => {
     return clientCode?.map(o => ({
       ...o,
-      gitUrl: relevantCodeGitURL
+      gitUrl: clientCodeGitUrl
     }))
-  }, [clientCode, relevantCodeGitURL])
+  }, [clientCode, clientCodeGitUrl])
 
   const messageAttachmentDocs = message?.attachment?.doc
   const messageAttachmentCodeLen =
@@ -211,21 +213,8 @@ export function AssistantMessageSection({
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
-    const url = new URL(`${window.location.origin}/files`)
-    const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', ctx.filepath)
-    searchParams.append('redirect_git_url', ctx.git_url)
-    url.search = searchParams.toString()
-
-    const lineHash = formatLineHashForCodeBrowser({
-      start: ctx.range.start,
-      end: ctx.range.end
-    })
-    if (lineHash) {
-      url.hash = lineHash
-    }
-
-    window.open(url.toString())
+    const url = buildCodeBrowserUrlForContext(window.location.origin, ctx)
+    window.open(url, '_blank')
   }
 
   const onCodeCitationMouseEnter = (index: number) => {
@@ -239,19 +228,19 @@ export function AssistantMessageSection({
   }
 
   const openCodeBrowserTab = (code: MessageAttachmentCode) => {
-    const { startLine, endLine } = getRangeFromAttachmentCode(code)
+    const range = getRangeFromAttachmentCode(code)
 
     if (!code.filepath) return
     const url = new URL(`${window.location.origin}/files`)
     const searchParams = new URLSearchParams()
     searchParams.append('redirect_filepath', code.filepath)
     searchParams.append('redirect_git_url', code.gitUrl)
+    if (code.commit) {
+      searchParams.append('redirect_rev', code.commit)
+    }
     url.search = searchParams.toString()
 
-    const lineHash = formatLineHashForCodeBrowser({
-      start: startLine,
-      end: endLine
-    })
+    const lineHash = formatLineHashForCodeBrowser(range)
     if (lineHash) {
       url.hash = lineHash
     }

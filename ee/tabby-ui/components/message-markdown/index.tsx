@@ -8,7 +8,7 @@ import {
   Maybe,
   MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
+import { AttachmentCodeItem, AttachmentDocItem, FileContext } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   HoverCard,
@@ -20,7 +20,6 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 import './style.css'
 
 import {
-  FileContext,
   FileLocation,
   Filepath,
   LookupSymbolHint,
@@ -175,7 +174,7 @@ export function MessageMarkdown({
 
     setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
     const hints: LookupSymbolHint[] = []
-    if (activeSelection) {
+    if (activeSelection && activeSelection?.range) {
       // FIXME(@icycodes): this is intended to convert the filepath to Filepath type
       // We should remove this after FileContext.filepath use type Filepath instead of string
       let filepath: Filepath

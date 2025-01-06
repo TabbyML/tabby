@@ -1,72 +1,82 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { find } from 'lodash-es'
-import type { Context } from 'tabby-chat-panel'
+import type {
+  ChatCommand,
+  EditorFileContext,
+  FileLocation,
+  GitRepository
+} from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
+import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
+import { cn, formatLineHashForLocation } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
 
-import { QuickActionEventPayload } from '../lib/event-emitter'
+import { emitter } from '../lib/event-emitter'
+import { getActiveSelection } from '../lib/selection-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { generateEntryPath, getDefaultRepoRef, resolveRepoRef } from './utils'
 
 interface ChatSideBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
+  activeRepo: RepositoryListQuery['repositoryList'][0] | undefined
+  pendingCommand?: ChatCommand
+}
+export const ChatSideBar: React.FC<ChatSideBarProps> = props => {
+  const [shouldInitialize, setShouldInitialize] = useState(false)
+  const { chatSideBarVisible, setChatSideBarVisible } = React.useContext(
+    SourceCodeBrowserContext
+  )
+  const [pendingCommand, setPendingCommand] = React.useState<
+    ChatCommand | undefined
+  >()
 
-export const ChatSideBar: React.FC<ChatSideBarProps> = ({
+  React.useEffect(() => {
+    if (chatSideBarVisible && !shouldInitialize) {
+      setShouldInitialize(true)
+    }
+  }, [chatSideBarVisible])
+
+  React.useEffect(() => {
+    const quickActionCallback = (command: ChatCommand) => {
+      setChatSideBarVisible(true)
+
+      if (!shouldInitialize) {
+        setPendingCommand(command)
+      }
+    }
+
+    emitter.on('quick_action_command', quickActionCallback)
+    return () => {
+      emitter.off('quick_action_command', quickActionCallback)
+    }
+  }, [])
+
+  if (!shouldInitialize) return null
+
+  return <ChatSideBarRenderer pendingCommand={pendingCommand} {...props} />
+}
+
+function ChatSideBarRenderer({
+  activeRepo,
   className,
+  pendingCommand,
   ...props
-}) => {
+}: ChatSideBarProps) {
   const [{ data }] = useMe()
-  const { pendingEvent, setPendingEvent, repoMap, updateActivePath } =
+  const [isLoaded, setIsLoaded] = useState(false)
+  const { repoMap, updateActivePath, activeEntryInfo, textEditorViewRef } =
     React.useContext(SourceCodeBrowserContext)
   const activeChatId = useChatStore(state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const repoMapRef = useLatest(repoMap)
-  const onNavigate = async (context: Context) => {
-    if (context?.filepath && context?.git_url) {
-      const lineHash = formatLineHashForCodeBrowser(context?.range)
-      const repoMap = repoMapRef.current
-      const matchedRepositoryKey = find(
-        Object.keys(repoMap),
-        key => repoMap?.[key]?.gitUrl === context.git_url
-      )
-      if (matchedRepositoryKey) {
-        const targetRepo = repoMap[matchedRepositoryKey]
-        if (targetRepo) {
-          const defaultRef = getDefaultRepoRef(targetRepo.refs)
-          // navigate to files of the default branch
-          const refName = resolveRepoRef(defaultRef)?.name
-          const detectedLanguage = context.filepath
-            ? filename2prism(context.filepath)[0]
-            : undefined
-          const isMarkdown = detectedLanguage === 'markdown'
-          updateActivePath(
-            generateEntryPath(
-              targetRepo,
-              refName,
-              context.filepath,
-              context.kind
-            ),
-            {
-              hash: lineHash,
-              replace: false,
-              plain: isMarkdown && !!lineHash
-            }
-          )
-          return
-        }
-      }
-    }
-  }
 
   const client = useClient(iframeRef, {
-    navigate: onNavigate,
     refresh: async () => {
       window.location.reload()
 
@@ -75,66 +85,133 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         setTimeout(() => resolve(null), 1000)
       })
     },
-    async onSubmitMessage(_msg, _relevantContext) {},
     onApplyInEditor(_content) {},
-    onLoaded() {},
+    onLoaded() {
+      setIsLoaded(true)
+    },
     onCopy(_content) {},
     onKeyboardEvent() {},
-    async openInEditor() {
-      return false
+    openInEditor: async (fileLocation: FileLocation) => {
+      return openInCodeBrowser(fileLocation)
+    },
+    openExternal: async (url: string) => {
+      window.open(url, '_blank')
+    },
+    readWorkspaceGitRepositories: async () => {
+      return readWorkspaceGitRepositories.current()
+    },
+    getActiveEditorSelection: async () => {
+      return getActiveEditorSelection.current()
     }
   })
 
-  const getPrompt = ({ action }: QuickActionEventPayload) => {
-    let builtInPrompt = ''
-    switch (action) {
-      case 'explain':
-        builtInPrompt = 'Explain the selected code:'
-        break
-      case 'generate_unittest':
-        builtInPrompt = 'Generate a unit test for the selected code:'
-        break
-      case 'generate_doc':
-        builtInPrompt = 'Generate documentation for the selected code:'
-        break
-      default:
-        break
+  React.useEffect(() => {
+    const quickActionCallback = (command: ChatCommand) => {
+      client?.executeCommand(command)
     }
 
-    return builtInPrompt
-  }
+    emitter.on('quick_action_command', quickActionCallback)
+
+    return () => {
+      emitter.off('quick_action_command', quickActionCallback)
+    }
+  }, [client])
 
   React.useEffect(() => {
-    if (iframeRef?.current && data) {
-      client?.init({
+    const notifyActiveEditorSelectionChange = (
+      editorFileContext: EditorFileContext | null
+    ) => {
+      client?.updateActiveSelection(editorFileContext)
+    }
+
+    emitter.on('selection_change', notifyActiveEditorSelectionChange)
+
+    return () => {
+      emitter.off('selection_change', notifyActiveEditorSelectionChange)
+    }
+  }, [client])
+
+  const openInCodeBrowser = async (fileLocation: FileLocation) => {
+    const { filepath, location } = fileLocation
+    if (filepath.kind === 'git') {
+      const lineHash = formatLineHashForLocation(location)
+      const repoMap = repoMapRef.current
+      const matchedRepositoryKey = find(
+        Object.keys(repoMap),
+        key => repoMap?.[key]?.gitUrl === filepath.gitUrl
+      )
+      if (matchedRepositoryKey) {
+        const targetRepo = repoMap[matchedRepositoryKey]
+        if (targetRepo) {
+          const defaultRef = getDefaultRepoRef(targetRepo.refs)
+          // navigate to files of the default branch
+          const refName = resolveRepoRef(defaultRef)?.name
+          const detectedLanguage = filename2prism(filepath.filepath)[0]
+          const isMarkdown = detectedLanguage === 'markdown'
+          updateActivePath(
+            generateEntryPath(targetRepo, refName, filepath.filepath, 'file'),
+            {
+              hash: lineHash,
+              replace: false,
+              plain: isMarkdown && !!lineHash
+            }
+          )
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  const readWorkspaceGitRepositories = useLatest(() => {
+    if (!activeRepo) return []
+    const list: GitRepository[] = [{ url: activeRepo.gitUrl }]
+    return list
+  })
+
+  const getActiveEditorSelection = useLatest(() => {
+    if (!textEditorViewRef.current || !activeEntryInfo) return null
+
+    const context = getActiveSelection(textEditorViewRef.current)
+    const editorFileContext: EditorFileContext | null =
+      context && activeEntryInfo.basename && activeRepo
+        ? {
+            kind: 'file',
+            filepath: {
+              kind: 'git',
+              filepath: activeEntryInfo.basename,
+              gitUrl: activeRepo?.gitUrl
+            },
+            range: {
+              start: context.startLine,
+              end: context.endLine
+            },
+            content: context.content
+          }
+        : null
+    return editorFileContext
+  })
+
+  React.useEffect(() => {
+    if (client && data && isLoaded) {
+      client.init({
         fetcherOptions: {
           authorization: data.me.authToken
         }
       })
     }
-  }, [iframeRef?.current, client, data])
+  }, [iframeRef?.current, data, isLoaded])
 
   React.useEffect(() => {
-    if (pendingEvent && client) {
-      const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
-      client.sendMessage({
-        message: getPrompt(pendingEvent),
-        selectContext: {
-          kind: 'file',
-          content: code,
-          range: {
-            start: lineFrom,
-            end: lineTo ?? lineFrom
-          },
-          filepath: path,
-          git_url: gitUrl
-        }
-      })
-    }
-    setPendingEvent(undefined)
-  }, [pendingEvent, client])
+    if (pendingCommand && client && isLoaded) {
+      const execute = async () => {
+        client.executeCommand(pendingCommand)
+      }
 
-  if (!data?.me) return <></>
+      execute()
+    }
+  }, [isLoaded])
+
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
       <Header />

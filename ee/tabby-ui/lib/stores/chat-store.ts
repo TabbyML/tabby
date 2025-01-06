@@ -3,18 +3,30 @@ import { persist } from 'zustand/middleware'
 
 import { nanoid } from '@/lib/utils'
 
-const excludeFromState = ['activeChatId']
+import { ThreadRunContexts } from '../types'
+
+const excludeFromState = ['activeChatId', 'pendingUserMessage']
 
 export interface ChatState {
   activeChatId: string | undefined
   selectedModel: string | undefined
+  selectedRepoSourceId: string | undefined
   enableActiveSelection: boolean
+  // question from homepage
+  pendingUserMessage:
+    | {
+        content?: string
+        context: ThreadRunContexts | undefined
+      }
+    | undefined
 }
 
 const initialState: ChatState = {
   activeChatId: nanoid(),
   selectedModel: undefined,
-  enableActiveSelection: true
+  selectedRepoSourceId: undefined,
+  enableActiveSelection: true,
+  pendingUserMessage: undefined
 }
 
 export const useChatStore = create<ChatState>()(

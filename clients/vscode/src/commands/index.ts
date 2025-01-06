@@ -8,7 +8,7 @@ import {
   Uri,
   ProgressLocation,
   ThemeIcon,
-  ViewColumn,
+  TextEditor,
   Range,
   CodeAction,
   CodeActionKind,
@@ -20,8 +20,8 @@ import { Client } from "../lsp/Client";
 import { Config } from "../Config";
 import { ContextVariables } from "../ContextVariables";
 import { InlineCompletionProvider } from "../InlineCompletionProvider";
-import { ChatSideViewProvider } from "../chat/ChatSideViewProvider";
-import { ChatPanelViewProvider } from "../chat/ChatPanelViewProvider";
+import { ChatSidePanelProvider } from "../chat/sidePanel";
+import { createChatPanel } from "../chat/chatPanel";
 import { getFileContextFromSelection, getFileContext } from "../chat/fileContext";
 import { GitProvider, Repository } from "../git/GitProvider";
 import { showOutputPanel } from "../logger";
@@ -38,7 +38,7 @@ export class Commands {
     private readonly config: Config,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
-    private readonly chatViewProvider: ChatSideViewProvider,
+    private readonly chatSidePanelProvider: ChatSidePanelProvider,
     private readonly gitProvider: GitProvider,
   ) {}
 
@@ -48,45 +48,6 @@ export class Commands {
       return commands.registerCommand(commandName, handler, this);
     });
     this.context.subscriptions.push(...registrations);
-  }
-
-  private async sendMessageToChatPanel(msg: string) {
-    const editor = window.activeTextEditor;
-    if (editor) {
-      commands.executeCommand("tabby.chatView.focus");
-      const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-      if (!fileContext) {
-        window.showInformationMessage("No selected codes");
-        return;
-      }
-
-      this.chatViewProvider.sendMessage({
-        message: msg,
-        selectContext: fileContext,
-      });
-    } else {
-      window.showInformationMessage("No active editor");
-    }
-  }
-
-  private addRelevantContext() {
-    const editor = window.activeTextEditor;
-    if (!editor) {
-      window.showInformationMessage("No active editor");
-      return;
-    }
-
-    const addContext = async () => {
-      const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-      if (fileContext) {
-        this.chatViewProvider.addRelevantContext(fileContext);
-      }
-    };
-    commands.executeCommand("tabby.chatView.focus");
-
-    if (this.chatViewProvider.webview?.visible) {
-      addContext();
-    }
   }
 
   commands: Record<string, (...args: never[]) => void> = {
@@ -105,11 +66,32 @@ export class Commands {
       await this.config.updateInlineCompletionTriggerMode(target);
     },
     connectToServer: async (endpoint?: string | undefined) => {
-      if (endpoint) {
-        this.config.updateServerEndpoint(endpoint);
+      if (endpoint !== undefined) {
+        await this.config.updateServerEndpoint(endpoint);
       } else {
         const widget = new ConnectToServerWidget(this.client, this.config);
         widget.show();
+      }
+    },
+    reconnectToServer: async () => {
+      await this.client.status.fetchAgentStatusInfo({ recheckConnection: true });
+    },
+    updateToken: async (token?: string | undefined) => {
+      const endpoint = this.config.serverEndpoint;
+      if (token) {
+        if (endpoint == "") {
+          return;
+        }
+        const serverRecords = this.config.serverRecords;
+        serverRecords.set(endpoint, { token, updatedAt: Date.now() });
+        await this.config.updateServerRecords(serverRecords);
+      } else {
+        if (endpoint == "") {
+          await commands.executeCommand("tabby.openTabbyAgentSettings");
+        } else {
+          const widget = new ConnectToServerWidget(this.client, this.config);
+          widget.showUpdateTokenWidget();
+        }
       }
     },
     openSettings: () => {
@@ -174,6 +156,9 @@ export class Commands {
           }
         });
     },
+    openExternal: async (url: string) => {
+      await env.openExternal(Uri.parse(url));
+    },
     openKeybindings: () => {
       commands.executeCommand("workbench.action.openGlobalKeybindings", "Tabby");
     },
@@ -224,42 +209,62 @@ export class Commands {
     "status.resetIgnoredIssues": () => {
       this.client.status.editIgnoredIssues({ operation: "removeAll", issues: [] });
     },
-    "chat.explainCodeBlock": async (userCommand?: string) => {
-      this.sendMessageToChatPanel("Explain the selected code:".concat(userCommand ? `\n${userCommand}` : ""));
+    "chat.toggleFocus": async () => {
+      if (await this.chatSidePanelProvider.chatWebview.isFocused()) {
+        await commands.executeCommand("workbench.action.focusActiveEditorGroup");
+      } else {
+        await commands.executeCommand("tabby.chatView.focus");
+      }
+    },
+    "chat.explainCodeBlock": async (/* userCommand?: string */) => {
+      // @FIXME(@icycodes): The `userCommand` is not being used
+      // When invoked from code-action/quick-fix, it contains the error message provided by the IDE
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.executeCommand("explain");
+      });
     },
     "chat.addRelevantContext": async () => {
-      this.addRelevantContext();
+      ensureHasEditorSelection(async (editor) => {
+        await commands.executeCommand("tabby.chatView.focus");
+        const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
+        if (fileContext) {
+          this.chatSidePanelProvider.addRelevantContext(fileContext);
+        }
+      });
     },
     "chat.addFileContext": async () => {
       const editor = window.activeTextEditor;
       if (editor) {
+        await commands.executeCommand("tabby.chatView.focus");
         const fileContext = await getFileContext(editor, this.gitProvider);
         if (fileContext) {
-          commands.executeCommand("tabby.chatView.focus").then(async () => {
-            this.chatViewProvider.addRelevantContext(fileContext);
-          });
+          this.chatSidePanelProvider.addRelevantContext(fileContext);
         }
       } else {
-        window.showInformationMessage("No active editor");
+        window.showInformationMessage("No active editor.");
       }
     },
     "chat.fixCodeBlock": async () => {
-      this.sendMessageToChatPanel("Identify and fix potential bugs in the selected code:");
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.executeCommand("fix");
+      });
     },
     "chat.generateCodeBlockDoc": async () => {
-      this.sendMessageToChatPanel("Generate documentation for the selected code:");
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.executeCommand("generate-docs");
+      });
     },
     "chat.generateCodeBlockTest": async () => {
-      this.sendMessageToChatPanel("Generate a unit test for the selected code:");
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.executeCommand("generate-tests");
+      });
     },
     "chat.createPanel": async () => {
-      const panel = window.createWebviewPanel("tabby.chatView", "Tabby", ViewColumn.One, {
-        retainContextWhenHidden: true,
-      });
-
-      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client, this.gitProvider);
-
-      chatPanelViewProvider.resolveWebviewView(panel);
+      await createChatPanel(this.context, this.client, this.gitProvider);
     },
     "chat.edit.start": async (userCommand?: string, range?: Range) => {
       const editor = window.activeTextEditor;
@@ -382,6 +387,15 @@ export class Commands {
       );
     },
   };
+}
+
+function ensureHasEditorSelection(callback: (editor: TextEditor) => void) {
+  const editor = window.activeTextEditor;
+  if (editor && !editor.selection.isEmpty) {
+    callback(editor);
+  } else {
+    window.showInformationMessage("No selected codes.");
+  }
 }
 
 async function applyQuickFixes(uri: Uri, range: Range): Promise<void> {

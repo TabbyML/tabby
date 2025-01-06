@@ -34,7 +34,7 @@ export default function MainContent({
   }, [pathname])
 
   return (
-    <SidebarInset>
+    <SidebarInset className="overflow-x-hidden">
       {/* Wraps right hand side into ScrollArea, making scroll bar consistent across all browsers */}
       <ScrollArea ref={scroller} style={style}>
         <Header />

@@ -2,6 +2,7 @@ import { commands, window, Command, QuickPick, QuickPickItem, QuickPickItemKind,
 import { State as LanguageClientState } from "vscode-languageclient";
 import { Client } from "../lsp/Client";
 import { Config } from "../Config";
+import { isBrowser } from "../env";
 
 const MENU_ITEM_INDENT_SPACING = "      ";
 
@@ -21,12 +22,16 @@ export class CommandPalette {
     quickPick.title = "Tabby Command Palette";
     const items: CommandPaletteItem[] = [];
 
-    items.push({ label: "status", kind: QuickPickItemKind.Separator }, this.itemForStatus(), {
-      label: "settings",
-      kind: QuickPickItemKind.Separator,
-    });
-
     // Status section
+    const status = this.client.status.current?.status;
+    items.push(
+      {
+        label: "status",
+        kind: QuickPickItemKind.Separator,
+      },
+      this.itemForStatus(),
+    );
+
     this.client.status.on("didChange", () => {
       items[1] = this.itemForStatus();
       quickPick.items = items;
@@ -34,12 +39,15 @@ export class CommandPalette {
 
     // Features section
     const validStatuses = ["ready", "readyForAutoTrigger", "readyForManualTrigger"];
-    if (validStatuses.includes(this.client.status.current?.status || "")) {
+    if (status !== undefined && validStatuses.includes(status)) {
       const iconPath = this.config.inlineCompletionTriggerMode === "automatic" ? new ThemeIcon("check") : undefined;
       const labelPrefix = iconPath ? "" : MENU_ITEM_INDENT_SPACING;
 
       items.push(
-        { label: "enable/disable features", kind: QuickPickItemKind.Separator },
+        {
+          label: "enable/disable features",
+          kind: QuickPickItemKind.Separator,
+        },
         {
           label: labelPrefix + "Code Completion",
           detail: MENU_ITEM_INDENT_SPACING + "Toggle between automatic and manual completion mode",
@@ -62,32 +70,47 @@ export class CommandPalette {
 
     // Settings section
     items.push(
-      { label: "settings", kind: QuickPickItemKind.Separator },
+      {
+        label: "settings",
+        kind: QuickPickItemKind.Separator,
+      },
       {
         label: "Connect to Server",
         command: "tabby.connectToServer",
         iconPath: new ThemeIcon("plug"),
       },
-      {
-        label: "Settings",
-        command: "tabby.openSettings",
-        iconPath: new ThemeIcon("settings"),
-      },
-      {
+    );
+    if (status === "unauthorized") {
+      items.push({
+        label: "Update Token",
+        command: "tabby.updateToken",
+        iconPath: new ThemeIcon("key"),
+      });
+    }
+    items.push({
+      label: "Settings",
+      command: "tabby.openSettings",
+      iconPath: new ThemeIcon("settings"),
+    });
+    if (!isBrowser) {
+      items.push({
         label: "Agent Settings",
         command: "tabby.openTabbyAgentSettings",
         iconPath: new ThemeIcon("tools"),
-      },
-      {
-        label: "Show Logs",
-        command: "tabby.outputPanel.focus",
-        iconPath: new ThemeIcon("output"),
-      },
-    );
+      });
+    }
+    items.push({
+      label: "Show Logs",
+      command: "tabby.outputPanel.focus",
+      iconPath: new ThemeIcon("output"),
+    });
 
     // Help section
     items.push(
-      { label: "help & support", kind: QuickPickItemKind.Separator },
+      {
+        label: "help & support",
+        kind: QuickPickItemKind.Separator,
+      },
       {
         label: "Help",
         description: "Open online documentation",
@@ -136,8 +159,8 @@ export class CommandPalette {
           case "unauthorized": {
             return {
               label: `${STATUS_PREFIX}Unauthorized`,
-              description: "Update the settings to connect to Tabby Server",
-              command: "tabby.connectToServer",
+              description: "Update your token to connect to Tabby Server",
+              command: "tabby.updateToken",
             };
           }
           case "disconnected": {
@@ -184,6 +207,13 @@ export class CommandPalette {
                     }
                   });
               },
+            };
+          }
+          case "rateLimitExceeded": {
+            return {
+              label: `${STATUS_PREFIX}Too Many Requests`,
+              description: "Request limit exceeded",
+              command: "tabby.outputPanel.focus",
             };
           }
           default: {
