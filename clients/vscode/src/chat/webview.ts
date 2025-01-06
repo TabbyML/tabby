@@ -47,7 +47,7 @@ import {
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
   uriToListFileItem,
-  extractTextFromRange,
+  escapeGlobPattern,
 } from "./utils";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
@@ -467,25 +467,15 @@ export class ChatWebview {
         const query = params.query?.toLowerCase();
 
         if (!query) {
-          // open all opened tabs
           // TODO: check tab file stat, check if exists
-          const openTabs = window.tabGroups.all.flatMap((group) =>
-            group.tabs
-              .filter((tab) => tab.input instanceof TabInputText)
-              .map((tab) => ({
-                uri: (tab.input as TabInputText).uri,
-                label: tab.label,
-              })),
-          );
-
+          const openTabs = window.tabGroups.all.flatMap((group) => group.tabs);
           this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
-
-          return openTabs
-            .filter((tab) => tab.uri.scheme === "file")
-            .map((tab) => uriToListFileItem(tab.uri, this.gitProvider));
+          return openTabs.map((tab) => uriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
         }
 
-        const globPattern = `**/${query}*`;
+        const globPattern = `**/${escapeGlobPattern(query)}*`;
+
+        // validate the glob pattern
         this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}.`);
         try {
           const files = await workspace.findFiles(globPattern, null, maxResults);
@@ -493,39 +483,19 @@ export class ChatWebview {
           return files.map((uri) => uriToListFileItem(uri, this.gitProvider));
         } catch (error) {
           this.logger.warn("Failed to find files:", error);
+          window.showErrorMessage("Failed to find files.");
           return [];
         }
       },
 
       readFileContent: async (info: FileRange): Promise<string | null> => {
-        if (info.range) {
-          try {
-            const uri = chatPanelFilepathToLocalUri(info.filepath, this.gitProvider);
-            if (!uri) {
-              this.logger.warn(`Could not resolve URI from filepath: ${JSON.stringify(info.filepath)}`);
-              return null;
-            }
-            const document = await workspace.openTextDocument(uri);
-
-            return extractTextFromRange(document, info.range);
-          } catch (error) {
-            this.logger.error("Failed to get file content by range:", error);
-            return null;
-          }
-        } else {
-          try {
-            const uri = chatPanelFilepathToLocalUri(info.filepath, this.gitProvider);
-            if (!uri) {
-              this.logger.warn(`Could not resolve URI from filepath: ${JSON.stringify(info.filepath)}`);
-              return null;
-            }
-            const document = await workspace.openTextDocument(uri);
-            return document.getText();
-          } catch (error) {
-            this.logger.error("Failed to get file content:", error);
-            return null;
-          }
+        const uri = chatPanelFilepathToLocalUri(info.filepath, this.gitProvider);
+        if (!uri) {
+          this.logger.warn(`Could not resolve URI from filepath: ${JSON.stringify(info.filepath)}`);
+          return null;
         }
+        const document = await workspace.openTextDocument(uri);
+        return document.getText(chatPanelLocationToVSCodeRange(info.range) ?? undefined);
       },
     });
   }

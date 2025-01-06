@@ -1,5 +1,5 @@
 import path from "path";
-import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace, TextEditor, TextDocument } from "vscode";
+import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace, TextEditor } from "vscode";
 import type {
   Filepath,
   Position as ChatPanelPosition,
@@ -224,47 +224,13 @@ export function generateLocalNotebookCellUri(notebook: Uri, handle: number): Uri
 }
 
 export function uriToListFileItem(uri: Uri, gitProvider: GitProvider): ListFileItem {
-  const filepath = localUriToChatPanelFilepath(uri, gitProvider);
-  let label: string;
-
-  if (filepath.kind === "git") {
-    label = filepath.filepath;
-  } else {
-    const workspaceFolder = workspace.getWorkspaceFolder(uri);
-    if (workspaceFolder) {
-      label = path.relative(workspaceFolder.uri.fsPath, uri.fsPath);
-    } else {
-      label = path.basename(uri.fsPath);
-    }
-  }
-
   return {
-    label,
-    filepath,
+    label: workspace.asRelativePath(uri),
+    filepath: localUriToChatPanelFilepath(uri, gitProvider),
   };
 }
 
-export function extractTextFromRange(document: TextDocument, range: LineRange | PositionRange): string {
-  if (typeof range.start === "number" && typeof range.end === "number") {
-    const startLine = range.start - 1;
-    const endLine = range.end - 1;
-    let selectedText = "";
-
-    for (let i = startLine; i <= endLine; i++) {
-      if (i < 0 || i >= document.lineCount) {
-        continue;
-      }
-      selectedText += document.lineAt(i).text + "\n";
-    }
-    return selectedText;
-  }
-
-  if (typeof range.start === "object" && typeof range.end === "object") {
-    const startPos = new VSCodePosition(range.start.line - 1, range.start.character - 1);
-    const endPos = new VSCodePosition(range.end.line - 1, range.end.character - 1);
-    const selectedRange = new VSCodeRange(startPos, endPos);
-    return document.getText(selectedRange);
-  }
-
-  return "";
+export function escapeGlobPattern(query: string): string {
+  // escape special glob characters: * ? [ ] { } ( ) ! @
+  return query.replace(/[*?[\]{}()!@]/g, "\\$&");
 }
