@@ -248,7 +248,7 @@ input UpdateLdapCredentialInput {
   host: String!
   port: Int!
   bindDn: String!
-  bindPassword: String!
+  bindPassword: String
   baseDn: String!
   userFilter: String!
   encryption: LdapEncryptionKind!
