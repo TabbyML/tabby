@@ -212,16 +212,6 @@ export interface GitRepository {
 export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
 
 /**
- * A symbol kind from vscode standard
- */
-export enum SymbolKind {
-  /**
-   * The `File` symbol kind.
-   */
-  File = 0,
-}
-
-/**
  * Represents a file reference (file path plus an optional 1-based line range) for retrieving file content.
  * If `range` is not provided, the entire file is considered.
  */
