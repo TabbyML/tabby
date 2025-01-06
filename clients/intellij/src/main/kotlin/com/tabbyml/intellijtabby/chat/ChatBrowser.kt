@@ -26,6 +26,7 @@ import com.intellij.openapi.progress.util.BackgroundTaskUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.ui.JBColor
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
@@ -294,22 +295,32 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     val bgColor = editorColorsScheme.defaultBackground
     val bgActiveColor = calcComponentBgColor()
     val fgColor = editorColorsScheme.defaultForeground
-    val borderColor = editorColorsScheme.getColor(EditorColors.BORDER_LINES_COLOR)
-      ?: if (isDarkTheme) editorColorsScheme.defaultForeground.brighter() else editorColorsScheme.defaultForeground.darker()
+    val borderColor = if (isDarkTheme) JBColor.DARK_GRAY else JBColor.LIGHT_GRAY
+    val inputBorderColor = borderColor
+
     val primaryColor = editorColorsScheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR).foregroundColor
+      ?: if (isDarkTheme) Color(55, 148, 255) else Color(26, 133, 255)
+    val primaryFgColor = JBColor.WHITE
+    val popoverColor = bgActiveColor
+    val popoverFgColor = fgColor
+    val accentColor = if (isDarkTheme) Color(4, 57, 94) else bgActiveColor.interpolate(bgActiveColor.darker(), 0.2)
+    val accentFgColor = fgColor
+
     val font = editorColorsScheme.getFont(EditorFontType.PLAIN).fontName
     val fontSize = editorColorsScheme.editorFontSize
     val css = String.format("background-color: hsl(%s);", bgActiveColor.toHsl()) +
         String.format("--background: %s;", bgColor.toHsl()) +
         String.format("--foreground: %s;", fgColor.toHsl()) +
         String.format("--border: %s;", borderColor.toHsl()) +
+        String.format("--input: %s;", inputBorderColor.toHsl()) +
         String.format("--primary: %s;", primaryColor.toHsl()) +
+        String.format("--primary-foreground: %s;", primaryFgColor.toHsl()) +
+        String.format("--popover: %s;", popoverColor.toHsl()) +
+        String.format("--popover-foreground: %s;", popoverFgColor.toHsl()) +
+        String.format("--accent: %s;", accentColor.toHsl()) +
+        String.format("--accent-foreground: %s;", accentFgColor.toHsl()) +
         String.format("font: %s;", font) +
-        String.format("font-size: %spx;", fontSize) +
-        // FIXME(@icycodes): remove these once the server no longer reads the '--intellij-editor' css vars
-        String.format("--intellij-editor-background: %s;", bgColor.toHsl()) +
-        String.format("--intellij-editor-foreground: %s;", fgColor.toHsl()) +
-        String.format("--intellij-editor-border: %s;", borderColor.toHsl())
+        String.format("font-size: %spx;", fontSize)
     logger.debug("CSS: $css")
     return css
   }
@@ -706,6 +717,13 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     private fun positionOneBasedInDocument(document: Document, offset: Int): Position {
       val position = positionInDocument(document, offset)
       return Position(position.line + 1, position.character + 1)
+    }
+
+    private fun Color.interpolate(other: Color, fraction: Double): Color {
+      val r = (red + (other.red - red) * fraction).toInt().coerceIn(0..255)
+      val g = (green + (other.green - green) * fraction).toInt().coerceIn(0..255)
+      val b = (blue + (other.blue - blue) * fraction).toInt().coerceIn(0..255)
+      return Color(r, g, b)
     }
 
     private fun Color.toHsl(): String {
