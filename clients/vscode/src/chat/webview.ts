@@ -14,6 +14,7 @@ import {
   ProgressLocation,
   Location,
   LocationLink,
+  TabInputText,
 } from "vscode";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import type {
@@ -466,11 +467,22 @@ export class ChatWebview {
         const query = params.query?.toLowerCase();
 
         if (!query) {
-          const documents = workspace.textDocuments;
-          this.logger.info(`No query provided, listing ${documents.length} opened editors.`);
-          return documents
-            .filter((doc) => doc.uri.scheme === "file")
-            .map((document) => uriToListFileItem(document.uri, this.gitProvider));
+          // open all opened tabs
+          // TODO: check tab file stat, check if exists
+          const openTabs = window.tabGroups.all.flatMap((group) =>
+            group.tabs
+              .filter((tab) => tab.input instanceof TabInputText)
+              .map((tab) => ({
+                uri: (tab.input as TabInputText).uri,
+                label: tab.label,
+              })),
+          );
+
+          this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
+
+          return openTabs
+            .filter((tab) => tab.uri.scheme === "file")
+            .map((tab) => uriToListFileItem(tab.uri, this.gitProvider));
         }
 
         const globPattern = `**/${query}*`;
