@@ -1,15 +1,14 @@
 import path from "path";
-import {
-  Position as VSCodePosition,
-  Range as VSCodeRange,
-  Uri,
-  workspace,
-  DocumentSymbol,
-  SymbolInformation,
-  SymbolKind,
-  TextEditor,
-} from "vscode";
-import type { Filepath, Position as ChatPanelPosition, LineRange, PositionRange, Location } from "tabby-chat-panel";
+import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace, TextEditor, TextDocument } from "vscode";
+import type {
+  Filepath,
+  Position as ChatPanelPosition,
+  LineRange,
+  PositionRange,
+  Location,
+  ListFileItem,
+  FilepathInGitRepository,
+} from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 
@@ -224,51 +223,48 @@ export function generateLocalNotebookCellUri(notebook: Uri, handle: number): Uri
   return notebook.with({ scheme: DocumentSchemes.vscodeNotebookCell, fragment });
 }
 
-export function isDocumentSymbol(symbol: DocumentSymbol | SymbolInformation): symbol is DocumentSymbol {
-  return "children" in symbol;
-}
+export function uriToListFileItem(uri: Uri, gitProvider: GitProvider): ListFileItem {
+  const filepath = localUriToChatPanelFilepath(uri, gitProvider);
+  let label: string;
 
-// FIXME: All allow symbol kinds, could be change later
-export function getAllowedSymbolKinds(): SymbolKind[] {
-  return [
-    SymbolKind.Class,
-    SymbolKind.Function,
-    SymbolKind.Method,
-    SymbolKind.Interface,
-    SymbolKind.Enum,
-    SymbolKind.Struct,
-  ];
-}
-
-export function vscodeSymbolToSymbolAtInfo(
-  symbol: DocumentSymbol | SymbolInformation,
-  documentUri: Uri,
-  gitProvider: GitProvider,
-): SymbolAtInfo {
-  if (isDocumentSymbol(symbol)) {
-    return {
-      atKind: "symbol",
-      name: symbol.name,
-      location: {
-        filepath: localUriToChatPanelFilepath(documentUri, gitProvider),
-        location: vscodeRangeToChatPanelPositionRange(symbol.range),
-      },
-    };
+  if (filepath.kind === "git") {
+    label = filepath.filepath;
+  } else {
+    const workspaceFolder = workspace.getWorkspaceFolder(uri);
+    if (workspaceFolder) {
+      label = path.relative(workspaceFolder.uri.fsPath, uri.fsPath);
+    } else {
+      label = path.basename(uri.fsPath);
+    }
   }
+
   return {
-    atKind: "symbol",
-    name: symbol.name,
-    location: {
-      filepath: localUriToChatPanelFilepath(documentUri, gitProvider),
-      location: vscodeRangeToChatPanelPositionRange(symbol.location.range),
-    },
+    label,
+    filepath,
   };
 }
 
-export function uriToFileAtFileInfo(uri: Uri, gitProvider: GitProvider): FileAtInfo {
-  return {
-    atKind: "file",
-    name: path.basename(uri.fsPath),
-    filepath: localUriToChatPanelFilepath(uri, gitProvider),
-  };
+export function extractTextFromRange(document: TextDocument, range: LineRange | PositionRange): string {
+  if (typeof range.start === "number" && typeof range.end === "number") {
+    const startLine = range.start - 1;
+    const endLine = range.end - 1;
+    let selectedText = "";
+
+    for (let i = startLine; i <= endLine; i++) {
+      if (i < 0 || i >= document.lineCount) {
+        continue;
+      }
+      selectedText += document.lineAt(i).text + "\n";
+    }
+    return selectedText;
+  }
+
+  if (typeof range.start === "object" && typeof range.end === "object") {
+    const startPos = new VSCodePosition(range.start.line - 1, range.start.character - 1);
+    const endPos = new VSCodePosition(range.end.line - 1, range.end.character - 1);
+    const selectedRange = new VSCodeRange(startPos, endPos);
+    return document.getText(selectedRange);
+  }
+
+  return "";
 }

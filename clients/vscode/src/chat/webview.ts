@@ -26,6 +26,9 @@ import type {
   FileLocation,
   GitRepository,
   EditorFileContext,
+  ListFilesInWorkspaceParams,
+  ListFileItem,
+  FileRange,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import type { StatusInfo, Config } from "tabby-agent";
@@ -42,6 +45,8 @@ import {
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
+  uriToListFileItem,
+  extractTextFromRange,
 } from "./utils";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
@@ -455,6 +460,60 @@ export class ChatWebview {
 
         const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
         return fileContext;
+      },
+      listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
+        const maxResults = params.limit || 50;
+        const query = params.query?.toLowerCase();
+
+        if (!query) {
+          const documents = workspace.textDocuments;
+          this.logger.info(`No query provided, listing ${documents.length} opened editors.`);
+          return documents
+            .filter((doc) => doc.uri.scheme === "file")
+            .map((document) => uriToListFileItem(document.uri, this.gitProvider));
+        }
+
+        const globPattern = `**/${query}*`;
+        this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}.`);
+        try {
+          const files = await workspace.findFiles(globPattern, null, maxResults);
+          this.logger.info(`Found ${files.length} files.`);
+          return files.map((uri) => uriToListFileItem(uri, this.gitProvider));
+        } catch (error) {
+          this.logger.warn("Failed to find files:", error);
+          return [];
+        }
+      },
+
+      readFileContent: async (info: FileRange): Promise<string | null> => {
+        if (info.range) {
+          try {
+            const uri = chatPanelFilepathToLocalUri(info.filepath, this.gitProvider);
+            if (!uri) {
+              this.logger.warn(`Could not resolve URI from filepath: ${JSON.stringify(info.filepath)}`);
+              return null;
+            }
+            const document = await workspace.openTextDocument(uri);
+
+            return extractTextFromRange(document, info.range);
+          } catch (error) {
+            this.logger.error("Failed to get file content by range:", error);
+            return null;
+          }
+        } else {
+          try {
+            const uri = chatPanelFilepathToLocalUri(info.filepath, this.gitProvider);
+            if (!uri) {
+              this.logger.warn(`Could not resolve URI from filepath: ${JSON.stringify(info.filepath)}`);
+              return null;
+            }
+            const document = await workspace.openTextDocument(uri);
+            return document.getText();
+          } catch (error) {
+            this.logger.error("Failed to get file content:", error);
+            return null;
+          }
+        }
       },
     });
   }
