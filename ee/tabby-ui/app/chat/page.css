@@ -1,5 +1,9 @@
 /* Theming webview content: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content */
 
+html {
+  font-size: var(--vscode-font-size);
+}
+
 .client ::-webkit-scrollbar {
   display: none;
 }
