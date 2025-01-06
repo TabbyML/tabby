@@ -77,13 +77,11 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     }
 
     this.removeDecorations(editor);
-    if (!codeLenses) {
-      return [];
-    }
-
-    const result = codeLenses
-      .map((codeLens) => this.handleCodeLens(codeLens, editor))
-      .filter((codeLens): codeLens is CodeLens => codeLens !== null);
+    
+    const result =
+    codeLenses
+      ?.map((codeLens) => this.handleCodeLens(codeLens, editor))
+      .filter((codeLens): codeLens is CodeLens => codeLens !== null) ?? [];
     this.purgeDecorationMap();
     return result;
   }
