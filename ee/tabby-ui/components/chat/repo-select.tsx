@@ -126,7 +126,7 @@ export function RepoSelect({
               type="button"
               size="icon"
               variant="ghost"
-              className="h-7 w-7 shrink-0 rounded-l-none bg-background"
+              className="h-7 w-7 shrink-0 rounded-l-none bg-background hover:bg-muted/50"
               onClick={e => {
                 e.stopPropagation()
                 onChange(undefined)
@@ -160,6 +160,7 @@ export function RepoSelect({
                         setOpen(false)
                       }}
                       title={repo.sourceName}
+                      className="cursor-pointer"
                     >
                       <IconCheck
                         className={cn(
