@@ -1,7 +1,6 @@
 package com.tabbyml.intellijtabby.chat
 
 import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.plugins.PluginManagerCore
@@ -11,12 +10,17 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.progress.util.BackgroundTaskUtil
 import com.intellij.openapi.project.Project
@@ -26,10 +30,12 @@ import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.tabbyml.intellijtabby.events.CombinedState
+import com.tabbyml.intellijtabby.events.SelectionListener
 import com.tabbyml.intellijtabby.findVirtualFile
 import com.tabbyml.intellijtabby.git.GitProvider
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.ConnectionService.InitializationException
+import com.tabbyml.intellijtabby.lsp.positionInDocument
 import com.tabbyml.intellijtabby.lsp.protocol.Config
 import com.tabbyml.intellijtabby.lsp.protocol.StatusInfo
 import com.tabbyml.intellijtabby.lsp.protocol.StatusRequestParams
@@ -37,9 +43,7 @@ import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.constraints.Constraint
 import io.github.z4kn4fein.semver.constraints.satisfiedBy
 import io.ktor.http.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.cef.browser.CefBrowser
 import org.cef.handler.CefLoadHandlerAdapter
 import java.awt.Color
@@ -66,28 +70,17 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
   private val gson = Gson()
   private val combinedState = project.service<CombinedState>()
   private val gitProvider = project.service<GitProvider>()
+  private val fileEditorManager = FileEditorManager.getInstance(project)
   private val messageBusConnection = project.messageBus.connect()
 
   private val scope = CoroutineScope(Dispatchers.IO)
+  private var syncChatPanelActiveSelectionJob: Job? = null
+
   private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
 
   private var currentConfig: Config.ServerConfig? = null
   private var isChatPanelLoaded = false
   private val pendingScripts: MutableList<String> = mutableListOf()
-
-  private data class FileContext(
-    val kind: String = "file",
-    val range: LineRange,
-    val filepath: String,
-    val content: String,
-    @SerializedName("git_url")
-    val gitUrl: String,
-  ) {
-    data class LineRange(
-      val start: Int,
-      val end: Int,
-    )
-  }
 
   init {
     component.isVisible = false
@@ -118,6 +111,32 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       }
     })
 
+    messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
+      override fun selectionChanged(event: FileEditorManagerEvent) {
+        syncChatPanelActiveSelectionJob?.cancel()
+        syncChatPanelActiveSelectionJob = scope.launch {
+          BackgroundTaskUtil.executeOnPooledThread(this@ChatBrowser) {
+            val context = getActiveEditorFileContext()
+            chatPanelUpdateActiveSelection(context)
+          }
+        }
+      }
+    })
+
+    messageBusConnection.subscribe(SelectionListener.TOPIC, object : SelectionListener {
+      override fun selectionChanged(editor: Editor, event: SelectionEvent) {
+        if (editor == fileEditorManager.selectedTextEditor) {
+          syncChatPanelActiveSelectionJob?.cancel()
+          syncChatPanelActiveSelectionJob = scope.launch {
+            delay(100)
+            BackgroundTaskUtil.executeOnPooledThread(this@ChatBrowser) {
+              val context = getActiveEditorFileContext()
+              chatPanelUpdateActiveSelection(context)
+            }
+          }
+        }
+      }
+    })
     messageBusConnection.subscribe(EditorColorsManager.TOPIC, EditorColorsListener {
       BackgroundTaskUtil.executeOnPooledThread(this) {
         logger.debug("EditorColorsManager globalSchemeChange received, updating style.")
@@ -130,94 +149,128 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   fun explainSelectedText() {
     BackgroundTaskUtil.executeOnPooledThread(this) {
-      val context = getActiveFileContext()
-      chatPanelSendMessage(PROMPT_EXPLAIN, context)
+      chatPanelExecuteCommand(ChatCommand.EXPLAIN)
     }
   }
 
   fun fixSelectedText() {
     BackgroundTaskUtil.executeOnPooledThread(this) {
       // FIXME(@icycodes): collect the diagnostic message provided by IDE
-      val context = getActiveFileContext()
-      chatPanelSendMessage(PROMPT_FIX, context)
+      chatPanelExecuteCommand(ChatCommand.FIX)
     }
   }
 
   fun generateDocsForSelectedText() {
     BackgroundTaskUtil.executeOnPooledThread(this) {
-      val context = getActiveFileContext()
-      chatPanelSendMessage(PROMPT_GENERATE_DOCS, context)
+      chatPanelExecuteCommand(ChatCommand.GENERATE_DOCS)
     }
   }
 
   fun generateTestsForSelectedText() {
     BackgroundTaskUtil.executeOnPooledThread(this) {
-      val context = getActiveFileContext()
-      chatPanelSendMessage(PROMPT_GENERATE_TESTS, context)
+      chatPanelExecuteCommand(ChatCommand.GENERATE_TESTS)
     }
   }
 
   fun addActiveEditorAsContext(useSelectedText: Boolean) {
     BackgroundTaskUtil.executeOnPooledThread(this) {
-      val context = getActiveFileContext(useSelectedText) ?: return@executeOnPooledThread
+      val context = getActiveEditorFileContext(useSelectedText) ?: return@executeOnPooledThread
       chatPanelAddRelevantContext(context)
     }
   }
 
-  private fun getActiveFileContext(useSelectedText: Boolean = true): FileContext? {
-    return FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
-      runReadAction {
-        val document = editor.document
-        if (useSelectedText) {
-          val selectionModel = editor.selectionModel
-          val text = selectionModel.selectedText.takeUnless { it.isNullOrBlank() } ?: return@runReadAction null
-          Triple(
-            text,
-            document.getLineNumber(selectionModel.selectionStart) + 1,
-            document.getLineNumber(selectionModel.selectionEnd) + 1,
-          )
-        } else {
-          val text = document.text.takeUnless { it.isBlank() } ?: return@runReadAction null
-          Triple(
-            text,
-            1,
-            document.lineCount,
-          )
-        }
-      }?.let { context ->
-        val uri = editor.virtualFile?.url
-        val gitRepo = uri?.let { gitProvider.getRepository(it) }
-        val relativeBase = gitRepo?.root ?: project.guessProjectDir()?.url
-        val relativePath = uri?.let {
-          if (!relativeBase.isNullOrBlank() && it.startsWith(relativeBase)) {
-            it.substringAfter(relativeBase).trimStart(File.separatorChar)
-          } else it
-        }
-        logger.debug("Active context: context: $context, uri: $uri, gitRepo: $gitRepo, relativePath: $relativePath, relativeBase: $relativeBase")
+  private fun getActiveEditorFileContext(useSelectedText: Boolean = true): EditorFileContext? {
+    val editor = fileEditorManager.selectedTextEditor ?: return null
+    val uri = editor.virtualFile?.url ?: return null
 
-        FileContext(
-          range = FileContext.LineRange(
-            start = context.second,
-            end = context.third,
-          ),
-          filepath = relativePath ?: "",
-          content = context.first,
-          gitUrl = gitRepo?.let { getDefaultRemoteUrl(it) } ?: "",
+    val context = runReadAction {
+      val document = editor.document
+      if (useSelectedText) {
+        val selectionModel = editor.selectionModel
+        val text = selectionModel.selectedText.takeUnless { it.isNullOrBlank() } ?: return@runReadAction null
+        Pair(
+          text,
+          PositionRange(
+            positionOneBasedInDocument(document, selectionModel.selectionStart),
+            positionOneBasedInDocument(document, selectionModel.selectionEnd),
+          )
+        )
+      } else {
+        val text = document.text.takeUnless { it.isBlank() } ?: return@runReadAction null
+        Pair(
+          text,
+          null,
         )
       }
+    } ?: return null
+
+    val gitRepo = gitProvider.getRepository(uri)
+    val gitUrl = gitRepo?.let { getDefaultRemoteUrl(it) }
+
+    val filepath = if (gitUrl != null && uri.startsWith(gitRepo.root)) {
+      val relativePath = uri.substringAfter(gitRepo.root).trimStart(File.separatorChar)
+      FilepathInGitRepository(
+        filepath = relativePath,
+        gitUrl = gitUrl,
+      )
+    } else {
+      FilepathUri(uri = uri)
     }
+
+    val editorFileContext = EditorFileContext(
+      filepath = filepath,
+      range = context.second,
+      content = context.first,
+    )
+
+    logger.debug("Collected active editor file context: $editorFileContext")
+    return editorFileContext
   }
 
-  private fun navigateToFileContext(fileContext: FileContext) {
-    val virtualFile = project.findVirtualFile(fileContext.filepath)
-      ?: gitRemoteUrlToLocalRoot[fileContext.gitUrl]?.let { project.findVirtualFile(it.appendUrlPathSegments(fileContext.filepath)) }
-      ?: project.guessProjectDir()?.url?.let { project.findVirtualFile(it.appendUrlPathSegments(fileContext.filepath)) }
-      ?: return
+  private fun openInEditor(fileLocation: FileLocation): Boolean {
+    val filepath = fileLocation.filepath
+    val virtualFile = when (filepath.kind) {
+      Filepath.Kind.URI -> {
+        val filepathUri = filepath as FilepathUri
+        project.findVirtualFile(filepathUri.uri)
+      }
+
+      Filepath.Kind.GIT -> {
+        val filepathInGit = filepath as FilepathInGitRepository
+        val gitLocalRoot = gitRemoteUrlToLocalRoot[filepathInGit.gitUrl]
+        gitLocalRoot?.let {
+          project.findVirtualFile(it.appendUrlPathSegments(filepathInGit.filepath))
+        }
+      }
+
+      else -> {
+        null
+      }
+    } ?: return false
+
+    val location = fileLocation.location
+    val position = if (location is Number) {
+      Position(location.toInt() - 1, 0)
+    } else if (location is Position) {
+      location
+    } else if (location is LineRange) {
+      Position(location.start - 1, 0)
+    } else if (location is PositionRange) {
+      location.start
+    } else {
+      null
+    } ?: return false
+
     invokeLater {
-      val lineNumber = (fileContext.range.start - 1).coerceAtLeast(0)
-      val descriptor = OpenFileDescriptor(project, virtualFile, lineNumber, 0)
-      FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
+      val descriptor = OpenFileDescriptor(
+        project,
+        virtualFile,
+        position.line.coerceAtLeast(0),
+        position.character.coerceAtLeast(0)
+      )
+      fileEditorManager.openTextEditor(descriptor, true)
     }
+    return true
   }
 
   private fun handleLoaded() {
@@ -337,26 +390,13 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     jsChatPanelClientInvoke("init", params)
   }
 
-  private fun chatPanelSendMessage(
-    message: String,
-    selectContext: FileContext? = null,
-    relevantContext: List<FileContext>? = null,
-    activeContext: FileContext? = null,
-  ) {
-    val params =
-      listOf(
-        mapOf(
-          "message" to message,
-          "selectContext" to selectContext,
-          "relevantContext" to relevantContext,
-          "activeContext" to activeContext,
-        )
-      )
-    logger.debug("chatPanelSendMessage: $params")
-    jsChatPanelClientInvoke("sendMessage", params)
+  private fun chatPanelExecuteCommand(command: String) {
+    val params = listOf(command)
+    logger.debug("chatPanelExecuteCommand: $params")
+    jsChatPanelClientInvoke("executeCommand", params)
   }
 
-  private fun chatPanelAddRelevantContext(context: FileContext) {
+  private fun chatPanelAddRelevantContext(context: EditorFileContext) {
     val params = listOf(context)
 
     logger.debug("chatPanelAddRelevantContext: $params")
@@ -373,7 +413,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     jsChatPanelClientInvoke("updateTheme", params)
   }
 
-  private fun chatPanelUpdateActiveSelection(context: FileContext?) {
+  private fun chatPanelUpdateActiveSelection(context: EditorFileContext?) {
     val params = listOf(context)
     logger.debug("chatPanelUpdateActiveSelection: $params")
     jsChatPanelClientInvoke("updateActiveSelection", params)
@@ -406,40 +446,15 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private val jsReloadContent = createJsFunction { reloadContent(true) }
 
-  private val jsHandleChatPanelNavigate = createJsFunction { params ->
-    logger.debug("navigate: $params")
-    val context = params.getOrNull(0)?.let {
-      gson.fromJson(gson.toJson(it), FileContext::class.java)
-    } ?: return@createJsFunction Unit
-    val options = params.getOrNull(1) as Map<*, *>?
-    if (options?.get("openInEditor") == true) {
-      navigateToFileContext(context)
-    } else {
-      currentConfig?.let { buildCodeBrowserUrl(it, context) }?.let { BrowserUtil.browse(it) }
-    }
-  }
-
   private val jsHandleChatPanelRefresh = createJsFunction {
     logger.debug("refresh")
     reloadContent(true)
   }
 
-  private val jsHandleChatPanelOnSubmitMessage = createJsFunction { params ->
-    logger.debug("onSubmitMessage: $params")
-    if (params.isNotEmpty()) {
-      val message = params[0] as String
-      val relevantContext: List<FileContext>? = params.getOrNull(1)?.let {
-        gson.fromJson(gson.toJson(it), object : TypeToken<List<FileContext?>?>() {}.type)
-      }
-      val activeContext = getActiveFileContext()
-      chatPanelSendMessage(message, null, relevantContext, activeContext)
-    }
-  }
-
   private val jsHandleChatPanelOnApplyInEditor = createJsFunction { params ->
     logger.debug("onApplyInEditor: $params")
     val content = params.getOrNull(0) as String? ?: return@createJsFunction Unit
-    val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return@createJsFunction Unit
+    val editor = fileEditorManager.selectedTextEditor ?: return@createJsFunction Unit
     invokeLater {
       WriteCommandAction.runWriteCommandAction(project) {
         val start = editor.selectionModel.selectionStart
@@ -462,11 +477,11 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       }
     }
     isChatPanelLoaded = true
+    pendingScripts.forEach { executeJs(it) }
+    pendingScripts.clear()
     chatPanelInit()
     chatPanelUpdateTheme()
     showContent()
-    pendingScripts.forEach { executeJs(it) }
-    pendingScripts.clear()
   }
 
   private val jsHandleChatPanelOnCopy = createJsFunction { params ->
@@ -484,8 +499,32 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private val jsHandleChatPanelOpenInEditor = createJsFunction { params ->
     logger.debug("openInEditor: request: $params")
-    //FIXME(@icycodes): not implemented
-    return@createJsFunction false
+    val fileLocation = params.getOrNull(0)?.asFileLocation() ?: return@createJsFunction false
+    return@createJsFunction openInEditor(fileLocation)
+  }
+
+  private val jsHandleChatPanelOpenExternal = createJsFunction { params ->
+    logger.debug("openExternal: request: $params")
+    val url = params.getOrNull(0) as String? ?: return@createJsFunction Unit
+    BrowserUtil.browse(url)
+  }
+
+  private val jsHandleChatPanelReadWorkspaceGitRepositories = createJsFunction { params ->
+    logger.debug("readWorkspaceGitRepositories: request: $params")
+    val activeTextEditorUri = fileEditorManager.selectedTextEditor?.virtualFile?.url
+    val projectDir = project.guessProjectDir()?.url
+    val pathToCheck = activeTextEditorUri ?: projectDir ?: return@createJsFunction null
+    val gitRepo = gitProvider.getRepository(pathToCheck)?.let {
+      getDefaultRemoteUrl(it)
+    }?.let {
+      GitRepository(it)
+    }
+    return@createJsFunction listOfNotNull(gitRepo)
+  }
+
+  private val jsHandleChatPanelGetActiveEditorSelection = createJsFunction { params ->
+    logger.debug("getActiveEditorSelection: request: $params")
+    return@createJsFunction getActiveEditorFileContext()
   }
 
   // functions to execute js scripts
@@ -508,14 +547,15 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       if (!window.tabbyChatPanelClient) {
         window.tabbyChatPanelClient = TabbyThreads.createThreadFromIframe(getChatPanel(), {
           expose: {
-            navigate: $jsHandleChatPanelNavigate,
             refresh: $jsHandleChatPanelRefresh,
-            onSubmitMessage: $jsHandleChatPanelOnSubmitMessage,
             onApplyInEditor: $jsHandleChatPanelOnApplyInEditor,
             onLoaded: $jsHandleChatPanelOnLoaded,
             onCopy: $jsHandleChatPanelOnCopy,
             onKeyboardEvent: $jsHandleChatPanelOnKeyboardEvent,
             openInEditor: $jsHandleChatPanelOpenInEditor,
+            openExternal: $jsHandleChatPanelOpenExternal,
+            readWorkspaceGitRepositories: $jsHandleChatPanelReadWorkspaceGitRepositories,
+            getActiveEditorSelection: $jsHandleChatPanelGetActiveEditorSelection,
           }
         })
       }
@@ -592,7 +632,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         }
       })()
     """.trimIndent().trimStart()
-    
+
     logger.debug("Request to chat panel: $uuid, $method, $paramsJson")
     if (isChatPanelLoaded) {
       executeJs(script)
@@ -663,6 +703,11 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         .replace("\b", "\\b")
     }
 
+    private fun positionOneBasedInDocument(document: Document, offset: Int): Position {
+      val position = positionInDocument(document, offset)
+      return Position(position.line + 1, position.character + 1)
+    }
+
     private fun Color.toHsl(): String {
       val r = red / 255.0
       val g = green / 255.0
@@ -694,6 +739,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       return String.format("%.0f, %.0f%%, %.0f%%", h, s, l)
     }
 
+    // FIXME: extract this to git provider
     private val gitRemoteUrlToLocalRoot = mutableMapOf<String, String>()
 
     private fun getDefaultRemoteUrl(repo: GitProvider.Repository): String? {
@@ -713,22 +759,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       return URLBuilder(this).appendPathSegments(path).toString()
     }
 
-    private fun buildCodeBrowserUrl(config: Config.ServerConfig, context: FileContext): String {
-      return URLBuilder(config.endpoint).apply {
-        appendPathSegments("files")
-        parameters.append("redirect_git_url", context.gitUrl)
-        parameters.append("redirect_filepath", context.filepath)
-        fragment = "L${context.range.start}-L${context.range.end}"
-      }.buildString()
-    }
-
-    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.4.0"
+    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.5.0"
     private const val TABBY_SERVER_VERSION_RANGE = ">=0.18.0"
-
-    private const val PROMPT_EXPLAIN: String = "Explain the selected code:"
-    private const val PROMPT_FIX: String = "Identify and fix potential bugs in the selected code:"
-    private const val PROMPT_GENERATE_DOCS: String = "Generate documentation for the selected code:"
-    private const val PROMPT_GENERATE_TESTS: String = "Generate a unit test for the selected code:"
 
     private fun loadTabbyThreadsScript(): String {
       val script =
