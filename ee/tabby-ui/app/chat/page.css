@@ -14,8 +14,8 @@
   --primary: var(--vscode-minimap-infoHighlight);
   --primary-foreground: var(--vscode-button-foreground);
 
-  --popover: var(--vscode-breadcrumb-background);
-  --popover-foreground: var(--vscode-breadcrumb-foreground);
+  --popover: var(--vscode-editorSuggestWidget-background);
+  --popover-foreground: var(--vscode-editorSuggestWidget-foreground);
 
   --accent: var(--vscode-editorSuggestWidget-selectedBackground);
   --accent-foreground: var(--vscode-editorSuggestWidget-selectedForeground)
