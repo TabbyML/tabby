@@ -294,6 +294,21 @@ export interface ClientApiMethods {
    * @param state The state to save.
    */
   storeSessionState?: (state: Record<string, unknown>) => Promise<void>
+
+  /**
+   * Returns a list of file information matching the specified query.
+   * @param opts An optional {@link AtInputOpts} object that includes a search query and a limit for the results.
+   * @returns An array of {@link FileRange} objects, or `null` if no matching files are found.
+   */
+  listFileInWorkspace?: (opts?: AtInputOpts) => Promise<FileRange[] | null>
+
+  /**
+   * Returns the content of a file within the specified range.
+   * If `range` is not provided, the entire file content is returned.
+   * @param info A {@link FileRange} object that includes the file path and optionally a 1-based line range.
+   * @returns The content of the file as a string, or `null` if the file or range cannot be accessed.
+   */
+  readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
 export interface ClientApi extends ClientApiMethods {
