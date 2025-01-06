@@ -341,7 +341,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             credential.encryption.as_str(),
             credential.skip_tls_verify,
             credential.bind_dn,
-            credential.bind_password,
+            &credential.bind_password,
             credential.base_dn,
             credential.user_filter,
             credential.email_attribute,
@@ -600,13 +600,23 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn test_ldap_connection(&self, input: UpdateLdapCredentialInput) -> Result<()> {
+        let password = if let Some(password) = input.bind_password.as_deref() {
+            password
+        } else {
+            &self
+                .db
+                .read_ldap_credential()
+                .await?
+                .ok_or_else(|| anyhow!("LDAP password is not configured"))?
+                .bind_password
+        };
         let mut client = ldap::new_ldap_client(
             input.host.as_ref(),
             input.port as i64,
             input.encryption.as_enum_str(),
             input.skip_tls_verify,
             input.bind_dn,
-            input.bind_password,
+            password,
             input.base_dn,
             input.user_filter,
             input.email_attribute,
@@ -625,12 +635,22 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()> {
+        let password = if let Some(password) = input.bind_password.as_deref() {
+            password
+        } else {
+            &self
+                .db
+                .read_ldap_credential()
+                .await?
+                .ok_or_else(|| anyhow!("LDAP password is not configured"))?
+                .bind_password
+        };
         self.db
             .update_ldap_credential(
                 &input.host,
                 input.port,
                 &input.bind_dn,
-                &input.bind_password,
+                password,
                 &input.base_dn,
                 &input.user_filter,
                 &input.encryption.as_enum_str(),
@@ -1668,7 +1688,7 @@ mod tests {
                 host: "ldap.example.com".into(),
                 port: 389,
                 bind_dn: "cn=admin,dc=example,dc=com".into(),
-                bind_password: "password".into(),
+                bind_password: Some("password".into()),
                 base_dn: "dc=example,dc=com".into(),
                 user_filter: "(&(objectClass=person)(uid=%s))".into(),
                 encryption: LdapEncryptionKind::None,
@@ -1679,6 +1699,7 @@ mod tests {
             .await
             .unwrap();
 
+        // test the read_ldap_credential
         let cred = service.read_ldap_credential().await.unwrap().unwrap();
         assert_eq!(cred.host, "ldap.example.com");
         assert_eq!(cred.port, 389);
@@ -1689,6 +1710,35 @@ mod tests {
         assert!(!cred.skip_tls_verify);
         assert_eq!(cred.email_attribute, "mail");
         assert_eq!(cred.name_attribute, "cn");
+
+        service
+            .update_ldap_credential(UpdateLdapCredentialInput {
+                host: "ldap1.example1.com".into(),
+                port: 3890,
+                bind_dn: "cn=admin1,dc=example1,dc=com".into(),
+                bind_password: None,
+                base_dn: "dc=example1,dc=com".into(),
+                user_filter: "((uid=%s))".into(),
+                encryption: LdapEncryptionKind::None,
+                skip_tls_verify: true,
+                email_attribute: "email".into(),
+                name_attribute: "name".into(),
+            })
+            .await
+            .unwrap();
+
+        // use db to verify the update and password sine it's not returned in service
+        let cred = service.db.read_ldap_credential().await.unwrap().unwrap();
+        assert_eq!(cred.host, "ldap1.example1.com");
+        assert_eq!(cred.port, 3890);
+        assert_eq!(cred.bind_dn, "cn=admin1,dc=example1,dc=com");
+        assert_eq!(cred.bind_password, "password");
+        assert_eq!(cred.base_dn, "dc=example1,dc=com");
+        assert_eq!(cred.user_filter, "((uid=%s))");
+        assert_eq!(cred.encryption, "none");
+        assert!(cred.skip_tls_verify);
+        assert_eq!(cred.email_attribute, "email");
+        assert_eq!(cred.name_attribute, "name");
     }
 
     #[tokio::test]

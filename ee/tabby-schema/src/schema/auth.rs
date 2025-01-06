@@ -405,12 +405,7 @@ pub struct UpdateLdapCredentialInput {
 
     #[validate(length(min = 1, code = "bindDn", message = "bindDn cannot be empty"))]
     pub bind_dn: String,
-    #[validate(length(
-        min = 1,
-        code = "bindPassword",
-        message = "bindPassword cannot be empty"
-    ))]
-    pub bind_password: String,
+    pub bind_password: Option<String>,
 
     #[validate(length(min = 1, code = "baseDn", message = "baseDn cannot be empty"))]
     pub base_dn: String,

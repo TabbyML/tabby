@@ -14,7 +14,7 @@ pub fn new_ldap_client(
     encryption: &str,
     skip_verify_tls: bool,
     bind_dn: String,
-    bind_password: String,
+    bind_password: &str,
     base_dn: String,
     user_filter: String,
     email_attr: String,
@@ -37,7 +37,7 @@ pub fn new_ldap_client(
     LdapClientImpl {
         address: format!("{}://{}:{}", schema, host, port),
         bind_dn,
-        bind_password,
+        bind_password: bind_password.to_string(),
         base_dn,
         user_filter,
 
