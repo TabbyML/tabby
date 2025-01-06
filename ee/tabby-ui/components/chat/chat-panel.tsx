@@ -254,7 +254,7 @@ function ChatPanelRenderer(
                     ease: 'easeInOut',
                     duration: 0.1
                   }}
-                  exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -5 }}
                 >
                   <Badge
                     variant="outline"
@@ -277,7 +277,7 @@ function ChatPanelRenderer(
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7 shrink-0 rounded-l-none"
+                      className="h-7 w-7 shrink-0 rounded-l-none hover:bg-muted/50"
                       onClick={e => {
                         updateEnableActiveSelection(!enableActiveSelection)
                       }}
@@ -299,7 +299,7 @@ function ChatPanelRenderer(
                       ease: 'easeInOut',
                       duration: 0.1
                     }}
-                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                    exit={{ opacity: 0, scale: 0.9, y: -5 }}
                     layout
                   >
                     <Badge
@@ -310,7 +310,7 @@ function ChatPanelRenderer(
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 shrink-0 rounded-l-none"
+                        className="h-7 w-7 shrink-0 rounded-l-none hover:bg-muted/50"
                         onClick={removeRelevantContext.bind(null, idx)}
                       >
                         <IconRemove />
