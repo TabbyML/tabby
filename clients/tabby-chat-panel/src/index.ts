@@ -211,6 +211,62 @@ export interface GitRepository {
  */
 export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
 
+/**
+ * A symbol kind from vscode standard
+ */
+export enum SymbolKind {
+  /**
+   * The `File` symbol kind.
+   */
+  File = 0,
+}
+
+/**
+ * Represents a file reference (file path plus an optional 1-based line range) for retrieving file content.
+ * If `range` is not provided, the entire file is considered.
+ */
+export interface FileRange {
+  /**
+   * The file path of the file.
+   */
+  filepath: Filepath
+
+  /**
+   * The range of the selected content in the file.
+   * If the range is not provided, the whole file is considered.
+   */
+  range?: LineRange | PositionRange
+}
+
+/**
+ * Defines optional parameters used to filter or limit the results of a file query.
+ */
+export interface ListFilesInWorkspaceParams {
+  /**
+   * The query string to filter the files.
+   * The query string could be an empty string. In this case, we do not read all files in the workspace,
+   * but only list the opened files in the editor.
+   */
+  query: string
+
+  /**
+   * The maximum number of files to list.
+   */
+  limit?: number
+}
+
+export interface ListFileItem {
+  /**
+   * The filepath of the file.
+   */
+  filepath: Filepath
+
+  /**
+   * A relative path to the file in the workspace, intended to be displayed to the user.
+   */
+  label: string
+}
+
 export interface ServerApi {
   init: (request: InitRequest) => void
 
@@ -297,10 +353,10 @@ export interface ClientApiMethods {
 
   /**
    * Returns a list of file information matching the specified query.
-   * @param opts An optional {@link AtInputOpts} object that includes a search query and a limit for the results.
-   * @returns An array of {@link FileRange} objects, or `null` if no matching files are found.
+   * @param params An {@link ListFilesInWorkspaceParams} object that includes a search query and a limit for the results.
+   * @returns An array of {@link ListFileItem} objects that could be empty.
    */
-  listFileInWorkspace?: (opts?: AtInputOpts) => Promise<FileRange[] | null>
+  listFileInWorkspace?: (params: ListFilesInWorkspaceParams) => Promise<ListFileItem[]>
 
   /**
    * Returns the content of a file within the specified range.
