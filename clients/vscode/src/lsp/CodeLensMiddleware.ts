@@ -76,11 +76,11 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
       return codeLenses;
     }
 
+    this.removeDecorations(editor);
     if (!codeLenses) {
       return [];
     }
 
-    this.removeDecorations(editor);
     const result = codeLenses
       .map((codeLens) => this.handleCodeLens(codeLens, editor))
       .filter((codeLens): codeLens is CodeLens => codeLens !== null);
@@ -114,8 +114,8 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
 
   private addShortcut(codeLens: CodeLens) {
     if (codeLens.command?.arguments?.[0].action === "accept") {
-      // TODO: read ~/.config/Code/User/keybindings.json from LSP client, then send to LSP server to avoid hardcode.
-      const acceptShortcut = isBrowser ? "" : ` (${process.platform === "darwin" ? "cmd+enter" : "ctrl+enter"})`;
+      // FIXME: Read ~/.config/Code/User/keybindings.json from LSP client, then send to LSP server to avoid hardcode.
+      const acceptShortcut = isBrowser ? '' : ` (${process.platform === 'darwin' ? '⌘+enter' : 'Ctrl+enter'})`;
 
       codeLens.command.title += acceptShortcut;
     } else if (codeLens.command?.arguments?.[0].action === "discard") {
