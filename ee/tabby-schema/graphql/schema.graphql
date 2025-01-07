@@ -254,7 +254,7 @@ input UpdateLdapCredentialInput {
   encryption: LdapEncryptionKind!
   skipTlsVerify: Boolean!
   emailAttribute: String!
-  nameAttribute: String!
+  nameAttribute: String
 }
 
 input UpdateMessageInput {
@@ -503,7 +503,7 @@ type LdapCredential {
   encryption: LdapEncryptionKind!
   skipTlsVerify: Boolean!
   emailAttribute: String!
-  nameAttribute: String!
+  nameAttribute: String
   createdAt: DateTime!
   updatedAt: DateTime!
 }
