@@ -44,7 +44,6 @@ data class PositionRange(
 data class EditorFileContext(
   val kind: String = "file",
   val filepath: Filepath,
-  // Range<Int> or Range<Position>
   val range: Range?,
   val content: String,
 )
