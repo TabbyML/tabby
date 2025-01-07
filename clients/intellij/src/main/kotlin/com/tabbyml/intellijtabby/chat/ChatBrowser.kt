@@ -249,25 +249,34 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       }
     } ?: return false
 
-    val location = fileLocation.location
-    val position = if (location is Number) {
-      Position(location.toInt() - 1, 0)
-    } else if (location is Position) {
-      location
-    } else if (location is LineRange) {
-      Position(location.start - 1, 0)
-    } else if (location is PositionRange) {
-      location.start
-    } else {
-      null
-    } ?: return false
+    val position = when (val location = fileLocation.location) {
+      is Number -> {
+        Position(location.toInt() - 1, 0)
+      }
+
+      is Position -> {
+        Position(location.line - 1, location.character - 1)
+      }
+
+      is LineRange -> {
+        Position(location.start - 1, 0)
+      }
+
+      is PositionRange -> {
+        Position(location.start.line - 1, location.start.character - 1)
+      }
+
+      else -> {
+        null
+      }
+    }
 
     invokeLater {
       val descriptor = OpenFileDescriptor(
         project,
         virtualFile,
-        position.line.coerceAtLeast(0),
-        position.character.coerceAtLeast(0)
+        position?.line?.coerceAtLeast(0) ?: -1,
+        position?.character?.coerceAtLeast(0) ?: -1,
       )
       fileEditorManager.openTextEditor(descriptor, true)
     }
