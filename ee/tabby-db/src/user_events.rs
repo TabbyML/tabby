@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Months, Utc};
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
@@ -74,13 +74,20 @@ impl DbConn {
         Ok(events)
     }
 
-    pub async fn delete_user_events_before(&self, before: DateTime<Utc>) -> Result<usize> {
-        let before = before.as_sqlite_datetime();
-        let num_deleted = query!("delete FROM user_events WHERE created_at < ?", before,)
+    pub async fn delete_user_events_before_three_months(&self) -> Result<usize> {
+        if let Some(three_months_ago) = Utc::now().checked_sub_months(Months::new(3)) {
+            let three_months_ago = three_months_ago.as_sqlite_datetime();
+            let num_deleted = query!(
+                "delete FROM user_events WHERE created_at < ?",
+                three_months_ago,
+            )
             .execute(&self.pool)
             .await?
             .rows_affected();
 
-        Ok(num_deleted as usize)
+            Ok(num_deleted as usize)
+        } else {
+            Ok(0)
+        }
     }
 }

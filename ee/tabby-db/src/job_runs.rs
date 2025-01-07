@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, Months, Utc};
 use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
@@ -107,17 +107,21 @@ impl DbConn {
         Ok(num_deleted as usize)
     }
 
-    pub async fn delete_jobs_before(&self, before: DateTime<Utc>) -> Result<usize> {
-        let before = before.as_sqlite_datetime();
-        let num_deleted = query!(
-            "delete FROM job_runs WHERE updated_at < ? AND exit_code IS NOT NULL",
-            before,
-        )
-        .execute(&self.pool)
-        .await?
-        .rows_affected();
+    pub async fn delete_job_run_before_three_months(&self) -> Result<usize> {
+        if let Some(three_months_ago) = Utc::now().checked_sub_months(Months::new(3)) {
+            let three_months_ago = three_months_ago.as_sqlite_datetime();
+            let num_deleted = query!(
+                "delete FROM job_runs WHERE updated_at < ? AND exit_code IS NOT NULL",
+                three_months_ago,
+            )
+            .execute(&self.pool)
+            .await?
+            .rows_affected();
 
-        Ok(num_deleted as usize)
+            Ok(num_deleted as usize)
+        } else {
+            Ok(0)
+        }
     }
 
     pub async fn list_job_runs_with_filter(

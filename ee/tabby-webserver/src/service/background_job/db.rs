@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Months, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
 use tabby_schema::context::ContextService;
-use tracing::error;
+use tracing::warn;
 
 use super::helper::Job;
 
@@ -36,26 +36,25 @@ impl DbMaintainanceJob {
 
         db.delete_unused_source_id_read_access_policy(&active_source_ids)
             .await?;
+
+        Self::data_retention(&db).await;
         Ok(())
     }
 
-    pub async fn retention(now: DateTime<Utc>, db: DbConn) -> tabby_schema::Result<()> {
-        if let Some(three_months_ago) = now.checked_sub_months(Months::new(3)) {
-            if let Err(e) = db.delete_jobs_before(three_months_ago).await {
-                error!(
-                    "Failed to clean up and retain only the last 3 months of jobs: {:?}",
-                    e
-                );
-            }
+    async fn data_retention(db: &DbConn) {
+        if let Err(e) = db.delete_job_run_before_three_months().await {
+            warn!(
+                "Failed to clean up and retain only the last 3 months of jobs: {:?}",
+                e
+            );
+        }
 
-            if let Err(e) = db.delete_user_events_before(three_months_ago).await {
-                error!(
-                    "Failed to clean up and retain only the last 3 months of user events: {:?}",
-                    e
-                );
-            }
-        };
-        Ok(())
+        if let Err(e) = db.delete_user_events_before_three_months().await {
+            warn!(
+                "Failed to clean up and retain only the last 3 months of user events: {:?}",
+                e
+            );
+        }
     }
 }
 
