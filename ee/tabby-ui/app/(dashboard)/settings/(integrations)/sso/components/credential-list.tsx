@@ -197,7 +197,7 @@ const LDAPCredentialCard = ({
           <span>LDAP</span>
         </div>
         <div className="flex px-8 py-4">
-          <span className="w-[100px] shrink-0">Domain</span>
+          <span className="w-[100px] shrink-0">Host</span>
           <span className="truncate">{data?.host}</span>
         </div>
       </CardContent>

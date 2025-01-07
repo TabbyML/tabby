@@ -173,7 +173,7 @@ export default function OAuthCredentialForm({
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
         <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <SubTitle className="mt-2">Basic information</SubTitle>
+          <SubTitle>Basic information</SubTitle>
           <FormField
             control={form.control}
             name="provider"
@@ -258,7 +258,7 @@ export default function OAuthCredentialForm({
             </FormItem>
           )}
 
-          <div className="mt-2">
+          <div className="mt-4">
             <SubTitle>OAuth provider information</SubTitle>
             <FormDescription>
               The information is provided by your identity provider.

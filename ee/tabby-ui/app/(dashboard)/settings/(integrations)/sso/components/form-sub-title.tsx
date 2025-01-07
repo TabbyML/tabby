@@ -4,7 +4,5 @@ export function SubTitle({
   className,
   ...rest
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn('mt-4 text-xl font-semibold', className)} {...rest} />
-  )
+  return <div className={cn('text-xl font-semibold', className)} {...rest} />
 }

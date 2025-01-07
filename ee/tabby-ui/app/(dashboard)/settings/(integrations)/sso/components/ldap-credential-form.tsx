@@ -152,13 +152,6 @@ export function LDAPCredentialForm({
   const deleteLdapCredential = useMutation(deleteLdapCredentialMutation)
 
   const onSubmit = async (values: LDAPFormValues) => {
-    const hasPassword = !isEmpty(values.bindPassword)
-    // test ldap connection
-    // if (submitTypeRef.current === 'test') {
-    //   return testLdapConnection({ input: values })
-
-    // }
-
     // update ldap credential
     if (isNew) {
       const hasExistingProvider = await client
@@ -168,11 +161,6 @@ export function LDAPCredentialForm({
         form.setError('root', {
           message: 'Provider already exists.'
         })
-        return
-      }
-
-      if (!hasPassword) {
-        form.setError('bindPassword', { message: 'Required' })
         return
       }
     }
@@ -285,7 +273,7 @@ export function LDAPCredentialForm({
                   <FormLabel required>Bind DN</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g uid=system,ou=Users,dc=example,dc=com"
+                      placeholder="e.g. uid=system,ou=Users,dc=example,dc=com"
                       autoCapitalize="none"
                       autoComplete="off"
                       autoCorrect="off"
@@ -330,7 +318,7 @@ export function LDAPCredentialForm({
                 <FormLabel required>Base DN</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="e.g ou=Users,dc=example,dc=com"
+                    placeholder="e.g. ou=Users,dc=example,dc=com"
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
@@ -350,7 +338,7 @@ export function LDAPCredentialForm({
                 <FormLabel required>User Filter</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="e.g ou=Users,dc=example,dc=com"
+                    placeholder="e.g. (uid=%s)"
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
@@ -415,7 +403,7 @@ export function LDAPCredentialForm({
               </FormItem>
             )}
           />
-          <div className="mt-2">
+          <div className="mt-4">
             <SubTitle>User information mapping</SubTitle>
             <FormDescription>
               Maps the field names from user info API to the Tabby user.
