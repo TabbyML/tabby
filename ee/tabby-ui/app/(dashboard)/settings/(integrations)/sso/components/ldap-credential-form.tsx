@@ -103,7 +103,6 @@ export function LDAPCredentialForm({
   const client = useClient()
   const formRef = React.useRef<HTMLFormElement>(null)
   const [isTesting, setIsTesting] = React.useState(false)
-  const submitTypeRef = React.useRef<'test' | 'update'>('update')
   const formatedDefaultValues = React.useMemo(() => {
     return {
       ...(defaultValues || {})
