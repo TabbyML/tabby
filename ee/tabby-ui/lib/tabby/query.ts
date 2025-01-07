@@ -472,3 +472,21 @@ export const notificationsQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const ldapCredentialQuery = graphql(/* GraphQL */ `
+  query LdapCredential {
+    ldapCredential {
+      host
+      port
+      bindDn
+      baseDn
+      userFilter
+      encryption
+      skipTlsVerify
+      emailAttribute
+      nameAttribute
+      createdAt
+      updatedAt
+    }
+  }
+`)

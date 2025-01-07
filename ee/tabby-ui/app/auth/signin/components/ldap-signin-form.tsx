@@ -1,17 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
-import { PLACEHOLDER_EMAIL_FORM, SESSION_STORAGE_KEY } from '@/lib/constants'
+import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import {
-  useIsDemoMode,
-  useIsEmailConfigured
-} from '@/lib/hooks/use-server-info'
 import { useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -27,9 +22,9 @@ import {
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
-export const tokenAuth = graphql(/* GraphQL */ `
-  mutation tokenAuth($email: String!, $password: String!) {
-    tokenAuth(email: $email, password: $password) {
+const tokenAuthLdap = graphql(/* GraphQL */ `
+  mutation tokenAuthLdap($userId: String!, $password: String!) {
+    tokenAuthLdap(userId: $userId, password: $password) {
       accessToken
       refreshToken
     }
@@ -37,51 +32,29 @@ export const tokenAuth = graphql(/* GraphQL */ `
 `)
 
 const formSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string()
+  userId: z.string().trim(),
+  password: z.string().trim()
 })
 
-interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
+interface LdapAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   invitationCode?: string
 }
 
-const DEMO_PROFILE = {
-  EMAIL: 'demo@tabbyml.com',
-  PASSWORD: '0$TabbyDemo'
-}
-
-export default function UserSignInForm({
+export default function LdapSignInForm({
   className,
   invitationCode,
   ...props
-}: UserAuthFormProps) {
-  const isEmailConfigured = useIsEmailConfigured()
-  const isDemoMode = useIsDemoMode()
+}: LdapAuthFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
   const formRef = React.useRef<HTMLFormElement | null>(null)
 
-  React.useEffect(() => {
-    const storageKey = SESSION_STORAGE_KEY.DEMO_AUTO_LOGIN
-    if (isDemoMode) {
-      form.setValue('email', DEMO_PROFILE.EMAIL)
-      form.setValue('password', DEMO_PROFILE.PASSWORD)
-
-      if (sessionStorage.getItem(storageKey) === 'true') return
-      if (formRef.current) {
-        const event = new Event('submit', { bubbles: true, cancelable: true })
-        formRef.current.dispatchEvent(event)
-        sessionStorage.setItem(storageKey, 'true')
-      }
-    }
-  }, [isDemoMode])
-
   const signIn = useSignIn()
   const { isSubmitting } = form.formState
-  const onSubmit = useMutation(tokenAuth, {
+  const onSubmit = useMutation(tokenAuthLdap, {
     onCompleted(values) {
-      signIn(values.tokenAuth)
+      signIn(values.tokenAuthLdap)
     },
     form
   })
@@ -96,16 +69,14 @@ export default function UserSignInForm({
         >
           <FormField
             control={form.control}
-            name="email"
+            name="userId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="leading-5">Email</FormLabel>
+                <FormLabel className="leading-5">Username</FormLabel>
                 <FormControl>
                   <Input
                     placeholder={PLACEHOLDER_EMAIL_FORM}
-                    type="email"
                     autoCapitalize="none"
-                    autoComplete="email"
                     autoCorrect="off"
                     {...field}
                   />
@@ -121,13 +92,6 @@ export default function UserSignInForm({
               <FormItem>
                 <div className="flex items-center justify-between">
                   <FormLabel className="leading-5">Password</FormLabel>
-                  {!!isEmailConfigured && (
-                    <div className="cursor-pointer text-right text-sm text-primary hover:underline">
-                      <Link href="/auth/signin?mode=reset">
-                        Forgot password?
-                      </Link>
-                    </div>
-                  )}
                 </div>
                 <FormControl>
                   <Input type="password" {...field} />

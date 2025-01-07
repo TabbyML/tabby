@@ -6,10 +6,12 @@ import { isNil, pickBy } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { OAuthProvider } from '@/lib/gql/generates/graphql'
+import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
-import OAuthCredentialForm from './oauth-credential-form'
-import { oauthCredential } from './oauth-credential-list'
+import { oauthCredential } from '../../../components/credential-list'
+import OAuthCredentialForm from '../../../components/oauth-credential-form'
+import { SSOTypeRadio } from '../../../components/sso-type-radio'
 
 interface OAuthCredentialDetailProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -38,17 +40,17 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
 
   return (
     <div>
-      {fetching ? (
-        <div>
-          <ListSkeleton />
-        </div>
-      ) : (
+      <LoadingWrapper
+        loading={fetching}
+        fallback={<ListSkeleton className="mt-2" />}
+      >
+        <SSOTypeRadio value="oauth" readonly />
         <OAuthCredentialForm
           provider={provider}
           defaultValues={defaultValues}
           onSuccess={onSubmitSuccess}
         />
-      )}
+      </LoadingWrapper>
     </div>
   )
 }
