@@ -13,6 +13,8 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.resource.FontRegistry;
+import org.eclipse.jface.text.ITextSelection;
+import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.browser.BrowserFunction;
@@ -23,6 +25,8 @@ import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.ISelectionListener;
+import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.themes.ITheme;
@@ -31,9 +35,11 @@ import org.osgi.framework.Bundle;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tabbyml.tabby4eclipse.Activator;
+import com.tabbyml.tabby4eclipse.DebouncedRunnable;
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.StringUtils;
 import com.tabbyml.tabby4eclipse.Utils;
+import com.tabbyml.tabby4eclipse.editor.EditorUtils;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.ServerConfigHolder;
 import com.tabbyml.tabby4eclipse.lsp.StatusInfoHolder;
@@ -99,7 +105,33 @@ public class ChatView extends ViewPart {
 		statusInfoHolder.addStatusDidChangeListener(() -> {
 			reloadContent(false);
 		});
+		
+		PlatformUI.getWorkbench().getActiveWorkbenchWindow().getSelectionService().addSelectionListener(new ISelectionListener() {
+			@Override
+            public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+                if (selection instanceof ITextSelection) {
+                	syncActiveSelectionRunnable.call();
+                }
+            }
+		});
 	}
+
+	private DebouncedRunnable syncActiveSelectionRunnable = new DebouncedRunnable(() -> {
+		if (!isChatPanelLoaded) {
+			return;
+		}
+		EditorUtils.asyncExec(() -> {
+			try {
+				chatPanelClientInvoke("updateActiveSelection", new ArrayList<>() {
+					{
+						add(ChatViewUtils.getSelectedTextAsEditorFileContext());
+					}
+				});
+			} catch (Exception e) {
+				// ignore
+			}
+		});
+	}, 100);
 
 	@Override
 	public void setFocus() {
@@ -236,7 +268,7 @@ public class ChatView extends ViewPart {
 		if (font != null) {
 			css += String.format("font: %s;", font);
 		}
-		css += String.format("font-size: %spx;", fontSize);
+		css += String.format("font-size: %spt;", fontSize);
 		return css;
 	}
 
