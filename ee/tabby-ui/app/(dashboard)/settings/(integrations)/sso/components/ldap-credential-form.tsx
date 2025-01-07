@@ -151,7 +151,6 @@ export function LDAPCredentialForm({
   const deleteLdapCredential = useMutation(deleteLdapCredentialMutation)
 
   const onSubmit = async (values: LDAPFormValues) => {
-    // update ldap credential
     if (isNew) {
       const hasExistingProvider = await client
         .query(ldapCredentialQuery, {})
@@ -163,18 +162,8 @@ export function LDAPCredentialForm({
         return
       }
     }
-    return updateOauthCredential({ input: values })
-  }
 
-  const onTestLdap = async (values: LDAPFormValues) => {
-    setIsTesting(true)
-    try {
-      await testLdapConnection({ input: values })
-    } catch (e) {
-      // ignore
-    } finally {
-      setIsTesting(false)
-    }
+    return updateOauthCredential({ input: values })
   }
 
   const onDelete: React.MouseEventHandler<HTMLButtonElement> = e => {
@@ -195,9 +184,15 @@ export function LDAPCredentialForm({
   const onTestLdapCredential = () => {
     if (!formRef.current) return
     form.trigger().then(isValid => {
-      if (isValid) {
-        onTestLdap(formSchema.parse(form.getValues()))
-      }
+      if (!isValid) return
+
+      setIsTesting(true)
+
+      return testLdapConnection({
+        input: formSchema.parse(form.getValues())
+      }).finally(() => {
+        setIsTesting(false)
+      })
     })
   }
 
@@ -512,7 +507,6 @@ export function LDAPCredentialForm({
                   disabled={
                     !hasValidLicense || isSubmitting || (!isNew && !isDirty)
                   }
-                  // onClickCapture={onUpdateLdapCredential}
                 >
                   {isSubmitting && (
                     <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
