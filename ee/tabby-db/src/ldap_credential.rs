@@ -17,7 +17,7 @@ pub struct LdapCredentialDAO {
     pub skip_tls_verify: bool,
 
     pub email_attribute: String,
-    pub name_attribute: String,
+    pub name_attribute: Option<String>,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -35,7 +35,7 @@ impl DbConn {
         encryption: &str,
         skip_tls_verify: bool,
         email_attribute: &str,
-        name_attribute: &str,
+        name_attribute: Option<&str>,
     ) -> Result<()> {
         // only support one ldap credential, so id is always 1
         query!(
@@ -133,7 +133,7 @@ mod tests {
             "encryption",
             true,
             "email_attribute",
-            "name_attribute",
+            Some("name_attribute"),
         )
         .await
         .unwrap();
@@ -147,7 +147,7 @@ mod tests {
         assert_eq!(res.encryption, "encryption");
         assert!(res.skip_tls_verify);
         assert_eq!(res.email_attribute, "email_attribute");
-        assert_eq!(res.name_attribute, "name_attribute");
+        assert_eq!(res.name_attribute, Some("name_attribute".into()));
         let created_at = res.created_at;
         let updated_at = res.updated_at;
         assert!(created_at > Utc::now() - chrono::Duration::seconds(2));
@@ -167,7 +167,7 @@ mod tests {
             "encryption_2",
             false,
             "email_attribute_2",
-            "name_attribute_2",
+            Some("name_attribute_2"),
         )
         .await
         .unwrap();
@@ -181,7 +181,7 @@ mod tests {
         assert_eq!(res.encryption, "encryption_2");
         assert!(!res.skip_tls_verify);
         assert_eq!(res.email_attribute, "email_attribute_2");
-        assert_eq!(res.name_attribute, "name_attribute_2");
+        assert_eq!(res.name_attribute, Some("name_attribute_2".into()));
         assert_eq!(res.created_at, created_at);
         assert!(res.updated_at > updated_at);
 
@@ -207,7 +207,7 @@ mod tests {
             "encryption",
             true,
             "email_attribute",
-            "name_attribute",
+            Some("name_attribute"),
         )
         .await
         .unwrap();

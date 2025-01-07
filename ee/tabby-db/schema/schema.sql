@@ -257,7 +257,7 @@ CREATE TABLE ldap_credential(
   --- the attribute to be used as the Tabby user email address
   email_attribute STRING NOT NULL DEFAULT 'email',
   --- the attribute to be used as the Tabby user name
-  name_attribute STRING NOT NULL DEFAULT 'name',
+  name_attribute STRING,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
 );
