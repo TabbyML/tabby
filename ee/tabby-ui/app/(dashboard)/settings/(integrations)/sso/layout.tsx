@@ -4,14 +4,10 @@ import { cn } from '@/lib/utils'
 import { IconExternalLink } from '@/components/ui/icons'
 
 export const metadata: Metadata = {
-  title: 'Context Providers'
+  title: 'SSO'
 }
 
-export default function ProvidersLayout({
-  children
-}: {
-  children: React.ReactNode
-}) {
+export default function SSOLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <SSOHeader />
