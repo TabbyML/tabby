@@ -8,7 +8,6 @@ import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import {
-  LdapCredential,
   LdapCredentialQuery,
   LicenseType,
   OAuthCredentialQuery,
@@ -160,7 +159,7 @@ const OauthCredentialCard = ({
           <span>OAuth 2.0</span>
         </div>
         <div className="flex px-8 py-4">
-          <span className="w-[100px] shrink-0">Domain</span>
+          <span className="w-[100px] shrink-0">Host</span>
           <span className="truncate">{meta?.domain}</span>
         </div>
       </CardContent>
