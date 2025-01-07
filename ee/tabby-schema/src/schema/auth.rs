@@ -425,12 +425,8 @@ pub struct UpdateLdapCredentialInput {
         message = "emailAttribute cannot be empty"
     ))]
     pub email_attribute: String,
-    #[validate(length(
-        min = 1,
-        code = "nameAttribute",
-        message = "nameAttribute cannot be empty"
-    ))]
-    pub name_attribute: String,
+    // if name_attribute is None, we will use username as name
+    pub name_attribute: Option<String>,
 }
 
 #[derive(GraphQLObject)]
@@ -443,7 +439,7 @@ pub struct LdapCredential {
     pub encryption: LdapEncryptionKind,
     pub skip_tls_verify: bool,
     pub email_attribute: String,
-    pub name_attribute: String,
+    pub name_attribute: Option<String>,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

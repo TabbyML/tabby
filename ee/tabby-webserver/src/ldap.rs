@@ -18,7 +18,7 @@ pub fn new_ldap_client(
     base_dn: String,
     user_filter: String,
     email_attr: String,
-    name_attr: String,
+    name_attr: Option<String>,
 ) -> impl LdapClient {
     let mut settings = LdapConnSettings::new();
     if encryption == "starttls" {
@@ -56,7 +56,7 @@ pub struct LdapClientImpl {
     user_filter: String,
 
     email_attr: String,
-    name_attr: String,
+    name_attr: Option<String>,
 
     settings: LdapConnSettings,
 }
@@ -79,12 +79,16 @@ impl LdapClient for LdapClientImpl {
             .await?
             .success()?;
 
+        let mut attrs = vec![&self.email_attr];
+        if let Some(name_attr) = &self.name_attr {
+            attrs.push(name_attr);
+        }
         let searched = client
             .search(
                 &self.base_dn,
                 Scope::OneLevel,
                 &self.user_filter.replace("%s", user),
-                vec![&self.name_attr, &self.email_attr],
+                attrs,
             )
             .await?;
 
@@ -94,15 +98,19 @@ impl LdapClient for LdapClientImpl {
             let email = entry
                 .attrs
                 .get(&self.email_attr)
-                .and_then(|v| v.get(0))
+                .and_then(|v| v.first())
                 .cloned()
                 .ok_or_else(|| CoreError::Other(anyhow!("email not found for user")))?;
-            let name = entry
-                .attrs
-                .get(&self.name_attr)
-                .and_then(|v| v.get(0))
-                .cloned()
-                .ok_or_else(|| CoreError::Other(anyhow!("name not found for user")))?;
+            let name = if let Some(name_attr) = &self.name_attr {
+                entry
+                    .attrs
+                    .get(name_attr)
+                    .and_then(|v| v.first())
+                    .cloned()
+                    .ok_or_else(|| CoreError::Other(anyhow!("name not found for user")))?
+            } else {
+                user.to_string()
+            };
 
             client.simple_bind(&user_dn, password).await?.success()?;
 

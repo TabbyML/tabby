@@ -653,10 +653,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
                 password,
                 &input.base_dn,
                 &input.user_filter,
-                &input.encryption.as_enum_str(),
+                input.encryption.as_enum_str(),
                 input.skip_tls_verify,
                 &input.email_attribute,
-                &input.name_attribute,
+                input.name_attribute.as_deref(),
             )
             .await?;
         Ok(())
@@ -842,8 +842,9 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::service::auth::testutils::FakeLdapClient;
     use tabby_schema::auth::LdapEncryptionKind;
+
+    use crate::service::auth::testutils::FakeLdapClient;
 
     struct MockLicenseService {
         status: LicenseStatus,
@@ -1694,7 +1695,7 @@ mod tests {
                 encryption: LdapEncryptionKind::None,
                 skip_tls_verify: false,
                 email_attribute: "mail".into(),
-                name_attribute: "cn".into(),
+                name_attribute: Some("cn".into()),
             })
             .await
             .unwrap();
@@ -1709,7 +1710,7 @@ mod tests {
         assert_eq!(cred.encryption, LdapEncryptionKind::None);
         assert!(!cred.skip_tls_verify);
         assert_eq!(cred.email_attribute, "mail");
-        assert_eq!(cred.name_attribute, "cn");
+        assert_eq!(cred.name_attribute, Some("cn".into()));
 
         service
             .update_ldap_credential(UpdateLdapCredentialInput {
@@ -1722,7 +1723,7 @@ mod tests {
                 encryption: LdapEncryptionKind::None,
                 skip_tls_verify: true,
                 email_attribute: "email".into(),
-                name_attribute: "name".into(),
+                name_attribute: Some("name".into()),
             })
             .await
             .unwrap();
@@ -1738,7 +1739,7 @@ mod tests {
         assert_eq!(cred.encryption, "none");
         assert!(cred.skip_tls_verify);
         assert_eq!(cred.email_attribute, "email");
-        assert_eq!(cred.name_attribute, "name");
+        assert_eq!(cred.name_attribute, Some("name".into()));
     }
 
     #[tokio::test]

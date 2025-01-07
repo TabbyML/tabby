@@ -20,13 +20,12 @@ pub mod web_documents;
 
 use std::sync::Arc;
 
-#[cfg(test)]
-pub use auth::testutils::FakeAuthService;
-
 use answer::AnswerService;
 use anyhow::Context;
 use async_trait::async_trait;
 pub use auth::create as new_auth_service;
+#[cfg(test)]
+pub use auth::testutils::FakeAuthService;
 use axum::{
     body::Body,
     http::{HeaderName, HeaderValue, Request, StatusCode},
