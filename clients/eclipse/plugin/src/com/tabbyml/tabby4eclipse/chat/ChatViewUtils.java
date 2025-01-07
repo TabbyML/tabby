@@ -1,18 +1,28 @@
 package com.tabbyml.tabby4eclipse.chat;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.dnd.Transfer;
+import org.eclipse.swt.program.Program;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
@@ -21,25 +31,22 @@ import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.ide.ResourceUtil;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.google.gson.Gson;
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.Version;
-import com.tabbyml.tabby4eclipse.chat.ChatMessage.FileContext;
 import com.tabbyml.tabby4eclipse.editor.EditorUtils;
 import com.tabbyml.tabby4eclipse.git.GitProvider;
-import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository;
 import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepositoryParams;
 
 public class ChatViewUtils {
 	private static final String ID = "com.tabbyml.tabby4eclipse.views.chat";
 
 	private static final String MIN_SERVER_VERSION = "0.18.0";
-	private static final String CHAT_PANEL_API_VERSION = "0.4.0";
+	private static final String CHAT_PANEL_API_VERSION = "0.5.0";
 	private static Logger logger = new Logger("ChatView");
 
-	public static final String PROMPT_EXPLAIN = "Explain the selected code:";
-	public static final String PROMPT_FIX = "Identify and fix potential bugs in the selected code:";
-	public static final String PROMPT_GENERATE_DOCS = "Generate documentation for the selected code:";
-	public static final String PROMPT_GENERATE_TESTS = "Generate a unit test for the selected code:";
+	private static final Gson gson = new Gson();
+	private static final Map<String, String> gitRemoteUrlToLocalRoot = new HashMap<>();
 
 	public static ChatView openChatView() {
 		IWorkbenchPage page = EditorUtils.getActiveWorkbenchPage();
@@ -104,117 +111,129 @@ public class ChatViewUtils {
 		return null;
 	}
 
-	public static FileContext getSelectedTextAsFileContext() {
+	public static EditorFileContext getSelectedTextAsEditorFileContext() {
 		ITextEditor activeTextEditor = EditorUtils.getActiveTextEditor();
 		if (activeTextEditor == null) {
 			return null;
 		}
-		FileContext context = new FileContext();
+		IFile file = ResourceUtil.getFile(activeTextEditor.getEditorInput());
+		URI fileUri = file.getLocationURI();
 		ISelection selection = activeTextEditor.getSelectionProvider().getSelection();
 		if (selection instanceof ITextSelection textSelection) {
 			if (!textSelection.isEmpty()) {
 				String content = textSelection.getText();
 				if (!content.isBlank()) {
-					context.setContent(content);
-					context.setRange(new FileContext.LineRange(textSelection.getStartLine() + 1,
-							textSelection.getEndLine() + 1));
+					return new EditorFileContext(fileUriToChatPanelFilepath(fileUri),
+							new LineRange(textSelection.getStartLine() + 1, textSelection.getEndLine() + 1), content);
 				}
 			}
 		}
-		if (context.getContent() == null) {
-			return null;
-		}
-
-		IFile file = ResourceUtil.getFile(activeTextEditor.getEditorInput());
-		URI fileUri = file.getLocationURI();
-		if (file != null) {
-			GitRepository gitInfo = GitProvider.getInstance()
-					.getRepository(new GitRepositoryParams(fileUri.toString()));
-			IProject project = file.getProject();
-			if (gitInfo != null) {
-				try {
-					context.setGitUrl(gitInfo.getRemoteUrl());
-					String relativePath = new URI(gitInfo.getRoot()).relativize(fileUri).getPath();
-					context.setFilePath(relativePath);
-				} catch (Exception e) {
-					logger.error("Failed to get git info.", e);
-				}
-			} else if (project != null) {
-				URI projectRoot = project.getLocationURI();
-				String relativePath = projectRoot.relativize(fileUri).getPath();
-				context.setFilePath(relativePath);
-			} else {
-				context.setFilePath(fileUri.toString());
-			}
-		}
-		return context;
+		return null;
 	}
 
-	public static FileContext getActiveEditorAsFileContext() {
+	public static EditorFileContext getActiveEditorAsEditorFileContext() {
 		ITextEditor activeTextEditor = EditorUtils.getActiveTextEditor();
 		if (activeTextEditor == null) {
 			return null;
 		}
-		FileContext context = new FileContext();
-
-		IDocument document = EditorUtils.getDocument(activeTextEditor);
-		context.setRange(new FileContext.LineRange(1, document.getNumberOfLines()));
-		context.setContent(document.get());
-
 		IFile file = ResourceUtil.getFile(activeTextEditor.getEditorInput());
 		URI fileUri = file.getLocationURI();
-		if (file != null) {
-			GitRepository gitInfo = GitProvider.getInstance()
-					.getRepository(new GitRepositoryParams(fileUri.toString()));
-			IProject project = file.getProject();
-			if (gitInfo != null) {
-				try {
-					context.setGitUrl(gitInfo.getRemoteUrl());
-					String relativePath = new URI(gitInfo.getRoot()).relativize(fileUri).getPath();
-					context.setFilePath(relativePath);
-				} catch (Exception e) {
-					logger.error("Failed to get git info.", e);
-				}
-			} else if (project != null) {
-				URI projectRoot = project.getLocationURI();
-				String relativePath = projectRoot.relativize(fileUri).getPath();
-				context.setFilePath(relativePath);
-			} else {
-				context.setFilePath(fileUri.toString());
-			}
+		IDocument document = EditorUtils.getDocument(activeTextEditor);
+		String content = document.get();
+		if (!content.isBlank()) {
+			return new EditorFileContext(fileUriToChatPanelFilepath(fileUri), null, content);
 		}
-
-		return context;
+		return null;
 	}
 
-	public static void navigateToFileContext(FileContext context) {
-		logger.info("Navigate to file: " + context.getFilePath() + ", line: " + context.getRange().getStart());
-		// FIXME(@icycode): the base path could be a git repository root, but it cannot
-		// be determined here
-		IFile file = null;
-		ITextEditor activeTextEditor = EditorUtils.getActiveTextEditor();
-		if (activeTextEditor != null) {
-			// try find file in the project of the active editor
-			IFile activeFile = ResourceUtil.getFile(activeTextEditor.getEditorInput());
-			if (activeFile != null) {
-				file = activeFile.getProject().getFile(new Path(context.getFilePath()));
-			}
-		} else {
-			// try find file in the workspace
-			file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(new Path(context.getFilePath()));
+	public static boolean openInEditor(FileLocation fileLocation) {
+		if (fileLocation == null) {
+			return false;
 		}
+		Filepath filepath = fileLocation.getFilepath();
+		URI fileUri = null;
 		try {
+			switch (filepath.getKind()) {
+			case Filepath.Kind.URI:
+				FilepathUri filepathUri = (FilepathUri) filepath;
+				fileUri = new URI(filepathUri.getUri());
+				break;
+
+			case Filepath.Kind.GIT:
+				FilepathInGitRepository filepathInGit = (FilepathInGitRepository) filepath;
+				String gitLocalRoot = gitRemoteUrlToLocalRoot.get(filepathInGit.getGitUrl());
+				if (gitLocalRoot != null) {
+					fileUri = new URI(gitLocalRoot + "/" + filepathInGit.getFilepath());
+				}
+				break;
+
+			default:
+				fileUri = null;
+				break;
+			}
+
+			if (fileUri == null) {
+				throw new Exception("Cannot parse as file uri.");
+			}
+
+			IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(new Path(fileUri.getPath()));
 			if (file != null && file.exists()) {
 				IEditorPart editorPart = IDE.openEditor(EditorUtils.getActiveWorkbenchPage(), file);
+
 				if (editorPart instanceof ITextEditor textEditor) {
 					IDocument document = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput());
-					int offset = document.getLineOffset(context.getRange().getStart() - 1);
-					textEditor.selectAndReveal(offset, 0);
+					Object location = fileLocation.getLocation();
+					Position position;
+
+					if (location instanceof Number lineNumberValue) {
+						position = new Position(lineNumberValue.intValue() - 1, 0);
+					} else if (location instanceof Position positionValue) {
+						position = new Position(positionValue.getLine() - 1, positionValue.getCharacter() - 1);
+					} else if (location instanceof LineRange lineRangeValue) {
+						position = new Position(lineRangeValue.getStart() - 1, 0);
+					} else if (location instanceof PositionRange positionRangeValue) {
+						position = new Position(positionRangeValue.getStart().getLine() - 1,
+								positionRangeValue.getStart().getCharacter() - 1);
+					} else {
+						position = null;
+					}
+
+					if (position != null) {
+						int offset = document.getLineOffset(position.getLine()) + position.getCharacter();
+						textEditor.selectAndReveal(offset, 0);
+					}
 				}
+				return true;
+			} else {
+				return false;
 			}
 		} catch (Exception e) {
-			logger.error("Failed to navigate to file: " + context.getFilePath(), e);
+			logger.error("Failed to open in editor.", e);
+			return false;
 		}
+	}
+
+	public static void openExternal(String url) {
+		Program.launch(url);
+	}
+	
+	public static List<GitRepository> readGitRepositoriesInWorkspace() {
+		List<GitRepository> repositories = new ArrayList<>();
+        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+        IProject[] projects = workspaceRoot.getProjects();
+        
+        for (IProject project : projects) {
+        	try {
+        		URI projectRootUri = project.getLocation().toFile().toURI();
+                com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository repo = GitProvider.getInstance().getRepository(new GitRepositoryParams(projectRootUri.toString()));
+                if (repo != null) {
+                	repositories.add(new GitRepository(repo.getRemoteUrl()));
+                }
+            } catch (Exception e) {
+                logger.warn("Error when read git repository.", e);
+            }
+        }
+        return repositories;
 	}
 
 	public static void setClipboardContent(String content) {
@@ -242,5 +261,77 @@ public class ChatViewUtils {
 				logger.error("Failed to apply content to the active text editor.", e);
 			}
 		}
+	}
+
+	public static Filepath fileUriToChatPanelFilepath(URI fileUri) {
+		String fileUriString = fileUri.toString();
+        com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository gitRepo = GitProvider.getInstance().getRepository(new GitRepositoryParams(fileUriString));
+		String gitUrl = (gitRepo != null) ? gitRepo.getRemoteUrl() : null;
+		if (gitUrl != null) {
+			gitRemoteUrlToLocalRoot.put(gitUrl, gitRepo.getRoot());
+		}
+
+		if (gitUrl != null && fileUriString.startsWith(gitRepo.getRoot())) {
+			try {
+				String relativePath = new URI(gitRepo.getRoot()).relativize(fileUri).getPath();
+				return new FilepathInGitRepository(relativePath, gitUrl);
+			} catch (URISyntaxException e) {
+				return new FilepathUri(fileUriString);
+			}
+		} else {
+			return new FilepathUri(fileUriString);
+		}
+	}
+
+	public static FileLocation asFileLocation(Object obj) {
+		if (!(obj instanceof Map)) {
+			return null;
+		}
+
+		Map<?, ?> map = (Map<?, ?>) obj;
+
+		if (!map.containsKey("filepath")) {
+			return null;
+		}
+
+		Object filepathValue = map.get("filepath");
+		Filepath filepath = null;
+
+		if (filepathValue instanceof Map) {
+			Map<?, ?> filepathMap = (Map<?, ?>) filepathValue;
+			if (filepathMap.containsKey("kind")) {
+				String kind = (String) filepathMap.get("kind");
+				if (Filepath.Kind.GIT.equals(kind)) {
+					filepath = gson.fromJson(gson.toJson(filepathValue), FilepathInGitRepository.class);
+				} else if (Filepath.Kind.URI.equals(kind)) {
+					filepath = gson.fromJson(gson.toJson(filepathValue), FilepathUri.class);
+				}
+			}
+		}
+
+		if (filepath == null) {
+			return null;
+		}
+
+		Object locationValue = map.get("location");
+		Object location = null;
+
+		if (locationValue instanceof Number) {
+			location = locationValue;
+		} else if (locationValue instanceof Map) {
+			Map<?, ?> locationMap = (Map<?, ?>) locationValue;
+			if (locationMap.containsKey("line")) {
+				location = gson.fromJson(gson.toJson(locationValue), Position.class);
+			} else if (locationMap.containsKey("start")) {
+				Object startValue = locationMap.get("start");
+				if (startValue instanceof Number) {
+					location = gson.fromJson(gson.toJson(locationValue), LineRange.class);
+				} else if (startValue instanceof Map) {
+					location = gson.fromJson(gson.toJson(locationValue), PositionRange.class);
+				}
+			}
+		}
+
+		return new FileLocation(filepath, location);
 	}
 }
