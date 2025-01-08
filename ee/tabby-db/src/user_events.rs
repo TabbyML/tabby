@@ -74,8 +74,11 @@ impl DbConn {
         Ok(events)
     }
 
-    pub async fn delete_user_events_before_three_months(&self) -> Result<usize> {
-        if let Some(three_months_ago) = Utc::now().checked_sub_months(Months::new(3)) {
+    pub async fn delete_user_events_before_three_months(
+        &self,
+        now: DateTime<Utc>,
+    ) -> Result<usize> {
+        if let Some(three_months_ago) = now.checked_sub_months(Months::new(3)) {
             let three_months_ago = three_months_ago.as_sqlite_datetime();
             let num_deleted = query!(
                 "delete FROM user_events WHERE created_at < ?",

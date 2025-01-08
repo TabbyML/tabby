@@ -17,7 +17,7 @@ impl Job for DbMaintainanceJob {
 
 impl DbMaintainanceJob {
     pub async fn cron(
-        _now: DateTime<Utc>,
+        now: DateTime<Utc>,
         context: Arc<dyn ContextService>,
         db: DbConn,
     ) -> tabby_schema::Result<()> {
@@ -37,19 +37,19 @@ impl DbMaintainanceJob {
         db.delete_unused_source_id_read_access_policy(&active_source_ids)
             .await?;
 
-        Self::data_retention(&db).await;
+        Self::data_retention(now, &db).await;
         Ok(())
     }
 
-    async fn data_retention(db: &DbConn) {
-        if let Err(e) = db.delete_job_run_before_three_months().await {
+    async fn data_retention(now: DateTime<Utc>, db: &DbConn) {
+        if let Err(e) = db.delete_job_run_before_three_months(now).await {
             warn!(
                 "Failed to clean up and retain only the last 3 months of jobs: {:?}",
                 e
             );
         }
 
-        if let Err(e) = db.delete_user_events_before_three_months().await {
+        if let Err(e) = db.delete_user_events_before_three_months(now).await {
             warn!(
                 "Failed to clean up and retain only the last 3 months of user events: {:?}",
                 e
@@ -110,7 +110,7 @@ mod tests {
                 .unwrap();
             assert_eq!(events.len(), 1);
 
-            DbMaintainanceJob::retention(now, db.clone()).await.unwrap();
+            DbMaintainanceJob::data_retention(now, &db).await;
 
             let events = db
                 .list_user_events(
@@ -172,7 +172,7 @@ mod tests {
                 .unwrap();
             assert_eq!(events.len(), 1);
 
-            DbMaintainanceJob::retention(now, db.clone()).await.unwrap();
+            DbMaintainanceJob::data_retention(now, &db).await;
 
             let events = db
                 .list_user_events(
@@ -188,7 +188,11 @@ mod tests {
             assert_eq!(events.len(), 1);
 
             // clean up for next iteration
-            db.delete_user_events_before(now).await.unwrap();
+            db.delete_user_events_before_three_months(
+                now.checked_add_months(chrono::Months::new(3)).unwrap(),
+            )
+            .await
+            .unwrap();
         }
     }
 }
