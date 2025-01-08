@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
 use tabby_schema::context::ContextService;
-use tracing::warn;
 
 use super::helper::Job;
 
@@ -37,24 +37,20 @@ impl DbMaintainanceJob {
         db.delete_unused_source_id_read_access_policy(&active_source_ids)
             .await?;
 
-        Self::data_retention(now, &db).await;
+        Self::data_retention(now, &db).await?;
         Ok(())
     }
 
-    async fn data_retention(now: DateTime<Utc>, db: &DbConn) {
-        if let Err(e) = db.delete_job_run_before_three_months(now).await {
-            warn!(
-                "Failed to clean up and retain only the last 3 months of jobs: {:?}",
-                e
-            );
-        }
+    async fn data_retention(now: DateTime<Utc>, db: &DbConn) -> tabby_schema::Result<()> {
+        db.delete_job_run_before_three_months(now)
+            .await
+            .context("Failed to clean up and retain only the last 3 months of jobs")?;
 
-        if let Err(e) = db.delete_user_events_before_three_months(now).await {
-            warn!(
-                "Failed to clean up and retain only the last 3 months of user events: {:?}",
-                e
-            );
-        }
+        db.delete_user_events_before_three_months(now)
+            .await
+            .context("Failed to clean up and retain only the last 3 months of user events")?;
+
+        Ok(())
     }
 }
 
@@ -110,7 +106,7 @@ mod tests {
                 .unwrap();
             assert_eq!(events.len(), 1);
 
-            DbMaintainanceJob::data_retention(now, &db).await;
+            DbMaintainanceJob::data_retention(now, &db).await.unwrap();
 
             let events = db
                 .list_user_events(
@@ -172,7 +168,7 @@ mod tests {
                 .unwrap();
             assert_eq!(events.len(), 1);
 
-            DbMaintainanceJob::data_retention(now, &db).await;
+            DbMaintainanceJob::data_retention(now, &db).await.unwrap();
 
             let events = db
                 .list_user_events(
