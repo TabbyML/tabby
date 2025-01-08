@@ -66,7 +66,7 @@ public class EclipseJGitProvider implements IGitProvider {
 				return null;
 			}
 		} catch (Exception e) {
-			logger.warn("Failed to get repository for: " + params.getUri(), e);
+			logger.debug("Failed to get repository for: " + params.getUri());
 			return null;
 		}
 	}
@@ -92,7 +92,7 @@ public class EclipseJGitProvider implements IGitProvider {
 				return null;
 			}
 		} catch (Exception e) {
-			logger.warn("Failed to get diff for: " + params.getRepository(), e);
+			logger.debug("Failed to get diff for: " + params.getRepository());
 			return null;
 		}
 	}
