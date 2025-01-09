@@ -1,6 +1,6 @@
 'use client'
 
-import { MouseEventHandler, useContext, useMemo, useState } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import DOMPurify from 'dompurify'
 import he from 'he'
@@ -47,10 +47,7 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import {
-  IconBlocks,
-  IconBug,
   IconCheckCircled,
-  IconChevronRight,
   IconCircleDot,
   IconEdit,
   IconGitMerge,
@@ -59,37 +56,28 @@ import {
   IconMore,
   IconPlus,
   IconRefresh,
-  IconSparkles,
-  IconSpinner,
-  IconTrash
+  IconSpinner
 } from '@/components/ui/icons'
 import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
 import { ChatContext } from '@/components/chat/chat'
 import { CopyButton } from '@/components/copy-button'
 import {
   ErrorMessageBlock,
   MessageMarkdown
 } from '@/components/message-markdown'
-import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
 import { UserAvatar } from '@/components/user-avatar'
 
-import { ConversationMessage, PageContext, SOURCE_CARD_STYLE } from './page'
+import { ConversationMessage, PageContext } from './page'
 
 export function SectionContent({
   className,
@@ -315,16 +303,16 @@ export function SectionContent({
                 {sourceLen > 0 && (
                   <Sheet>
                     <SheetTrigger asChild>
-                      <div className="border py-1 px-2 rounded-full cursor-pointer">
+                      <div className="cursor-pointer rounded-full border px-2 py-1">
                         {sourceLen} sources
                       </div>
                     </SheetTrigger>
-                    <SheetContent className="w-[50vw] min-w-[300px] flex flex-col">
+                    <SheetContent className="flex w-[50vw] min-w-[300px] flex-col">
                       <SheetHeader className="border-b">
                         <SheetTitle>Sources</SheetTitle>
                         <SheetClose />
                       </SheetHeader>
-                      <div className="flex-1 overflow-y-auto space-y-3">
+                      <div className="flex-1 space-y-3 overflow-y-auto">
                         {sources.map((x, index) => {
                           // FIXME id
                           return <SourceCard source={x} key={index} />
@@ -437,7 +425,7 @@ function SourceCard({
       <div className="flex items-start gap-2">
         {isEditMode && <Checkbox className="mt-2" />}
         <div
-          className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card text-card-foreground p-3 hover:bg-card/60"
+          className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60"
           onClick={() => window.open(source.link)}
         >
           <DocSourceCard source={source} />
@@ -447,9 +435,9 @@ function SourceCard({
   }
 
   return (
-    <div className="flex items-start gap-2 w-full">
+    <div className="flex w-full items-start gap-2">
       {isEditMode && <Checkbox className="mt-2" />}
-      <div className="relative flex flex-1 cursor-pointer flex-col justify-between rounded-lg border bg-card text-card-foreground p-3 hover:bg-card/60">
+      <div className="relative flex flex-1 cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
         <div className="flex flex-1 flex-col justify-between gap-y-1">
           <div className="flex flex-col gap-y-0.5">
             <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">

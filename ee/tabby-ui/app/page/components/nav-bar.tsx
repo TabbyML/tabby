@@ -48,12 +48,12 @@ export const Navbar = ({ qaPairs }: Props) => {
   }, [])
 
   return (
-    <nav className="sticky top-0 right-0 p-4">
+    <nav className="sticky right-0 top-0 p-4">
       <ul className="flex flex-col space-y-1">
         {sections.map(section => (
           <li key={section.id}>
             <div
-              className={`text-sm truncate whitespace-nowrap ${
+              className={`truncate whitespace-nowrap text-sm ${
                 activeNavItem === section.id
                   ? 'text-foreground'
                   : 'text-muted-foreground'
