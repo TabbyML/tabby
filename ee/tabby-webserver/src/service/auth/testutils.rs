@@ -19,7 +19,7 @@ pub struct FakeLdapClient<'a> {
 }
 
 #[async_trait]
-impl<'a> LdapClient for FakeLdapClient<'a> {
+impl LdapClient for FakeLdapClient<'_> {
     async fn validate(&mut self, user_id: &str, _password: &str) -> Result<LdapUser> {
         match self.state {
             "not_found" => Err(ldap3::LdapError::LdapResult {
