@@ -1,7 +1,22 @@
+import { Metadata } from 'next'
+
 import { cn } from '@/lib/utils'
 import { IconExternalLink } from '@/components/ui/icons'
 
-export const SSOHeader = ({ className }: { className?: string }) => {
+export const metadata: Metadata = {
+  title: 'SSO'
+}
+
+export default function SSOLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <SSOHeader />
+      {children}
+    </>
+  )
+}
+
+function SSOHeader({ className }: { className?: string }) {
   return (
     <div className={cn('min-h-8 mb-4 flex items-center gap-4', className)}>
       <div className="flex-1 text-sm text-muted-foreground">
