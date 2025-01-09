@@ -10,7 +10,7 @@ schema-language = ["juniper/schema-language"]
 
 [dependencies]
 anyhow.workspace = true
-async-openai.workspace = true
+async-openai-alt.workspace = true
 async-trait.workspace = true
 axum = { workspace = true }
 base64 = "0.22.0"

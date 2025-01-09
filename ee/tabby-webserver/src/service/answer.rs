@@ -7,11 +7,14 @@ use std::{
 };
 
 use anyhow::anyhow;
-use async_openai::{
+use async_openai_alt::{
     error::OpenAIError,
     types::{
+        ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
         ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
-        ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, Role,
+        ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
+        ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContent,
+        CreateChatCompletionRequestArgs, Role,
     },
 };
 use async_stream::stream;
@@ -438,8 +441,9 @@ fn convert_messages_to_chat_completion_request(
     if !config.system_prompt.is_empty() {
         output.push(ChatCompletionRequestMessage::System(
             ChatCompletionRequestSystemMessage {
-                content: config.system_prompt.clone(),
-                role: Role::System,
+                content: ChatCompletionRequestSystemMessageContent::Text(
+                    config.system_prompt.clone(),
+                ),
                 name: None,
             },
         ));
@@ -452,36 +456,42 @@ fn convert_messages_to_chat_completion_request(
             thread::Role::User => Role::User,
         };
 
-        let content = if role == Role::User {
+        let message: ChatCompletionRequestMessage = if role == Role::User {
             if i % 2 != 0 {
                 bail!("User message must be followed by assistant message");
             }
 
             let y = &messages[i + 1];
 
-            build_user_prompt(&x.content, &y.attachment, None)
+            let content = build_user_prompt(&x.content, &y.attachment, None);
+            ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                content: ChatCompletionRequestUserMessageContent::Text(
+                    helper.rewrite_tag(&content),
+                ),
+                ..Default::default()
+            })
         } else {
-            x.content.clone()
+            ChatCompletionRequestMessage::Assistant(ChatCompletionRequestAssistantMessage {
+                content: Some(ChatCompletionRequestAssistantMessageContent::Text(
+                    x.content.clone(),
+                )),
+                ..Default::default()
+            })
         };
 
-        output.push(ChatCompletionRequestMessage::System(
-            ChatCompletionRequestSystemMessage {
-                content: helper.rewrite_tag(&content),
-                role,
-                name: None,
-            },
-        ));
+        output.push(message);
     }
 
-    output.push(ChatCompletionRequestMessage::System(
-        ChatCompletionRequestSystemMessage {
-            content: helper.rewrite_tag(&build_user_prompt(
-                &messages[messages.len() - 1].content,
-                attachment,
-                user_attachment_input,
+    output.push(ChatCompletionRequestMessage::User(
+        ChatCompletionRequestUserMessage {
+            content: ChatCompletionRequestUserMessageContent::Text(helper.rewrite_tag(
+                &build_user_prompt(
+                    &messages[messages.len() - 1].content,
+                    attachment,
+                    user_attachment_input,
+                ),
             )),
-            role: Role::User,
-            name: None,
+            ..Default::default()
         },
     ));
 
