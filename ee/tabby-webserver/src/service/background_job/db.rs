@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
-use tabby_schema::context::ContextService;
+use tabby_schema::{context::ContextService, CoreError};
 
 use super::helper::Job;
 
@@ -21,36 +20,80 @@ impl DbMaintainanceJob {
         context: Arc<dyn ContextService>,
         db: DbConn,
     ) -> tabby_schema::Result<()> {
-        db.delete_expired_token().await?;
-        db.delete_expired_password_resets().await?;
-        db.delete_expired_ephemeral_threads().await?;
+        let mut errors = vec![];
+
+        if let Err(e) = db.delete_expired_token().await {
+            errors.push(format!("Failed to delete expired token: {}", e));
+        };
+        if let Err(e) = db.delete_expired_password_resets().await {
+            errors.push(format!("Failed to delete expired password resets: {}", e));
+        };
+        if let Err(e) = db.delete_expired_ephemeral_threads().await {
+            errors.push(format!("Failed to delete expired ephemeral threads: {}", e));
+        };
 
         // Read all active sources
-        let active_source_ids = context
-            .read(None)
-            .await?
-            .sources
-            .into_iter()
-            .map(|x| x.source_id())
-            .collect::<Vec<_>>();
+        match context.read(None).await {
+            Ok(info) => {
+                let active_source_ids = info
+                    .sources
+                    .into_iter()
+                    .map(|x| x.source_id())
+                    .collect::<Vec<_>>();
+                if let Err(e) = db
+                    .delete_unused_source_id_read_access_policy(&active_source_ids)
+                    .await
+                {
+                    errors.push(format!(
+                        "Failed to delete unused source id read access policy: {}",
+                        e
+                    ));
+                };
+            }
+            Err(e) => {
+                errors.push(format!("Failed to read active sources: {}", e));
+            }
+        }
 
-        db.delete_unused_source_id_read_access_policy(&active_source_ids)
-            .await?;
+        if let Err(e) = Self::data_retention(now, &db).await {
+            errors.push(format!("Failed to run data retention job: {}", e));
+        }
 
-        Self::data_retention(now, &db).await?;
-        Ok(())
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(CoreError::Other(anyhow::anyhow!(
+                "Failed to run db maintenance job:\n{}",
+                errors.join(";\n")
+            )))
+        }
     }
 
     async fn data_retention(now: DateTime<Utc>, db: &DbConn) -> tabby_schema::Result<()> {
-        db.delete_job_run_before_three_months(now)
-            .await
-            .context("Failed to clean up and retain only the last 3 months of jobs")?;
+        let mut errors = vec![];
 
-        db.delete_user_events_before_three_months(now)
-            .await
-            .context("Failed to clean up and retain only the last 3 months of user events")?;
+        if let Err(e) = db.delete_job_run_before_three_months(now).await {
+            errors.push(format!(
+                "Failed to clean up and retain only the last 3 months of jobs: {}",
+                e
+            ));
+        }
 
-        Ok(())
+        if let Err(e) = db.delete_user_events_before_three_months(now).await {
+            errors.push(format!(
+                "Failed to clean up and retain only the last 3 months of user events: {}",
+                e
+            ));
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(CoreError::Other(anyhow::anyhow!(
+                "Failed to run data retention job:\n{}",
+                errors.join(";\n")
+            )))
+        }
     }
 }
 
