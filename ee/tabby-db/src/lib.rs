@@ -32,6 +32,7 @@ mod email_setting;
 mod integrations;
 mod invitations;
 mod job_runs;
+mod ldap_credential;
 #[cfg(test)]
 mod migration_tests;
 mod notifications;
