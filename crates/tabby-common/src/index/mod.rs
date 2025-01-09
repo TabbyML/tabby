@@ -178,6 +178,21 @@ impl IndexSchema {
         ])
     }
 
+    /// Build a query to find the document with the given `doc_id`, include chunks.
+    pub fn doc_query_with_chunks(&self, corpus: &str, doc_id: &str) -> impl Query {
+        let doc_id_query = TermQuery::new(
+            Term::from_field_text(self.field_id, doc_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+        ])
+    }
+
     pub fn doc_indexed_after(
         &self,
         corpus: &str,
@@ -261,21 +276,11 @@ impl IndexSchema {
                     FIELD_ATTRIBUTES, field
                 ))),
             ),
-        ])
-    }
-
-    /// Build a query to find the document with the given `doc_id`, include chunks.
-    pub fn doc_query_with_chunks(&self, corpus: &str, doc_id: &str) -> impl Query {
-        let doc_id_query = TermQuery::new(
-            Term::from_field_text(self.field_id, doc_id),
-            tantivy::schema::IndexRecordOption::Basic,
-        );
-
-        BooleanQuery::new(vec![
-            // Must match the corpus
-            (Occur::Must, self.corpus_query(corpus)),
-            // Must match the doc id
-            (Occur::Must, Box::new(doc_id_query)),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
         ])
     }
 

@@ -7,19 +7,27 @@ export class ContextVariables {
   private chatEditInProgressValue = false;
   private chatEditResolvingValue = false;
   private inlineCompletionTriggerModeValue: "automatic" | "manual" = "automatic";
+  private chatSidePanelVisibleValue = false;
 
   constructor(
     private readonly client: Client,
     private readonly config: Config,
   ) {
+    this.status = client.status.current?.status;
+    this.client.status.on("didChange", () => {
+      this.status = client.status.current?.status;
+    });
+
     this.chatEnabled = this.client.chat.isAvailable;
-    this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
     this.client.chat.on("didChangeAvailability", (params: boolean) => {
       this.chatEnabled = params;
     });
+
+    this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
     this.config.on("updated", () => {
       this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
     });
+
     this.updateChatEditResolving();
     window.onDidChangeTextEditorSelection((params) => {
       if (params.textEditor === window.activeTextEditor) {
@@ -48,6 +56,12 @@ export class ContextVariables {
     }
     this.chatEditResolving = false;
   }
+
+  set status(value: string | undefined) {
+    commands.executeCommand("setContext", "tabby.status", value);
+  }
+
+  // FIXME(@icycodes): context variables should not have getters
 
   get chatEnabled(): boolean {
     return this.chatEnabledValue;
@@ -83,5 +97,14 @@ export class ContextVariables {
   set inlineCompletionTriggerMode(value: "automatic" | "manual") {
     commands.executeCommand("setContext", "tabby.inlineCompletionTriggerMode", value);
     this.inlineCompletionTriggerModeValue = value;
+  }
+
+  get chatSidePanelVisible(): boolean {
+    return this.chatSidePanelVisibleValue;
+  }
+
+  set chatSidePanelVisible(value: boolean) {
+    commands.executeCommand("setContext", "tabby.chatSidePanelVisible", value);
+    this.chatSidePanelVisibleValue = value;
   }
 }

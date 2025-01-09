@@ -143,7 +143,10 @@ pub struct MessageAttachmentInput {
 #[derive(GraphQLInputObject, Clone)]
 pub struct MessageAttachmentCodeInput {
     pub filepath: Option<String>,
+
+    /// When start line is `None`, it represents the entire file.
     pub start_line: Option<i32>,
+
     pub content: String,
 }
 

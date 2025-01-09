@@ -32,7 +32,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
-import { SearchContext } from './search'
+import { SearchContext } from './search-context'
 
 const deleteThreadMutation = graphql(/* GraphQL */ `
   mutation DeleteThread($id: ID!) {

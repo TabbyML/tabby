@@ -73,7 +73,11 @@ impl CodeIntelligence {
         file_key.to_string() == item_key
     }
 
-    pub fn compute_source_file(config: &CodeRepository, path: &Path) -> Option<SourceCode> {
+    pub fn compute_source_file(
+        config: &CodeRepository,
+        commit: &str,
+        path: &Path,
+    ) -> Option<SourceCode> {
         let source_file_id = Self::compute_source_file_id(path)?;
 
         if path.is_dir() || !path.exists() {
@@ -114,6 +118,7 @@ impl CodeIntelligence {
             source_file_id,
             source_id: config.source_id.clone(),
             git_url: config.canonical_git_url(),
+            commit: commit.to_owned(),
             basedir: config.dir().display().to_string(),
             filepath: relative_path.display().to_string(),
             max_line_length,
@@ -260,12 +265,14 @@ mod tests {
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();
-        let source_file = CodeIntelligence::compute_source_file(&config, &get_rust_source_file())
-            .expect("Failed to create source file");
+        let source_file =
+            CodeIntelligence::compute_source_file(&config, "commit", &get_rust_source_file())
+                .expect("Failed to create source file");
 
         // check source_file properties
         assert_eq!(source_file.language, "rust");
         assert_eq!(source_file.tags.len(), 3);
         assert_eq!(source_file.filepath, "rust.rs");
+        assert_eq!(source_file.commit, "commit");
     }
 }

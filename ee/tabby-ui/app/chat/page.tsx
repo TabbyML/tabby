@@ -11,12 +11,12 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import {
   TABBY_CHAT_PANEL_API_VERSION,
-  type ChatMessage,
-  type Context,
+  type ChatCommand,
+  type EditorContext,
   type ErrorMessage,
   type FetcherOptions,
-  type InitRequest,
-  type NavigateOpts
+  type FileLocation,
+  type InitRequest
 } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
@@ -46,22 +46,22 @@ const convertToHSLColor = (style: string) => {
 }
 
 export default function ChatPage() {
-  const [isInit, setIsInit] = useState(false)
+  const [isChatComponentLoaded, setIsChatComponentLoaded] = useState(false)
+  const [isServerLoaded, setIsServerLoaded] = useState(false)
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
     null
   )
   const [activeChatId, setActiveChatId] = useState('')
-  const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([])
+  const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
-    Context[]
+    EditorContext[]
   >([])
   const [pendingActiveSelection, setPendingActiveSelection] =
-    useState<Context | null>(null)
+    useState<EditorContext | null>(null)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
   const chatRef = useRef<ChatRef>(null)
-  const [chatLoaded, setChatLoaded] = useState(false)
   const { width } = useWindowSize()
   const prevWidthRef = useRef(width)
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -76,25 +76,23 @@ export default function ChatPage() {
     useState(false)
   const [supportsOnLookupSymbol, setSupportsOnLookupSymbol] = useState(false)
   const [
-    supportsProvideWorkspaceGitRepoInfo,
-    setSupportsProvideWorkspaceGitRepoInfo
+    supportsReadWorkspaceGitRepoInfo,
+    setSupportsReadWorkspaceGitRepoInfo
   ] = useState(false)
   const [supportProvideFileAtInfo, setSupportProvideFileAtInfo] =
     useState(false)
   const [supportGetFileAtInfoContent, setSupportGetFileAtInfoContent] =
     useState(false)
 
-  const sendMessage = (message: ChatMessage) => {
+  const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
-      chatRef.current.sendUserChat(message)
+      chatRef.current.executeCommand(command)
     } else {
-      const newPendingMessages = [...pendingMessages]
-      newPendingMessages.push(message)
-      setPendingMessages(newPendingMessages)
+      setPendingCommand(command)
     }
   }
 
-  const addRelevantContext = (ctx: Context) => {
+  const addRelevantContext = (ctx: EditorContext) => {
     if (chatRef.current) {
       chatRef.current.addRelevantContext(ctx)
     } else {
@@ -104,7 +102,7 @@ export default function ChatPage() {
     }
   }
 
-  const updateActiveSelection = (ctx: Context | null) => {
+  const updateActiveSelection = (ctx: EditorContext | null) => {
     if (chatRef.current) {
       chatRef.current.updateActiveSelection(ctx)
     } else if (ctx) {
@@ -122,13 +120,12 @@ export default function ChatPage() {
       }
 
       setActiveChatId(nanoid())
-      setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
       useMacOSKeyboardEventHandler.current =
         request.useMacOSKeyboardEventHandler
     },
-    sendMessage: (message: ChatMessage) => {
-      return sendMessage(message)
+    executeCommand: async (command: ChatCommand) => {
+      return executeCommand(command)
     },
     showError: (errorMessage: ErrorMessage) => {
       setErrorMessage(errorMessage)
@@ -136,7 +133,7 @@ export default function ChatPage() {
     cleanError: () => {
       setErrorMessage(null)
     },
-    addRelevantContext: context => {
+    addRelevantContext: (context: EditorContext) => {
       return addRelevantContext(context)
     },
     updateTheme: (style, themeClass) => {
@@ -159,7 +156,9 @@ export default function ChatPage() {
       document.documentElement.className =
         themeClass + ` client client-${client}`
     },
-    updateActiveSelection
+    updateActiveSelection: (context: EditorContext | null) => {
+      return updateActiveSelection(context)
+    }
   })
 
   useEffect(() => {
@@ -248,24 +247,20 @@ export default function ChatPage() {
         server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
         server
           ?.hasCapability('readWorkspaceGitRepositories')
-          .then(setSupportsProvideWorkspaceGitRepoInfo)
-        server
-          ?.hasCapability('provideFileAtInfo')
-          .then(setSupportProvideFileAtInfo)
-        server
-          ?.hasCapability('getFileAtInfoContent')
-          .then(setSupportGetFileAtInfoContent)
+          .then(setSupportsReadWorkspaceGitRepoInfo)
       }
 
-      checkCapabilities()
+      checkCapabilities().then(() => {
+        setIsServerLoaded(true)
+      })
     }
   }, [server])
 
   useLayoutEffect(() => {
-    if (!chatLoaded) return
+    if (!isChatComponentLoaded) return
     if (
       width &&
-      isInit &&
+      isServerLoaded &&
       fetcherOptions &&
       !errorMessage &&
       !prevWidthRef.current
@@ -273,25 +268,44 @@ export default function ChatPage() {
       chatRef.current?.focus()
     }
     prevWidthRef.current = width
-  }, [width, chatLoaded])
+  }, [width, isChatComponentLoaded])
 
   const clearPendingState = () => {
     setPendingRelevantContexts([])
-    setPendingMessages([])
+    setPendingCommand(undefined)
     setPendingActiveSelection(null)
   }
 
   const onChatLoaded = () => {
-    pendingRelevantContexts.forEach(addRelevantContext)
-    pendingMessages.forEach(sendMessage)
-    chatRef.current?.updateActiveSelection(pendingActiveSelection)
+    const currentChatRef = chatRef.current
+    if (!currentChatRef) return
+
+    pendingRelevantContexts.forEach(context => {
+      currentChatRef.addRelevantContext(context)
+    })
+
+    if (pendingActiveSelection) {
+      currentChatRef.updateActiveSelection(pendingActiveSelection)
+    }
+
+    if (pendingCommand) {
+      currentChatRef.executeCommand(pendingCommand)
+    }
 
     clearPendingState()
-    setChatLoaded(true)
+    setIsChatComponentLoaded(true)
   }
 
-  const onNavigateToContext = (context: Context, opts?: NavigateOpts) => {
-    server?.navigate(context, opts)
+  const openInEditor = async (fileLocation: FileLocation) => {
+    return server?.openInEditor(fileLocation) ?? false
+  }
+
+  const openExternal = async (url: string) => {
+    return server?.openExternal(url)
+  }
+
+  const getActiveEditorSelection = async () => {
+    return server?.getActiveEditorSelection() ?? null
   }
 
   const refresh = async () => {
@@ -368,7 +382,7 @@ export default function ChatPage() {
     )
   }
 
-  if (!isInit || !fetcherOptions) {
+  if (!isServerLoaded || !fetcherOptions) {
     return (
       <StaticContent>
         <>
@@ -395,11 +409,9 @@ export default function ChatPage() {
         key={activeChatId}
         ref={chatRef}
         chatInputRef={chatInputRef}
-        onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
         maxWidth={client === 'vscode' ? '5xl' : undefined}
         onCopyContent={isInEditor && server?.onCopy}
-        onSubmitMessage={isInEditor && server?.onSubmitMessage}
         onApplyInEditor={
           isInEditor &&
           (supportsOnApplyInEditorV2
@@ -411,22 +423,14 @@ export default function ChatPage() {
           isInEditor &&
           (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
         }
-        openInEditor={isInEditor && server?.openInEditor}
+        openInEditor={openInEditor}
+        openExternal={openExternal}
         readWorkspaceGitRepositories={
-          isInEditor && supportsProvideWorkspaceGitRepoInfo
+          supportsReadWorkspaceGitRepoInfo
             ? server?.readWorkspaceGitRepositories
             : undefined
         }
-        provideFileAtInfo={
-          isInEditor && supportProvideFileAtInfo
-            ? server?.provideFileAtInfo
-            : undefined
-        }
-        getFileAtInfoContent={
-          isInEditor && supportGetFileAtInfoContent
-            ? server?.getFileAtInfoContent
-            : undefined
-        }
+        getActiveEditorSelection={getActiveEditorSelection}
       />
     </ErrorBoundary>
   )

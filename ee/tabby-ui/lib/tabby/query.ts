@@ -397,11 +397,13 @@ export const listThreadMessages = graphql(/* GraphQL */ `
         node {
           id
           threadId
+          codeSourceId
           role
           content
           attachment {
             code {
               gitUrl
+              commit
               filepath
               language
               content
@@ -469,6 +471,20 @@ export const notificationsQuery = graphql(/* GraphQL */ `
       content
       read
       createdAt
+    }
+  }
+`)
+
+export const repositorySourceListQuery = graphql(/* GraphQL */ `
+  query RepositorySourceList {
+    repositoryList {
+      id
+      name
+      kind
+      gitUrl
+      sourceId
+      sourceName
+      sourceKind
     }
   }
 `)

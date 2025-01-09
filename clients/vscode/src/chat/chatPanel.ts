@@ -1,41 +1,19 @@
-import { createThread, type ThreadOptions } from "tabby-threads";
-import type { ServerApi, ClientApiMethods } from "tabby-chat-panel";
-import { Webview } from "vscode";
+import { window, ExtensionContext, ViewColumn } from "vscode";
+import { v4 as uuid } from "uuid";
+import { ChatWebview } from "./webview";
+import type { Client } from "../lsp/Client";
+import type { GitProvider } from "../git/GitProvider";
 
-export function createThreadFromWebview<Self = Record<string, never>, Target = Record<string, never>>(
-  webview: Webview,
-  options?: ThreadOptions<Self, Target>,
-) {
-  return createThread(
-    {
-      send(message) {
-        webview.postMessage({ action: "postMessageToChatPanel", message });
-      },
-      listen(listener, { signal }) {
-        const { dispose } = webview.onDidReceiveMessage(listener);
-        signal?.addEventListener("abort", () => {
-          dispose();
-        });
-      },
-    },
-    options,
-  );
-}
+export async function createChatPanel(context: ExtensionContext, client: Client, gitProvider: GitProvider) {
+  const id = uuid();
+  const panel = window.createWebviewPanel(`tabby.chat.panel-${id}`, "Tabby", ViewColumn.One, {
+    retainContextWhenHidden: true,
+  });
 
-export function createClient(webview: Webview, api: ClientApiMethods): ServerApi {
-  return createThreadFromWebview(webview, {
-    expose: {
-      navigate: api.navigate,
-      refresh: api.refresh,
-      onSubmitMessage: api.onSubmitMessage,
-      onApplyInEditor: api.onApplyInEditor,
-      onApplyInEditorV2: api.onApplyInEditorV2,
-      onLoaded: api.onLoaded,
-      onCopy: api.onCopy,
-      onKeyboardEvent: api.onKeyboardEvent,
-      lookupSymbol: api.lookupSymbol,
-      openInEditor: api.openInEditor,
-      readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
-    },
+  const chatWebview = new ChatWebview(context, client, gitProvider);
+  chatWebview.init(panel.webview);
+
+  panel.onDidDispose(() => {
+    chatWebview.dispose();
   });
 }

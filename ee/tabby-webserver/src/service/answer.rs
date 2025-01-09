@@ -577,7 +577,7 @@ pub async fn merge_code_snippets(
 
             if let Some(file_content) = file_content {
                 debug!(
-                    "file {} less than 200, it will be included whole file content",
+                    "file {} less than 300, it will be included whole file content",
                     file_hits[0].doc.filepath
                 );
                 let mut insert_hit = file_hits[0].clone();
@@ -596,7 +596,9 @@ pub async fn merge_code_snippets(
                 insert_hit.scores.embedding /= num_files;
                 insert_hit.scores.rrf /= num_files;
                 insert_hit.doc.body = file_content;
-                insert_hit.doc.start_line = 1;
+
+                // When we use entire file content, mark start_line as None.
+                insert_hit.doc.start_line = None;
                 result.push(insert_hit);
             }
         } else {
@@ -768,10 +770,11 @@ mod tests {
             })],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com/".to_owned(),
+                commit: Some("commit".to_owned()),
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "from flask import Flask\n\napp = Flask(__name__)\n\n@app.route('/')\ndef hello():\n    return 'Hello, World!'".to_owned(),
-                start_line: 1,
+                start_line: Some(1),
             }],
             client_code: vec![],
         };
@@ -801,10 +804,11 @@ mod tests {
             )],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com".to_owned(),
+                commit: Some("commit".to_owned()),
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "print('Hello, server!')".to_owned(),
-                start_line: 1,
+                start_line: Some(1),
             }],
             client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
                 filepath: Some("client.py".to_owned()),
@@ -977,10 +981,11 @@ mod tests {
             )],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com".to_owned(),
+                commit: Some("commit".to_owned()),
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "print('Hello, server!')".to_owned(),
-                start_line: 1,
+                start_line: Some(1),
             }],
             client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
                 filepath: Some("client.py".to_owned()),
@@ -1038,10 +1043,11 @@ mod tests {
             )],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com".to_owned(),
+                commit: Some("commit".to_owned()),
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "print('Hello, server!')".to_owned(),
-                start_line: 1,
+                start_line: Some(1),
             }],
             client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
                 filepath: Some("client.py".to_owned()),
@@ -1335,8 +1341,9 @@ mod tests {
                     body: "fn test1() {}\nfn test2() {}".to_string(),
                     filepath: "test.rs".to_string(),
                     git_url: "https://github.com/test/repo.git".to_string(),
+                    commit: Some("commit".to_string()),
                     language: "rust".to_string(),
-                    start_line: 1,
+                    start_line: Some(1),
                 },
                 scores: CodeSearchScores {
                     bm25: 0.5,
@@ -1351,8 +1358,9 @@ mod tests {
                     body: "fn test3() {}\nfn test4() {}".to_string(),
                     filepath: "test.rs".to_string(),
                     git_url: "https://github.com/test/repo.git".to_string(),
+                    commit: Some("commit".to_string()),
                     language: "rust".to_string(),
-                    start_line: 3,
+                    start_line: Some(3),
                 },
                 scores: CodeSearchScores {
                     bm25: 0.6,
@@ -1365,5 +1373,7 @@ mod tests {
         let result = merge_code_snippets(&repo.unwrap(), hits).await;
 
         assert_eq!(result.len(), 2);
+        assert_eq!(result[0].doc.commit, Some("commit".to_string()));
+        assert_eq!(result[1].doc.commit, Some("commit".to_string()));
     }
 }

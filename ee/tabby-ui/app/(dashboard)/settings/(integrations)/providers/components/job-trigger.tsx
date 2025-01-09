@@ -110,7 +110,7 @@ export function JobInfoView(props: JobInfoProps) {
 
   return (
     <div className={cn('flex items-center gap-1', className)}>
-      <LastJobRunInfo jobInfo={jobInfo} className="hidden lg:block" />
+      <LastJobRunInfo jobInfo={jobInfo} className="hidden lg:block lg:w-32" />
       <JobTrigger
         onTrigger={onTrigger}
         isPending={isJobPending}

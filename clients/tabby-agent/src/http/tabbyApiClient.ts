@@ -26,6 +26,7 @@ import {
   isUnauthorizedError,
   isCanceledError,
   isTimeoutError,
+  isRateLimitExceededError,
 } from "../utils/error";
 import { RequestStats } from "./statistics";
 
@@ -48,6 +49,7 @@ export class TabbyApiClient extends EventEmitter {
 
   private readonly completionRequestStats = new RequestStats();
   private completionResponseIssue: "highTimeoutRate" | "slowResponseTime" | undefined = undefined;
+  private rateLimitExceeded: boolean = false;
 
   private connectionErrorMessage: string | undefined = undefined;
   private serverHealth: TabbyApiComponents["schemas"]["HealthState"] | undefined = undefined;
@@ -176,6 +178,14 @@ export class TabbyApiClient extends EventEmitter {
     }
   }
 
+  private updateIsRateLimitExceeded(isRateLimitExceeded: boolean) {
+    if (this.rateLimitExceeded != isRateLimitExceeded) {
+      this.logger.debug(`updateIsRateLimitExceeded: ${isRateLimitExceeded}`);
+      this.rateLimitExceeded = isRateLimitExceeded;
+      this.emit("isRateLimitExceededUpdated", isRateLimitExceeded);
+    }
+  }
+
   getCompletionRequestStats(): RequestStats {
     return this.completionRequestStats;
   }
@@ -212,6 +222,10 @@ export class TabbyApiClient extends EventEmitter {
 
   hasCompletionResponseTimeIssue(): boolean {
     return !!this.completionResponseIssue;
+  }
+
+  isRateLimitExceeded(): boolean {
+    return this.rateLimitExceeded;
   }
 
   getServerHealth(): TabbyApiComponents["schemas"]["HealthState"] | undefined {
@@ -370,6 +384,7 @@ export class TabbyApiClient extends EventEmitter {
       }
       this.logger.trace(`Completion response data: [${requestId}]`, response.data);
       statsData.latency = performance.now() - requestStartedAt;
+      this.updateIsRateLimitExceeded(false);
       return response.data;
     } catch (error) {
       this.updateIsFetchingCompletion(false);
@@ -382,10 +397,16 @@ export class TabbyApiClient extends EventEmitter {
       } else if (isUnauthorizedError(error)) {
         this.logger.debug(`Completion request failed due to unauthorized. [${requestId}]`);
         statsData.notAvailable = true;
+        this.updateIsRateLimitExceeded(false);
         this.connect(); // schedule a reconnection
+      } else if (isRateLimitExceededError(error)) {
+        this.logger.debug(`Completion request failed due to rate limiting. [${requestId}]`);
+        statsData.notAvailable = true;
+        this.updateIsRateLimitExceeded(true);
       } else {
         this.logger.error(`Completion request failed. [${requestId}]`, error);
         statsData.notAvailable = true;
+        this.updateIsRateLimitExceeded(false);
         this.connect(); // schedule a reconnection
       }
       throw error; // rethrow error
@@ -393,6 +414,7 @@ export class TabbyApiClient extends EventEmitter {
       if (!statsData.notAvailable) {
         stats?.addRequestStatsEntry(statsData);
       }
+
       if (!statsData.notAvailable && !statsData.canceled) {
         this.completionRequestStats.add(statsData.latency);
         const statsResult = this.completionRequestStats.stats();

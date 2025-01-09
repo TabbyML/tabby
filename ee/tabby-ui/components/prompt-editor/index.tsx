@@ -161,20 +161,6 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
               placement: placement === 'bottom' ? 'top-start' : 'bottom-start',
               disabled: !hasDocSources
             })
-          }),
-          // for codebase mention
-          MentionExtension.configure({
-            deleteTriggerWithBackspace: true,
-            HTMLAttributes: {
-              class: 'mention-code'
-            },
-            suggestion: suggestion({
-              category: 'code',
-              char: '#',
-              pluginKey: CodeMentionPluginKey,
-              placement: placement === 'bottom' ? 'top-start' : 'bottom-start',
-              disabled: !hasCodebaseSources
-            })
           })
         ],
         editorProps: {

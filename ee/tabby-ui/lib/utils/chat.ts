@@ -105,3 +105,48 @@ export function checkSourcesAvailability(
 
   return { hasCodebaseSource, hasDocumentSource }
 }
+
+/**
+ * url e.g #cell=1
+ * @param fragment
+ * @returns
+ */
+function parseNotebookCellUriFragment(fragment: string) {
+  if (!fragment) return undefined
+  try {
+    const searchParams = new URLSearchParams(fragment)
+    const cellString = searchParams.get('cell')?.toString()
+    if (!cellString) {
+      return undefined
+    }
+
+    const handle = parseInt(cellString, 10)
+
+    if (isNaN(handle)) {
+      return undefined
+    }
+    return {
+      handle
+    }
+  } catch (error) {
+    return undefined
+  }
+}
+
+export function resolveFileNameForDisplay(uri: string) {
+  let url: URL
+  try {
+    url = new URL(uri)
+  } catch (e) {
+    url = new URL(uri, 'file://')
+  }
+  const filename = url.pathname.split('/').pop() || ''
+  const extname = filename.includes('.') ? `.${filename.split('.').pop()}` : ''
+  const isNotebook = extname.startsWith('.ipynb')
+  const hash = url.hash ? url.hash.substring(1) : ''
+  const cell = parseNotebookCellUriFragment(hash)
+  if (isNotebook && cell) {
+    return `${filename} · Cell ${(cell.handle || 0) + 1}`
+  }
+  return filename
+}

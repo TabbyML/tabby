@@ -1,9 +1,19 @@
 import { clsx, type ClassValue } from 'clsx'
 import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
+import type {
+  ChatCommand,
+  EditorContext,
+  FileLocation,
+  Filepath,
+  LineRange,
+  Location,
+  Position,
+  PositionRange
+} from 'tabby-chat-panel'
 import { twMerge } from 'tailwind-merge'
 
-import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
+import { AttachmentCodeItem, AttachmentDocItem, FileContext } from '@/lib/types'
 
 import { Maybe } from '../gql/generates/graphql'
 
@@ -107,25 +117,57 @@ export function formatLineHashForCodeBrowser(
   ).join('-')
 }
 
+export function formatLineHashForLocation(location: Location | undefined) {
+  if (!location) {
+    return ''
+  }
+  if (typeof location === 'number') {
+    return `L${location}`
+  }
+  if (
+    typeof location === 'object' &&
+    'line' in location &&
+    typeof location.line === 'number'
+  ) {
+    return `L${location.line}`
+  }
+  if ('start' in location) {
+    const start = location.start
+    if (typeof start === 'number') {
+      const end = location.end as number
+      return `L${start}-L${end}`
+    }
+    if (
+      typeof start === 'object' &&
+      'line' in start &&
+      typeof start.line === 'number'
+    ) {
+      const end = location.end as Position
+      return `L${start.line}-L${end.line}`
+    }
+  }
+  return ''
+}
+
 export function getRangeFromAttachmentCode(code: {
   startLine?: Maybe<number>
   content: string
-}) {
-  const startLine = code?.startLine ?? 0
-  const lineCount = code?.content.split('\n').length
-  const endLine = startLine + lineCount - 1
+}): LineRange | undefined {
+  if (!code?.startLine) return undefined
+
+  const start = code.startLine
+  const lineCount = code.content.split('\n').length
+  const end = start + lineCount - 1
 
   return {
-    startLine,
-    endLine,
-    isValid: !!startLine,
-    isMultiLine: !!startLine && startLine <= endLine
+    start,
+    end
   }
 }
 
 export function getRangeTextFromAttachmentCode(code: AttachmentCodeItem) {
-  const { startLine, endLine } = getRangeFromAttachmentCode(code)
-  return formatLineHashForCodeBrowser({ start: startLine, end: endLine })
+  const range = getRangeFromAttachmentCode(code)
+  return formatLineHashForCodeBrowser(range)
 }
 
 export function getContent(item: AttachmentDocItem) {
@@ -138,4 +180,102 @@ export function getContent(item: AttachmentDocItem) {
   }
 
   return ''
+}
+
+export function getPromptForChatCommand(command: ChatCommand) {
+  switch (command) {
+    case 'explain':
+      return 'Explain the selected code:'
+    case 'fix':
+      return 'Identify and fix potential bugs in the selected code:'
+    case 'generate-docs':
+      return 'Generate documentation for the selected code:'
+    case 'generate-tests':
+      return 'Generate a unit test for the selected code:'
+  }
+}
+
+export function convertEditorContext(
+  editorContext: EditorContext
+): FileContext {
+  const convertRange = (range: LineRange | PositionRange | undefined) => {
+    // If the range is not provided, the whole file is considered.
+    if (!range) {
+      return undefined
+    }
+
+    if (typeof range.start === 'number') {
+      return range as LineRange
+    }
+
+    const positionRange = range as PositionRange
+    return {
+      start: positionRange.start.line,
+      end: positionRange.end.line
+    }
+  }
+
+  const convertFilepath = (filepath: Filepath) => {
+    if (filepath.kind === 'uri') {
+      return {
+        filepath: filepath.uri,
+        git_url: ''
+      }
+    }
+
+    return {
+      filepath: filepath.filepath,
+      git_url: filepath.gitUrl
+    }
+  }
+
+  return {
+    kind: 'file',
+    content: editorContext.content,
+    range: convertRange(editorContext.range),
+    ...convertFilepath(editorContext.filepath)
+  }
+}
+
+export function getFilepathFromContext(context: FileContext): Filepath {
+  if (context.git_url.length > 1 && !context.filepath.includes(':')) {
+    return {
+      kind: 'git',
+      filepath: context.filepath,
+      gitUrl: context.git_url
+    }
+  } else {
+    return {
+      kind: 'uri',
+      uri: context.filepath
+    }
+  }
+}
+
+export function getFileLocationFromContext(context: FileContext): FileLocation {
+  return {
+    filepath: getFilepathFromContext(context),
+    location: context.range
+  }
+}
+
+export function buildCodeBrowserUrlForContext(
+  base: string,
+  context: FileContext
+) {
+  const url = new URL(base)
+  url.pathname = '/files'
+
+  const searchParams = new URLSearchParams()
+  searchParams.append('redirect_filepath', context.filepath)
+  searchParams.append('redirect_git_url', context.git_url)
+  if (context.commit) {
+    searchParams.append('redirect_rev', context.commit)
+  }
+
+  url.search = searchParams.toString()
+
+  url.hash = formatLineHashForCodeBrowser(context.range)
+
+  return url.toString()
 }

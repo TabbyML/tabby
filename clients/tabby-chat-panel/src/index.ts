@@ -51,15 +51,35 @@ export interface LineRange {
  */
 export type Location = number | LineRange | Position | PositionRange
 
-export interface FileContext {
+/**
+ * Represents a client-side file context.
+ * This type should only be used for sending context from client to server.
+ */
+export interface EditorFileContext {
   kind: 'file'
-  range: LineRange
-  filepath: string
+
+  /**
+   * The filepath of the file.
+   */
+  filepath: Filepath
+
+  /**
+   * The range of the selected content in the file.
+   * If the range is not provided, the whole file is considered.
+   */
+  range?: LineRange | PositionRange
+
+  /**
+   * The content of the file context.
+   */
   content: string
-  git_url: string
 }
 
-export type Context = FileContext
+/**
+ * Represents a client-side context.
+ * This type should only be used for sending context from client to server.
+ */
+export type EditorContext = EditorFileContext
 
 export interface FetcherOptions {
   authorization: string
@@ -78,13 +98,10 @@ export interface OnLoadedParams {
   apiVersion: string
 }
 
+// @deprecated
 export interface ErrorMessage {
   title?: string
   content: string
-}
-
-export interface NavigateOpts {
-  openInEditor?: boolean
 }
 
 /**
@@ -144,8 +161,9 @@ export interface FileLocation {
   /**
    * The location in the file.
    * It could be a 1-based line number, a line range, a position or a position range.
+   * If the location is not provided, the whole file is considered.
    */
-  location: Location
+  location?: Location
 }
 
 /**
@@ -184,21 +202,36 @@ export interface GitRepository {
   url: string
 }
 
+/**
+ * Predefined commands.
+ * - 'explain': Explain the selected code.
+ * - 'fix': Fix bugs in the selected code.
+ * - 'generate-docs': Generate documentation for the selected code.
+ * - 'generate-tests': Generate tests for the selected code.
+ */
+export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
+
 export interface ServerApi {
   init: (request: InitRequest) => void
-  sendMessage: (message: ChatMessage) => void
+
+  /**
+   * Execute a predefined command.
+   * @param command The command to execute.
+   */
+  executeCommand: (command: ChatCommand) => Promise<void>
+
+  // @deprecated
   showError: (error: ErrorMessage) => void
+  // @deprecated
   cleanError: () => void
-  addRelevantContext: (context: Context) => void
+
+  addRelevantContext: (context: EditorContext) => void
   updateTheme: (style: string, themeClass: string) => void
-  updateActiveSelection: (context: Context | null) => void
+  updateActiveSelection: (context: EditorContext | null) => void
 }
 
 export interface ClientApiMethods {
-  navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
-
-  onSubmitMessage: (msg: string, relevantContext?: Context[]) => Promise<void>
 
   // apply content into active editor, version 1, not support smart apply
   onApplyInEditor: (content: string) => void
@@ -232,35 +265,34 @@ export interface ClientApiMethods {
    */
   openInEditor: (target: FileLocation) => Promise<boolean>
 
+  /**
+   * Open the target URL in the external browser.
+   * @param url The target URL to open.
+   */
+  openExternal: (url: string) => Promise<void>
+
   // Provide all repos found in workspace folders.
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
+
+  /**
+   * @returns The active selection of active editor.
+   */
+  getActiveEditorSelection: () => Promise<EditorFileContext | null>
 }
 
 export interface ClientApi extends ClientApiMethods {
-  // this is inner function cover by tabby-threads
-  // the function doesn't need to expose to client but can call by client
+  /**
+   * Checks if the client supports this capability.
+   * This method is designed to check capability across different clients (IDEs).
+   * Note: This method should not be used to ensure compatibility across different chat panel SDK versions.
+   */
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
-}
-
-export interface ChatMessage {
-  message: string
-
-  // Client side context - displayed in user message
-  selectContext?: Context
-
-  // Client side contexts - displayed in assistant message
-  relevantContext?: Array<Context>
-
-  // Client side active selection context - displayed in assistant message
-  activeContext?: Context
 }
 
 export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
   return createThreadFromIframe(target, {
     expose: {
-      navigate: api.navigate,
       refresh: api.refresh,
-      onSubmitMessage: api.onSubmitMessage,
       onApplyInEditor: api.onApplyInEditor,
       onApplyInEditorV2: api.onApplyInEditorV2,
       onLoaded: api.onLoaded,
@@ -268,7 +300,9 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       onKeyboardEvent: api.onKeyboardEvent,
       lookupSymbol: api.lookupSymbol,
       openInEditor: api.openInEditor,
+      openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
+      getActiveEditorSelection: api.getActiveEditorSelection,
     },
   })
 }
@@ -277,7 +311,7 @@ export function createServer(api: ServerApi): ClientApi {
   return createThreadFromInsideIframe({
     expose: {
       init: api.init,
-      sendMessage: api.sendMessage,
+      executeCommand: api.executeCommand,
       showError: api.showError,
       cleanError: api.cleanError,
       addRelevantContext: api.addRelevantContext,

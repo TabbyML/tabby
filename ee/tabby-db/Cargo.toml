@@ -15,18 +15,18 @@ chrono = { workspace = true, features = ["serde"] }
 hash-ids.workspace = true
 lazy_static.workspace = true
 sql_query_builder = { version = "2.1.0", features = ["sqlite"] }
-# https://github.com/wsxiaoys/sqlx/tree/fix-0-7-4-remove-datetime-utc-encode
-sqlx = { git = "https://github.com/wsxiaoys/sqlx", rev = "8ca573c", features = [
+tokio = { workspace = true, features = ["fs"] }
+uuid.workspace = true
+cached = { workspace = true, features = ["async"] }
+serde.workspace = true
+sqlx = { workspace = true, features = [
     "sqlite",
     "chrono",
     "runtime-tokio",
     "macros",
     "json",
 ] }
-tokio = { workspace = true, features = ["fs"] }
-uuid.workspace = true
-cached = { workspace = true, features = ["async"] }
-serde.workspace = true
+sqlx-migrate-validate = { path = "../../crates/sqlx-migrate-validate" }
 
 [dev-dependencies]
 assert_matches.workspace = true

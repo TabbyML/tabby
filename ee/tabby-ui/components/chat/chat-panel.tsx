@@ -6,7 +6,6 @@ import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compact } from 'lodash-es'
 import { toast } from 'sonner'
-import type { Context } from 'tabby-chat-panel'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -14,7 +13,12 @@ import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
-import { cn, getTitleFromMessages } from '@/lib/utils'
+import type { Context } from '@/lib/types'
+import {
+  cn,
+  getTitleFromMessages,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -288,10 +292,11 @@ function ChatPanelRenderer(
                 </motion.div>
               ) : null}
               {relevantContext.map((item, idx) => {
+                // `git_url + filepath + range` as unique key
+                const key = `${item.git_url}_${item.filepath}_${item.range?.start}_${item.range?.end}`
                 return (
                   <motion.div
-                    // `filepath + range` as unique key
-                    key={item.filepath + item.range.start + item.range.end}
+                    key={key}
                     initial={{ opacity: 0, scale: 0.9, y: -5 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{
@@ -344,16 +349,16 @@ function ContextLabel({
   context: Context
   className?: string
 }) {
-  const [fileName] = context.filepath.split('/').slice(-1)
-  const line =
-    context.range.start === context.range.end
+  const line = context.range
+    ? context.range.start === context.range.end
       ? `:${context.range.start}`
       : `:${context.range.start}-${context.range.end}`
+    : ''
 
   return (
     <span className={cn('truncate', className)}>
-      {fileName}
-      <span className="text-muted-foreground">{line}</span>
+      {resolveFileNameForDisplay(context.filepath)}
+      {!!context.range && <span className="text-muted-foreground">{line}</span>}
     </span>
   )
 }

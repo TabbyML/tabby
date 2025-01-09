@@ -30,8 +30,15 @@ pub struct CodeSearchDocument {
     pub body: String,
     pub filepath: String,
     pub git_url: String,
+
+    // FIXME(kweizh): This should be a required field after 0.25.0.
+    // commit represents the specific revision at which the file was last edited.
+    pub commit: Option<String>,
+
     pub language: String,
-    pub start_line: usize,
+
+    /// When start line is `None`, it represents the entire file.
+    pub start_line: Option<usize>,
 }
 
 #[derive(Error, Debug)]

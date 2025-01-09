@@ -50,6 +50,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.updateToken",
+        "title": "Update Token...",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.openSettings",
         "title": "Open Settings",
         "category": "Tabby"
@@ -159,6 +164,10 @@
         {
           "command": "tabby.inlineCompletion.trigger",
           "when": "tabby.inlineCompletionTriggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
+        },
+        {
+          "command": "tabby.updateToken",
+          "when": "tabby.status === 'unauthorized'"
         },
         {
           "command": "tabby.openTabbyAgentSettings",
@@ -394,19 +403,13 @@
         "command": "tabby.chat.addRelevantContext",
         "key": "ctrl+l",
         "mac": "cmd+l",
-        "when": "editorHasSelection && editorTextFocus && tabby.chatEnabled"
+        "when": "tabby.chatEnabled && editorTextFocus && editorHasSelection && tabby.chatSidePanelVisible"
       },
       {
-        "command": "tabby.chatView.focus",
+        "command": "tabby.chat.toggleFocus",
         "key": "ctrl+l",
         "mac": "cmd+l",
-        "when": "!editorHasSelection && editorTextFocus && tabby.chatEnabled"
-      },
-      {
-        "command": "workbench.action.focusActiveEditorGroup",
-        "key": "ctrl+l",
-        "mac": "cmd+l",
-        "when": "!editorFocus && focusedView == 'tabby.chatView'"
+        "when": "(tabby.chatEnabled && editorTextFocus && !tabby.chatSidePanelVisible) || ((!editorTextFocus || (editorTextFocus && !editorHasSelection)) && tabby.chatSidePanelVisible)"
       }
     ],
     "viewsContainers": {
@@ -449,7 +452,6 @@
     "publish-prerelease": "pnpm run vscode:publish-prerelease && pnpm run ovsx:publish-prerelease"
   },
   "devDependencies": {
-    "tabby-threads": "workspace:*",
     "@types/deep-equal": "^1.0.4",
     "@types/diff": "^5.2.1",
     "@types/fs-extra": "^11.0.1",
@@ -457,6 +459,7 @@
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
     "@types/semver": "^7.5.8",
+    "@types/uuid": "^9.0.0",
     "@types/vscode": "^1.82.0",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
@@ -479,9 +482,11 @@
     "semver": "^7.6.0",
     "tabby-agent": "workspace:*",
     "tabby-chat-panel": "workspace:*",
+    "tabby-threads": "workspace:*",
     "tsc-watch": "^6.2.0",
     "tsup": "^8.0.2",
     "typescript": "^5.3.2",
+    "uuid": "^9.0.0",
     "vscode-languageclient": "^9.0.1"
   }
 }
