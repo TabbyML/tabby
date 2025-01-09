@@ -121,6 +121,20 @@ interface ChatProps extends React.ComponentProps<'div'> {
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
   getActiveEditorSelection?: () => Promise<EditorFileContext | null>
+  fetchPersistedState?: () => Promise<PersistedState | null>
+  storePersistedState?: (state: Partial<PersistedState>) => Promise<void>
+}
+
+/**
+ * The state to persist, should be json serializable.
+ * Save this state to client storage so that the chat panel can be restored across client sessions.
+ */
+export interface PersistedState {
+  threadId?: string | undefined
+  qaPairs?: QuestionAnswerPair[] | undefined
+  input?: string | undefined
+  relevantContext?: Context[] | undefined
+  selectedRepoId?: string | undefined
 }
 
 function ChatRenderer(
@@ -144,7 +158,9 @@ function ChatRenderer(
     chatInputRef,
     supportsOnApplyInEditorV2,
     readWorkspaceGitRepositories,
-    getActiveEditorSelection
+    getActiveEditorSelection,
+    fetchPersistedState,
+    storePersistedState
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -158,10 +174,23 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
+
+  React.useEffect(() => {
+    if (isDataSetup) {
+      storePersistedState?.({ input })
+    }
+  }, [input, isDataSetup, storePersistedState])
+
   // sourceId
   const [selectedRepoId, setSelectedRepoId] = React.useState<
     string | undefined
   >()
+
+  React.useEffect(() => {
+    if (isDataSetup) {
+      storePersistedState?.({ selectedRepoId })
+    }
+  }, [selectedRepoId, isDataSetup, storePersistedState])
 
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
@@ -196,6 +225,9 @@ function ChatRenderer(
 
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
+    storePersistedState?.({
+      qaPairs: nextQaPairs
+    })
 
     deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
@@ -226,6 +258,9 @@ function ChatRenderer(
         }
       ]
       setQaPairs(nextQaPairs)
+      storePersistedState?.({
+        qaPairs: nextQaPairs
+      })
       const [userMessage, threadRunOptions] = generateRequestPayload(
         qaPair.user
       )
@@ -254,11 +289,18 @@ function ChatRenderer(
       nextClientContext = nextClientContext.concat(userMessage.relevantContext)
     }
 
-    setRelevantContext(uniqWith(nextClientContext, isEqual))
+    const updatedRelevantContext = uniqWith(nextClientContext, isEqual)
+    setRelevantContext(updatedRelevantContext)
 
     // delete message pair
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
+
+    storePersistedState?.({
+      qaPairs: nextQaPairs,
+      relevantContext: updatedRelevantContext
+    })
+
     setInput(userMessage.message)
     if (userMessage.activeContext) {
       openInEditor(getFileLocationFromContext(userMessage.activeContext))
@@ -282,6 +324,10 @@ function ChatRenderer(
     stop(true)
     setQaPairs([])
     setThreadId(undefined)
+    storePersistedState?.({
+      qaPairs: [],
+      threadId: undefined
+    })
   }
 
   const handleMessageAction = (
@@ -311,6 +357,9 @@ function ChatRenderer(
     // update threadId
     if (answer.threadId && !threadId) {
       setThreadId(answer.threadId)
+      storePersistedState?.({
+        threadId: answer.threadId
+      })
     }
 
     setQaPairs(prev => {
@@ -334,18 +383,22 @@ function ChatRenderer(
         }
       ]
     })
+
+    if (!isLoading) {
+      storePersistedState?.({ qaPairs })
+    }
   }, [answer, isLoading])
 
-  const scrollToBottom = useDebounceCallback(() => {
+  const scrollToBottom = useDebounceCallback((behavior: ScrollBehavior = 'smooth') => {
     if (container) {
       container.scrollTo({
         top: container.scrollHeight,
-        behavior: 'smooth'
+        behavior
       })
     } else {
       window.scrollTo({
         top: document.body.offsetHeight,
-        behavior: 'smooth'
+        behavior
       })
     }
   }, 100)
@@ -361,7 +414,7 @@ function ChatRenderer(
     if (error && qaPairs?.length) {
       setQaPairs(prev => {
         let lastQaPairs = prev[prev.length - 1]
-        return [
+        const nextQaPairs = [
           ...prev.slice(0, prev.length - 1),
           {
             ...lastQaPairs,
@@ -373,6 +426,10 @@ function ChatRenderer(
             }
           }
         ]
+        storePersistedState?.({
+          qaPairs: nextQaPairs
+        })
+        return nextQaPairs
       })
     }
 
@@ -467,6 +524,9 @@ function ChatRenderer(
       ]
 
       setQaPairs(nextQaPairs)
+      storePersistedState?.({
+        qaPairs: nextQaPairs
+      })
 
       sendUserMessage(...generateRequestPayload(newUserMessage))
     }
@@ -494,10 +554,19 @@ function ChatRenderer(
       relevantContext: relevantContext
     })
     setRelevantContext([])
+    storePersistedState?.({
+      relevantContext: []
+    })
   }
 
   const handleAddRelevantContext = useLatest((context: Context) => {
-    setRelevantContext(oldValue => appendContextAndDedupe(oldValue, context))
+    setRelevantContext(oldValue => {
+      const updatedValue = appendContextAndDedupe(oldValue, context)
+      storePersistedState?.({
+        relevantContext: updatedValue
+      })
+      return updatedValue
+    })
   })
 
   const addRelevantContext = (editorContext: EditorContext) => {
@@ -509,6 +578,9 @@ function ChatRenderer(
     const newRelevantContext = [...relevantContext]
     newRelevantContext.splice(index, 1)
     setRelevantContext(newRelevantContext)
+    storePersistedState?.({
+      relevantContext: newRelevantContext
+    })
   }
 
   React.useEffect(() => {
@@ -542,20 +614,42 @@ function ChatRenderer(
 
   React.useEffect(() => {
     const init = async () => {
-      const [workspaceGitRepositories, activeEditorSelecition] =
-        await Promise.all([
-          fetchWorkspaceGitRepo(),
-          initActiveEditorSelection()
-        ])
+      const [persistedState, activeEditorSelecition] = await Promise.all([
+        fetchPersistedState?.(),
+        initActiveEditorSelection()
+      ])
+
+      if (persistedState?.threadId) {
+        setThreadId(persistedState.threadId)
+      }
+      if (persistedState?.qaPairs) {
+        setQaPairs(persistedState.qaPairs)
+      }
+      if (persistedState?.input) {
+        setInput(persistedState.input)
+      }
+      if (persistedState?.relevantContext) {
+        setRelevantContext(persistedState.relevantContext)
+      }
+      scrollToBottom.run('instant')
+
       // get default repository
-      if (workspaceGitRepositories?.length && repos?.length) {
-        const defaultGitUrl = workspaceGitRepositories[0].url
-        const repo = findClosestGitRepository(
-          repos.map(x => ({ url: x.gitUrl, sourceId: x.sourceId })),
-          defaultGitUrl
-        )
-        if (repo) {
-          setSelectedRepoId(repo.sourceId)
+      if (
+        persistedState?.selectedRepoId &&
+        repos?.find(x => x.sourceId === persistedState.selectedRepoId)
+      ) {
+        setSelectedRepoId(persistedState.selectedRepoId)
+      } else {
+        const workspaceGitRepositories = await fetchWorkspaceGitRepo()
+        if (workspaceGitRepositories?.length && repos?.length) {
+          const defaultGitUrl = workspaceGitRepositories[0].url
+          const repo = findClosestGitRepository(
+            repos.map(x => ({ url: x.gitUrl, sourceId: x.sourceId })),
+            defaultGitUrl
+          )
+          if (repo) {
+            setSelectedRepoId(repo.sourceId)
+          }
         }
       }
 

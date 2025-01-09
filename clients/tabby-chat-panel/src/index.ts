@@ -278,6 +278,20 @@ export interface ClientApiMethods {
    * @returns The active selection of active editor.
    */
   getActiveEditorSelection: () => Promise<EditorFileContext | null>
+
+  /**
+   * Fetch the saved persisted state from client.
+   * @param keys The keys to be fetched. Returns all keys if not provided.
+   * @return The saved persisted state.
+   */
+  fetchPersistedState?: (keys?: string[] | undefined) => Promise<Record<string, unknown> | null>
+
+  /**
+   * Save a persisted state of the chat panel.
+   * The saved state should be merged and updated by the record key.
+   * @param state The state to save.
+   */
+  storePersistedState?: (state: Record<string, unknown>) => Promise<void>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -303,6 +317,8 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
       getActiveEditorSelection: api.getActiveEditorSelection,
+      fetchPersistedState: api.fetchPersistedState,
+      storePersistedState: api.storePersistedState,
     },
   })
 }
