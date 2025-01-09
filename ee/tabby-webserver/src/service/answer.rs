@@ -80,7 +80,7 @@ impl AnswerService {
         }
     }
 
-    pub async fn answer_v2<'a>(
+    pub async fn answer<'a>(
         self: Arc<Self>,
         policy: &AccessPolicy,
         messages: &[tabby_schema::thread::Message],
@@ -1179,7 +1179,7 @@ mod tests {
         assert_eq!(trim_bullet("1. *Bold* and -italic-"), "*Bold* and -italic");
     }
     #[tokio::test]
-    async fn test_answer_v2() {
+    async fn test_answer() {
         use std::sync::Arc;
 
         use futures::StreamExt;
@@ -1239,7 +1239,7 @@ mod tests {
         let user_attachment_input = None;
 
         let result = service
-            .answer_v2(&policy, &messages, &options, user_attachment_input)
+            .answer(&policy, &messages, &options, user_attachment_input)
             .await
             .unwrap();
 
