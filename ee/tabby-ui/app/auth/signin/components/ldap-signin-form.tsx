@@ -75,7 +75,7 @@ export default function LdapSignInForm({
                 <FormLabel className="leading-5">Username</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={PLACEHOLDER_EMAIL_FORM}
+                    placeholder="name"
                     autoCapitalize="none"
                     autoCorrect="off"
                     {...field}
