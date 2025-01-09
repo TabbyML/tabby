@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
-import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
@@ -75,7 +74,7 @@ export default function LdapSignInForm({
                 <FormLabel className="leading-5">Username</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={PLACEHOLDER_EMAIL_FORM}
+                    placeholder="name"
                     autoCapitalize="none"
                     autoCorrect="off"
                     {...field}
