@@ -20,7 +20,7 @@ use async_openai_alt::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use prompt_tools::pipeline_related_questions;
+use prompt_tools::{pipeline_decide_need_codebase_directory_tree, pipeline_related_questions};
 use tabby_common::{
     api::{
         code::{
@@ -125,6 +125,14 @@ impl AnswerService {
                         yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
                             ThreadAssistantMessageAttachmentsCode { code_source_id: repository.source_id, hits }
                         ));
+                    }
+
+                    // FIXME(zwpaper): Turn on directory tree in prod when it got stored in index.
+                    if !cfg!(feature = "prod") {
+                        let need_codebase_directory_tree = pipeline_decide_need_codebase_directory_tree(self.chat.clone(), &query.content).await.unwrap_or_default();
+                        if need_codebase_directory_tree {
+                            todo!("inject codebase directory structure as context");
+                        }
                     }
                 };
             };
