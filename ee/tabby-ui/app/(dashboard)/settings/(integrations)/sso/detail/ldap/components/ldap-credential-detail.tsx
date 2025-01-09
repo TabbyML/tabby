@@ -5,27 +5,25 @@ import { useRouter } from 'next/navigation'
 import { isNil, pickBy } from 'lodash-es'
 import { useQuery } from 'urql'
 
-import { OAuthProvider } from '@/lib/gql/generates/graphql'
+import { ldapCredentialQuery } from '@/lib/tabby/query'
+import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
-import OAuthCredentialForm from './oauth-credential-form'
-import { oauthCredential } from './oauth-credential-list'
+import { LDAPCredentialForm } from '../../../components/ldap-credential-form'
+import { SSOTypeRadio } from '../../../components/sso-type-radio'
 
 interface OAuthCredentialDetailProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  provider: OAuthProvider
-}
+  extends React.HTMLAttributes<HTMLDivElement> {}
 
-const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
-  provider
-}) => {
+export const LdapCredentialDetail: React.FC<
+  OAuthCredentialDetailProps
+> = () => {
   const router = useRouter()
   const [{ data, fetching }] = useQuery({
-    query: oauthCredential,
-    variables: { provider }
+    query: ldapCredentialQuery
   })
 
-  const credential = data?.oauthCredential
+  const credential = data?.ldapCredential
 
   const defaultValues = React.useMemo(() => {
     if (!credential) return undefined
@@ -38,19 +36,16 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
 
   return (
     <div>
-      {fetching ? (
-        <div>
-          <ListSkeleton />
-        </div>
-      ) : (
-        <OAuthCredentialForm
-          provider={provider}
+      <LoadingWrapper
+        loading={fetching}
+        fallback={<ListSkeleton className="mt-2" />}
+      >
+        <SSOTypeRadio value="ldap" readonly />
+        <LDAPCredentialForm
           defaultValues={defaultValues}
           onSuccess={onSubmitSuccess}
         />
-      )}
+      </LoadingWrapper>
     </div>
   )
 }
-
-export { OAuthCredentialDetail }
