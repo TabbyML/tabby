@@ -15,8 +15,7 @@ use async_openai_alt::{
         ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
         ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
         ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
-        ChatCompletionRequestUserMessageContent,
-        CreateChatCompletionRequestArgs, Role,
+        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs, Role,
     },
 };
 use async_stream::stream;
@@ -621,12 +620,6 @@ pub mod testutils;
 
 #[cfg(test)]
 mod tests {
-    use super::testutils::{
-        make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
-        FakeDocSearch,
-    };
-    use super::*;
-
     use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
@@ -649,6 +642,13 @@ mod tests {
         AsID,
     };
 
+    use super::{
+        testutils::{
+            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
+            FakeDocSearch,
+        },
+        *,
+    };
     use crate::service::{access_policy::testutils::make_policy, auth};
 
     const TEST_SOURCE_ID: &str = "source-1";

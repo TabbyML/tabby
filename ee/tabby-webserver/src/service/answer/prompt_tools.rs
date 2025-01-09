@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Result};
 use std::sync::Arc;
 
+use anyhow::{anyhow, Result};
 use async_openai_alt::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
     CreateChatCompletionRequestArgs,
@@ -49,7 +49,11 @@ fn trim_bullet(s: &str) -> String {
 }
 
 /// Given context and a question, generate related questions.
-pub async fn pipeline_related_questions(chat: Arc<dyn ChatCompletionStream>, context: &str, question: &str) -> Result<Vec<String>> {
+pub async fn pipeline_related_questions(
+    chat: Arc<dyn ChatCompletionStream>,
+    context: &str,
+    question: &str,
+) -> Result<Vec<String>> {
     let prompt = format!(
         r#"
 You are a helpful assistant that helps the user to ask related questions, based on user's original question and the related contexts. Please identify worthwhile topics that can be follow-ups, and write questions no longer than 20 words each. Please make sure that specifics, like events, names, locations, are included in follow up questions so they can be asked standalone. For example, if the original question asks about "the Manhattan project", in the follow up question, do not just say "the project", but use the full name "the Manhattan project". Your related questions must be in the same language as the original question.
