@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { isNil, pickBy } from 'lodash-es'
 import { useQuery } from 'urql'
 
-import { OAuthProvider } from '@/lib/gql/generates/graphql'
 import { ldapCredentialQuery } from '@/lib/tabby/query'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
