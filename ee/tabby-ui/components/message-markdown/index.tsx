@@ -235,6 +235,7 @@ export function MessageMarkdown({
         components={{
           p({ children }) {
             return (
+              // FIXME
               <p className="mb-2 last:mb-0">
                 {children.map((child, index) =>
                   typeof child === 'string' ? (
