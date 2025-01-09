@@ -46,8 +46,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CopyButton } from '@/components/copy-button'
 import { LicenseGuard } from '@/components/license-guard'
 
-import { oauthCredential } from './credential-list'
 import { SubTitle } from './form-sub-title'
+import { oauthCredential } from '@/lib/tabby/query'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential($input: UpdateOAuthCredentialInput!) {
