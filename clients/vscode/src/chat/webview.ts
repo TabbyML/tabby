@@ -148,6 +148,14 @@ export class ChatWebview {
   async dispose() {
     this.disposables.forEach((d) => d.dispose());
     this.disposables = [];
+    this.webview = undefined;
+    this.client = undefined;
+    if (this.onLoadedTimeout) {
+      clearTimeout(this.onLoadedTimeout);
+      this.onLoadedTimeout = undefined;
+    }
+    this.chatPanelLoaded = false;
+    this.currentConfig = undefined;
   }
 
   async isFocused(): Promise<boolean> {
