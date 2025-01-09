@@ -21,7 +21,7 @@ export function SectionTitle({
   const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
   return (
     <div
-      className={cn('font-semibold flex items-center gap-2', className)}
+      className={cn('flex items-center gap-2 font-semibold', className)}
       id={message.id}
       {...props}
     >
@@ -30,7 +30,7 @@ export function SectionTitle({
         contextInfo={undefined}
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
         fetchingContextInfo={fetchingContextInfo}
-        className="text-3xl prose-p:mb-1 prose-p:mt-0 prose-h2:text-foreground"
+        className="text-3xl prose-h2:text-foreground prose-p:mb-1 prose-p:mt-0"
         headline
         canWrapLongLines
       />

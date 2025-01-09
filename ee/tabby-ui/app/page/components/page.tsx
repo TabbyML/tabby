@@ -12,7 +12,6 @@ import {
   useState
 } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import slugify from '@sindresorhus/slugify'
 import { compact, pick, some, uniq, uniqBy } from 'lodash-es'
 import { nanoid } from 'nanoid'
@@ -64,25 +63,15 @@ import {
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
-  IconCheck,
   IconClock,
-  IconEdit,
   IconEye,
   IconFileSearch,
-  IconInfoCircled,
   IconList,
-  IconListFilter,
   IconPlus,
-  IconShare,
   IconSheet,
   IconStop
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { MessageMarkdown } from '@/components/message-markdown'
@@ -790,16 +779,16 @@ export function Page() {
         <Header threadIdFromURL={threadIdFromURL} streamingDone={!isLoading} />
         <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
           <ScrollArea className="h-full w-full" ref={contentContainerRef}>
-            <div className="grid grid-cols-4 mx-auto px-4 pb-32 lg:max-w-5xl lg:px-0 gap-2">
+            <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
               <div className="col-span-3">
                 {/* page title */}
                 <div className="mb-2 mt-4">
                   <h1 className="text-4xl font-semibold">
                     Tailwindcss in TabbyML
                   </h1>
-                  <div className="flex justify-between text-muted-foreground text-sm my-4">
+                  <div className="my-4 flex justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <MyAvatar className="w-6 h-6" />
+                      <MyAvatar className="h-6 w-6" />
                       <div>{meData?.me?.name}</div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -832,7 +821,7 @@ export function Page() {
                       <Fragment key={pair.question.id}>
                         {!!pair.question && (
                           <SectionTitle
-                            className="pt-8 section-title"
+                            className="section-title pt-8"
                             key={pair.question.id}
                             message={pair.question}
                           />
@@ -859,7 +848,7 @@ export function Page() {
                   })}
                 </div>
                 {mode === 'edit' && (
-                  <div className="border rounded-xl p-2">
+                  <div className="rounded-xl border p-2">
                     <div className="flex items-center gap-1">
                       <Button size="icon" variant="ghost">
                         <IconList />
@@ -870,7 +859,7 @@ export function Page() {
                     </div>
                     <TextAreaSearch
                       onSearch={onSubmitSearch}
-                      className="min-h-[5rem] lg:max-w-5xl border-0"
+                      className="min-h-[5rem] border-0 lg:max-w-5xl"
                       placeholder="What is the section about?"
                       isFollowup
                       isLoading={isLoading}
@@ -884,7 +873,7 @@ export function Page() {
                   </div>
                 )}
               </div>
-              <div className="col-span-1 relative">
+              <div className="relative col-span-1">
                 <Navbar qaPairs={qaPairs} />
               </div>
             </div>

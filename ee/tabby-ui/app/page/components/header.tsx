@@ -92,7 +92,7 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   }
 
   return (
-    <header className="flex w-full h-16 items-center justify-between px-4 lg:px-10 border-b">
+    <header className="flex h-16 w-full items-center justify-between border-b px-4 lg:px-10">
       <div className="flex items-center gap-x-6">
         <Button
           variant="ghost"
