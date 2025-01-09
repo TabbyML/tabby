@@ -1,3 +1,5 @@
+mod prompt_tools;
+
 use std::{
     collections::HashMap,
     fs::File,
@@ -13,12 +15,12 @@ use async_openai_alt::{
         ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
         ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
         ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
-        ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContent,
-        CreateChatCompletionRequestArgs, Role,
+        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs, Role,
     },
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
+use prompt_tools::pipeline_related_questions;
 use tabby_common::{
     api::{
         code::{
@@ -160,7 +162,7 @@ impl AnswerService {
                 // Rewrite [[source:${id}]] tags to the actual source name for generate relevant questions.
                 let content = context_info_helper.rewrite_tag(&query.content);
                 match self
-                    .generate_relevant_questions_v2(&attachment, &content)
+                    .generate_relevant_questions(&attachment, &content)
                     .await{
                     Ok(questions) => {
                         yield Ok(ThreadRunItem::ThreadRelevantQuestions(ThreadRelevantQuestions{
@@ -340,7 +342,7 @@ impl AnswerService {
         hits
     }
 
-    async fn generate_relevant_questions_v2(
+    async fn generate_relevant_questions(
         &self,
         attachment: &MessageAttachment,
         question: &str,
@@ -367,51 +369,8 @@ impl AnswerService {
             .collect();
 
         let context: String = snippets.join("\n\n");
-        let prompt = format!(
-            r#"
-You are a helpful assistant that helps the user to ask related questions, based on user's original question and the related contexts. Please identify worthwhile topics that can be follow-ups, and write questions no longer than 20 words each. Please make sure that specifics, like events, names, locations, are included in follow up questions so they can be asked standalone. For example, if the original question asks about "the Manhattan project", in the follow up question, do not just say "the project", but use the full name "the Manhattan project". Your related questions must be in the same language as the original question.
-
-Here are the contexts of the question:
-
-{context}
-
-Remember, based on the original question and related contexts, suggest three such further questions. Do NOT repeat the original question. Each related question should be no longer than 20 words. Here is the original question:
-
-{question}
-"#
-        );
-
-        let request = CreateChatCompletionRequestArgs::default()
-            .messages(vec![ChatCompletionRequestMessage::User(
-                ChatCompletionRequestUserMessageArgs::default()
-                    .content(prompt)
-                    .build()
-                    .expect("Failed to create ChatCompletionRequestUserMessage"),
-            )])
-            .build()?;
-
-        let chat = self.chat.clone();
-        let s = chat.chat(request).await?;
-        let content = s.choices[0]
-            .message
-            .content
-            .as_deref()
-            .ok_or_else(|| anyhow!("Failed to get content from chat completion"))?;
-        Ok(content
-            .lines()
-            .map(trim_bullet)
-            .filter(|x| !x.is_empty())
-            .collect())
+        pipeline_related_questions(self.chat.clone(), &context, question).await
     }
-}
-
-fn trim_bullet(s: &str) -> String {
-    let is_bullet = |c: char| c == '-' || c == '*' || c == '.' || c.is_numeric();
-    s.trim()
-        .trim_start_matches(is_bullet)
-        .trim_end_matches(is_bullet)
-        .trim()
-        .to_owned()
 }
 
 pub fn create(
@@ -661,7 +620,6 @@ pub mod testutils;
 
 #[cfg(test)]
 mod tests {
-
     use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
@@ -684,17 +642,14 @@ mod tests {
         AsID,
     };
 
-    use crate::{
-        answer::{
-            merge_code_snippets,
-            testutils::{
-                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
-                FakeContextService, FakeDocSearch,
-            },
-            trim_bullet, AnswerService,
+    use super::{
+        testutils::{
+            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
+            FakeDocSearch,
         },
-        service::{access_policy::testutils::make_policy, auth},
+        *,
     };
+    use crate::service::{access_policy::testutils::make_policy, auth};
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
@@ -957,7 +912,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_generate_relevant_questions_v2() {
+    async fn test_generate_relevant_questions() {
         let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
@@ -1007,7 +962,7 @@ mod tests {
         let question = "What is the purpose of this code?";
 
         let result = service
-            .generate_relevant_questions_v2(&attachment, question)
+            .generate_relevant_questions(&attachment, question)
             .await;
 
         let expected = vec![
@@ -1020,7 +975,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_generate_relevant_questions_v2_error() {
+    async fn test_generate_relevant_questions_error() {
         let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> =
             Arc::new(FakeChatCompletionStream { return_error: true });
@@ -1069,7 +1024,7 @@ mod tests {
         let question = "What is the purpose of this code?";
 
         let result = service
-            .generate_relevant_questions_v2(&attachment, question)
+            .generate_relevant_questions(&attachment, question)
             .await;
 
         assert!(result.is_err());
@@ -1156,28 +1111,6 @@ mod tests {
         assert_eq!(hits_4.len(), 0);
     }
 
-    #[test]
-    fn test_trim_bullet() {
-        assert_eq!(trim_bullet("- Hello"), "Hello");
-        assert_eq!(trim_bullet("* World"), "World");
-        assert_eq!(trim_bullet("1. Test"), "Test");
-        assert_eq!(trim_bullet(".Dot"), "Dot");
-
-        assert_eq!(trim_bullet("- Hello -"), "Hello");
-        assert_eq!(trim_bullet("1. Test 1"), "Test");
-
-        assert_eq!(trim_bullet("--** Mixed"), "Mixed");
-
-        assert_eq!(trim_bullet("  - Hello  "), "Hello");
-
-        assert_eq!(trim_bullet("-"), "");
-        assert_eq!(trim_bullet(""), "");
-        assert_eq!(trim_bullet("   "), "");
-
-        assert_eq!(trim_bullet("Hello World"), "Hello World");
-
-        assert_eq!(trim_bullet("1. *Bold* and -italic-"), "*Bold* and -italic");
-    }
     #[tokio::test]
     async fn test_answer() {
         use std::sync::Arc;
