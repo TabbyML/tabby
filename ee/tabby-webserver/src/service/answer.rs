@@ -20,7 +20,10 @@ use async_openai_alt::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use prompt_tools::{pipeline_decide_need_codebase_commit_history, pipeline_decide_need_codebase_directory_tree, pipeline_related_questions};
+use prompt_tools::{
+    pipeline_decide_need_codebase_commit_history, pipeline_decide_need_codebase_directory_tree,
+    pipeline_related_questions,
+};
 use tabby_common::{
     api::{
         code::{
