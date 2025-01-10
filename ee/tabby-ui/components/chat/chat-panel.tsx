@@ -1,6 +1,5 @@
-import React, { RefObject, useMemo, useState } from 'react'
+import React, { RefObject, useEffect, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
-import { Editor } from '@tiptap/core'
 import { useWindowSize } from '@uidotdev/usehooks'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -33,11 +32,12 @@ import {
   IconTrash
 } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-import { PromptForm, PromptFormRef } from '@/components/chat/prompt-form'
+import { PromptForm } from '@/components/chat/prompt-form'
 import { FooterText } from '@/components/footer'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat'
+import { PromptFormRef } from './form-editor/types'
 import { RepoSelect } from './repo-select'
 
 export interface ChatPanelProps
@@ -329,7 +329,6 @@ function ChatPanelRenderer(
             ref={promptFormRef}
             onSubmit={onSubmit}
             isLoading={isLoading}
-            isInitializing={!initialized}
           />
           <FooterText className="hidden sm:block" />
         </div>

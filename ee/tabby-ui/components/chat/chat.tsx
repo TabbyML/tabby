@@ -5,7 +5,10 @@ import type {
   EditorContext,
   EditorFileContext,
   FileLocation,
+  FileRange,
   GitRepository,
+  ListFileItem,
+  ListFilesInWorkspaceParams,
   LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel'
@@ -48,10 +51,7 @@ import {
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
-import {
-  extractAtSourceFromString,
-  isFileAtInfo
-} from './prompt-form-editor/utils'
+import { FILEITEM_REGEX } from './form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
@@ -84,8 +84,10 @@ type ChatContextValue = {
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
   repos: RepositorySourceListQuery['repositoryList'] | undefined
   fetchingRepos: boolean
-  provideFileAtInfo?: (opts?: AtInputOpts) => Promise<FileAtInfo[] | null>
-  getFileAtInfoContent?: (info: FileAtInfo) => Promise<string | null>
+  listFileInWorkspace?: (
+    params: ListFilesInWorkspaceParams
+  ) => Promise<ListFileItem[]>
+  readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -127,6 +129,10 @@ interface ChatProps extends React.ComponentProps<'div'> {
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
   getActiveEditorSelection?: () => Promise<EditorFileContext | null>
+  listFileInWorkspace?: (
+    params: ListFilesInWorkspaceParams
+  ) => Promise<ListFileItem[]>
+  readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
 function ChatRenderer(
@@ -150,7 +156,9 @@ function ChatRenderer(
     chatInputRef,
     supportsOnApplyInEditorV2,
     readWorkspaceGitRepositories,
-    getActiveEditorSelection
+    getActiveEditorSelection,
+    listFileInWorkspace,
+    readFileContent
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -500,10 +508,28 @@ function ChatRenderer(
   }
 
   const handleSubmit = async (value: string) => {
+    const fileItems: any[] = []
+    let newValue = value
+
+    let match
+    while ((match = FILEITEM_REGEX.exec(value)) !== null) {
+      try {
+        const parsedItem = JSON.parse(match[1])
+        fileItems.push(parsedItem)
+
+        const replacement = `@${
+          parsedItem.label.split('/').pop() || parsedItem.label || 'unknown'
+        }`
+        newValue = newValue.replace(match[0], replacement)
+      } catch (error) {
+        continue
+      }
+    }
     sendUserChat({
       message: value,
       relevantContext: relevantContext
     })
+
     setRelevantContext([])
   }
 
@@ -632,8 +658,8 @@ function ChatRenderer(
         repos,
         fetchingRepos,
         initialized,
-        provideFileAtInfo,
-        getFileAtInfoContent
+        listFileInWorkspace,
+        readFileContent
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

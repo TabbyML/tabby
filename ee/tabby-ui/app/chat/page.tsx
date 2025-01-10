@@ -79,10 +79,9 @@ export default function ChatPage() {
     supportsReadWorkspaceGitRepoInfo,
     setSupportsReadWorkspaceGitRepoInfo
   ] = useState(false)
-  const [supportProvideFileAtInfo, setSupportProvideFileAtInfo] =
+  const [supportsListFileInWorkspace, setSupportProvideFileAtInfo] =
     useState(false)
-  const [supportGetFileAtInfoContent, setSupportGetFileAtInfoContent] =
-    useState(false)
+  const [supportsReadFileContent, setSupportsReadFileContent] = useState(false)
 
   const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
@@ -248,6 +247,12 @@ export default function ChatPage() {
         server
           ?.hasCapability('readWorkspaceGitRepositories')
           .then(setSupportsReadWorkspaceGitRepoInfo)
+        server
+          ?.hasCapability('listFileInWorkspace')
+          .then(setSupportProvideFileAtInfo)
+        server
+          ?.hasCapability('readFileContent')
+          .then(setSupportsReadFileContent)
       }
 
       checkCapabilities().then(() => {
@@ -431,6 +436,16 @@ export default function ChatPage() {
             : undefined
         }
         getActiveEditorSelection={getActiveEditorSelection}
+        listFileInWorkspace={
+          isInEditor && supportsListFileInWorkspace
+            ? server?.listFileInWorkspace
+            : undefined
+        }
+        readFileContent={
+          isInEditor && supportsReadFileContent
+            ? server?.readFileContent
+            : undefined
+        }
       />
     </ErrorBoundary>
   )
