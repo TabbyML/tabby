@@ -3,11 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
-use tabby_schema::{
-    context::ContextService,
-    notification::NotificationService,
-    CoreError,
-};
+use tabby_schema::{context::ContextService, notification::NotificationService, CoreError};
 
 use super::helper::Job;
 
