@@ -26,6 +26,7 @@ use tabby_schema::{
     license::LicenseService,
     notification::{NotificationRecipient, NotificationService},
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
+    AsID,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
@@ -60,11 +61,18 @@ impl BackgroundJobEvent {
     }
 }
 
-macro_rules! append_error {
-    ($errors:expr, $($arg:tt)*) => {{
+#[macro_export]
+macro_rules! notify_job_error {
+    ($notification_service:expr, $err:expr, $($arg:tt)*) => {{
         let msg = format!($($arg)*);
-        warn!("{}", msg);
-        $errors.push(msg);
+        warn!("{}: {:?}", msg, $err);
+        $notification_service.create(
+            NotificationRecipient::Admin,
+            &format!(
+                r#"Background job failed
+
+{}"#, msg),
+        ).await.unwrap();
     }};
 }
 
@@ -89,7 +97,7 @@ pub async fn start(
 
     tokio::spawn(async move {
         loop {
-            let result = tokio::select! {
+            tokio::select! {
                 job = db.get_next_job_to_execute() => {
                     let Some(job) = job else {
                         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
@@ -101,13 +109,15 @@ pub async fn start(
                         continue;
                     }
 
-                    let logger = JobLogger::new(db.clone(), job.id);
-                    debug!("Background job {} started, command: {}", job.id, job.command);
+                    let job_id = job.id;
+                    let logger = JobLogger::new(db.clone(), job_id);
+                    debug!("Background job {} started, command: {}", job_id, job.command);
                     let Ok(event) = serde_json::from_str::<BackgroundJobEvent>(&job.command) else {
                         logkit::info!(exit_code = -1; "Failed to parse background job event, marking it as failed");
                         continue;
                     };
 
+                    let job_name = format!("{:?}", event);
                     let result = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
@@ -135,67 +145,48 @@ pub async fn start(
                         Err(err) => {
                             logkit::info!(exit_code = 1; "Job failed {}", err);
                             logger.finalize().await;
-                            vec![err.to_string()]
+                            notify_job_error!(notification_service, err, r#"Job {:?} failed,
+Please visit [Jobs Detail](http://localhost:8080/jobs/detail?id={}) to check the error and retry.
+"#,
+                                job_name, job_id.as_id());
                         },
                         _ => {
                             logkit::info!(exit_code = 0; "Job completed successfully");
                             logger.finalize().await;
-                            vec![]
                         }
                     }
                 },
                 Some(now) = hourly.next() => {
-                    let mut errors = vec![];
-                    if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone()).await {
-                        append_error!(errors, "Database maintenance failed: {:?}", err);
+                    if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone(), notification_service.clone()).await {
+                        warn!("Database maintenance failed: {:?}", err);
                     }
 
                     if let Err(err) = SchedulerGitJob::cron(now, git_repository_service.clone(), job_service.clone()).await {
-                        append_error!(errors, "Scheduler job failed: {:?}", err);
+                        notify_job_error!(notification_service, err, "Scheduler job failed");
                     }
 
                     if let Err(err) = SyncIntegrationJob::cron(now, integration_service.clone(), job_service.clone()).await {
-                        append_error!(errors, "Sync integration job failed: {:?}", err);
+                        notify_job_error!(notification_service, err, "Sync integration job failed");
                     }
 
                     if let Err(err) = SchedulerGithubGitlabJob::cron(now, third_party_repository_service.clone(), job_service.clone()).await {
-                        append_error!(errors, "Index issues job failed: {err:?}");
+                        notify_job_error!(notification_service, err, "Index issues job failed");
                     }
 
                     if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), context_service.clone()).await {
-                        append_error!(errors, "Index garbage collection job failed: {err:?}");
+                        notify_job_error!(notification_service, err, "Index garbage collection job failed");
                     }
-
-                    errors
                 },
                 Some(now) = daily.next() => {
-                    let mut errors = vec![];
                     if let Err(err) = LicenseCheckJob::cron(now, license_service.clone(), notification_service.clone()).await {
-                        append_error!(errors, "License check job failed: {err:?}");
+                        notify_job_error!(notification_service, err, "License check job failed");
                     }
-
-                    errors
                 }
                 else => {
                     warn!("Background job channel closed");
                     return;
                 }
             };
-
-            if !result.is_empty() {
-                notification_service
-                    .create(
-                        NotificationRecipient::Admin,
-                        &format!(
-                            r#"Background job failed
-
-{}"#,
-                            &result.join("\n\n")
-                        ),
-                    )
-                    .await
-                    .unwrap();
-            }
         }
     });
 }

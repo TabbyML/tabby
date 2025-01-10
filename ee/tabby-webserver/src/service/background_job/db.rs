@@ -3,7 +3,11 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
-use tabby_schema::{context::ContextService, CoreError};
+use tabby_schema::{
+    context::ContextService,
+    notification::{NotificationRecipient, NotificationService},
+    CoreError,
+};
 
 use super::helper::Job;
 
@@ -19,6 +23,7 @@ impl DbMaintainanceJob {
         now: DateTime<Utc>,
         context: Arc<dyn ContextService>,
         db: DbConn,
+        notification_service: Arc<dyn NotificationService>,
     ) -> tabby_schema::Result<()> {
         let mut errors = vec![];
 
