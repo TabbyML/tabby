@@ -468,7 +468,7 @@ export class ChatWebview {
 
         if (!query) {
           // TODO: check tab file stat, check if exists
-          const openTabs = window.tabGroups.all.flatMap((group) => group.tabs);
+          const openTabs = window.tabGroups.all.flatMap((group) => group.tabs).filter((tab) => tab.input);
           this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
           return openTabs.map((tab) => uriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
         }
