@@ -131,7 +131,7 @@ impl AnswerService {
                         }
                     }
 
-                    // FIXME(zwpaper): Turn on codebase metadata in prod when it got stored in index.
+                    // FIXME(zwpaper): Turn on codebase commit history in prod when it got stored in index.
                     if !cfg!(feature = "prod") {
                         let need_codebase_commit_history = pipeline_decide_need_codebase_commit_history(self.chat.clone(), &query.content).await.unwrap_or_default();
                         if need_codebase_commit_history {
