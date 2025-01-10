@@ -59,7 +59,8 @@ import {
   cn,
   getMentionsFromText,
   getThreadRunContextsFromMentions,
-  getTitleFromMessages
+  getTitleFromMessages,
+  isCodeSourceContext
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -79,9 +80,11 @@ import NotFoundPage from '@/components/not-found-page'
 import TextAreaSearch from '@/components/textarea-search'
 import { MyAvatar } from '@/components/user-avatar'
 
+import { DocSelect } from './doc-select'
 import { Header } from './header'
 import { MessagesSkeleton } from './messages-skeleton'
 import { Navbar } from './nav-bar'
+import { RepoSelect } from './repo-select'
 import { SectionContent } from './section-content'
 import { SectionTitle } from './section-title'
 
@@ -209,6 +212,18 @@ export function Page() {
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
   })
+
+  const repos = useMemo(() => {
+    return contextInfoData?.contextInfo?.sources.filter(x =>
+      isCodeSourceContext(x.sourceKind)
+    )
+  }, [contextInfoData?.contextInfo?.sources])
+
+  const docs = useMemo(() => {
+    return contextInfoData?.contextInfo?.sources.filter(
+      x => !isCodeSourceContext(x.sourceKind)
+    )
+  }, [contextInfoData?.contextInfo?.sources])
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
 
@@ -856,6 +871,8 @@ export function Page() {
                       <Button size="icon" variant="ghost">
                         <IconSheet />
                       </Button>
+                      <RepoSelect repos={repos} />
+                      <DocSelect docs={docs} />
                     </div>
                     <TextAreaSearch
                       onSearch={onSubmitSearch}
