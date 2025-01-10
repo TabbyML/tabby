@@ -12,18 +12,18 @@ import { useMutation } from '@/lib/tabby/gql'
 import { notificationsQuery } from '@/lib/tabby/query'
 import { ArrayElementType } from '@/lib/types'
 import { cn } from '@/lib/utils'
-
-import LoadingWrapper from './loading-wrapper'
-import { ListSkeleton } from './skeleton'
-import { Button } from './ui/button'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger
-} from './ui/dropdown-menu'
-import { IconBell, IconCheck } from './ui/icons'
-import { Separator } from './ui/separator'
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
+} from '@/components/ui/dropdown-menu'
+import { IconBell, IconCheck } from '@/components/ui/icons'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import LoadingWrapper from '@/components/loading-wrapper'
+import { MemoizedReactMarkdown } from '@/components/markdown'
+import { ListSkeleton } from '@/components/skeleton'
 
 interface Props extends HTMLAttributes<HTMLDivElement> {}
 
@@ -89,7 +89,7 @@ export function NotificationBox({ className, ...rest }: Props) {
           </div>
           <Separator />
           <Tabs
-            className="relative my-2 flex-1 overflow-y-auto px-4"
+            className="relative my-2 flex-1 overflow-y-auto px-5"
             defaultValue="unread"
           >
             <TabsList className="sticky top-0 z-10 grid w-full grid-cols-2">
@@ -156,8 +156,6 @@ interface NotificationItemProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 function NotificationItem({ data }: NotificationItemProps) {
-  const { title, content } = resolveNotification(data.content)
-
   const markNotificationsRead = useMutation(markNotificationsReadMutation)
 
   const onClickMarkRead = () => {
@@ -168,17 +166,14 @@ function NotificationItem({ data }: NotificationItemProps) {
 
   return (
     <div className="space-y-1.5">
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-1.5 overflow-hidden text-sm font-medium">
-          {!data.read && (
-            <span className="h-2 w-2 shrink-0 rounded-full bg-red-400"></span>
-          )}
-          <span className="flex-1 truncate">{title}</span>
-        </div>
-        <div className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-          {content}
-        </div>
-      </div>
+      <MemoizedReactMarkdown
+        className={cn(
+          'prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed text-sm',
+          { 'unread-notification': !data.read }
+        )}
+      >
+        {data.content}
+      </MemoizedReactMarkdown>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="text-muted-foreground">
           {formatNotificationTime(data.createdAt)}
