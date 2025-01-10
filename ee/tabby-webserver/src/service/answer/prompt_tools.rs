@@ -97,6 +97,26 @@ Here's the original question:
     Ok(detect_yes(&content))
 }
 
+/// Decide whether the question requires knowledge from codebase commit history.
+pub async fn pipeline_decide_need_codebase_commit_history(
+    chat: Arc<dyn ChatCompletionStream>,
+    question: &str,
+) -> Result<bool> {
+    let prompt = format!(
+        r#"You are a helpful assistant that helps the user to decide whether the question requires commit history of the codebase. If it requires, return "Yes", otherwise return "No".
+
+Here's a few examples:
+"What are recent changes to embedding api?" -> Yes
+
+Here's the original question:
+{question}
+"#
+    );
+
+    let content = request_llm(chat, &prompt).await?;
+    Ok(detect_yes(&content))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
