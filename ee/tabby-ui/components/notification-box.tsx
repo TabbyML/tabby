@@ -168,7 +168,7 @@ function NotificationItem({ data }: NotificationItemProps) {
     <div className="space-y-1.5">
       <MemoizedReactMarkdown
         className={cn(
-          'prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed text-sm',
+          'prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-p:my-1 text-sm',
           { 'unread-notification': !data.read }
         )}
       >
