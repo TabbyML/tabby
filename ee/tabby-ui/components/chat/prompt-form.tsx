@@ -278,7 +278,7 @@ function PromptFormRenderer(
       <div className="relative flex flex-col px-4">
         {/* Editor & Submit row */}
         <div className="relative flex items-center gap-2">
-          <IconEdit className="text-muted-foreground h-4 w-4" />
+          <IconEdit className="h-4 w-4 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             {/* TipTap editor content */}
             <EditorContent

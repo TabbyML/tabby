@@ -28,7 +28,7 @@ export function fileItemToSourceItem(info: FileItem): SourceItem {
  */
 export const FileItemIcon = () => (
   <svg
-    className="text-muted-foreground h-4 w-4"
+    className="h-4 w-4 text-muted-foreground"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -56,8 +56,8 @@ export const MentionComponent = ({ node }: { node: any }) => {
     <NodeViewWrapper className="inline">
       <span
         className={cn(
-          'bg-muted inline-flex items-center rounded px-1.5 py-0.5 text-sm font-medium text-white',
-          'ring-muted ring-1 ring-inset'
+          'inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-sm font-medium text-white',
+          'ring-1 ring-inset ring-muted'
         )}
         data-category={node.attrs.category}
       >
@@ -161,7 +161,7 @@ export const MentionList = ({
     >
       {/* If no items found, show a simple message */}
       {!items.length ? (
-        <div className="text-muted-foreground px-2 py-1.5 text-sm">
+        <div className="px-2 py-1.5 text-sm text-muted-foreground">
           Cannot find any files.
         </div>
       ) : (
@@ -183,7 +183,7 @@ export const MentionList = ({
             >
               <FileItemIcon />
               <span className="flex-1 truncate">{shortenLabel(item.name)}</span>
-              <span className="text-muted-foreground max-w-[150px] truncate text-xs">
+              <span className="max-w-[150px] truncate text-xs text-muted-foreground">
                 {shortenLabel(item.filepath, 20)}
               </span>
             </button>
