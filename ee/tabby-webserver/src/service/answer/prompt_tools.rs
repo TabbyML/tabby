@@ -72,6 +72,51 @@ Remember, based on the original question and related contexts, suggest three suc
     Ok(transform_line_items(&content))
 }
 
+fn detect_yes(content: &str) -> bool {
+    content.to_lowercase().contains("yes")
+}
+
+/// Decide whether the question requires knowledge from codebase directory structure.
+pub async fn pipeline_decide_need_codebase_directory_tree(
+    chat: Arc<dyn ChatCompletionStream>,
+    question: &str,
+) -> Result<bool> {
+    let prompt = format!(
+        r#"You are a helpful assistant that helps the user to decide whether the question requires directory tree structure of the codebase. If it requires, return "Yes", otherwise return "No".
+
+Here's a few examples:
+"How many programming languages are used?" -> Yes
+"Which module is used to compute 2D convolution?" -> Yes
+
+Here's the original question:
+{question}
+"#
+    );
+
+    let content = request_llm(chat, &prompt).await?;
+    Ok(detect_yes(&content))
+}
+
+/// Decide whether the question requires knowledge from codebase commit history.
+pub async fn pipeline_decide_need_codebase_commit_history(
+    chat: Arc<dyn ChatCompletionStream>,
+    question: &str,
+) -> Result<bool> {
+    let prompt = format!(
+        r#"You are a helpful assistant that helps the user to decide whether the question requires commit history of the codebase. If it requires, return "Yes", otherwise return "No".
+
+Here's a few examples:
+"What are recent changes to embedding api?" -> Yes
+
+Here's the original question:
+{question}
+"#
+    );
+
+    let content = request_llm(chat, &prompt).await?;
+    Ok(detect_yes(&content))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -97,5 +142,16 @@ mod tests {
         assert_eq!(trim_bullet("Hello World"), "Hello World");
 
         assert_eq!(trim_bullet("1. *Bold* and -italic-"), "*Bold* and -italic");
+    }
+
+    #[test]
+    fn test_detect_yes() {
+        assert!(detect_yes("yes")); // Exact match
+        assert!(detect_yes("YES")); // Uppercase
+        assert!(detect_yes("Yes")); // Mixed case
+        assert!(detect_yes("yess")); // Close but not exact
+        assert!(detect_yes("This contains yes")); // Substring
+        assert!(!detect_yes("no")); // Negative case
+        assert!(!detect_yes("")); // Empty string
     }
 }

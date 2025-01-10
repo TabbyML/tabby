@@ -20,7 +20,10 @@ use async_openai_alt::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use prompt_tools::pipeline_related_questions;
+use prompt_tools::{
+    pipeline_decide_need_codebase_commit_history, pipeline_decide_need_codebase_directory_tree,
+    pipeline_related_questions,
+};
 use tabby_common::{
     api::{
         code::{
@@ -119,6 +122,22 @@ impl AnswerService {
                         options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()),
                     ).await;
                     attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
+
+                    // FIXME(zwpaper): Turn on directory tree in prod when it got stored in index.
+                    if !cfg!(feature = "prod") {
+                        let need_codebase_directory_tree = pipeline_decide_need_codebase_directory_tree(self.chat.clone(), &query.content).await.unwrap_or_default();
+                        if need_codebase_directory_tree {
+                            todo!("inject codebase directory structure into MessageAttachment and ThreadRunItem::ThreadAssistantMessageAttachmentsCode");
+                        }
+                    }
+
+                    // FIXME(zwpaper): Turn on codebase commit history in prod when it got stored in index.
+                    if !cfg!(feature = "prod") {
+                        let need_codebase_commit_history = pipeline_decide_need_codebase_commit_history(self.chat.clone(), &query.content).await.unwrap_or_default();
+                        if need_codebase_commit_history {
+                            todo!("inject codebase commit history into MessageAttachment and ThreadRunItem::ThreadAssistantMessageAttachmentsCode");
+                        }
+                    }
 
                     if !hits.is_empty() {
                         let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
