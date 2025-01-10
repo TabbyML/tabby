@@ -229,7 +229,7 @@ async fn get_commit(reader: &IndexReader, id: &str) -> Option<String> {
     get_json_text_field_optional(
         &doc,
         schema.field_attributes,
-        code::fields::ATTRIBUTE_COMMIT,
+        code::fields::COMMIT,
     )
     .map(|s| s.to_owned())
 }
