@@ -3,7 +3,8 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
-use tabby_schema::{context::ContextService, notification::NotificationService, CoreError};
+use tabby_schema::{context::ContextService, CoreError};
+use tracing::warn;
 
 use super::helper::Job;
 
@@ -14,23 +15,32 @@ impl Job for DbMaintainanceJob {
     const NAME: &'static str = "db_maintainance";
 }
 
+macro_rules! append_error {
+    ($errors:expr, $e:expr, $($arg:tt)*) => {
+        {
+            let msg = format!($($arg)*);
+            warn!("{}: {}", msg, $e);
+            $errors.push(msg);
+        }
+    };
+}
+
 impl DbMaintainanceJob {
     pub async fn cron(
         now: DateTime<Utc>,
         context: Arc<dyn ContextService>,
         db: DbConn,
-        notification_service: Arc<dyn NotificationService>,
     ) -> tabby_schema::Result<()> {
         let mut errors = vec![];
 
         if let Err(e) = db.delete_expired_token().await {
-            errors.push(format!("Failed to delete expired token: {}", e));
+            append_error!(errors, e, "Failed to delete expired tokens");
         };
         if let Err(e) = db.delete_expired_password_resets().await {
-            errors.push(format!("Failed to delete expired password resets: {}", e));
+            append_error!(errors, e, "Failed to delete expired password resets");
         };
         if let Err(e) = db.delete_expired_ephemeral_threads().await {
-            errors.push(format!("Failed to delete expired ephemeral threads: {}", e));
+            append_error!(errors, e, "Failed to delete expired ephemeral threads");
         };
 
         // Read all active sources
@@ -45,27 +55,28 @@ impl DbMaintainanceJob {
                     .delete_unused_source_id_read_access_policy(&active_source_ids)
                     .await
                 {
-                    errors.push(format!(
-                        "Failed to delete unused source id read access policy: {}",
-                        e
-                    ));
+                    append_error!(
+                        errors,
+                        e,
+                        "Failed to delete unused source id read access policy"
+                    );
                 };
             }
             Err(e) => {
-                errors.push(format!("Failed to read active sources: {}", e));
+                append_error!(errors, e, "Failed to read active sources");
             }
         }
 
         if let Err(e) = Self::data_retention(now, &db).await {
-            errors.push(format!("Failed to run data retention job: {}", e));
+            append_error!(errors, e, "Failed to run data retention job");
         }
 
         if errors.is_empty() {
             Ok(())
         } else {
             Err(CoreError::Other(anyhow::anyhow!(
-                "Failed to run db maintenance job:\n{}",
-                errors.join(";\n")
+                "Failed to run db maintenance job:\n\n{}",
+                errors.join(";\n\n")
             )))
         }
     }
@@ -91,8 +102,8 @@ impl DbMaintainanceJob {
             Ok(())
         } else {
             Err(CoreError::Other(anyhow::anyhow!(
-                "Failed to run data retention job:\n{}",
-                errors.join(";\n")
+                "{}",
+                errors.join(";\n\n")
             )))
         }
     }

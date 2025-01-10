@@ -6,7 +6,7 @@ mod license_check;
 mod third_party_integration;
 mod web_crawler;
 
-use std::{str::FromStr, sync::Arc};
+use std::{fmt::Display, str::FromStr, sync::Arc};
 
 use cron::Schedule;
 use futures::StreamExt;
@@ -43,6 +43,24 @@ pub enum BackgroundJobEvent {
     IndexGarbageCollection,
 }
 
+impl Display for BackgroundJobEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BackgroundJobEvent::SchedulerGitRepository(repository) => {
+                write!(f, "SyncGitRepository::{}", repository.git_url)
+            }
+            BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
+                write!(f, "SyncGithubGitlabRepository::{}", integration_id)
+            }
+            BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
+                write!(f, "SyncThirdPartyRepositories::{}", integration_id)
+            }
+            BackgroundJobEvent::WebCrawler(job) => write!(f, "WebCrawler::{}", job.url()),
+            BackgroundJobEvent::IndexGarbageCollection => write!(f, "IndexGarbageCollection"),
+        }
+    }
+}
+
 impl BackgroundJobEvent {
     pub fn name(&self) -> &'static str {
         match self {
@@ -70,6 +88,7 @@ macro_rules! notify_job_error {
             NotificationRecipient::Admin,
             &format!(
                 r#"Background job failed
+
 
 {}"#, msg),
         ).await.unwrap();
@@ -117,7 +136,7 @@ pub async fn start(
                         continue;
                     };
 
-                    let job_name = format!("{:?}", event);
+                    let job_name = event.to_string();
                     let result = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
@@ -145,8 +164,9 @@ pub async fn start(
                         Err(err) => {
                             logkit::info!(exit_code = 1; "Job failed {}", err);
                             logger.finalize().await;
-                            notify_job_error!(notification_service, err, r#"Job {:?} failed,
-Please visit [Jobs Detail](http://localhost:8080/jobs/detail?id={}) to check the error and retry.
+                            notify_job_error!(notification_service, err, r#"`{}` failed.
+
+Please visit [Jobs Detail](/jobs/detail?id={}) to check the error.
 "#,
                                 job_name, job_id.as_id());
                         },
@@ -157,29 +177,35 @@ Please visit [Jobs Detail](http://localhost:8080/jobs/detail?id={}) to check the
                     }
                 },
                 Some(now) = hourly.next() => {
-                    if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone(), notification_service.clone()).await {
-                        warn!("Database maintenance failed: {:?}", err);
+                    if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone()).await {
+                        let _ = notification_service.create(NotificationRecipient::Admin,
+                            &format!(r#"Database maintenance failed.
+
+{:?}
+
+Please check stderr logs for details.
+"#, err)).await;
                     }
 
                     if let Err(err) = SchedulerGitJob::cron(now, git_repository_service.clone(), job_service.clone()).await {
-                        notify_job_error!(notification_service, err, "Scheduler job failed");
+                        notify_job_error!(notification_service, err, "Schedule git job failed.\n\nPlease check stderr logs for details.");
                     }
 
                     if let Err(err) = SyncIntegrationJob::cron(now, integration_service.clone(), job_service.clone()).await {
-                        notify_job_error!(notification_service, err, "Sync integration job failed");
+                        notify_job_error!(notification_service, err, "Sync integration job failed.\n\nPlease check stderr logs for details.");
                     }
 
                     if let Err(err) = SchedulerGithubGitlabJob::cron(now, third_party_repository_service.clone(), job_service.clone()).await {
-                        notify_job_error!(notification_service, err, "Index issues job failed");
+                        notify_job_error!(notification_service, err, "Schedule GitHub/GitLab job failed.\n\nPlease check stderr logs for details.");
                     }
 
                     if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), context_service.clone()).await {
-                        notify_job_error!(notification_service, err, "Index garbage collection job failed");
+                        notify_job_error!(notification_service, err, "Index garbage collection job failed.\n\nPlease check stderr logs for details.");
                     }
                 },
                 Some(now) = daily.next() => {
                     if let Err(err) = LicenseCheckJob::cron(now, license_service.clone(), notification_service.clone()).await {
-                        notify_job_error!(notification_service, err, "License check job failed");
+                        notify_job_error!(notification_service, err, "License check job failed.\n\nPlease check stderr logs for details.");
                     }
                 }
                 else => {
