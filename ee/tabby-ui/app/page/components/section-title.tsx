@@ -43,7 +43,7 @@ export function SectionTitle({
           </Button>
         )}
       </div>
-      <div className="flex items-center gap-2 mt-1 mb-4">
+      <div className="mb-4 mt-1 flex items-center gap-2">
         <Badge variant="secondary">
           <IconGithub className="mr-1" />
           TabbyML/tabby
