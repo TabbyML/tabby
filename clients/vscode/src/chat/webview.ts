@@ -464,20 +464,32 @@ export class ChatWebview {
       },
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
         const maxResults = params.limit || 50;
-        const query = params.query?.toLowerCase();
+        const searchQuery = params.query?.trim();
 
-        if (!query) {
-          // TODO: check tab file stat, check if exists
-          const openTabs = window.tabGroups.all.flatMap((group) => group.tabs).filter((tab) => tab.input);
+        if (!searchQuery) {
+          const openTabs = window.tabGroups.all
+            .flatMap((group) => group.tabs)
+            .filter((tab) => tab.input && (tab.input as TabInputText).uri);
+
           this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
           return openTabs.map((tab) => uriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
         }
 
-        const globPattern = `**/${escapeGlobPattern(query)}*`;
-
-        // validate the glob pattern
-        this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}.`);
         try {
+          const caseInsensitivePattern = searchQuery
+            .split("")
+            .map((char) => {
+              if (char.toLowerCase() !== char.toUpperCase()) {
+                return `{${char.toLowerCase()},${char.toUpperCase()}}`;
+              }
+              return escapeGlobPattern(char);
+            })
+            .join("");
+
+          const globPattern = `**/${caseInsensitivePattern}*`;
+
+          this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
+
           const files = await workspace.findFiles(globPattern, null, maxResults);
           this.logger.info(`Found ${files.length} files.`);
           return files.map((uri) => uriToListFileItem(uri, this.gitProvider));
