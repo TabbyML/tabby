@@ -156,7 +156,7 @@ impl AnswerService {
                     Self::new_message_attachment_doc(self.auth.clone(), x.doc.clone()).await
                 })).await;
 
-                debug!("doc content: {:?}: {:?}", doc_query.content, attachment.doc.len());
+                debug!("query content: {:?}, matched {:?} docs", doc_query.content, attachment.doc.len());
 
                 if !attachment.doc.is_empty() {
                     let hits = futures::future::join_all(hits.into_iter().map(|x| {
@@ -565,7 +565,7 @@ pub async fn merge_code_snippets(
 
             if let Some(file_content) = file_content {
                 debug!(
-                    "file {} less than 300, it will be included whole file content",
+                    "The file {} is less than 300 lines, so the entire file content will be included",
                     file_hits[0].doc.filepath
                 );
                 let mut insert_hit = file_hits[0].clone();
