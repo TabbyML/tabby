@@ -389,19 +389,22 @@ function ChatRenderer(
     }
   }, [answer, isLoading])
 
-  const scrollToBottom = useDebounceCallback((behavior: ScrollBehavior = 'smooth') => {
-    if (container) {
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior
-      })
-    } else {
-      window.scrollTo({
-        top: document.body.offsetHeight,
-        behavior
-      })
-    }
-  }, 100)
+  const scrollToBottom = useDebounceCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      if (container) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior
+        })
+      } else {
+        window.scrollTo({
+          top: document.body.offsetHeight,
+          behavior
+        })
+      }
+    },
+    100
+  )
 
   React.useLayoutEffect(() => {
     // scroll to bottom when a request is sent
