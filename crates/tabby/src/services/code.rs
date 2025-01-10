@@ -226,12 +226,8 @@ async fn get_commit(reader: &IndexReader, id: &str) -> Option<String> {
     }
 
     let doc = reader.searcher().doc(doc[0].1).ok()?;
-    get_json_text_field_optional(
-        &doc,
-        schema.field_attributes,
-        code::fields::ATTRIBUTE_COMMIT,
-    )
-    .map(|s| s.to_owned())
+    get_json_text_field_optional(&doc, schema.field_attributes, code::fields::COMMIT)
+        .map(|s| s.to_owned())
 }
 
 fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {

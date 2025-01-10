@@ -169,7 +169,7 @@ async fn backfill_commit_in_doc_if_needed(
     commit: &str,
     path: &Path,
 ) -> Result<()> {
-    if indexer.has_attribute_field(id, code::fields::ATTRIBUTE_COMMIT) {
+    if indexer.has_attribute_field(id, code::fields::COMMIT) {
         return Ok(());
     }
 
