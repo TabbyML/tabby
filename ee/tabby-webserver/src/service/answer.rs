@@ -495,38 +495,52 @@ fn build_user_prompt(
         return user_input.to_owned();
     }
 
-    let snippets: Vec<String> = assistant_attachment
-        .doc
-        .iter()
-        .map(|doc| format!("```\n{}\n```", get_content(doc)))
-        .chain(
-            user_attachment_input
-                .map(|x| &x.code)
-                .unwrap_or(&vec![])
-                .iter()
-                .map(|snippet| {
-                    if let Some(filepath) = &snippet.filepath {
-                        format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
-                    } else {
-                        format!("```\n{}\n```", snippet.content)
-                    }
-                }),
-        )
-        .chain(assistant_attachment.code.iter().map(|snippet| {
-            format!(
-                "```{} title=\"{}\"\n{}\n```",
-                snippet.language, snippet.filepath, snippet.content
+    let context = {
+        let snippets: Vec<String> = assistant_attachment
+            .doc
+            .iter()
+            .map(|doc| format!("```\n{}\n```", get_content(doc)))
+            .chain(
+                user_attachment_input
+                    .map(|x| &x.code)
+                    .unwrap_or(&vec![])
+                    .iter()
+                    .map(|snippet| {
+                        if let Some(filepath) = &snippet.filepath {
+                            format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
+                        } else {
+                            format!("```\n{}\n```", snippet.content)
+                        }
+                    }),
             )
-        }))
-        .collect();
+            .chain(assistant_attachment.code.iter().map(|snippet| {
+                format!(
+                    "```{} title=\"{}\"\n{}\n```",
+                    snippet.language, snippet.filepath, snippet.content
+                )
+            }))
+            .collect();
 
-    let citations: Vec<String> = snippets
-        .iter()
-        .enumerate()
-        .map(|(i, snippet)| format!("[[citation:{}]]\n{}", i + 1, *snippet))
-        .collect();
+        let citations: Vec<String> = snippets
+            .iter()
+            .enumerate()
+            .map(|(i, snippet)| format!("[[citation:{}]]\n{}", i + 1, *snippet))
+            .collect();
 
-    let context = citations.join("\n\n");
+        citations.join("\n\n")
+    };
+
+    let maybe_file_list_context = {
+        let file_list = &assistant_attachment.code_file_list;
+        if !file_list.is_empty() {
+            format!(
+                "Here is the list of files in the workspace available for reference:\n\n{}",
+                file_list.join("\n")
+            )
+        } else {
+            String::default()
+        }
+    };
 
     format!(
         r#"You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
@@ -535,7 +549,7 @@ Your answer must be correct, accurate and written by an expert using an unbiased
 
 Please cite the contexts with the reference numbers, in the format [[citation:x]]. If a sentence comes from multiple contexts, please list all applicable citations, like [[citation:3]][[citation:5]]. Other than code and specific names and citations, your answer must be written in the same language as the question.
 
-Here are the set of contexts:
+{maybe_file_list_context}Here are the set of contexts:
 
 {context}
 
@@ -765,6 +779,7 @@ mod tests {
                 start_line: Some(1),
             }],
             client_code: vec![],
+            code_file_list: vec![],
         };
         let user_attachment_input = None;
 
@@ -803,6 +818,7 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: vec![],
         };
 
         let messages = vec![
@@ -980,6 +996,7 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: vec![],
         };
 
         let question = "What is the purpose of this code?";
@@ -1042,6 +1059,7 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: vec![]
         };
 
         let question = "What is the purpose of this code?";
