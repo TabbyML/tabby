@@ -21,8 +21,8 @@ use async_openai_alt::{
 use async_stream::stream;
 use futures::stream::BoxStream;
 use prompt_tools::{
-    pipeline_decide_need_codebase_commit_history, pipeline_decide_need_codebase_directory_tree,
-    pipeline_decide_need_codebase_snippet, pipeline_related_questions,
+    pipeline_decide_need_codebase_context,
+    pipeline_related_questions,
 };
 use tabby_common::{
     api::{
@@ -33,7 +33,6 @@ use tabby_common::{
         structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
     },
     config::AnswerConfig,
-    index::code,
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
@@ -116,32 +115,20 @@ impl AnswerService {
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
                 if let Some(repository) = self.find_repository(&context_info_helper, code_query, policy.clone()).await {
-                    let need_codebase_directory_tree = pipeline_decide_need_codebase_directory_tree(self.chat.clone(), &query.content).await.unwrap_or_default();
-                    if need_codebase_directory_tree {
+                    let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &query.content).await?;
+                    if need_codebase_context.file_list {
                         // List at most 300 files in the repository.
                         match self.repository.list_files(&policy, &repository.kind, &repository.id, None, Some(300)).await {
                             Ok(files) => {
-                                debug!("added directory file list ({} items) to prompt", files.len());
                                 code_file_list = Some(files.into_iter().map(|x| x.path).collect());
                             }
                             Err(e) => {
                                 error!("failed to list files for repository {}: {}", repository.id, e);
                             }
                         }
-                    } else {
-                        debug!("skipped directory file list");
                     }
 
-                    // FIXME(zwpaper): Turn on codebase commit history in prod when it got stored in index.
-                    if !cfg!(feature = "prod") {
-                        let need_codebase_commit_history = pipeline_decide_need_codebase_commit_history(self.chat.clone(), &query.content).await.unwrap_or_default();
-                        if need_codebase_commit_history {
-                            todo!("inject codebase commit history into MessageAttachment and ThreadRunItem::ThreadAssistantMessageAttachmentsCode");
-                        }
-                    }
-
-                    let need_codebase_snippet = pipeline_decide_need_codebase_snippet(self.chat.clone(), &query.content).await.unwrap_or_default();
-                    if need_codebase_snippet {
+                    if need_codebase_context.snippet {
                         let hits = self.collect_relevant_code(
                             &repository,
                             &context_info_helper,
