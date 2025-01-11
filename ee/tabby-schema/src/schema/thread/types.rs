@@ -7,9 +7,8 @@ use tabby_common::api::{
 };
 use validator::Validate;
 
+use super::MessageAttachmentCodeInput;
 use crate::{interface::UserValue, juniper::relay::NodeType, Context};
-
-use super::{MessageAttachmentCodeInput, MessageAttachmentInput};
 
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
 pub enum Role {
@@ -72,12 +71,12 @@ pub struct MessageAttachmentClientCode {
     pub content: String,
 }
 
-impl Into<MessageAttachmentCodeInput> for MessageAttachmentClientCode {
-    fn into(self) -> MessageAttachmentCodeInput {
+impl From<MessageAttachmentClientCode> for MessageAttachmentCodeInput {
+    fn from(val: MessageAttachmentClientCode) -> Self {
         MessageAttachmentCodeInput {
-            filepath: self.filepath,
-            start_line: self.start_line,
-            content: self.content,
+            filepath: val.filepath,
+            start_line: val.start_line,
+            content: val.content,
         }
     }
 }
