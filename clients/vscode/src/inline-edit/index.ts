@@ -14,8 +14,10 @@ import {
 } from "vscode";
 import { Client } from "../lsp/Client";
 import { ContextVariables } from "../ContextVariables";
+import { getLogger } from "../logger";
 
 export class InlineEditController {
+  private readonly logger = getLogger("InlineEditController");
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
   private quickPick: QuickPick<EditCommand>;
 
@@ -53,6 +55,7 @@ export class InlineEditController {
   }
 
   async start() {
+    this.logger.log(`Start inline edit with user command: ${this.userCommand}`);
     this.userCommand ? await this.provideEditWithCommand(this.userCommand) : this.quickPick.show();
   }
 
@@ -82,6 +85,7 @@ export class InlineEditController {
     this.editor.selection = new Selection(startPosition, startPosition);
     this.contextVariables.chatEditInProgress = true;
     this.chatEditCancellationTokenSource = new CancellationTokenSource();
+    this.logger.log(`Provide edit with command: ${command}`);
     try {
       await this.client.chat.provideEdit(
         {
