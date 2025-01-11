@@ -9,6 +9,8 @@ use validator::Validate;
 
 use crate::{interface::UserValue, juniper::relay::NodeType, Context};
 
+use super::{MessageAttachmentCodeInput, MessageAttachmentInput};
+
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
 pub enum Role {
     User,
@@ -68,6 +70,16 @@ pub struct MessageAttachmentClientCode {
     pub filepath: Option<String>,
     pub start_line: Option<i32>,
     pub content: String,
+}
+
+impl Into<MessageAttachmentCodeInput> for MessageAttachmentClientCode {
+    fn into(self) -> MessageAttachmentCodeInput {
+        MessageAttachmentCodeInput {
+            filepath: self.filepath,
+            start_line: self.start_line,
+            content: self.content,
+        }
+    }
 }
 
 #[derive(GraphQLObject, Clone)]
