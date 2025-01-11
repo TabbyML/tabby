@@ -277,9 +277,7 @@ pub trait RepositoryService: Send + Sync {
         id: &ID,
         rev: Option<&str>,
         top_n: Option<usize>,
-    ) -> Result<Vec<FileEntrySearchResult>> {
-        Ok(vec![])
-    }
+    ) -> Result<Vec<FileEntrySearchResult>>;
 
     async fn grep(
         &self,
