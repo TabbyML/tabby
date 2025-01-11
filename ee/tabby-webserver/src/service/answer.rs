@@ -123,11 +123,15 @@ impl AnswerService {
                     ).await;
                     attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
-                    // FIXME(zwpaper): Turn on directory tree in prod when it got stored in index.
-                    if !cfg!(feature = "prod") {
-                        let need_codebase_directory_tree = pipeline_decide_need_codebase_directory_tree(self.chat.clone(), &query.content).await.unwrap_or_default();
-                        if need_codebase_directory_tree {
-                            todo!("inject codebase directory structure into MessageAttachment and ThreadRunItem::ThreadAssistantMessageAttachmentsCode");
+                    let need_codebase_directory_tree = pipeline_decide_need_codebase_directory_tree(self.chat.clone(), &query.content).await.unwrap_or_default();
+                    if need_codebase_directory_tree {
+                        match self.repository.list_files(&policy, &repository.kind, &repository.id, None, None).await {
+                            Ok(files) => {
+                                attachment.code_file_list = files.into_iter().map(|x| x.path).collect();
+                            }
+                            Err(e) => {
+                                error!("failed to list files for repository {}: {}", repository.id, e);
+                            }
                         }
                     }
 

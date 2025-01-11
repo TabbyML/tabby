@@ -265,6 +265,20 @@ pub trait RepositoryService: Send + Sync {
         top_n: usize,
     ) -> Result<Vec<FileEntrySearchResult>>;
 
+    /// Read files from a repository.
+    /// When `rev` is None, this retrieves files from the default branch.
+    /// When `top_n` is None, this retrieves all files.
+    async fn list_files(
+        &self,
+        policy: &AccessPolicy,
+        kind: &RepositoryKind,
+        id: &ID,
+        rev: Option<&str>,
+        top_n: Option<usize>,
+    ) -> Result<Vec<FileEntrySearchResult>> {
+        Ok(vec![])
+    }
+
     async fn grep(
         &self,
         policy: &AccessPolicy,

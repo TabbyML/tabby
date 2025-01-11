@@ -57,9 +57,18 @@ pub struct UpdateMessageInput {
 
 #[derive(GraphQLObject, Clone, Default)]
 #[graphql(context = Context)]
+/// Represents an attachment to a message, which can include various types of content.
 pub struct MessageAttachment {
-    pub code: Vec<MessageAttachmentCode>,
+    /// Code snippets retrieved from the client side.
     pub client_code: Vec<MessageAttachmentClientCode>,
+
+    /// Code snippets retrieved from the server side codebase.
+    pub code: Vec<MessageAttachmentCode>,
+
+    /// List of code files retrieved from the server side codebase.
+    pub code_file_list: Vec<String>,
+
+    /// Documents retrieved from various sources, all from the server side.
     pub doc: Vec<MessageAttachmentDoc>,
 }
 
