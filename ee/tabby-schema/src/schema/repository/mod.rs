@@ -268,6 +268,8 @@ pub trait RepositoryService: Send + Sync {
     /// Read files from a repository.
     /// When `rev` is None, this retrieves files from the default branch.
     /// When `top_n` is None, this retrieves all files.
+    ///
+    /// The file listing is in breadth first order.
     async fn list_files(
         &self,
         policy: &AccessPolicy,

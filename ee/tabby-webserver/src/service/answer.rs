@@ -126,7 +126,8 @@ impl AnswerService {
 
                     let need_codebase_directory_tree = pipeline_decide_need_codebase_directory_tree(self.chat.clone(), &query.content).await.unwrap_or_default();
                     if need_codebase_directory_tree {
-                        match self.repository.list_files(&policy, &repository.kind, &repository.id, None, None).await {
+                        // List at most 300 files in the repository.
+                        match self.repository.list_files(&policy, &repository.kind, &repository.id, None, Some(300)).await {
                             Ok(files) => {
                                 code_file_list = Some(files.into_iter().map(|x| x.path).collect());
                             }
