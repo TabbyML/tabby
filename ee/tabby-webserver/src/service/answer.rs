@@ -33,6 +33,7 @@ use tabby_common::{
         structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
     },
     config::AnswerConfig,
+    index::code,
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
@@ -510,6 +511,16 @@ fn build_user_prompt(
         return user_input.to_owned();
     }
 
+    let maybe_file_list_context = code_file_list
+        .filter(|file_list| !file_list.is_empty())
+        .map(|file_list| {
+            format!(
+                "Here is the list of files in the workspace available for reference:\n\n{}\n\n",
+                file_list.join("\n")
+            )
+        })
+        .unwrap_or_default();
+
     let maybe_file_snippet_context = {
         let snippets: Vec<String> = assistant_attachment
             .doc
@@ -544,23 +555,13 @@ fn build_user_prompt(
 
         if !citations.is_empty() {
             format!(
-                "Here are set of contexts:\n\n{}\n\n",
+                "Here are the set of contexts:\n\n{}",
                 citations.join("\n\n")
             )
         } else {
             String::default()
         }
     };
-
-    let maybe_file_list_context = code_file_list
-        .filter(|file_list| !file_list.is_empty())
-        .map(|file_list| {
-            format!(
-                "Here is the list of files in the workspace available for reference:\n\n{}\n\n",
-                file_list.join("\n")
-            )
-        })
-        .unwrap_or_default();
 
     format!(
         r#"You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
