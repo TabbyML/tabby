@@ -889,6 +889,11 @@ type ThreadAssistantMessageCreated {
   id: ID!
 }
 
+type ThreadAssistantMessageReadingCode {
+  snippet: Boolean!
+  fileList: Boolean!
+}
+
 type ThreadConnection {
   edges: [ThreadEdge!]!
   pageInfo: PageInfo!
@@ -985,4 +990,4 @@ union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc
 
   Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 """
-union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageReadingCode | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted
