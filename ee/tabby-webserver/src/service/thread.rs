@@ -56,9 +56,7 @@ impl ThreadServiceImpl {
                     self.to_message_attachment_docs(docs.0).await
                 } else {
                     vec![]
-                },
-                // FIXME(meng): Code file list is not persisted in the database, thus it will always be empty for historical messages.
-                code_file_list: vec![]
+                }
             };
 
             output.push(thread::Message {

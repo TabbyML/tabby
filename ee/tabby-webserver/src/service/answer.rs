@@ -110,6 +110,7 @@ impl AnswerService {
             };
 
             let mut attachment = MessageAttachment::default();
+            let mut code_file_list: Option<Vec<String>> = None;
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
@@ -127,7 +128,7 @@ impl AnswerService {
                     if need_codebase_directory_tree {
                         match self.repository.list_files(&policy, &repository.kind, &repository.id, None, None).await {
                             Ok(files) => {
-                                attachment.code_file_list = files.into_iter().map(|x| x.path).collect();
+                                code_file_list = Some(files.into_iter().map(|x| x.path).collect());
                             }
                             Err(e) => {
                                 error!("failed to list files for repository {}: {}", repository.id, e);
@@ -200,7 +201,7 @@ impl AnswerService {
 
             // 4. Prepare requesting LLM
             let request = {
-                let chat_messages = convert_messages_to_chat_completion_request(&self.config, &context_info_helper, &messages, &attachment, user_attachment_input.as_ref())?;
+                let chat_messages = convert_messages_to_chat_completion_request(&self.config, &context_info_helper, &messages, &attachment, user_attachment_input.as_ref(), code_file_list.as_deref())?;
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -415,6 +416,7 @@ fn convert_messages_to_chat_completion_request(
     messages: &[tabby_schema::thread::Message],
     attachment: &tabby_schema::thread::MessageAttachment,
     user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
+    code_file_list: Option<&[String]>,
 ) -> anyhow::Result<Vec<ChatCompletionRequestMessage>> {
     let mut output = vec![];
     output.reserve(messages.len() + 1);
@@ -445,7 +447,7 @@ fn convert_messages_to_chat_completion_request(
 
             let y = &messages[i + 1];
 
-            let content = build_user_prompt(&x.content, &y.attachment, None);
+            let content = build_user_prompt(&x.content, &y.attachment, None, None);
             ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
                 content: ChatCompletionRequestUserMessageContent::Text(
                     helper.rewrite_tag(&content),
@@ -471,6 +473,7 @@ fn convert_messages_to_chat_completion_request(
                     &messages[messages.len() - 1].content,
                     attachment,
                     user_attachment_input,
+                    code_file_list,
                 ),
             )),
             ..Default::default()
@@ -484,6 +487,7 @@ fn build_user_prompt(
     user_input: &str,
     assistant_attachment: &tabby_schema::thread::MessageAttachment,
     user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
+    code_file_list: Option<&[String]>,
 ) -> String {
     // If the user message has no code attachment and the assistant message has no code attachment or doc attachment, return the user message directly.
     if user_attachment_input
@@ -530,17 +534,15 @@ fn build_user_prompt(
         citations.join("\n\n")
     };
 
-    let maybe_file_list_context = {
-        let file_list = &assistant_attachment.code_file_list;
-        if !file_list.is_empty() {
+    let maybe_file_list_context = code_file_list
+        .filter(|file_list| !file_list.is_empty())
+        .map(|file_list| {
             format!(
                 "Here is the list of files in the workspace available for reference:\n\n{}",
                 file_list.join("\n")
             )
-        } else {
-            String::default()
-        }
-    };
+        })
+        .unwrap_or_default();
 
     format!(
         r#"You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
@@ -779,12 +781,11 @@ mod tests {
                 start_line: Some(1),
             }],
             client_code: vec![],
-            code_file_list: vec![],
         };
         let user_attachment_input = None;
 
         let prompt =
-            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
+            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input, None);
 
         println!("{}", prompt.as_str());
         assert!(prompt.contains(user_input));
@@ -818,7 +819,6 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
-            code_file_list: vec![],
         };
 
         let messages = vec![
@@ -859,6 +859,7 @@ mod tests {
             &messages,
             &tabby_schema::thread::MessageAttachment::default(),
             Some(&user_attachment_input),
+            None,
         )
         .unwrap();
 
@@ -996,7 +997,6 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
-            code_file_list: vec![],
         };
 
         let question = "What is the purpose of this code?";
@@ -1059,7 +1059,6 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
-            code_file_list: vec![]
         };
 
         let question = "What is the purpose of this code?";

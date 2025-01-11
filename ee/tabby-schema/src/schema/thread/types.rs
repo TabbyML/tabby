@@ -65,9 +65,6 @@ pub struct MessageAttachment {
     /// Code snippets retrieved from the server side codebase.
     pub code: Vec<MessageAttachmentCode>,
 
-    /// List of code files retrieved from the server side codebase.
-    pub code_file_list: Vec<String>,
-
     /// Documents retrieved from various sources, all from the server side.
     pub doc: Vec<MessageAttachmentDoc>,
 }
