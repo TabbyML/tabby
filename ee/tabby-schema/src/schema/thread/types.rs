@@ -250,6 +250,13 @@ pub struct ThreadAssistantMessageCreated {
     pub id: ID,
 }
 
+#[derive(GraphQLObject, Clone, Debug)]
+pub struct ThreadAssistantMessageReadingCode {
+    pub snippet: bool,
+    pub file_list: bool,
+    // pub commit_history: bool
+}
+
 #[derive(GraphQLObject)]
 pub struct ThreadAssistantMessageAttachmentsCode {
     pub code_source_id: String,
@@ -282,6 +289,7 @@ pub enum ThreadRunItem {
     ThreadRelevantQuestions(ThreadRelevantQuestions),
     ThreadUserMessageCreated(ThreadUserMessageCreated),
     ThreadAssistantMessageCreated(ThreadAssistantMessageCreated),
+    ThreadAssistantMessageReadingCode(ThreadAssistantMessageReadingCode),
     ThreadAssistantMessageAttachmentsCode(ThreadAssistantMessageAttachmentsCode),
     ThreadAssistantMessageAttachmentsDoc(ThreadAssistantMessageAttachmentsDoc),
     ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta),

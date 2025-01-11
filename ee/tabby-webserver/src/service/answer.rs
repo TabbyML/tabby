@@ -20,10 +20,7 @@ use async_openai_alt::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use prompt_tools::{
-    pipeline_decide_need_codebase_context,
-    pipeline_related_questions,
-};
+use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
 use tabby_common::{
     api::{
         code::{
@@ -116,6 +113,7 @@ impl AnswerService {
             if let Some(code_query) = options.code_query.as_ref() {
                 if let Some(repository) = self.find_repository(&context_info_helper, code_query, policy.clone()).await {
                     let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &query.content).await?;
+                    yield Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(need_codebase_context.clone()));
                     if need_codebase_context.file_list {
                         // List at most 300 files in the repository.
                         match self.repository.list_files(&policy, &repository.kind, &repository.id, None, Some(300)).await {

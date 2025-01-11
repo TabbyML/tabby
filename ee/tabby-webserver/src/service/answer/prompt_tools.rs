@@ -6,6 +6,7 @@ use async_openai_alt::types::{
     CreateChatCompletionRequestArgs,
 };
 use tabby_inference::ChatCompletionStream;
+use tabby_schema::thread::ThreadAssistantMessageReadingCode;
 use tracing::debug;
 
 async fn request_llm(chat: Arc<dyn ChatCompletionStream>, prompt: &str) -> Result<String> {
@@ -77,17 +78,11 @@ fn detect_content(content: &str, check: &str) -> bool {
     content.to_lowercase().contains(check)
 }
 
-#[derive(Debug)]
-pub struct CodebaseContext {
-    pub snippet: bool,
-    pub file_list: bool,
-}
-
 /// Decide whether the question requires knowledge from codebase content.
 pub async fn pipeline_decide_need_codebase_context(
     chat: Arc<dyn ChatCompletionStream>,
     question: &str,
-) -> Result<CodebaseContext> {
+) -> Result<ThreadAssistantMessageReadingCode> {
     let prompt = format!(
         r#"You are a helpful assistant that helps the user to decide the types of context needed to answer the question. Currently, the following two kinds of context are supported:
 SNIPPET: Snippets searched from codebase given the question.
@@ -99,6 +94,7 @@ Here's a few examples:
 "How to implement an embedding api?" -> SNIPPET
 "Which file contains http api definitions" -> SNIPPET,FILE_LIST
 "How many python files is in the codebase?" -> FILE_LIST
+"Which file contains main function?" -> SNIPPET
 
 Here's the original question:
 {question}
@@ -106,7 +102,7 @@ Here's the original question:
     );
 
     let content = request_llm(chat, &prompt).await?;
-    let context = CodebaseContext {
+    let context = ThreadAssistantMessageReadingCode {
         snippet: detect_content(&content, "snippet"),
         file_list: detect_content(&content, "file_list"),
     };
