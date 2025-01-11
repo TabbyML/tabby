@@ -21,7 +21,8 @@ use async_openai_alt::{
 use async_stream::stream;
 use futures::stream::BoxStream;
 use prompt_tools::{
-    pipeline_decide_need_codebase_commit_history, pipeline_decide_need_codebase_directory_tree, pipeline_decide_need_codebase_snippet, pipeline_related_questions
+    pipeline_decide_need_codebase_commit_history, pipeline_decide_need_codebase_directory_tree,
+    pipeline_decide_need_codebase_snippet, pipeline_related_questions,
 };
 use tabby_common::{
     api::{
@@ -31,7 +32,7 @@ use tabby_common::{
         },
         structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
     },
-    config::AnswerConfig, index::code,
+    config::AnswerConfig,
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
@@ -482,7 +483,9 @@ fn convert_messages_to_chat_completion_request(
 
     output.push(ChatCompletionRequestMessage::User(
         ChatCompletionRequestUserMessage {
-            content: ChatCompletionRequestUserMessageContent::Text(helper.rewrite_tag(&user_prompt)),
+            content: ChatCompletionRequestUserMessageContent::Text(
+                helper.rewrite_tag(&user_prompt),
+            ),
             ..Default::default()
         },
     ));
@@ -507,7 +510,7 @@ fn build_user_prompt(
         return user_input.to_owned();
     }
 
-    let maybe_file_snippet_context= {
+    let maybe_file_snippet_context = {
         let snippets: Vec<String> = assistant_attachment
             .doc
             .iter()
@@ -540,7 +543,10 @@ fn build_user_prompt(
             .collect();
 
         if !citations.is_empty() {
-            format!("Here are set of contexts:\n\n{}\n\n", citations.join("\n\n"))
+            format!(
+                "Here are set of contexts:\n\n{}\n\n",
+                citations.join("\n\n")
+            )
         } else {
             String::default()
         }
