@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "start": "docusaurus start",
+    "start": "yarn generate:docs-data && docusaurus start",
     "prebuild": "cat docs/models/index.mdx.tmpl > docs/models/index.mdx && curl https://raw.githubusercontent.com/TabbyML/registry-tabby/main/README.md | tail -n +2 >> docs/models/index.mdx",
-    "build": "docusaurus build",
+    "generate:docs-data": "node scripts/generate-docs-data.js",
+    "build": "yarn generate:docs-data && docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
