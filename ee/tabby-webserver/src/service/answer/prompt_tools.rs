@@ -76,6 +76,28 @@ fn detect_yes(content: &str) -> bool {
     content.to_lowercase().contains("yes")
 }
 
+/// Decide whether the question requires knowledge from codebase content.
+pub async fn pipeline_decide_need_codebase_snippet(
+    chat: Arc<dyn ChatCompletionStream>,
+    question: &str,
+) -> Result<bool> {
+    let prompt = format!(
+        r#"You are a helpful assistant that helps the user to decide whether the question requires content / snippets from codebase. If it requires, return "Yes", otherwise return "No".
+
+Here's a few examples:
+"How to implement an embedding api?" -> Yes
+"Which file contains http api definitions" -> Yes
+"How many python files is in the codebase?" -> No
+
+Here's the original question:
+{question}
+"#
+    );
+
+    let content = request_llm(chat, &prompt).await?;
+    Ok(detect_yes(&content))
+}
+
 /// Decide whether the question requires knowledge from codebase directory structure.
 pub async fn pipeline_decide_need_codebase_directory_tree(
     chat: Arc<dyn ChatCompletionStream>,
