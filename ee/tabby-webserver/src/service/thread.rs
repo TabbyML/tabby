@@ -56,7 +56,7 @@ impl ThreadServiceImpl {
                     self.to_message_attachment_docs(docs.0).await
                 } else {
                     vec![]
-                }
+                },
             };
 
             output.push(thread::Message {
