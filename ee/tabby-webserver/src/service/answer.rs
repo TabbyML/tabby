@@ -873,6 +873,7 @@ mod tests {
 
         let rewriter = context_info.helper();
 
+        let code_file_list = vec!["client.py".to_owned(), "server.py".to_owned()];
         let config = make_answer_config();
         let output = super::convert_messages_to_chat_completion_request(
             &config,
@@ -880,7 +881,7 @@ mod tests {
             &messages,
             &tabby_schema::thread::MessageAttachment::default(),
             Some(&user_attachment_input),
-            None,
+            Some(&code_file_list),
         )
         .unwrap();
 
