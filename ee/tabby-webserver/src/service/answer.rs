@@ -129,12 +129,15 @@ impl AnswerService {
                         // List at most 300 files in the repository.
                         match self.repository.list_files(&policy, &repository.kind, &repository.id, None, Some(300)).await {
                             Ok(files) => {
+                                debug!("added directory file list ({} items) to prompt", files.len());
                                 code_file_list = Some(files.into_iter().map(|x| x.path).collect());
                             }
                             Err(e) => {
                                 error!("failed to list files for repository {}: {}", repository.id, e);
                             }
                         }
+                    } else {
+                        debug!("skipped directory file list");
                     }
 
                     // FIXME(zwpaper): Turn on codebase commit history in prod when it got stored in index.
@@ -467,16 +470,17 @@ fn convert_messages_to_chat_completion_request(
         output.push(message);
     }
 
+    let user_prompt = build_user_prompt(
+        &messages[messages.len() - 1].content,
+        attachment,
+        user_attachment_input,
+        code_file_list,
+    );
+    debug!(?user_prompt);
+
     output.push(ChatCompletionRequestMessage::User(
         ChatCompletionRequestUserMessage {
-            content: ChatCompletionRequestUserMessageContent::Text(helper.rewrite_tag(
-                &build_user_prompt(
-                    &messages[messages.len() - 1].content,
-                    attachment,
-                    user_attachment_input,
-                    code_file_list,
-                ),
-            )),
+            content: ChatCompletionRequestUserMessageContent::Text(helper.rewrite_tag(&user_prompt)),
             ..Default::default()
         },
     ));
@@ -785,8 +789,12 @@ mod tests {
         };
         let user_attachment_input = None;
 
-        let prompt =
-            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input, None);
+        let prompt = super::build_user_prompt(
+            user_input,
+            &assistant_attachment,
+            user_attachment_input,
+            None,
+        );
 
         println!("{}", prompt.as_str());
         assert!(prompt.contains(user_input));
