@@ -4,7 +4,7 @@
 
 ## Chat model
 
-We recommend using Perplexity's HTTP server for chat functionality. It provides an OpenAI-compatible chat API interface. The Sonar Large (70B) and Huge (405B) models are recommended for better performance.
+Perplexity provides an OpenAI-compatible chat API interface. The Sonar Large (70B) and Huge (405B) models are recommended for better performance.
 
 ```toml title="~/.tabby/config.toml"
 [model.chat.http]
