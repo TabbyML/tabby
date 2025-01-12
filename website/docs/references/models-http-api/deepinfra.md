@@ -4,7 +4,7 @@
 
 ## Chat model
 
-We recommend using DeepInfra's HTTP server for chat functionality. It provides an OpenAI-compatible chat API interface.
+DeepInfra provides an OpenAI-compatible chat API interface.
 
 ```toml title="~/.tabby/config.toml"
 [model.chat.http]
