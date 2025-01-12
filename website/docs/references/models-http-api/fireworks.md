@@ -4,7 +4,7 @@
 
 ## Chat model
 
-We recommend using Fireworks's HTTP server for chat functionality. It provides an OpenAI-compatible chat API interface.
+Fireworks provides an OpenAI-compatible chat API interface.
 
 ```toml title="~/.tabby/config.toml"
 [model.chat.http]
