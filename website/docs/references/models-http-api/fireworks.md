@@ -16,7 +16,7 @@ api_key = "your-api-key"
 
 ## Completion model
 
-We currently do not support Fireworks's completion model through their API, because Fireworks does not offer a completion model through their API.
+Fireworks does not offer completion models (FIM) through their API.
 
 ## Embeddings model
 
