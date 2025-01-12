@@ -155,6 +155,7 @@ impl DbConn {
         tokio::fs::create_dir_all(db_file.parent().unwrap()).await?;
 
         let options = SqliteConnectOptions::new()
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
             .filename(db_file)
             .create_if_missing(true);
         let pool = SqlitePool::connect_with(options).await?;
