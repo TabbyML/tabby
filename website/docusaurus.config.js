@@ -284,5 +284,17 @@ export default {
       src: "https://tally.so/widgets/embed.js",
       async: true
     }
-  ]
+  ],
+  themes: [
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      /** @type {import("@easyops-cn/docusaurus-search-local").PluginOptions} */
+      {
+        hashed: true,
+        indexBlog: false,
+        forceIgnoreNoIndex: true,
+        indexDocs: true,
+      },
+    ],
+  ],
 };

@@ -10,6 +10,7 @@
 
 /* You can override the default Infima variables here. */
 :root {
+  /* Color System */
   --ifm-color-primary: #3b373c;
   --ifm-color-primary-dark: #353236;
   --ifm-color-primary-darker: #322f33;
@@ -18,17 +19,37 @@
   --ifm-color-primary-lighter: #443f45;
   --ifm-color-primary-lightest: #4d484e;
 
-  --ifm-background-color: #FFF8EC;
-  --ifm-background-surface-color: #E9E1D4;
+  /* Background Colors */
+  --ifm-background-color: #fff8ec;
+  --ifm-background-surface-color: #e9e1d4;
+  --ifm-code-background: #fffefd;
 
-  --ifm-code-background: #FFFEFD;
-  --openapi-monaco-background-color-light: var(--ifm-code-background) !important;
+  /* Search Modal Variables */
+  --search-local-modal-background: var(--ifm-background-color);
+  --search-local-modal-shadow: inset 1px 1px 0 0 hsla(0, 0%, 100%, 0.5),
+    0 3px 8px 0 #555a64;
+  --search-local-modal-width: 560px;
+  --search-local-modal-width-sm: 340px;
+  --search-local-spacing: 12px;
+
+  /* Search Hit Styles */
+  --search-local-hit-background: var(--ifm-color-emphasis-100);
+  --search-local-hit-shadow: none;
+  --search-local-hit-color: var(--ifm-font-color-base);
+  --search-local-hit-height: 56px;
+  --search-local-highlight-color: var(--ifm-color-primary);
+  --search-local-muted-color: var(--ifm-color-secondary-darkest);
+  --search-local-icon-stroke-width: 1.4;
+  --search-local-hit-active-color: var(--ifm-color-white);
+
+  /* Component Specific */
+  --openapi-monaco-background-color-light: var(
+    --ifm-code-background
+  ) !important;
   --openapi-card-background-color: var(--ifm-code-background) !important;
-
   /* Fix footer hover color */
   --ifm-footer-link-hover-color: var(--ifm-color-gray-500);
 }
-
 
 .markdown a {
   color: var(--ifm-color-success-darkest);
