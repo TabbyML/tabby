@@ -16,7 +16,7 @@ api_key = "your-api-key"
 
 ## Completion model
 
-We recommend using DeepInfra's HTTP server for code completion. It provides an OpenAI-compatible completion API interface.
+DeepInfra provides an OpenAI-compatible completion API interface.
 
 ```toml title="~/.tabby/config.toml"
 [model.completion.http]
@@ -28,7 +28,7 @@ api_key = "your-api-key"
 
 ## Embeddings model
 
-We recommend using DeepInfra's HTTP server for embeddings. It provides an OpenAI-compatible embeddings API interface.
+DeepInfra also provides an OpenAI-compatible embeddings API interface.
 
 ```toml title="~/.tabby/config.toml"
 [model.embedding.http]
