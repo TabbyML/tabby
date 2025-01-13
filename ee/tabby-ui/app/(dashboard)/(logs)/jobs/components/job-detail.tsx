@@ -36,7 +36,7 @@ export default function JobRunDetail() {
   const isPending =
     (stateLabel === 'Pending' || stateLabel === 'Running') &&
     !currentNode?.stdout
-  
+
   const handleBackNavigation = () => {
     if (typeof window !== 'undefined' && window.history.length <= 1) {
       router.push('/jobs')
