@@ -9,6 +9,7 @@ pub mod interface;
 pub mod job;
 pub mod license;
 pub mod notification;
+pub mod page;
 pub mod repository;
 pub mod setting;
 pub mod thread;
@@ -696,6 +697,30 @@ impl Query {
         .await
     }
 
+    async fn pages(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<page::Page>> {
+        check_user(ctx).await?;
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    }
+
+    async fn page_sections(
+        ctx: &Context,
+        page_id: ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<page::Section>> {
+        check_user(ctx).await?;
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    }
+
     async fn custom_web_documents(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -1303,6 +1328,42 @@ impl Mutation {
 
         svc.update_thread_message(&input).await?;
         Ok(true)
+    }
+
+    // page mutations
+    async fn convert_thread_to_page(ctx: &Context, thread_id: ID) -> Result<ID> {
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    }
+
+    async fn generate_page_title(ctx: &Context, id: ID) -> Result<String> {
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    }
+
+    async fn generate_page_summary(ctx: &Context, id: ID) -> Result<String> {
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    }
+
+    async fn delete_page(ctx: &Context, id: ID) -> Result<ID> {
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    }
+
+    // when update a section order, the order of the rest of the sections will be updated
+    async fn generate_page_section(
+        ctx: &Context,
+        input: page::GenerateSectionInput,
+    ) -> Result<page::Section> {
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    }
+
+    async fn reorder_page_sections(
+        ctx: &Context,
+        input: page::ReorderSectionsInput,
+    ) -> Result<bool> {
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    }
+
+    async fn delete_page_section(ctx: &Context, section_id: ID) -> Result<ID> {
+        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
     }
 
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
