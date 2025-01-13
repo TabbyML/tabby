@@ -7,7 +7,9 @@ use crate::{juniper::relay::NodeType, Context};
 #[graphql(context = Context)]
 pub struct Page {
     pub id: ID,
-    pub user_id: ID,
+    pub author_id: ID,
+    pub title: String,
+    pub summary: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -34,6 +36,9 @@ pub struct Section {
     pub id: ID,
     pub page_id: ID,
     pub position: i32,
+    pub title: String,
+    pub content: String,
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
