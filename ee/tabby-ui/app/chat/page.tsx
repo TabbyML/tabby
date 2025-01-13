@@ -29,6 +29,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 import './page.css'
 
 import { saveFetcherOptions } from '@/lib/tabby/token-management'
+import { PromptFormRef } from '@/components/chat/form-editor/types'
 
 const convertToHSLColor = (style: string) => {
   return Color(style)
@@ -64,7 +65,7 @@ export default function ChatPage() {
   const chatRef = useRef<ChatRef>(null)
   const { width } = useWindowSize()
   const prevWidthRef = useRef(width)
-  const chatInputRef = useRef<HTMLTextAreaElement>(null)
+  const chatInputRef = useRef<PromptFormRef>(null)
 
   const searchParams = useSearchParams()
   const client = searchParams.get('client') as ClientType

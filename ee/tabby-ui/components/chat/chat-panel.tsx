@@ -47,7 +47,7 @@ export interface ChatPanelProps
   onSubmit: (content: string) => Promise<any>
   reload: () => void
   chatMaxWidthClass: string
-  chatInputRef: RefObject<HTMLTextAreaElement>
+  chatInputRef: RefObject<PromptFormRef>
 }
 
 export interface ChatPanelRef {
@@ -67,7 +67,6 @@ function ChatPanelRenderer(
   }: ChatPanelProps,
   ref: React.Ref<ChatPanelRef>
 ) {
-  const promptFormRef = React.useRef<PromptFormRef>(null)
   const {
     threadId,
     container,
@@ -148,15 +147,15 @@ function ChatPanelRenderer(
     () => {
       return {
         focus: () => {
-          promptFormRef.current?.focus()
+          chatInputRef.current?.focus()
         },
         setInput: str => {
-          promptFormRef.current?.setInput(str)
+          chatInputRef.current?.setInput(str)
         },
-        input: promptFormRef.current?.input ?? ''
+        input: chatInputRef.current?.input ?? ''
       }
     },
-    []
+    [chatInputRef]
   )
 
   return (
@@ -326,7 +325,7 @@ function ChatPanelRenderer(
             </AnimatePresence>
           </div>
           <PromptForm
-            ref={promptFormRef}
+            ref={chatInputRef}
             onSubmit={onSubmit}
             isLoading={isLoading}
           />

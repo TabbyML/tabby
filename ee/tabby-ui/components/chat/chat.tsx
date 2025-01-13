@@ -51,7 +51,7 @@ import {
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
-import { FileItem } from './form-editor/types'
+import { FileItem, PromptFormRef } from './form-editor/types'
 import {
   FILEITEM_REGEX,
   fileItemToFileContext,
@@ -84,7 +84,7 @@ type ChatContextValue = {
   relevantContext: Context[]
   activeSelection: Context | null
   removeRelevantContext: (index: number) => void
-  chatInputRef: RefObject<HTMLTextAreaElement>
+  chatInputRef: RefObject<PromptFormRef>
   supportsOnApplyInEditorV2: boolean
   selectedRepoId: string | undefined
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
@@ -131,7 +131,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   ) => Promise<SymbolInfo | undefined>
   openInEditor: (target: FileLocation) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
-  chatInputRef: RefObject<HTMLTextAreaElement>
+  chatInputRef: RefObject<PromptFormRef>
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
   getActiveEditorSelection?: () => Promise<EditorFileContext | null>
