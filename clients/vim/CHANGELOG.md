@@ -1,3 +1,9 @@
+## 2.0.2
+
+### Fixes & Improvements
+
+- Fixed a bug that caused keybindings to not be set up correctly in newly opened buffers.
+
 ## 2.0.1
 
 ### Fixes & Improvements
