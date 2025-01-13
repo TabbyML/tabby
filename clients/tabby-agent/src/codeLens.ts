@@ -119,7 +119,7 @@ export class CodeLensProvider implements Feature {
             lineCodeLenses.push({
               range: codeLensRange,
               command: {
-                title: `$(check)Accept`,
+                title: "$(check)Accept",
                 command: "tabby/chat/edit/resolve",
                 arguments: [{ location: codeLensLocation, action: "accept" }],
               },
@@ -132,7 +132,7 @@ export class CodeLensProvider implements Feature {
             lineCodeLenses.push({
               range: codeLensRange,
               command: {
-                title: `$(remove-close)Discard`,
+                title: "$(remove-close)Discard",
                 command: "tabby/chat/edit/resolve",
                 arguments: [{ location: codeLensLocation, action: "discard" }],
               },
