@@ -26,7 +26,7 @@ export const FILEITEM_AT_REGEX = /\[\[fileItemAt: (\d+)\]\]/g
 export function fileItemToSourceItem(info: FileItem): SourceItem {
   return {
     fileItem: info,
-    name: info.label.split('/').pop() || info.label, // Extract the last segment of the path as the name
+    name: getLastSegmentFromPath(info.label) || info.label, // Extract the last segment of the path as the name
     filepath: info.label,
     category: 'file'
   }
@@ -52,7 +52,9 @@ export function replaceAtMentionPlaceHolderWithAt(value: string) {
     try {
       const parsedItem = JSON.parse(match[1])
       const labelName =
-        parsedItem.label.split('/').pop() || parsedItem.label || 'unknown'
+        getLastSegmentFromPath(parsedItem.label) ||
+        parsedItem.label ||
+        'unknown'
       newValue = newValue.replace(match[0], `@${labelName}`)
     } catch (error) {
       continue

@@ -55,6 +55,7 @@ import { FileItem } from './form-editor/types'
 import {
   FILEITEM_REGEX,
   fileItemToFileContext,
+  getLastSegmentFromPath,
   replaceAtMentionPlaceHolderWithAt
 } from './form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
@@ -521,7 +522,9 @@ function ChatRenderer(
         const parsedItem = JSON.parse(match[1])
         fileItems.push(parsedItem)
         const labelName =
-          parsedItem.label.split('/').pop() || parsedItem.label || 'unknown'
+          getLastSegmentFromPath(parsedItem.label.split('/')) ||
+          parsedItem.label ||
+          'unknown'
         newValue = newValue.replace(match[0], `@${labelName}`)
       } catch (error) {
         continue
