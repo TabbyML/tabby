@@ -51,7 +51,11 @@ import {
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
-import { FILEITEM_REGEX } from './form-editor/utils'
+import { FileItem } from './form-editor/types'
+import {
+  FILEITEM_REGEX,
+  replaceAtMentionPlaceHolderWithAt
+} from './form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
@@ -278,7 +282,8 @@ function ChatRenderer(
     // delete message pair
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
-    setInput(userMessage.message)
+    // FIXME: put this transformer to somewhere else, both case in message markdown and edit could be cover by same method
+    setInput(replaceAtMentionPlaceHolderWithAt(userMessage.message))
     if (userMessage.activeContext) {
       openInEditor(getFileLocationFromContext(userMessage.activeContext))
     }
@@ -487,7 +492,13 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      sendUserMessage(...generateRequestPayload(newUserMessage))
+      // FIXME: we don't need to passing placeholder to backend
+      sendUserMessage(
+        ...generateRequestPayload({
+          ...newUserMessage,
+          message: replaceAtMentionPlaceHolderWithAt(userMessage.message)
+        })
+      )
     }
   )
 
@@ -508,26 +519,46 @@ function ChatRenderer(
   }
 
   const handleSubmit = async (value: string) => {
-    const fileItems: any[] = []
+    const fileItems: FileItem[] = []
     let newValue = value
-
     let match
     while ((match = FILEITEM_REGEX.exec(value)) !== null) {
       try {
         const parsedItem = JSON.parse(match[1])
         fileItems.push(parsedItem)
-
-        const replacement = `@${
+        const labelName =
           parsedItem.label.split('/').pop() || parsedItem.label || 'unknown'
-        }`
-        newValue = newValue.replace(match[0], replacement)
+        newValue = newValue.replace(match[0], `@${labelName}`)
       } catch (error) {
         continue
       }
     }
+
+    // read all at file and push to relevant context, which will request to backend server later
+    let fileContents: Context[] = []
+    if (readFileContent && fileItems.length > 0) {
+      fileContents = await Promise.all(
+        fileItems.map(async item => {
+          const content = await readFileContent({ filepath: item.filepath })
+          return {
+            filepath:
+              'filepath' in item.filepath
+                ? item.filepath.filepath
+                : item.filepath.uri,
+            content: content ?? '',
+            git_url:
+              'git_url' in item.filepath
+                ? (item.filepath.git_url as string)
+                : '',
+            kind: 'file'
+          }
+        })
+      )
+    }
+
     sendUserChat({
       message: value,
-      relevantContext: relevantContext
+      relevantContext: [...fileContents, ...relevantContext]
     })
 
     setRelevantContext([])

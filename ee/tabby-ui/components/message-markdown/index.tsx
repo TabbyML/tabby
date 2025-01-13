@@ -31,6 +31,12 @@ import {
   MARKDOWN_SOURCE_REGEX
 } from '@/lib/constants/regex'
 
+import {
+  FILEITEM_AT_REGEX,
+  getFilepathStringByChatPanelFilePath,
+  getLastSegmentFromPath,
+  replaceAtMentionPlaceHolderWithAtPlaceHolder
+} from '../chat/form-editor/utils'
 import { Mention } from '../mention-tag'
 import { Skeleton } from '../ui/skeleton'
 import { CodeElement } from './code'
@@ -96,6 +102,11 @@ export function MessageMarkdown({
   activeSelection,
   ...rest
 }: MessageMarkdownProps) {
+  // deal with some unresolved file items
+  const msgRes = replaceAtMentionPlaceHolderWithAtPlaceHolder(message)
+  message = msgRes.newValue
+  const fileItems = msgRes.fileItems
+
   const [symbolPositionMap, setSymbolLocationMap] = useState<
     Map<string, SymbolInfo | undefined>
   >(new Map())
@@ -161,6 +172,14 @@ export function MessageMarkdown({
       const sourceId = match[1]
       const className = headline ? 'text-[1rem] font-semibold' : undefined
       return { sourceId, className }
+    })
+
+    processMatches(FILEITEM_AT_REGEX, AtMentionTag, (match: string) => {
+      return {
+        label: getLastSegmentFromPath(
+          getFilepathStringByChatPanelFilePath(fileItems[+match[1]].filepath)
+        )
+      }
     })
 
     addTextNode(text.slice(lastIndex))
@@ -373,6 +392,14 @@ function SourceTag({
           />
         )}
       </span>
+    </span>
+  )
+}
+
+function AtMentionTag({ label }: { label: string | undefined }) {
+  return (
+    <span className="bg-muted/50 hover:bg-muted text-muted-foreground prose inline-flex items-center rounded px-1.5 py-0.5 text-sm font-medium text-white">
+      @{label}
     </span>
   )
 }

@@ -11,6 +11,9 @@ import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
 import { EditorContent, useEditor } from '@tiptap/react'
 
+import './prompt-form.css'
+
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconArrowElbow, IconEdit } from '@/components/ui/icons'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -283,7 +286,9 @@ function PromptFormRenderer(
             {/* TipTap editor content */}
             <EditorContent
               editor={editor}
-              className="prose overflow-hidden break-words text-white focus:outline-none"
+              className={cn(
+                'prose overflow-hidden break-words text-white focus:outline-none'
+              )}
             />
           </div>
           {anchorElement}

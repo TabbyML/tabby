@@ -1,5 +1,6 @@
 import Mention from '@tiptap/extension-mention'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import { Filepath } from 'tabby-chat-panel/index'
 
 import { cn } from '@/lib/utils'
 
@@ -53,16 +54,17 @@ export function shortenLabel(label: string, suffixLength = 15): string {
  */
 export const MentionComponent = ({ node }: { node: any }) => {
   return (
-    <NodeViewWrapper className="inline">
+    <NodeViewWrapper className="inline-block align-middle -my-1">
       <span
         className={cn(
-          'inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-sm font-medium text-white',
-          'ring-1 ring-inset ring-muted'
+          'bg-muted prose inline-flex items-center rounded px-1.5 py-0.5 text-sm font-medium text-white',
+          'ring-muted ring-1 ring-inset',
+          'relative top-[0.1em]'
         )}
         data-category={node.attrs.category}
       >
         <FileItemIcon />
-        <span>{node.attrs.name}</span>
+        <span className="relative top-[-0.5px]">{node.attrs.name}</span>
       </span>
     </NodeViewWrapper>
   )
@@ -192,4 +194,101 @@ export const MentionList = ({
       )}
     </div>
   )
+}
+
+// Some utils function help to extract place holder
+export function replaceAtMentionPlaceHolderWithAt(value: string) {
+  // eslint-disable-next-line no-console
+  console.log('before value: ', value)
+
+  let newValue = value
+
+  let match
+  while ((match = FILEITEM_REGEX.exec(value)) !== null) {
+    try {
+      const parsedItem = JSON.parse(match[1])
+      const labelName =
+        parsedItem.label.split('/').pop() || parsedItem.label || 'unknown'
+      newValue = newValue.replace(match[0], `@${labelName}`)
+    } catch (error) {
+      continue
+    }
+  }
+
+  // eslint-disable-next-line no-console
+  console.log('new value:', newValue)
+  return newValue
+}
+
+interface ReplaceResult {
+  newValue: string
+  fileItems: FileItem[]
+}
+
+export const FILEITEM_AT_REGEX = /\[\[fileItemAt: (\d+)\]\]/g
+
+// Some utils function help to extract place holder
+// replace at mention JSON placeholder to something like [[fileItemAt: id]] which ad is string
+// return a list of FileItem with unique id
+// also return string already replaced
+// example:
+//  [[fileItem:{"label":"src/CodeActions.ts","filepath":{"kind":"git","filepath":"clients/vscode/src/CodeActions.ts",
+// "gitUrl":"git@github.com:Sma1lboy/tabby.git"}}]] explain this  [[fileItem:{"label":"src/CodeActions.ts",
+// "filepath":{"kind":"git","filepath":"clients/vscode/src/CodeActions.ts","gitUrl":"git@github.com:Sma1lboy/tabby.git"}}]]
+// will replaced as [[fileItemAt: idx0]] explain this [[fileItemAt: idx1]]
+// and with [fileItem1, fileItem2]
+export function replaceAtMentionPlaceHolderWithAtPlaceHolder(
+  value: string
+): ReplaceResult {
+  // eslint-disable-next-line no-console
+  console.log('before value: ', value)
+
+  let newValue = value
+  let match
+  const fileItems: FileItem[] = []
+  let idx = 0
+
+  while ((match = FILEITEM_REGEX.exec(value)) !== null) {
+    try {
+      const parsedItem = JSON.parse(match[1])
+
+      fileItems.push({
+        ...parsedItem
+      })
+
+      newValue = newValue.replace(match[0], `[[fileItemAt: ${idx}]]`)
+
+      idx++
+    } catch (error) {
+      continue
+    }
+  }
+
+  // eslint-disable-next-line no-console
+  console.log('new value:', newValue)
+  return {
+    newValue,
+    fileItems
+  }
+}
+
+// utils function
+export function getFilepathStringByChatPanelFilePath(
+  filepath: Filepath
+): string {
+  return 'filepath' in filepath ? filepath.filepath : filepath.uri
+}
+
+export function getLastSegmentFromPath(filepath: string): string {
+  if (!filepath) {
+    return 'unknown'
+  }
+
+  const normalizedPath = filepath.replace(/\\/g, '/')
+
+  const cleanPath = normalizedPath.replace(/\/+$/, '')
+  const segments = cleanPath.split('/')
+  const lastSegment = segments[segments.length - 1]
+
+  return lastSegment || 'unknown'
 }

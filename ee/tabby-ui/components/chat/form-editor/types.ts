@@ -1,3 +1,5 @@
+import { ListFileItem } from 'tabby-chat-panel/index'
+
 /**
  * PromptProps defines the props for the PromptForm component.
  */
@@ -31,15 +33,11 @@ export interface PromptFormRef {
   input: string
 }
 
+// TODO: move this into chat-panel in next iterate
 /**
  * Represents a file item inside the workspace.
- * (You can add more properties if needed)
  */
-export interface FileItem {
-  label: string
-  id?: string
-  // ... any other fields that you might have
-}
+export type FileItem = ListFileItem
 
 /**
  * Represents a file source item for mention suggestions.
