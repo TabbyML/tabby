@@ -19,12 +19,9 @@ import { IconArrowElbow, IconEdit } from '@/components/ui/icons'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 
 import { ChatContext } from './chat'
+import { MentionList, PromptFormMentionExtension } from './form-editor/mention'
 import { MentionState, PromptFormRef, PromptProps } from './form-editor/types'
-import {
-  fileItemToSourceItem,
-  MentionList,
-  PromptFormMentionExtension
-} from './form-editor/utils'
+import { fileItemToSourceItem } from './form-editor/utils'
 
 /**
  * PromptFormRenderer is the internal component used by React.forwardRef

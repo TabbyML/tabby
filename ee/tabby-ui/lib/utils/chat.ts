@@ -6,6 +6,11 @@ import {
   ContextSourceKind
 } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
+import { FileItem } from '@/components/chat/form-editor/types'
+import {
+  FILEITEM_REGEX,
+  getFileBaseNameByChatPanelFilePath
+} from '@/components/chat/form-editor/utils'
 
 import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
 
@@ -78,6 +83,11 @@ export function getTitleFromMessages(
       const sourceId = value.slice(9, -2)
       const source = sources.find(s => s.sourceId === sourceId)
       return source?.sourceName ?? ''
+    })
+    .replace(FILEITEM_REGEX, value => {
+      // TODO(Sma1lboy): find a better way to do this
+      const item = JSON.parse(value.slice(11, -2)) as FileItem
+      return '@' + getFileBaseNameByChatPanelFilePath(item.filepath)
     })
     .trim()
 

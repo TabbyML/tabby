@@ -6,41 +6,40 @@ import { ListFileItem } from 'tabby-chat-panel/index'
 export interface PromptProps {
   /**
    * A callback function that handles form submission.
-   * It returns a Promise, so you can handle async actions.
+   * Returns a Promise for handling async operations.
    */
   onSubmit: (value: string) => Promise<void>
   /**
-   * Indicates if the form (or chat) is in a loading/submitting state.
+   * Indicates whether the form (or chat) is in a loading/submitting state.
    */
   isLoading: boolean
 }
 
 /**
- * PromptFormRef defines the methods exposed by the PromptForm via forwardRef.
+ * PromptFormRef defines the methods exposed by PromptForm via forwardRef.
  */
 export interface PromptFormRef {
   /**
-   * Focus the editor inside PromptForm.
+   * Focuses the editor within PromptForm.
    */
   focus: () => void
   /**
-   * Set the content of the editor programmatically.
+   * Programmatically sets the editor's text content.
    */
   setInput: (value: string) => void
   /**
-   * Get the current editor text content.
+   * Returns the current text content of the editor.
    */
   input: string
 }
 
-// TODO: move this into chat-panel in next iterate
 /**
- * Represents a file item inside the workspace.
+ * Represents a file item in the workspace.
  */
 export type FileItem = ListFileItem
 
 /**
- * Represents a file source item for mention suggestions.
+ * Represents a file source item for the mention suggestion list.
  */
 export interface SourceItem {
   name: string
@@ -50,7 +49,7 @@ export interface SourceItem {
 }
 
 /**
- * The attributes stored in a mention node.
+ * Defines the attributes to be stored in a mention node.
  */
 export interface MentionNodeAttrs {
   id: string
@@ -60,7 +59,7 @@ export interface MentionNodeAttrs {
 }
 
 /**
- * Stores the current state of the mention feature while typing.
+ * Maintains the current state of the mention feature while typing.
  */
 export interface MentionState {
   items: SourceItem[]

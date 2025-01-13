@@ -54,6 +54,7 @@ import { EmptyScreen } from './empty-screen'
 import { FileItem } from './form-editor/types'
 import {
   FILEITEM_REGEX,
+  fileItemToFileContext,
   replaceAtMentionPlaceHolderWithAt
 } from './form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
@@ -489,16 +490,9 @@ function ChatRenderer(
           }
         }
       ]
-
       setQaPairs(nextQaPairs)
 
-      // FIXME: we don't need to passing placeholder to backend
-      sendUserMessage(
-        ...generateRequestPayload({
-          ...newUserMessage,
-          message: replaceAtMentionPlaceHolderWithAt(userMessage.message)
-        })
-      )
+      sendUserMessage(...generateRequestPayload(newUserMessage))
     }
   )
 
@@ -540,18 +534,7 @@ function ChatRenderer(
       fileContents = await Promise.all(
         fileItems.map(async item => {
           const content = await readFileContent({ filepath: item.filepath })
-          return {
-            filepath:
-              'filepath' in item.filepath
-                ? item.filepath.filepath
-                : item.filepath.uri,
-            content: content ?? '',
-            git_url:
-              'git_url' in item.filepath
-                ? (item.filepath.git_url as string)
-                : '',
-            kind: 'file'
-          }
+          return fileItemToFileContext(item, content ?? '')
         })
       )
     }
