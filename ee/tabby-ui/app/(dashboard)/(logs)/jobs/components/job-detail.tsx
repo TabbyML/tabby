@@ -36,6 +36,14 @@ export default function JobRunDetail() {
   const isPending =
     (stateLabel === 'Pending' || stateLabel === 'Running') &&
     !currentNode?.stdout
+  
+  const handleBackNavigation = () => {
+    if (typeof window !== 'undefined' && window.history.length <= 1) {
+      router.push('/jobs')
+    } else {
+      router.back()
+    }
+  }
 
   React.useEffect(() => {
     let timer: number
@@ -61,7 +69,7 @@ export default function JobRunDetail() {
           {currentNode && (
             <>
               <div
-                onClick={() => router.back()}
+                onClick={handleBackNavigation}
                 className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60"
               >
                 <IconChevronLeft className="mr-1 h-6 w-6" />
