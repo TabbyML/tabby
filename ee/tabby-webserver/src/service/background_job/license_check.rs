@@ -3,12 +3,11 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_schema::{
-    context::ContextService,
     license::{LicenseService, LicenseType},
     notification::{NotificationRecipient, NotificationService},
 };
 
-use super::helper::Job;
+use super::helper::{Job, JobLogger};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LicenseCheckJob;
@@ -22,21 +21,39 @@ impl LicenseCheckJob {
         _now: DateTime<Utc>,
         license_service: Arc<dyn LicenseService>,
         notification_service: Arc<dyn NotificationService>,
+        db: tabby_db::DbConn,
+        job_id: i64,
     ) -> tabby_schema::Result<()> {
-        let license = license_service.read().await?;
+        let logger = JobLogger::new(db.clone(), job_id);
+
+        let license = match license_service.read().await {
+            Ok(license) => license,
+            Err(err) => {
+                logkit::warn!(exit_code = -1; "Failed to read license: {}", err);
+                logger.finalize().await;
+                return Err(err);
+            }
+        };
         if license.r#type == LicenseType::Community {
             return Ok(());
         }
         if let Some(expire_in_days) = license.expire_in_days() {
             if expire_in_days < 7 && expire_in_days > 0 {
-                notification_service
+                if let Err(e) = notification_service
                     .create(
                         NotificationRecipient::Admin,
                         &make_expring_message(expire_in_days),
                     )
-                    .await?;
+                    .await
+                {
+                    logkit::warn!(exit_code = -1; "Failed to create notification: {}", e);
+                    logger.finalize().await;
+                    return Err(e);
+                }
             }
         }
+
+        logger.finalize().await;
         Ok(())
     }
 }
