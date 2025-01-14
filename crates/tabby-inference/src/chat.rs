@@ -125,3 +125,20 @@ impl ChatCompletionStream for async_openai_alt::Client<ExtendedOpenAIConfig> {
         self.chat().create_stream(request).await
     }
 }
+
+#[async_trait]
+impl ChatCompletionStream for async_openai_alt::Client<async_openai_alt::config::AzureConfig> {
+    async fn chat(
+        &self,
+        request: CreateChatCompletionRequest,
+    ) -> Result<CreateChatCompletionResponse, OpenAIError> {
+        self.chat().create(request).await
+    }
+
+    async fn chat_stream(
+        &self,
+        request: CreateChatCompletionRequest,
+    ) -> Result<ChatCompletionResponseStream, OpenAIError> {
+        self.chat().create_stream(request).await
+    }
+}
