@@ -1,5 +1,7 @@
+mod anthropic;
 use std::sync::Arc;
 
+use anthropic::AnthropicChatCompletion;
 use async_openai_alt::config::OpenAIConfig;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::{ChatCompletionStream, ExtendedOpenAIConfig};
@@ -24,6 +26,14 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
                 async_openai_alt::Client::with_config(config)
                     .with_http_client(create_reqwest_client(api_endpoint)),
             )
+        }
+        "anthropic/chat" => {
+            let anthropic = AnthropicChatCompletion::new(
+                api_endpoint,
+                &model.api_key.clone().unwrap_or_default(),
+                model.model_name.as_deref().expect("Model name is required"),
+            );
+            Box::new(anthropic)
         }
         "openai/chat" | "mistral/chat" => {
             let config = OpenAIConfig::default()
