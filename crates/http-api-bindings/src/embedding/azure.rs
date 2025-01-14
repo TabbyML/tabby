@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use tabby_inference::Embedding;
 
 #[derive(Clone)]
