@@ -7,6 +7,7 @@ use tabby_common::api::{
 };
 use validator::Validate;
 
+use super::MessageAttachmentCodeInput;
 use crate::{interface::UserValue, juniper::relay::NodeType, Context};
 
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
@@ -68,6 +69,16 @@ pub struct MessageAttachmentClientCode {
     pub filepath: Option<String>,
     pub start_line: Option<i32>,
     pub content: String,
+}
+
+impl From<MessageAttachmentClientCode> for MessageAttachmentCodeInput {
+    fn from(val: MessageAttachmentClientCode) -> Self {
+        MessageAttachmentCodeInput {
+            filepath: val.filepath,
+            start_line: val.start_line,
+            content: val.content,
+        }
+    }
 }
 
 #[derive(GraphQLObject, Clone)]

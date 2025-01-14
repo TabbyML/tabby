@@ -42,7 +42,8 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentDoc, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
+        MessageAttachmentCodeInput, MessageAttachmentDoc, MessageAttachmentInput,
+        MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
         ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
@@ -441,7 +442,11 @@ fn convert_messages_to_chat_completion_request(
 
             let y = &messages[i + 1];
 
-            let content = build_user_prompt(&x.content, &y.attachment, None);
+            let user_attachment_input =
+                user_attachment_input_from_user_message_attachment(&x.attachment);
+
+            let content =
+                build_user_prompt(&x.content, &y.attachment, Some(&user_attachment_input));
             ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
                 content: ChatCompletionRequestUserMessageContent::Text(
                     helper.rewrite_tag(&content),
@@ -631,6 +636,20 @@ fn get_content(doc: &MessageAttachmentDoc) -> &str {
         MessageAttachmentDoc::Web(web) => &web.content,
         MessageAttachmentDoc::Issue(issue) => &issue.body,
         MessageAttachmentDoc::Pull(pull) => &pull.body,
+    }
+}
+
+fn user_attachment_input_from_user_message_attachment(
+    attachment: &MessageAttachment,
+) -> MessageAttachmentInput {
+    let user_attachment_code_input: Vec<MessageAttachmentCodeInput> = attachment
+        .client_code
+        .iter()
+        .map(Clone::clone)
+        .map(Into::into)
+        .collect();
+    MessageAttachmentInput {
+        code: user_attachment_code_input,
     }
 }
 
