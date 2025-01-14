@@ -4,8 +4,10 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    auth::AuthenticationService, page::Page, page::PageService, thread::ThreadService, AsID,
-    AsRowid, CoreError, Result,
+    auth::AuthenticationService,
+    page::{Page, PageService},
+    thread::ThreadService,
+    AsID, AsRowid, CoreError, Result,
 };
 
 use super::{answer::AnswerService, graphql_pagination_to_filter};
@@ -47,15 +49,12 @@ impl PageService for PageServiceImpl {
             .await?;
 
         for (i, qa) in messages.chunks(2).enumerate() {
-            match qa {
-                [question, answer] => {
-                    let question = question.content.clone();
-                    let answer = answer.content.clone();
-                    self.db
-                        .create_page_section(page_id, i as i64, &question, &answer)
-                        .await?;
-                }
-                _ => {} // should not happened
+            if let [question, answer] = qa {
+                let question = question.content.clone();
+                let answer = answer.content.clone();
+                self.db
+                    .create_page_section(page_id, i as i64, &question, &answer)
+                    .await?;
             }
         }
 
@@ -68,13 +67,13 @@ impl PageService for PageServiceImpl {
     //TODO: generate page title and summary
     async fn generate_page_title(&self, id: &ID) -> Result<String> {
         self.db
-            .update_page_title(id.as_rowid()?, "Title".into())
+            .update_page_title(id.as_rowid()?, "Title")
             .await?;
         Ok("Title".into())
     }
     async fn generate_page_summary(&self, id: &ID) -> Result<String> {
         self.db
-            .update_page_summary(id.as_rowid()?, "Summary".into())
+            .update_page_summary(id.as_rowid()?, "Summary")
             .await?;
         Ok("Summary".into())
     }
