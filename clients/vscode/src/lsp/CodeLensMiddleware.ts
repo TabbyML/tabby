@@ -113,7 +113,7 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
   private addShortcut(codeLens: CodeLens) {
     if (codeLens.command?.arguments?.[0].action === "accept") {
       // FIXME: Read ~/.config/Code/User/keybindings.json from LSP client, then send to LSP server to avoid hardcode.
-      const acceptShortcut = isBrowser ? '' : ` (${process.platform === 'darwin' ? '⌘+Enter' : 'Ctrl+Enter'})`;
+      const acceptShortcut = isBrowser ? "" : ` (${process.platform === "darwin" ? "⌘+Enter" : "Ctrl+Enter"})`;
 
       codeLens.command.title += acceptShortcut;
     } else if (codeLens.command?.arguments?.[0].action === "discard") {
