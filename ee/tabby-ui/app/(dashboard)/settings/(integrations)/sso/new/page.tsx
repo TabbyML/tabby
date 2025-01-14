@@ -1,7 +1,7 @@
-import { NewOAuthCredential } from '../components/oauth-credential-new'
+import { NewPage as NewPageComponent } from './component/new-page'
 
-const CreateOAuthCredentialPage = () => {
-  return <NewOAuthCredential />
+const NewPage = () => {
+  return <NewPageComponent />
 }
 
-export default CreateOAuthCredentialPage
+export default NewPage

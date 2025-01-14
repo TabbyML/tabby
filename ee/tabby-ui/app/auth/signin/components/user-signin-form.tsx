@@ -99,7 +99,7 @@ export default function UserSignInForm({
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="leading-5">Email</FormLabel>
                 <FormControl>
                   <Input
                     placeholder={PLACEHOLDER_EMAIL_FORM}
@@ -120,7 +120,7 @@ export default function UserSignInForm({
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="leading-5">Password</FormLabel>
                   {!!isEmailConfigured && (
                     <div className="cursor-pointer text-right text-sm text-primary hover:underline">
                       <Link href="/auth/signin?mode=reset">

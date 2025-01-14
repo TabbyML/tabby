@@ -67,6 +67,15 @@ pub struct TokenAuthInput {
     pub password: String,
 }
 
+/// Input parameters for token_auth_ldap mutation
+#[derive(Validate)]
+pub struct TokenAuthLdapInput<'a> {
+    #[validate(length(min = 1, code = "user_id", message = "User ID should not be empty"))]
+    pub user_id: &'a str,
+    #[validate(length(min = 1, code = "password", message = "Password should not be empty"))]
+    pub password: &'a str,
+}
+
 /// Input parameters for register mutation
 /// `validate` attribute is used to validate the input parameters
 ///   - `code` argument specifies which parameter causes the failure
@@ -322,6 +331,35 @@ pub enum OAuthProvider {
     Gitlab,
 }
 
+#[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum AuthProviderKind {
+    OAuthGithub,
+    OAuthGoogle,
+    OAuthGitlab,
+    Ldap,
+}
+
+impl From<OAuthProvider> for AuthProvider {
+    fn from(provider: OAuthProvider) -> Self {
+        match provider {
+            OAuthProvider::Github => AuthProvider {
+                kind: AuthProviderKind::OAuthGithub,
+            },
+            OAuthProvider::Google => AuthProvider {
+                kind: AuthProviderKind::OAuthGoogle,
+            },
+            OAuthProvider::Gitlab => AuthProvider {
+                kind: AuthProviderKind::OAuthGitlab,
+            },
+        }
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct AuthProvider {
+    pub kind: AuthProviderKind,
+}
+
 #[derive(GraphQLObject)]
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
@@ -348,6 +386,65 @@ pub struct UpdateOAuthCredentialInput {
     pub client_secret: Option<String>,
 }
 
+#[derive(GraphQLEnum, PartialEq, Debug)]
+pub enum LdapEncryptionKind {
+    None,
+    StartTLS,
+    LDAPS,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct UpdateLdapCredentialInput {
+    #[validate(length(
+        min = 1,
+        code = "host",
+        message = "host should not be empty and should be a valid hostname or IP address"
+    ))]
+    pub host: String,
+    pub port: i32,
+
+    #[validate(length(min = 1, code = "bindDn", message = "bindDn cannot be empty"))]
+    pub bind_dn: String,
+    pub bind_password: Option<String>,
+
+    #[validate(length(min = 1, code = "baseDn", message = "baseDn cannot be empty"))]
+    pub base_dn: String,
+    #[validate(length(
+        min = 1,
+        code = "userFilter",
+        message = "userFilter cannot be empty, and should be in the format of `(uid=%s)`"
+    ))]
+    pub user_filter: String,
+
+    pub encryption: LdapEncryptionKind,
+    pub skip_tls_verify: bool,
+
+    #[validate(length(
+        min = 1,
+        code = "emailAttribute",
+        message = "emailAttribute cannot be empty"
+    ))]
+    pub email_attribute: String,
+    // if name_attribute is None, we will use username as name
+    pub name_attribute: Option<String>,
+}
+
+#[derive(GraphQLObject)]
+pub struct LdapCredential {
+    pub host: String,
+    pub port: i32,
+    pub bind_dn: String,
+    pub base_dn: String,
+    pub user_filter: String,
+    pub encryption: LdapEncryptionKind,
+    pub skip_tls_verify: bool,
+    pub email_attribute: String,
+    pub name_attribute: Option<String>,
+
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[async_trait]
 pub trait AuthenticationService: Send + Sync {
     async fn register(
@@ -360,6 +457,8 @@ pub trait AuthenticationService: Send + Sync {
     async fn allow_self_signup(&self) -> Result<bool>;
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse>;
+
+    async fn token_auth_ldap(&self, email: &str, password: &str) -> Result<TokenAuthResponse>;
 
     async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
@@ -414,8 +513,13 @@ pub trait AuthenticationService: Send + Sync {
     ) -> Result<Option<OAuthCredential>>;
 
     async fn update_oauth_credential(&self, input: UpdateOAuthCredentialInput) -> Result<()>;
-
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
+
+    async fn read_ldap_credential(&self) -> Result<Option<LdapCredential>>;
+    async fn test_ldap_connection(&self, input: UpdateLdapCredentialInput) -> Result<()>;
+    async fn update_ldap_credential(&self, input: UpdateLdapCredentialInput) -> Result<()>;
+    async fn delete_ldap_credential(&self) -> Result<()>;
+
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()>;
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()>;
     async fn update_user_avatar(&self, id: &ID, avatar: Option<Box<[u8]>>) -> Result<()>;

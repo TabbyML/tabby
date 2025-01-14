@@ -103,11 +103,6 @@ pub struct ServeArgs {
 
     #[cfg(feature = "ee")]
     #[clap(hide = true, long, default_value_t = false)]
-    #[deprecated(since = "0.11.0", note = "webserver is enabled by default")]
-    webserver: bool,
-
-    #[cfg(feature = "ee")]
-    #[clap(hide = true, long, default_value_t = false)]
     no_webserver: bool,
 }
 
@@ -117,12 +112,6 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     load_model(&config).await;
 
     let tx = try_run_spinner();
-
-    #[cfg(feature = "ee")]
-    #[allow(deprecated)]
-    if args.webserver {
-        warn!("'--webserver' is enabled by default since 0.11, and will be removed in the next major release. Please remove this flag from your command.");
-    }
 
     #[allow(unused_assignments)]
     let mut webserver = None;

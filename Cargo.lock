@@ -187,16 +187,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-openai"
-version = "0.20.0"
+name = "async-openai-alt"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11e97f9c5e0ee3260caee9700ba1bb61a6fdc34d2b6786a31e018c5de5198491"
+checksum = "2df183306e5fa71c7a5af4571e10504806a3d47825e172824fddee8ed9182cbf"
 dependencies = [
  "async-convert",
  "backoff",
  "base64 0.22.1",
  "bytes",
  "derive_builder",
+ "eventsource-stream",
  "futures",
  "rand 0.8.5",
  "reqwest",
@@ -1915,7 +1916,7 @@ name = "http-api-bindings"
 version = "0.24.0-dev.0"
 dependencies = [
  "anyhow",
- "async-openai",
+ "async-openai-alt",
  "async-stream",
  "async-trait",
  "futures",
@@ -2410,6 +2411,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "lber"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2df7f9fd9f64cf8f59e1a4a0753fe7d575a5b38d3d7ac5758dcee9357d83ef0a"
+dependencies = [
+ "bytes",
+ "nom",
+]
+
+[[package]]
+name = "ldap3"
+version = "0.11.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "166199a8207874a275144c8a94ff6eed5fcbf5c52303e4d9b4d53a0c7ac76554"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures",
+ "futures-util",
+ "lazy_static",
+ "lber",
+ "log",
+ "native-tls",
+ "nom",
+ "percent-encoding",
+ "thiserror",
+ "tokio",
+ "tokio-native-tls",
+ "tokio-stream",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
 name = "leaky-bucket"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2608,7 +2643,7 @@ name = "llama-cpp-server"
 version = "0.24.0-dev.0"
 dependencies = [
  "anyhow",
- "async-openai",
+ "async-openai-alt",
  "async-trait",
  "cmake",
  "futures",
@@ -2872,13 +2907,13 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.8.11"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
+checksum = "2886843bf800fba2e3377cff24abf6379b4c4d5c6681eaf9ea5b0d15090450bd"
 dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5266,7 +5301,7 @@ version = "0.24.0-dev.0"
 dependencies = [
  "anyhow",
  "assert-json-diff",
- "async-openai",
+ "async-openai-alt",
  "async-stream",
  "async-trait",
  "axum",
@@ -5482,7 +5517,7 @@ name = "tabby-inference"
 version = "0.24.0-dev.0"
 dependencies = [
  "anyhow",
- "async-openai",
+ "async-openai-alt",
  "async-stream",
  "async-trait",
  "dashmap",
@@ -5500,7 +5535,7 @@ name = "tabby-schema"
 version = "0.24.0-dev.0"
 dependencies = [
  "anyhow",
- "async-openai",
+ "async-openai-alt",
  "async-trait",
  "axum",
  "base64 0.22.1",
@@ -5509,6 +5544,7 @@ dependencies = [
  "hash-ids",
  "juniper",
  "lazy_static",
+ "ldap3",
  "regex",
  "serde",
  "strum 0.24.1",
@@ -5529,7 +5565,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "assert_matches",
- "async-openai",
+ "async-openai-alt",
  "async-stream",
  "async-trait",
  "axum",
@@ -5548,6 +5584,7 @@ dependencies = [
  "juniper_axum",
  "juniper_graphql_ws",
  "lazy_static",
+ "ldap3",
  "lettre",
  "logkit",
  "mime_guess",
@@ -5888,28 +5925,27 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.37.0"
+version = "1.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1adbebffeca75fcfd058afa480fb6c0b81e165a0323f9c9d39c9697e37c46787"
+checksum = "5cec9b21b0450273377fc97bd4c33a8acffc8c996c987a7c5b319a0083707551"
 dependencies = [
  "backtrace",
  "bytes",
  "libc",
  "mio",
- "num_cpus",
  "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
  "tokio-macros",
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
 name = "tokio-macros"
-version = "2.2.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b8a1e28f2deaa14e508979454cb3a223b10b938b45af148bc0986de36f1923b"
+checksum = "693d596312e88961bc67d7f1f97af8a70227d9f90c31bba5806eec004978d752"
 dependencies = [
  "proc-macro2",
  "quote",

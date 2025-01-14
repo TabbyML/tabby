@@ -8,6 +8,7 @@ pub use email_setting::EmailSettingDAO;
 pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
+pub use ldap_credential::LdapCredentialDAO;
 pub use notifications::NotificationDAO;
 pub use oauth_credential::OAuthCredentialDAO;
 pub use provided_repositories::ProvidedRepositoryDAO;
@@ -32,6 +33,7 @@ mod email_setting;
 mod integrations;
 mod invitations;
 mod job_runs;
+mod ldap_credential;
 #[cfg(test)]
 mod migration_tests;
 mod notifications;
@@ -153,6 +155,11 @@ impl DbConn {
         tokio::fs::create_dir_all(db_file.parent().unwrap()).await?;
 
         let options = SqliteConnectOptions::new()
+            // Reduce SQLITE_BUSY (code 5) errors. Note that the error message "database is locked" should not be confused with SQLITE_LOCKED.
+            // For more details, see:
+            // 1. https://til.simonwillison.net/sqlite/enabling-wal-mode
+            // 2. https://www.sqlite.org/wal.html
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
             .filename(db_file)
             .create_if_missing(true);
         let pool = SqlitePool::connect_with(options).await?;

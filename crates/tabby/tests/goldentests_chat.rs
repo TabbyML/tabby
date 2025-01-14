@@ -74,14 +74,17 @@ async fn wait_for_server(gpu_device: Option<&str>) {
 
     loop {
         println!("Waiting for server to start...");
-        let is_ok = reqwest::get("http://127.0.0.1:9090/v1/health")
-            .await
-            .is_ok();
-        if is_ok {
-            break;
-        } else {
-            sleep(Duration::from_secs(5)).await;
+        match reqwest::get("http://127.0.0.1:9090/v1/health").await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    break;
+                }
+            }
+            Err(e) => {
+                println!("Waiting for server to start: {:?}", e);
+            }
         }
+        sleep(Duration::from_secs(5)).await;
     }
 }
 
@@ -103,8 +106,19 @@ async fn golden_test(body: serde_json::Value) -> String {
                     actual += content
                 }
             }
-            Err(_e) => {
-                // StreamEnd
+            Err(e) => {
+                match e {
+                    reqwest_eventsource::Error::StreamEnded => {
+                        break;
+                    }
+                    reqwest_eventsource::Error::InvalidStatusCode(code, resp) => {
+                        let resp = resp.text().await.unwrap();
+                        println!("Error: {} {:?}", code, resp);
+                    }
+                    e => {
+                        println!("Error: {:?}", e);
+                    }
+                }
                 break;
             }
         }
