@@ -18,12 +18,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
             let config = async_openai_alt::config::AzureConfig::new()
                 .with_api_base(api_endpoint)
                 .with_api_key(model.api_key.clone().unwrap_or_default())
-                .with_api_version(
-                    model
-                        .api_version
-                        .clone()
-                        .unwrap_or("2024-05-01-preview".to_string()),
-                )
+                .with_api_version("2024-08-01-preview")
                 .with_deployment_id(model.model_name.as_deref().expect("Model name is required"));
             Box::new(
                 async_openai_alt::Client::with_config(config)

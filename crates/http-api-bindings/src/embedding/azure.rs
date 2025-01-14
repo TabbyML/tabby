@@ -47,7 +47,7 @@ impl AzureEmbeddingEngine {
             client: Arc::new(client),
             api_endpoint: azure_endpoint,
             api_key: api_key.unwrap_or_default().to_owned(),
-            api_version: api_version.unwrap_or("2024-02-15-preview").to_owned(),
+            api_version: api_version.unwrap_or("2023-05-15").to_owned(),
         })
     }
 }

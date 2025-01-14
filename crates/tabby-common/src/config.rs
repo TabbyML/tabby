@@ -310,11 +310,6 @@ pub struct HttpModelConfig {
 
     #[builder(default)]
     pub additional_stop_words: Option<Vec<String>>,
-
-    /// Used For Azure API to specify the api version
-    #[builder(default)]
-    #[serde(default)]
-    pub api_version: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
