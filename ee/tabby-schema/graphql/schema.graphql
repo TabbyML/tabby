@@ -180,6 +180,12 @@ input EmailSettingInput {
   smtpPassword: String
 }
 
+input GenerateSectionInput {
+  pageId: ID!
+  position: Int!
+  content: String!
+}
+
 input MessageAttachmentCodeInput {
   filepath: String
   "When start line is `None`, it represents the entire file." startLine: Int
@@ -204,6 +210,12 @@ input PasswordResetInput {
   code: String!
   password1: String!
   password2: String!
+}
+
+input ReorderSectionsInput {
+  pageId: ID!
+  id: ID!
+  position: Int!
 }
 
 input RequestInvitationInput {
@@ -652,6 +664,13 @@ type Mutation {
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
   updateThreadMessage(input: UpdateMessageInput!): Boolean!
+  convertThreadToPage(threadId: ID!): ID!
+  generatePageTitle(id: ID!): String!
+  generatePageSummary(id: ID!): String!
+  deletePage(id: ID!): ID!
+  generatePageSection(input: GenerateSectionInput!): Section!
+  reorderPageSections(input: ReorderSectionsInput!): Boolean!
+  deletePageSection(sectionId: ID!): ID!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
@@ -680,6 +699,25 @@ type OAuthCredential {
   clientId: String!
   createdAt: DateTime!
   updatedAt: DateTime!
+}
+
+type Page {
+  id: ID!
+  authorId: ID!
+  title: String!
+  summary: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type PageConnection {
+  edges: [PageEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PageEdge {
+  node: Page!
+  cursor: String!
 }
 
 type PageInfo {
@@ -788,6 +826,8 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  pages(ids: [ID!], after: String, before: String, first: Int, last: Int): PageConnection!
+  pageSections(pageId: ID!, after: String, before: String, first: Int, last: Int): SectionConnection!
   customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
   presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
   "List user groups."
@@ -832,6 +872,26 @@ type RepositoryGrepOutput {
   files: [GrepFile!]!
   "Elapsed time in milliseconds for grep search."
   elapsedMs: Int!
+}
+
+type Section {
+  id: ID!
+  pageId: ID!
+  position: Int!
+  title: String!
+  content: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type SectionConnection {
+  edges: [SectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type SectionEdge {
+  node: Section!
+  cursor: String!
 }
 
 type SecuritySetting {
