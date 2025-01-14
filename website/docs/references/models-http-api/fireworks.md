@@ -20,4 +20,4 @@ Fireworks does not offer completion models (FIM) through their API.
 
 ## Embeddings model
 
-Fireworks currently does not offer embeddings models through their API.
+Tabby currently does not support Fireworks' API interface for embeddings models.
