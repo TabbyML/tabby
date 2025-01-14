@@ -1,8 +1,7 @@
 mod types;
-pub use types::*;
-
 use async_trait::async_trait;
 use juniper::ID;
+pub use types::*;
 
 use crate::schema::Result;
 

@@ -704,8 +704,8 @@ type OAuthCredential {
 type Page {
   id: ID!
   authorId: ID!
-  title: String!
-  summary: String!
+  title: String
+  summary: String
   createdAt: DateTime!
   updatedAt: DateTime!
 }
