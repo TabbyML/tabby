@@ -1,9 +1,11 @@
+mod azure;
 mod llama;
 mod openai;
 
 use core::panic;
 use std::sync::Arc;
 
+use azure::AzureEmbeddingEngine;
 use llama::LlamaCppEngine;
 use openai::OpenAIEmbeddingEngine;
 use tabby_common::config::HttpModelConfig;
@@ -39,6 +41,15 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
                 .as_deref()
                 .expect("model_name must be set for voyage/embedding"),
             config.api_key.as_deref(),
+        ),
+        "azure/embedding" => AzureEmbeddingEngine::create(
+            config
+                .api_endpoint
+                .as_deref()
+                .expect("api_endpoint is required for azure/embedding"),
+            config.model_name.as_deref().unwrap_or_default(), // Provide a default if model_name is optional
+            config.api_key.as_deref(),                        // Pass the API key if available
+            config.api_version.as_deref(),                    // Pass the API version if available
         ),
         unsupported_kind => panic!(
             "Unsupported kind for http embedding model: {}",
