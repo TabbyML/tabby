@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
 use tabby_schema::{context::ContextService, CoreError};
 
-use super::helper::{Job, JobLogger};
+use super::helper::Job;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DbMaintainanceJob;
@@ -19,9 +19,7 @@ impl DbMaintainanceJob {
         now: DateTime<Utc>,
         context: Arc<dyn ContextService>,
         db: DbConn,
-        job_id: i64,
     ) -> tabby_schema::Result<()> {
-        let logger = JobLogger::new(db.clone(), job_id);
         let mut exit_code = 0;
 
         if let Err(e) = db.delete_expired_token().await {
@@ -64,7 +62,6 @@ impl DbMaintainanceJob {
             logkit::warn!(exit_code = exit_code; "Failed to run data retention job: {}", e);
         }
 
-        logger.finalize().await;
         if exit_code == 0 {
             Ok(())
         } else {

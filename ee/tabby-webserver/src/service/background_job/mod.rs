@@ -98,7 +98,10 @@ Please check the log at [Jobs Detail](/jobs/detail?id={}) to identify the underl
                 ),
             )
             .await
-            .unwrap();
+            .map_err(|err| {
+                warn!("Failed to send notification: {:?}", err);
+            })
+            .ok();
     }};
 }
 
@@ -162,7 +165,7 @@ pub async fn start(
                         }
                         BackgroundJobEvent::IndexGarbageCollection => {
                             let job = IndexGarbageCollection;
-                            job.run(repository_service.clone(), context_service.clone(), db.clone(), job_id).await
+                            job.run(repository_service.clone(), context_service.clone()).await
                         }
                     };
                     debug!("Background job {} completed", job.id);
@@ -180,72 +183,55 @@ pub async fn start(
                     }
                 },
                 Some(now) = hourly.next() => {
-                    let job_id = match db.create_job_run(DbMaintainanceJob.name().to_string(), DbMaintainanceJob.to_command()).await {
-                        Ok(job_id) => job_id,
-                        Err(_) => {
-                            warn!("Failed to create job run");
-                            continue;
-                        }
-                    };
-                    if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone(), job_id).await {
-                        notify_job_error!(notification_service, err, DbMaintainanceJob.name(), job_id);
-                    }
+                    run_job(
+                        &db,
+                        DbMaintainanceJob.name(),
+                        &DbMaintainanceJob.to_command(),
+                        || DbMaintainanceJob::cron(now, context_service.clone(), db.clone()),
+                        notification_service.clone(),
+                    ).await;
 
-                    let job_id = match db.create_job_run(SchedulerGitJob::NAME.to_string(), "cron".to_string()).await {
-                        Ok(job_id) => job_id,
-                        Err(_) => {
-                            warn!("Failed to create job run");
-                            continue;
-                        }
-                    };
-                    if let Err(err) = SchedulerGitJob::cron(now, git_repository_service.clone(), job_service.clone(), db.clone(), job_id).await {
-                        notify_job_error!(notification_service, err, SchedulerGitJob::NAME, job_id);
-                    }
 
-                    let job_id = match db.create_job_run(SyncIntegrationJob::NAME.to_string(), "cron".to_string()).await {
-                        Ok(job_id) => job_id,
-                        Err(_) => {
-                            warn!("Failed to create job run");
-                            continue;
-                        }
-                    };
-                    if let Err(err) = SyncIntegrationJob::cron(now, integration_service.clone(), job_service.clone(), db.clone(), job_id).await {
-                        notify_job_error!(notification_service, err, SyncIntegrationJob::NAME, job_id);
-                    }
+                    run_job(
+                        &db,
+                        SchedulerGitJob::NAME,
+                        "cron",
+                        || SchedulerGitJob::cron(now, git_repository_service.clone(), job_service.clone()),
+                        notification_service.clone(),
+                    ).await;
 
-                    let job_id = match db.create_job_run(SchedulerGithubGitlabJob::NAME.to_string(), "cron".to_string()).await {
-                        Ok(job_id) => job_id,
-                        Err(_) => {
-                            warn!("Failed to create job run");
-                            continue;
-                        }
-                    };
-                    if let Err(err) = SchedulerGithubGitlabJob::cron(now, third_party_repository_service.clone(), job_service.clone(), db.clone(), job_id).await {
-                        notify_job_error!(notification_service, err, SchedulerGithubGitlabJob::NAME, job_id);
-                    }
+                    run_job(
+                        &db,
+                        SyncIntegrationJob::NAME,
+                        "cron",
+                        || SyncIntegrationJob::cron(now, integration_service.clone(), job_service.clone()),
+                        notification_service.clone(),
+                    ).await;
 
-                    let job_id = match db.create_job_run(IndexGarbageCollection.name().to_string(), IndexGarbageCollection.to_command()).await {
-                        Ok(job_id) => job_id,
-                        Err(_) => {
-                            warn!("Failed to create job run");
-                            continue;
-                        }
-                    };
-                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), context_service.clone(), db.clone(), job_id).await {
-                        notify_job_error!(notification_service, err, IndexGarbageCollection.name(), job_id);
-                    }
+                    run_job(
+                        &db,
+                        SchedulerGithubGitlabJob::NAME,
+                        "cron",
+                        || SchedulerGithubGitlabJob::cron(now, third_party_repository_service.clone(), job_service.clone()),
+                        notification_service.clone(),
+                    ).await;
+
+                    run_job(
+                        &db,
+                        IndexGarbageCollection.name(),
+                        &IndexGarbageCollection.to_command(),
+                        || IndexGarbageCollection.run(repository_service.clone(), context_service.clone()),
+                        notification_service.clone(),
+                    ).await;
                 },
                 Some(now) = daily.next() => {
-                    let job_id = match db.create_job_run(LicenseCheckJob::NAME.to_string(), "cron".to_string()).await {
-                        Ok(job_id) => job_id,
-                        Err(_) => {
-                            warn!("Failed to create job run");
-                            continue;
-                        }
-                    };
-                    if let Err(err) = LicenseCheckJob::cron(now, license_service.clone(), notification_service.clone(), db.clone(), job_id).await {
-                        notify_job_error!(notification_service, err, LicenseCheckJob::NAME, job_id);
-                    }
+                    run_job(
+                        &db,
+                        LicenseCheckJob::NAME,
+                        "cron",
+                        || LicenseCheckJob::cron(now, license_service.clone(), notification_service.clone()),
+                        notification_service.clone(),
+                    ).await;
                 }
                 else => {
                     warn!("Background job channel closed");
@@ -254,4 +240,32 @@ pub async fn start(
             };
         }
     });
+}
+
+async fn run_job<F, Fut>(
+    db: &DbConn,
+    job_name: &str,
+    command: &str,
+    job_fn: F,
+    notification_service: Arc<dyn NotificationService>,
+) where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future<Output = tabby_schema::Result<()>>,
+{
+    let job_id = match db
+        .create_job_run(job_name.to_string(), command.to_string())
+        .await
+    {
+        Ok(job_id) => job_id,
+        Err(err) => {
+            warn!("Failed to create job run for {}: {}", job_name, err);
+            return;
+        }
+    };
+
+    let logger = JobLogger::new(db.clone(), job_id);
+    if let Err(err) = job_fn().await {
+        notify_job_error!(notification_service, err, job_name, job_id);
+    }
+    logger.finalize().await;
 }

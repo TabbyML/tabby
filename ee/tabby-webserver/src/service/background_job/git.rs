@@ -8,7 +8,7 @@ use tabby_index::public::CodeIndexer;
 use tabby_inference::Embedding;
 use tabby_schema::{job::JobService, repository::GitRepositoryService};
 
-use super::{helper::Job, BackgroundJobEvent, JobLogger};
+use super::{helper::Job, BackgroundJobEvent};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SchedulerGitJob {
@@ -41,15 +41,11 @@ impl SchedulerGitJob {
         _now: DateTime<Utc>,
         git_repository: Arc<dyn GitRepositoryService>,
         job: Arc<dyn JobService>,
-        db: tabby_db::DbConn,
-        job_id: i64,
     ) -> tabby_schema::Result<()> {
-        let logger = JobLogger::new(db.clone(), job_id);
         let repositories = match git_repository.repository_list().await {
             Ok(repos) => repos,
             Err(err) => {
                 logkit::warn!(exit_code = -1; "Failed to list repositories: {}", err);
-                logger.finalize().await;
                 return Err(err);
             }
         };
@@ -65,7 +61,6 @@ impl SchedulerGitJob {
                 .await;
         }
 
-        logger.finalize().await;
         Ok(())
     }
 }

@@ -4,7 +4,7 @@ use serde::Serialize;
 use tabby_index::public::{run_index_garbage_collection, CodeIndexer};
 use tabby_schema::{context::ContextService, repository::RepositoryService};
 
-use super::helper::{Job, JobLogger};
+use super::helper::Job;
 
 #[derive(Serialize)]
 pub struct IndexGarbageCollection;
@@ -18,17 +18,12 @@ impl IndexGarbageCollection {
         self,
         repository: Arc<dyn RepositoryService>,
         context: Arc<dyn ContextService>,
-        db: tabby_db::DbConn,
-        job_id: i64,
     ) -> tabby_schema::Result<()> {
-        let logger = JobLogger::new(db.clone(), job_id);
-
         // Run garbage collection on the index
         let sources = match context.read(None).await {
             Ok(sources) => sources,
             Err(err) => {
                 logkit::warn!(exit_code = -1; "Failed to list sources: {}", err);
-                logger.finalize().await;
                 return Err(err);
             }
         };
@@ -40,7 +35,6 @@ impl IndexGarbageCollection {
 
         if let Err(e) = run_index_garbage_collection(sources) {
             logkit::warn!(exit_code = -1; "Failed to run index garbage collection: {}", e);
-            logger.finalize().await;
             return Err(e.into());
         }
 
@@ -49,14 +43,12 @@ impl IndexGarbageCollection {
             Ok(repos) => repos,
             Err(err) => {
                 logkit::warn!(exit_code = -1; "Failed to list repositories: {}", err);
-                logger.finalize().await;
                 return Err(err);
             }
         };
         let mut code = CodeIndexer::default();
         code.garbage_collection(&repositories).await;
 
-        logger.finalize().await;
         Ok(())
     }
 }

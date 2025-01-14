@@ -7,7 +7,7 @@ use tabby_schema::{
     notification::{NotificationRecipient, NotificationService},
 };
 
-use super::helper::{Job, JobLogger};
+use super::helper::Job;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LicenseCheckJob;
@@ -21,16 +21,11 @@ impl LicenseCheckJob {
         _now: DateTime<Utc>,
         license_service: Arc<dyn LicenseService>,
         notification_service: Arc<dyn NotificationService>,
-        db: tabby_db::DbConn,
-        job_id: i64,
     ) -> tabby_schema::Result<()> {
-        let logger = JobLogger::new(db.clone(), job_id);
-
         let license = match license_service.read().await {
             Ok(license) => license,
             Err(err) => {
                 logkit::warn!(exit_code = -1; "Failed to read license: {}", err);
-                logger.finalize().await;
                 return Err(err);
             }
         };
@@ -47,13 +42,11 @@ impl LicenseCheckJob {
                     .await
                 {
                     logkit::warn!(exit_code = -1; "Failed to create notification: {}", e);
-                    logger.finalize().await;
                     return Err(e);
                 }
             }
         }
 
-        logger.finalize().await;
         Ok(())
     }
 }

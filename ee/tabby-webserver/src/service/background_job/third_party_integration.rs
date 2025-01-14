@@ -19,7 +19,7 @@ use tabby_schema::{
 };
 use tracing::debug;
 
-use super::{helper::Job, BackgroundJobEvent, JobLogger};
+use super::{helper::Job, BackgroundJobEvent};
 
 mod error;
 mod issues;
@@ -53,10 +53,7 @@ impl SyncIntegrationJob {
         _now: DateTime<Utc>,
         integration: Arc<dyn IntegrationService>,
         job: Arc<dyn JobService>,
-        db: tabby_db::DbConn,
-        job_id: i64,
     ) -> tabby_schema::Result<()> {
-        let logger = JobLogger::new(db.clone(), job_id);
         debug!("Syncing all github and gitlab repositories");
         let integrations = match integration
             .list_integrations(None, None, None, None, None, None)
@@ -65,7 +62,6 @@ impl SyncIntegrationJob {
             Ok(integrations) => integrations,
             Err(err) => {
                 logkit::warn!(exit_code = -1; "Failed to list integrations: {}", err);
-                logger.finalize().await;
                 return Err(err);
             }
         };
@@ -78,7 +74,6 @@ impl SyncIntegrationJob {
                 .await;
         }
 
-        logger.finalize().await;
         Ok(())
     }
 }
@@ -241,10 +236,7 @@ impl SchedulerGithubGitlabJob {
         _now: DateTime<Utc>,
         repository: Arc<dyn ThirdPartyRepositoryService>,
         job: Arc<dyn JobService>,
-        db: tabby_db::DbConn,
-        job_id: i64,
     ) -> tabby_schema::Result<()> {
-        let logger = JobLogger::new(db.clone(), job_id);
         let repositories = match repository
             .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
             .await
@@ -252,7 +244,6 @@ impl SchedulerGithubGitlabJob {
             Ok(repos) => repos,
             Err(err) => {
                 logkit::warn!(exit_code = -1; "Failed to list repositories: {}", err);
-                logger.finalize().await;
                 return Err(err);
             }
         };
@@ -265,7 +256,6 @@ impl SchedulerGithubGitlabJob {
                 .await;
         }
 
-        logger.finalize().await;
         Ok(())
     }
 }
