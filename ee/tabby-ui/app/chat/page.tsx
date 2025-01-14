@@ -304,12 +304,12 @@ export default function ChatPage() {
     return server?.getActiveEditorSelection() ?? null
   }
 
-  const fetchPersistedState = async () => {
-    return server?.fetchPersistedState?.() ?? null
+  const fetchSessionState = async () => {
+    return server?.fetchSessionState?.() ?? null
   }
 
-  const storePersistedState = async (state: Record<string, any>) => {
-    return server?.storePersistedState?.(state)
+  const storeSessionState = async (state: Record<string, any>) => {
+    return server?.storeSessionState?.(state)
   }
 
   const refresh = async () => {
@@ -435,8 +435,8 @@ export default function ChatPage() {
             : undefined
         }
         getActiveEditorSelection={getActiveEditorSelection}
-        fetchPersistedState={fetchPersistedState}
-        storePersistedState={storePersistedState}
+        fetchSessionState={fetchSessionState}
+        storeSessionState={storeSessionState}
       />
     </ErrorBoundary>
   )

@@ -121,15 +121,15 @@ interface ChatProps extends React.ComponentProps<'div'> {
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
   getActiveEditorSelection?: () => Promise<EditorFileContext | null>
-  fetchPersistedState?: () => Promise<PersistedState | null>
-  storePersistedState?: (state: Partial<PersistedState>) => Promise<void>
+  fetchSessionState?: () => Promise<SessionState | null>
+  storeSessionState?: (state: Partial<SessionState>) => Promise<void>
 }
 
 /**
- * The state to persist, should be json serializable.
- * Save this state to client storage so that the chat panel can be restored across client sessions.
+ * The state used to restore the chat panel, should be json serializable.
+ * Save this state to client so that the chat panel can be restored across webview reloading.
  */
-export interface PersistedState {
+export interface SessionState {
   threadId?: string | undefined
   qaPairs?: QuestionAnswerPair[] | undefined
   input?: string | undefined
@@ -159,8 +159,8 @@ function ChatRenderer(
     supportsOnApplyInEditorV2,
     readWorkspaceGitRepositories,
     getActiveEditorSelection,
-    fetchPersistedState,
-    storePersistedState
+    fetchSessionState,
+    storeSessionState
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -177,9 +177,9 @@ function ChatRenderer(
 
   React.useEffect(() => {
     if (isDataSetup) {
-      storePersistedState?.({ input })
+      storeSessionState?.({ input })
     }
-  }, [input, isDataSetup, storePersistedState])
+  }, [input, isDataSetup, storeSessionState])
 
   // sourceId
   const [selectedRepoId, setSelectedRepoId] = React.useState<
@@ -188,9 +188,9 @@ function ChatRenderer(
 
   React.useEffect(() => {
     if (isDataSetup) {
-      storePersistedState?.({ selectedRepoId })
+      storeSessionState?.({ selectedRepoId })
     }
-  }, [selectedRepoId, isDataSetup, storePersistedState])
+  }, [selectedRepoId, isDataSetup, storeSessionState])
 
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
@@ -225,7 +225,7 @@ function ChatRenderer(
 
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
-    storePersistedState?.({
+    storeSessionState?.({
       qaPairs: nextQaPairs
     })
 
@@ -258,7 +258,7 @@ function ChatRenderer(
         }
       ]
       setQaPairs(nextQaPairs)
-      storePersistedState?.({
+      storeSessionState?.({
         qaPairs: nextQaPairs
       })
       const [userMessage, threadRunOptions] = generateRequestPayload(
@@ -296,7 +296,7 @@ function ChatRenderer(
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
 
-    storePersistedState?.({
+    storeSessionState?.({
       qaPairs: nextQaPairs,
       relevantContext: updatedRelevantContext
     })
@@ -324,7 +324,7 @@ function ChatRenderer(
     stop(true)
     setQaPairs([])
     setThreadId(undefined)
-    storePersistedState?.({
+    storeSessionState?.({
       qaPairs: [],
       threadId: undefined
     })
@@ -357,7 +357,7 @@ function ChatRenderer(
     // update threadId
     if (answer.threadId && !threadId) {
       setThreadId(answer.threadId)
-      storePersistedState?.({
+      storeSessionState?.({
         threadId: answer.threadId
       })
     }
@@ -385,7 +385,7 @@ function ChatRenderer(
     })
 
     if (!isLoading) {
-      storePersistedState?.({ qaPairs })
+      storeSessionState?.({ qaPairs })
     }
   }, [answer, isLoading])
 
@@ -429,7 +429,7 @@ function ChatRenderer(
             }
           }
         ]
-        storePersistedState?.({
+        storeSessionState?.({
           qaPairs: nextQaPairs
         })
         return nextQaPairs
@@ -527,7 +527,7 @@ function ChatRenderer(
       ]
 
       setQaPairs(nextQaPairs)
-      storePersistedState?.({
+      storeSessionState?.({
         qaPairs: nextQaPairs
       })
 
@@ -557,7 +557,7 @@ function ChatRenderer(
       relevantContext: relevantContext
     })
     setRelevantContext([])
-    storePersistedState?.({
+    storeSessionState?.({
       relevantContext: []
     })
   }
@@ -565,7 +565,7 @@ function ChatRenderer(
   const handleAddRelevantContext = useLatest((context: Context) => {
     setRelevantContext(oldValue => {
       const updatedValue = appendContextAndDedupe(oldValue, context)
-      storePersistedState?.({
+      storeSessionState?.({
         relevantContext: updatedValue
       })
       return updatedValue
@@ -581,7 +581,7 @@ function ChatRenderer(
     const newRelevantContext = [...relevantContext]
     newRelevantContext.splice(index, 1)
     setRelevantContext(newRelevantContext)
-    storePersistedState?.({
+    storeSessionState?.({
       relevantContext: newRelevantContext
     })
   }
@@ -617,8 +617,8 @@ function ChatRenderer(
 
   React.useEffect(() => {
     const init = async () => {
-      const [persistedState, activeEditorSelecition] = await Promise.all([
-        fetchPersistedState?.(),
+      const [persistedState, activeEditorSelection] = await Promise.all([
+        fetchSessionState?.(),
         initActiveEditorSelection()
       ])
 
@@ -657,8 +657,8 @@ function ChatRenderer(
       }
 
       // update active selection
-      if (activeEditorSelecition) {
-        const context = convertEditorContext(activeEditorSelecition)
+      if (activeEditorSelection) {
+        const context = convertEditorContext(activeEditorSelection)
         setActiveSelection(context)
       }
     }

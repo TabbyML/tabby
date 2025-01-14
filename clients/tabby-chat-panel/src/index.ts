@@ -280,18 +280,20 @@ export interface ClientApiMethods {
   getActiveEditorSelection: () => Promise<EditorFileContext | null>
 
   /**
-   * Fetch the saved persisted state from client.
-   * @param keys The keys to be fetched. Returns all keys if not provided.
-   * @return The saved persisted state.
+   * Fetch the saved session state from the client.
+   * When initialized, the chat panel attempts to fetch the saved session state to restore the session.
+   * @param keys The keys to be fetched. If not provided, all keys will be returned.
+   * @return The saved persisted state, or null if no state is found.
    */
-  fetchPersistedState?: (keys?: string[] | undefined) => Promise<Record<string, unknown> | null>
+  fetchSessionState?: (keys?: string[] | undefined) => Promise<Record<string, unknown> | null>
 
   /**
-   * Save a persisted state of the chat panel.
+   * Save the session state of the chat panel.
+   * The client is responsible for maintaining the state in case of a webview reload.
    * The saved state should be merged and updated by the record key.
    * @param state The state to save.
    */
-  storePersistedState?: (state: Record<string, unknown>) => Promise<void>
+  storeSessionState?: (state: Record<string, unknown>) => Promise<void>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -317,8 +319,8 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
       getActiveEditorSelection: api.getActiveEditorSelection,
-      fetchPersistedState: api.fetchPersistedState,
-      storePersistedState: api.storePersistedState,
+      fetchSessionState: api.fetchSessionState,
+      storeSessionState: api.storeSessionState,
     },
   })
 }
