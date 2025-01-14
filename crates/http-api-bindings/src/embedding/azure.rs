@@ -6,6 +6,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
 
+use crate::AZURE_API_VERSION;
+
 /// `AzureEmbeddingEngine` is responsible for interacting with Azure's Embedding API.
 ///
 /// **Note**: Currently, this implementation only supports the OpenAI API and specific API versions.
@@ -14,7 +16,6 @@ pub struct AzureEmbeddingEngine {
     client: Arc<Client>,
     api_endpoint: String,
     api_key: String,
-    api_version: String,
 }
 
 /// Structure representing the request body for embedding.
@@ -54,7 +55,6 @@ impl AzureEmbeddingEngine {
         api_endpoint: &str,
         model_name: &str,
         api_key: Option<&str>,
-        api_version: Option<&str>,
     ) -> Box<dyn Embedding> {
         let client = Client::new();
         let deployment_id = model_name;
@@ -69,8 +69,6 @@ impl AzureEmbeddingEngine {
             client: Arc::new(client),
             api_endpoint: azure_endpoint,
             api_key: api_key.unwrap_or_default().to_owned(),
-            // Use a specific API version; currently, only this version is supported
-            api_version: api_version.unwrap_or("2023-05-15").to_owned(),
         })
     }
 }
@@ -90,16 +88,16 @@ impl Embedding for AzureEmbeddingEngine {
     /// A `Result` containing the embedding vector or an error.
     async fn embed(&self, prompt: &str) -> Result<Vec<f32>> {
         // Clone all necessary fields to ensure thread safety across await points
-        let client = self.client.clone();
         let api_endpoint = self.api_endpoint.clone();
         let api_key = self.api_key.clone();
-        let api_version = self.api_version.clone();
+        let api_version = AZURE_API_VERSION.to_string();
         let request = EmbeddingRequest {
             input: prompt.to_owned(),
         };
 
         // Send a POST request to the Azure Embedding API
-        let response = client
+        let response = self
+            .client
             .post(&api_endpoint)
             .query(&[("api-version", &api_version)])
             .header("api-key", &api_key)

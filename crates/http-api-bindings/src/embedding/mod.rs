@@ -49,7 +49,6 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
                 .expect("api_endpoint is required for azure/embedding"),
             config.model_name.as_deref().unwrap_or_default(), // Provide a default if model_name is optional
             config.api_key.as_deref(),
-            Some("2023-05-15"),
         ),
         unsupported_kind => panic!(
             "Unsupported kind for http embedding model: {}",
