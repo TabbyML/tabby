@@ -14,18 +14,24 @@ export function NewPage() {
   const [type, setType] = useState<SSOType>('oauth')
   const router = useRouter()
 
+  const onCreateSuccess = () => {
+    router.replace('/settings/sso')
+  }
+
   return (
     <div>
       <SSOTypeRadio value={type} onChange={setType} />
       {type === 'oauth' ? (
-        <OAuthCredentialForm provider={OAuthProvider.Github} isNew />
+        <OAuthCredentialForm
+          provider={OAuthProvider.Github}
+          isNew
+          onSuccess={onCreateSuccess}
+        />
       ) : (
         <LDAPCredentialForm
           isNew
           defaultValues={{ skipTlsVerify: false }}
-          onSuccess={() => {
-            router.replace('/settings/sso')
-          }}
+          onSuccess={onCreateSuccess}
         />
       )}
     </div>

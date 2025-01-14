@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { compact, find } from 'lodash-es'
@@ -8,6 +8,7 @@ import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import {
+  AuthProviderKind,
   LdapCredentialQuery,
   LicenseType,
   OAuthCredentialQuery,
@@ -40,6 +41,10 @@ export const oauthCredential = graphql(/* GraphQL */ `
 `)
 
 export const CredentialList = () => {
+  const authProviderKindCount = useMemo(() => {
+    return Object.keys(AuthProviderKind).length
+  }, [])
+
   const [{ data: githubData, fetching: fetchingGithub }] = useQuery({
     query: oauthCredential,
     variables: { provider: OAuthProvider.Github }
@@ -59,13 +64,15 @@ export const CredentialList = () => {
 
   const isLoading =
     fetchingGithub || fetchingGoogle || fetchingGitlab || fetchingLdap
+
   const credentialList = React.useMemo(() => {
     return compact([
       githubData?.oauthCredential,
       googleData?.oauthCredential,
-      gitlabData?.oauthCredential
+      gitlabData?.oauthCredential,
+      ldapData?.ldapCredential
     ])
-  }, [githubData, googleData, gitlabData])
+  }, [githubData, googleData, gitlabData, ldapData])
 
   const router = useRouter()
   const createButton = (
@@ -113,13 +120,19 @@ export const CredentialList = () => {
     <div>
       <div className="flex flex-col gap-8">
         {credentialList.map(credential => {
-          return (
-            <OauthCredentialCard key={credential.provider} data={credential} />
-          )
+          if ('provider' in credential) {
+            return (
+              <OauthCredentialCard
+                key={credential.provider}
+                data={credential}
+              />
+            )
+          } else {
+            return <LDAPCredentialCard key="ldap" data={credential} />
+          }
         })}
-        <LDAPCredentialCard data={ldapData?.ldapCredential} />
       </div>
-      {credentialList.length < 3 && (
+      {credentialList.length < authProviderKindCount && (
         <div className="mt-4 flex justify-end">{createButton}</div>
       )}
     </div>
