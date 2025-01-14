@@ -9,8 +9,8 @@ use crate::DbConn;
 pub struct PageDAO {
     pub id: i64,
     pub author_id: i64,
-    pub title: String,
-    pub summary: String,
+    pub title: Option<String>,
+    pub summary: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

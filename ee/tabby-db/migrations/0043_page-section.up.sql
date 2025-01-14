@@ -4,8 +4,8 @@ CREATE TABLE pages(
     -- The user who created the page
     author_id INTEGER NOT NULL,
 
-    title TEXT NOT NULL,
-    summary TEXT NOT NULL,
+    title TEXT,
+    summary TEXT,
 
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),

@@ -266,8 +266,8 @@ CREATE TABLE pages(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   -- The user who created the page
   author_id INTEGER NOT NULL,
-  title TEXT NOT NULL,
-  summary TEXT NOT NULL,
+  title TEXT,
+  summary TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   FOREIGN KEY(author_id) REFERENCES users(id) ON DELETE CASCADE

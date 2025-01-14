@@ -8,8 +8,8 @@ use crate::{juniper::relay::NodeType, Context};
 pub struct Page {
     pub id: ID,
     pub author_id: ID,
-    pub title: String,
-    pub summary: String,
+    pub title: Option<String>,
+    pub summary: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
