@@ -72,6 +72,7 @@ use self::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
+    page::PageService,
     repository::{
         CreateIntegrationInput, FileEntrySearchResult, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, UpdateIntegrationInput,
@@ -106,6 +107,7 @@ pub trait ServiceLocator: Send + Sync {
     fn user_event(&self) -> Arc<dyn UserEventService>;
     fn web_documents(&self) -> Arc<dyn WebDocumentService>;
     fn thread(&self) -> Arc<dyn ThreadService>;
+    fn page(&self) -> Arc<dyn PageService>;
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
@@ -1332,7 +1334,10 @@ impl Mutation {
 
     // page mutations
     async fn convert_thread_to_page(ctx: &Context, thread_id: ID) -> Result<ID> {
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+        let user = check_user(ctx).await?;
+
+        let svc = ctx.locator.page();
+        svc.convert_thread_to_page(&user.id, &thread_id).await
     }
 
     async fn generate_page_title(ctx: &Context, id: ID) -> Result<String> {

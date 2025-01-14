@@ -8,7 +8,7 @@ use crate::schema::Result;
 
 #[async_trait]
 pub trait PageService: Send + Sync {
-    async fn convert_thread_to_page(&self, user_id: &ID, thread_id: ID) -> Result<ID>;
+    async fn convert_thread_to_page(&self, author_id: &ID, thread_id: &ID) -> Result<ID>;
 
     async fn delete(&self, id: &ID) -> Result<()>;
     async fn generate_page_title(&self, id: &ID) -> Result<String>;
