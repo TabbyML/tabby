@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{query, FromRow};
+use sqlx::{query, query_as, FromRow};
 use tabby_db_macros::query_paged_as;
 
 use crate::DbConn;
@@ -127,6 +127,26 @@ impl DbConn {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_page(&self, id: i64) -> Result<Option<PageDAO>> {
+        let page = query_as!(
+            PageDAO,
+            r#"SELECT
+                id,
+                author_id,
+                title,
+                summary,
+                created_at as "created_at: DateTime<Utc>",
+                updated_at  as "updated_at: DateTime<Utc>"
+            FROM pages
+            WHERE id = ?"#,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(page)
     }
 
     pub async fn list_page_sections(

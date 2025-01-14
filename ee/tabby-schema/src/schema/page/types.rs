@@ -60,14 +60,15 @@ impl NodeType for Section {
 }
 
 #[derive(GraphQLInputObject)]
-pub struct GenerateSectionInput {
+pub struct UpdateSectionInput {
     pub page_id: ID,
-    pub position: i32,
-    pub content: String,
+    pub id: ID,
+    pub title: String,
+    pub regenerate: bool,
 }
 
 #[derive(GraphQLInputObject)]
-pub struct ReorderSectionsInput {
+pub struct ReorderSectionInput {
     pub page_id: ID,
     pub id: ID,
     pub position: i32,

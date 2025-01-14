@@ -1341,34 +1341,72 @@ impl Mutation {
     }
 
     async fn generate_page_title(ctx: &Context, id: ID) -> Result<String> {
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+        let user = check_user(ctx).await?;
+
+        let svc = ctx.locator.page();
+        let page = svc.get(&id).await?;
+
+        user.policy.check_update_page(&page.author_id)?;
+        svc.generate_page_title(&id).await
     }
 
     async fn generate_page_summary(ctx: &Context, id: ID) -> Result<String> {
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+        let user = check_user(ctx).await?;
+
+        let svc = ctx.locator.page();
+        let page = svc.get(&id).await?;
+
+        user.policy.check_update_page(&page.author_id)?;
+        svc.generate_page_summary(&id).await
     }
 
-    async fn delete_page(ctx: &Context, id: ID) -> Result<ID> {
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    async fn delete_page(ctx: &Context, id: ID) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        let svc = ctx.locator.page();
+        let page = svc.get(&id).await?;
+
+        user.policy.check_update_page(&page.author_id)?;
+        svc.delete(&id).await.map(|_| true)
+    }
+
+    async fn update_page_section(
+        ctx: &Context,
+        input: page::UpdateSectionInput,
+    ) -> Result<page::Section> {
+        let user = check_user(ctx).await?;
+
+        let svc = ctx.locator.page();
+        let page = svc.get(&input.page_id).await?;
+
+        user.policy.check_update_page(&page.author_id)?;
+        svc.update_section(&input).await
     }
 
     // when update a section order, the order of the rest of the sections will be updated
-    async fn generate_page_section(
-        ctx: &Context,
-        input: page::GenerateSectionInput,
-    ) -> Result<page::Section> {
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
-    }
-
     async fn reorder_page_sections(
         ctx: &Context,
-        input: page::ReorderSectionsInput,
+        input: page::ReorderSectionInput,
     ) -> Result<bool> {
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+        let user = check_user(ctx).await?;
+
+        let svc = ctx.locator.page();
+        let page = svc.get(&input.page_id).await?;
+
+        user.policy.check_update_page(&page.author_id)?;
+        svc.reorder_section(&input).await.map(|_| true)
     }
 
-    async fn delete_page_section(ctx: &Context, section_id: ID) -> Result<ID> {
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+    async fn delete_page_section(ctx: &Context, page_id: ID, section_id: ID) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        let svc = ctx.locator.page();
+        let page = svc.get(&page_id).await?;
+
+        user.policy.check_update_page(&page.author_id)?;
+        svc.delete_section(&page_id, &section_id)
+            .await
+            .map(|_| true)
     }
 
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {

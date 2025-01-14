@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
+use anyhow::anyhow;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
     auth::AuthenticationService,
-    page::{Page, PageService},
+    page::{Page, PageService, ReorderSectionInput, Section, UpdateSectionInput},
     thread::ThreadService,
     AsID, AsRowid, CoreError, Result,
 };
@@ -66,9 +67,7 @@ impl PageService for PageServiceImpl {
 
     //TODO: generate page title and summary
     async fn generate_page_title(&self, id: &ID) -> Result<String> {
-        self.db
-            .update_page_title(id.as_rowid()?, "Title")
-            .await?;
+        self.db.update_page_title(id.as_rowid()?, "Title").await?;
         Ok("Title".into())
     }
     async fn generate_page_summary(&self, id: &ID) -> Result<String> {
@@ -81,6 +80,15 @@ impl PageService for PageServiceImpl {
     async fn delete(&self, id: &ID) -> Result<()> {
         self.db.delete_page(id.as_rowid()?).await?;
         Ok(())
+    }
+
+    async fn get(&self, id: &ID) -> Result<Page> {
+        let page = self
+            .db
+            .get_page(id.as_rowid()?)
+            .await?
+            .ok_or_else(|| CoreError::NotFound("Page not found"))?;
+        Ok(page.into())
     }
 
     async fn list(
@@ -104,5 +112,21 @@ impl PageService for PageServiceImpl {
             .await?;
 
         Ok(pages.into_iter().map(Into::into).collect())
+    }
+
+    async fn get_section(&self, page_id: &ID, id: &ID) -> Result<Section> {
+        Err(CoreError::Other(anyhow!("Not implemented")))
+    }
+
+    async fn update_section(&self, input: &UpdateSectionInput) -> Result<Section> {
+        Err(CoreError::Other(anyhow!("Not implemented")))
+    }
+
+    async fn reorder_section(&self, input: &ReorderSectionInput) -> Result<()> {
+        Err(CoreError::Other(anyhow!("Not implemented")))
+    }
+
+    async fn delete_section(&self, page_id: &ID, id: &ID) -> Result<()> {
+        Err(CoreError::Other(anyhow!("Not implemented")))
     }
 }

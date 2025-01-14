@@ -180,12 +180,6 @@ input EmailSettingInput {
   smtpPassword: String
 }
 
-input GenerateSectionInput {
-  pageId: ID!
-  position: Int!
-  content: String!
-}
-
 input MessageAttachmentCodeInput {
   filepath: String
   "When start line is `None`, it represents the entire file." startLine: Int
@@ -212,7 +206,7 @@ input PasswordResetInput {
   password2: String!
 }
 
-input ReorderSectionsInput {
+input ReorderSectionInput {
   pageId: ID!
   id: ID!
   position: Int!
@@ -279,6 +273,13 @@ input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
   clientSecret: String
+}
+
+input UpdateSectionInput {
+  pageId: ID!
+  id: ID!
+  title: String!
+  regenerate: Boolean!
 }
 
 input UpsertUserGroupMembershipInput {
@@ -678,10 +679,10 @@ type Mutation {
   convertThreadToPage(threadId: ID!): ID!
   generatePageTitle(id: ID!): String!
   generatePageSummary(id: ID!): String!
-  deletePage(id: ID!): ID!
-  generatePageSection(input: GenerateSectionInput!): Section!
-  reorderPageSections(input: ReorderSectionsInput!): Boolean!
-  deletePageSection(sectionId: ID!): ID!
+  deletePage(id: ID!): Boolean!
+  updatePageSection(input: UpdateSectionInput!): Section!
+  reorderPageSections(input: ReorderSectionInput!): Boolean!
+  deletePageSection(pageId: ID!, sectionId: ID!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
