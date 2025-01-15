@@ -22,18 +22,7 @@ api_key = "secret-api-key"
 ## Completion model
 
 OpenAI has designated its `/v1/completions` API for code completion as legacy,
-and **OpenAI itself no longer supports it**. If you use it with OpenAI, you may encounter unpredictable problems.
-
-For other vendors that have implemented an OpenAI-compatible server, you could use the `openai/completion` kind.
-
-```toml title="~/.tabby/config.toml"
-# Completion model
-[model.completion.http]
-kind = "openai/completion"
-model_name = "gpt-3.5-turbo-instruct"   # Please make sure to use a completion model, such as gpt-3.5-turbo-instruct
-api_endpoint = "https://api.openai.com/v1"   # DO NOT append the `/completions` suffix
-api_key = "secret-api-key"
-```
+and using OpenAI models for completion is no longer supported.
 
 ## Embeddings model
 
