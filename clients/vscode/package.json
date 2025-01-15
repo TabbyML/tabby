@@ -150,14 +150,19 @@
     "menus": {
       "tabby.submenu": [
         {
+          "command": "tabby.chat.edit.start",
+          "when": "tabby.chatEnabled",
+          "group": "tabby.submenu.0edit@1"
+        },
+        {
           "command": "tabby.chat.addRelevantContext",
           "when": "editorHasSelection && tabby.chatEnabled",
-          "group": "tabby.submenu@1"
+          "group": "tabby.submenu.1chat@1"
         },
         {
           "command": "tabby.chat.addFileContext",
           "when": "tabby.chatEnabled",
-          "group": "tabby.submenu@2"
+          "group": "tabby.submenu.1chat@2"
         }
       ],
       "commandPalette": [

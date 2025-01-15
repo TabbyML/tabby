@@ -200,6 +200,7 @@ mod tests {
         let dir = registry.get_model_dir("StarCoder-1B");
 
         let old_model_path = dir.join(LEGACY_GGML_MODEL_PATH.as_str());
+        let new_model_path = dir.join("ggml").join("model-00001-of-00001.gguf");
         tokio::fs::create_dir_all(old_model_path.parent().unwrap())
             .await
             .unwrap();
@@ -210,11 +211,13 @@ mod tests {
             .await
             .unwrap();
 
+        assert!(!new_model_path.exists());
         registry.migrate_legacy_model_path("StarCoder-1B").unwrap();
         assert!(registry
             .get_model_entry_path("StarCoder-1B")
             .unwrap()
             .exists());
         assert!(!old_model_path.exists());
+        assert!(new_model_path.exists());
     }
 }

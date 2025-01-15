@@ -285,6 +285,17 @@ export class Commands {
         },
       };
 
+      if (userCommand) {
+        try {
+          // when invoke from editor context menu, the first param `userCommand` is the current file path, we reset userCommand to undefined.
+          // uri parse will throw error when no scheme can be parsed.
+          Uri.parse(userCommand, true);
+          userCommand = undefined;
+        } catch {
+          //
+        }
+      }
+
       const inlineEditController = new InlineEditController(
         this.client,
         this.config,
