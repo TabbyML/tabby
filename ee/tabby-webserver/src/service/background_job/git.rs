@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use chrono::{DateTime, Utc};
-use futures::SinkExt;
-use octocrab::models::repos;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::{config_index_to_id, CodeRepository, Config};
 use tabby_index::public::CodeIndexer;
