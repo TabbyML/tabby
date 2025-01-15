@@ -20,3 +20,5 @@ fn create_reqwest_client(api_endpoint: &str) -> reqwest::Client {
 
     builder.build().unwrap()
 }
+
+static AZURE_API_VERSION: &str = "2024-02-01";
