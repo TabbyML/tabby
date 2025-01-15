@@ -316,7 +316,7 @@ function ThreadItem({ data }: ThreadItemProps) {
       href={title ? `/search/${titleSlug}-${threadId}` : `/search/${threadId}`}
       onClick={onNavigateToThread}
     >
-      <div className="transform-bg hover:bg-accent group flex-1 overflow-hidden rounded-lg px-3 py-2">
+      <div className="transform-bg group flex-1 overflow-hidden rounded-lg px-3 py-2 hover:bg-accent">
         <div className="mb-1.5 flex items-center gap-2">
           <IconFiles className="shrink-0" />
           <LoadingWrapper

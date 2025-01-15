@@ -27,11 +27,11 @@ import { fileItemToSourceItem, shortenLabel } from './utils'
  */
 export const MentionComponent = ({ node }: { node: any }) => {
   return (
-    <NodeViewWrapper className="inline-block align-middle -my-1">
+    <NodeViewWrapper className="-my-1 inline-block align-middle">
       <span
         className={cn(
-          'bg-muted prose text-foreground inline-flex gap-0.5 items-center rounded px-1.5 py-0.5 text-sm font-medium',
-          'ring-muted ring-1 ring-inset',
+          'prose inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-sm font-medium text-foreground',
+          'ring-1 ring-inset ring-muted',
           'relative top-[0.1em]'
         )}
         data-category={node.attrs.category}
@@ -169,7 +169,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     }))
 
     return (
-      <div className="max-h-[300px] overflow-auto p-1 bg-popover border rounded-md">
+      <div className="max-h-[300px] overflow-auto rounded-md border bg-popover p-1">
         {/* If no items are found, show a message. */}
         {!items.length ? (
           <div className="px-2 py-1.5 text-sm text-muted-foreground">
@@ -216,7 +216,7 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
   return (
     <div
       className={cn(
-        'flex cursor-pointer gap-1 rounded-md px-2 py-1.5 text-sm items-center flex-nowrap',
+        'flex cursor-pointer flex-nowrap items-center gap-1 rounded-md px-2 py-1.5 text-sm',
         {
           'bg-accent text-accent-foreground': isSelected
         }

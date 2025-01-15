@@ -93,7 +93,7 @@ function PromptFormRenderer(
                 instance.popper.style.maxWidth = `${targetWidth}px`
                 // instance.popper.style.maxWidth = `${targetWidth}px`
                 // instance.popper.style.width = `calc(${targetWidth}px - 1rem)`
-                instance.popper.style.width = `${targetWidth-16}px`
+                instance.popper.style.width = `${targetWidth - 16}px`
               }
 
               const handleResize = () => {
@@ -126,7 +126,7 @@ function PromptFormRenderer(
                     placement: 'top-start',
                     animation: 'shift-away',
                     maxWidth: document.documentElement.clientWidth,
-                    offset({ placement, popper, reference}) {
+                    offset({ placement, popper, reference }) {
                       return [8, 6]
                     },
                     onCreate(instance) {
@@ -262,7 +262,7 @@ function PromptFormRenderer(
           <IconEdit className="h-4 w-4" />
         </span>
         <div
-          className="flex-1 max-h-32 overflow-y-auto py-4"
+          className="max-h-32 flex-1 overflow-y-auto py-4"
           onClick={e => {
             if (editor && !editor.isFocused) {
               editor?.commands.focus()

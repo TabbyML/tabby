@@ -408,7 +408,7 @@ function FileTag({
 
   return (
     <span
-      className={cn('symbol bg-muted leading-5 py-0.5', className, {
+      className={cn('symbol bg-muted py-0.5 leading-5', className, {
         'space-x-1 cursor-pointer hover:bg-muted/50 border whitespace-nowrap align-middle py-0.5':
           true
       })}
