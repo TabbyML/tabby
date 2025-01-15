@@ -21,8 +21,7 @@ api_key = "secret-api-key"
 
 ## Completion model
 
-OpenAI has designated its `/v1/completions` API for code completion as legacy,
-and using OpenAI models for completion is no longer supported.
+OpenAI doesn't offer models for completions (FIM), its `/v1/completions` API has been deprecated.
 
 ## Embeddings model
 
