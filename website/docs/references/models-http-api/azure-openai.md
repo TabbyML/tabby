@@ -2,9 +2,7 @@
 
 [Azure OpenAI](https://azure.microsoft.com/products/ai-services/openai-service) is a cloud-based service that provides Azure customers with access to OpenAI's powerful language models including GPT-4, GPT-3.5, and various embedding models.
 
-## Requirements
-
-- Tabby version >= v0.24
+Please be aware that azure will be supported starting with version 0.24, which is scheduled for release by end of 01/2025
 
 ## Chat model
 
