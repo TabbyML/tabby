@@ -2,11 +2,15 @@
   vertical-align: top;
 }
 
-.message-markdown code.symbol {
+.message-markdown .symbol {
   @apply rounded-md font-normal mx-1 px-1;
 }
 
-.message-markdown code.symbol::before,
-.message-markdown code.symbol::after {
+.message-markdown .symbol::before,
+.message-markdown .symbol::after {
   content: none;
+}
+
+.source-mention {
+  @apply inline-flex items-baseline space-x-1;
 }

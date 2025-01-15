@@ -1,3 +1,4 @@
+import { Content } from '@tiptap/react'
 import { ListFileItem } from 'tabby-chat-panel/index'
 
 /**
@@ -26,7 +27,7 @@ export interface PromptFormRef {
   /**
    * Programmatically sets the editor's text content.
    */
-  setInput: (value: string) => void
+  setInput: (value: Content) => void
   /**
    * Returns the current text content of the editor.
    */
@@ -52,10 +53,8 @@ export interface SourceItem {
  * Defines the attributes to be stored in a mention node.
  */
 export interface MentionNodeAttrs {
-  id: string
-  name: string
   category: 'file'
-  fileItem: FileItem
+  filepath: string
 }
 
 /**

@@ -1,5 +1,3 @@
-import { UseChatHelpers } from 'ai/react'
-
 import { Button } from '@/components/ui/button'
 import { IconArrowRight } from '@/components/ui/icons'
 
@@ -18,7 +16,8 @@ export function EmptyScreen({
   setInput,
   chatMaxWidthClass,
   welcomeMessage
-}: Pick<UseChatHelpers, 'setInput'> & {
+}: {
+  setInput: (v: string) => void
   chatMaxWidthClass: string
   welcomeMessage?: string
 }) {

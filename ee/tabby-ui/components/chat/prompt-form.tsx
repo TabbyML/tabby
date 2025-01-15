@@ -1,26 +1,35 @@
-import React, {
-  ForwardedRef,
-  useContext,
-  useImperativeHandle,
-  useRef,
-  useState
-} from 'react'
+import React, { ForwardedRef, useContext, useImperativeHandle } from 'react'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
-import { EditorContent, useEditor } from '@tiptap/react'
+import {
+  EditorContent,
+  Extension,
+  ReactRenderer,
+  useEditor
+} from '@tiptap/react'
 
 import './prompt-form.css'
 
+import tippy, { Instance } from 'tippy.js'
+
+import { NEWLINE_CHARACTER } from '@/lib/constants'
+import { useLatest } from '@/lib/hooks/use-latest'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconArrowElbow, IconEdit } from '@/components/ui/icons'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+
+// import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 
 import { ChatContext } from './chat'
-import { MentionList, PromptFormMentionExtension } from './form-editor/mention'
-import { MentionState, PromptFormRef, PromptProps } from './form-editor/types'
+import {
+  MentionList,
+  MentionListActions,
+  MentionListProps,
+  PromptFormMentionExtension
+} from './form-editor/mention'
+import { PromptFormRef, PromptProps } from './form-editor/types'
 import { fileItemToSourceItem } from './form-editor/utils'
 
 /**
@@ -31,39 +40,23 @@ function PromptFormRenderer(
   { onSubmit, isLoading }: PromptProps,
   ref: ForwardedRef<PromptFormRef>
 ) {
-  // A ref to track if the mention popover is open (for handling special key events)
-  const popoverOpenRef = useRef(false)
-  // State controlling the popover
-  const [popoverOpen, setPopoverOpen] = useState(false)
-  // The popover position is updated to follow the current mention trigger
-  const [anchorPos, setAnchorPos] = useState({ left: 0, top: 0 })
-  // A ref to store the plain text from the editor
-  const inputRef = useRef('')
-
-  // Use forceUpdate to re-render manually when mention state changes
-  const [_, forceUpdate] = useState(0)
-  const triggerUpdate = () => {
-    forceUpdate(i => i + 1)
-  }
-
-  // A mention state object to store mention items, command, query, etc.
-  const mentionStateRef = useRef<MentionState>({
-    items: [],
-    command: null,
-    query: '',
-    selectedIndex: 0
-  })
-
-  // If you need a DOM anchor for the popover, you can store it here
-  const anchorRef = useRef<HTMLDivElement>(null)
-
   // Access custom context (e.g., to fetch file suggestions)
   const { listFileInWorkspace } = useContext(ChatContext)
 
-  // Control the popover open/close state
-  const handlePopoverChange = (open: boolean) => {
-    popoverOpenRef.current = open
-    setPopoverOpen(open)
+  const doSubmit = useLatest(async () => {
+    if (isLoading || !editor) return
+
+    const text = editor.getText({ blockSeparator: NEWLINE_CHARACTER }).trim()
+    if (!text) return
+
+    const result = onSubmit(text)
+    editor?.chain().clearContent().focus().run()
+
+    return result
+  })
+
+  const handleSubmit = () => {
+    doSubmit.current()
   }
 
   // Set up the TipTap editor with mention extension
@@ -76,6 +69,7 @@ function PromptFormRenderer(
         Placeholder.configure({
           placeholder: 'typing...'
         }),
+        CustomKeyboardShortcuts(handleSubmit),
         PromptFormMentionExtension.configure({
           // Customize how mention suggestions are fetched and rendered
           suggestion: {
@@ -85,145 +79,159 @@ function PromptFormRenderer(
               const files = await listFileInWorkspace({ query })
               return files?.map(fileItemToSourceItem) || []
             },
-            render: () => ({
-              onStart: props => {
-                const { editor } = props
-                const { from } = props.range
-                // Calculate the popover position relative to the editor
-                const currentLine = editor.view.coordsAtPos(from)
-                const editorDom = editor.view.dom.getBoundingClientRect()
+            render: () => {
+              let component: ReactRenderer<MentionListActions, MentionListProps>
+              let popup: Instance[]
 
-                setAnchorPos({
-                  left: currentLine.left - editorDom.left,
-                  top: currentLine.top - editorDom.top - 10
-                })
+              // const getRemInPixels = () => {
+              //   return parseFloat(getComputedStyle(document.documentElement).fontSize);
+              // };
 
-                // Update mention state
-                mentionStateRef.current.items = props.items || []
-                mentionStateRef.current.command = props.command
-                  ? (attrs: any) => {
-                      props.command(attrs)
-                      requestAnimationFrame(() => {
-                        editor.commands.focus()
-                      })
-                    }
-                  : null
-                mentionStateRef.current.query = props.query || ''
-                mentionStateRef.current.selectedIndex = 0
-
-                // Open popover and re-render
-                setPopoverOpen(true)
-                popoverOpenRef.current = true
-                triggerUpdate()
-                editor.commands.focus()
-              },
-              onUpdate: props => {
-                const { editor } = props
-                const { from } = props.range
-                const currentLine = editor.view.coordsAtPos(from)
-                const editorDom = editor.view.dom.getBoundingClientRect()
-
-                setAnchorPos({
-                  left: currentLine.left - editorDom.left,
-                  top: currentLine.top - editorDom.top - 10
-                })
-
-                // Update mention items, query, etc.
-                mentionStateRef.current.items = props.items || []
-                mentionStateRef.current.command = props.command
-                  ? (attrs: any) => {
-                      props.command(attrs)
-                      requestAnimationFrame(() => {
-                        editor.commands.focus()
-                      })
-                    }
-                  : null
-                mentionStateRef.current.query = props.query || ''
-                mentionStateRef.current.selectedIndex = 0
-
-                triggerUpdate()
-              },
-              onExit: () => {
-                setPopoverOpen(false)
-                popoverOpenRef.current = false
-                mentionStateRef.current.command = null
-                triggerUpdate()
-              },
-              onKeyDown: ({ event }) => {
-                // Esc key -> close popover
-                if (event.key === 'Escape') {
-                  setPopoverOpen(false)
-                  triggerUpdate()
-                  return true
-                }
-
-                // Down arrow -> move selection down
-                if (event.key === 'ArrowDown') {
-                  event.preventDefault()
-                  if (!mentionStateRef.current.items.length) return true
-                  mentionStateRef.current.selectedIndex =
-                    (mentionStateRef.current.selectedIndex + 1) %
-                    mentionStateRef.current.items.length
-                  triggerUpdate()
-                  return true
-                }
-
-                // Up arrow -> move selection up
-                if (event.key === 'ArrowUp') {
-                  event.preventDefault()
-                  if (!mentionStateRef.current.items.length) return true
-                  const prevIdx = mentionStateRef.current.selectedIndex - 1
-                  mentionStateRef.current.selectedIndex =
-                    prevIdx < 0
-                      ? mentionStateRef.current.items.length - 1
-                      : prevIdx
-                  triggerUpdate()
-                  return true
-                }
-
-                // Enter -> confirm selection
-                if (event.key === 'Enter') {
-                  const { items, selectedIndex, command } =
-                    mentionStateRef.current
-                  const item = items[selectedIndex]
-                  if (item && command) {
-                    command({
-                      id: `${item.name}-${item.filepath}`,
-                      name: item.name,
-                      category: 'file',
-                      fileItem: item.fileItem
-                    })
-                  }
-                  return true
-                }
-
-                return false
+              const updatePopperWidth = (instance: Instance) => {
+                const targetWidth =
+                  instance.reference.getBoundingClientRect().width
+                instance.popper.style.maxWidth = `${targetWidth}px`
+                // instance.popper.style.maxWidth = `${targetWidth}px`
+                // instance.popper.style.width = `calc(${targetWidth}px - 1rem)`
+                instance.popper.style.width = `${targetWidth-16}px`
               }
-            })
+
+              const handleResize = () => {
+                if (popup && popup[0]) {
+                  updatePopperWidth(popup[0])
+                }
+              }
+
+              return {
+                onStart: props => {
+                  component = new ReactRenderer(MentionList, {
+                    props: { ...props, listFileInWorkspace },
+                    editor: props.editor
+                  })
+
+                  const container = document.querySelector(
+                    '#chat-panel-container'
+                  )
+                  if (!container) {
+                    return
+                  }
+
+                  popup = tippy('#chat-panel-container', {
+                    // getReferenceClientRect: () => container.getBoundingClientRect(),
+                    appendTo: () => document.body,
+                    content: component.element,
+                    showOnCreate: true,
+                    interactive: true,
+                    trigger: 'manual',
+                    placement: 'top-start',
+                    animation: 'shift-away',
+                    maxWidth: document.documentElement.clientWidth,
+                    offset({ placement, popper, reference}) {
+                      return [8, 6]
+                    },
+                    onCreate(instance) {
+                      updatePopperWidth(instance)
+                    },
+                    onMount() {
+                      window.addEventListener('resize', handleResize)
+                    },
+                    onHidden() {
+                      window.removeEventListener('resize', handleResize)
+                    }
+                  })
+                },
+                onUpdate: props => {
+                  // const { editor } = props
+                  // const { from } = props.range
+                  // const currentLine = editor.view.coordsAtPos(from)
+                  // const editorDom = editor.view.dom.getBoundingClientRect()
+
+                  // setAnchorPos({
+                  //   left: currentLine.left - editorDom.left,
+                  //   top: currentLine.top - editorDom.top - 10
+                  // })
+
+                  // Update mention items, query, etc.
+                  // mentionStateRef.current.items = props.items || []
+                  // mentionStateRef.current.command = props.command
+                  //   ? (attrs: any) => {
+                  //     props.command(attrs)
+                  //     requestAnimationFrame(() => {
+                  //       editor.commands.focus()
+                  //     })
+                  //   }
+                  //   : null
+                  // mentionStateRef.current.query = props.query || ''
+                  // mentionStateRef.current.selectedIndex = 0
+                  component.updateProps(props)
+                },
+                onExit: () => {
+                  popup[0].destroy()
+                  component.destroy()
+                  // handlePopoverChange(false)
+                  // mentionStateRef.current.command = null
+                },
+                onKeyDown: props => {
+                  if (props.event.key === 'Escape') {
+                    popup[0].hide()
+
+                    return true
+                  }
+                  return component.ref?.onKeyDown(props) ?? false
+                  // Esc key -> close popover
+                  // if (event.key === 'Escape') {
+                  //   setPopoverOpen(false)
+                  //   return true
+                  // }
+
+                  // // Down arrow -> move selection down
+                  // if (event.key === 'ArrowDown') {
+                  //   event.preventDefault()
+                  //   if (!mentionStateRef.current.items.length) return true
+                  //   mentionStateRef.current.selectedIndex =
+                  //     (mentionStateRef.current.selectedIndex + 1) %
+                  //     mentionStateRef.current.items.length
+                  //   return true
+                  // }
+
+                  // // Up arrow -> move selection up
+                  // if (event.key === 'ArrowUp') {
+                  //   event.preventDefault()
+                  //   if (!mentionStateRef.current.items.length) return true
+                  //   const prevIdx = mentionStateRef.current.selectedIndex - 1
+                  //   mentionStateRef.current.selectedIndex =
+                  //     prevIdx < 0
+                  //       ? mentionStateRef.current.items.length - 1
+                  //       : prevIdx
+                  //   return true
+                  // }
+
+                  // // Enter -> confirm selection
+                  // if (event.key === 'Enter') {
+                  //   const { items, selectedIndex, command } =
+                  //     mentionStateRef.current
+                  //   const item = items[selectedIndex]
+                  //   if (item && command) {
+                  //     command({
+                  //       category: 'file',
+                  //       filepath: item.filepath
+                  //     })
+                  //   }
+                  //   return true
+                  // }
+
+                  // return false
+                }
+              }
+            }
           }
         })
       ],
-      // On every editor update, store the raw text into inputRef
-      onUpdate: ({ editor }) => {
-        inputRef.current = editor.getText()
-      },
-      // Additional editor props (e.g., handleKeyDown to submit on Enter)
       editorProps: {
-        handleKeyDown(view, event) {
-          // If mention popover is open, let mention extension handle the keys
-          if (popoverOpenRef.current) {
-            return false
-          }
-          // Otherwise, handle Enter (without shift) as a submit
-          if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault()
-            const text = inputRef.current
-            // Clear the editor content
-            view.dispatch(view.state.tr.delete(0, view.state.doc.content.size))
-            inputRef.current = ''
-            handleSubmit(undefined, text)
-            return true
-          }
+        attributes: {
+          class: cn(
+            'prose max-w-none font-sans dark:prose-invert focus:outline-none prose-p:my-0'
+          )
         }
       }
     },
@@ -239,100 +247,47 @@ function PromptFormRenderer(
   useImperativeHandle(
     ref,
     () => ({
-      focus: () => editor?.commands.focus('end'),
+      focus: () => editor?.commands.focus(),
       setInput: value => editor?.commands.setContent(value),
       input
     }),
     [editor, input]
   )
 
-  /**
-   * A helper function to handle form submission
-   */
-  const handleSubmit = async (e?: React.FormEvent, text?: string) => {
-    e?.preventDefault()
-    const content = text ?? editor?.getText()
-    if (isLoading || !content?.trim()) return
-    await onSubmit(content)
-    // Clear editor after successful submit
-    editor?.commands.setContent('')
-    inputRef.current = ''
-  }
-
-  // This element is used as an anchor for the mention popover
-  const anchorElement = (
-    <div
-      ref={anchorRef}
-      style={{
-        position: 'absolute',
-        left: anchorPos.left,
-        top: anchorPos.top,
-        width: 0,
-        height: 0
-      }}
-    />
-  )
-
   return (
-    <form onSubmit={handleSubmit} className="relative">
-      <div className="relative flex flex-col px-4">
-        {/* Editor & Submit row */}
-        <div className="relative flex items-center gap-2">
-          <IconEdit className="h-4 w-4 text-muted-foreground" />
-          <div className="min-w-0 flex-1">
-            {/* TipTap editor content */}
-            <EditorContent
-              editor={editor}
-              className={cn(
-                'prose overflow-hidden break-words text-white focus:outline-none'
-              )}
-            />
-          </div>
-          {anchorElement}
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            size="icon"
-            disabled={isLoading || input === ''}
-          >
-            <IconArrowElbow className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Mention popover (dropdown) */}
-        <Popover
-          open={popoverOpen}
-          modal={false}
-          onOpenChange={handlePopoverChange}
+    <div className="relative flex flex-col px-2.5">
+      {/* Editor & Submit row */}
+      <div className="relative flex items-start gap-2">
+        <span className="mt-[1.375rem]">
+          <IconEdit className="h-4 w-4" />
+        </span>
+        <div
+          className="flex-1 max-h-32 overflow-y-auto py-4"
+          onClick={e => {
+            if (editor && !editor.isFocused) {
+              editor?.commands.focus()
+            }
+          }}
         >
-          <PopoverAnchor asChild>{anchorElement}</PopoverAnchor>
-          <PopoverContent
-            className="w-[100%] max-w-none overflow-auto p-0"
-            align="start"
-            side="top"
-            sideOffset={5}
-            avoidCollisions
-            // Prevent the focus from shifting to the popover
-            onOpenAutoFocus={e => e.preventDefault()}
-            onCloseAutoFocus={e => e.preventDefault()}
-            onMouseDown={e => {
-              // Keep focus in the editor
-              e.preventDefault()
-            }}
-          >
-            <MentionList
-              items={mentionStateRef.current.items}
-              command={mentionStateRef.current.command}
-              selectedIndex={mentionStateRef.current.selectedIndex}
-              onHover={index => {
-                mentionStateRef.current.selectedIndex = index
-                triggerUpdate()
-              }}
-            />
-          </PopoverContent>
-        </Popover>
+          {/* TipTap editor content */}
+          <EditorContent
+            editor={editor}
+            className={cn(
+              'prose overflow-hidden break-words text-foreground focus:outline-none'
+            )}
+          />
+        </div>
+        {/* Submit Button */}
+        <Button
+          className="mt-4 h-7 w-7"
+          size="icon"
+          disabled={isLoading || input === ''}
+          onClick={handleSubmit}
+        >
+          <IconArrowElbow className="h-3.5 w-3.5" />
+        </Button>
       </div>
-    </form>
+    </div>
   )
 }
 
@@ -347,3 +302,23 @@ export const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
  * For convenience, also export it as default
  */
 export default PromptForm
+
+const CustomKeyboardShortcuts = (onSubmit: () => void) =>
+  Extension.create({
+    addKeyboardShortcuts() {
+      return {
+        Enter: ({ editor }) => {
+          onSubmit()
+          return true
+        },
+        'Shift-Enter': () => {
+          return this.editor.commands.first(({ commands }) => [
+            () => commands.newlineInCode(),
+            () => commands.createParagraphNear(),
+            () => commands.liftEmptyBlock(),
+            () => commands.splitBlock()
+          ])
+        }
+      }
+    }
+  })

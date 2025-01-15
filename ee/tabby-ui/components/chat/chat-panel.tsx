@@ -1,5 +1,6 @@
 import React, { RefObject, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
+import { Content } from '@tiptap/core'
 import { useWindowSize } from '@uidotdev/usehooks'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -40,8 +41,8 @@ import { ChatContext } from './chat'
 import { PromptFormRef } from './form-editor/types'
 import { RepoSelect } from './repo-select'
 
-export interface ChatPanelProps
-  extends Pick<UseChatHelpers, 'stop' | 'input' | 'setInput'> {
+export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
+  setInput: (v: string) => void
   id?: string
   className?: string
   onSubmit: (content: string) => Promise<any>
@@ -52,7 +53,7 @@ export interface ChatPanelProps
 
 export interface ChatPanelRef {
   focus: () => void
-  setInput: (input: string) => void
+  setInput: (input: Content) => void
   input: string
 }
 
@@ -239,7 +240,10 @@ function ChatPanelRenderer(
             </Tooltip>
           )}
         </div>
-        <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
+        <div
+          id="chat-panel-container"
+          className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4"
+        >
           <div className="flex flex-wrap gap-2">
             <AnimatePresence presenceAffectsLayout>
               <RepoSelect

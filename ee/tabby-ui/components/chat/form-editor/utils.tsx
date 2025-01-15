@@ -1,6 +1,8 @@
 // utils.ts
+import { JSONContent } from '@tiptap/core'
 import { Filepath } from 'tabby-chat-panel/index'
 
+import { MARKDOWN_FILE_REGEX } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
 
 import { FileItem, SourceItem } from './types'
@@ -132,4 +134,56 @@ export function fileItemToFileContext(
     git_url: 'filepath' in item.filepath ? item.filepath.gitUrl : '',
     kind: 'file'
   }
+}
+
+export const getFileMentionFromText = (text: string) => {
+  if (!text) return []
+
+  const mentions: Array<{ filepath: string }> = []
+  let match
+  while ((match = MARKDOWN_FILE_REGEX.exec(text))) {
+    const filepath = match[1]
+    if (filepath) {
+      mentions.push({
+        filepath
+      })
+    }
+  }
+  return mentions
+}
+
+export function convertTextToTiptapContent(text: string): JSONContent[] {
+  const nodes: JSONContent[] = []
+  let lastIndex = 0
+  text.replace(MARKDOWN_FILE_REGEX, (match, filepath, offset) => {
+    // Add text before the match as a text node
+    if (offset > lastIndex) {
+      nodes.push({
+        type: 'text',
+        text: text.slice(lastIndex, offset)
+      })
+    }
+
+    // Add mention node
+    nodes.push({
+      type: 'mention',
+      attrs: {
+        category: 'file',
+        filepath
+      }
+    })
+
+    lastIndex = offset + match.length
+    return match
+  })
+
+  // Add remaining text as a text node
+  if (lastIndex < text.length) {
+    nodes.push({
+      type: 'text',
+      text: text.slice(lastIndex)
+    })
+  }
+
+  return nodes
 }

@@ -9,7 +9,7 @@ import {
   MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem, FileContext } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, resolveFileNameForDisplay } from '@/lib/utils'
 import {
   HoverCard,
   HoverCardContent,
@@ -28,16 +28,12 @@ import {
 
 import {
   MARKDOWN_CITATION_REGEX,
+  MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX
 } from '@/lib/constants/regex'
 
-import {
-  FILEITEM_AT_REGEX,
-  getFilepathStringByChatPanelFilePath,
-  getLastSegmentFromPath,
-  replaceAtMentionPlaceHolderWithAtPlaceHolder
-} from '../chat/form-editor/utils'
 import { Mention } from '../mention-tag'
+import { IconFile } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 import { CodeElement } from './code'
 import { DocDetailView } from './doc-detail-view'
@@ -102,11 +98,6 @@ export function MessageMarkdown({
   activeSelection,
   ...rest
 }: MessageMarkdownProps) {
-  // deal with some unresolved file items
-  const msgRes = replaceAtMentionPlaceHolderWithAtPlaceHolder(message)
-  message = msgRes.newValue
-  const fileItems = msgRes.fileItems
-
   const [symbolPositionMap, setSymbolLocationMap] = useState<
     Map<string, SymbolInfo | undefined>
   >(new Map())
@@ -173,12 +164,22 @@ export function MessageMarkdown({
       const className = headline ? 'text-[1rem] font-semibold' : undefined
       return { sourceId, className }
     })
+    processMatches(MARKDOWN_FILE_REGEX, FileTag, (match: string) => {
+      const filepath = match[1]
+      // find target attachmentCode by filepath
+      const targetAttachment = attachmentClientCode?.find(
+        item => item.filepath === filepath
+      )
+      const fileContext: FileContext = {
+        kind: 'file',
+        filepath,
+        content: targetAttachment?.content ?? '',
+        // FIXME(@jueliang) git_url
+        git_url: ''
+      }
 
-    processMatches(FILEITEM_AT_REGEX, AtMentionTag, (match: string) => {
       return {
-        label: getLastSegmentFromPath(
-          getFilepathStringByChatPanelFilePath(fileItems[+match[1]].filepath)
-        )
+        fileContext
       }
     })
 
@@ -396,10 +397,26 @@ function SourceTag({
   )
 }
 
-function AtMentionTag({ label }: { label: string | undefined }) {
+function FileTag({
+  fileContext,
+  className
+}: {
+  fileContext: FileContext | undefined
+  className?: string
+}) {
+  if (!fileContext) return null
+
   return (
-    <span className="bg-muted/50 hover:bg-muted text-muted-foreground prose inline-flex items-center rounded px-1.5 py-0.5 text-sm font-medium text-white">
-      @{label}
+    <span
+      className={cn('symbol bg-muted leading-5 py-0.5', className, {
+        'space-x-1 cursor-pointer hover:bg-muted/50 border whitespace-nowrap align-middle py-0.5':
+          true
+      })}
+    >
+      <IconFile className="relative -top-px inline-block h-3.5 w-3.5" />
+      <span className={cn('whitespace-normal font-medium')}>
+        {resolveFileNameForDisplay(fileContext.filepath)}
+      </span>
     </span>
   )
 }

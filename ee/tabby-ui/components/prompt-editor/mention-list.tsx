@@ -9,10 +9,10 @@ import React, {
   useRef,
   useState
 } from 'react'
-import {
+import type {
   SuggestionKeyDownProps,
   SuggestionProps
-} from '@tiptap/extension-mention/dist/packages/suggestion/src/index.d'
+} from '@tiptap/suggestion'
 import { go as fuzzy } from 'fuzzysort'
 
 import { ContextSourceKind } from '@/lib/gql/generates/graphql'

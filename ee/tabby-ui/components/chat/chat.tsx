@@ -1,4 +1,5 @@
 import React, { RefObject } from 'react'
+import { Content } from '@tiptap/core'
 import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type {
   ChatCommand,
@@ -44,6 +45,7 @@ import {
   convertEditorContext,
   findClosestGitRepository,
   getFileLocationFromContext,
+  getFilepathFromContext,
   getPromptForChatCommand,
   nanoid
 } from '@/lib/utils'
@@ -51,12 +53,10 @@ import {
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
-import { FileItem, PromptFormRef } from './form-editor/types'
+import { PromptFormRef } from './form-editor/types'
 import {
-  FILEITEM_REGEX,
-  fileItemToFileContext,
-  getLastSegmentFromPath,
-  replaceAtMentionPlaceHolderWithAt
+  convertTextToTiptapContent,
+  getFileMentionFromText
 } from './form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
 
@@ -189,7 +189,7 @@ function ChatRenderer(
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   // both set/get input from prompt form
-  const setInput = (str: string) => {
+  const setInput = (str: Content) => {
     chatPanelRef.current?.setInput(str)
   }
   const input = chatPanelRef.current?.input ?? ''
@@ -210,6 +210,40 @@ function ChatRenderer(
   } = useThreadRun({
     threadId
   })
+
+  const getRelevantContextFromMessageContent = useLatest(
+    async (message: string) => {
+      const selectedGitUrl = selectedRepoId
+        ? repos?.find(x => x.sourceId === selectedRepoId)?.gitUrl ?? ''
+        : ''
+      const workspaceGitRepos = await fetchWorkspaceGitRepo()
+      // remote git url in the workspace
+      const gitUrl = selectedGitUrl
+        ? findClosestGitRepository(workspaceGitRepos, selectedGitUrl)?.url ?? ''
+        : ''
+      const fileMentions = getFileMentionFromText(message)
+      let fileContents: Context[] = []
+      if (readFileContent && fileMentions.length > 0) {
+        fileContents = await Promise.all(
+          fileMentions.map(async item => {
+            const fileContext: FileContext = {
+              kind: 'file',
+              // fill content by readFileContent
+              content: '',
+              filepath: item.filepath,
+              git_url: gitUrl
+            }
+            const content = await readFileContent({
+              filepath: getFilepathFromContext(fileContext)
+            })
+            fileContext.content = content || ''
+            return fileContext
+          })
+        )
+      }
+      return fileContents
+    }
+  )
 
   const onDeleteMessage = async (userMessageId: string) => {
     if (!threadId) return
@@ -251,15 +285,14 @@ function ChatRenderer(
         }
       ]
       setQaPairs(nextQaPairs)
-      const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user
-      )
+      const [createMessageInput, threadRunOptions] =
+        await generateRequestPayload(qaPair.user)
 
       return regenerate({
         threadId,
         userMessageId: qaPair.user.id,
         assistantMessageId: qaPair.assistant.id,
-        userMessage,
+        userMessage: createMessageInput,
         threadRunOptions
       })
     }
@@ -284,8 +317,12 @@ function ChatRenderer(
     // delete message pair
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
-    // FIXME: put this transformer to somewhere else, both case in message markdown and edit could be cover by same method
-    setInput(replaceAtMentionPlaceHolderWithAt(userMessage.message))
+
+    const inputContent = convertTextToTiptapContent(userMessage.message)
+    setInput({
+      type: 'doc',
+      content: inputContent
+    })
     if (userMessage.activeContext) {
       openInEditor(getFileLocationFromContext(userMessage.activeContext))
     }
@@ -407,11 +444,12 @@ function ChatRenderer(
     }
   }, [error])
 
-  const generateRequestPayload = (
+  const generateRequestPayload = async (
     userMessage: UserMessage
-  ): [CreateMessageInput, ThreadRunOptionsInput] => {
+  ): Promise<[CreateMessageInput, ThreadRunOptionsInput]> => {
     const hasUsableActiveContext =
       enableActiveSelection && !!userMessage.activeContext
+
     const clientFileContexts: FileContext[] = uniqWith(
       compact([
         userMessage.selectContext,
@@ -468,15 +506,24 @@ function ChatRenderer(
         }\n${'```'}\n`
       }
 
+      const mentionedFiles = await getRelevantContextFromMessageContent.current(
+        userMessage.message
+      )
+
       const newUserMessage: UserMessage = {
         ...userMessage,
         message: userMessage.message + selectCodeSnippet,
         // If no id is provided, set a fallback id.
         id: userMessage.id ?? nanoid(),
         selectContext: userMessage.selectContext,
-        // For forward compatibility
         activeContext:
-          enableActiveSelection && activeSelection ? activeSelection : undefined
+          enableActiveSelection && activeSelection
+            ? activeSelection
+            : undefined,
+        relevantContext: [
+          ...mentionedFiles,
+          ...(userMessage.relevantContext || [])
+        ]
       }
 
       const nextQaPairs = [
@@ -492,8 +539,8 @@ function ChatRenderer(
         }
       ]
       setQaPairs(nextQaPairs)
-
-      sendUserMessage(...generateRequestPayload(newUserMessage))
+      const payload = await generateRequestPayload(newUserMessage)
+      sendUserMessage(...payload)
     }
   )
 
@@ -514,37 +561,12 @@ function ChatRenderer(
   }
 
   const handleSubmit = async (value: string) => {
-    const fileItems: FileItem[] = []
-    let newValue = value
-    let match
-    while ((match = FILEITEM_REGEX.exec(value)) !== null) {
-      try {
-        const parsedItem = JSON.parse(match[1])
-        fileItems.push(parsedItem)
-        const labelName =
-          getLastSegmentFromPath(parsedItem.label.split('/')) ||
-          parsedItem.label ||
-          'unknown'
-        newValue = newValue.replace(match[0], `@${labelName}`)
-      } catch (error) {
-        continue
-      }
-    }
-
-    // read all at file and push to relevant context, which will request to backend server later
-    let fileContents: Context[] = []
-    if (readFileContent && fileItems.length > 0) {
-      fileContents = await Promise.all(
-        fileItems.map(async item => {
-          const content = await readFileContent({ filepath: item.filepath })
-          return fileItemToFileContext(item, content ?? '')
-        })
-      )
-    }
-
+    const mentionedFiles = await getRelevantContextFromMessageContent.current(
+      value
+    )
     sendUserChat({
       message: value,
-      relevantContext: [...fileContents, ...relevantContext]
+      relevantContext: [...mentionedFiles, ...relevantContext]
     })
 
     setRelevantContext([])
