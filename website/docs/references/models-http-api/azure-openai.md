@@ -2,6 +2,10 @@
 
 [Azure OpenAI](https://azure.microsoft.com/products/ai-services/openai-service) is a cloud-based service that provides Azure customers with access to OpenAI's powerful language models including GPT-4, GPT-3.5, and various embedding models.
 
+## Requirements
+
+- Tabby version >= v0.24
+
 ## Chat model
 
 It supports various GPT series chat models through an Azure OpenAI-compatible API interface.
@@ -25,7 +29,7 @@ It supports text-embedding-3-small, text-embedding-3-large and other embedding m
 ```toml title="~/.tabby/config.toml"
 [model.embedding.http]
 kind = "azure/embedding"
-model_name = "text-embedding-3-small"
+model_name = "text-embedding-3-large"
 api_endpoint = "https://xxx.openai.azure.com"
 api_key = "your-api-key"
 ```
