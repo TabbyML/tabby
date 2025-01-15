@@ -172,7 +172,7 @@ pub async fn start(
 
                     match &result {
                         Err(err) => {
-                            logkit::info!(exit_code = 1; "Job failed {}", err);
+                            logkit::warn!(exit_code = 1; "Job failed {}", err);
                             logger.finalize().await;
                             notify_job_error!(notification_service, err, job_name, job_id);
                         },
@@ -235,7 +235,7 @@ pub async fn start(
                 }
                 else => {
                     warn!("Background job channel closed");
-                    return;
+                    break;
                 }
             };
         }

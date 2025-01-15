@@ -25,7 +25,7 @@ impl LicenseCheckJob {
         let license = match license_service.read().await {
             Ok(license) => license,
             Err(err) => {
-                logkit::warn!(exit_code = -1; "Failed to read license: {}", err);
+                logkit::warn!("Failed to read license: {}", err);
                 return Err(err);
             }
         };
@@ -41,7 +41,7 @@ impl LicenseCheckJob {
                     )
                     .await
                 {
-                    logkit::warn!(exit_code = -1; "Failed to create notification: {}", e);
+                    logkit::warn!("Failed to create notification: {}", e);
                     return Err(e);
                 }
             }

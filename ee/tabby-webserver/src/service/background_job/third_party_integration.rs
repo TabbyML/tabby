@@ -61,7 +61,7 @@ impl SyncIntegrationJob {
         {
             Ok(integrations) => integrations,
             Err(err) => {
-                logkit::warn!(exit_code = -1; "Failed to list integrations: {}", err);
+                logkit::warn!("Failed to list integrations: {}", err);
                 return Err(err);
             }
         };
@@ -243,7 +243,7 @@ impl SchedulerGithubGitlabJob {
         {
             Ok(repos) => repos,
             Err(err) => {
-                logkit::warn!(exit_code = -1; "Failed to list repositories: {}", err);
+                logkit::warn!("Failed to list repositories: {}", err);
                 return Err(err);
             }
         };
