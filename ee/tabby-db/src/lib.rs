@@ -11,7 +11,7 @@ pub use job_runs::JobRunDAO;
 pub use ldap_credential::LdapCredentialDAO;
 pub use notifications::NotificationDAO;
 pub use oauth_credential::OAuthCredentialDAO;
-pub use pages::PageDAO;
+pub use pages::{PageDAO, PageSectionDAO};
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;

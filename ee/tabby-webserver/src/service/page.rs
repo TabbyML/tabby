@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
     auth::AuthenticationService,
-    page::{Page, PageService, ReorderSectionInput, Section, UpdateSectionInput},
+    page::{AddPageSectionInput, Page, PageService, Section},
     thread::ThreadService,
     AsID, AsRowid, CoreError, Result,
 };
@@ -49,32 +48,32 @@ impl PageService for PageServiceImpl {
             .list_thread_messages(thread_id, None, None, None, None)
             .await?;
 
-        for (i, qa) in messages.chunks(2).enumerate() {
+        for qa in messages.chunks(2) {
             if let [question, answer] = qa {
                 let question = question.content.clone();
                 let answer = answer.content.clone();
                 self.db
-                    .create_page_section(page_id, i as i64, &question, &answer)
+                    .create_page_section(page_id, &question, &answer)
                     .await?;
             }
         }
 
         self.generate_page_title(&page_id.as_id()).await?;
-        self.generate_page_summary(&page_id.as_id()).await?;
+        self.generate_page_content(&page_id.as_id()).await?;
 
         Ok(page_id.as_id())
     }
 
-    //TODO: generate page title and summary
+    //TODO: generate page title and content
     async fn generate_page_title(&self, id: &ID) -> Result<String> {
         self.db.update_page_title(id.as_rowid()?, "Title").await?;
         Ok("Title".into())
     }
-    async fn generate_page_summary(&self, id: &ID) -> Result<String> {
+    async fn generate_page_content(&self, id: &ID) -> Result<String> {
         self.db
-            .update_page_summary(id.as_rowid()?, "Summary")
+            .update_page_content(id.as_rowid()?, "Content")
             .await?;
-        Ok("Summary".into())
+        Ok("Content".into())
     }
 
     async fn delete(&self, id: &ID) -> Result<()> {
@@ -114,19 +113,44 @@ impl PageService for PageServiceImpl {
         Ok(pages.into_iter().map(Into::into).collect())
     }
 
-    async fn get_section(&self, page_id: &ID, id: &ID) -> Result<Section> {
-        Err(CoreError::Other(anyhow!("Not implemented")))
+    async fn list_sections(
+        &self,
+        page_id: &ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<Section>> {
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+
+        let sections = self
+            .db
+            .list_page_sections(page_id.as_rowid()?, limit, skip_id, backwards)
+            .await?;
+
+        Ok(sections.into_iter().map(Into::into).collect())
     }
 
-    async fn update_section(&self, input: &UpdateSectionInput) -> Result<Section> {
-        Err(CoreError::Other(anyhow!("Not implemented")))
+    async fn get_section(&self, id: &ID) -> Result<Section> {
+        let section = self
+            .db
+            .get_page_section(id.as_rowid()?)
+            .await?
+            .ok_or_else(|| CoreError::NotFound("Section not found"))?;
+        Ok(section.into())
     }
 
-    async fn reorder_section(&self, input: &ReorderSectionInput) -> Result<()> {
-        Err(CoreError::Other(anyhow!("Not implemented")))
+    async fn add_section(&self, input: &AddPageSectionInput) -> Result<ID> {
+        //TODO: generate section content
+        let section = self
+            .db
+            .create_page_section(input.page_id.as_rowid()?, &input.title, "Content")
+            .await?;
+        Ok(section.as_id())
     }
 
-    async fn delete_section(&self, page_id: &ID, id: &ID) -> Result<()> {
-        Err(CoreError::Other(anyhow!("Not implemented")))
+    async fn delete_section(&self, id: &ID) -> Result<()> {
+        self.db.delete_page_section(id.as_rowid()?).await?;
+        Ok(())
     }
 }
