@@ -265,7 +265,10 @@ async fn run_job<F, Fut>(
 
     let logger = JobLogger::new(db.clone(), job_id);
     if let Err(err) = job_fn().await {
+        logkit::warn!(exit_code = 1; "Job failed {}", err);
         notify_job_error!(notification_service, err, job_name, job_id);
+    } else {
+        logkit::info!(exit_code = 0; "Job completed successfully");
     }
     logger.finalize().await;
 }

@@ -23,7 +23,7 @@ impl IndexGarbageCollection {
         let sources = match context.read(None).await {
             Ok(sources) => sources,
             Err(err) => {
-                logkit::warn!(exit_code = -1; "Failed to list sources: {}", err);
+                logkit::warn!("Failed to list sources: {}", err);
                 return Err(err);
             }
         };
@@ -34,7 +34,7 @@ impl IndexGarbageCollection {
             .collect::<Vec<_>>();
 
         if let Err(e) = run_index_garbage_collection(sources) {
-            logkit::warn!(exit_code = -1; "Failed to run index garbage collection: {}", e);
+            logkit::warn!("Failed to run index garbage collection: {}", e);
             return Err(e.into());
         }
 
@@ -42,7 +42,7 @@ impl IndexGarbageCollection {
         let repositories = match repository.list_all_code_repository().await {
             Ok(repos) => repos,
             Err(err) => {
-                logkit::warn!(exit_code = -1; "Failed to list repositories: {}", err);
+                logkit::warn!("Failed to list repositories: {}", err);
                 return Err(err);
             }
         };

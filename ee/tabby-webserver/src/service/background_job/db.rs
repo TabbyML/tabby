@@ -20,19 +20,19 @@ impl DbMaintainanceJob {
         context: Arc<dyn ContextService>,
         db: DbConn,
     ) -> tabby_schema::Result<()> {
-        let mut exit_code = 0;
+        let mut has_error = false;
 
         if let Err(e) = db.delete_expired_token().await {
-            exit_code = -1;
-            logkit::warn!(exit_code = exit_code; "Failed to delete expired tokens: {}", e);
+            has_error = true;
+            logkit::warn!("Failed to delete expired tokens: {}", e);
         };
         if let Err(e) = db.delete_expired_password_resets().await {
-            exit_code = -1;
-            logkit::warn!(exit_code = exit_code; "Failed to delete expired password resets: {}", e);
+            has_error = true;
+            logkit::warn!("Failed to delete expired password resets: {}", e);
         };
         if let Err(e) = db.delete_expired_ephemeral_threads().await {
-            exit_code = -1;
-            logkit::warn!(exit_code = exit_code; "Failed to delete expired ephemeral threads: {}", e);
+            has_error = true;
+            logkit::warn!("Failed to delete expired ephemeral threads: {}", e);
         };
 
         // Read all active sources
@@ -47,22 +47,25 @@ impl DbMaintainanceJob {
                     .delete_unused_source_id_read_access_policy(&active_source_ids)
                     .await
                 {
-                    exit_code = -1;
-                    logkit::warn!(exit_code = exit_code; "Failed to delete unused source id read access policy: {}", e);
+                    has_error = true;
+                    logkit::warn!(
+                        "Failed to delete unused source id read access policy: {}",
+                        e
+                    );
                 };
             }
             Err(e) => {
-                exit_code = -1;
-                logkit::warn!(exit_code = exit_code; "Failed to read active sources: {}", e);
+                has_error = true;
+                logkit::warn!("Failed to read active sources: {}", e);
             }
         }
 
         if let Err(e) = Self::data_retention(now, &db).await {
-            exit_code = -1;
-            logkit::warn!(exit_code = exit_code; "Failed to run data retention job: {}", e);
+            has_error = true;
+            logkit::warn!("Failed to run data retention job: {}", e);
         }
 
-        if exit_code == 0 {
+        if has_error {
             Ok(())
         } else {
             Err(CoreError::Other(anyhow::anyhow!(

@@ -45,7 +45,7 @@ impl SchedulerGitJob {
         let repositories = match git_repository.repository_list().await {
             Ok(repos) => repos,
             Err(err) => {
-                logkit::warn!(exit_code = -1; "Failed to list repositories: {}", err);
+                logkit::warn!("Failed to list repositories: {}", err);
                 return Err(err);
             }
         };
