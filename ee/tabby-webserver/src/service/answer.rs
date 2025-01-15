@@ -445,8 +445,12 @@ fn convert_messages_to_chat_completion_request(
             let user_attachment_input =
                 user_attachment_input_from_user_message_attachment(&x.attachment);
 
-            let content =
-                build_user_prompt(&x.content, &y.attachment, Some(&user_attachment_input), None);
+            let content = build_user_prompt(
+                &x.content,
+                &y.attachment,
+                Some(&user_attachment_input),
+                None,
+            );
             ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
                 content: ChatCompletionRequestUserMessageContent::Text(
                     helper.rewrite_tag(&content),
