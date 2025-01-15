@@ -331,7 +331,7 @@ function ThreadItem({ data }: ThreadItemProps) {
               className="break-anywhere truncate text-lg font-medium"
               sources={sources}
               message={replaceAtMentionPlaceHolderWithAt(
-                threadMessages?.[0]['node']['content'] ?? ''
+                threadMessages?.[0]?.['node']['content'] ?? ''
               )}
             />
           </LoadingWrapper>

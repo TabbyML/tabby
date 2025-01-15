@@ -4,6 +4,7 @@ import { Filepath } from 'tabby-chat-panel/index'
 
 import { MARKDOWN_FILE_REGEX } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
+import { resolveFileNameForDisplay } from '@/lib/utils'
 
 import { FileItem, SourceItem } from './types'
 
@@ -45,18 +46,36 @@ export function shortenLabel(label: string, suffixLength = 15): string {
 /**
  * Replaces placeholders like [[fileItem:{"label":"xxxx"}]] with @filename for display.
  */
+// export function replaceAtMentionPlaceHolderWithAt(value: string) {
+//   let newValue = value
+//   let match
+
+//   // Use a loop to handle cases where the string contains multiple placeholders
+//   while ((match = FILEITEM_REGEX.exec(value)) !== null) {
+//     try {
+//       const parsedItem = JSON.parse(match[1])
+//       const labelName =
+//         getLastSegmentFromPath(parsedItem.label) ||
+//         parsedItem.label ||
+//         'unknown'
+//       newValue = newValue.replace(match[0], `@${labelName}`)
+//     } catch (error) {
+//       continue
+//     }
+//   }
+
+//   return newValue
+// }
+
 export function replaceAtMentionPlaceHolderWithAt(value: string) {
   let newValue = value
   let match
 
   // Use a loop to handle cases where the string contains multiple placeholders
-  while ((match = FILEITEM_REGEX.exec(value)) !== null) {
+  while ((match = MARKDOWN_FILE_REGEX.exec(value)) !== null) {
     try {
-      const parsedItem = JSON.parse(match[1])
-      const labelName =
-        getLastSegmentFromPath(parsedItem.label) ||
-        parsedItem.label ||
-        'unknown'
+      const filepath = match[1]
+      const labelName = resolveFileNameForDisplay(filepath)
       newValue = newValue.replace(match[0], `@${labelName}`)
     } catch (error) {
       continue

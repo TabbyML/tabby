@@ -6,13 +6,8 @@ import {
   ContextSourceKind
 } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
-import { FileItem } from '@/components/chat/form-editor/types'
-import {
-  FILEITEM_REGEX,
-  getFileBaseNameByChatPanelFilePath
-} from '@/components/chat/form-editor/utils'
 
-import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
+import { MARKDOWN_FILE_REGEX, MARKDOWN_SOURCE_REGEX } from '../constants/regex'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [
@@ -84,11 +79,15 @@ export function getTitleFromMessages(
       const source = sources.find(s => s.sourceId === sourceId)
       return source?.sourceName ?? ''
     })
-    .replace(FILEITEM_REGEX, value => {
-      // TODO(Sma1lboy): find a better way to do this
-      const item = JSON.parse(value.slice(11, -2)) as FileItem
-      return '@' + getFileBaseNameByChatPanelFilePath(item.filepath)
+    .replace(MARKDOWN_FILE_REGEX, value => {
+      const filepath = value.slice(7, -2)
+      return resolveFileNameForDisplay(filepath)
     })
+    // .replace(FILEITEM_REGEX, value => {
+    //   // TODO(Sma1lboy): find a better way to do this
+    //   const item = JSON.parse(value.slice(11, -2)) as FileItem
+    //   return '@' + getFileBaseNameByChatPanelFilePath(item.filepath)
+    // })
     .trim()
 
   let title = cleanedLine
