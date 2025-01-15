@@ -9,7 +9,7 @@ pub struct Page {
     pub id: ID,
     pub author_id: ID,
     pub title: Option<String>,
-    pub summary: Option<String>,
+    pub content: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -35,7 +35,6 @@ impl NodeType for Page {
 pub struct Section {
     pub id: ID,
     pub page_id: ID,
-    pub position: i32,
     pub title: String,
     pub content: String,
 
@@ -60,16 +59,7 @@ impl NodeType for Section {
 }
 
 #[derive(GraphQLInputObject)]
-pub struct UpdateSectionInput {
+pub struct AddPageSectionInput {
     pub page_id: ID,
-    pub id: ID,
     pub title: String,
-    pub regenerate: bool,
-}
-
-#[derive(GraphQLInputObject)]
-pub struct ReorderSectionInput {
-    pub page_id: ID,
-    pub id: ID,
-    pub position: i32,
 }

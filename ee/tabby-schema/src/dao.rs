@@ -3,9 +3,10 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
-    OAuthCredentialDAO, PageDAO, ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode,
-    ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
-    ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc, UserEventDAO,
+    OAuthCredentialDAO, PageDAO, PageSectionDAO, ServerSettingDAO, ThreadDAO,
+    ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc,
+    ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc,
+    UserEventDAO,
 };
 
 use crate::{
@@ -354,7 +355,20 @@ impl From<PageDAO> for page::Page {
             id: value.id.as_id(),
             author_id: value.author_id.as_id(),
             title: value.title,
-            summary: value.summary,
+            content: value.content,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
+impl From<PageSectionDAO> for page::Section {
+    fn from(value: PageSectionDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            page_id: value.page_id.as_id(),
+            title: value.title,
+            content: value.content,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }

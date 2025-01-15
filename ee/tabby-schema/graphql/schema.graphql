@@ -112,6 +112,11 @@ enum Role {
   ASSISTANT
 }
 
+input AddPageSectionInput {
+  pageId: ID!
+  title: String!
+}
+
 input CodeQueryInput {
   filepath: String
   language: String
@@ -206,12 +211,6 @@ input PasswordResetInput {
   password2: String!
 }
 
-input ReorderSectionInput {
-  pageId: ID!
-  id: ID!
-  position: Int!
-}
-
 input RequestInvitationInput {
   email: String!
 }
@@ -273,13 +272,6 @@ input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
   clientSecret: String
-}
-
-input UpdateSectionInput {
-  pageId: ID!
-  id: ID!
-  title: String!
-  regenerate: Boolean!
 }
 
 input UpsertUserGroupMembershipInput {
@@ -665,13 +657,24 @@ type Mutation {
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
   updateThreadMessage(input: UpdateMessageInput!): Boolean!
+  """
+    Utilize an existing thread and its messages to create a page.
+    This will automatically generate the page title and a summary of the content.
+
+    Every two messages will be converted into a page section.
+    The user's message will serve as the title of the section.
+    The assistant's message will become the content of the section.
+  """
   convertThreadToPage(threadId: ID!): ID!
-  generatePageTitle(id: ID!): String!
-  generatePageSummary(id: ID!): String!
+  "delete a page and all its sections."
   deletePage(id: ID!): Boolean!
-  updatePageSection(input: UpdateSectionInput!): Section!
-  reorderPageSections(input: ReorderSectionInput!): Boolean!
-  deletePageSection(pageId: ID!, sectionId: ID!): Boolean!
+  """
+    Creates a new page section.
+    Only the title is required; the answer will be generated as the content.
+  """
+  addPageSection(input: AddPageSectionInput!): ID!
+  "delete a single page section."
+  deletePageSection(sectionId: ID!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
@@ -706,7 +709,7 @@ type Page {
   id: ID!
   authorId: ID!
   title: String
-  summary: String
+  content: String
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -827,6 +830,7 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  "Read pages by page IDs."
   pages(ids: [ID!], after: String, before: String, first: Int, last: Int): PageConnection!
   pageSections(pageId: ID!, after: String, before: String, first: Int, last: Int): SectionConnection!
   customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
@@ -878,7 +882,6 @@ type RepositoryGrepOutput {
 type Section {
   id: ID!
   pageId: ID!
-  position: Int!
   title: String!
   content: String!
   createdAt: DateTime!

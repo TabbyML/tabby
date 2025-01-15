@@ -699,6 +699,7 @@ impl Query {
         .await
     }
 
+    /// Read pages by page IDs.
     async fn pages(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -708,7 +709,20 @@ impl Query {
         last: Option<i32>,
     ) -> Result<Connection<page::Page>> {
         check_user(ctx).await?;
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .page()
+                    .list(ids.as_deref(), after, before, first, last)
+                    .await
+            },
+        )
+        .await
     }
 
     async fn page_sections(
@@ -720,7 +734,20 @@ impl Query {
         last: Option<i32>,
     ) -> Result<Connection<page::Section>> {
         check_user(ctx).await?;
-        Err(CoreError::Other(anyhow::anyhow!("Not implemented")))
+
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .page()
+                    .list_sections(&page_id, after, before, first, last)
+                    .await
+            },
+        )
+        .await
     }
 
     async fn custom_web_documents(
@@ -1333,6 +1360,13 @@ impl Mutation {
     }
 
     // page mutations
+
+    /// Utilize an existing thread and its messages to create a page.
+    /// This will automatically generate the page title and a summary of the content.
+    ///
+    /// Every two messages will be converted into a page section.
+    /// The user's message will serve as the title of the section.
+    /// The assistant's message will become the content of the section.
     async fn convert_thread_to_page(ctx: &Context, thread_id: ID) -> Result<ID> {
         let user = check_user(ctx).await?;
 
@@ -1340,26 +1374,7 @@ impl Mutation {
         svc.convert_thread_to_page(&user.id, &thread_id).await
     }
 
-    async fn generate_page_title(ctx: &Context, id: ID) -> Result<String> {
-        let user = check_user(ctx).await?;
-
-        let svc = ctx.locator.page();
-        let page = svc.get(&id).await?;
-
-        user.policy.check_update_page(&page.author_id)?;
-        svc.generate_page_title(&id).await
-    }
-
-    async fn generate_page_summary(ctx: &Context, id: ID) -> Result<String> {
-        let user = check_user(ctx).await?;
-
-        let svc = ctx.locator.page();
-        let page = svc.get(&id).await?;
-
-        user.policy.check_update_page(&page.author_id)?;
-        svc.generate_page_summary(&id).await
-    }
-
+    /// delete a page and all its sections.
     async fn delete_page(ctx: &Context, id: ID) -> Result<bool> {
         let user = check_user(ctx).await?;
 
@@ -1370,43 +1385,30 @@ impl Mutation {
         svc.delete(&id).await.map(|_| true)
     }
 
-    async fn update_page_section(
-        ctx: &Context,
-        input: page::UpdateSectionInput,
-    ) -> Result<page::Section> {
+    /// Creates a new page section.
+    /// Only the title is required; the answer will be generated as the content.
+    async fn add_page_section(ctx: &Context, input: page::AddPageSectionInput) -> Result<ID> {
         let user = check_user(ctx).await?;
 
         let svc = ctx.locator.page();
         let page = svc.get(&input.page_id).await?;
 
         user.policy.check_update_page(&page.author_id)?;
-        svc.update_section(&input).await
+
+        svc.add_section(&input).await
     }
 
-    // when update a section order, the order of the rest of the sections will be updated
-    async fn reorder_page_sections(
-        ctx: &Context,
-        input: page::ReorderSectionInput,
-    ) -> Result<bool> {
+    /// delete a single page section.
+    async fn delete_page_section(ctx: &Context, section_id: ID) -> Result<bool> {
         let user = check_user(ctx).await?;
 
         let svc = ctx.locator.page();
-        let page = svc.get(&input.page_id).await?;
+        let section = svc.get_section(&section_id).await?;
 
+        let page = svc.get(&section.page_id).await?;
         user.policy.check_update_page(&page.author_id)?;
-        svc.reorder_section(&input).await.map(|_| true)
-    }
 
-    async fn delete_page_section(ctx: &Context, page_id: ID, section_id: ID) -> Result<bool> {
-        let user = check_user(ctx).await?;
-
-        let svc = ctx.locator.page();
-        let page = svc.get(&page_id).await?;
-
-        user.policy.check_update_page(&page.author_id)?;
-        svc.delete_section(&page_id, &section_id)
-            .await
-            .map(|_| true)
+        svc.delete_section(&section_id).await.map(|_| true)
     }
 
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
