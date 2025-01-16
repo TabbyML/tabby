@@ -11,6 +11,8 @@ import {
 import { ClientCapabilities, ServerCapabilities, CodeLens, CodeLensType, ChangesPreviewLineType } from "./protocol";
 import { TextDocuments } from "./lsp/textDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { getLogger } from "./logger";
+import { calcCharDiffRange } from "./utils/diff";
 
 const codeLensType: CodeLensType = "previewChanges";
 const changesPreviewLineType = {
@@ -24,6 +26,8 @@ const changesPreviewLineType = {
   inserted: "inserted" as ChangesPreviewLineType,
   deleted: "deleted" as ChangesPreviewLineType,
 };
+
+const logger = getLogger("CodeLensProvider");
 
 export class CodeLensProvider implements Feature {
   constructor(private readonly documents: TextDocuments<TextDocument>) {}
@@ -57,6 +61,9 @@ export class CodeLensProvider implements Feature {
     const codeLenses: CodeLens[] = [];
     let lineInPreviewBlock = -1;
     let previewBlockMarkers = "";
+    const originLines: string[] = [];
+    const editLines: string[] = [];
+    const editCodeLenses: CodeLens[] = [];
     for (let line = textDocument.lineCount - 1; line >= 0; line = line - 1) {
       if (token.isCancellationRequested) {
         return null;
@@ -166,6 +173,9 @@ export class CodeLensProvider implements Feature {
                   line: changesPreviewLineType.waiting,
                 },
               };
+              originLines.unshift(text);
+              editLines.unshift(text);
+              editCodeLenses.unshift(codeLens);
               break;
             case "|":
               codeLens = {
@@ -175,6 +185,8 @@ export class CodeLensProvider implements Feature {
                   line: changesPreviewLineType.inProgress,
                 },
               };
+              editLines.unshift(text);
+              editCodeLenses.unshift(codeLens);
               break;
             case "=":
               codeLens = {
@@ -184,6 +196,9 @@ export class CodeLensProvider implements Feature {
                   line: changesPreviewLineType.unchanged,
                 },
               };
+              originLines.unshift(text);
+              editLines.unshift(text);
+              editCodeLenses.unshift(codeLens);
               break;
             case "+":
               codeLens = {
@@ -193,6 +208,8 @@ export class CodeLensProvider implements Feature {
                   line: changesPreviewLineType.inserted,
                 },
               };
+              editLines.unshift(text);
+              editCodeLenses.unshift(codeLens);
               break;
             case "-":
               codeLens = {
@@ -202,6 +219,7 @@ export class CodeLensProvider implements Feature {
                   line: changesPreviewLineType.deleted,
                 },
               };
+              originLines.unshift(text);
               break;
             default:
               break;
@@ -219,6 +237,22 @@ export class CodeLensProvider implements Feature {
         }
       }
     }
+    const charDiffDecorationLenses = calcCharDiffRange(
+      originLines.join(""),
+      editLines.join(""),
+      editCodeLenses.map((item) => item.range),
+    ).map<CodeLens>((codeLensRange) => {
+      return {
+        range: codeLensRange,
+        data: {
+          type: codeLensType,
+          text: "inserted" as const,
+        },
+      };
+    });
+    codeLenses.push(...charDiffDecorationLenses);
+    logger.debug(`codeLenses: ${JSON.stringify(codeLenses)}`);
+
     workDoneProgress?.done();
     if (resultProgress) {
       return null;

@@ -39,13 +39,18 @@ const decorationTypePending = window.createTextEditorDecorationType({
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
-const decorationTypeInserted = window.createTextEditorDecorationType({
+const decorationTypeTextInserted = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("diffEditor.insertedTextBackground"),
+  isWholeLine: false,
+  rangeBehavior: DecorationRangeBehavior.ClosedOpen,
+});
+const decorationTypeLineInserted = window.createTextEditorDecorationType({
+  backgroundColor: new ThemeColor("diffEditor.insertedLineBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
 const decorationTypeDeleted = window.createTextEditorDecorationType({
-  backgroundColor: new ThemeColor("diffEditor.removedTextBackground"),
+  backgroundColor: new ThemeColor("diffEditor.removedLineBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
@@ -55,10 +60,14 @@ const decorationTypes: Record<string, TextEditorDecorationType> = {
   commentsFirstLine: decorationTypeComments,
   comments: decorationTypeComments,
   waiting: decorationTypePending,
-  inProgress: decorationTypeInserted,
+  inProgress: decorationTypeLineInserted,
   unchanged: decorationTypeUnchanged,
-  inserted: decorationTypeInserted,
+  inserted: decorationTypeLineInserted,
   deleted: decorationTypeDeleted,
+};
+
+const textDecorationTypes: Record<string, TextEditorDecorationType> = {
+  inserted: decorationTypeTextInserted,
 };
 
 export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
@@ -96,6 +105,13 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     const lineType = codeLens.data.line;
     if (typeof lineType === "string" && lineType in decorationTypes) {
       const decorationType = decorationTypes[lineType];
+      if (decorationType) {
+        this.addDecorationRange(editor, decorationType, decorationRange);
+      }
+    }
+    const textType = codeLens.data.text;
+    if (typeof textType === "string" && textType in textDecorationTypes) {
+      const decorationType = textDecorationTypes[textType];
       if (decorationType) {
         this.addDecorationRange(editor, decorationType, decorationRange);
       }
