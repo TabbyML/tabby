@@ -1,6 +1,8 @@
+mod daily;
 mod db;
 mod git;
 mod helper;
+mod hourly;
 mod index_garbage_collection;
 mod license_check;
 mod third_party_integration;
@@ -9,9 +11,11 @@ mod web_crawler;
 use std::{str::FromStr, sync::Arc};
 
 use cron::Schedule;
+use daily::DailyJob;
 use futures::StreamExt;
 use git::SchedulerGitJob;
 use helper::{CronStream, Job, JobLogger};
+use hourly::HourlyJob;
 use index_garbage_collection::IndexGarbageCollection;
 use juniper::ID;
 use license_check::LicenseCheckJob;
@@ -31,7 +35,7 @@ use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
 pub use web_crawler::WebCrawlerJob;
 
-use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
+use self::third_party_integration::SyncIntegrationJob;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BackgroundJobEvent {
@@ -40,6 +44,8 @@ pub enum BackgroundJobEvent {
     SyncThirdPartyRepositories(ID),
     WebCrawler(WebCrawlerJob),
     IndexGarbageCollection,
+    Hourly,
+    Daily,
 }
 
 impl BackgroundJobEvent {
@@ -52,6 +58,8 @@ impl BackgroundJobEvent {
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
             BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
+            BackgroundJobEvent::Hourly => HourlyJob::NAME,
+            BackgroundJobEvent::Daily => DailyJob::NAME,
         }
     }
 
@@ -120,6 +128,25 @@ pub async fn start(
                             let job = IndexGarbageCollection;
                             job.run(repository_service.clone(), context_service.clone()).await
                         }
+                        BackgroundJobEvent::Hourly => {
+                            let job = HourlyJob;
+                            job.run(
+                                db.clone(),
+                                context_service.clone(),
+                                git_repository_service.clone(),
+                                job_service.clone(),
+                                integration_service.clone(),
+                                third_party_repository_service.clone(),
+                                repository_service.clone(),
+                            ).await
+                        }
+                        BackgroundJobEvent::Daily => {
+                            let job = DailyJob;
+                            job.run(
+                                license_service.clone(),
+                                notification_service.clone(),
+                            ).await
+                        }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
                     } else {
@@ -128,31 +155,16 @@ pub async fn start(
                     logger.finalize().await;
                     debug!("Background job {} completed", job.id);
                 },
-                Some(now) = hourly.next() => {
-                    if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone()).await {
-                        warn!("Database maintainance failed: {:?}", err);
+                Some(_) = hourly.next() => {
+                    match job_service.trigger(BackgroundJobEvent::Hourly.to_command()).await {
+                        Err(err) => warn!("Hourly background job schedule failed {}", err),
+                        Ok(id) => debug!("Hourly background job {} scheduled", id),
                     }
-
-                    if let Err(err) = SchedulerGitJob::cron(now, git_repository_service.clone(), job_service.clone()).await {
-                        warn!("Scheduler job failed: {:?}", err);
-                    }
-
-                    if let Err(err) = SyncIntegrationJob::cron(now, integration_service.clone(), job_service.clone()).await {
-                        warn!("Sync integration job failed: {:?}", err);
-                    }
-
-                    if let Err(err) = SchedulerGithubGitlabJob::cron(now, third_party_repository_service.clone(), job_service.clone()).await {
-                        warn!("Index issues job failed: {err:?}");
-                    }
-
-                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), context_service.clone()).await {
-                        warn!("Index garbage collection job failed: {err:?}");
-                    }
-
                 },
-                Some(now) = daily.next() => {
-                    if let Err(err) = LicenseCheckJob::cron(now, license_service.clone(), notification_service.clone()).await {
-                        warn!("License check job failed: {err:?}");
+                Some(_) = daily.next() => {
+                    match job_service.trigger(BackgroundJobEvent::Daily.to_command()).await {
+                        Err(err) => warn!("Daily background job schedule failed {}", err),
+                        Ok(id) => debug!("Daily background job {} scheduled", id),
                     }
                 }
                 else => {
