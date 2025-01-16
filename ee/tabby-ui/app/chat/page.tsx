@@ -79,6 +79,10 @@ export default function ChatPage() {
     supportsReadWorkspaceGitRepoInfo,
     setSupportsReadWorkspaceGitRepoInfo
   ] = useState(false)
+  const [
+    supportsStoreAndFetchSessionState,
+    setSupportsStoreAndFetchSessionState
+  ] = useState(false)
 
   const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
@@ -244,6 +248,10 @@ export default function ChatPage() {
         server
           ?.hasCapability('readWorkspaceGitRepositories')
           .then(setSupportsReadWorkspaceGitRepoInfo)
+        Promise.all([server?.hasCapability('fetchSessionState'), server?.hasCapability('storeSessionState')])
+          .then(results => {
+            setSupportsStoreAndFetchSessionState(results.every(result => !!result))
+          })
       }
 
       checkCapabilities().then(() => {
@@ -435,8 +443,8 @@ export default function ChatPage() {
             : undefined
         }
         getActiveEditorSelection={getActiveEditorSelection}
-        fetchSessionState={fetchSessionState}
-        storeSessionState={storeSessionState}
+        fetchSessionState={supportsStoreAndFetchSessionState ? fetchSessionState : undefined}
+        storeSessionState={supportsStoreAndFetchSessionState ? storeSessionState : undefined}
       />
     </ErrorBoundary>
   )
