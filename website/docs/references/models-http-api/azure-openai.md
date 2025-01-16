@@ -12,7 +12,7 @@ It supports various GPT series chat models through an Azure OpenAI-compatible AP
 [model.chat.http]
 kind = "azure/chat"
 model_name = "gpt-4o-mini"
-api_endpoint = "https://xxx.openai.azure.com"
+api_endpoint = "https://<resource-name>.openai.azure.com"
 api_key = "your-api-key"
 ```
 
@@ -28,6 +28,6 @@ It supports text-embedding-3-small, text-embedding-3-large and other embedding m
 [model.embedding.http]
 kind = "azure/embedding"
 model_name = "text-embedding-3-large"
-api_endpoint = "https://xxx.openai.azure.com"
+api_endpoint = "https://<resource-name>.openai.azure.com"
 api_key = "your-api-key"
 ```
