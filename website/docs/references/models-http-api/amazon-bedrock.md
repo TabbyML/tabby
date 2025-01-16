@@ -2,6 +2,8 @@
 
 Amazon Bedrock is a fully managed service on AWS that provides access to foundation models from various AI companies through a single API. With [Amazon Bedrock Access Gateway](https://github.com/aws-samples/bedrock-access-gateway), you can access Anthropic's Claude models through an OpenAI-compatible interface, enabling seamless integration with tools and applications designed for OpenAI's API structure.
 
+Follow the Amazon Bedrock Access Gateway setup guide to deploy your own OpenAI-compatible API endpoint for Claude models.
+
 ## Chat model
 
 Amazon Bedrock Access Gateway provides an OpenAI-compatible chat API interface for Claude models. Here we use the `us.anthropic.claude-3-5-sonnet-20241022-v2:0` model as an example.
