@@ -1,9 +1,5 @@
 use std::sync::Arc;
 
-use crate::service::background_job::{
-    db::DbMaintainanceJob, IndexGarbageCollection, SchedulerGitJob, SchedulerGithubGitlabJob,
-    SyncIntegrationJob,
-};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
@@ -15,6 +11,10 @@ use tabby_schema::{
 };
 
 use super::helper::Job;
+use crate::service::background_job::{
+    db::DbMaintainanceJob, IndexGarbageCollection, SchedulerGitJob, SchedulerGithubGitlabJob,
+    SyncIntegrationJob,
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HourlyJob;

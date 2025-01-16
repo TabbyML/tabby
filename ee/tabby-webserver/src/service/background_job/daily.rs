@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use crate::service::background_job::LicenseCheckJob;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tabby_schema::{license::LicenseService, notification::NotificationService};
 
 use super::helper::Job;
+use crate::service::background_job::LicenseCheckJob;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DailyJob;
