@@ -22,31 +22,20 @@ impl LicenseCheckJob {
         license_service: Arc<dyn LicenseService>,
         notification_service: Arc<dyn NotificationService>,
     ) -> tabby_schema::Result<()> {
-        let license = match license_service.read().await {
-            Ok(license) => license,
-            Err(err) => {
-                logkit::warn!("Failed to read license: {}", err);
-                return Err(err);
-            }
-        };
+        let license = license_service.read().await?;
         if license.r#type == LicenseType::Community {
             return Ok(());
         }
         if let Some(expire_in_days) = license.expire_in_days() {
             if expire_in_days < 7 && expire_in_days > 0 {
-                if let Err(e) = notification_service
+                notification_service
                     .create(
                         NotificationRecipient::Admin,
                         &make_expring_message(expire_in_days),
                     )
-                    .await
-                {
-                    logkit::warn!("Failed to create notification: {}", e);
-                    return Err(e);
-                }
+                    .await?;
             }
         }
-
         Ok(())
     }
 }
