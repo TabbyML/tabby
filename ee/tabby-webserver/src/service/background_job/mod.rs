@@ -8,7 +8,7 @@ mod license_check;
 mod third_party_integration;
 mod web_crawler;
 
-use std::{str::FromStr, sync::Arc};
+use std::{fmt::Display, str::FromStr, sync::Arc};
 
 use cron::Schedule;
 use daily::DailyJob;
@@ -28,8 +28,9 @@ use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
     license::LicenseService,
-    notification::NotificationService,
+    notification::{NotificationRecipient, NotificationService},
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
+    AsID,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
@@ -46,6 +47,26 @@ pub enum BackgroundJobEvent {
     IndexGarbageCollection,
     Hourly,
     Daily,
+}
+
+impl Display for BackgroundJobEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BackgroundJobEvent::SchedulerGitRepository(repository) => {
+                write!(f, "SyncGitRepository::{}", repository.git_url)
+            }
+            BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
+                write!(f, "SyncGithubGitlabRepository::{}", integration_id)
+            }
+            BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
+                write!(f, "SyncThirdPartyRepositories::{}", integration_id)
+            }
+            BackgroundJobEvent::WebCrawler(job) => write!(f, "WebCrawler::{}", job.url()),
+            BackgroundJobEvent::IndexGarbageCollection => write!(f, "IndexGarbageCollection"),
+            BackgroundJobEvent::Hourly => write!(f, "Hourly"),
+            BackgroundJobEvent::Daily => write!(f, "Daily"),
+        }
+    }
 }
 
 impl BackgroundJobEvent {
@@ -66,6 +87,31 @@ impl BackgroundJobEvent {
     pub fn to_command(&self) -> String {
         serde_json::to_string(self).expect("Failed to serialize background job event")
     }
+}
+
+macro_rules! notify_job_error {
+    ($notification_service:expr, $err:expr, $name:expr, $id:expr) => {{
+        let id = $id.as_id();
+        warn!("job {} failed: {:?}", $name, $err);
+        $notification_service
+            .create(
+                NotificationRecipient::Admin,
+                &format!(
+                    r#"Background job failed
+
+Job `{}` has failed.
+
+Please check the log at [Jobs Detail](/jobs/detail?id={}) to identify the underlying issue.
+"#,
+                    $name, id
+                ),
+            )
+            .await
+            .map_err(|err| {
+                warn!("Failed to send notification: {:?}", err);
+            })
+            .ok();
+    }};
 }
 
 pub async fn start(
@@ -101,14 +147,16 @@ pub async fn start(
                         continue;
                     }
 
-                    let logger = JobLogger::new(db.clone(), job.id);
-                    debug!("Background job {} started, command: {}", job.id, job.command);
+                    let job_id = job.id;
+                    let logger = JobLogger::new(db.clone(), job_id);
+                    debug!("Background job {} started, command: {}", job_id, job.command);
                     let Ok(event) = serde_json::from_str::<BackgroundJobEvent>(&job.command) else {
                         logkit::info!(exit_code = -1; "Failed to parse background job event, marking it as failed");
                         continue;
                     };
 
-                    if let Err(err) = match event {
+                    let job_name = event.to_string();
+                    let result = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
                             job.run(embedding.clone()).await
@@ -147,13 +195,20 @@ pub async fn start(
                                 notification_service.clone(),
                             ).await
                         }
-                    } {
-                        logkit::info!(exit_code = 1; "Job failed {}", err);
-                    } else {
-                        logkit::info!(exit_code = 0; "Job completed successfully");
+                    };
+
+                    match &result {
+                        Err(err) => {
+                            logkit::warn!(exit_code = 1; "Job failed: {}", err);
+                            logger.finalize().await;
+                            notify_job_error!(notification_service, err, job_name, job_id);
+                        },
+                        _ => {
+                            logkit::info!(exit_code = 0; "Job completed successfully");
+                            logger.finalize().await;
+                            debug!("Background job {} completed", job.id);
+                        }
                     }
-                    logger.finalize().await;
-                    debug!("Background job {} completed", job.id);
                 },
                 Some(_) = hourly.next() => {
                     match job_service.trigger(BackgroundJobEvent::Hourly.to_command()).await {

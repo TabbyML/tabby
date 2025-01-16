@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
+use serde::Serialize;
 use tabby_index::public::{run_index_garbage_collection, CodeIndexer};
 use tabby_schema::{context::ContextService, repository::RepositoryService};
 
 use super::helper::Job;
 
+#[derive(Serialize)]
 pub struct IndexGarbageCollection;
 
 impl Job for IndexGarbageCollection {
@@ -18,17 +20,32 @@ impl IndexGarbageCollection {
         context: Arc<dyn ContextService>,
     ) -> tabby_schema::Result<()> {
         // Run garbage collection on the index
-        let sources = context
-            .read(None)
-            .await?
+        let sources = match context.read(None).await {
+            Ok(sources) => sources,
+            Err(err) => {
+                logkit::warn!("Failed to list sources: {}", err);
+                return Err(err);
+            }
+        };
+        let sources = sources
             .sources
             .into_iter()
             .map(|x| x.source_id())
             .collect::<Vec<_>>();
-        run_index_garbage_collection(sources)?;
+
+        if let Err(e) = run_index_garbage_collection(sources) {
+            logkit::warn!("Failed to run index garbage collection: {}", e);
+            return Err(e.into());
+        }
 
         // Run garbage collection on the code repositories (cloned directories)
-        let repositories = repository.list_all_code_repository().await?;
+        let repositories = match repository.list_all_code_repository().await {
+            Ok(repos) => repos,
+            Err(err) => {
+                logkit::warn!("Failed to list repositories: {}", err);
+                return Err(err);
+            }
+        };
         let mut code = CodeIndexer::default();
         code.garbage_collection(&repositories).await;
 

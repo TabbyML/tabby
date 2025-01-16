@@ -34,6 +34,10 @@ impl WebCrawlerJob {
         }
     }
 
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
     pub async fn run_impl(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         logkit::info!("Starting doc index pipeline for {}", self.url);
         let embedding = embedding.clone();

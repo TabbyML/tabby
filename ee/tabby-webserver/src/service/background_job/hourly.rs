@@ -35,20 +35,24 @@ impl HourlyJob {
         repository_service: Arc<dyn RepositoryService>,
     ) -> tabby_schema::Result<()> {
         let now = Utc::now();
+        let mut has_error = false;
 
         if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone()).await {
+            has_error = true;
             logkit::warn!("Database maintainance failed: {:?}", err);
         }
 
         if let Err(err) =
             SchedulerGitJob::cron(now, git_repository_service.clone(), job_service.clone()).await
         {
+            has_error = true;
             logkit::warn!("Scheduler job failed: {:?}", err);
         }
 
         if let Err(err) =
             SyncIntegrationJob::cron(now, integration_service.clone(), job_service.clone()).await
         {
+            has_error = true;
             logkit::warn!("Sync integration job failed: {:?}", err);
         }
 
@@ -59,6 +63,7 @@ impl HourlyJob {
         )
         .await
         {
+            has_error = true;
             logkit::warn!("Index issues job failed: {err:?}");
         }
 
@@ -66,8 +71,16 @@ impl HourlyJob {
             .run(repository_service.clone(), context_service.clone())
             .await
         {
+            has_error = true;
             logkit::warn!("Index garbage collection job failed: {err:?}");
         }
-        Ok(())
+
+        if has_error {
+            Err(tabby_schema::CoreError::Other(anyhow::anyhow!(
+                "Hourly job failed"
+            )))
+        } else {
+            Ok(())
+        }
     }
 }
