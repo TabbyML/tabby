@@ -195,28 +195,6 @@ export function getPromptForChatCommand(command: ChatCommand) {
   }
 }
 
-// FIXME: improve this conversion
-export function fromChatPanelFilepath(filepath: Filepath) {
-  if (filepath.kind === 'absolute-uri') {
-    return {
-      filepath: filepath.uri,
-      git_url: ''
-    }
-  }
-
-  if (filepath.kind === 'uri') {
-    return {
-      filepath: filepath.filepath,
-      git_url: ''
-    }
-  }
-
-  return {
-    filepath: filepath.filepath,
-    git_url: filepath.gitUrl
-  }
-}
-
 export function convertEditorContext(
   editorContext: EditorContext
 ): FileContext {
@@ -237,11 +215,33 @@ export function convertEditorContext(
     }
   }
 
+  // FIXME: improve this conversion
+  const convertFilepath = (filepath: Filepath) => {
+    if (filepath.kind === 'absolute-uri') {
+      return {
+        filepath: filepath.uri,
+        git_url: ''
+      }
+    }
+
+    if (filepath.kind === 'uri') {
+      return {
+        filepath: filepath.filepath,
+        git_url: ''
+      }
+    }
+
+    return {
+      filepath: filepath.filepath,
+      git_url: filepath.gitUrl
+    }
+  }
+
   return {
     kind: 'file',
     content: editorContext.content,
     range: convertRange(editorContext.range),
-    ...fromChatPanelFilepath(editorContext.filepath)
+    ...convertFilepath(editorContext.filepath)
   }
 }
 
