@@ -57,13 +57,6 @@
         chatIframe.style.display = "block";
       };
 
-      const checkFocused = () => {
-        vscode.postMessage({
-          action: "checkFocusedResult",
-          focused: document.hasFocus(),
-        });
-      };
-
       window.addEventListener("message", (event) => {
         if (event.data) {
           if (event.data.action === "dispatchKeyboardEvent") {
@@ -71,7 +64,11 @@
           } else if (event.data.action === "showChatPanel") {
             showChatIframe();
           } else if (event.data.action === "checkFocused") {
-            checkFocused();
+            vscode.postMessage({
+              id: event.data.id,
+              action: "jsCallback",
+              args: [document.hasFocus()],
+            });
           } else if (event.data.action === "postMessageToChatPanel") {
             chatIframe.contentWindow.postMessage(event.data.message, "*");
           } else {
