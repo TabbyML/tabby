@@ -157,14 +157,14 @@ pub async fn start(
                 },
                 Some(_) = hourly.next() => {
                     match job_service.trigger(BackgroundJobEvent::Hourly.to_command()).await {
-                        Err(err) => warn!("Hourly background job failed {}", err),
-                        Ok(id) => debug!("Hourly background job {} completed", id),
+                        Err(err) => warn!("Hourly background job schedule failed {}", err),
+                        Ok(id) => debug!("Hourly background job {} scheduled", id),
                     }
                 },
                 Some(_) = daily.next() => {
                     match job_service.trigger(BackgroundJobEvent::Daily.to_command()).await {
-                        Err(err) => warn!("Daily background job failed {}", err),
-                        Ok(id) => debug!("Daily background job {} completed", id),
+                        Err(err) => warn!("Daily background job schedule failed {}", err),
+                        Ok(id) => debug!("Daily background job {} scheduled", id),
                     }
                 }
                 else => {
