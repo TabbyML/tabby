@@ -30,7 +30,8 @@ export function fileItemToSourceItem(info: FileItem): SourceItem {
   return {
     fileItem: info,
     name: getLastSegmentFromPath(info.label) || info.label, // Extract the last segment of the path as the name
-    filepath: info.label,
+    filepath:
+      'filepath' in info.filepath ? info.filepath.filepath : info.filepath.uri,
     category: 'file'
   }
 }
