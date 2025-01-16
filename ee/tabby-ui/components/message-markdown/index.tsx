@@ -9,7 +9,7 @@ import {
   MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem, FileContext } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, getFilepathFromContext } from '@/lib/utils'
 import {
   HoverCard,
   HoverCardContent,
@@ -21,7 +21,6 @@ import './style.css'
 
 import {
   FileLocation,
-  Filepath,
   LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel/index'
@@ -175,26 +174,8 @@ export function MessageMarkdown({
     setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
     const hints: LookupSymbolHint[] = []
     if (activeSelection && activeSelection?.range) {
-      // FIXME(@icycodes): this is intended to convert the filepath to Filepath type
-      // We should remove this after FileContext.filepath use type Filepath instead of string
-      let filepath: Filepath
-      if (
-        activeSelection.git_url.length > 1 &&
-        !activeSelection.filepath.includes(':')
-      ) {
-        filepath = {
-          kind: 'git',
-          filepath: activeSelection.filepath,
-          gitUrl: activeSelection.git_url
-        }
-      } else {
-        filepath = {
-          kind: 'uri',
-          uri: activeSelection.filepath
-        }
-      }
       hints.push({
-        filepath,
+        filepath: getFilepathFromContext(activeSelection),
         location: {
           start: activeSelection.range.start,
           end: activeSelection.range.end
