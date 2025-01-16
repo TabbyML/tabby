@@ -1,13 +1,6 @@
 import path from "path";
 import { TextEditor, Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
-import type {
-  Filepath,
-  Position as ChatPanelPosition,
-  LineRange,
-  PositionRange,
-  Location,
-  FilepathInGitRepository,
-} from "tabby-chat-panel";
+import type { Filepath, Position as ChatPanelPosition, LineRange, PositionRange, Location } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 
@@ -31,15 +24,12 @@ export function isValidForSyncActiveEditorSelection(editor: TextEditor): boolean
 }
 
 export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider): Filepath {
-  let uriFilePath = uri.toString(true);
-  if (uri.scheme === DocumentSchemes.vscodeNotebookCell) {
-    const notebook = parseNotebookCellUri(uri);
-    if (notebook) {
-      // add fragment `#cell={number}` to filepath
-      uriFilePath = uri.with({ scheme: notebook.notebook.scheme, fragment: `cell=${notebook.handle}` }).toString(true);
-    }
+  let localUri = uri;
+  if (localUri.scheme === DocumentSchemes.vscodeNotebookCell) {
+    localUri = convertFromNotebookCellUri(localUri);
   }
 
+  const uriFilePath = uri.toString(true);
   const workspaceFolder = workspace.getWorkspaceFolder(uri);
 
   let repo = gitProvider.getRepository(uri);
@@ -58,86 +48,57 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
     }
   }
 
+  if (workspaceFolder) {
+    const baseDir = workspaceFolder.uri.toString(true);
+    const relativeFilePath = path.relative(baseDir, uriFilePath);
+    if (!relativeFilePath.startsWith("..")) {
+      return {
+        kind: "uri",
+        filepath: relativeFilePath,
+        baseDir: baseDir,
+      };
+    }
+  }
+
   return {
-    kind: "uri",
+    kind: "absolute-uri",
     uri: uriFilePath,
   };
 }
 
-function isJupyterNotebookFilepath(filepath: Filepath): boolean {
-  const _filepath = filepath.kind === "uri" ? filepath.uri : filepath.filepath;
-  const extname = path.extname(_filepath);
-  return extname.startsWith(".ipynb");
-}
-
 export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: GitProvider): Uri | null {
-  const isNotebook = isJupyterNotebookFilepath(filepath);
-
-  if (filepath.kind === "uri") {
+  let result: Uri | null = null;
+  if (filepath.kind === "absolute-uri") {
     try {
-      if (isNotebook) {
-        const handle = chatPanelFilePathToNotebookCellHandle(filepath.uri);
-        if (typeof handle === "number") {
-          return generateLocalNotebookCellUri(Uri.parse(filepath.uri), handle);
-        }
-      }
-
-      return Uri.parse(filepath.uri, true);
+      result = Uri.parse(filepath.uri, true);
     } catch (e) {
-      // FIXME(@icycodes): this is a hack for uri is relative filepaths in workspaces
-      const workspaceRoot = workspace.workspaceFolders?.[0];
-      if (workspaceRoot) {
-        return Uri.joinPath(workspaceRoot.uri, filepath.uri);
+      // do nothing
+    }
+  } else if (filepath.kind === "uri") {
+    try {
+      const workspaceFolder = workspace.getWorkspaceFolder(Uri.parse(filepath.baseDir, true));
+      if (workspaceFolder) {
+        result = Uri.joinPath(workspaceFolder.uri, filepath.filepath);
       }
+    } catch (e) {
+      // do nothing
     }
   } else if (filepath.kind === "git") {
     const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(filepath.gitUrl);
     if (localGitRoot) {
-      // handling for Jupyter Notebook (.ipynb) files
-      if (isNotebook) {
-        return chatPanelFilepathToVscodeNotebookCellUri(localGitRoot, filepath);
-      }
-
-      return Uri.joinPath(localGitRoot, filepath.filepath);
+      result = Uri.joinPath(localGitRoot, filepath.filepath);
     }
   }
-  logger.warn(`Invalid filepath params.`, filepath);
-  return null;
-}
 
-function chatPanelFilepathToVscodeNotebookCellUri(root: Uri, filepath: FilepathInGitRepository): Uri | null {
-  if (filepath.kind !== "git") {
+  if (result == null) {
     logger.warn(`Invalid filepath params.`, filepath);
     return null;
   }
 
-  const filePathUri = Uri.parse(filepath.filepath);
-  const notebookUri = Uri.joinPath(root, filePathUri.path);
-
-  const handle = chatPanelFilePathToNotebookCellHandle(filepath.filepath);
-  if (typeof handle === "undefined") {
-    logger.warn(`Invalid filepath params.`, filepath);
-    return null;
+  if (isJupyterNotebookFilepath(result)) {
+    result = convertToNotebookCellUri(result);
   }
-  return generateLocalNotebookCellUri(notebookUri, handle);
-}
-
-function chatPanelFilePathToNotebookCellHandle(filepath: string): number | undefined {
-  let handle: number | undefined;
-
-  const fileUri = Uri.parse(filepath);
-  const fragment = fileUri.fragment;
-  const searchParams = new URLSearchParams(fragment);
-  if (searchParams.has("cell")) {
-    const cellString = searchParams.get("cell")?.toString() || "";
-    handle = parseInt(cellString, 10);
-  }
-
-  if (typeof handle === "undefined" || isNaN(handle)) {
-    return undefined;
-  }
-
-  return handle;
+  return result;
 }
 
 export function vscodePositionToChatPanelPosition(position: VSCodePosition): ChatPanelPosition {
@@ -191,10 +152,39 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   return null;
 }
 
+// Notebook URI utils
+function isJupyterNotebookFilepath(uri: Uri): boolean {
+  const extname = path.extname(uri.fsPath);
+  return extname.startsWith(".ipynb");
+}
+
+function convertToNotebookCellUri(uri: Uri): Uri {
+  let handle: number | undefined;
+
+  const searchParams = new URLSearchParams(uri.fragment);
+  const cellString = searchParams.get("cell");
+  if (cellString) {
+    handle = parseInt(cellString, 10);
+  }
+  handle = handle || 0;
+
+  searchParams.set("cell", handle.toString());
+  return generateNotebookCellUri(uri, handle);
+}
+
+function convertFromNotebookCellUri(uri: Uri): Uri {
+  const parsed = parseNotebookCellUri(uri);
+  if (!parsed) {
+    return uri;
+  }
+  return uri.with({ scheme: parsed.notebook.scheme, fragment: `cell=${parsed.handle}` });
+}
+
 const nb_lengths = ["W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f"];
 const nb_padRegexp = new RegExp(`^[${nb_lengths.join("")}]+`);
 const nb_radix = 7;
-export function parseNotebookCellUri(cell: Uri): { notebook: Uri; handle: number } | undefined {
+
+function parseNotebookCellUri(cell: Uri): { notebook: Uri; handle: number } | undefined {
   if (cell.scheme !== DocumentSchemes.vscodeNotebookCell) {
     return undefined;
   }
@@ -215,7 +205,7 @@ export function parseNotebookCellUri(cell: Uri): { notebook: Uri; handle: number
   };
 }
 
-export function generateLocalNotebookCellUri(notebook: Uri, handle: number): Uri {
+function generateNotebookCellUri(notebook: Uri, handle: number): Uri {
   const s = handle.toString(nb_radix);
   const p = s.length < nb_lengths.length ? nb_lengths[s.length - 1] : "z";
   const fragment = `${p}${s}s${Buffer.from(notebook.scheme).toString("base64")}`;
