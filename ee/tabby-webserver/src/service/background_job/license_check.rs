@@ -31,7 +31,7 @@ impl LicenseCheckJob {
                 notification_service
                     .create(
                         NotificationRecipient::Admin,
-                        &make_expring_message(expire_in_days),
+                        &make_expiring_message(expire_in_days),
                     )
                     .await?;
             }
@@ -40,7 +40,7 @@ impl LicenseCheckJob {
     }
 }
 
-fn make_expring_message(expire_in_days: i64) -> String {
+fn make_expiring_message(expire_in_days: i64) -> String {
     format!(
         r#"Your license will expire in {} days.
 
