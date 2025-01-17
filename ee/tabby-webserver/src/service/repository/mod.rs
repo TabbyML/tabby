@@ -44,6 +44,7 @@ pub fn create(
 #[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
     async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>> {
+        // Read repositories configured as git url.
         let mut repos: Vec<CodeRepository> = self
             .git
             .list(None, None, None, None)
@@ -52,6 +53,7 @@ impl RepositoryService for RepositoryServiceImpl {
             .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id()))
             .collect();
 
+        // Read repositories configured as third party integration (e.g Github, Gitlab)
         repos.extend(
             self.third_party
                 .list_code_repositories()
@@ -59,6 +61,7 @@ impl RepositoryService for RepositoryServiceImpl {
                 .unwrap_or_default(),
         );
 
+        // Read repositories configured in `config.toml`
         repos.extend(
             self.config
                 .iter()
