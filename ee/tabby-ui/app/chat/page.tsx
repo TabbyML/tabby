@@ -80,6 +80,10 @@ export default function ChatPage() {
     supportsReadWorkspaceGitRepoInfo,
     setSupportsReadWorkspaceGitRepoInfo
   ] = useState(false)
+  const [
+    supportsStoreAndFetchSessionState,
+    setSupportsStoreAndFetchSessionState
+  ] = useState(false)
   const [supportsListFileInWorkspace, setSupportProvideFileAtInfo] =
     useState(false)
   const [supportsReadFileContent, setSupportsReadFileContent] = useState(false)
@@ -254,6 +258,15 @@ export default function ChatPage() {
         server
           ?.hasCapability('readFileContent')
           .then(setSupportsReadFileContent)
+        
+        Promise.all([
+          server?.hasCapability('fetchSessionState'),
+          server?.hasCapability('storeSessionState')
+        ]).then(results => {
+          setSupportsStoreAndFetchSessionState(
+            results.every(result => !!result)
+          )
+        })
       }
 
       checkCapabilities().then(() => {
@@ -312,6 +325,14 @@ export default function ChatPage() {
 
   const getActiveEditorSelection = async () => {
     return server?.getActiveEditorSelection() ?? null
+  }
+
+  const fetchSessionState = async () => {
+    return server?.fetchSessionState?.() ?? null
+  }
+
+  const storeSessionState = async (state: Record<string, any>) => {
+    return server?.storeSessionState?.(state)
   }
 
   const refresh = async () => {
@@ -437,6 +458,12 @@ export default function ChatPage() {
             : undefined
         }
         getActiveEditorSelection={getActiveEditorSelection}
+        fetchSessionState={
+          supportsStoreAndFetchSessionState ? fetchSessionState : undefined
+        }
+        storeSessionState={
+          supportsStoreAndFetchSessionState ? storeSessionState : undefined
+        }
         listFileInWorkspace={
           isInEditor && supportsListFileInWorkspace
             ? server?.listFileInWorkspace

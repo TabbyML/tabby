@@ -186,7 +186,7 @@ const FEATURES: FeatureGroup[] = [
         enterprise: checked
       },
       {
-        name: 'Toggle IDE / Extensions telemetry',
+        name: 'Enforce IDE / Extensions telemetry policy',
         community: dashed,
         team: dashed,
         enterprise: checked

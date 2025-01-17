@@ -28,6 +28,7 @@ import type {
   EditorFileContext,
 } from "tabby-chat-panel";
 import * as semver from "semver";
+import { v4 as uuid } from "uuid";
 import type { StatusInfo, Config } from "tabby-agent";
 import type { GitProvider } from "../git/GitProvider";
 import type { Client as LspClient } from "../lsp/Client";
@@ -70,8 +71,11 @@ export class ChatWebview {
   // A number to ensure the html is reloaded when assigned a new value
   private reloadCount = 0;
 
-  // A callback list for `isFocused` method
-  private pendingFocusCheckCallbacks: ((focused: boolean) => void)[] = [];
+  // A callback list for invoke javascript function by postMessage
+  private pendingCallbacks = new Map<string, (...arg: unknown[]) => void>();
+
+  // Store the chat state to be reload when webview is reloaded
+  private sessionState: Record<string, unknown> = {};
 
   constructor(
     private readonly context: ExtensionContext,
@@ -135,9 +139,9 @@ export class ChatWebview {
             this.client?.updateTheme(event.style, this.getColorThemeString());
             return;
           }
-          case "checkFocusedResult": {
-            this.pendingFocusCheckCallbacks.forEach((cb) => cb(event.focused));
-            this.pendingFocusCheckCallbacks = [];
+          case "jsCallback": {
+            this.pendingCallbacks.get(event.id)?.(...event.args);
+            this.pendingCallbacks.delete(event.id);
             return;
           }
         }
@@ -164,8 +168,11 @@ export class ChatWebview {
       return false;
     }
     return new Promise((resolve) => {
-      webview.postMessage({ action: "checkFocused" });
-      this.pendingFocusCheckCallbacks.push(resolve);
+      const id = uuid();
+      this.pendingCallbacks.set(id, (...args) => {
+        resolve(args[0] as boolean);
+      });
+      webview.postMessage({ id, action: "checkFocused" });
     });
   }
 
@@ -463,6 +470,27 @@ export class ChatWebview {
 
         const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
         return fileContext;
+      },
+
+      fetchSessionState: async (keys?: string[] | undefined): Promise<Record<string, unknown> | null> => {
+        if (!keys) {
+          return { ...this.sessionState };
+        }
+
+        const filtered: Record<string, unknown> = {};
+        for (const key of keys) {
+          if (key in this.sessionState) {
+            filtered[key] = this.sessionState[key];
+          }
+        }
+        return filtered;
+      },
+
+      storeSessionState: async (state: Record<string, unknown>) => {
+        this.sessionState = {
+          ...this.sessionState,
+          ...state,
+        };
       },
     });
   }

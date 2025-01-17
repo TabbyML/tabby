@@ -118,7 +118,7 @@ fn read_lines(content: &[u8]) -> anyhow::Result<Vec<GrepLine>> {
     let mut byte_offset = 0;
     for line in line_reader {
         let line = line? + "\n";
-        let bytes_length = line.as_bytes().len();
+        let bytes_length = line.len();
         lines.push(GrepLine {
             line: GrepTextOrBase64::Text(line),
             byte_offset,

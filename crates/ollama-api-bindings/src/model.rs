@@ -91,7 +91,7 @@ impl OllamaModelExt for Ollama {
         let available = self.model_available(&model).await?;
 
         let allow_pull = std::env::var_os(ALLOW_PULL_ENV)
-            .map(|x| x == "1" || x.to_ascii_lowercase() == "y" || x.to_ascii_lowercase() == "yes")
+            .map(|x| x == "1" || x.eq_ignore_ascii_case("y") || x.eq_ignore_ascii_case("yes"))
             .unwrap_or(false);
 
         match (available, allow_pull) {

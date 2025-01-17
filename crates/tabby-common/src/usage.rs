@@ -29,7 +29,7 @@ impl UsageTracker {
                     "As an open source project, we collect usage statistics to inform development priorities. For more",
                     "information, read https://tabby.tabbyml.com/docs/configuration#usage-collection",
                     "",
-                    "We will not see or any code in your development process."
+                    "We will not see or collect any code in your development process."
                 ]),
                 InfoMessage::new("Welcome to Tabby!", HeaderFormat::BoldWhite, &[
                     "If you have any questions or would like to engage with the Tabby team, please join us on Slack",
