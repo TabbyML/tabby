@@ -211,7 +211,6 @@ export const convertFilepath = (filepath: Filepath) => {
 
 export function convertEditorContext(
   editorContext: EditorContext,
-  extra?: Partial<FileContext>
 ): FileContext {
   const convertRange = (range: LineRange | PositionRange | undefined) => {
     // If the range is not provided, the whole file is considered.
@@ -235,7 +234,6 @@ export function convertEditorContext(
     content: editorContext.content,
     range: convertRange(editorContext.range),
     ...convertFilepath(editorContext.filepath),
-    ...extra
   }
 }
 
