@@ -250,11 +250,6 @@ export interface ListFileItem {
    * The filepath of the file.
    */
   filepath: Filepath
-
-  /**
-   * A relative path to the file in the workspace, intended to be displayed to the user.
-   */
-  label: string
 }
 
 export interface ServerApi {
