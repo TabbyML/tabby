@@ -490,7 +490,7 @@ export class ChatWebview {
 
           this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
 
-          const files = await workspace.findFiles(globPattern, null, maxResults);
+          const files = await workspace.findFiles(globPattern, undefined, maxResults);
           this.logger.info(`Found ${files.length} files.`);
           return files.map((uri) => uriToListFileItem(uri, this.gitProvider));
         } catch (error) {
