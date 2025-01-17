@@ -95,9 +95,7 @@ async fn notify_job_error(
         .create(
             NotificationRecipient::Admin,
             &format!(
-                r#"Background job failed
-
-Job `{}` has failed.
+                r#"Job `{}` has failed.
 
 Please check the log at [Jobs Detail](/jobs/detail?id={}) to identify the underlying issue.
 "#,
