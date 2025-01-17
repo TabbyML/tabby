@@ -97,7 +97,7 @@ async fn notify_job_error(
             &format!(
                 r#"Job `{}` has failed.
 
-Please examine the [logs](https://chat-llamaindex.snowshoe.dev/jobs/detail?id=%7B%7D) to determine the underlying issue.```
+Please examine the [logs](/jobs/detail?id={}) to determine the underlying issue.
 "#,
                 name,
                 id.as_id()
