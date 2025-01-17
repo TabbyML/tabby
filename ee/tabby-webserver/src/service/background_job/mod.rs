@@ -72,9 +72,7 @@ impl BackgroundJobEvent {
 fn background_job_notification_name(event: &BackgroundJobEvent) -> &str {
     match event {
         BackgroundJobEvent::SchedulerGitRepository(_) => "Indexing Repository",
-        BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => {
-            "Indexing Repository"
-        }
+        BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => "Indexing Repository",
         BackgroundJobEvent::SyncThirdPartyRepositories(_) => "Loading Repository",
         BackgroundJobEvent::WebCrawler(_) => "Web Indexing",
         BackgroundJobEvent::IndexGarbageCollection => "Garbage Collection",
