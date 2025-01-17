@@ -192,7 +192,7 @@ pub async fn start(
                             ).await
                         }
                     } {
-                        logkit::warn!(exit_code = 1; "Job failed: {}", err);
+                        logkit::info!(exit_code = 1; "Job failed: {}", err);
                         notify_job_error(notification_service.clone(), &err.to_string(), &cloned_event, job.id).await;
                     } else {
                         logkit::info!(exit_code = 0; "Job completed successfully");
