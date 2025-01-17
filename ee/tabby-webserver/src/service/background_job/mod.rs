@@ -144,9 +144,8 @@ pub async fn start(
                         continue;
                     }
 
-                    let job_id = job.id;
-                    let logger = JobLogger::new(db.clone(), job_id);
-                    debug!("Background job {} started, command: {}", job_id, job.command);
+                    let logger = JobLogger::new(db.clone(), job.id);
+                    debug!("Background job {} started, command: {}", job.id, job.command);
                     let Ok(event) = serde_json::from_str::<BackgroundJobEvent>(&job.command) else {
                         logkit::info!(exit_code = -1; "Failed to parse background job event, marking it as failed");
                         continue;
@@ -198,7 +197,7 @@ pub async fn start(
                         Err(err) => {
                             logkit::warn!(exit_code = 1; "Job failed: {}", err);
                             logger.finalize().await;
-                            notify_job_error(notification_service.clone(), &err.to_string(), &event_clone, job_id).await;
+                            notify_job_error(notification_service.clone(), &err.to_string(), &event_clone, job.id).await;
                         },
                         _ => {
                             logkit::info!(exit_code = 0; "Job completed successfully");
