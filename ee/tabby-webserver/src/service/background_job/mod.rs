@@ -151,8 +151,8 @@ pub async fn start(
                         continue;
                     };
 
-                    let event_clone = event.clone();
-                    let result = match event {
+                    let cloned_event = event.clone();
+                    if let Err(err) = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
                             job.run(embedding.clone()).await
@@ -191,20 +191,14 @@ pub async fn start(
                                 notification_service.clone(),
                             ).await
                         }
-                    };
-
-                    match &result {
-                        Err(err) => {
-                            logkit::warn!(exit_code = 1; "Job failed: {}", err);
-                            logger.finalize().await;
-                            notify_job_error(notification_service.clone(), &err.to_string(), &event_clone, job.id).await;
-                        },
-                        _ => {
-                            logkit::info!(exit_code = 0; "Job completed successfully");
-                            logger.finalize().await;
-                            debug!("Background job {} completed", job.id);
-                        }
+                    } {
+                        logkit::warn!(exit_code = 1; "Job failed: {}", err);
+                        notify_job_error(notification_service.clone(), &err.to_string(), &cloned_event, job.id).await;
+                    } else {
+                        logkit::info!(exit_code = 0; "Job completed successfully");
                     }
+                    logger.finalize().await;
+                    debug!("Background job {} completed", job.id);
                 },
                 Some(_) = hourly.next() => {
                     match job_service.trigger(BackgroundJobEvent::Hourly.to_command()).await {
