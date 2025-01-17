@@ -183,7 +183,7 @@ function ChatRenderer(
     fetchSessionState,
     storeSessionState,
     listFileInWorkspace,
-    readFileConten
+    readFileContent
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -196,12 +196,6 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
-
-  React.useEffect(() => {
-    if (isDataSetup) {
-      storeSessionState?.({ input })
-    }
-  }, [input, isDataSetup, storeSessionState])
 
   // sourceId
   const [selectedRepoId, setSelectedRepoId] = React.useState<
@@ -225,6 +219,12 @@ function ChatRenderer(
     chatPanelRef.current?.setInput(str)
   }
   const input = chatPanelRef.current?.input ?? ''
+
+  React.useEffect(() => {
+    if (isDataSetup) {
+      storeSessionState?.({ input })
+    }
+  }, [input, isDataSetup, storeSessionState])
 
   const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
     query: repositorySourceListQuery
@@ -322,8 +322,7 @@ function ChatRenderer(
     setQaPairs(nextQaPairs)
 
     storeSessionState?.({
-      qaPairs: nextQaPairs,
-      relevantContext: updatedRelevantContext
+      qaPairs: nextQaPairs
     })
 
     setInput(userMessage.message)
@@ -594,17 +593,11 @@ function ChatRenderer(
     })
 
     setRelevantContext([])
-    storeSessionState?.({
-      relevantContext: []
-    })
   }
 
   const handleAddRelevantContext = useLatest((context: Context) => {
     setRelevantContext(oldValue => {
       const updatedValue = appendContextAndDedupe(oldValue, context)
-      storeSessionState?.({
-        relevantContext: updatedValue
-      })
       return updatedValue
     })
   })
@@ -618,6 +611,12 @@ function ChatRenderer(
     if (!isOnLoadExecuted.current) return
     onThreadUpdates?.(qaPairs)
   }, [qaPairs])
+
+  React.useEffect(() => {
+    storeSessionState?.({
+      relevantContext
+    })
+  }, [relevantContext, storeSessionState])
 
   const debouncedUpdateActiveSelection = useDebounceCallback(
     (ctx: Context | null) => {
