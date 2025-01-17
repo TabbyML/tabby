@@ -1,6 +1,6 @@
 # Ollama
 
-[ollama](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-completion) is a popular model provider that offers a local-first experience, powered by llama.cpp.
+[ollama](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-completion) is a popular model provider that offers a local-first experience.
 
 Tabby supports the ollama HTTP API for completion, chat, and embedding models.
 
