@@ -8,7 +8,7 @@ mod license_check;
 mod third_party_integration;
 mod web_crawler;
 
-use std::{fmt::Display, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 
 use cron::Schedule;
 use daily::DailyJob;
@@ -38,7 +38,7 @@ pub use web_crawler::WebCrawlerJob;
 
 use self::third_party_integration::SyncIntegrationJob;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BackgroundJobEvent {
     SchedulerGitRepository(CodeRepository),
     SchedulerGithubGitlabRepository(ID),
@@ -47,26 +47,6 @@ pub enum BackgroundJobEvent {
     IndexGarbageCollection,
     Hourly,
     Daily,
-}
-
-impl Display for BackgroundJobEvent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BackgroundJobEvent::SchedulerGitRepository(repository) => {
-                write!(f, "SyncGitRepository::{}", repository.git_url)
-            }
-            BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
-                write!(f, "SyncGithubGitlabRepository::{}", integration_id)
-            }
-            BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
-                write!(f, "SyncThirdPartyRepositories::{}", integration_id)
-            }
-            BackgroundJobEvent::WebCrawler(job) => write!(f, "WebCrawler::{}", job.url()),
-            BackgroundJobEvent::IndexGarbageCollection => write!(f, "IndexGarbageCollection"),
-            BackgroundJobEvent::Hourly => write!(f, "Hourly"),
-            BackgroundJobEvent::Daily => write!(f, "Daily"),
-        }
-    }
 }
 
 impl BackgroundJobEvent {
@@ -90,9 +70,20 @@ impl BackgroundJobEvent {
 }
 
 macro_rules! notify_job_error {
-    ($notification_service:expr, $err:expr, $name:expr, $id:expr) => {{
+    ($notification_service:expr, $err:expr, $event:expr, $id:expr) => {{
         let id = $id.as_id();
-        warn!("job {} failed: {:?}", $name, $err);
+        warn!("job {:?} failed: {:?}", $event, $err);
+        let name = match $event {
+            BackgroundJobEvent::SchedulerGitRepository(_) => "Git repository synchronize",
+            BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => {
+                "Github/Gitlab repository synchronize"
+            }
+            BackgroundJobEvent::SyncThirdPartyRepositories(_) => "Integration synchronize",
+            BackgroundJobEvent::WebCrawler(_) => "Web crawler",
+            BackgroundJobEvent::IndexGarbageCollection => "Index garbage collection",
+            BackgroundJobEvent::Hourly => "Hourly",
+            BackgroundJobEvent::Daily => "Daily",
+        };
         $notification_service
             .create(
                 NotificationRecipient::Admin,
@@ -103,7 +94,7 @@ Job `{}` has failed.
 
 Please check the log at [Jobs Detail](/jobs/detail?id={}) to identify the underlying issue.
 "#,
-                    $name, id
+                    name, id
                 ),
             )
             .await
@@ -155,7 +146,7 @@ pub async fn start(
                         continue;
                     };
 
-                    let job_name = event.to_string();
+                    let event_clone = event.clone();
                     let result = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
@@ -201,7 +192,7 @@ pub async fn start(
                         Err(err) => {
                             logkit::warn!(exit_code = 1; "Job failed: {}", err);
                             logger.finalize().await;
-                            notify_job_error!(notification_service, err, job_name, job_id);
+                            notify_job_error!(notification_service, err, event_clone, job_id);
                         },
                         _ => {
                             logkit::info!(exit_code = 0; "Job completed successfully");
