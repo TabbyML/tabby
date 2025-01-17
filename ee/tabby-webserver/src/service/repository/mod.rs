@@ -59,6 +59,14 @@ impl RepositoryService for RepositoryServiceImpl {
                 .unwrap_or_default(),
         );
 
+        repos.extend(
+            self.config
+                .iter()
+                .enumerate()
+                .map(|(index, repo)|CodeRepository::new(repo.git_url(), &config_index_to_id(index)))
+                .collect::<Vec<CodeRepository>>()
+        );
+
         Ok(repos)
     }
 
