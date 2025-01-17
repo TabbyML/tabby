@@ -1,4 +1,4 @@
-import { Content } from '@tiptap/react'
+import { Content, Editor, EditorEvents } from '@tiptap/react'
 import { ListFileItem } from 'tabby-chat-panel/index'
 
 /**
@@ -14,6 +14,7 @@ export interface PromptProps {
    * Indicates whether the form (or chat) is in a loading/submitting state.
    */
   isLoading: boolean
+  onUpdate?: (p: EditorEvents['update']) => void
 }
 
 /**
@@ -32,6 +33,7 @@ export interface PromptFormRef {
    * Returns the current text content of the editor.
    */
   input: string
+  editor: Editor | null
 }
 
 /**

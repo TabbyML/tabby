@@ -11,13 +11,15 @@ import Mention from '@tiptap/extension-mention'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import {
+  Filepath,
   ListFileItem,
   ListFilesInWorkspaceParams
 } from 'tabby-chat-panel/index'
 
-import { cn, resolveFileNameForDisplay } from '@/lib/utils'
+import { cn, convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
 import { IconFile } from '@/components/ui/icons'
 
+import { emitter } from '../event-emitter'
 import type { SourceItem } from './types'
 import { fileItemToSourceItem, shortenLabel } from './utils'
 
@@ -26,6 +28,18 @@ import { fileItemToSourceItem, shortenLabel } from './utils'
  * Displays the filename and an icon in a highlighted style.
  */
 export const MentionComponent = ({ node }: { node: any }) => {
+  const fileItem = node.attrs.fileItem
+  const filepathString = convertFilepath(fileItem.filepath).filepath
+
+  // FIXME(@jueliang) fine a better way to detect the mention
+  useEffect(() => {
+    emitter.emit('file_mention_update')
+
+    return () => {
+      emitter.emit('file_mention_update')
+    }
+  }, [])
+
   return (
     <NodeViewWrapper className="-my-1 inline-block align-middle">
       <span
@@ -38,7 +52,7 @@ export const MentionComponent = ({ node }: { node: any }) => {
       >
         <IconFile />
         <span className="relative top-[-0.5px]">
-          {resolveFileNameForDisplay(node.attrs.filepath)}
+          {resolveFileNameForDisplay(filepathString)}
         </span>
       </span>
     </NodeViewWrapper>
@@ -57,26 +71,29 @@ export const PromptFormMentionExtension = Mention.extend({
 
   // When exported as plain text, use a placeholder format
   renderText({ node }) {
-    const filePath = node.attrs.filepath
-    // let label = ''
-    // if (filePath.kind == 'git') {
-    //   label = filePath.filepath
-    // } else {
-    //   label = filePath.uri
-    // }
+    const fileItem = node.attrs.fileItem
+    const filePath = fileItem.filepath as Filepath
     // If symbols can be mentioned later, the placeholder could be [[symbol:{label}]].
-    return `[[file:${filePath}]]`
+    return `[[file:${JSON.stringify(filePath)}]]`
   },
 
   // Defines custom attributes for the mention node
   addAttributes() {
     return {
-      filepath: {
+      id: {
         default: null,
-        parseHTML: element => element.getAttribute('data-filepath'),
+        parseHTML: element => element.getAttribute('data-file'),
         renderHTML: attrs => {
-          if (!attrs.id) return {}
-          return { 'data-filepath': attrs.filepath }
+          if (!attrs.fileItem) return {}
+          return { 'data-id': JSON.stringify(attrs.fileItem.filepath) }
+        }
+      },
+      fileItem: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-file'),
+        renderHTML: attrs => {
+          if (!attrs.fileItem) return {}
+          return { 'data-file': attrs.fileItem }
         }
       },
       category: {
@@ -100,6 +117,7 @@ export interface MentionListProps extends SuggestionProps {
   listFileInWorkspace?: (
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
+  onSelectItem: (item: SourceItem) => void
 }
 
 /**
@@ -122,17 +140,18 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     /**
      * Handle the user selecting an item from the mention list.
      */
-    const onSelectItem = (idx: number) => {
+    const handleSelectItem = (idx: number) => {
       const item = items[idx]
-      if (!item || !command) return
+      if (!item) return
       command({
         category: 'file',
-        filepath: item.filepath
+        fileItem: item.fileItem
       })
+      // onSelectItem(item)
     }
 
     const enterHandler = () => {
-      onSelectItem(selectedIndex)
+      handleSelectItem(selectedIndex)
     }
 
     useEffect(() => setSelectedIndex(0), [items])
@@ -169,29 +188,32 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     }))
 
     return (
-      <div className="max-h-[300px] overflow-auto rounded-md border bg-popover p-1">
-        {/* If no items are found, show a message. */}
-        {!items.length ? (
-          <div className="px-2 py-1.5 text-sm text-muted-foreground">
-            Cannot find any files.
-          </div>
-        ) : (
-          <div className="grid gap-0.5">
-            {items.map((item, index) => {
-              const filepath = item.fileItem.filepath
-              return (
-                <OptionItemView
-                  key={`${JSON.stringify(filepath)}`}
-                  onClick={() => onSelectItem(index)}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                  title={item.name}
-                  data={item}
-                  isSelected={index === selectedIndex}
-                />
-              )
-            })}
-          </div>
-        )}
+      <div className="max-h-[300px] max-w-[90vw] min-w-[60vw] rounded-md border bg-background p-1 flex flex-col overflow-hidden">
+        <div className="text-muted-foreground text-sm p-1 pl-2">Files</div>
+        <div className="flex-1 overflow-y-auto">
+          {!items.length ? (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              {/* If no items are found, show a message. */}
+              {query ? 'No results found' : 'Typing to search...'}
+            </div>
+          ) : (
+            <div className="grid gap-0.5">
+              {items.map((item, index) => {
+                const filepath = item.fileItem.filepath
+                return (
+                  <OptionItemView
+                    key={`${JSON.stringify(filepath)}`}
+                    onClick={() => handleSelectItem(index)}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    title={item.name}
+                    data={item}
+                    isSelected={index === selectedIndex}
+                  />
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     )
   }

@@ -1,13 +1,18 @@
 import { uniq } from 'lodash-es'
+import type { Filepath } from 'tabby-chat-panel'
 
 import {
   ContextInfo,
   ContextSource,
   ContextSourceKind
 } from '@/lib/gql/generates/graphql'
-import { MentionAttributes } from '@/lib/types'
+import type { MentionAttributes } from '@/lib/types'
 
-import { MARKDOWN_FILE_REGEX, MARKDOWN_SOURCE_REGEX } from '../constants/regex'
+import {
+  MARKDOWN_FILE_REGEX,
+  MARKDOWN_SOURCE_REGEX,
+  PLACEHOLDER_FILE_REGEX
+} from '../constants/regex'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [
@@ -83,11 +88,6 @@ export function getTitleFromMessages(
       const filepath = value.slice(7, -2)
       return resolveFileNameForDisplay(filepath)
     })
-    // .replace(FILEITEM_REGEX, value => {
-    //   // TODO(Sma1lboy): find a better way to do this
-    //   const item = JSON.parse(value.slice(11, -2)) as FileItem
-    //   return '@' + getFileBaseNameByChatPanelFilePath(item.filepath)
-    // })
     .trim()
 
   let title = cleanedLine
@@ -158,4 +158,74 @@ export function resolveFileNameForDisplay(uri: string) {
     return `${filename} · Cell ${(cell.handle || 0) + 1}`
   }
   return filename
+}
+
+/**
+ * Get the file mention from the text
+ * @param text
+ * @returns {Array<{filepath: Filepath}>}
+ */
+export const getFileMentionFromText = (text: string) => {
+  if (!text) return []
+
+  const mentions: Array<{ filepath: Filepath }> = []
+  let match
+  while ((match = MARKDOWN_FILE_REGEX.exec(text))) {
+    const fileItem = match[1]
+    if (fileItem) {
+      try {
+        const filepathInfo = JSON.parse(fileItem)
+        mentions.push({
+          filepath: filepathInfo
+        })
+      } catch (e) {}
+    }
+  }
+  return mentions
+}
+
+/**
+ * Replace the placeholder with the actual file name
+ * @param value
+ * @returns
+ */
+export function replaceAtMentionPlaceHolder(value: string) {
+  let newValue = value
+  let match
+
+  // Use a loop to handle cases where the string contains multiple placeholders
+  while ((match = MARKDOWN_FILE_REGEX.exec(value)) !== null) {
+    try {
+      const filepath = match[1]
+      const labelName = resolveFileNameForDisplay(filepath)
+      newValue = newValue.replace(match[0], `@${labelName}`)
+    } catch (error) {
+      continue
+    }
+  }
+
+  return newValue
+}
+
+/**
+ * Encode the url in placeholder to avoid conflict with markdown syntax
+ * @param value
+ * @returns
+ */
+export function encodeMentionPlaceHolder(value: string): string {
+  let newValue = value
+  let match
+
+  while ((match = PLACEHOLDER_FILE_REGEX.exec(value)) !== null) {
+    try {
+      newValue = newValue.replace(
+        match[0],
+        `[[file:${encodeURIComponent(match[1])}]]`
+      )
+    } catch (error) {
+      continue
+    }
+  }
+
+  return newValue
 }

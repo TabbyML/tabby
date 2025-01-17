@@ -2,36 +2,21 @@
 import { JSONContent } from '@tiptap/core'
 import { Filepath } from 'tabby-chat-panel/index'
 
-import { MARKDOWN_FILE_REGEX } from '@/lib/constants/regex'
+import { PLACEHOLDER_FILE_REGEX } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
-import { resolveFileNameForDisplay } from '@/lib/utils'
+import { convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
 
 import { FileItem, SourceItem } from './types'
-
-/**
- * A regular expression to match patterns like [[fileItem:{"label":"somePath","id":"123"}]].
- * This type of pattern/placeholder use the data store in database, or the data transfer between different components
- */
-export const FILEITEM_REGEX = /\[\[fileItem:({.*?})\]\]/g
-
-/**
- * A regular expression to match placeholders like [[fileItemAt: 0]] (replacements).
- * This type of pattern/placeholder use for shortening the display of the data.
- * Some markdown renderer need shorter placeholder for display.
- *
- * For example, the markdown renderer will display [[fileItemAt: 0]] as @filename 0 is unique identifier for the file. could be the index of the file in the list.
- */
-export const FILEITEM_AT_REGEX = /\[\[fileItemAt: (\d+)\]\]/g
 
 /**
  * Converts a FileItem to a SourceItem for use in the mention dropdown list.
  */
 export function fileItemToSourceItem(info: FileItem): SourceItem {
+  const filepathString = convertFilepath(info.filepath).filepath
   return {
     fileItem: info,
-    name: getLastSegmentFromPath(info.label) || info.label, // Extract the last segment of the path as the name
-    filepath:
-      'filepath' in info.filepath ? info.filepath.filepath : info.filepath.uri,
+    name: resolveFileNameForDisplay(filepathString), // Extract the last segment of the path as the name
+    filepath: filepathString,
     category: 'file'
   }
 }
@@ -44,39 +29,17 @@ export function shortenLabel(label: string, suffixLength = 15): string {
   return '...' + label.slice(label.length - suffixLength)
 }
 
-/**
- * Replaces placeholders like [[fileItem:{"label":"xxxx"}]] with @filename for display.
- */
-// export function replaceAtMentionPlaceHolderWithAt(value: string) {
-//   let newValue = value
-//   let match
-
-//   // Use a loop to handle cases where the string contains multiple placeholders
-//   while ((match = FILEITEM_REGEX.exec(value)) !== null) {
-//     try {
-//       const parsedItem = JSON.parse(match[1])
-//       const labelName =
-//         getLastSegmentFromPath(parsedItem.label) ||
-//         parsedItem.label ||
-//         'unknown'
-//       newValue = newValue.replace(match[0], `@${labelName}`)
-//     } catch (error) {
-//       continue
-//     }
-//   }
-
-//   return newValue
-// }
-
 export function replaceAtMentionPlaceHolderWithAt(value: string) {
   let newValue = value
   let match
 
   // Use a loop to handle cases where the string contains multiple placeholders
-  while ((match = MARKDOWN_FILE_REGEX.exec(value)) !== null) {
+  while ((match = PLACEHOLDER_FILE_REGEX.exec(value)) !== null) {
     try {
       const filepath = match[1]
-      const labelName = resolveFileNameForDisplay(filepath)
+      const filepathInfo = JSON.parse(filepath) as Filepath
+      const filepathString = getFilepathStringByChatPanelFilePath(filepathInfo)
+      const labelName = resolveFileNameForDisplay(filepathString)
       newValue = newValue.replace(match[0], `@${labelName}`)
     } catch (error) {
       continue
@@ -84,41 +47,6 @@ export function replaceAtMentionPlaceHolderWithAt(value: string) {
   }
 
   return newValue
-}
-
-interface ReplaceResult {
-  newValue: string
-  fileItems: FileItem[]
-}
-
-/**
- * Replaces placeholders like [[fileItem:{"label":"xxxx"}]] with [[fileItemAt: idx]]
- * and collects the corresponding FileItem objects.
- */
-export function replaceAtMentionPlaceHolderWithAtPlaceHolder(
-  value: string
-): ReplaceResult {
-  let newValue = value
-  const fileItems: FileItem[] = []
-  let match
-  let idx = 0
-
-  while ((match = FILEITEM_REGEX.exec(value)) !== null) {
-    try {
-      const parsedItem = JSON.parse(match[1])
-      fileItems.push({ ...parsedItem })
-
-      newValue = newValue.replace(match[0], `[[fileItemAt: ${idx}]]`)
-      idx++
-    } catch (error) {
-      continue
-    }
-  }
-
-  return {
-    newValue,
-    fileItems
-  }
 }
 
 /**
@@ -130,52 +58,10 @@ export function getFilepathStringByChatPanelFilePath(
   return 'filepath' in filepath ? filepath.filepath : filepath.uri
 }
 
-/**
- * Retrieves the last segment from a given file path.
- */
-export function getLastSegmentFromPath(filepath: string): string {
-  if (!filepath) return 'unknown'
-  const normalizedPath = filepath.replace(/\\/g, '/').replace(/\/+$/, '')
-  const segments = normalizedPath.split('/')
-  return segments[segments.length - 1] || 'unknown'
-}
-
-export function getFileBaseNameByChatPanelFilePath(filepath: Filepath): string {
-  return getLastSegmentFromPath(getFilepathStringByChatPanelFilePath(filepath))
-}
-
-export function fileItemToFileContext(
-  item: FileItem,
-  content: string
-): FileContext {
-  return {
-    content: content ?? '',
-    filepath: getFilepathStringByChatPanelFilePath(item.filepath),
-    git_url: 'filepath' in item.filepath ? item.filepath.gitUrl : '',
-    kind: 'file'
-  }
-}
-
-export const getFileMentionFromText = (text: string) => {
-  if (!text) return []
-
-  const mentions: Array<{ filepath: string }> = []
-  let match
-  while ((match = MARKDOWN_FILE_REGEX.exec(text))) {
-    const filepath = match[1]
-    if (filepath) {
-      mentions.push({
-        filepath
-      })
-    }
-  }
-  return mentions
-}
-
 export function convertTextToTiptapContent(text: string): JSONContent[] {
   const nodes: JSONContent[] = []
   let lastIndex = 0
-  text.replace(MARKDOWN_FILE_REGEX, (match, filepath, offset) => {
+  text.replace(PLACEHOLDER_FILE_REGEX, (match, filepath, offset) => {
     // Add text before the match as a text node
     if (offset > lastIndex) {
       nodes.push({
@@ -183,15 +69,18 @@ export function convertTextToTiptapContent(text: string): JSONContent[] {
         text: text.slice(lastIndex, offset)
       })
     }
-
-    // Add mention node
-    nodes.push({
-      type: 'mention',
-      attrs: {
-        category: 'file',
-        filepath
-      }
-    })
+    try {
+      // Add mention node
+      nodes.push({
+        type: 'mention',
+        attrs: {
+          category: 'file',
+          fileItem: {
+            filepath: JSON.parse(filepath)
+          }
+        }
+      })
+    } catch (e) {}
 
     lastIndex = offset + match.length
     return match
@@ -206,4 +95,24 @@ export function convertTextToTiptapContent(text: string): JSONContent[] {
   }
 
   return nodes
+}
+
+/**
+ * Checks if two file contexts refer to the same entire file.
+ * In this scenario, contexts without a range refer to the entire file.
+ *
+ * @param fileContext1 - The first file context to compare.
+ * @param fileContext2 - The second file context to compare.
+ * @returns {boolean} - Returns true if both file contexts refer to the same entire file; otherwise, false.
+ */
+export function isSameEntireFileContextFromMention(
+  fileContext1: FileContext,
+  fileContext2: FileContext
+) {
+  return (
+    fileContext1.filepath === fileContext2.filepath &&
+    fileContext1.git_url === fileContext2.git_url &&
+    !fileContext1.range &&
+    !fileContext2.range
+  )
 }

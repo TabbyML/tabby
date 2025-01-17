@@ -1,6 +1,13 @@
 import React, { RefObject } from 'react'
 import { Content } from '@tiptap/core'
-import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
+import {
+  compact,
+  findIndex,
+  isEqual,
+  isEqualWith,
+  some,
+  uniqWith
+} from 'lodash-es'
 import type {
   ChatCommand,
   EditorContext,
@@ -45,7 +52,6 @@ import {
   convertEditorContext,
   findClosestGitRepository,
   getFileLocationFromContext,
-  getFilepathFromContext,
   getPromptForChatCommand,
   nanoid
 } from '@/lib/utils'
@@ -54,10 +60,7 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { PromptFormRef } from './form-editor/types'
-import {
-  convertTextToTiptapContent,
-  getFileMentionFromText
-} from './form-editor/utils'
+import { convertTextToTiptapContent } from './form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
@@ -81,9 +84,9 @@ type ChatContextValue = {
   ) => Promise<SymbolInfo | undefined>
   openInEditor: (target: FileLocation) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
-  relevantContext: Context[]
   activeSelection: Context | null
-  removeRelevantContext: (index: number) => void
+  relevantContext: Context[]
+  setRelevantContext: React.Dispatch<React.SetStateAction<Context[]>>
   chatInputRef: RefObject<PromptFormRef>
   supportsOnApplyInEditorV2: boolean
   selectedRepoId: string | undefined
@@ -210,40 +213,6 @@ function ChatRenderer(
   } = useThreadRun({
     threadId
   })
-
-  const getRelevantContextFromMessageContent = useLatest(
-    async (message: string) => {
-      const selectedGitUrl = selectedRepoId
-        ? repos?.find(x => x.sourceId === selectedRepoId)?.gitUrl ?? ''
-        : ''
-      const workspaceGitRepos = await fetchWorkspaceGitRepo()
-      // remote git url in the workspace
-      const gitUrl = selectedGitUrl
-        ? findClosestGitRepository(workspaceGitRepos, selectedGitUrl)?.url ?? ''
-        : ''
-      const fileMentions = getFileMentionFromText(message)
-      let fileContents: Context[] = []
-      if (readFileContent && fileMentions.length > 0) {
-        fileContents = await Promise.all(
-          fileMentions.map(async item => {
-            const fileContext: FileContext = {
-              kind: 'file',
-              // fill content by readFileContent
-              content: '',
-              filepath: item.filepath,
-              git_url: gitUrl
-            }
-            const content = await readFileContent({
-              filepath: getFilepathFromContext(fileContext)
-            })
-            fileContext.content = content || ''
-            return fileContext
-          })
-        )
-      }
-      return fileContents
-    }
-  )
 
   const onDeleteMessage = async (userMessageId: string) => {
     if (!threadId) return
@@ -506,10 +475,6 @@ function ChatRenderer(
         }\n${'```'}\n`
       }
 
-      const mentionedFiles = await getRelevantContextFromMessageContent.current(
-        userMessage.message
-      )
-
       const newUserMessage: UserMessage = {
         ...userMessage,
         message: userMessage.message + selectCodeSnippet,
@@ -520,10 +485,7 @@ function ChatRenderer(
           enableActiveSelection && activeSelection
             ? activeSelection
             : undefined,
-        relevantContext: [
-          ...mentionedFiles,
-          ...(userMessage.relevantContext || [])
-        ]
+        relevantContext: [...(userMessage.relevantContext || [])]
       }
 
       const nextQaPairs = [
@@ -561,12 +523,9 @@ function ChatRenderer(
   }
 
   const handleSubmit = async (value: string) => {
-    const mentionedFiles = await getRelevantContextFromMessageContent.current(
-      value
-    )
     sendUserChat({
       message: value,
-      relevantContext: [...mentionedFiles, ...relevantContext]
+      relevantContext
     })
 
     setRelevantContext([])
@@ -579,12 +538,6 @@ function ChatRenderer(
   const addRelevantContext = (editorContext: EditorContext) => {
     const context = convertEditorContext(editorContext)
     handleAddRelevantContext.current?.(context)
-  }
-
-  const removeRelevantContext = (index: number) => {
-    const newRelevantContext = [...relevantContext]
-    newRelevantContext.splice(index, 1)
-    setRelevantContext(newRelevantContext)
   }
 
   React.useEffect(() => {
@@ -688,7 +641,7 @@ function ChatRenderer(
         openInEditor,
         openExternal,
         relevantContext,
-        removeRelevantContext,
+        setRelevantContext,
         chatInputRef,
         activeSelection,
         supportsOnApplyInEditorV2,
@@ -745,7 +698,16 @@ function appendContextAndDedupe(
   ctxList: Context[],
   newCtx: Context
 ): Context[] {
-  if (!ctxList.some(ctx => isEqual(ctx, newCtx))) {
+  const fieldsToIgnore: Array<keyof Context> = ['content']
+  const isEqualIgnoringFields = (obj1: Context, obj2: Context) => {
+    return isEqualWith(obj1, obj2, (_value1, _value2, key) => {
+      // If the key is in the fieldsToIgnore array, consider the values equal
+      if (fieldsToIgnore.includes(key as keyof Context)) {
+        return true
+      }
+    })
+  }
+  if (!ctxList.some(ctx => isEqualIgnoringFields(ctx, newCtx))) {
     return ctxList.concat([newCtx])
   }
   return ctxList

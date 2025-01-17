@@ -9,7 +9,12 @@ import {
   MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem, FileContext } from '@/lib/types'
-import { cn, resolveFileNameForDisplay } from '@/lib/utils'
+import {
+  cn,
+  convertFilepath,
+  encodeMentionPlaceHolder,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import {
   HoverCard,
   HoverCardContent,
@@ -165,22 +170,13 @@ export function MessageMarkdown({
       return { sourceId, className }
     })
     processMatches(MARKDOWN_FILE_REGEX, FileTag, (match: string) => {
-      const filepath = match[1]
-      // find target attachmentCode by filepath
-      const targetAttachment = attachmentClientCode?.find(
-        item => item.filepath === filepath
-      )
-      const fileContext: FileContext = {
-        kind: 'file',
-        filepath,
-        content: targetAttachment?.content ?? '',
-        // FIXME(@jueliang) git_url
-        git_url: ''
-      }
-
-      return {
-        fileContext
-      }
+      const encodedFilepath = match[1]
+      try {
+        return {
+          encodedFilepath,
+          openInEditor
+        }
+      } catch (e) {}
     })
 
     addTextNode(text.slice(lastIndex))
@@ -224,6 +220,10 @@ export function MessageMarkdown({
     const symbolInfo = await onLookupSymbol(keyword, hints)
     setSymbolLocationMap(map => new Map(map.set(keyword, symbolInfo)))
   }
+
+  const encodedMessage = useMemo(() => {
+    return encodeMentionPlaceHolder(message)
+  }, [message])
 
   return (
     <MessageMarkdownContext.Provider
@@ -295,7 +295,7 @@ export function MessageMarkdown({
           }
         }}
       >
-        {message}
+        {encodedMessage}
       </MemoizedReactMarkdown>
     </MessageMarkdownContext.Provider>
   )
@@ -398,24 +398,52 @@ function SourceTag({
 }
 
 function FileTag({
-  fileContext,
+  encodedFilepath,
+  openInEditor,
   className
 }: {
-  fileContext: FileContext | undefined
+  encodedFilepath: string | undefined
   className?: string
+  openInEditor?: MessageMarkdownProps['openInEditor']
 }) {
-  if (!fileContext) return null
+  const filepath = useMemo(() => {
+    if (!encodedFilepath) return null
+    try {
+      const decodedFilepath = decodeURIComponent(encodedFilepath)
+      const filepath = JSON.parse(decodedFilepath) as Filepath
+      return filepath
+    } catch (e) {
+      return null
+    }
+  }, [encodedFilepath])
+
+  const filepathString = useMemo(() => {
+    if (!filepath) return undefined
+
+    return convertFilepath(filepath).filepath
+  }, [filepath])
+
+  const handleClick = () => {
+    if (!openInEditor || !filepath) return
+    openInEditor({ filepath })
+  }
+
+  if (!filepathString) return null
 
   return (
     <span
-      className={cn('symbol bg-muted py-0.5 leading-5', className, {
-        'space-x-1 cursor-pointer hover:bg-muted/50 border whitespace-nowrap align-middle py-0.5':
-          true
-      })}
+      className={cn(
+        'symbol bg-muted py-0.5 leading-5 space-x-1 border whitespace-nowrap align-middle py-0.5',
+        className,
+        {
+          'hover:bg-muted/50 cursor-pointer': !!openInEditor && !!filepath
+        }
+      )}
+      onClick={handleClick}
     >
       <IconFile className="relative -top-px inline-block h-3.5 w-3.5" />
       <span className={cn('whitespace-normal font-medium')}>
-        {resolveFileNameForDisplay(fileContext.filepath)}
+        {resolveFileNameForDisplay(filepathString)}
       </span>
     </span>
   )

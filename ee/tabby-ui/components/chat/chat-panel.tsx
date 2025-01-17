@@ -9,13 +9,16 @@ import { toast } from 'sonner'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import { useLatest } from '@/lib/hooks/use-latest'
 import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
-import type { Context } from '@/lib/types'
+import type { Context, FileContext } from '@/lib/types'
 import {
   cn,
+  convertEditorContext,
+  getFileLocationFromContext,
   getTitleFromMessages,
   resolveFileNameForDisplay
 } from '@/lib/utils'
@@ -25,6 +28,7 @@ import {
   IconCheck,
   IconEye,
   IconEyeOff,
+  IconFile,
   IconFileText,
   IconRefresh,
   IconRemove,
@@ -39,6 +43,7 @@ import { FooterText } from '@/components/footer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat'
 import { PromptFormRef } from './form-editor/types'
+import { isSameEntireFileContextFromMention } from './form-editor/utils'
 import { RepoSelect } from './repo-select'
 
 export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
@@ -75,13 +80,14 @@ function ChatPanelRenderer(
     qaPairs,
     isLoading,
     relevantContext,
-    removeRelevantContext,
     activeSelection,
     onCopyContent,
     selectedRepoId,
     setSelectedRepoId,
     repos,
-    initialized
+    initialized,
+    setRelevantContext,
+    openInEditor
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
@@ -136,6 +142,39 @@ function ChatPanelRenderer(
     }
   }
 
+  const removeRelevantContext = useLatest((idx: number) => {
+    const editor = chatInputRef.current?.editor
+    if (!editor) {
+      return
+    }
+
+    const { state, view } = editor
+    const { tr } = state
+    const positionsToDelete: any[] = []
+
+    const currentContext: FileContext = relevantContext[idx]
+    state.doc.descendants((node, pos) => {
+      if (node.type.name === 'mention' && node.attrs.category === 'file') {
+        const fileContext = convertEditorContext({
+          filepath: node.attrs.fileItem.filepath,
+          content: '',
+          kind: 'file'
+        })
+        if (isSameEntireFileContextFromMention(fileContext, currentContext)) {
+          positionsToDelete.push({ from: pos, to: pos + node.nodeSize })
+        }
+      }
+    })
+
+    setRelevantContext(prev => prev.filter((item, index) => index !== idx))
+    positionsToDelete.reverse().forEach(({ from, to }) => {
+      tr.delete(from, to)
+    })
+
+    view.dispatch(tr)
+    editor.commands.focus()
+  })
+
   const onSelectRepo = (sourceId: string | undefined) => {
     setSelectedRepoId(sourceId)
 
@@ -143,6 +182,7 @@ function ChatPanelRenderer(
       chatInputRef.current?.focus()
     })
   }
+
   React.useImperativeHandle(
     ref,
     () => {
@@ -311,14 +351,23 @@ function ChatPanelRenderer(
                   >
                     <Badge
                       variant="outline"
-                      className="inline-flex h-7 flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold"
+                      className={cn(
+                        'inline-flex h-7 flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold cursor-pointer'
+                      )}
+                      onClick={() => {
+                        openInEditor(getFileLocationFromContext(item))
+                      }}
                     >
+                      <IconFile className="shrink-0" />
                       <ContextLabel context={item} />
                       <Button
                         size="icon"
                         variant="ghost"
                         className="h-7 w-7 shrink-0 rounded-l-none hover:bg-muted/50"
-                        onClick={removeRelevantContext.bind(null, idx)}
+                        onClick={e => {
+                          e.stopPropagation()
+                          removeRelevantContext.current(idx)
+                        }}
                       >
                         <IconRemove />
                       </Button>

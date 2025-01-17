@@ -1,4 +1,9 @@
-import React, { ForwardedRef, useContext, useImperativeHandle } from 'react'
+import React, {
+  ForwardedRef,
+  useContext,
+  useEffect,
+  useImperativeHandle
+} from 'react'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -12,17 +17,20 @@ import {
 
 import './prompt-form.css'
 
-import tippy, { Instance } from 'tippy.js'
+import { isEqual } from 'lodash-es'
+import { EditorFileContext } from 'tabby-chat-panel/index'
+import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
 import { NEWLINE_CHARACTER } from '@/lib/constants'
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
-import { cn } from '@/lib/utils'
+import { FileContext } from '@/lib/types'
+import { cn, convertEditorContext } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconArrowElbow, IconEdit } from '@/components/ui/icons'
 
-// import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
-
 import { ChatContext } from './chat'
+import { emitter } from './event-emitter'
 import {
   MentionList,
   MentionListActions,
@@ -30,18 +38,25 @@ import {
   PromptFormMentionExtension
 } from './form-editor/mention'
 import { PromptFormRef, PromptProps } from './form-editor/types'
-import { fileItemToSourceItem } from './form-editor/utils'
+import {
+  fileItemToSourceItem,
+  isSameEntireFileContextFromMention
+} from './form-editor/utils'
 
 /**
  * PromptFormRenderer is the internal component used by React.forwardRef
  * It provides the main logic for the chat input with mention functionality.
  */
 function PromptFormRenderer(
-  { onSubmit, isLoading }: PromptProps,
+  { onSubmit, isLoading, onUpdate }: PromptProps,
   ref: ForwardedRef<PromptFormRef>
 ) {
-  // Access custom context (e.g., to fetch file suggestions)
-  const { listFileInWorkspace } = useContext(ChatContext)
+  const {
+    listFileInWorkspace,
+    readFileContent,
+    relevantContext,
+    setRelevantContext
+  } = useContext(ChatContext)
 
   const doSubmit = useLatest(async () => {
     if (isLoading || !editor) return
@@ -71,6 +86,7 @@ function PromptFormRenderer(
         }),
         CustomKeyboardShortcuts(handleSubmit),
         PromptFormMentionExtension.configure({
+          deleteTriggerWithBackspace: true,
           // Customize how mention suggestions are fetched and rendered
           suggestion: {
             char: '@', // Trigger character for mention
@@ -83,25 +99,6 @@ function PromptFormRenderer(
               let component: ReactRenderer<MentionListActions, MentionListProps>
               let popup: Instance[]
 
-              // const getRemInPixels = () => {
-              //   return parseFloat(getComputedStyle(document.documentElement).fontSize);
-              // };
-
-              const updatePopperWidth = (instance: Instance) => {
-                const targetWidth =
-                  instance.reference.getBoundingClientRect().width
-                instance.popper.style.maxWidth = `${targetWidth}px`
-                // instance.popper.style.maxWidth = `${targetWidth}px`
-                // instance.popper.style.width = `calc(${targetWidth}px - 1rem)`
-                instance.popper.style.width = `${targetWidth - 16}px`
-              }
-
-              const handleResize = () => {
-                if (popup && popup[0]) {
-                  updatePopperWidth(popup[0])
-                }
-              }
-
               return {
                 onStart: props => {
                   component = new ReactRenderer(MentionList, {
@@ -109,67 +106,28 @@ function PromptFormRenderer(
                     editor: props.editor
                   })
 
-                  const container = document.querySelector(
-                    '#chat-panel-container'
-                  )
-                  if (!container) {
+                  if (!props.clientRect) {
                     return
                   }
 
-                  popup = tippy('#chat-panel-container', {
-                    // getReferenceClientRect: () => container.getBoundingClientRect(),
+                  popup = tippy('body', {
+                    getReferenceClientRect:
+                      props.clientRect as GetReferenceClientRect,
                     appendTo: () => document.body,
                     content: component.element,
                     showOnCreate: true,
                     interactive: true,
                     trigger: 'manual',
                     placement: 'top-start',
-                    animation: 'shift-away',
-                    maxWidth: document.documentElement.clientWidth,
-                    offset({ placement, popper, reference }) {
-                      return [8, 6]
-                    },
-                    onCreate(instance) {
-                      updatePopperWidth(instance)
-                    },
-                    onMount() {
-                      window.addEventListener('resize', handleResize)
-                    },
-                    onHidden() {
-                      window.removeEventListener('resize', handleResize)
-                    }
+                    animation: 'shift-away'
                   })
                 },
                 onUpdate: props => {
-                  // const { editor } = props
-                  // const { from } = props.range
-                  // const currentLine = editor.view.coordsAtPos(from)
-                  // const editorDom = editor.view.dom.getBoundingClientRect()
-
-                  // setAnchorPos({
-                  //   left: currentLine.left - editorDom.left,
-                  //   top: currentLine.top - editorDom.top - 10
-                  // })
-
-                  // Update mention items, query, etc.
-                  // mentionStateRef.current.items = props.items || []
-                  // mentionStateRef.current.command = props.command
-                  //   ? (attrs: any) => {
-                  //     props.command(attrs)
-                  //     requestAnimationFrame(() => {
-                  //       editor.commands.focus()
-                  //     })
-                  //   }
-                  //   : null
-                  // mentionStateRef.current.query = props.query || ''
-                  // mentionStateRef.current.selectedIndex = 0
                   component.updateProps(props)
                 },
                 onExit: () => {
                   popup[0].destroy()
                   component.destroy()
-                  // handlePopoverChange(false)
-                  // mentionStateRef.current.command = null
                 },
                 onKeyDown: props => {
                   if (props.event.key === 'Escape') {
@@ -178,49 +136,6 @@ function PromptFormRenderer(
                     return true
                   }
                   return component.ref?.onKeyDown(props) ?? false
-                  // Esc key -> close popover
-                  // if (event.key === 'Escape') {
-                  //   setPopoverOpen(false)
-                  //   return true
-                  // }
-
-                  // // Down arrow -> move selection down
-                  // if (event.key === 'ArrowDown') {
-                  //   event.preventDefault()
-                  //   if (!mentionStateRef.current.items.length) return true
-                  //   mentionStateRef.current.selectedIndex =
-                  //     (mentionStateRef.current.selectedIndex + 1) %
-                  //     mentionStateRef.current.items.length
-                  //   return true
-                  // }
-
-                  // // Up arrow -> move selection up
-                  // if (event.key === 'ArrowUp') {
-                  //   event.preventDefault()
-                  //   if (!mentionStateRef.current.items.length) return true
-                  //   const prevIdx = mentionStateRef.current.selectedIndex - 1
-                  //   mentionStateRef.current.selectedIndex =
-                  //     prevIdx < 0
-                  //       ? mentionStateRef.current.items.length - 1
-                  //       : prevIdx
-                  //   return true
-                  // }
-
-                  // // Enter -> confirm selection
-                  // if (event.key === 'Enter') {
-                  //   const { items, selectedIndex, command } =
-                  //     mentionStateRef.current
-                  //   const item = items[selectedIndex]
-                  //   if (item && command) {
-                  //     command({
-                  //       category: 'file',
-                  //       filepath: item.filepath
-                  //     })
-                  //   }
-                  //   return true
-                  // }
-
-                  // return false
                 }
               }
             }
@@ -233,6 +148,9 @@ function PromptFormRenderer(
             'prose max-w-none font-sans dark:prose-invert focus:outline-none prose-p:my-0'
           )
         }
+      },
+      onUpdate(props) {
+        onUpdate?.(props)
       }
     },
     [listFileInWorkspace]
@@ -249,10 +167,84 @@ function PromptFormRenderer(
     () => ({
       focus: () => editor?.commands.focus(),
       setInput: value => editor?.commands.setContent(value),
-      input
+      input,
+      editor
     }),
     [editor, input]
   )
+
+  /**
+   * This function compares the current mentions in the editor with the relevant context
+   * and updates the context accordingly.
+   * It adds new mentions and removes mentions that are no longer present in the editor.
+   * Only mentions that refer to the whole file are considered.
+   */
+  const diffAndUpdateMentionContext = useDebounceCallback(async () => {
+    if (!readFileContent || !editor) return
+    let contextInEditor: EditorFileContext[] = []
+    editor.view.state.doc.descendants(node => {
+      if (node.type.name === 'mention' && node.attrs.category === 'file') {
+        contextInEditor.push({
+          kind: 'file',
+          content: '',
+          filepath: node.attrs.fileItem.filepath
+        })
+      }
+    })
+
+    let prevContext: FileContext[] = relevantContext
+    let updatedContext = [...prevContext]
+
+    // Determine mentions to add and remove
+    const mentionsToAdd = contextInEditor.filter(
+      ctx =>
+        !prevContext.some(prevCtx =>
+          isSameEntireFileContextFromMention(convertEditorContext(ctx), prevCtx)
+        )
+    )
+
+    /**
+     * Remove mentions from the context if they are no longer present in the editor
+     * Only remove mentions that refer to the whole file, not selections.
+     */
+    const mentionsToRemove = prevContext.filter(
+      prevCtx =>
+        !prevCtx.range &&
+        !contextInEditor.some(ctx =>
+          isSameEntireFileContextFromMention(convertEditorContext(ctx), prevCtx)
+        )
+    )
+
+    for (const ctx of mentionsToRemove) {
+      updatedContext = updatedContext.filter(prevCtx => !isEqual(prevCtx, ctx))
+    }
+
+    for (const ctx of mentionsToAdd) {
+      // Read the file content and add it to the context
+      const content = await readFileContent({ filepath: ctx.filepath })
+      updatedContext.push(
+        convertEditorContext({
+          kind: 'file',
+          content: content || '',
+          filepath: ctx.filepath
+        })
+      )
+    }
+
+    setRelevantContext(updatedContext)
+  }, 100)
+
+  useEffect(() => {
+    const onFileMentionUpdate = () => {
+      diffAndUpdateMentionContext.run()
+    }
+
+    emitter.on('file_mention_update', onFileMentionUpdate)
+
+    return () => {
+      emitter.off('file_mention_update', onFileMentionUpdate)
+    }
+  }, [])
 
   return (
     <div className="relative flex flex-col px-2.5">
