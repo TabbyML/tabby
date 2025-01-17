@@ -8,13 +8,13 @@ use tabby_schema::{context::ContextService, CoreError};
 use super::helper::Job;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DbMaintainanceJob;
+pub struct DbMaintenanceJob;
 
-impl Job for DbMaintainanceJob {
-    const NAME: &'static str = "db_maintainance";
+impl Job for DbMaintenanceJob {
+    const NAME: &'static str = "db_maintenance";
 }
 
-impl DbMaintainanceJob {
+impl DbMaintenanceJob {
     pub async fn cron(
         now: DateTime<Utc>,
         context: Arc<dyn ContextService>,
@@ -155,7 +155,7 @@ mod tests {
                 .unwrap();
             assert_eq!(events.len(), 1);
 
-            DbMaintainanceJob::data_retention(now, &db).await.unwrap();
+            DbMaintenanceJob::data_retention(now, &db).await.unwrap();
 
             let events = db
                 .list_user_events(
@@ -217,7 +217,7 @@ mod tests {
                 .unwrap();
             assert_eq!(events.len(), 1);
 
-            DbMaintainanceJob::data_retention(now, &db).await.unwrap();
+            DbMaintenanceJob::data_retention(now, &db).await.unwrap();
 
             let events = db
                 .list_user_events(
