@@ -477,7 +477,7 @@ export class ChatWebview {
         const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
         return fileContext;
       },
-      
+
       fetchSessionState: async (keys?: string[] | undefined): Promise<Record<string, unknown> | null> => {
         if (!keys) {
           return { ...this.sessionState };
