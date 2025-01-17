@@ -66,7 +66,6 @@ impl SyncIntegrationJob {
                 )
                 .await;
         }
-
         Ok(())
     }
 }
