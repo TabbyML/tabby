@@ -496,6 +496,8 @@ export class ChatWebview {
           ...this.sessionState,
           ...state,
         };
+      },
+      
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
         const maxResults = params.limit || 50;
         const searchQuery = params.query?.trim();
