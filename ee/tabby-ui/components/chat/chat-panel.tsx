@@ -1,5 +1,6 @@
 import React, { RefObject, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
+import { Content } from '@tiptap/core'
 import { useWindowSize } from '@uidotdev/usehooks'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -8,13 +9,16 @@ import { toast } from 'sonner'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import { useLatest } from '@/lib/hooks/use-latest'
 import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
-import type { Context } from '@/lib/types'
+import type { Context, FileContext } from '@/lib/types'
 import {
   cn,
+  convertEditorContext,
+  getFileLocationFromContext,
   getTitleFromMessages,
   resolveFileNameForDisplay
 } from '@/lib/utils'
@@ -24,6 +28,7 @@ import {
   IconCheck,
   IconEye,
   IconEyeOff,
+  IconFile,
   IconFileText,
   IconRefresh,
   IconRemove,
@@ -32,33 +37,35 @@ import {
   IconTrash
 } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-import { PromptForm, PromptFormRef } from '@/components/chat/prompt-form'
+import { PromptForm } from '@/components/chat/prompt-form'
 import { FooterText } from '@/components/footer'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat'
+import { PromptFormRef } from './form-editor/types'
+import { isSameEntireFileContextFromMention } from './form-editor/utils'
 import { RepoSelect } from './repo-select'
 
-export interface ChatPanelProps
-  extends Pick<UseChatHelpers, 'stop' | 'input' | 'setInput'> {
+export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
+  setInput: (v: string) => void
   id?: string
   className?: string
   onSubmit: (content: string) => Promise<any>
   reload: () => void
   chatMaxWidthClass: string
-  chatInputRef: RefObject<HTMLTextAreaElement>
+  chatInputRef: RefObject<PromptFormRef>
 }
 
 export interface ChatPanelRef {
   focus: () => void
+  setInput: (input: Content) => void
+  input: string
 }
 
 function ChatPanelRenderer(
   {
     stop,
     reload,
-    input,
-    setInput,
     className,
     onSubmit,
     chatMaxWidthClass,
@@ -66,7 +73,6 @@ function ChatPanelRenderer(
   }: ChatPanelProps,
   ref: React.Ref<ChatPanelRef>
 ) {
-  const promptFormRef = React.useRef<PromptFormRef>(null)
   const {
     threadId,
     container,
@@ -74,13 +80,14 @@ function ChatPanelRenderer(
     qaPairs,
     isLoading,
     relevantContext,
-    removeRelevantContext,
     activeSelection,
     onCopyContent,
     selectedRepoId,
     setSelectedRepoId,
     repos,
-    initialized
+    initialized,
+    setRelevantContext,
+    openInEditor
   } = React.useContext(ChatContext)
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
@@ -135,6 +142,39 @@ function ChatPanelRenderer(
     }
   }
 
+  const removeRelevantContext = useLatest((idx: number) => {
+    const editor = chatInputRef.current?.editor
+    if (!editor) {
+      return
+    }
+
+    const { state, view } = editor
+    const { tr } = state
+    const positionsToDelete: any[] = []
+
+    const currentContext: FileContext = relevantContext[idx]
+    state.doc.descendants((node, pos) => {
+      if (node.type.name === 'mention' && node.attrs.category === 'file') {
+        const fileContext = convertEditorContext({
+          filepath: node.attrs.fileItem.filepath,
+          content: '',
+          kind: 'file'
+        })
+        if (isSameEntireFileContextFromMention(fileContext, currentContext)) {
+          positionsToDelete.push({ from: pos, to: pos + node.nodeSize })
+        }
+      }
+    })
+
+    setRelevantContext(prev => prev.filter((item, index) => index !== idx))
+    positionsToDelete.reverse().forEach(({ from, to }) => {
+      tr.delete(from, to)
+    })
+
+    view.dispatch(tr)
+    editor.commands.focus()
+  })
+
   const onSelectRepo = (sourceId: string | undefined) => {
     setSelectedRepoId(sourceId)
 
@@ -148,11 +188,15 @@ function ChatPanelRenderer(
     () => {
       return {
         focus: () => {
-          promptFormRef.current?.focus()
-        }
+          chatInputRef.current?.focus()
+        },
+        setInput: str => {
+          chatInputRef.current?.setInput(str)
+        },
+        input: chatInputRef.current?.input ?? ''
       }
     },
-    []
+    [chatInputRef]
   )
 
   return (
@@ -236,7 +280,10 @@ function ChatPanelRenderer(
             </Tooltip>
           )}
         </div>
-        <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
+        <div
+          id="chat-panel-container"
+          className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4"
+        >
           <div className="flex flex-wrap gap-2">
             <AnimatePresence presenceAffectsLayout>
               <RepoSelect
@@ -304,14 +351,23 @@ function ChatPanelRenderer(
                   >
                     <Badge
                       variant="outline"
-                      className="inline-flex h-7 flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold"
+                      className={cn(
+                        'inline-flex h-7 cursor-pointer flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold'
+                      )}
+                      onClick={() => {
+                        openInEditor(getFileLocationFromContext(item))
+                      }}
                     >
+                      <IconFile className="shrink-0" />
                       <ContextLabel context={item} />
                       <Button
                         size="icon"
                         variant="ghost"
                         className="h-7 w-7 shrink-0 rounded-l-none hover:bg-muted/50"
-                        onClick={removeRelevantContext.bind(null, idx)}
+                        onClick={e => {
+                          e.stopPropagation()
+                          removeRelevantContext.current(idx)
+                        }}
                       >
                         <IconRemove />
                       </Button>
@@ -322,13 +378,9 @@ function ChatPanelRenderer(
             </AnimatePresence>
           </div>
           <PromptForm
-            ref={promptFormRef}
+            ref={chatInputRef}
             onSubmit={onSubmit}
-            input={input}
-            setInput={setInput}
             isLoading={isLoading}
-            chatInputRef={chatInputRef}
-            isInitializing={!initialized}
           />
           <FooterText className="hidden sm:block" />
         </div>

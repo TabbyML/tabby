@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/pagination'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { replaceAtMentionPlaceHolderWithAt } from '@/components/chat/form-editor/utils'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { Mention } from '@/components/mention-tag'
 import { UserAvatar } from '@/components/user-avatar'
@@ -329,7 +330,9 @@ function ThreadItem({ data }: ThreadItemProps) {
             <ThreadTitleWithMentions
               className="break-anywhere truncate text-lg font-medium"
               sources={sources}
-              message={threadMessages?.[0]['node']['content']}
+              message={replaceAtMentionPlaceHolderWithAt(
+                threadMessages?.[0]?.['node']['content'] ?? ''
+              )}
             />
           </LoadingWrapper>
         </div>

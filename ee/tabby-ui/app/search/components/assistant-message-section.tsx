@@ -345,6 +345,7 @@ export function AssistantMessageSection({
               setDevPanelOpen(true)
             }}
             highlightIndex={relevantCodeHighlightIndex}
+            supportsOpenInEditor={false}
           />
         )}
 

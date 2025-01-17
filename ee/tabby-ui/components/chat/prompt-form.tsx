@@ -1,348 +1,316 @@
-import * as React from 'react'
-import { UseChatHelpers } from 'ai/react'
-import { debounce, has } from 'lodash-es'
-import useSWR from 'swr'
-
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
-import fetcher from '@/lib/tabby/fetcher'
-import type { ISearchHit, SearchReponse } from '@/lib/types'
-import { cn } from '@/lib/utils'
-import { Button, buttonVariants } from '@/components/ui/button'
+import React, {
+  ForwardedRef,
+  useContext,
+  useEffect,
+  useImperativeHandle
+} from 'react'
+import Document from '@tiptap/extension-document'
+import Paragraph from '@tiptap/extension-paragraph'
+import Placeholder from '@tiptap/extension-placeholder'
+import Text from '@tiptap/extension-text'
 import {
-  IconArrowElbow,
-  IconEdit,
-  IconSymbolFunction
-} from '@/components/ui/icons'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+  EditorContent,
+  Extension,
+  ReactRenderer,
+  useEditor
+} from '@tiptap/react'
+
+import './prompt-form.css'
+
+import { isEqual } from 'lodash-es'
+import { EditorFileContext } from 'tabby-chat-panel/index'
+import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
+
+import { NEWLINE_CHARACTER } from '@/lib/constants'
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
+import { useLatest } from '@/lib/hooks/use-latest'
+import { FileContext } from '@/lib/types'
+import { cn, convertEditorContext } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { IconArrowElbow, IconEdit } from '@/components/ui/icons'
+
+import { ChatContext } from './chat'
+import { emitter } from './event-emitter'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
+  MentionList,
+  MentionListActions,
+  MentionListProps,
+  PromptFormMentionExtension
+} from './form-editor/mention'
+import { PromptFormRef, PromptProps } from './form-editor/types'
 import {
-  SearchableSelect,
-  SearchableSelectAnchor,
-  SearchableSelectContent,
-  SearchableSelectOption,
-  SearchableSelectTextarea
-} from '@/components/searchable-select'
+  fileItemToSourceItem,
+  isSameEntireFileContextFromMention
+} from './form-editor/utils'
 
-export interface PromptProps
-  extends Pick<UseChatHelpers, 'input' | 'setInput'> {
-  onSubmit: (value: string) => Promise<void>
-  isLoading: boolean
-  chatInputRef: React.RefObject<HTMLTextAreaElement>
-  isInitializing?: boolean
-}
-
-export interface PromptFormRef {
-  focus: () => void
-}
-
+/**
+ * PromptFormRenderer is the internal component used by React.forwardRef
+ * It provides the main logic for the chat input with mention functionality.
+ */
 function PromptFormRenderer(
-  {
-    onSubmit,
-    input,
-    setInput,
-    isLoading,
-    chatInputRef,
-    isInitializing
-  }: PromptProps,
-  ref: React.ForwardedRef<PromptFormRef>
+  { onSubmit, isLoading, onUpdate }: PromptProps,
+  ref: ForwardedRef<PromptFormRef>
 ) {
-  const { formRef, onKeyDown } = useEnterSubmit()
-  const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
-    string | null
-  >(null)
-  const [suggestionOpen, setSuggestionOpen] = React.useState(false)
-  // store the input selection for replacing inputValue
-  const prevInputSelectionEnd = React.useRef<number>()
-  // for updating the input selection after replacing
-  const nextInputSelectionRange = React.useRef<[number, number]>()
-  const [options, setOptions] = React.useState<SearchReponse['hits']>([])
-  const [selectedCompletionsMap, setSelectedCompletionsMap] = React.useState<
-    Record<string, ISearchHit>
-  >({})
+  const {
+    listFileInWorkspace,
+    readFileContent,
+    relevantContext,
+    setRelevantContext
+  } = useContext(ChatContext)
 
-  const { data: completionData } = useSWR<SearchReponse>(
-    queryCompletionUrl,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 0,
-      errorRetryCount: 0
-    }
-  )
+  const doSubmit = useLatest(async () => {
+    if (isLoading || !editor) return
 
-  React.useEffect(() => {
-    const suggestions = completionData?.hits ?? []
-    setOptions(suggestions)
-    setSuggestionOpen(!!suggestions?.length)
-  }, [completionData?.hits])
+    const text = editor.getText({ blockSeparator: NEWLINE_CHARACTER }).trim()
+    if (!text) return
 
-  React.useImperativeHandle(ref, () => ({
-    focus: () => chatInputRef.current?.focus()
-  }))
+    const result = onSubmit(text)
+    editor?.chain().clearContent().focus().run()
 
-  React.useEffect(() => {
-    if (
-      input &&
-      chatInputRef.current &&
-      chatInputRef.current !== document.activeElement
-    ) {
-      chatInputRef.current.focus()
-    }
-  }, [input, chatInputRef])
+    return result
+  })
 
-  React.useLayoutEffect(() => {
-    if (nextInputSelectionRange.current?.length) {
-      chatInputRef.current?.setSelectionRange?.(
-        nextInputSelectionRange.current[0],
-        nextInputSelectionRange.current[1]
-      )
-      nextInputSelectionRange.current = undefined
-    }
-  }, [chatInputRef])
-
-  const handleSearchCompletion = React.useMemo(() => {
-    return debounce((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.target?.value ?? ''
-      const end = e.target?.selectionEnd ?? 0
-      const queryNameMatches = getSearchCompletionQueryName(value, end)
-      const queryName = queryNameMatches?.[1]
-      if (queryName) {
-        const query = encodeURIComponent(`name:${queryName} AND kind:function`)
-        const url = `/v1beta/search?q=${query}`
-        setQueryCompletionUrl(url)
-      } else {
-        setOptions([])
-        setSuggestionOpen(false)
-      }
-    }, 200)
-  }, [])
-
-  const handleCompletionSelect = (item: ISearchHit) => {
-    const selectionEnd = prevInputSelectionEnd.current ?? 0
-    const queryNameMatches = getSearchCompletionQueryName(input, selectionEnd)
-    if (queryNameMatches) {
-      setSelectedCompletionsMap({
-        ...selectedCompletionsMap,
-        [`@${item.doc?.name}`]: item
-      })
-      const replaceString = `@${item?.doc?.name} `
-      const prevInput = input
-        .substring(0, selectionEnd)
-        .replace(new RegExp(queryNameMatches[0]), '')
-      const nextSelectionEnd = prevInput.length + replaceString.length
-      nextInputSelectionRange.current = [nextSelectionEnd, nextSelectionEnd]
-      setInput(prevInput + replaceString + input.slice(selectionEnd))
-    }
-    setOptions([])
-    setSuggestionOpen(false)
+  const handleSubmit = () => {
+    doSubmit.current()
   }
 
-  const handlePromptSubmit: React.FormEventHandler<
-    HTMLFormElement
-  > = async e => {
-    e.preventDefault()
-    if (!input?.trim() || isLoading || isInitializing) {
-      return
-    }
+  // Set up the TipTap editor with mention extension
+  const editor = useEditor(
+    {
+      extensions: [
+        Document,
+        Paragraph,
+        Text,
+        Placeholder.configure({
+          placeholder: 'typing...'
+        }),
+        CustomKeyboardShortcuts(handleSubmit),
+        PromptFormMentionExtension.configure({
+          deleteTriggerWithBackspace: true,
+          // Customize how mention suggestions are fetched and rendered
+          suggestion: {
+            char: '@', // Trigger character for mention
+            items: async ({ query }) => {
+              if (!listFileInWorkspace) return []
+              const files = await listFileInWorkspace({ query })
+              return files?.map(fileItemToSourceItem) || []
+            },
+            render: () => {
+              let component: ReactRenderer<MentionListActions, MentionListProps>
+              let popup: Instance[]
 
-    let finalInput = input
-    Object.keys(selectedCompletionsMap).forEach(key => {
-      const completion = selectedCompletionsMap[key]
-      if (!completion?.doc) return
-      finalInput = finalInput.replaceAll(
-        key,
-        `\n${'```'}${completion.doc?.language ?? ''}\n${
-          completion.doc.body ?? ''
-        }\n${'```'}\n`
-      )
+              return {
+                onStart: props => {
+                  component = new ReactRenderer(MentionList, {
+                    props: { ...props, listFileInWorkspace },
+                    editor: props.editor
+                  })
+
+                  if (!props.clientRect) {
+                    return
+                  }
+
+                  popup = tippy('body', {
+                    getReferenceClientRect:
+                      props.clientRect as GetReferenceClientRect,
+                    appendTo: () => document.body,
+                    content: component.element,
+                    showOnCreate: true,
+                    interactive: true,
+                    trigger: 'manual',
+                    placement: 'top-start',
+                    animation: 'shift-away'
+                  })
+                },
+                onUpdate: props => {
+                  component.updateProps(props)
+                },
+                onExit: () => {
+                  popup[0].destroy()
+                  component.destroy()
+                },
+                onKeyDown: props => {
+                  if (props.event.key === 'Escape') {
+                    popup[0].hide()
+
+                    return true
+                  }
+                  return component.ref?.onKeyDown(props) ?? false
+                }
+              }
+            }
+          }
+        })
+      ],
+      editorProps: {
+        attributes: {
+          class: cn(
+            'prose max-w-none font-sans dark:prose-invert focus:outline-none prose-p:my-0'
+          )
+        }
+      },
+      onUpdate(props) {
+        onUpdate?.(props)
+      }
+    },
+    [listFileInWorkspace]
+  )
+
+  // Current text from the editor (for checking if the submit button is disabled)
+  const input = editor?.getText() || ''
+
+  /**
+   * Expose methods to the parent component via ref
+   */
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => editor?.commands.focus(),
+      setInput: value => editor?.commands.setContent(value),
+      input,
+      editor
+    }),
+    [editor, input]
+  )
+
+  /**
+   * This function compares the current mentions in the editor with the relevant context
+   * and updates the context accordingly.
+   * It adds new mentions and removes mentions that are no longer present in the editor.
+   * Only mentions that refer to the whole file are considered.
+   */
+  const diffAndUpdateMentionContext = useDebounceCallback(async () => {
+    if (!readFileContent || !editor) return
+    let contextInEditor: EditorFileContext[] = []
+    editor.view.state.doc.descendants(node => {
+      if (node.type.name === 'mention' && node.attrs.category === 'file') {
+        contextInEditor.push({
+          kind: 'file',
+          content: '',
+          filepath: node.attrs.fileItem.filepath
+        })
+      }
     })
 
-    setInput('')
-    await onSubmit(finalInput)
-  }
+    let prevContext: FileContext[] = relevantContext
+    let updatedContext = [...prevContext]
 
-  const handleTextareaKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    isOpen: boolean
-  ) => {
-    if (e.key === 'Enter' && isOpen) {
-      e.preventDefault()
-    } else if (
-      isOpen &&
-      ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)
-    ) {
-      setOptions([])
-      setSuggestionOpen(false)
-    } else {
-      if (!isOpen) {
-        ;(e as any).preventDownshiftDefault = true
-      }
-      onKeyDown(e)
+    // Determine mentions to add and remove
+    const mentionsToAdd = contextInEditor.filter(
+      ctx =>
+        !prevContext.some(prevCtx =>
+          isSameEntireFileContextFromMention(convertEditorContext(ctx), prevCtx)
+        )
+    )
+
+    /**
+     * Remove mentions from the context if they are no longer present in the editor
+     * Only remove mentions that refer to the whole file, not selections.
+     */
+    const mentionsToRemove = prevContext.filter(
+      prevCtx =>
+        !prevCtx.range &&
+        !contextInEditor.some(ctx =>
+          isSameEntireFileContextFromMention(convertEditorContext(ctx), prevCtx)
+        )
+    )
+
+    for (const ctx of mentionsToRemove) {
+      updatedContext = updatedContext.filter(prevCtx => !isEqual(prevCtx, ctx))
     }
-  }
+
+    for (const ctx of mentionsToAdd) {
+      // Read the file content and add it to the context
+      const content = await readFileContent({ filepath: ctx.filepath })
+      updatedContext.push(
+        convertEditorContext({
+          kind: 'file',
+          content: content || '',
+          filepath: ctx.filepath
+        })
+      )
+    }
+
+    setRelevantContext(updatedContext)
+  }, 100)
+
+  useEffect(() => {
+    const onFileMentionUpdate = () => {
+      diffAndUpdateMentionContext.run()
+    }
+
+    emitter.on('file_mention_update', onFileMentionUpdate)
+
+    return () => {
+      emitter.off('file_mention_update', onFileMentionUpdate)
+    }
+  }, [])
 
   return (
-    <form onSubmit={handlePromptSubmit} ref={formRef}>
-      <SearchableSelect
-        options={options}
-        onSelect={handleCompletionSelect}
-        open={suggestionOpen}
-        onOpenChange={isOpen => {
-          if (isOpen && options?.length) {
-            setSuggestionOpen(isOpen)
-          } else {
-            setSuggestionOpen(false)
-            setOptions([])
-          }
-        }}
-      >
-        {({ open, highlightedIndex }) => {
-          const highlightedOption = options?.[highlightedIndex]
-
-          return (
-            <>
-              <SearchableSelectAnchor>
-                <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
-                  <span
-                    className={cn(
-                      buttonVariants({ size: 'sm', variant: 'ghost' }),
-                      'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 hover:bg-background sm:left-4'
-                    )}
-                  >
-                    <IconEdit />
-                  </span>
-                  <SearchableSelectTextarea
-                    tabIndex={0}
-                    rows={1}
-                    placeholder="Ask a question."
-                    spellCheck={false}
-                    className="min-h-[60px] w-full resize-none bg-transparent py-[1.3rem] pr-4 focus-within:outline-none sm:pl-4"
-                    value={input}
-                    ref={chatInputRef}
-                    onChange={e => {
-                      if (has(e, 'target.value')) {
-                        prevInputSelectionEnd.current = e.target.selectionEnd
-                        setInput(e.target.value)
-                        // TODO: Temporarily disabling the current search function. Will be replaced with a different search functionality in the future.
-                        // handleSearchCompletion(e)
-                      } else {
-                        prevInputSelectionEnd.current = undefined
-                      }
-                    }}
-                    onKeyDown={e => handleTextareaKeyDown(e, open)}
-                  />
-                  <div className="absolute right-0 top-4 sm:right-4">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="submit"
-                          size="icon"
-                          disabled={isInitializing || isLoading || input === ''}
-                        >
-                          <IconArrowElbow />
-                          <span className="sr-only">Send message</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Send message</TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              </SearchableSelectAnchor>
-              <SearchableSelectContent
-                align="start"
-                side="top"
-                onOpenAutoFocus={e => e.preventDefault()}
-                className="w-[60vw] md:w-[430px]"
-              >
-                <Popover open={open && !!highlightedOption}>
-                  <PopoverAnchor asChild>
-                    <div className="max-h-[300px] overflow-y-scroll">
-                      {open &&
-                        !!options?.length &&
-                        options.map((item, index) => (
-                          <SearchableSelectOption
-                            item={item}
-                            index={index}
-                            key={item?.id}
-                          >
-                            <div className="flex w-full items-center justify-between gap-8 overflow-x-hidden">
-                              <div className="flex items-center gap-1">
-                                <IconForCompletionKind kind={item?.doc?.kind} />
-                                <div className="max-w-[200px] truncate">
-                                  {item?.doc?.name}(...)
-                                </div>
-                              </div>
-                              <div className="flex-1 truncate text-right text-sm text-muted-foreground">
-                                {item?.doc?.body}
-                              </div>
-                            </div>
-                          </SearchableSelectOption>
-                        ))}
-                    </div>
-                  </PopoverAnchor>
-                  <PopoverContent
-                    asChild
-                    align="start"
-                    side="right"
-                    alignOffset={-4}
-                    onOpenAutoFocus={e => e.preventDefault()}
-                    onKeyDownCapture={e => e.preventDefault()}
-                    className="rounded-none"
-                    collisionPadding={{ bottom: 120 }}
-                  >
-                    <div className="flex max-h-[70vh] w-[20vw] flex-col overflow-y-auto px-2 md:w-[240px] lg:w-[340px]">
-                      <div className="mb-2">
-                        {highlightedOption?.doc?.kind
-                          ? `(${highlightedOption?.doc?.kind}) `
-                          : ''}
-                        {highlightedOption?.doc?.name}
-                      </div>
-                      <div className="flex-1 whitespace-pre-wrap break-all text-muted-foreground">
-                        {highlightedOption?.doc?.body}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </SearchableSelectContent>
-            </>
-          )
-        }}
-      </SearchableSelect>
-    </form>
+    <div className="relative flex flex-col px-2.5">
+      {/* Editor & Submit row */}
+      <div className="relative flex items-start gap-2">
+        <span className="mt-[1.375rem]">
+          <IconEdit className="h-4 w-4" />
+        </span>
+        <div
+          className="max-h-32 flex-1 overflow-y-auto py-4"
+          onClick={e => {
+            if (editor && !editor.isFocused) {
+              editor?.commands.focus()
+            }
+          }}
+        >
+          {/* TipTap editor content */}
+          <EditorContent
+            editor={editor}
+            className={cn(
+              'prose overflow-hidden break-words text-foreground focus:outline-none'
+            )}
+          />
+        </div>
+        {/* Submit Button */}
+        <Button
+          className="mt-4 h-7 w-7"
+          size="icon"
+          disabled={isLoading || input === ''}
+          onClick={handleSubmit}
+        >
+          <IconArrowElbow className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
   )
 }
 
+/**
+ * Export the PromptForm as a forwardRef component
+ */
 export const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
   PromptFormRenderer
 )
 
 /**
- * Retrieves the name of the completion query from a given string@.
- * @param {string} val - The input string to search for the completion query name.
- * @param {number | undefined} selectionEnd - The index at which the selection ends in the input string.
- * @return {string | undefined} - The name of the completion query if found, otherwise undefined.
+ * For convenience, also export it as default
  */
-export function getSearchCompletionQueryName(
-  val: string,
-  selectionEnd: number | undefined
-): RegExpExecArray | null {
-  const queryString = val.substring(0, selectionEnd)
-  const matches = /@(\w+)$/.exec(queryString)
-  return matches
-}
+export default PromptForm
 
-function IconForCompletionKind({
-  kind,
-  ...rest
-}: { kind: string | undefined } & React.ComponentProps<'svg'>) {
-  switch (kind) {
-    case 'function':
-      return <IconSymbolFunction {...rest} />
-    default:
-      return <IconSymbolFunction {...rest} />
-  }
-}
+const CustomKeyboardShortcuts = (onSubmit: () => void) =>
+  Extension.create({
+    addKeyboardShortcuts() {
+      return {
+        Enter: ({ editor }) => {
+          onSubmit()
+          return true
+        },
+        'Shift-Enter': () => {
+          return this.editor.commands.first(({ commands }) => [
+            () => commands.newlineInCode(),
+            () => commands.createParagraphNear(),
+            () => commands.liftEmptyBlock(),
+            () => commands.splitBlock()
+          ])
+        }
+      }
+    }
+  })

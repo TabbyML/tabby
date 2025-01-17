@@ -172,6 +172,7 @@ function UserMessageCard(props: { message: UserMessage }) {
             message={message.message}
             canWrapLongLines
             supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+            openInEditor={openInEditor}
           />
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
@@ -393,7 +394,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           clientContexts={clientCode}
           onContextClick={onContextClick}
           showExternalLink={isInEditor}
-          isInEditor={isInEditor}
+          supportsOpenInEditor={!!openInEditor}
           showClientCodeIcon={!isInEditor}
           highlightIndex={relevantCodeHighlightIndex}
           triggerClassname="md:pt-0"
