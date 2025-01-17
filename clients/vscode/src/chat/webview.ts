@@ -477,6 +477,7 @@ export class ChatWebview {
         const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
         return fileContext;
       },
+      
       fetchSessionState: async (keys?: string[] | undefined): Promise<Record<string, unknown> | null> => {
         if (!keys) {
           return { ...this.sessionState };
@@ -497,7 +498,7 @@ export class ChatWebview {
           ...state,
         };
       },
-      
+
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
         const maxResults = params.limit || 50;
         const searchQuery = params.query?.trim();
