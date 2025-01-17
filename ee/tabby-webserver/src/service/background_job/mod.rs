@@ -69,40 +69,46 @@ impl BackgroundJobEvent {
     }
 }
 
-macro_rules! notify_job_error {
-    ($notification_service:expr, $err:expr, $event:expr, $id:expr) => {{
-        let id = $id.as_id();
-        warn!("job {:?} failed: {:?}", $event, $err);
-        let name = match $event {
-            BackgroundJobEvent::SchedulerGitRepository(_) => "Git repository synchronize",
-            BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => {
-                "Github/Gitlab repository synchronize"
-            }
-            BackgroundJobEvent::SyncThirdPartyRepositories(_) => "Integration synchronize",
-            BackgroundJobEvent::WebCrawler(_) => "Web crawler",
-            BackgroundJobEvent::IndexGarbageCollection => "Index garbage collection",
-            BackgroundJobEvent::Hourly => "Hourly",
-            BackgroundJobEvent::Daily => "Daily",
-        };
-        $notification_service
-            .create(
-                NotificationRecipient::Admin,
-                &format!(
-                    r#"Background job failed
+fn background_job_notification_name(event: &BackgroundJobEvent) -> &str {
+    match event {
+        BackgroundJobEvent::SchedulerGitRepository(_) => "Git repository synchronize",
+        BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => {
+            "Github/Gitlab repository synchronize"
+        }
+        BackgroundJobEvent::SyncThirdPartyRepositories(_) => "Integration synchronize",
+        BackgroundJobEvent::WebCrawler(_) => "Web crawler",
+        BackgroundJobEvent::IndexGarbageCollection => "Index garbage collection",
+        BackgroundJobEvent::Hourly => "Hourly",
+        BackgroundJobEvent::Daily => "Daily",
+    }
+}
+
+async fn notify_job_error(
+    notification_service: Arc<dyn NotificationService>,
+    err: &str,
+    event: &BackgroundJobEvent,
+    id: i64,
+) {
+    warn!("job {:?} failed: {:?}", event, err);
+    let name = background_job_notification_name(event);
+    if let Err(err) = notification_service
+        .create(
+            NotificationRecipient::Admin,
+            &format!(
+                r#"Background job failed
 
 Job `{}` has failed.
 
 Please check the log at [Jobs Detail](/jobs/detail?id={}) to identify the underlying issue.
 "#,
-                    name, id
-                ),
-            )
-            .await
-            .map_err(|err| {
-                warn!("Failed to send notification: {:?}", err);
-            })
-            .ok();
-    }};
+                name,
+                id.as_id()
+            ),
+        )
+        .await
+    {
+        warn!("Failed to send notification: {:?}", err);
+    }
 }
 
 pub async fn start(
@@ -192,7 +198,7 @@ pub async fn start(
                         Err(err) => {
                             logkit::warn!(exit_code = 1; "Job failed: {}", err);
                             logger.finalize().await;
-                            notify_job_error!(notification_service, err, event_clone, job_id);
+                            notify_job_error(notification_service.clone(), &err.to_string(), &event_clone, job_id).await;
                         },
                         _ => {
                             logkit::info!(exit_code = 0; "Job completed successfully");

@@ -55,18 +55,11 @@ impl SyncIntegrationJob {
         job: Arc<dyn JobService>,
     ) -> tabby_schema::Result<()> {
         debug!("Syncing all github and gitlab repositories");
-        let integrations = match integration
-            .list_integrations(None, None, None, None, None, None)
-            .await
-        {
-            Ok(integrations) => integrations,
-            Err(err) => {
-                logkit::warn!("Failed to list integrations: {}", err);
-                return Err(err);
-            }
-        };
 
-        for integration in integrations {
+        for integration in integration
+            .list_integrations(None, None, None, None, None, None)
+            .await?
+        {
             let _ = job
                 .trigger(
                     BackgroundJobEvent::SyncThirdPartyRepositories(integration.id).to_command(),
@@ -237,25 +230,16 @@ impl SchedulerGithubGitlabJob {
         repository: Arc<dyn ThirdPartyRepositoryService>,
         job: Arc<dyn JobService>,
     ) -> tabby_schema::Result<()> {
-        let repositories = match repository
+        for repository in repository
             .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
-            .await
+            .await?
         {
-            Ok(repos) => repos,
-            Err(err) => {
-                logkit::warn!("Failed to list repositories: {}", err);
-                return Err(err);
-            }
-        };
-
-        for repository in repositories {
             let _ = job
                 .trigger(
                     BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id).to_command(),
                 )
                 .await;
         }
-
         Ok(())
     }
 }
