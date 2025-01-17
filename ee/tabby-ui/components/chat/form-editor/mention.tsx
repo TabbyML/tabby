@@ -188,8 +188,8 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     }))
 
     return (
-      <div className="max-h-[300px] max-w-[90vw] min-w-[60vw] rounded-md border bg-background p-1 flex flex-col overflow-hidden">
-        <div className="text-muted-foreground text-sm p-1 pl-2">Files</div>
+      <div className="flex max-h-[300px] min-w-[60vw] max-w-[90vw] flex-col overflow-hidden rounded-md border bg-background p-1">
+        <div className="p-1 pl-2 text-sm text-muted-foreground">Files</div>
         <div className="flex-1 overflow-y-auto">
           {!items.length ? (
             <div className="px-2 py-1.5 text-xs text-muted-foreground">

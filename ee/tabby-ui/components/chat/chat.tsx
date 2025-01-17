@@ -286,7 +286,7 @@ function ChatRenderer(
         }
       ]
       setQaPairs(nextQaPairs)
-      
+
       const [createMessageInput, threadRunOptions] =
         await generateRequestPayload(qaPair.user)
 
@@ -321,14 +321,13 @@ function ChatRenderer(
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
 
-
     storeSessionState?.({
       qaPairs: nextQaPairs,
       relevantContext: updatedRelevantContext
     })
 
     setInput(userMessage.message)
-    
+
     const inputContent = convertTextToTiptapContent(userMessage.message)
     setInput({
       type: 'doc',
@@ -566,7 +565,7 @@ function ChatRenderer(
       storeSessionState?.({
         qaPairs: nextQaPairs
       })
-        
+
       const payload = await generateRequestPayload(newUserMessage)
       sendUserMessage(...payload)
     }

@@ -258,7 +258,7 @@ export default function ChatPage() {
         server
           ?.hasCapability('readFileContent')
           .then(setSupportsReadFileContent)
-        
+
         Promise.all([
           server?.hasCapability('fetchSessionState'),
           server?.hasCapability('storeSessionState')

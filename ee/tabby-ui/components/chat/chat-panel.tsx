@@ -352,7 +352,7 @@ function ChatPanelRenderer(
                     <Badge
                       variant="outline"
                       className={cn(
-                        'inline-flex h-7 flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold cursor-pointer'
+                        'inline-flex h-7 cursor-pointer flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold'
                       )}
                       onClick={() => {
                         openInEditor(getFileLocationFromContext(item))

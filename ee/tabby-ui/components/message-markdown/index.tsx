@@ -433,7 +433,7 @@ function FileTag({
   return (
     <span
       className={cn(
-        'symbol bg-muted py-0.5 leading-5 space-x-1 border whitespace-nowrap align-middle py-0.5',
+        'symbol space-x-1 whitespace-nowrap border bg-muted py-0.5 align-middle leading-5',
         className,
         {
           'hover:bg-muted/50 cursor-pointer': !!openInEditor && !!filepath
