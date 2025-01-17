@@ -10,7 +10,7 @@ let g:tabby_inline_completion_source = get(g:, 'tabby_inline_completion_source',
   \ })
 
 function! tabby#inline_completion#Setup()
-  augroup tabby_inline_completion_events
+  augroup tabby_inline_completion_install
     autocmd!
     autocmd User tabby_lsp_on_buffer_attached call tabby#inline_completion#Install()
   augroup end

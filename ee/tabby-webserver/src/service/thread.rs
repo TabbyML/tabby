@@ -183,7 +183,7 @@ impl ThreadService for ThreadServiceImpl {
             .await?;
 
         let s = answer
-            .answer_v2(policy, &messages, options, attachment_input)
+            .answer(policy, &messages, options, attachment_input)
             .await?;
 
         // Copy ownership of db and thread_id for the stream

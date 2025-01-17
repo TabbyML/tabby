@@ -46,7 +46,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CopyButton } from '@/components/copy-button'
 import { LicenseGuard } from '@/components/license-guard'
 
-import { oauthCredential } from './oauth-credential-list'
+import { oauthCredential } from './credential-list'
+import { SubTitle } from './form-sub-title'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential($input: UpdateOAuthCredentialInput!) {
@@ -171,19 +172,8 @@ export default function OAuthCredentialForm({
   return (
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
-        <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
-          <SubTitle className="mt-2">Basic information</SubTitle>
-          <FormItem>
-            <Label>Type</Label>
-            <RadioGroup defaultValue="oauth">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="oauth" id="type_oauth" />
-                <Label className="cursor-pointer" htmlFor="type_oauth">
-                  OAuth 2.0
-                </Label>
-              </div>
-            </RadioGroup>
-          </FormItem>
+        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <SubTitle>Basic information</SubTitle>
           <FormField
             control={form.control}
             name="provider"
@@ -197,42 +187,42 @@ export default function OAuthCredentialForm({
                     onValueChange={onChange}
                     {...rest}
                   >
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center">
                       <RadioGroupItem
                         value={OAuthProvider.Github}
                         id="r_github"
                         disabled={!isNew}
                       />
                       <Label
-                        className="flex cursor-pointer items-center gap-2"
+                        className="flex cursor-pointer items-center gap-2 pl-2"
                         htmlFor="r_github"
                       >
                         <IconGitHub className="h-5 w-5" />
                         GitHub
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center">
                       <RadioGroupItem
                         value={OAuthProvider.Google}
                         id="r_google"
                         disabled={!isNew}
                       />
                       <Label
-                        className="flex cursor-pointer items-center gap-2"
+                        className="flex cursor-pointer items-center gap-2 pl-2"
                         htmlFor="r_google"
                       >
                         <IconGoogle className="h-5 w-5" />
                         Google
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center">
                       <RadioGroupItem
                         value={OAuthProvider.Gitlab}
                         id="r_gitlab"
                         disabled={!isNew}
                       />
                       <Label
-                        className="flex cursor-pointer items-center gap-2"
+                        className="flex cursor-pointer items-center gap-2 pl-2"
                         htmlFor="r_gitlab"
                       >
                         <IconGitLab className="h-5 w-5" />
@@ -268,7 +258,7 @@ export default function OAuthCredentialForm({
             </FormItem>
           )}
 
-          <div>
+          <div className="mt-4">
             <SubTitle>OAuth provider information</SubTitle>
             <FormDescription>
               The information is provided by your identity provider.
@@ -323,7 +313,7 @@ export default function OAuthCredentialForm({
               variant="ghost"
               onClick={navigateToSSOSettings}
             >
-              Cancel
+              Back
             </Button>
             {!isNew && (
               <AlertDialog
@@ -378,14 +368,5 @@ export default function OAuthCredentialForm({
         <FormMessage className="text-center" />
       </div>
     </Form>
-  )
-}
-
-function SubTitle({
-  className,
-  ...rest
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn('mt-4 text-xl font-semibold', className)} {...rest} />
   )
 }

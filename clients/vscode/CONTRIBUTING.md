@@ -9,8 +9,14 @@ Thank you for considering contributing to Tabby VSCode Extension, to get started
 # Install dependencies
 pnpm install
 
+# Build project
+pnpm build
+
+# Change directory to VSCode extension
+cd ./clients/vscode
+
 # Start VSCode in development mode, with the extension loaded
-pnpm dev
+pnpm vscode:dev
 
 # Start VSCode Webview in development mode, with the extension loaded
 pnpm dev:browser

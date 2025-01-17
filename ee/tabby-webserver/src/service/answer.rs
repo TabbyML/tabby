@@ -1,3 +1,5 @@
+mod prompt_tools;
+
 use std::{
     collections::HashMap,
     fs::File,
@@ -7,15 +9,21 @@ use std::{
 };
 
 use anyhow::anyhow;
-use async_openai::{
+use async_openai_alt::{
     error::OpenAIError,
     types::{
+        ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
         ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
-        ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, Role,
+        ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
+        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs, Role,
     },
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
+use prompt_tools::{
+    pipeline_decide_need_codebase_commit_history, pipeline_decide_need_codebase_directory_tree,
+    pipeline_related_questions,
+};
 use tabby_common::{
     api::{
         code::{
@@ -34,7 +42,8 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentDoc, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
+        MessageAttachmentCodeInput, MessageAttachmentDoc, MessageAttachmentInput,
+        MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
         ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
@@ -77,7 +86,7 @@ impl AnswerService {
         }
     }
 
-    pub async fn answer_v2<'a>(
+    pub async fn answer<'a>(
         self: Arc<Self>,
         policy: &AccessPolicy,
         messages: &[tabby_schema::thread::Message],
@@ -115,6 +124,22 @@ impl AnswerService {
                     ).await;
                     attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
+                    // FIXME(zwpaper): Turn on directory tree in prod when it got stored in index.
+                    if !cfg!(feature = "prod") {
+                        let need_codebase_directory_tree = pipeline_decide_need_codebase_directory_tree(self.chat.clone(), &query.content).await.unwrap_or_default();
+                        if need_codebase_directory_tree {
+                            todo!("inject codebase directory structure into MessageAttachment and ThreadRunItem::ThreadAssistantMessageAttachmentsCode");
+                        }
+                    }
+
+                    // FIXME(zwpaper): Turn on codebase commit history in prod when it got stored in index.
+                    if !cfg!(feature = "prod") {
+                        let need_codebase_commit_history = pipeline_decide_need_codebase_commit_history(self.chat.clone(), &query.content).await.unwrap_or_default();
+                        if need_codebase_commit_history {
+                            todo!("inject codebase commit history into MessageAttachment and ThreadRunItem::ThreadAssistantMessageAttachmentsCode");
+                        }
+                    }
+
                     if !hits.is_empty() {
                         let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                         yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
@@ -132,7 +157,7 @@ impl AnswerService {
                     Self::new_message_attachment_doc(self.auth.clone(), x.doc.clone()).await
                 })).await;
 
-                debug!("doc content: {:?}: {:?}", doc_query.content, attachment.doc.len());
+                debug!("query content: {:?}, matched {:?} docs", doc_query.content, attachment.doc.len());
 
                 if !attachment.doc.is_empty() {
                     let hits = futures::future::join_all(hits.into_iter().map(|x| {
@@ -157,7 +182,7 @@ impl AnswerService {
                 // Rewrite [[source:${id}]] tags to the actual source name for generate relevant questions.
                 let content = context_info_helper.rewrite_tag(&query.content);
                 match self
-                    .generate_relevant_questions_v2(&attachment, &content)
+                    .generate_relevant_questions(&attachment, &content)
                     .await{
                     Ok(questions) => {
                         yield Ok(ThreadRunItem::ThreadRelevantQuestions(ThreadRelevantQuestions{
@@ -337,7 +362,7 @@ impl AnswerService {
         hits
     }
 
-    async fn generate_relevant_questions_v2(
+    async fn generate_relevant_questions(
         &self,
         attachment: &MessageAttachment,
         question: &str,
@@ -364,51 +389,8 @@ impl AnswerService {
             .collect();
 
         let context: String = snippets.join("\n\n");
-        let prompt = format!(
-            r#"
-You are a helpful assistant that helps the user to ask related questions, based on user's original question and the related contexts. Please identify worthwhile topics that can be follow-ups, and write questions no longer than 20 words each. Please make sure that specifics, like events, names, locations, are included in follow up questions so they can be asked standalone. For example, if the original question asks about "the Manhattan project", in the follow up question, do not just say "the project", but use the full name "the Manhattan project". Your related questions must be in the same language as the original question.
-
-Here are the contexts of the question:
-
-{context}
-
-Remember, based on the original question and related contexts, suggest three such further questions. Do NOT repeat the original question. Each related question should be no longer than 20 words. Here is the original question:
-
-{question}
-"#
-        );
-
-        let request = CreateChatCompletionRequestArgs::default()
-            .messages(vec![ChatCompletionRequestMessage::User(
-                ChatCompletionRequestUserMessageArgs::default()
-                    .content(prompt)
-                    .build()
-                    .expect("Failed to create ChatCompletionRequestUserMessage"),
-            )])
-            .build()?;
-
-        let chat = self.chat.clone();
-        let s = chat.chat(request).await?;
-        let content = s.choices[0]
-            .message
-            .content
-            .as_deref()
-            .ok_or_else(|| anyhow!("Failed to get content from chat completion"))?;
-        Ok(content
-            .lines()
-            .map(trim_bullet)
-            .filter(|x| !x.is_empty())
-            .collect())
+        pipeline_related_questions(self.chat.clone(), &context, question).await
     }
-}
-
-fn trim_bullet(s: &str) -> String {
-    let is_bullet = |c: char| c == '-' || c == '*' || c == '.' || c.is_numeric();
-    s.trim()
-        .trim_start_matches(is_bullet)
-        .trim_end_matches(is_bullet)
-        .trim()
-        .to_owned()
 }
 
 pub fn create(
@@ -438,8 +420,9 @@ fn convert_messages_to_chat_completion_request(
     if !config.system_prompt.is_empty() {
         output.push(ChatCompletionRequestMessage::System(
             ChatCompletionRequestSystemMessage {
-                content: config.system_prompt.clone(),
-                role: Role::System,
+                content: ChatCompletionRequestSystemMessageContent::Text(
+                    config.system_prompt.clone(),
+                ),
                 name: None,
             },
         ));
@@ -452,36 +435,46 @@ fn convert_messages_to_chat_completion_request(
             thread::Role::User => Role::User,
         };
 
-        let content = if role == Role::User {
+        let message: ChatCompletionRequestMessage = if role == Role::User {
             if i % 2 != 0 {
                 bail!("User message must be followed by assistant message");
             }
 
             let y = &messages[i + 1];
 
-            build_user_prompt(&x.content, &y.attachment, None)
+            let user_attachment_input =
+                user_attachment_input_from_user_message_attachment(&x.attachment);
+
+            let content =
+                build_user_prompt(&x.content, &y.attachment, Some(&user_attachment_input));
+            ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                content: ChatCompletionRequestUserMessageContent::Text(
+                    helper.rewrite_tag(&content),
+                ),
+                ..Default::default()
+            })
         } else {
-            x.content.clone()
+            ChatCompletionRequestMessage::Assistant(ChatCompletionRequestAssistantMessage {
+                content: Some(ChatCompletionRequestAssistantMessageContent::Text(
+                    x.content.clone(),
+                )),
+                ..Default::default()
+            })
         };
 
-        output.push(ChatCompletionRequestMessage::System(
-            ChatCompletionRequestSystemMessage {
-                content: helper.rewrite_tag(&content),
-                role,
-                name: None,
-            },
-        ));
+        output.push(message);
     }
 
-    output.push(ChatCompletionRequestMessage::System(
-        ChatCompletionRequestSystemMessage {
-            content: helper.rewrite_tag(&build_user_prompt(
-                &messages[messages.len() - 1].content,
-                attachment,
-                user_attachment_input,
+    output.push(ChatCompletionRequestMessage::User(
+        ChatCompletionRequestUserMessage {
+            content: ChatCompletionRequestUserMessageContent::Text(helper.rewrite_tag(
+                &build_user_prompt(
+                    &messages[messages.len() - 1].content,
+                    attachment,
+                    user_attachment_input,
+                ),
             )),
-            role: Role::User,
-            name: None,
+            ..Default::default()
         },
     ));
 
@@ -577,7 +570,7 @@ pub async fn merge_code_snippets(
 
             if let Some(file_content) = file_content {
                 debug!(
-                    "file {} less than 300, it will be included whole file content",
+                    "The file {} is less than 300 lines, so the entire file content will be included",
                     file_hits[0].doc.filepath
                 );
                 let mut insert_hit = file_hits[0].clone();
@@ -646,12 +639,25 @@ fn get_content(doc: &MessageAttachmentDoc) -> &str {
     }
 }
 
+fn user_attachment_input_from_user_message_attachment(
+    attachment: &MessageAttachment,
+) -> MessageAttachmentInput {
+    let user_attachment_code_input: Vec<MessageAttachmentCodeInput> = attachment
+        .client_code
+        .iter()
+        .map(Clone::clone)
+        .map(Into::into)
+        .collect();
+    MessageAttachmentInput {
+        code: user_attachment_code_input,
+    }
+}
+
 #[cfg(test)]
 pub mod testutils;
 
 #[cfg(test)]
 mod tests {
-
     use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
@@ -674,17 +680,14 @@ mod tests {
         AsID,
     };
 
-    use crate::{
-        answer::{
-            merge_code_snippets,
-            testutils::{
-                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
-                FakeContextService, FakeDocSearch,
-            },
-            trim_bullet, AnswerService,
+    use super::{
+        testutils::{
+            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
+            FakeDocSearch,
         },
-        service::{access_policy::testutils::make_policy, auth},
+        *,
     };
+    use crate::service::{access_policy::testutils::make_policy, auth};
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
@@ -947,7 +950,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_generate_relevant_questions_v2() {
+    async fn test_generate_relevant_questions() {
         let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
@@ -997,7 +1000,7 @@ mod tests {
         let question = "What is the purpose of this code?";
 
         let result = service
-            .generate_relevant_questions_v2(&attachment, question)
+            .generate_relevant_questions(&attachment, question)
             .await;
 
         let expected = vec![
@@ -1010,7 +1013,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_generate_relevant_questions_v2_error() {
+    async fn test_generate_relevant_questions_error() {
         let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> =
             Arc::new(FakeChatCompletionStream { return_error: true });
@@ -1059,7 +1062,7 @@ mod tests {
         let question = "What is the purpose of this code?";
 
         let result = service
-            .generate_relevant_questions_v2(&attachment, question)
+            .generate_relevant_questions(&attachment, question)
             .await;
 
         assert!(result.is_err());
@@ -1146,30 +1149,8 @@ mod tests {
         assert_eq!(hits_4.len(), 0);
     }
 
-    #[test]
-    fn test_trim_bullet() {
-        assert_eq!(trim_bullet("- Hello"), "Hello");
-        assert_eq!(trim_bullet("* World"), "World");
-        assert_eq!(trim_bullet("1. Test"), "Test");
-        assert_eq!(trim_bullet(".Dot"), "Dot");
-
-        assert_eq!(trim_bullet("- Hello -"), "Hello");
-        assert_eq!(trim_bullet("1. Test 1"), "Test");
-
-        assert_eq!(trim_bullet("--** Mixed"), "Mixed");
-
-        assert_eq!(trim_bullet("  - Hello  "), "Hello");
-
-        assert_eq!(trim_bullet("-"), "");
-        assert_eq!(trim_bullet(""), "");
-        assert_eq!(trim_bullet("   "), "");
-
-        assert_eq!(trim_bullet("Hello World"), "Hello World");
-
-        assert_eq!(trim_bullet("1. *Bold* and -italic-"), "*Bold* and -italic");
-    }
     #[tokio::test]
-    async fn test_answer_v2() {
+    async fn test_answer() {
         use std::sync::Arc;
 
         use futures::StreamExt;
@@ -1229,7 +1210,7 @@ mod tests {
         let user_attachment_input = None;
 
         let result = service
-            .answer_v2(&policy, &messages, &options, user_attachment_input)
+            .answer(&policy, &messages, &options, user_attachment_input)
             .await
             .unwrap();
 

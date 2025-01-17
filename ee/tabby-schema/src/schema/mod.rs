@@ -20,7 +20,7 @@ pub mod worker;
 use std::{sync::Arc, time::Instant};
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
-use async_openai::{
+use async_openai_alt::{
     error::OpenAIError,
     types::{
         ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
@@ -28,7 +28,8 @@ use async_openai::{
     },
 };
 use auth::{
-    AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
+    AuthProvider, AuthProviderKind, AuthenticationService, Invitation, LdapCredential,
+    RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UpdateLdapCredentialInput,
     UserSecured,
 };
 use base64::Engine;
@@ -41,8 +42,10 @@ use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLEnum, GraphQLObject,
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
+use ldap3::result::LdapError;
 use notification::NotificationService;
 use repository::RepositoryGrepOutput;
+use strum::IntoEnumIterator;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     config::CompletionConfig,
@@ -143,6 +146,12 @@ pub enum CoreError {
 
     #[error("{0}")]
     Other(#[from] anyhow::Error),
+}
+
+impl From<LdapError> for CoreError {
+    fn from(err: LdapError) -> Self {
+        Self::Other(err.into())
+    }
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
@@ -429,6 +438,29 @@ impl Query {
         Ok(RepositoryGrepOutput { files, elapsed_ms })
     }
 
+    async fn auth_providers(ctx: &Context) -> Result<Vec<AuthProvider>> {
+        let mut providers = vec![];
+
+        let auth = ctx.locator.auth();
+        for x in OAuthProvider::iter() {
+            if auth
+                .read_oauth_credential(x.clone())
+                .await
+                .is_ok_and(|x| x.is_some())
+            {
+                providers.push(x.into());
+            }
+        }
+
+        if auth.read_ldap_credential().await.is_ok_and(|x| x.is_some()) {
+            providers.push(AuthProvider {
+                kind: AuthProviderKind::Ldap,
+            });
+        }
+
+        Ok(providers)
+    }
+
     async fn oauth_credential(
         ctx: &Context,
         provider: OAuthProvider,
@@ -440,6 +472,11 @@ impl Query {
     async fn oauth_callback_url(ctx: &Context, provider: OAuthProvider) -> Result<String> {
         check_admin(ctx).await?;
         ctx.locator.auth().oauth_callback_url(provider).await
+    }
+
+    async fn ldap_credential(ctx: &Context) -> Result<Option<LdapCredential>> {
+        check_admin(ctx).await?;
+        ctx.locator.auth().read_ldap_credential().await
     }
 
     async fn server_info(ctx: &Context) -> Result<ServerInfo> {
@@ -975,6 +1012,22 @@ impl Mutation {
             .await
     }
 
+    async fn token_auth_ldap(
+        ctx: &Context,
+        user_id: String,
+        password: String,
+    ) -> Result<TokenAuthResponse> {
+        let input = auth::TokenAuthLdapInput {
+            user_id: &user_id,
+            password: &password,
+        };
+        input.validate()?;
+        ctx.locator
+            .auth()
+            .token_auth_ldap(&user_id, &password)
+            .await
+    }
+
     async fn verify_token(ctx: &Context, token: String) -> Result<bool> {
         ctx.locator.auth().verify_access_token(&token).await?;
         Ok(true)
@@ -1055,6 +1108,31 @@ impl Mutation {
     async fn delete_oauth_credential(ctx: &Context, provider: OAuthProvider) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.auth().delete_oauth_credential(provider).await?;
+        Ok(true)
+    }
+
+    async fn test_ldap_connection(ctx: &Context, input: UpdateLdapCredentialInput) -> Result<bool> {
+        check_admin(ctx).await?;
+        check_license(ctx, &[LicenseType::Enterprise]).await?;
+        ctx.locator.auth().test_ldap_connection(input).await?;
+        Ok(true)
+    }
+
+    async fn update_ldap_credential(
+        ctx: &Context,
+        input: UpdateLdapCredentialInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        check_license(ctx, &[LicenseType::Enterprise]).await?;
+        input.validate()?;
+
+        ctx.locator.auth().update_ldap_credential(input).await?;
+        Ok(true)
+    }
+
+    async fn delete_ldap_credential(ctx: &Context) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator.auth().delete_ldap_credential().await?;
         Ok(true)
     }
 

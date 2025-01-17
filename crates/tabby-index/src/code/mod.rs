@@ -64,7 +64,7 @@ impl CodeBuilder {
 impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
     async fn build_attributes(&self, source_code: &SourceCode) -> serde_json::Value {
         json!({
-            code::fields::ATTRIBUTE_COMMIT: source_code.commit,
+            code::fields::COMMIT: source_code.commit,
         })
     }
 

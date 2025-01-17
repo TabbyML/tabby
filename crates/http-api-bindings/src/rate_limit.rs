@@ -1,4 +1,4 @@
-use async_openai::{
+use async_openai_alt::{
     error::OpenAIError,
     types::{
         ChatCompletionResponseStream, CreateChatCompletionRequest, CreateChatCompletionResponse,

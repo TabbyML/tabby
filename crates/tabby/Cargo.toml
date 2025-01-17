@@ -59,7 +59,7 @@ axum-prometheus = "0.6"
 uuid.workspace = true
 color-eyre = { version = "0.6.3" }
 reqwest.workspace = true
-async-openai.workspace = true
+async-openai-alt.workspace = true
 spinners = "4.1.1"
 regex.workspace = true
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_openai::{
+use async_openai_alt::{
     error::OpenAIError,
     types::{
         ChatChoice, ChatChoiceStream, ChatCompletionResponseMessage, ChatCompletionResponseStream,
@@ -44,7 +44,7 @@ impl ChatCompletionStream for FakeChatCompletionStream {
         _request: CreateChatCompletionRequest,
     ) -> Result<CreateChatCompletionResponse, OpenAIError> {
         if self.return_error {
-            return Err(OpenAIError::ApiError(async_openai::error::ApiError {
+            return Err(OpenAIError::ApiError(async_openai_alt::error::ApiError {
                 message: "error".to_string(),
                 code: None,
                 param: None,
@@ -69,15 +69,19 @@ impl ChatCompletionStream for FakeChatCompletionStream {
                     ),
                     tool_calls: None,
                     function_call: None,
+                    refusal: None,
                 },
                 finish_reason: Some(FinishReason::Stop),
                 logprobs: None,
             }],
             system_fingerprint: Some("seed".to_owned()),
+            service_tier: None,
             usage: Some(CompletionUsage {
                 prompt_tokens: 1,
                 completion_tokens: 2,
                 total_tokens: 3,
+                prompt_tokens_details: None,
+                completion_tokens_details: None,
             }),
         })
     }
@@ -99,11 +103,20 @@ impl ChatCompletionStream for FakeChatCompletionStream {
                         content: Some("This is the first part of the response. ".to_string()),
                         function_call: None,
                         tool_calls: None,
+                        refusal: None,
                     },
                     finish_reason: None,
                     logprobs: None,
                 }],
                 system_fingerprint: Some("seed".to_owned()),
+                service_tier: None,
+                usage: Some(CompletionUsage {
+                    prompt_tokens: 1,
+                    completion_tokens: 2,
+                    total_tokens: 3,
+                    prompt_tokens_details: None,
+                    completion_tokens_details: None,
+                }),
             }),
             Ok(CreateChatCompletionStreamResponse {
                 id: "test-stream-response".to_owned(),
@@ -117,11 +130,20 @@ impl ChatCompletionStream for FakeChatCompletionStream {
                         content: Some("This is the second part of the response.".to_string()),
                         function_call: None,
                         tool_calls: None,
+                        refusal: None,
                     },
                     finish_reason: Some(FinishReason::Stop),
                     logprobs: None,
                 }],
                 system_fingerprint: Some("seed".to_owned()),
+                service_tier: None,
+                usage: Some(CompletionUsage {
+                    prompt_tokens: 1,
+                    completion_tokens: 2,
+                    total_tokens: 3,
+                    prompt_tokens_details: None,
+                    completion_tokens_details: None,
+                }),
             }),
         ]);
 

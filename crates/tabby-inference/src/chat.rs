@@ -1,4 +1,4 @@
-use async_openai::{
+use async_openai_alt::{
     config::OpenAIConfig,
     error::OpenAIError,
     types::{
@@ -85,7 +85,7 @@ impl ExtendedOpenAIConfig {
     }
 }
 
-impl async_openai::config::Config for ExtendedOpenAIConfig {
+impl async_openai_alt::config::Config for ExtendedOpenAIConfig {
     fn headers(&self) -> reqwest::header::HeaderMap {
         self.base.headers()
     }
@@ -108,7 +108,7 @@ impl async_openai::config::Config for ExtendedOpenAIConfig {
 }
 
 #[async_trait]
-impl ChatCompletionStream for async_openai::Client<ExtendedOpenAIConfig> {
+impl ChatCompletionStream for async_openai_alt::Client<ExtendedOpenAIConfig> {
     async fn chat(
         &self,
         request: CreateChatCompletionRequest,
@@ -122,6 +122,23 @@ impl ChatCompletionStream for async_openai::Client<ExtendedOpenAIConfig> {
         request: CreateChatCompletionRequest,
     ) -> Result<ChatCompletionResponseStream, OpenAIError> {
         let request = self.config().process_request(request);
+        self.chat().create_stream(request).await
+    }
+}
+
+#[async_trait]
+impl ChatCompletionStream for async_openai_alt::Client<async_openai_alt::config::AzureConfig> {
+    async fn chat(
+        &self,
+        request: CreateChatCompletionRequest,
+    ) -> Result<CreateChatCompletionResponse, OpenAIError> {
+        self.chat().create(request).await
+    }
+
+    async fn chat_stream(
+        &self,
+        request: CreateChatCompletionRequest,
+    ) -> Result<ChatCompletionResponseStream, OpenAIError> {
         self.chat().create_stream(request).await
     }
 }

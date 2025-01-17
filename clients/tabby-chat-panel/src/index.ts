@@ -211,6 +211,47 @@ export interface GitRepository {
  */
 export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
 
+/**
+ * Represents a file reference for retrieving file content.
+ * If `range` is not provided, the entire file is considered.
+ */
+export interface FileRange {
+  /**
+   * The file path of the file.
+   */
+  filepath: Filepath
+
+  /**
+   * The range of the selected content in the file.
+   * If the range is not provided, the whole file is considered.
+   */
+  range?: LineRange | PositionRange
+}
+
+/**
+ * Defines optional parameters used to filter or limit the results of a file query.
+ */
+export interface ListFilesInWorkspaceParams {
+  /**
+   * The query string to filter the files.
+   * The query string could be an empty string. In this case, we do not read all files in the workspace,
+   * but only list the opened files in the editor.
+   */
+  query: string
+
+  /**
+   * The maximum number of files to list.
+   */
+  limit?: number
+}
+
+export interface ListFileItem {
+  /**
+   * The filepath of the file.
+   */
+  filepath: Filepath
+}
+
 export interface ServerApi {
   init: (request: InitRequest) => void
 
@@ -278,6 +319,37 @@ export interface ClientApiMethods {
    * @returns The active selection of active editor.
    */
   getActiveEditorSelection: () => Promise<EditorFileContext | null>
+
+  /**
+   * Fetch the saved session state from the client.
+   * When initialized, the chat panel attempts to fetch the saved session state to restore the session.
+   * @param keys The keys to be fetched. If not provided, all keys will be returned.
+   * @return The saved persisted state, or null if no state is found.
+   */
+  fetchSessionState?: (keys?: string[] | undefined) => Promise<Record<string, unknown> | null>
+
+  /**
+   * Save the session state of the chat panel.
+   * The client is responsible for maintaining the state in case of a webview reload.
+   * The saved state should be merged and updated by the record key.
+   * @param state The state to save.
+   */
+  storeSessionState?: (state: Record<string, unknown>) => Promise<void>
+
+  /**
+   * Returns a list of file information matching the specified query.
+   * @param params An {@link ListFilesInWorkspaceParams} object that includes a search query and a limit for the results.
+   * @returns An array of {@link ListFileItem} objects that could be empty.
+   */
+  listFileInWorkspace?: (params: ListFilesInWorkspaceParams) => Promise<ListFileItem[]>
+
+  /**
+   * Returns the content of a file within the specified range.
+   * If `range` is not provided, the entire file content is returned.
+   * @param info A {@link FileRange} object that includes the file path and optionally a 1-based line range.
+   * @returns The content of the file as a string, or `null` if the file or range cannot be accessed.
+   */
+  readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -303,6 +375,10 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
       getActiveEditorSelection: api.getActiveEditorSelection,
+      fetchSessionState: api.fetchSessionState,
+      storeSessionState: api.storeSessionState,
+      listFileInWorkspace: api.listFileInWorkspace,
+      readFileContent: api.readFileContent,
     },
   })
 }

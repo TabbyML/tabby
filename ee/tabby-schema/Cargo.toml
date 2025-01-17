@@ -10,7 +10,7 @@ schema-language = ["juniper/schema-language"]
 
 [dependencies]
 anyhow.workspace = true
-async-openai.workspace = true
+async-openai-alt.workspace = true
 async-trait.workspace = true
 axum = { workspace = true }
 base64 = "0.22.0"
@@ -30,6 +30,7 @@ validator = { version = "0.18.1", features = ["derive"] }
 regex.workspace = true
 hash-ids.workspace = true
 url.workspace = true
+ldap3.workspace = true
 
 [dev-dependencies]
 tabby-db = { path = "../../ee/tabby-db", features = ["testutils"]}

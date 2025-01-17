@@ -54,19 +54,22 @@ fn initialize_server(gpu_device: Option<&str>) {
     });
 }
 
-async fn wait_for_server(device: Option<&str>) {
-    initialize_server(device);
+async fn wait_for_server(gpu_device: Option<&str>) {
+    initialize_server(gpu_device);
 
     loop {
         println!("Waiting for server to start...");
-        let is_ok = reqwest::get("http://127.0.0.1:9090/v1/health")
-            .await
-            .is_ok();
-        if is_ok {
-            break;
-        } else {
-            sleep(Duration::from_secs(5)).await;
+        match reqwest::get("http://127.0.0.1:9090/v1/health").await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    break;
+                }
+            }
+            Err(e) => {
+                println!("Waiting for server to start: {:?}", e);
+            }
         }
+        sleep(Duration::from_secs(5)).await;
     }
 }
 
