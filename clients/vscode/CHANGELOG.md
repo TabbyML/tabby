@@ -1,3 +1,18 @@
+## 1.18.0
+
+### Features
+
+- **Chat**:
+  - Added support to explicitly select a configured Git repository as the context for chat conversations.
+  - Added support to use the active Notebook editor selection as the context for chat conversations.
+  - Display error messages and suggest actions when failing to load the chat panel.
+  - **Note**: Requires updating the Tabby server to version 0.23.0 or later.
+
+### Fixes & Improvements
+
+- Updated the status bar item to show warning when the server returns an error due to too many requests.
+- Improved the UI for the Tabby command palette and when updating the token.
+
 ## 1.16.0
 
 ### Features
