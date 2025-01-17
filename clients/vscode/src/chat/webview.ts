@@ -14,6 +14,7 @@ import {
   ProgressLocation,
   Location,
   LocationLink,
+  TabInputText,
 } from "vscode";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import type {
@@ -26,6 +27,9 @@ import type {
   FileLocation,
   GitRepository,
   EditorFileContext,
+  ListFilesInWorkspaceParams,
+  ListFileItem,
+  FileRange,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import { v4 as uuid } from "uuid";
@@ -43,6 +47,8 @@ import {
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
+  uriToListFileItem,
+  escapeGlobPattern,
 } from "./utils";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
@@ -491,6 +497,54 @@ export class ChatWebview {
           ...this.sessionState,
           ...state,
         };
+      },
+
+      listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
+        const maxResults = params.limit || 50;
+        const searchQuery = params.query?.trim();
+
+        if (!searchQuery) {
+          const openTabs = window.tabGroups.all
+            .flatMap((group) => group.tabs)
+            .filter((tab) => tab.input && (tab.input as TabInputText).uri);
+
+          this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
+          return openTabs.map((tab) => uriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
+        }
+
+        try {
+          const caseInsensitivePattern = searchQuery
+            .split("")
+            .map((char) => {
+              if (char.toLowerCase() !== char.toUpperCase()) {
+                return `{${char.toLowerCase()},${char.toUpperCase()}}`;
+              }
+              return escapeGlobPattern(char);
+            })
+            .join("");
+
+          const globPattern = `**/${caseInsensitivePattern}*`;
+
+          this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
+
+          const files = await workspace.findFiles(globPattern, undefined, maxResults);
+          this.logger.info(`Found ${files.length} files.`);
+          return files.map((uri) => uriToListFileItem(uri, this.gitProvider));
+        } catch (error) {
+          this.logger.warn("Failed to find files:", error);
+          window.showErrorMessage("Failed to find files.");
+          return [];
+        }
+      },
+
+      readFileContent: async (info: FileRange): Promise<string | null> => {
+        const uri = chatPanelFilepathToLocalUri(info.filepath, this.gitProvider);
+        if (!uri) {
+          this.logger.warn(`Could not resolve URI from filepath: ${JSON.stringify(info.filepath)}`);
+          return null;
+        }
+        const document = await workspace.openTextDocument(uri);
+        return document.getText(chatPanelLocationToVSCodeRange(info.range) ?? undefined);
       },
     });
   }

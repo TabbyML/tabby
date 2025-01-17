@@ -38,6 +38,8 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       getActiveEditorSelection: api.getActiveEditorSelection,
       fetchSessionState: api.fetchSessionState,
       storeSessionState: api.storeSessionState,
+      listFileInWorkspace: api.listFileInWorkspace,
+      readFileContent: api.readFileContent,
     },
   });
 }

@@ -1,11 +1,12 @@
 import path from "path";
-import { TextEditor, Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
+import { Position as VSCodePosition, Range as VSCodeRange, Uri, workspace, TextEditor } from "vscode";
 import type {
   Filepath,
   Position as ChatPanelPosition,
   LineRange,
   PositionRange,
   Location,
+  ListFileItem,
   FilepathInGitRepository,
 } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
@@ -220,4 +221,15 @@ export function generateLocalNotebookCellUri(notebook: Uri, handle: number): Uri
   const p = s.length < nb_lengths.length ? nb_lengths[s.length - 1] : "z";
   const fragment = `${p}${s}s${Buffer.from(notebook.scheme).toString("base64")}`;
   return notebook.with({ scheme: DocumentSchemes.vscodeNotebookCell, fragment });
+}
+
+export function uriToListFileItem(uri: Uri, gitProvider: GitProvider): ListFileItem {
+  return {
+    filepath: localUriToChatPanelFilepath(uri, gitProvider),
+  };
+}
+
+export function escapeGlobPattern(query: string): string {
+  // escape special glob characters: * ? [ ] { } ( ) ! @
+  return query.replace(/[*?[\]{}()!@]/g, "\\$&");
 }
