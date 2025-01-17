@@ -225,7 +225,6 @@ export function generateLocalNotebookCellUri(notebook: Uri, handle: number): Uri
 
 export function uriToListFileItem(uri: Uri, gitProvider: GitProvider): ListFileItem {
   return {
-    label: workspace.asRelativePath(uri),
     filepath: localUriToChatPanelFilepath(uri, gitProvider),
   };
 }
