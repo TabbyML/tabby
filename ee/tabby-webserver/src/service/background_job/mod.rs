@@ -28,8 +28,9 @@ use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
     license::LicenseService,
-    notification::NotificationService,
+    notification::{NotificationRecipient, NotificationService},
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
+    AsID,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
@@ -37,7 +38,7 @@ pub use web_crawler::WebCrawlerJob;
 
 use self::third_party_integration::SyncIntegrationJob;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BackgroundJobEvent {
     SchedulerGitRepository(CodeRepository),
     SchedulerGithubGitlabRepository(ID),
@@ -65,6 +66,44 @@ impl BackgroundJobEvent {
 
     pub fn to_command(&self) -> String {
         serde_json::to_string(self).expect("Failed to serialize background job event")
+    }
+}
+
+fn background_job_notification_name(event: &BackgroundJobEvent) -> &str {
+    match event {
+        BackgroundJobEvent::SchedulerGitRepository(_) => "Indexing Repository",
+        BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => "Indexing Repository",
+        BackgroundJobEvent::SyncThirdPartyRepositories(_) => "Loading Repository",
+        BackgroundJobEvent::WebCrawler(_) => "Web Indexing",
+        BackgroundJobEvent::IndexGarbageCollection => "Garbage Collection",
+        BackgroundJobEvent::Hourly => "Hourly",
+        BackgroundJobEvent::Daily => "Daily",
+    }
+}
+
+async fn notify_job_error(
+    notification_service: Arc<dyn NotificationService>,
+    err: &str,
+    event: &BackgroundJobEvent,
+    id: i64,
+) {
+    warn!("job {:?} failed: {:?}", event, err);
+    let name = background_job_notification_name(event);
+    if let Err(err) = notification_service
+        .create(
+            NotificationRecipient::Admin,
+            &format!(
+                r#"Job **{}** has failed.
+
+Please examine the [logs](/jobs/detail?id={}) to determine the underlying issue.
+"#,
+                name,
+                id.as_id()
+            ),
+        )
+        .await
+    {
+        warn!("Failed to send notification: {:?}", err);
     }
 }
 
@@ -108,6 +147,7 @@ pub async fn start(
                         continue;
                     };
 
+                    let cloned_event = event.clone();
                     if let Err(err) = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
@@ -149,6 +189,7 @@ pub async fn start(
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
+                        notify_job_error(notification_service.clone(), &err.to_string(), &cloned_event, job.id).await;
                     } else {
                         logkit::info!(exit_code = 0; "Job completed successfully");
                     }

@@ -103,3 +103,7 @@
 .dialog-without-close-btn > button {
   display: none;
 }
+
+.unread-notification::before {
+  @apply content-[''] float-left w-2 h-2 mr-1.5 mt-2 rounded-full bg-red-400;
+}
