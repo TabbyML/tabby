@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -41,8 +42,8 @@ const ChangeNameForm: React.FC<ChangeNameFormProps> = ({
   onSuccess,
   defaultValues
 }) => {
-  const [{ data }] = useMe()
-
+  const [{ data, fetching }] = useMe()
+  const isSsoUser = data?.me?.isSsoUser
   const formSchema = z.object({
     name: z.string()
   })
@@ -80,8 +81,15 @@ const ChangeNameForm: React.FC<ChangeNameFormProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
+              <FormDescription>
+                {isSsoUser ? 'Name cannot be changed for SSO users' : null}
+              </FormDescription>
               <FormControl>
-                <Input className="w-full md:w-[350px]" {...field} />
+                <Input
+                  className="w-full md:w-[350px]"
+                  {...field}
+                  // disabled={fetching || isSsoUser}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

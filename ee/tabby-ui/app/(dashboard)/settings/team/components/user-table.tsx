@@ -311,12 +311,14 @@ function OperationView({
               <span className="ml-2">Activate</span>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem
-            onSelect={() => setOpen(true)}
-            className="cursor-pointer gap-1"
-          >
-            <span className="ml-2">Reset password</span>
-          </DropdownMenuItem>
+          {!user.node.isSsoUser && (
+            <DropdownMenuItem
+              onSelect={() => setOpen(true)}
+              className="cursor-pointer gap-1"
+            >
+              <span className="ml-2">Reset password</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <AlertDialog open={open} onOpenChange={onOpenChange}>
