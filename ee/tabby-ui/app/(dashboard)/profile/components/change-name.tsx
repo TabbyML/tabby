@@ -21,6 +21,11 @@ import {
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { ListSkeleton } from '@/components/skeleton'
 
 const updateNameMutation = graphql(/* GraphQL */ `
@@ -41,8 +46,8 @@ const ChangeNameForm: React.FC<ChangeNameFormProps> = ({
   onSuccess,
   defaultValues
 }) => {
-  const [{ data }] = useMe()
-
+  const [{ data, fetching }] = useMe()
+  const isSsoUser = data?.me?.isSsoUser
   const formSchema = z.object({
     name: z.string()
   })
@@ -81,7 +86,18 @@ const ChangeNameForm: React.FC<ChangeNameFormProps> = ({
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input className="w-full md:w-[350px]" {...field} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Input
+                      className="w-full md:w-[350px]"
+                      {...field}
+                      disabled={fetching || isSsoUser}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent hidden={!isSsoUser} align="end" side="top">
+                    Name cannot be changed for SSO users
+                  </TooltipContent>
+                </Tooltip>
               </FormControl>
               <FormMessage />
             </FormItem>

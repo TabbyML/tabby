@@ -32,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { IconMore, IconSpinner } from '@/components/ui/icons'
+import { IconInfoCircled, IconMore, IconSpinner } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -48,6 +48,11 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { UpdateUserRoleDialog } from './user-role-dialog'
@@ -311,12 +316,30 @@ function OperationView({
               <span className="ml-2">Activate</span>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem
-            onSelect={() => setOpen(true)}
-            className="cursor-pointer gap-1"
-          >
-            <span className="ml-2">Reset password</span>
-          </DropdownMenuItem>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <DropdownMenuItem
+                  disabled={user.node.isSsoUser}
+                  onSelect={() => setOpen(true)}
+                  className="cursor-pointer gap-1"
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="ml-2">Reset password</span>
+                    {user.node.isSsoUser && <IconInfoCircled />}
+                  </span>
+                </DropdownMenuItem>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent
+              side="left"
+              sideOffset={8}
+              align="center"
+              hidden={!user.node.isSsoUser}
+            >
+              <p>Cannot request password reset for SSO users</p>
+            </TooltipContent>
+          </Tooltip>
         </DropdownMenuContent>
       </DropdownMenu>
       <AlertDialog open={open} onOpenChange={onOpenChange}>
