@@ -1627,19 +1627,24 @@ mod tests {
         let service = test_authentication_service().await;
         let id = service
             .db
-            .create_user("test@example.com".into(), None, true, None)
+            .create_user(
+                "test@example.com".into(),
+                password_hash("pass").ok(),
+                true,
+                None,
+            )
             .await
             .unwrap();
 
         let id = id.as_id();
 
         assert!(service
-            .update_user_password(&id, None, "newpass")
+            .update_user_password(&id, Some("pass"), "newpass")
             .await
             .is_ok());
 
         assert!(service
-            .update_user_password(&id, None, "newpass2")
+            .update_user_password(&id, Some("wrong"), "newpass2")
             .await
             .is_err());
 
@@ -1647,6 +1652,68 @@ mod tests {
             .update_user_password(&id, Some("newpass"), "newpass2")
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_sso_user_forbid_update_password() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+
+        let id = id.as_id();
+
+        assert!(service
+            .update_user_password(&id, None, "newpass2")
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_sso_user_forbid_update_name() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+
+        assert!(service
+            .update_user_name(&id.as_id(), "newname".into())
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_sso_user_forbid_generate_password_reset_url() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+
+        assert!(service
+            .generate_reset_password_url(&id.as_id())
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_sso_user_forbid_request_password_reset_email() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+
+        assert!(service
+            .request_password_reset_email("test@example.com".into())
+            .await
+            .is_err());
     }
 
     #[tokio::test]
