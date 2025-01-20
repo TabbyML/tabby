@@ -2,18 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { compact } from 'lodash-es'
+import { useQuery } from 'urql'
 
 import { OAuthProvider } from '@/lib/gql/generates/graphql'
+import { ldapCredentialQuery, oauthCredential } from '@/lib/tabby/query'
 import { SSOType } from '@/lib/types'
+import LoadingWrapper from '@/components/loading-wrapper'
+import { ListSkeleton } from '@/components/skeleton'
 
 import { LDAPCredentialForm } from '../../components/ldap-credential-form'
 import OAuthCredentialForm from '../../components/oauth-credential-form'
 import { SSOTypeRadio } from '../../components/sso-type-radio'
-import { useQuery } from 'urql'
-import { ldapCredentialQuery, oauthCredential } from '@/lib/tabby/query'
-import LoadingWrapper from '@/components/loading-wrapper'
-import { ListSkeleton } from '@/components/skeleton'
-import { compact } from 'lodash-es'
 
 export function NewPage() {
   const [type, setType] = useState<SSOType>('oauth')
@@ -35,30 +35,38 @@ export function NewPage() {
     query: ldapCredentialQuery
   })
 
-  const fetching = fetchingGithub || fetchingGoogle || fetchingGitlab || fetchingLdap
-  const isOauthAvaliable = compact([githubData?.oauthCredential, googleData?.oauthCredential, gitlabData?.oauthCredential]).length < 3
-  const isLdapAvaliable = !ldapData?.ldapCredential
+  const fetchingProviders =
+    fetchingGithub || fetchingGoogle || fetchingGitlab || fetchingLdap
+
+  const isLdapExisted = !!ldapData?.ldapCredential
+  const existedProviders = compact([
+    githubData?.oauthCredential && OAuthProvider.Github,
+    googleData?.oauthCredential && OAuthProvider.Google,
+    gitlabData?.oauthCredential && OAuthProvider.Gitlab
+  ])
 
   const onCreateSuccess = () => {
     router.replace('/settings/sso')
   }
 
   return (
-    <LoadingWrapper
-      loading={fetching}
-      fallback={<ListSkeleton />}
-    >
+    <LoadingWrapper loading={fetchingProviders} fallback={<ListSkeleton />}>
       <div>
         <SSOTypeRadio value={type} onChange={setType} />
         {type === 'oauth' ? (
-          <OAuthCredentialForm provider={OAuthProvider.Github} isNew />
+          <OAuthCredentialForm
+            isNew
+            defaultProvider={OAuthProvider.Github}
+            existedProviders={existedProviders}
+            onSuccess={onCreateSuccess}
+            className="mt-6"
+          />
         ) : (
           <LDAPCredentialForm
             isNew
             defaultValues={{ skipTlsVerify: false }}
-            onSuccess={() => {
-              router.replace('/settings/sso')
-            }}
+            onSuccess={onCreateSuccess}
+            existed={isLdapExisted}
           />
         )}
       </div>

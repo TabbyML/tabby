@@ -17,7 +17,7 @@ export function SSOTypeRadio({
   readonly
 }: SSOTypeRadioProps) {
   return (
-    <div className={cn('mb-6 space-y-2', className)}>
+    <div className={cn('space-y-2', className)}>
       <Label>Type</Label>
       <RadioGroup
         value={value}
