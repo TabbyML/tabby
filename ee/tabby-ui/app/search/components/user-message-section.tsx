@@ -18,6 +18,9 @@ export function UserMessageSection({
 }: QuestionBlockProps) {
   const { contextInfo, fetchingContextInfo } = useContext(SearchContext)
   const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
+  const contentLen = message.content?.length
+  const fontSizeClassname = contentLen > 400 ? 'text-base' : contentLen > 200 ? 'text-lg' : 'text-xl'
+
   return (
     <div className={cn('font-semibold', className)} {...props}>
       <MessageMarkdown
@@ -25,7 +28,7 @@ export function UserMessageSection({
         contextInfo={contextInfo}
         supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
         fetchingContextInfo={fetchingContextInfo}
-        className="text-xl prose-p:mb-2 prose-p:mt-0"
+        className={cn('prose-p:mb-2 prose-p:mt-0', fontSizeClassname)}
         headline
         canWrapLongLines
       />
