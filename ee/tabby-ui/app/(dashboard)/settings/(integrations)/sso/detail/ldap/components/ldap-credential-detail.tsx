@@ -44,7 +44,7 @@ export const LdapCredentialDetail: React.FC<
         <LDAPCredentialForm
           defaultValues={defaultValues}
           onSuccess={onSubmitSuccess}
-          className="-mt-64"
+          className="mt-6"
         />
       </LoadingWrapper>
     </div>
