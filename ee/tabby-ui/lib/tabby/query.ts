@@ -493,6 +493,17 @@ export const ldapCredentialQuery = graphql(/* GraphQL */ `
   }
 `)
 
+export const oauthCredential = graphql(/* GraphQL */ `
+  query OAuthCredential($provider: OAuthProvider!) {
+    oauthCredential(provider: $provider) {
+      provider
+      clientId
+      createdAt
+      updatedAt
+    }
+  }
+`)
+
 export const repositorySourceListQuery = graphql(/* GraphQL */ `
   query RepositorySourceList {
     repositoryList {
