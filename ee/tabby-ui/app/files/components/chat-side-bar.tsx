@@ -173,22 +173,28 @@ function ChatSideBarRenderer({
     if (!textEditorViewRef.current || !activeEntryInfo) return null
 
     const context = getActiveSelection(textEditorViewRef.current)
-    const editorFileContext: EditorFileContext | null =
-      context && activeEntryInfo.basename && activeRepo
-        ? {
-            kind: 'file',
-            filepath: {
-              kind: 'git',
-              filepath: activeEntryInfo.basename,
-              gitUrl: activeRepo?.gitUrl
-            },
-            range: {
+
+    if (!context || !activeEntryInfo.basename || !activeRepo) {
+      return null
+    }
+
+    const editorFileContext: EditorFileContext = {
+      kind: 'file',
+      filepath: {
+        kind: 'git',
+        filepath: activeEntryInfo.basename,
+        gitUrl: activeRepo?.gitUrl
+      },
+      range:
+        'startLine' in context
+          ? {
               start: context.startLine,
               end: context.endLine
-            },
-            content: context.content
-          }
-        : null
+            }
+          : undefined,
+      content: context.content
+    }
+
     return editorFileContext
   })
 
