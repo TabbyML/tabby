@@ -83,8 +83,7 @@ export function RepoSelect({
           className={cn(
             'h-7 items-center gap-1 overflow-hidden break-all rounded-md px-0 text-sm font-semibold hover:bg-muted/50',
             {
-              'border-dashed text-muted-foreground italic line-through':
-                !selectedRepo
+              'border-dashed text-muted-foreground italic': !selectedRepo
             }
           )}
         >
