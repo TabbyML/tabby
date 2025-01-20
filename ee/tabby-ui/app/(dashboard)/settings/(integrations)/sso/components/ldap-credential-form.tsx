@@ -90,13 +90,18 @@ interface LDAPFormProps extends React.HTMLAttributes<HTMLDivElement> {
   isNew?: boolean
   defaultValues?: Partial<LDAPFormValues> | undefined
   onSuccess?: (formValues: LDAPFormValues) => void
+  existed?: boolean
 }
+
+const providerExistedError =
+  'LDAP provider already exists and cannot be created again.'
 
 export function LDAPCredentialForm({
   className,
   isNew,
   defaultValues,
   onSuccess,
+  existed,
   ...props
 }: LDAPFormProps) {
   const router = useRouter()
@@ -157,7 +162,7 @@ export function LDAPCredentialForm({
         .then(res => !!res?.data?.ldapCredential)
       if (hasExistingProvider) {
         form.setError('root', {
-          message: 'Provider already exists.'
+          message: providerExistedError
         })
         return
       }
@@ -205,8 +210,13 @@ export function LDAPCredentialForm({
   return (
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
+        {existed && (
+          <div className="mt-2 text-sm font-medium text-destructive">
+            {providerExistedError}
+          </div>
+        )}
         <form
-          className="grid gap-4"
+          className="mt-6 grid gap-4"
           onSubmit={form.handleSubmit(onSubmit)}
           ref={formRef}
         >
@@ -381,7 +391,7 @@ export function LDAPCredentialForm({
             name="skipTlsVerify"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>Connection security</FormLabel>
+                <FormLabel>Connection security</FormLabel>
                 <div className="flex items-center gap-1">
                   <FormControl>
                     <Checkbox

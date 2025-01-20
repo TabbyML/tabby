@@ -6,10 +6,10 @@ import { isNil, pickBy } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { OAuthProvider } from '@/lib/gql/generates/graphql'
+import { oauthCredential } from '@/lib/tabby/query'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
-import { oauthCredential } from '../../../components/credential-list'
 import OAuthCredentialForm from '../../../components/oauth-credential-form'
 import { SSOTypeRadio } from '../../../components/sso-type-radio'
 
@@ -46,9 +46,10 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
       >
         <SSOTypeRadio value="oauth" readonly />
         <OAuthCredentialForm
-          provider={provider}
           defaultValues={defaultValues}
           onSuccess={onSubmitSuccess}
+          className="mt-6"
+          defaultProvider={provider}
         />
       </LoadingWrapper>
     </div>

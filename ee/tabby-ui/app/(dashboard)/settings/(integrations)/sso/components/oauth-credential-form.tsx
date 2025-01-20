@@ -12,6 +12,7 @@ import * as z from 'zod'
 import { graphql } from '@/lib/gql/generates'
 import { LicenseType, OAuthProvider } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
+import { oauthCredential } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import {
   AlertDialog,
@@ -46,7 +47,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CopyButton } from '@/components/copy-button'
 import { LicenseGuard } from '@/components/license-guard'
 
-import { oauthCredential } from './credential-list'
 import { SubTitle } from './form-sub-title'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
@@ -67,28 +67,38 @@ const oauthCallbackUrl = graphql(/* GraphQL */ `
   }
 `)
 
-const formSchema = z.object({
+const defaultFormSchema = z.object({
   clientId: z.string(),
-  clientSecret: z.string().optional(),
+  clientSecret: z.string(),
   provider: z.nativeEnum(OAuthProvider)
 })
 
-export type OAuthCredentialFormValues = z.infer<typeof formSchema>
+const updateFormSchema = defaultFormSchema.extend({
+  clientSecret: z.string().optional()
+})
+
+const providerExistedError =
+  'Provider already exists. Please choose another one'
 
 interface OAuthCredentialFormProps
   extends React.HTMLAttributes<HTMLDivElement> {
   isNew?: boolean
-  provider: OAuthProvider
-  defaultValues?: Partial<OAuthCredentialFormValues> | undefined
-  onSuccess?: (formValues: OAuthCredentialFormValues) => void
+  defaultProvider: OAuthProvider
+  defaultValues?: Partial<z.infer<typeof defaultFormSchema>> | undefined
+  onSuccess?: (formValues: z.infer<typeof defaultFormSchema>) => void
+  /**
+   * for creation, if there are existed providers, show a error message
+   */
+  existedProviders?: OAuthProvider[]
 }
 
 export default function OAuthCredentialForm({
   className,
   isNew,
-  provider,
+  defaultProvider,
   defaultValues,
   onSuccess,
+  existedProviders,
   ...props
 }: OAuthCredentialFormProps) {
   const router = useRouter()
@@ -96,14 +106,26 @@ export default function OAuthCredentialForm({
   const formatedDefaultValues = React.useMemo(() => {
     return {
       ...(defaultValues || {}),
-      provider
+      provider: defaultProvider || OAuthProvider.Github
     }
   }, [])
 
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
 
-  const form = useForm<OAuthCredentialFormValues>({
+  const formSchema = React.useMemo(() => {
+    if (!isNew) return updateFormSchema
+
+    return defaultFormSchema.extend({
+      provider: z
+        .nativeEnum(OAuthProvider)
+        .refine(v => !existedProviders?.includes(v), {
+          message: providerExistedError
+        })
+    })
+  }, [isNew, existedProviders])
+
+  const form = useForm<z.infer<typeof defaultFormSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: formatedDefaultValues
   })
@@ -125,16 +147,32 @@ export default function OAuthCredentialForm({
     form
   })
 
+  const provider = form.watch('provider')
+
+  React.useEffect(() => {
+    if (!isNew) {
+      return
+    }
+
+    if (provider && existedProviders?.includes(provider)) {
+      form.setError('provider', {
+        message: providerExistedError
+      })
+    } else {
+      form.clearErrors('provider')
+    }
+  }, [provider, isNew, existedProviders])
+
   const deleteOAuthCredential = useMutation(deleteOauthCredentialMutation)
 
-  const onSubmit = async (values: OAuthCredentialFormValues) => {
+  const onSubmit = async (values: z.infer<typeof defaultFormSchema>) => {
     if (isNew) {
       const hasExistingProvider = await client
         .query(oauthCredential, { provider: values.provider })
         .then(res => !!res?.data?.oauthCredential)
       if (hasExistingProvider) {
         form.setError('provider', {
-          message: 'Provider already exists. Please choose another one'
+          message: providerExistedError
         })
         return
       }
