@@ -214,7 +214,7 @@ export function convertEditorContext(
 ): FileContext {
   const convertRange = (range: LineRange | PositionRange | undefined) => {
     // If the range is not provided, the whole file is considered.
-    if (!range) {
+    if (!range || typeof range.start === 'undefined') {
       return undefined
     }
 
