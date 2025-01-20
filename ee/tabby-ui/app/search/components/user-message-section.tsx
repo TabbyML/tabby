@@ -19,7 +19,8 @@ export function UserMessageSection({
   const { contextInfo, fetchingContextInfo } = useContext(SearchContext)
   const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
   const contentLen = message.content?.length
-  const fontSizeClassname = contentLen > 400 ? 'text-base' : contentLen > 200 ? 'text-lg' : 'text-xl'
+  const fontSizeClassname =
+    contentLen > 400 ? 'text-base' : contentLen > 200 ? 'text-lg' : 'text-xl'
 
   return (
     <div className={cn('font-semibold', className)} {...props}>
