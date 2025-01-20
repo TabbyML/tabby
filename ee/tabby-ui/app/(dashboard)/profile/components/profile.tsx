@@ -28,7 +28,11 @@ export default function Profile() {
       >
         <Avatar />
       </ProfileCard>
-      <ProfileCard title="Change Password" footerClassname="pb-0">
+      <ProfileCard
+        title="Change Password"
+        footerClassname="pb-0"
+        hideForSsoUser
+      >
         <ChangePassword />
       </ProfileCard>
     </div>

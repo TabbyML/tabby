@@ -136,6 +136,7 @@ export const listSecuredUsers = graphql(/* GraphQL */ `
           createdAt
           active
           name
+          isSsoUser
         }
         cursor
       }
