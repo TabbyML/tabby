@@ -16,6 +16,9 @@ pub struct UserDAO {
     pub id: i64,
     pub email: String,
     pub name: Option<String>,
+
+    // when the user is created with password, this field is set and will never be changed to None
+    // when the user is created with SSO, this field is None and will never be set
     pub password_encrypted: Option<String>,
     pub is_admin: bool,
 

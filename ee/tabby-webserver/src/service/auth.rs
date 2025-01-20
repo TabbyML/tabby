@@ -161,6 +161,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn generate_reset_password_url(&self, id: &ID) -> Result<String> {
+        let user = self.get_user(id).await?;
+        if user.is_sso_user {
+            bail!("Cannot generate reset password url for SSO users");
+        }
+
         let external_url = self.setting.read_network_setting().await?.external_url;
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
@@ -178,6 +183,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let Some(user @ UserSecured { active: true, .. }) = user else {
             return Ok(None);
         };
+
+        if user.is_sso_user {
+            bail!("Cannot request password reset for SSO users");
+        }
 
         let id = user.id.as_rowid()?;
 
@@ -200,6 +209,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let password_encrypted = password_hash(password).map_err(|_| anyhow!("Unknown error"))?;
 
         let user_id = self.db.verify_password_reset(code).await?;
+        let user = self.get_user(&user_id.as_id()).await?;
+        if user.is_sso_user {
+            bail!("Password cannot be reset for SSO users");
+        }
+
         let old_pass_encrypted = self
             .db
             .get_user(user_id)
@@ -225,6 +239,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
     ) -> Result<()> {
         if is_demo_mode() {
             bail!("Changing passwords is disabled in demo mode");
+        }
+
+        let user = self.get_user(id).await?;
+        if user.is_sso_user {
+            bail!("Password cannot be changed for SSO users");
         }
 
         let user = self
@@ -280,6 +299,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if is_demo_mode() {
             bail!("Changing profile data is disabled in demo mode");
         }
+
+        let user = self.get_user(id).await?;
+        if user.is_sso_user {
+            bail!("Name cannot be changed for SSO users");
+        }
+
         let id = id.as_rowid()?;
         self.db.update_user_name(id, name).await?;
         Ok(())
@@ -1602,19 +1627,24 @@ mod tests {
         let service = test_authentication_service().await;
         let id = service
             .db
-            .create_user("test@example.com".into(), None, true, None)
+            .create_user(
+                "test@example.com".into(),
+                password_hash("pass").ok(),
+                true,
+                None,
+            )
             .await
             .unwrap();
 
         let id = id.as_id();
 
         assert!(service
-            .update_user_password(&id, None, "newpass")
+            .update_user_password(&id, Some("pass"), "newpass")
             .await
             .is_ok());
 
         assert!(service
-            .update_user_password(&id, None, "newpass2")
+            .update_user_password(&id, Some("wrong"), "newpass2")
             .await
             .is_err());
 
@@ -1622,6 +1652,68 @@ mod tests {
             .update_user_password(&id, Some("newpass"), "newpass2")
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_sso_user_forbid_update_password() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+
+        let id = id.as_id();
+
+        assert!(service
+            .update_user_password(&id, None, "newpass2")
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_sso_user_forbid_update_name() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+
+        assert!(service
+            .update_user_name(&id.as_id(), "newname".into())
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_sso_user_forbid_generate_password_reset_url() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+
+        assert!(service
+            .generate_reset_password_url(&id.as_id())
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_sso_user_forbid_request_password_reset_email() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+
+        assert!(service
+            .request_password_reset_email("test@example.com".into())
+            .await
+            .is_err());
     }
 
     #[tokio::test]

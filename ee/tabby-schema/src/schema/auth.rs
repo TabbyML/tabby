@@ -198,6 +198,11 @@ pub struct UserSecured {
     pub auth_token: String,
     pub is_password_set: bool,
 
+    // is_sso_user is used to indicate if the user is created by SSO
+    // and should not be able to change Name and Password
+    // e.g. LDAP, OAuth users
+    pub is_sso_user: bool,
+
     #[graphql(skip)]
     pub policy: AccessPolicy,
 }
