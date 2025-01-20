@@ -14,6 +14,7 @@ pub struct User {
     pub is_admin: bool,
     pub is_owner: bool,
     pub active: bool,
+    pub is_sso_user: bool,
 }
 
 impl relay::NodeType for UserValue {
