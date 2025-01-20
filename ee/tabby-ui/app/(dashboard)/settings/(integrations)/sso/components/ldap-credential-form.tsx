@@ -211,12 +211,12 @@ export function LDAPCredentialForm({
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
         {existed && (
-          <div className="text-sm font-medium text-destructive mt-2">
+          <div className="mt-2 text-sm font-medium text-destructive">
             {providerExistedError}
           </div>
         )}
         <form
-          className="grid gap-4 mt-6"
+          className="mt-6 grid gap-4"
           onSubmit={form.handleSubmit(onSubmit)}
           ref={formRef}
         >
