@@ -352,9 +352,10 @@ export interface ClientApiMethods {
    */
   readFileContent?: (info: FileRange) => Promise<string | null>
 }
+type ClientApiMethod = keyof ClientApiMethods
 
-interface SupportProxy {
-  [key: string]: Promise<boolean>
+type SupportProxy = {
+  [K in ClientApiMethod]: Promise<boolean>
 }
 export interface ClientApi extends ClientApiMethods {
   /**
