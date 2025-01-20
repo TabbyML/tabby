@@ -81,14 +81,16 @@ const ChangeNameForm: React.FC<ChangeNameFormProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
-              <FormDescription>
-                {isSsoUser ? 'Name cannot be changed for SSO users' : null}
-              </FormDescription>
+              {isSsoUser ? (
+                <FormDescription>
+                  Name cannot be changed for SSO users
+                </FormDescription>
+              ) : null}
               <FormControl>
                 <Input
                   className="w-full md:w-[350px]"
                   {...field}
-                  // disabled={fetching || isSsoUser}
+                  disabled={fetching || isSsoUser}
                 />
               </FormControl>
               <FormMessage />
