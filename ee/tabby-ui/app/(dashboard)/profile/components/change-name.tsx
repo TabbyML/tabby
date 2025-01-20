@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { TooltipTrigger } from '@radix-ui/react-tooltip'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -22,7 +21,11 @@ import {
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { ListSkeleton } from '@/components/skeleton'
 
 const updateNameMutation = graphql(/* GraphQL */ `
