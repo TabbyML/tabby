@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { TooltipTrigger } from '@radix-ui/react-tooltip'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -13,7 +14,6 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,6 +22,7 @@ import {
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent } from '@/components/ui/tooltip'
 import { ListSkeleton } from '@/components/skeleton'
 
 const updateNameMutation = graphql(/* GraphQL */ `
@@ -81,17 +82,19 @@ const ChangeNameForm: React.FC<ChangeNameFormProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
-              {isSsoUser ? (
-                <FormDescription>
-                  Name cannot be changed for SSO users
-                </FormDescription>
-              ) : null}
               <FormControl>
-                <Input
-                  className="w-full md:w-[350px]"
-                  {...field}
-                  disabled={fetching || isSsoUser}
-                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Input
+                      className="w-full md:w-[350px]"
+                      {...field}
+                      disabled={fetching || isSsoUser}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent hidden={!isSsoUser} align="end" side="top">
+                    Name cannot be changed for SSO users
+                  </TooltipContent>
+                </Tooltip>
               </FormControl>
               <FormMessage />
             </FormItem>
