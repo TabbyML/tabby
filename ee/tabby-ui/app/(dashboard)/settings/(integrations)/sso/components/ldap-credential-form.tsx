@@ -454,7 +454,7 @@ export function LDAPCredentialForm({
             )}
           />
           <Separator className="my-2" />
-          <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
             <Button
               onClick={onTestLdapCredential}
               type="button"
@@ -466,7 +466,7 @@ export function LDAPCredentialForm({
                 <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
               )}
             </Button>
-            <div className="flex justify-end sm:justify-start items-center gap-4">
+            <div className="flex items-center justify-end gap-4 sm:justify-start">
               <Button
                 type="button"
                 variant="ghost"
