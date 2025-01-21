@@ -95,7 +95,7 @@ const ChangeNameForm: React.FC<ChangeNameFormProps> = ({
                     />
                   </TooltipTrigger>
                   <TooltipContent hidden={!isSsoUser} align="end" side="top">
-                    Name cannot be changed for SSO users
+                    The name cannot be altered for users created through SSO
                   </TooltipContent>
                 </Tooltip>
               </FormControl>
