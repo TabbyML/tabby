@@ -243,6 +243,14 @@ export default function ChatPage() {
       server?.onLoaded({
         apiVersion: TABBY_CHAT_PANEL_API_VERSION
       })
+
+      if ('refresh' in server) {
+        // eslint-disable-next-line no-console
+        console.log('refresh in server')
+      }
+      // eslint-disable-next-line no-console
+      console.log('support v2?:', server?.supports['onApplyInEditorV2'])
+
       const checkCapabilities = async () => {
         server
           ?.hasCapability('onApplyInEditorV2')
@@ -267,7 +275,6 @@ export default function ChatPage() {
           )
         })
       }
-
       checkCapabilities().then(() => {
         setIsServerLoaded(true)
       })

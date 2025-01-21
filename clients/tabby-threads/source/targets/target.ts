@@ -4,15 +4,11 @@ import type {
   ThreadEncoder,
   ThreadEncoderApi,
   AnyFunction,
-} from "../types.ts";
+} from "../types";
 
-import {
-  RELEASE_METHOD,
-  RETAINED_BY,
-  RETAIN_METHOD,
-  StackFrame,
-  isMemoryManageable,
-} from "../memory";
+import { RELEASE_METHOD, RETAINED_BY, RETAIN_METHOD } from "../constants";
+
+import { StackFrame, isMemoryManageable } from "../memory";
 import { createBasicEncoder } from "../encoding/basic";
 
 export type { ThreadTarget };
@@ -79,8 +75,7 @@ interface MessageMap {
   [FUNCTION_APPLY]: [string, string, any];
   [FUNCTION_RESULT]: [string, Error?, any?];
   [CHECK_CAPABILITY]: [string, string];
-  [EXPOSE_LIST]: [string, string[]]; // Request to exchange methods: [callId, our_methods]
-  // The other side will respond with their methods via RESULT
+  [EXPOSE_LIST]: [string, string[]];
 }
 
 type MessageData = {
@@ -197,10 +192,18 @@ export async function createThread<
 
   // Create proxy for method calls
   console.log("[createThread] Creating proxy without waiting for response");
-  const call = createCallable<Thread<Target>>(handlerForCall, callable, {
-    exchangeMethods,
-    requestMethods,
-  });
+  const call = createCallable<Thread<Target>>(
+    handlerForCall,
+    callable,
+    {
+      exchangeMethods,
+      requestMethods,
+    },
+    {
+      getMethodsCache: () => theirMethodsCache,
+      isTerminated: () => terminated,
+    }
+  );
 
   const encoderApi: ThreadEncoderApi = {
     functions: {
@@ -575,6 +578,10 @@ function createCallable<T>(
   methods?: {
     exchangeMethods: () => void;
     requestMethods: () => Promise<string[]>;
+  },
+  state?: {
+    getMethodsCache: () => string[] | null;
+    isTerminated: () => boolean;
   }
 ): T {
   console.log("[createCallable] Creating callable with methods:", callable);
@@ -602,6 +609,21 @@ function createCallable<T>(
             console.log("[createCallable] Accessing requestMethods");
             return methods?.requestMethods;
           }
+          if (property === "supports") {
+            return new Proxy(
+              {},
+              {
+                get(_target, method: string) {
+                  if (!state) return false;
+                  const cache = state.getMethodsCache();
+                  if (cache !== null && !state.isTerminated()) {
+                    return cache.includes(method);
+                  }
+                  return false;
+                },
+              }
+            );
+          }
           console.log("[createCallable] Accessing property:", property);
           if (cache.has(property)) {
             console.log("[createCallable] Using cached handler for:", property);
@@ -612,6 +634,30 @@ function createCallable<T>(
           const handler = handlerForCall(property);
           cache.set(property, handler);
           return handler;
+        },
+        has(_target, property) {
+          console.log("[createCallable] Checking has property:", property);
+          if (
+            property === "then" ||
+            property === "exchangeMethods" ||
+            property === "requestMethods"
+          ) {
+            return true;
+          }
+          if (!state) {
+            console.log("[createCallable] No state available, returning false");
+            return false;
+          }
+          const cache = state.getMethodsCache();
+          if (cache !== null && !state.isTerminated()) {
+            console.log(
+              "[createCallable] Checking cache for method:",
+              property
+            );
+            return cache.includes(String(property));
+          }
+          console.log("[createCallable] No cache available, returning false");
+          return false;
         },
       }
     );

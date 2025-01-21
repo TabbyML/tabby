@@ -355,7 +355,7 @@ export interface ClientApiMethods {
 type ClientApiMethod = keyof ClientApiMethods
 
 type SupportProxy = {
-  [K in ClientApiMethod]: Promise<boolean>
+  [K in ClientApiMethod]: boolean
 }
 export interface ClientApi extends ClientApiMethods {
   /**
