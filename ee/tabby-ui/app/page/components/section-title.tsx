@@ -1,5 +1,6 @@
 import { HTMLAttributes, useContext } from 'react'
 
+import { Section } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,10 +8,10 @@ import { IconEdit, IconEmojiBook, IconGithub } from '@/components/ui/icons'
 import { ChatContext } from '@/components/chat/chat'
 import { MessageMarkdown } from '@/components/message-markdown'
 
-import { ConversationMessage, PageContext } from './page'
+import { PageContext } from './page'
 
 interface QuestionBlockProps extends HTMLAttributes<HTMLDivElement> {
-  message: ConversationMessage
+  message: Section
 }
 
 export function SectionTitle({
@@ -43,7 +44,8 @@ export function SectionTitle({
           </Button>
         )}
       </div>
-      <div className="mb-4 mt-1 flex items-center gap-2">
+      {/* mock tags */}
+      {/* <div className="mb-4 mt-1 flex items-center gap-2">
         <Badge variant="secondary">
           <IconGithub className="mr-1" />
           TabbyML/tabby
@@ -56,7 +58,7 @@ export function SectionTitle({
           <IconEmojiBook className="mr-1" />
           Pundit
         </Badge>
-      </div>
+      </div> */}
     </div>
   )
 }

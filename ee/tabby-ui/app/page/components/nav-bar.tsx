@@ -1,20 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { compact } from 'lodash-es'
+import React, { useEffect, useRef, useState } from 'react'
 
+import { SectionEdge } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 
-import { ConversationPair } from './page'
-
 interface Props {
-  qaPairs: ConversationPair[] | undefined
+  sections: SectionEdge['node'][]
 }
 
-export const Navbar = ({ qaPairs }: Props) => {
-  const sections = useMemo(() => {
-    if (!qaPairs?.length) return []
-    return compact(qaPairs.map(x => x.question))
-  }, [qaPairs])
-
+export const Navbar = ({ sections }: Props) => {
   const [activeNavItem, setActiveNavItem] = useState<string | undefined>()
   const observer = useRef<IntersectionObserver | null>(null)
   const updateActiveNavItem = useDebounceCallback((v: string) => {
@@ -50,7 +43,7 @@ export const Navbar = ({ qaPairs }: Props) => {
   return (
     <nav className="sticky right-0 top-0 p-4">
       <ul className="flex flex-col space-y-1">
-        {sections.map(section => (
+        {sections?.map(section => (
           <li key={section.id}>
             <div
               className={`truncate whitespace-nowrap text-sm ${

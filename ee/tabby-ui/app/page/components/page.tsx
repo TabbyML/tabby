@@ -13,7 +13,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, pick, some, uniq, uniqBy } from 'lodash-es'
+import { compact, some, uniq, uniqBy } from 'lodash-es'
 import { nanoid } from 'nanoid'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
@@ -30,7 +30,8 @@ import {
   Maybe,
   Message,
   MessageAttachmentClientCode,
-  Role
+  Role,
+  SectionEdge
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
@@ -45,8 +46,8 @@ import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
   contextInfoQuery,
-  listThreadMessages,
-  listThreads,
+  listPages,
+  listPageSections,
   setThreadPersistedMutation
 } from '@/lib/tabby/query'
 import {
@@ -65,7 +66,6 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconClock,
-  IconEye,
   IconFileSearch,
   IconList,
   IconPlus,
@@ -141,6 +141,8 @@ const PAGE_SIZE = 30
 const TEMP_MSG_ID_PREFIX = '_temp_msg_'
 const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
 
+// id: E16n1q
+
 export function Page() {
   const [{ data: meData }] = useMe()
   const { updateUrlComponents, pathname } = useRouterStuff()
@@ -148,7 +150,8 @@ export function Page() {
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const [mode, setMode] = useState<'edit' | 'view'>('view')
 
-  const [messages, setMessages] = useState<ConversationMessage[]>([])
+  // FIXME type
+  const [sections, setSections] = useState<SectionEdge['node'][]>([])
   const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
@@ -165,8 +168,8 @@ export function Page() {
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
   const [enableDeveloperMode] = useEnableDeveloperMode()
-  const [threadId, setThreadId] = useState<string | undefined>()
-  const threadIdFromURL = useMemo(() => {
+  const [pageId, setPageId] = useState<string | undefined>()
+  const pageIdFromURL = useMemo(() => {
     const regex = /^\/page\/(.*)/
     if (!activePathname) return undefined
 
@@ -178,19 +181,19 @@ export function Page() {
   const onUpdateMessage = async (
     message: ConversationMessage
   ): Promise<ExtendedCombinedError | undefined> => {
-    const messageIndex = messages.findIndex(o => o.id === message.id)
-    if (messageIndex > -1 && threadId) {
+    const messageIndex = sections.findIndex(o => o.id === message.id)
+    if (messageIndex > -1 && pageId) {
       // 1. call api
       const result = await updateThreadMessage({
         input: {
-          threadId,
+          threadId: pageId,
           id: message.id,
           content: message.content
         }
       })
       if (result?.data?.updateThreadMessage) {
         // 2. set messages
-        await setMessages(prev => {
+        await setSections(prev => {
           const newMessages = [...prev]
           newMessages[messageIndex] = message
           return newMessages
@@ -204,10 +207,10 @@ export function Page() {
   }
 
   useEffect(() => {
-    if (threadIdFromURL) {
-      setThreadId(threadIdFromURL)
+    if (pageIdFromURL) {
+      setPageId(pageIdFromURL)
     }
-  }, [threadIdFromURL])
+  }, [pageIdFromURL])
 
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
@@ -227,66 +230,64 @@ export function Page() {
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
 
-  const [{ data: threadData, fetching: fetchingThread, error: threadError }] =
-    useQuery({
-      query: listThreads,
-      variables: {
-        ids: [threadId as string]
-      },
-      pause: !threadId
-    })
+  const [{ data: pagesData }] = useQuery({
+    query: listPages,
+    variables: {
+      ids: [pageIdFromURL] as string[]
+    },
+    pause: !pageIdFromURL
+  })
+  const page = pagesData?.pages.edges?.[0]?.node
 
   const [
     {
-      data: threadMessages,
-      error: threadMessagesError,
-      fetching: fetchingMessages,
-      stale: threadMessagesStale
+      data: pageSections,
+      error: pageSectionsError,
+      fetching: fetchingPageSections,
+      stale: pageSectionsStale
     }
   ] = useQuery({
-    query: listThreadMessages,
+    query: listPageSections,
     variables: {
-      threadId: threadId as string,
+      pageId: 'E16n1q',
       first: PAGE_SIZE,
       after: afterCursor
-    },
-    pause: !threadId || isReady
+    }
+    // pause: !threadId || isReady
   })
 
   useEffect(() => {
-    if (threadMessagesStale) return
+    if (pageSectionsStale) return
 
-    if (threadMessages?.threadMessages?.edges?.length) {
-      const messages = threadMessages.threadMessages.edges
-        .map(o => o.node)
-        .slice()
-      setMessages(prev => uniqBy([...prev, ...messages], 'id'))
+    if (pageSections?.pageSections?.edges?.length) {
+      const messages = pageSections.pageSections.edges.map(o => o.node).slice()
+      setSections(prev => uniqBy([...prev, ...messages], 'id'))
     }
 
-    if (threadMessages?.threadMessages) {
-      const hasNextPage = threadMessages?.threadMessages?.pageInfo?.hasNextPage
-      const endCursor = threadMessages?.threadMessages.pageInfo.endCursor
+    if (pageSections?.pageSections) {
+      const hasNextPage = pageSections?.pageSections?.pageInfo?.hasNextPage
+      const endCursor = pageSections?.pageSections.pageInfo.endCursor
       if (hasNextPage && endCursor) {
         setAfterCursor(endCursor)
       } else {
         setIsReady(true)
       }
     }
-  }, [threadMessages])
+  }, [pageSections])
 
-  const isThreadOwner = useMemo(() => {
+  const isPageOwner = useMemo(() => {
     if (!meData) return false
-    if (!threadIdFromURL) return true
+    if (!pageIdFromURL) return true
 
-    const thread = threadData?.threads.edges[0]
+    const thread = pagesData?.pages.edges?.[0]
     if (!thread) return false
 
-    return meData.me.id === thread.node.userId
-  }, [meData, threadData, threadIdFromURL])
+    return meData.me.id === thread.node.authorId
+  }, [meData, pagesData, pageIdFromURL])
 
   // Compute title
   const sources = contextInfoData?.contextInfo.sources
-  const content = messages?.[0]?.content
+  const content = sections?.[0]?.content
   const title = useMemo(() => {
     if (sources && content) {
       return getTitleFromMessages(sources, content, {
@@ -304,11 +305,12 @@ export function Page() {
     }
   }, [title])
 
+  // todo pagesData error
   useEffect(() => {
-    if (threadMessagesError && !isReady) {
+    if (pageSectionsError && !isReady) {
       setIsReady(true)
     }
-  }, [threadMessagesError])
+  }, [pageSectionsError])
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateThreadURL = (threadId: string) => {
@@ -335,37 +337,12 @@ export function Page() {
     regenerate,
     deleteThreadMessagePair
   } = useThreadRun({
-    threadId
+    threadId: pageId
   })
 
   const isLoadingRef = useLatest(isLoading)
 
-  const { selectedModel, isModelLoading, models } = useSelectedModel()
-
-  const currentMessageForDev = useMemo(() => {
-    return messages.find(item => item.id === messageIdForDev)
-  }, [messageIdForDev, messages])
-
-  const valueForDev = useMemo(() => {
-    if (currentMessageForDev) {
-      return pick(currentMessageForDev?.attachment, 'doc', 'code')
-    }
-    return {
-      answers: messages
-        .filter(o => o.role === Role.Assistant)
-        .map(o => pick(o, 'doc', 'code'))
-    }
-  }, [
-    messageIdForDev,
-    currentMessageForDev?.attachment?.code,
-    currentMessageForDev?.attachment?.doc
-  ])
-
-  const onPanelLayout = (sizes: number[]) => {
-    if (sizes?.[1]) {
-      setDevPanelSize(sizes[1])
-    }
-  }
+  const { selectedModel, isFetchingModels, models } = useSelectedModel()
 
   // for synchronizing the active pathname
   useEffect(() => {
@@ -385,7 +362,7 @@ export function Page() {
       setIsReady(true)
     }
 
-    if (isPathnameInitialized && !threadIdFromURL) {
+    if (isPathnameInitialized && !pageIdFromURL) {
       init()
     }
   }, [isPathnameInitialized])
@@ -400,106 +377,17 @@ export function Page() {
   }, [isReady])
 
   const persistenceDisabled = useMemo(() => {
-    return !threadIdFromURL && some(messages, message => !!message.error)
-  }, [threadIdFromURL, messages])
+    return !pageIdFromURL && some(sections, message => !!message.error)
+  }, [pageIdFromURL, sections])
 
   const { isCopied: isShareLinkCopied, onShare: onClickShare } = useShareThread(
     {
-      threadIdFromURL,
-      threadIdFromStreaming: threadId,
+      threadIdFromURL: pageIdFromURL,
+      threadIdFromStreaming: pageId,
       streamingDone: !isLoading,
       updateThreadURL
     }
   )
-
-  // Handling the stream response from useThreadRun
-  useEffect(() => {
-    // update threadId
-    if (answer.threadId && answer.threadId !== threadId) {
-      setThreadId(answer.threadId)
-    }
-
-    let newMessages = [...messages]
-
-    const currentUserMessageIdx = newMessages.findIndex(
-      o => o.id === currentUserMessageId
-    )
-    const currentAssistantMessageIdx = newMessages.findIndex(
-      o => o.id === currentAssistantMessageId
-    )
-    if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
-      return
-    }
-
-    const currentUserMessage = newMessages[currentUserMessageIdx]
-    const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
-
-    // update assistant message
-    currentAssistantMessage.content = answer.content
-
-    // get and format scores from streaming answer
-    if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
-      currentAssistantMessage.attachment = {
-        clientCode: null,
-        doc: currentAssistantMessage.attachment?.doc || null,
-        code:
-          answer.attachmentsCode.map(hit => ({
-            ...hit.code,
-            extra: {
-              scores: hit.scores
-            }
-          })) || null
-      }
-    }
-
-    // get and format scores from streaming answer
-    if (!currentAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
-      currentAssistantMessage.attachment = {
-        clientCode: null,
-        doc:
-          answer.attachmentsDoc.map(hit => ({
-            ...hit.doc,
-            extra: {
-              score: hit.score
-            }
-          })) || null,
-        code: currentAssistantMessage.attachment?.code || null
-      }
-    }
-
-    currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
-
-    // update message pair ids
-    const newUserMessageId = answer.userMessageId
-    const newAssistantMessageId = answer.assistantMessageId
-    if (
-      newUserMessageId &&
-      newAssistantMessageId &&
-      newUserMessageId !== currentUserMessage.id &&
-      newAssistantMessageId !== currentAssistantMessage.id
-    ) {
-      currentUserMessage.id = newUserMessageId
-      currentAssistantMessage.id = newAssistantMessageId
-      setCurrentUserMessageId(newUserMessageId)
-      setCurrentAssistantMessageId(newAssistantMessageId)
-    }
-
-    // update messages
-    setMessages(newMessages)
-  }, [isLoading, answer])
-
-  // Handling the error response from useThreadRun
-  useEffect(() => {
-    if (error) {
-      const newConversation = [...messages]
-      const currentAnswer = newConversation.find(
-        item => item.id === currentAssistantMessageId
-      )
-      if (currentAnswer) {
-        currentAnswer.error = formatThreadRunErrorMessage(error)
-      }
-    }
-  }, [error])
 
   // Delay showing the stop button
   const showStopTimeoutId = useRef<number>()
@@ -568,7 +456,7 @@ export function Page() {
 
     setCurrentUserMessageId(newUserMessageId)
     setCurrentAssistantMessageId(newAssistantMessageId)
-    setMessages([...messages].concat([newUserMessage, newAssistantMessage]))
+    setSections([...sections].concat([newUserMessage, newAssistantMessage]))
 
     sendUserMessage(
       {
@@ -585,19 +473,19 @@ export function Page() {
 
   // regenerate ths last assistant message
   const onRegenerateResponse = () => {
-    if (!threadId) return
+    if (!pageId) return
     // need to get the sources from contextInfo
     if (fetchingContextInfo) return
 
-    const assistantMessageIndex = messages.length - 1
+    const assistantMessageIndex = sections.length - 1
     const userMessageIndex = assistantMessageIndex - 1
     if (assistantMessageIndex === -1 || userMessageIndex <= -1) return
 
-    const prevUserMessageId = messages[userMessageIndex].id
-    const prevAssistantMessageId = messages[assistantMessageIndex].id
+    const prevUserMessageId = sections[userMessageIndex].id
+    const prevAssistantMessageId = sections[assistantMessageIndex].id
 
-    const newMessages = messages.slice(0, -2)
-    const userMessage = messages[userMessageIndex]
+    const newMessages = sections.slice(0, -2)
+    const userMessage = sections[userMessageIndex]
     const newUserMessage: ConversationMessage = {
       ...userMessage,
       id: tempNanoId()
@@ -634,10 +522,10 @@ export function Page() {
 
     setCurrentUserMessageId(newUserMessage.id)
     setCurrentAssistantMessageId(newAssistantMessage.id)
-    setMessages([...newMessages, newUserMessage, newAssistantMessage])
+    setSections([...newMessages, newUserMessage, newAssistantMessage])
 
     regenerate({
-      threadId,
+      threadId: pageId,
       userMessageId: prevUserMessageId,
       assistantMessageId: prevAssistantMessageId,
       userMessage: {
@@ -665,13 +553,13 @@ export function Page() {
   }
 
   const onDeleteMessage = (asistantMessageId: string) => {
-    if (!threadId) return
+    if (!pageId) return
     // find userMessageId by assistantMessageId
-    const assistantMessageIndex = messages.findIndex(
+    const assistantMessageIndex = sections.findIndex(
       message => message.id === asistantMessageId
     )
     const userMessageIndex = assistantMessageIndex - 1
-    const userMessage = messages[assistantMessageIndex - 1]
+    const userMessage = sections[assistantMessageIndex - 1]
 
     if (assistantMessageIndex === -1 || userMessage?.role !== Role.User) {
       return
@@ -682,14 +570,14 @@ export function Page() {
       userMessage.id.startsWith(TEMP_MSG_ID_PREFIX) &&
       asistantMessageId.startsWith(TEMP_MSG_ID_PREFIX)
     ) {
-      const newMessages = messages
+      const newMessages = sections
         .slice(0, userMessageIndex)
-        .concat(messages.slice(assistantMessageIndex + 1))
-      setMessages(newMessages)
+        .concat(sections.slice(assistantMessageIndex + 1))
+      setSections(newMessages)
       return
     }
 
-    deleteThreadMessagePair(threadId, userMessage.id, asistantMessageId).then(
+    deleteThreadMessagePair(pageId, userMessage.id, asistantMessageId).then(
       errorMessage => {
         if (errorMessage) {
           toast.error(errorMessage)
@@ -697,10 +585,10 @@ export function Page() {
         }
 
         // remove userMessage and assistantMessage
-        const newMessages = messages
+        const newMessages = sections
           .slice(0, userMessageIndex)
-          .concat(messages.slice(assistantMessageIndex + 1))
-        setMessages(newMessages)
+          .concat(sections.slice(assistantMessageIndex + 1))
+        setSections(newMessages)
       }
     )
   }
@@ -709,53 +597,54 @@ export function Page() {
     updateSelectedModel(model)
   }
 
-  const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
-    if (!isReady || fetchingThread || !threadIdFromURL) return undefined
-    if (threadError || !threadData?.threads?.edges?.length) {
-      return threadError || new Error(ERROR_CODE_NOT_FOUND)
-    }
-  }, [threadData, fetchingThread, threadError, isReady, threadIdFromURL])
+  const formatedThreadError = undefined
+  // const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
+  //   if (!isReady || fetchingThread || !threadIdFromURL) return undefined
+  //   if (threadError || !threadData?.threads?.edges?.length) {
+  //     return threadError || new Error(ERROR_CODE_NOT_FOUND)
+  //   }
+  // }, [threadData, fetchingThread, threadError, isReady, threadIdFromURL])
 
-  const [isFetchingMessages] = useDebounceValue(
-    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage,
+  const [isFetchingPageSections] = useDebounceValue(
+    fetchingPageSections || pageSections?.pageSections?.pageInfo?.hasNextPage,
     200
   )
 
-  const qaPairs = useMemo(() => {
-    const pairs: Array<ConversationPair> = []
-    let currentPair: ConversationPair = { question: null, answer: null }
-    messages.forEach(message => {
-      if (message.role === Role.User) {
-        currentPair.question = message
-      } else if (message.role === Role.Assistant) {
-        if (!currentPair.answer) {
-          // Take the first answer
-          currentPair.answer = message
-          pairs.push(currentPair)
-          currentPair = { question: null, answer: null }
-        }
-      }
-    })
+  // const qaPairs = useMemo(() => {
+  //   const pairs: Array<ConversationPair> = []
+  //   let currentPair: ConversationPair = { question: null, answer: null }
+  //   messages.forEach(message => {
+  //     if (message.role === Role.User) {
+  //       currentPair.question = message
+  //     } else if (message.role === Role.Assistant) {
+  //       if (!currentPair.answer) {
+  //         // Take the first answer
+  //         currentPair.answer = message
+  //         pairs.push(currentPair)
+  //         currentPair = { question: null, answer: null }
+  //       }
+  //     }
+  //   })
 
-    return pairs
-  }, [messages])
+  //   return pairs
+  // }, [messages])
 
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
 
-  if (isReady && (formatedThreadError || threadMessagesError)) {
+  if (isReady && (formatedThreadError || pageSectionsError)) {
     return (
       <ThreadMessagesErrorView
         error={
-          (formatedThreadError || threadMessagesError) as ExtendedCombinedError
+          (formatedThreadError || pageSectionsError) as ExtendedCombinedError
         }
-        threadIdFromURL={threadIdFromURL}
+        threadIdFromURL={pageIdFromURL}
       />
     )
   }
 
-  if (!isReady && (isFetchingMessages || threadMessagesStale)) {
+  if (!isReady && (isFetchingPageSections || pageSectionsStale)) {
     return (
       <div>
         <Header />
@@ -784,24 +673,22 @@ export function Page() {
         contextInfo: contextInfoData?.contextInfo,
         fetchingContextInfo,
         onDeleteMessage,
-        isThreadOwner,
+        isThreadOwner: isPageOwner,
         onUpdateMessage,
         mode,
         setMode
       }}
     >
       <div style={style}>
-        <Header threadIdFromURL={threadIdFromURL} streamingDone={!isLoading} />
+        <Header threadIdFromURL={pageIdFromURL} streamingDone={!isLoading} />
         <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
           <ScrollArea className="h-full w-full" ref={contentContainerRef}>
             <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
               <div className="col-span-3">
                 {/* page title */}
                 <div className="mb-2 mt-4">
-                  <h1 className="text-4xl font-semibold">
-                    Tailwindcss in TabbyML
-                  </h1>
-                  <div className="my-4 flex justify-between text-sm text-muted-foreground">
+                  <h1 className="text-4xl font-semibold">{page?.title}</h1>
+                  <div className="my-4 flex gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <MyAvatar className="h-6 w-6" />
                       <div>{meData?.me?.name}</div>
@@ -811,48 +698,39 @@ export function Page() {
                         <IconClock />
                         <span>2 hours ago</span>
                       </div>
-                      <div className="flex items-center gap-0.5">
+                      {/* <div className="flex items-center gap-0.5">
                         <IconEye />
                         <span>345</span>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
                 {/* page summary */}
-                {/* FIXME mock */}
                 <MessageMarkdown
-                  message={
-                    'Tailwind CSS is a utility-first CSS framework designed for rapid UI development. Unlike traditional CSS frameworks that provide pre-designed components, Tailwind offers a wide array of utility classes that you can combine to build custom designs without leaving your HTML. This approach gives developers the flexibility and control to create unique and responsive designs efficiently.'
-                  }
+                  message={page?.content ?? ''}
+                  supportsOnApplyInEditorV2={false}
                 />
 
                 {/* sections */}
                 <div className="flex flex-col">
-                  {qaPairs.map((pair, index) => {
-                    const isLastMessage = index === qaPairs.length - 1
-                    if (!pair.question) return null
+                  {sections.map((section, index) => {
+                    const isLastMessage = index === sections.length - 1
 
                     return (
-                      <Fragment key={pair.question.id}>
-                        {!!pair.question && (
-                          <SectionTitle
-                            className="section-title pt-8"
-                            key={pair.question.id}
-                            message={pair.question}
-                          />
-                        )}
-                        {!!pair.answer && (
-                          <SectionContent
-                            key={pair.answer.id}
-                            className="pb-8"
-                            message={pair.answer}
-                            clientCode={pair.question?.attachment?.clientCode}
-                            isLoading={isLoading && isLastMessage}
-                            isLastAssistantMessage={isLastMessage}
-                            showRelatedQuestion={isLastMessage}
-                            isDeletable={!isLoading && messages.length > 2}
-                          />
-                        )}
+                      <Fragment key={section.id}>
+                        <SectionTitle
+                          className="section-title pt-8"
+                          message={section}
+                        />
+                        <SectionContent
+                          className="pb-8"
+                          message={section}
+                          // clientCode={section.question?.attachment?.clientCode}
+                          isLoading={isLoading && isLastMessage}
+                          isLastAssistantMessage={isLastMessage}
+                          showRelatedQuestion={isLastMessage}
+                          isDeletable={!isLoading && sections.length > 2}
+                        />
                         {!isLastMessage && mode === 'edit' && (
                           <div className="mx-auto">
                             <Button variant="outline">Insert Section</Button>
@@ -871,8 +749,8 @@ export function Page() {
                       <Button size="icon" variant="ghost">
                         <IconSheet />
                       </Button>
-                      <RepoSelect repos={repos} />
-                      <DocSelect docs={docs} />
+                      {/* <RepoSelect repos={repos} />
+                      <DocSelect docs={docs} /> */}
                     </div>
                     <TextAreaSearch
                       onSearch={onSubmitSearch}
@@ -884,14 +762,14 @@ export function Page() {
                       fetchingContextInfo={fetchingContextInfo}
                       modelName={selectedModel}
                       onModelSelect={onModelSelect}
-                      isModelLoading={isModelLoading}
+                      isFetchingModels={isFetchingModels}
                       models={models}
                     />
                   </div>
                 )}
               </div>
               <div className="relative col-span-1">
-                <Navbar qaPairs={qaPairs} />
+                <Navbar sections={sections} />
               </div>
             </div>
           </ScrollArea>
@@ -932,7 +810,7 @@ export function Page() {
           >
             <div
               className={cn('absolute flex items-center gap-4')}
-              style={isThreadOwner ? { top: '-2.5rem' } : undefined}
+              style={isPageOwner ? { top: '-2.5rem' } : undefined}
             >
               {stopButtonVisible && (
                 <Button
@@ -987,8 +865,8 @@ export function Page() {
                   contextInfo={contextInfoData?.contextInfo}
                   fetchingContextInfo={fetchingContextInfo}
                   modelName={selectedModel}
-                  onModelSelect={onModelSelect}
-                  isModelLoading={isModelLoading}
+                  onSelectModel={onModelSelect}
+                  isInitializingResources={isFetchingModels}
                   models={models}
                 />
               </div>

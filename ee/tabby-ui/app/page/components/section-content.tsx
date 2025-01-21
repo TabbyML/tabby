@@ -1,28 +1,28 @@
 'use client'
 
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import DOMPurify from 'dompurify'
 import he from 'he'
-import { compact, concat, isEmpty } from 'lodash-es'
+import { compact, isEmpty } from 'lodash-es'
 import { marked } from 'marked'
 import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
-import { Context } from 'tabby-chat-panel/index'
 import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import {
   Maybe,
   MessageAttachmentClientCode,
-  MessageAttachmentCode
+  MessageAttachmentCode,
+  Section
 } from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
   AttachmentCodeItem,
   AttachmentDocItem,
   ExtendedCombinedError,
-  RelevantCodeContext
+  FileContext
 } from '@/lib/types'
 import {
   cn,
@@ -68,7 +68,6 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChatContext } from '@/components/chat/chat'
 import { CopyButton } from '@/components/copy-button'
 import {
   ErrorMessageBlock,
@@ -83,11 +82,10 @@ export function SectionContent({
   className,
   message,
   showRelatedQuestion,
-  isLoading,
-  clientCode
+  isLoading
 }: {
   className?: string
-  message: ConversationMessage
+  message: Section
   showRelatedQuestion: boolean
   isLoading?: boolean
   isLastAssistantMessage?: boolean
@@ -105,9 +103,6 @@ export function SectionContent({
     onUpdateMessage,
     mode
   } = useContext(PageContext)
-
-  const { supportsOnApplyInEditorV2, onNavigateToContext } =
-    useContext(ChatContext)
 
   const [isEditing, setIsEditing] = useState(false)
   const getCopyContent = (answer: ConversationMessage) => {
@@ -139,75 +134,68 @@ export function SectionContent({
     return `${content}\n\nCitations:\n${citations}`
   }
 
-  const relevantCodeGitURL = message?.attachment?.code?.[0]?.gitUrl || ''
+  // const relevantCodeGitURL = message?.attachment?.code?.[0]?.gitUrl || ''
 
-  const clientCodeContexts: RelevantCodeContext[] = useMemo(() => {
-    if (!clientCode?.length) return []
-    return (
-      clientCode.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
+  // const clientCodeContexts: RelevantCodeContext[] = useMemo(() => {
+  //   if (!clientCode?.length) return []
+  //   return (
+  //     clientCode.map(code => {
+  //       const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
-        return {
-          kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
-          filepath: code.filepath || '',
-          content: code.content,
-          git_url: relevantCodeGitURL
-        }
-      }) ?? []
-    )
-  }, [clientCode, relevantCodeGitURL])
+  //       return {
+  //         kind: 'file',
+  //         range: {
+  //           start: startLine,
+  //           end: endLine
+  //         },
+  //         filepath: code.filepath || '',
+  //         content: code.content,
+  //         git_url: relevantCodeGitURL
+  //       }
+  //     }) ?? []
+  //   )
+  // }, [clientCode, relevantCodeGitURL])
 
-  const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
-    return (
-      message?.attachment?.code?.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
+  // const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
+  //   return (
+  //     message?.attachment?.code?.map(code => {
+  //       const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
-        return {
-          kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
-          filepath: code.filepath,
-          content: code.content,
-          git_url: code.gitUrl,
-          extra: {
-            scores: code?.extra?.scores
-          }
-        }
-      }) ?? []
-    )
-  }, [clientCode, message?.attachment?.code])
+  //       return {
+  //         kind: 'file',
+  //         range: {
+  //           start: startLine,
+  //           end: endLine
+  //         },
+  //         filepath: code.filepath,
+  //         content: code.content,
+  //         git_url: code.gitUrl,
+  //         extra: {
+  //           scores: code?.extra?.scores
+  //         }
+  //       }
+  //     }) ?? []
+  //   )
+  // }, [clientCode, message?.attachment?.code])
 
-  const messageAttachmentClientCode = useMemo(() => {
-    return clientCode?.map(o => ({
-      ...o,
-      gitUrl: relevantCodeGitURL
-    }))
-  }, [clientCode, relevantCodeGitURL])
+  // const messageAttachmentDocs = message?.attachment?.doc
 
-  const messageAttachmentDocs = message?.attachment?.doc
-
-  const sources = useMemo(() => {
-    return concat<AttachmentDocItem | AttachmentCodeItem>(
-      [],
-      messageAttachmentDocs,
-      messageAttachmentClientCode,
-      message.attachment?.code
-    )
-  }, [
-    messageAttachmentDocs,
-    messageAttachmentClientCode,
-    message.attachment?.code
-  ])
+  const sources = []
+  // const sources = useMemo(() => {
+  //   return concat<AttachmentDocItem | AttachmentCodeItem>(
+  //     [],
+  //     messageAttachmentDocs,
+  //     messageAttachmentClientCode,
+  //     message.attachment?.code
+  //   )
+  // }, [
+  //   messageAttachmentDocs,
+  //   messageAttachmentClientCode,
+  //   message.attachment?.code
+  // ])
   const sourceLen = sources.length
 
-  // todo context
-  const onCodeContextClick = (ctx: Context) => {
+  const onCodeContextClick = (ctx: FileContext) => {
     if (!ctx.filepath) return
     const url = new URL(`${window.location.origin}/files`)
     const searchParams = new URLSearchParams()
@@ -215,10 +203,12 @@ export function SectionContent({
     searchParams.append('redirect_git_url', ctx.git_url)
     url.search = searchParams.toString()
 
-    const lineHash = formatLineHashForCodeBrowser({
-      start: ctx.range.start,
-      end: ctx.range.end
-    })
+    const lineHash = ctx.range
+      ? formatLineHashForCodeBrowser({
+          start: ctx.range.start,
+          end: ctx.range.end
+        })
+      : ''
     if (lineHash) {
       url.hash = lineHash
     }
@@ -230,26 +220,7 @@ export function SectionContent({
 
   const onCodeCitationMouseLeave = (index: number) => {}
 
-  const openCodeBrowserTab = (code: MessageAttachmentCode) => {
-    const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
-    if (!code.filepath) return
-    const url = new URL(`${window.location.origin}/files`)
-    const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', code.filepath)
-    searchParams.append('redirect_git_url', code.gitUrl)
-    url.search = searchParams.toString()
-
-    const lineHash = formatLineHashForCodeBrowser({
-      start: startLine,
-      end: endLine
-    })
-    if (lineHash) {
-      url.hash = lineHash
-    }
-
-    window.open(url.toString())
-  }
+  const openCodeBrowserTab = (code: MessageAttachmentCode) => {}
 
   const onCodeCitationClick = (code: MessageAttachmentCode) => {
     if (code.gitUrl) {
@@ -275,7 +246,7 @@ export function SectionContent({
         )}
         {isEditing ? (
           <MessageContentForm
-            message={message}
+            message={message.content}
             onCancel={() => setIsEditing(false)}
             onSubmit={handleUpdateAssistantMessage}
           />
@@ -283,16 +254,16 @@ export function SectionContent({
           <>
             <MessageMarkdown
               message={message.content}
-              attachmentDocs={messageAttachmentDocs}
-              attachmentClientCode={messageAttachmentClientCode}
-              attachmentCode={message.attachment?.code}
+              // attachmentDocs={messageAttachmentDocs}
+              // attachmentClientCode={messageAttachmentClientCode}
+              // attachmentCode={message.attachment?.code}
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
               contextInfo={contextInfo}
               fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
-              supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+              supportsOnApplyInEditorV2={false}
               className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
             />
             {/* if isEditing, do not display error message block */}
@@ -375,7 +346,7 @@ export function SectionContent({
       </div>
 
       {/* Related questions */}
-      {showRelatedQuestion &&
+      {/* {showRelatedQuestion &&
         !isEditing &&
         !isLoading &&
         message.threadRelevantQuestions &&
@@ -402,7 +373,7 @@ export function SectionContent({
               )}
             </div>
           </div>
-        )}
+        )} */}
     </div>
   )
 }
@@ -534,11 +505,9 @@ function MessageContentForm({
   onCancel,
   onSubmit
 }: {
-  message: ConversationMessage
+  message: Section
   onCancel: () => void
-  onSubmit: (
-    newMessage: ConversationMessage
-  ) => Promise<ExtendedCombinedError | void>
+  onSubmit: (newMessage: Section) => Promise<ExtendedCombinedError | void>
 }) {
   const formSchema = z.object({
     content: z.string().trim()
@@ -548,7 +517,7 @@ function MessageContentForm({
     defaultValues: { content: message.content }
   })
   const { isSubmitting } = form.formState
-  const [draftMessage] = useState<ConversationMessage>(message)
+  const [draftMessage] = useState<Section>(message)
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     const error = await onSubmit({
