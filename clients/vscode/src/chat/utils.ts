@@ -36,10 +36,10 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
     localUri = convertFromNotebookCellUri(localUri);
   }
 
-  const uriFilePath = uri.toString(true);
-  const workspaceFolder = workspace.getWorkspaceFolder(uri);
+  const uriFilePath = localUri.toString(true);
+  const workspaceFolder = workspace.getWorkspaceFolder(localUri);
 
-  let repo = gitProvider.getRepository(uri);
+  let repo = gitProvider.getRepository(localUri);
   if (!repo && workspaceFolder) {
     repo = gitProvider.getRepository(workspaceFolder.uri);
   }
