@@ -518,3 +518,75 @@ export const repositorySourceListQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listPages = graphql(/* GraphQL */ `
+  query ListPages(
+    $ids: [ID!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    pages(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          authorId
+          title
+          content
+          createdAt
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listPageSections = graphql(/* GraphQL */ `
+  query ListPageSections(
+    $pageId: ID!
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    pageSections(
+      pageId: $pageId
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          pageId
+          title
+          content
+          createdAt
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
