@@ -132,5 +132,16 @@ export async function createThreadFromInsideIframe<
   );
 
   console.log("[createThreadFromInsideIframe] Thread created successfully");
+
+  // After connection is established and thread is created, request methods from outside
+  console.log(
+    "[createThreadFromInsideIframe] Connection ready, requesting methods from outside"
+  );
+  const methods = await thread.requestMethods();
+  console.log(
+    "[createThreadFromInsideIframe] Received methods from outside:",
+    methods
+  );
+
   return thread;
 }

@@ -117,6 +117,9 @@ export async function createThread<
   const idsToFunction = new Map<string, AnyFunction>();
   const idsToProxy = new Map<string, AnyFunction>();
 
+  // Cache for the other side's methods
+  let theirMethodsCache: string[] | null = null;
+
   if (expose) {
     for (const key of Object.keys(expose)) {
       const value = expose[key as keyof typeof expose];
@@ -131,33 +134,73 @@ export async function createThread<
     ) => void
   >();
 
-  console.log("[createThread] Starting expose list exchange");
+  // Create functions for method exchange
+  const exchangeMethods = () => {
+    console.log("[createThread] Starting expose list exchange");
+    const ourMethods = Array.from(activeApi.keys()).map(String);
+    console.log("[createThread] Our expose list:", ourMethods);
 
-  // Send our expose list to the other side
-  const ourMethods = Array.from(activeApi.keys()).map(String);
-  console.log("[createThread] Our expose list:", ourMethods);
+    const id = uuid();
+    console.log("[createThread] Setting up expose list resolver");
 
-  const id = uuid();
-  console.log("[createThread] Setting up expose list resolver");
+    // This will be called when we receive the RESULT with other side's methods
+    callIdsToResolver.set(id, (_, __, value) => {
+      const theirMethods = encoder.decode(value, encoderApi) as string[];
+      console.log(
+        "[createThread] Got RESULT with other side's methods:",
+        theirMethods
+      );
+      // Cache their methods
+      theirMethodsCache = theirMethods;
+      console.log("[createThread] Expose list exchange completed");
+    });
 
-  // This will be called when we receive the RESULT with other side's methods
-  callIdsToResolver.set(id, (_, __, value) => {
-    const theirMethods = encoder.decode(value, encoderApi) as string[];
-    console.log(
-      "[createThread] Got RESULT with other side's methods:",
-      theirMethods
-    );
-    // Store their methods for future use if needed
-    console.log("[createThread] Expose list exchange completed");
-  });
+    // Send EXPOSE_LIST with our methods
+    console.log("[createThread] Sending EXPOSE_LIST with our methods");
+    send(EXPOSE_LIST, [id, ourMethods]);
+  };
 
-  // Send EXPOSE_LIST with our methods
-  console.log("[createThread] Sending EXPOSE_LIST with our methods");
-  send(EXPOSE_LIST, [id, ourMethods]);
+  // Create a function to request methods from the other side
+  const requestMethods = async () => {
+    // If we have cached methods and connection is still active, return them
+    if (theirMethodsCache !== null && !terminated) {
+      console.log(
+        "[createThread] Returning cached methods:",
+        theirMethodsCache
+      );
+      return theirMethodsCache;
+    }
 
-  // Create proxy without waiting for response
+    console.log("[createThread] Requesting methods from other side");
+    const id = uuid();
+
+    // Create a promise that will resolve with the other side's methods
+    const methodsPromise = new Promise<string[]>((resolve) => {
+      callIdsToResolver.set(id, (_, __, value) => {
+        const theirMethods = encoder.decode(value, encoderApi) as string[];
+        console.log(
+          "[createThread] Got RESULT with other side's methods:",
+          theirMethods
+        );
+        // Cache the methods for future use
+        theirMethodsCache = theirMethods;
+        resolve(theirMethods);
+      });
+    });
+
+    // Send EXPOSE_LIST with empty methods array to request other side's methods
+    console.log("[createThread] Sending method request");
+    send(EXPOSE_LIST, [id, []]);
+
+    return methodsPromise;
+  };
+
+  // Create proxy for method calls
   console.log("[createThread] Creating proxy without waiting for response");
-  const call = createCallable<Thread<Target>>(handlerForCall, callable);
+  const call = createCallable<Thread<Target>>(handlerForCall, callable, {
+    exchangeMethods,
+    requestMethods,
+  });
 
   const encoderApi: ThreadEncoderApi = {
     functions: {
@@ -243,6 +286,7 @@ export async function createThread<
     functionsToId.clear();
     idsToFunction.clear();
     idsToProxy.clear();
+    theirMethodsCache = null; // Clear the cache when connection is terminated
   };
 
   signal?.addEventListener(
@@ -256,7 +300,7 @@ export async function createThread<
 
   target.listen(listener, { signal });
 
-  return Promise.resolve(call);
+  return call;
 
   function send<Type extends keyof MessageMap>(
     type: Type,
@@ -278,6 +322,7 @@ export async function createThread<
   async function listener(rawData: unknown) {
     console.log("[createThread] Received raw data:", rawData);
 
+    // FIXME: don't ignore anything, just for testing now
     const isThreadMessageData =
       Array.isArray(rawData) &&
       typeof rawData[0] === "number" &&
@@ -433,7 +478,6 @@ export async function createThread<
   }
 
   function handlerForCall(property: string | number | symbol) {
-    if (property === "then") return undefined;
     return (...args: any[]) => {
       try {
         if (terminated) {
@@ -527,7 +571,11 @@ function createCallable<T>(
   handlerForCall: (
     property: string | number | symbol
   ) => AnyFunction | undefined,
-  callable?: (keyof T)[]
+  callable?: (keyof T)[],
+  methods?: {
+    exchangeMethods: () => void;
+    requestMethods: () => Promise<string[]>;
+  }
 ): T {
   console.log("[createCallable] Creating callable with methods:", callable);
   let call: any;
@@ -546,6 +594,14 @@ function createCallable<T>(
       {
         get(_target, property) {
           if (property === "then") return undefined;
+          if (property === "exchangeMethods") {
+            console.log("[createCallable] Accessing exchangeMethods");
+            return methods?.exchangeMethods;
+          }
+          if (property === "requestMethods") {
+            console.log("[createCallable] Accessing requestMethods");
+            return methods?.requestMethods;
+          }
           console.log("[createCallable] Accessing property:", property);
           if (cache.has(property)) {
             console.log("[createCallable] Using cached handler for:", property);

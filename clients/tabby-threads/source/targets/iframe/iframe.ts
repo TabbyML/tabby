@@ -98,7 +98,7 @@ export async function createThreadFromIframe<
       send(message, transfer) {
         if (!connected) {
           console.log(
-            "[createThreadFromIframe] Message queued until connection:",
+            "[createThreadFromIframe] Queuing message until connected:",
             message
           );
           return connectedPromise.then(() => {
@@ -115,7 +115,6 @@ export async function createThreadFromIframe<
             );
           });
         }
-
         return sendMessage(message, transfer);
       },
       listen(listen, { signal }) {
@@ -147,5 +146,10 @@ export async function createThreadFromIframe<
   );
 
   console.log("[createThreadFromIframe] Thread created successfully");
+
+  // After connection is established and thread is created, exchange methods
+  console.log("[createThreadFromIframe] Connection ready, exchanging methods");
+  thread.exchangeMethods();
+
   return thread;
 }

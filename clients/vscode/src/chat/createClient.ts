@@ -28,6 +28,7 @@ async function createThreadFromWebview<Self = Record<string, never>, Target = Re
     },
     options,
   );
+  setTimeout(() => thread.exchangeMethods(), 3000);
   getLogger().info("Thread created");
   return thread;
 }
