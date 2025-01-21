@@ -47,7 +47,7 @@ import {
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
-  uriToListFileItem,
+  localUriToListFileItem,
   escapeGlobPattern,
 } from "./utils";
 import mainHtml from "./html/main.html";
@@ -509,7 +509,7 @@ export class ChatWebview {
             .filter((tab) => tab.input && (tab.input as TabInputText).uri);
 
           this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
-          return openTabs.map((tab) => uriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
+          return openTabs.map((tab) => localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
         }
 
         try {
@@ -529,7 +529,7 @@ export class ChatWebview {
 
           const files = await workspace.findFiles(globPattern, undefined, maxResults);
           this.logger.info(`Found ${files.length} files.`);
-          return files.map((uri) => uriToListFileItem(uri, this.gitProvider));
+          return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
         } catch (error) {
           this.logger.warn("Failed to find files:", error);
           window.showErrorMessage("Failed to find files.");
