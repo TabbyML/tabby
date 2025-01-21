@@ -453,7 +453,8 @@ export function LDAPCredentialForm({
               </FormItem>
             )}
           />
-          <div className="mt-4">
+          <Separator className="my-2" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
             <Button
               onClick={onTestLdapCredential}
               type="button"
@@ -465,66 +466,63 @@ export function LDAPCredentialForm({
                 <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
               )}
             </Button>
-          </div>
-
-          <Separator />
-
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={navigateToSSOSettings}
-            >
-              Back
-            </Button>
-            {!isNew && (
-              <AlertDialog
-                open={deleteAlertVisible}
-                onOpenChange={setDeleteAlertVisible}
+            <div className="flex items-center justify-end gap-4 sm:justify-start">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={navigateToSSOSettings}
               >
-                <AlertDialogTrigger asChild>
-                  <Button variant="hover-destructive">Delete</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Are you absolutely sure?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. It will permanently delete
-                      the current credential.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className={buttonVariants({ variant: 'destructive' })}
-                      onClick={onDelete}
-                    >
-                      {isDeleting && (
-                        <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      Yes, delete it
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            <LicenseGuard licenses={[LicenseType.Enterprise]}>
-              {({ hasValidLicense }) => (
-                <Button
-                  type="submit"
-                  disabled={
-                    !hasValidLicense || isSubmitting || (!isNew && !isDirty)
-                  }
+                Back
+              </Button>
+              {!isNew && (
+                <AlertDialog
+                  open={deleteAlertVisible}
+                  onOpenChange={setDeleteAlertVisible}
                 >
-                  {isSubmitting && (
-                    <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isNew ? 'Create' : 'Update'}
-                </Button>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="hover-destructive">Delete</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Are you absolutely sure?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. It will permanently delete
+                        the current credential.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className={buttonVariants({ variant: 'destructive' })}
+                        onClick={onDelete}
+                      >
+                        {isDeleting && (
+                          <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Yes, delete it
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
-            </LicenseGuard>
+              <LicenseGuard licenses={[LicenseType.Enterprise]}>
+                {({ hasValidLicense }) => (
+                  <Button
+                    type="submit"
+                    disabled={
+                      !hasValidLicense || isSubmitting || (!isNew && !isDirty)
+                    }
+                  >
+                    {isSubmitting && (
+                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {isNew ? 'Create' : 'Update'}
+                  </Button>
+                )}
+              </LicenseGuard>
+            </div>
           </div>
         </form>
         <FormMessage className="text-center" />

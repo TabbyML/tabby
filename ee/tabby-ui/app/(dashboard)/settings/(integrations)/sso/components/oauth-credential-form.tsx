@@ -44,6 +44,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 import { LicenseGuard } from '@/components/license-guard'
 
@@ -276,17 +277,20 @@ export default function OAuthCredentialForm({
 
           {oauthRedirectUrlData && (
             <FormItem className="mt-4">
-              <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
+              <div className="flex flex-col gap-2 overflow-hidden rounded-lg border px-3 py-2">
                 <div className="text-sm text-muted-foreground">
                   Create your OAuth2 application with the following information
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col justify-between sm:flex-row sm:items-center">
                   <div className="text-sm font-medium">
                     Authorization callback URL
                   </div>
                   <span className="flex items-center text-sm">
-                    {oauthRedirectUrlData.oauthCallbackUrl}
+                    <span className="truncate">
+                      {oauthRedirectUrlData.oauthCallbackUrl}
+                    </span>
                     <CopyButton
+                      className="shrink-0"
                       type="button"
                       value={oauthRedirectUrlData.oauthCallbackUrl!}
                     />
@@ -345,6 +349,7 @@ export default function OAuthCredentialForm({
               </FormItem>
             )}
           />
+          <Separator className="my-2" />
           <div className="flex justify-end gap-4">
             <Button
               type="button"
