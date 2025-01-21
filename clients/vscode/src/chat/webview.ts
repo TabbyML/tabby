@@ -32,6 +32,7 @@ import type {
   FileRange,
 } from "tabby-chat-panel";
 import * as semver from "semver";
+import debounce from "debounce";
 import { v4 as uuid } from "uuid";
 import type { StatusInfo, Config } from "tabby-agent";
 import type { GitProvider } from "../git/GitProvider";
@@ -39,7 +40,7 @@ import type { Client as LspClient } from "../lsp/Client";
 import { createClient } from "./createClient";
 import { isBrowser } from "../env";
 import { getLogger } from "../logger";
-import { getFileContextFromSelection } from "./fileContext";
+import { getEditorContext } from "./context";
 import {
   localUriToChatPanelFilepath,
   chatPanelFilepathToLocalUri,
@@ -112,14 +113,14 @@ export class ChatWebview {
     this.disposables.push(
       window.onDidChangeActiveTextEditor((editor) => {
         if (this.chatPanelLoaded) {
-          this.notifyActiveEditorSelectionChange(editor);
+          this.debouncedNotifyActiveEditorSelectionChange(editor);
         }
       }),
     );
     this.disposables.push(
       window.onDidChangeTextEditorSelection((event) => {
         if (event.textEditor === window.activeTextEditor && this.chatPanelLoaded) {
-          this.notifyActiveEditorSelectionChange(event.textEditor);
+          this.debouncedNotifyActiveEditorSelectionChange(event.textEditor);
         }
       }),
     );
@@ -474,8 +475,7 @@ export class ChatWebview {
           return null;
         }
 
-        const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-        return fileContext;
+        return await getEditorContext(editor, this.gitProvider);
       },
 
       fetchSessionState: async (keys?: string[] | undefined): Promise<Record<string, unknown> | null> => {
@@ -739,9 +739,13 @@ export class ChatWebview {
       return;
     }
 
-    const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
+    const fileContext = await getEditorContext(editor, this.gitProvider);
     await this.client?.updateActiveSelection(fileContext);
   }
+
+  private debouncedNotifyActiveEditorSelectionChange = debounce(async (editor: TextEditor | undefined) => {
+    await this.notifyActiveEditorSelectionChange(editor);
+  }, 100);
 
   private getColorThemeString() {
     switch (window.activeColorTheme.kind) {

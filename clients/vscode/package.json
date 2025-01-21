@@ -457,6 +457,7 @@
     "publish-prerelease": "pnpm run vscode:publish-prerelease && pnpm run ovsx:publish-prerelease"
   },
   "devDependencies": {
+    "@types/dedent": "^0.7.2",
     "@types/deep-equal": "^1.0.4",
     "@types/diff": "^5.2.1",
     "@types/fs-extra": "^11.0.1",
@@ -472,6 +473,7 @@
     "@vscode/test-web": "^0.0.63",
     "@vscode/vsce": "^2.15.0",
     "assert": "^2.0.0",
+    "debounce": "^2.2.0",
     "dedent": "^0.7.0",
     "deep-equal": "^2.2.1",
     "diff": "^5.2.0",
