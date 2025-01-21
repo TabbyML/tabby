@@ -69,6 +69,7 @@ const RELEASE = 3;
 const FUNCTION_APPLY = 5;
 const FUNCTION_RESULT = 6;
 const CHECK_CAPABILITY = 7;
+const EXPOSE_LIST = 8;
 
 interface MessageMap {
   [CALL]: [string, string | number, any];
@@ -78,6 +79,8 @@ interface MessageMap {
   [FUNCTION_APPLY]: [string, string, any];
   [FUNCTION_RESULT]: [string, Error?, any?];
   [CHECK_CAPABILITY]: [string, string];
+  [EXPOSE_LIST]: [string, string[]]; // Request to exchange methods: [callId, our_methods]
+  // The other side will respond with their methods via RESULT
 }
 
 type MessageData = {
@@ -88,7 +91,7 @@ type MessageData = {
  * Creates a thread from any object that conforms to the `ThreadTarget`
  * interface.
  */
-export function createThread<
+export async function createThread<
   Self = Record<string, never>,
   Target = Record<string, never>,
 >(
@@ -100,7 +103,14 @@ export function createThread<
     uuid = defaultUuid,
     encoder = createBasicEncoder(),
   }: ThreadOptions<Self, Target> = {}
-): Thread<Target> {
+): Promise<Thread<Target>> {
+  console.log("[createThread] Initializing with options:", {
+    hasExpose: !!expose,
+    hasCallable: !!callable,
+    hasSignal: !!signal,
+    exposeMethods: expose ? Object.keys(expose) : [],
+  });
+
   let terminated = false;
   const activeApi = new Map<string | number, AnyFunction>();
   const functionsToId = new Map<AnyFunction, string>();
@@ -121,6 +131,32 @@ export function createThread<
     ) => void
   >();
 
+  console.log("[createThread] Starting expose list exchange");
+
+  // Send our expose list to the other side
+  const ourMethods = Array.from(activeApi.keys()).map(String);
+  console.log("[createThread] Our expose list:", ourMethods);
+
+  const id = uuid();
+  console.log("[createThread] Setting up expose list resolver");
+
+  // This will be called when we receive the RESULT with other side's methods
+  callIdsToResolver.set(id, (_, __, value) => {
+    const theirMethods = encoder.decode(value, encoderApi) as string[];
+    console.log(
+      "[createThread] Got RESULT with other side's methods:",
+      theirMethods
+    );
+    // Store their methods for future use if needed
+    console.log("[createThread] Expose list exchange completed");
+  });
+
+  // Send EXPOSE_LIST with our methods
+  console.log("[createThread] Sending EXPOSE_LIST with our methods");
+  send(EXPOSE_LIST, [id, ourMethods]);
+
+  // Create proxy without waiting for response
+  console.log("[createThread] Creating proxy without waiting for response");
   const call = createCallable<Thread<Target>>(handlerForCall, callable);
 
   const encoderApi: ThreadEncoderApi = {
@@ -220,28 +256,40 @@ export function createThread<
 
   target.listen(listener, { signal });
 
-  return call;
+  return Promise.resolve(call);
 
   function send<Type extends keyof MessageMap>(
     type: Type,
     args: MessageMap[Type],
     transferables?: Transferable[]
   ) {
-    if (terminated) return;
+    if (terminated) {
+      console.log("[createThread] Not sending message - thread terminated");
+      return;
+    }
+    console.log("[createThread] Sending message:", {
+      type,
+      args,
+      transferables,
+    });
     target.send([type, args], transferables);
   }
 
   async function listener(rawData: unknown) {
+    console.log("[createThread] Received raw data:", rawData);
+
     const isThreadMessageData =
       Array.isArray(rawData) &&
       typeof rawData[0] === "number" &&
       (rawData[1] == null || Array.isArray(rawData[1]));
 
     if (!isThreadMessageData) {
+      console.log("[createThread] Invalid message format, ignoring:,", rawData);
       return;
     }
 
     const data = rawData as MessageData;
+    console.log("[createThread] Processing message type:", data[0]);
 
     switch (data[0]) {
       case TERMINATE: {
@@ -275,6 +323,25 @@ export function createThread<
         break;
       }
       case RESULT: {
+        const [id, error, value] = data[1];
+        console.log("[createThread] Received RESULT message:", {
+          id,
+          error,
+          value,
+        });
+
+        // If this is a response to our EXPOSE_LIST
+        const resolver = callIdsToResolver.get(id);
+        if (resolver) {
+          console.log("[createThread] Found resolver for RESULT");
+          if (error) {
+            console.log("[createThread] Error in RESULT:", error);
+          } else {
+            const methods = encoder.decode(value, encoderApi);
+            console.log("[createThread] Decoded methods from RESULT:", methods);
+          }
+        }
+
         resolveCall(...data[1]);
         break;
       }
@@ -333,10 +400,40 @@ export function createThread<
         send(RESULT, [id, undefined, encoder.encode(hasMethod, encoderApi)[0]]);
         break;
       }
+      case EXPOSE_LIST: {
+        const [id, theirMethods] = data[1];
+        console.log(
+          "[createThread] Received EXPOSE_LIST with their methods:",
+          theirMethods
+        );
+
+        // Store their methods for future use
+        const theirMethodsList = theirMethods as string[];
+        console.log("[createThread] Stored their methods:", theirMethodsList);
+
+        // Send back our methods as RESULT
+        const ourMethods = Array.from(activeApi.keys()).map(String);
+        console.log(
+          "[createThread] Sending RESULT with our methods:",
+          ourMethods
+        );
+
+        send(RESULT, [
+          id,
+          undefined,
+          encoder.encode(ourMethods, encoderApi)[0],
+        ]);
+
+        console.log(
+          "[createThread] Expose list exchange completed for this side"
+        );
+        break;
+      }
     }
   }
 
   function handlerForCall(property: string | number | symbol) {
+    if (property === "then") return undefined;
     return (...args: any[]) => {
       try {
         if (terminated) {
@@ -345,7 +442,7 @@ export function createThread<
 
         if (typeof property !== "string" && typeof property !== "number") {
           throw new Error(
-            `Can’t call a symbol method on a thread: ${property.toString()}`
+            `Can't call a symbol method on a thread: ${property.toString()}`
           );
         }
 
@@ -432,6 +529,7 @@ function createCallable<T>(
   ) => AnyFunction | undefined,
   callable?: (keyof T)[]
 ): T {
+  console.log("[createCallable] Creating callable with methods:", callable);
   let call: any;
 
   if (callable == null) {
@@ -447,10 +545,14 @@ function createCallable<T>(
       {},
       {
         get(_target, property) {
+          if (property === "then") return undefined;
+          console.log("[createCallable] Accessing property:", property);
           if (cache.has(property)) {
+            console.log("[createCallable] Using cached handler for:", property);
             return cache.get(property);
           }
 
+          console.log("[createCallable] Creating new handler for:", property);
           const handler = handlerForCall(property);
           cache.set(property, handler);
           return handler;

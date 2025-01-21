@@ -368,8 +368,9 @@ export interface ClientApi extends ClientApiMethods {
   supports: SupportProxy
 }
 
-export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
-  return createThreadFromIframe(target, {
+// TODO: change this to async
+export async function createClient(target: HTMLIFrameElement, api: ClientApiMethods): Promise<ServerApi> {
+  const thread = await createThreadFromIframe(target, {
     expose: {
       refresh: api.refresh,
       onApplyInEditor: api.onApplyInEditor,
@@ -388,10 +389,11 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       readFileContent: api.readFileContent,
     },
   })
+  return thread as unknown as ServerApi
 }
 
-export function createServer(api: ServerApi): ClientApi {
-  const clientApi = createThreadFromInsideIframe({
+export async function createServer(api: ServerApi): Promise<ClientApi> {
+  return await createThreadFromInsideIframe({
     expose: {
       init: api.init,
       executeCommand: api.executeCommand,
@@ -400,86 +402,6 @@ export function createServer(api: ServerApi): ClientApi {
       addRelevantContext: api.addRelevantContext,
       updateTheme: api.updateTheme,
       updateActiveSelection: api.updateActiveSelection,
-    },
-  }) as unknown as ClientApi
-
-  console.log('clientApi', Object.keys(clientApi))
-
-  const supportCache = new Map<string, boolean>()
-  let cacheInitialized = false
-
-  const initializeCache = async () => {
-    if (cacheInitialized)
-      return
-    console.log('Initializing cache...')
-    try {
-      // TODO: remove this workaround after the server is updated
-      const methods = [
-        'refresh',
-        'onApplyInEditor',
-        'onApplyInEditorV2',
-        'onLoaded',
-        'onCopy',
-        'onKeyboardEvent',
-        'lookupSymbol',
-        'openInEditor',
-        'openExternal',
-        'readWorkspaceGitRepositories',
-        'getActiveEditorSelection',
-      ]
-
-      await Promise.all(
-        methods.map(async (method) => {
-          try {
-            console.log('Checking method:', method)
-            const supported = await clientApi.hasCapability(method as keyof ClientApiMethods)
-            supportCache.set(method, supported)
-            console.log(`Method ${method} supported:`, supported)
-          }
-          catch (e) {
-            console.log('Error checking method:', method, e)
-            supportCache.set(method, false)
-          }
-        }),
-      )
-      cacheInitialized = true
-      console.log('Cache initialized:', supportCache)
-    }
-    catch (e) {
-      console.error('Failed to initialize cache:', e)
-    }
-  }
-
-  initializeCache()
-
-  return new Proxy(clientApi, {
-    get(target, property, receiver) {
-      // Approach 1: use supports keyword to check if the method is supported
-      // support get and has method for supports
-      // get method for 'supports' operator e.g. server.supports['refresh'].then(setSupportRefresh)
-      // has for 'in' operator    if('refresh' in server.supports) { ... }
-      if (property === 'supports') {
-        return new Proxy({}, {
-          get: async (_target, capability: string) => {
-            const cleanCapability = capability.replace('?', '')
-            await initializeCache()
-            return supportCache.has(cleanCapability)
-              ? supportCache.get(cleanCapability)
-              : false
-          },
-          has: (_target, capability: string) => {
-            // FIXME: bug here, always return false when server just load, need to fix
-            const cleanCapability = capability.replace('?', '')
-            if (!cacheInitialized)
-              return false
-            return supportCache.has(cleanCapability)
-              ? supportCache.get(cleanCapability) ?? false
-              : false
-          },
-        })
-      }
-      // Approach 2: use ClientApiMethods getter to check if the method is supported
-      return Reflect.get(target, property, receiver)
     },
   })
 }

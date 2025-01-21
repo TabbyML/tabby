@@ -15,7 +15,7 @@ import { CHECK_MESSAGE, RESPONSE_MESSAGE } from "./shared";
  * const thread = createThreadFromInsideIframe();
  * await thread.sendMessage('Hello world!');
  */
-export function createThreadFromInsideIframe<
+export async function createThreadFromInsideIframe<
   Self = Record<string, never>,
   Target = Record<string, never>,
 >({
@@ -42,48 +42,86 @@ export function createThreadFromInsideIframe<
     ? new NestedAbortController(options.signal)
     : new AbortController();
 
-  const ready = () => {
-    const respond = () => parent.postMessage(RESPONSE_MESSAGE, targetOrigin);
+  console.log("[createThreadFromInsideIframe] Starting connection process");
 
-    // Handles wrappers that want to connect after the page has already loaded
+  const connectionPromise = new Promise<void>((resolve) => {
+    let isConnected = false;
+
+    const respond = () => {
+      if (!isConnected) {
+        console.log("[createThreadFromInsideIframe] Sending RESPONSE_MESSAGE");
+        isConnected = true;
+        parent.postMessage(RESPONSE_MESSAGE, targetOrigin);
+        resolve();
+      }
+    };
+
     self.addEventListener(
       "message",
       ({ data }) => {
-        if (data === CHECK_MESSAGE) respond();
+        console.log(
+          "[createThreadFromInsideIframe] Received message:",
+          JSON.stringify(data)
+        );
+        if (data === CHECK_MESSAGE) {
+          console.log("[createThreadFromInsideIframe] Received CHECK_MESSAGE");
+          respond();
+        }
       },
       { signal: options.signal }
     );
 
-    respond();
-  };
+    if (document.readyState === "complete") {
+      console.log(
+        "[createThreadFromInsideIframe] Document already complete, responding"
+      );
+      respond();
+    } else {
+      console.log(
+        "[createThreadFromInsideIframe] Waiting for document to complete"
+      );
+      document.addEventListener(
+        "readystatechange",
+        () => {
+          if (document.readyState === "complete") {
+            console.log(
+              "[createThreadFromInsideIframe] Document completed, responding"
+            );
+            respond();
+            abort.abort();
+          }
+        },
+        { signal: abort.signal }
+      );
+    }
+  });
 
-  // Listening to `readyState` in iframe, though the child iframe could probably
-  // send a `postMessage` that it is ready to receive messages sooner than that.
-  if (document.readyState === "complete") {
-    ready();
-  } else {
-    document.addEventListener(
-      "readystatechange",
-      () => {
-        if (document.readyState === "complete") {
-          ready();
-          abort.abort();
-        }
-      },
-      { signal: abort.signal }
-    );
-  }
+  await connectionPromise;
+  console.log(
+    "[createThreadFromInsideIframe] Connection established, creating thread"
+  );
 
-  return createThread(
+  const thread = await createThread(
     {
       send(message, transfer) {
+        console.log(
+          "[createThreadFromInsideIframe] Sending message:",
+          JSON.stringify(message)
+        );
         return parent.postMessage(message, targetOrigin, transfer);
       },
       listen(listen, { signal }) {
+        console.log(
+          "[createThreadFromInsideIframe] Setting up message listener"
+        );
         self.addEventListener(
           "message",
           (event) => {
             if (event.data === CHECK_MESSAGE) return;
+            console.log(
+              "[createThreadFromInsideIframe] Received message:",
+              JSON.stringify(event.data)
+            );
             listen(event.data);
           },
           { signal }
@@ -92,4 +130,7 @@ export function createThreadFromInsideIframe<
     },
     options
   );
+
+  console.log("[createThreadFromInsideIframe] Thread created successfully");
+  return thread;
 }

@@ -243,7 +243,6 @@ export default function ChatPage() {
       server?.onLoaded({
         apiVersion: TABBY_CHAT_PANEL_API_VERSION
       })
-
       const checkCapabilities = async () => {
         server
           ?.hasCapability('onApplyInEditorV2')
