@@ -22,7 +22,7 @@ import { ContextVariables } from "../ContextVariables";
 import { InlineCompletionProvider } from "../InlineCompletionProvider";
 import { ChatSidePanelProvider } from "../chat/sidePanel";
 import { createChatPanel } from "../chat/chatPanel";
-import { getFileContextFromSelection, getFileContext } from "../chat/fileContext";
+import { getEditorContext } from "../chat/context";
 import { GitProvider, Repository } from "../git/GitProvider";
 import { showOutputPanel } from "../logger";
 import { InlineEditController } from "../inline-edit";
@@ -227,7 +227,7 @@ export class Commands {
     "chat.addRelevantContext": async () => {
       ensureHasEditorSelection(async (editor) => {
         await commands.executeCommand("tabby.chatView.focus");
-        const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
+        const fileContext = await getEditorContext(editor, this.gitProvider, "selection");
         if (fileContext) {
           this.chatSidePanelProvider.addRelevantContext(fileContext);
         }
@@ -237,7 +237,7 @@ export class Commands {
       const editor = window.activeTextEditor;
       if (editor) {
         await commands.executeCommand("tabby.chatView.focus");
-        const fileContext = await getFileContext(editor, this.gitProvider);
+        const fileContext = await getEditorContext(editor, this.gitProvider, "file");
         if (fileContext) {
           this.chatSidePanelProvider.addRelevantContext(fileContext);
         }

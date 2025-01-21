@@ -316,7 +316,8 @@ export interface ClientApiMethods {
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
 
   /**
-   * @returns The active selection of active editor.
+   * Get the active editor selection as context, or the whole file if no selection.
+   * @returns The context of the active editor, or null if no active editor is found.
    */
   getActiveEditorSelection: () => Promise<EditorFileContext | null>
 
