@@ -2,9 +2,8 @@ import { HTMLAttributes, useContext } from 'react'
 
 import { Section } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { IconEdit, IconEmojiBook, IconGithub } from '@/components/ui/icons'
+import { IconEdit } from '@/components/ui/icons'
 import { ChatContext } from '@/components/chat/chat'
 import { MessageMarkdown } from '@/components/message-markdown'
 
@@ -30,7 +29,7 @@ export function SectionTitle({
       >
         {/* todo use markdown? */}
         <MessageMarkdown
-          message={message.content}
+          message={message.title}
           contextInfo={undefined}
           supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
           fetchingContextInfo={fetchingContextInfo}

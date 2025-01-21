@@ -127,6 +127,18 @@ type PageContextValue = {
   ) => Promise<ExtendedCombinedError | undefined>
 }
 
+const deletePageSectionMutation = graphql(/* GraphQL */ `
+  mutation DeletePageSection($sectionId: ID!) {
+    deletePageSection(sectionId: $sectionId)
+  }
+`)
+
+const addPageSectionMutation = graphql(/* GraphQL */ `
+  mutation AddPageSection($input: AddPageSectionInput!) {
+    addPageSection(input: $input)
+  }
+`)
+
 export const PageContext = createContext<PageContextValue>(
   {} as PageContextValue
 )
@@ -140,8 +152,6 @@ const PAGE_SIZE = 30
 
 const TEMP_MSG_ID_PREFIX = '_temp_msg_'
 const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
-
-// id: E16n1q
 
 export function Page() {
   const [{ data: meData }] = useMe()
@@ -177,10 +187,14 @@ export function Page() {
   }, [activePathname])
 
   const updateThreadMessage = useMutation(updateThreadMessageMutation)
+  const deletePageSection = useMutation(deletePageSectionMutation)
+  const addPageSection = useMutation(addPageSectionMutation)
 
   const onUpdateMessage = async (
     message: ConversationMessage
   ): Promise<ExtendedCombinedError | undefined> => {
+    // todo
+    return
     const messageIndex = sections.findIndex(o => o.id === message.id)
     if (messageIndex > -1 && pageId) {
       // 1. call api
@@ -249,11 +263,11 @@ export function Page() {
   ] = useQuery({
     query: listPageSections,
     variables: {
-      pageId: 'E16n1q',
+      pageId: pageIdFromURL as string,
       first: PAGE_SIZE,
       after: afterCursor
-    }
-    // pause: !threadId || isReady
+    },
+    pause: !pageIdFromURL || isReady
   })
 
   useEffect(() => {
@@ -312,31 +326,8 @@ export function Page() {
     }
   }, [pageSectionsError])
 
-  // `/search` -> `/search/{slug}-{threadId}`
-  const updateThreadURL = (threadId: string) => {
-    const slug = slugify(title)
-    const slugWithThreadId = compact([slug, threadId]).join('-')
-
-    const path = updateUrlComponents({
-      pathname: `/page/${slugWithThreadId}`,
-      searchParams: {
-        del: ['q']
-      },
-      replace: true
-    })
-
-    return location.origin + path
-  }
-
-  const {
-    sendUserMessage,
-    isLoading,
-    error,
-    answer,
-    stop,
-    regenerate,
-    deleteThreadMessagePair
-  } = useThreadRun({
+  // todo remove
+  const { isLoading, stop, regenerate } = useThreadRun({
     threadId: pageId
   })
 
@@ -380,15 +371,6 @@ export function Page() {
     return !pageIdFromURL && some(sections, message => !!message.error)
   }, [pageIdFromURL, sections])
 
-  const { isCopied: isShareLinkCopied, onShare: onClickShare } = useShareThread(
-    {
-      threadIdFromURL: pageIdFromURL,
-      threadIdFromStreaming: pageId,
-      streamingDone: !isLoading,
-      updateThreadURL
-    }
-  )
-
   // Delay showing the stop button
   const showStopTimeoutId = useRef<number>()
 
@@ -427,48 +409,14 @@ export function Page() {
     }
   }, [devPanelOpen])
 
-  const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
-    const newUserMessageId = tempNanoId()
-    const newAssistantMessageId = tempNanoId()
-    const newUserMessage: ConversationMessage = {
-      id: newUserMessageId,
-      role: Role.User,
-      content: question
-    }
-    const newAssistantMessage: ConversationMessage = {
-      id: newAssistantMessageId,
-      role: Role.Assistant,
-      content: ''
-    }
-
-    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(ctx)
-
-    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
-      ? { sourceId: sourceIdForCodeQuery, content: question }
-      : null
-
-    const docQuery: InputMaybe<DocQueryInput> = {
-      sourceIds: sourceIdsForDocQuery,
-      content: question,
-      searchPublic: !!searchPublic
-    }
-
-    setCurrentUserMessageId(newUserMessageId)
-    setCurrentAssistantMessageId(newAssistantMessageId)
-    setSections([...sections].concat([newUserMessage, newAssistantMessage]))
-
-    sendUserMessage(
-      {
-        content: question
-      },
-      {
-        generateRelevantQuestions: true,
-        codeQuery,
-        docQuery,
-        modelName: ctx?.modelName
+  const onSubmitSearch = (title: string, ctx?: ThreadRunContexts) => {
+    if (!pageIdFromURL) return
+    addPageSection({
+      input: {
+        title,
+        pageId: pageIdFromURL
       }
-    )
+    })
   }
 
   // regenerate ths last assistant message
@@ -552,45 +500,20 @@ export function Page() {
     prevDevPanelSize.current = devPanelSize
   }
 
-  const onDeleteMessage = (asistantMessageId: string) => {
-    if (!pageId) return
-    // find userMessageId by assistantMessageId
-    const assistantMessageIndex = sections.findIndex(
-      message => message.id === asistantMessageId
-    )
-    const userMessageIndex = assistantMessageIndex - 1
-    const userMessage = sections[assistantMessageIndex - 1]
+  const onDeleteMessage = (sectionId: string) => {
+    if (!pageIdFromURL) return
 
-    if (assistantMessageIndex === -1 || userMessage?.role !== Role.User) {
-      return
-    }
-
-    // message pair not successfully created in threadrun
-    if (
-      userMessage.id.startsWith(TEMP_MSG_ID_PREFIX) &&
-      asistantMessageId.startsWith(TEMP_MSG_ID_PREFIX)
-    ) {
-      const newMessages = sections
-        .slice(0, userMessageIndex)
-        .concat(sections.slice(assistantMessageIndex + 1))
-      setSections(newMessages)
-      return
-    }
-
-    deleteThreadMessagePair(pageId, userMessage.id, asistantMessageId).then(
-      errorMessage => {
-        if (errorMessage) {
-          toast.error(errorMessage)
-          return
-        }
-
-        // remove userMessage and assistantMessage
-        const newMessages = sections
-          .slice(0, userMessageIndex)
-          .concat(sections.slice(assistantMessageIndex + 1))
-        setSections(newMessages)
+    deletePageSection({ sectionId }).then(data => {
+      if (data?.data?.deletePageSection) {
+        return
+      } else {
+        // todo
+        toast.error('Failed to delete')
       }
-    )
+
+      // todo: remove and set sections ?
+      // setSections(newMessages)
+    })
   }
 
   const onModelSelect = (model: string) => {
