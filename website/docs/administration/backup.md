@@ -12,7 +12,21 @@ By default, Tabby stores all its data in the `$HOME/.tabby` directory. However, 
 
 ## Database Backup
 
-Tabby uses SQLite for data storage. You can back up the database by simply copying the file to a secure location. The database is located at `$HOME/.tabby/ee/db.sqlite` by default.
+Tabby uses SQLite for data storage, with the default database located at `$HOME/.tabby/ee/db.sqlite`.
+To conduct backup operations, you'll require the SQLite CLI.
+
+1. Access the Tabby database using the SQLite CLI:
+   ```bash
+   sqlite3 $HOME/.tabby/ee/db.sqlite
+   ```
+2. Once inside the SQLite CLI, execute the `.backup` command to generate a backup of the database:
+   ```bash
+   .backup backup_database.db
+   ```
+
+Subsequently, a backup database named `backup_database.db` will be located in your current working directory.
+
+For additional information, please consult the [SQLite Backup API](https://www.sqlite.org/backup.html).
 
 ## Event Logs Backup
 
