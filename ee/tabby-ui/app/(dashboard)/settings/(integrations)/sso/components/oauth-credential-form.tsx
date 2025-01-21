@@ -277,17 +277,20 @@ export default function OAuthCredentialForm({
 
           {oauthRedirectUrlData && (
             <FormItem className="mt-4">
-              <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
+              <div className="flex flex-col gap-2 rounded-lg border px-3 py-2 overflow-hidden">
                 <div className="text-sm text-muted-foreground">
                   Create your OAuth2 application with the following information
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                   <div className="text-sm font-medium">
                     Authorization callback URL
                   </div>
                   <span className="flex items-center text-sm">
-                    {oauthRedirectUrlData.oauthCallbackUrl}
+                    <span className="truncate">
+                      {oauthRedirectUrlData.oauthCallbackUrl}
+                    </span>
                     <CopyButton
+                      className="shrink-0"
                       type="button"
                       value={oauthRedirectUrlData.oauthCallbackUrl!}
                     />
