@@ -44,6 +44,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 import { LicenseGuard } from '@/components/license-guard'
 
@@ -345,6 +346,7 @@ export default function OAuthCredentialForm({
               </FormItem>
             )}
           />
+          <Separator className="my-2" />
           <div className="flex justify-end gap-4">
             <Button
               type="button"
