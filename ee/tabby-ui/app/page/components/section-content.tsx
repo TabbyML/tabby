@@ -333,7 +333,13 @@ export function SectionContent({
                         <DropdownMenuContent align="start">
                           <DropdownMenuItem>Move Up</DropdownMenuItem>
                           <DropdownMenuItem>Move Down</DropdownMenuItem>
-                          <DropdownMenuItem>Delete Section</DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              onDeleteMessage(message.id)
+                            }}
+                          >
+                            Delete Section
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </>

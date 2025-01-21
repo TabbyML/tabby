@@ -43,9 +43,9 @@ import UserPanel from '@/components/user-panel'
 
 import { PageContext } from './page'
 
-const deleteThreadMutation = graphql(/* GraphQL */ `
-  mutation DeleteThread($id: ID!) {
-    deleteThread(id: $id)
+const deletePageMutation = graphql(/* GraphQL */ `
+  mutation DeletePage($id: ID!) {
+    deletePage(id: $id)
   }
 `)
 
@@ -61,9 +61,9 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const deleteThread = useMutation(deleteThreadMutation, {
+  const deletePage = useMutation(deletePageMutation, {
     onCompleted(data) {
-      if (data.deleteThread) {
+      if (data.deletePage) {
         router.replace('/')
       } else {
         toast.error('Failed to delete')
@@ -76,10 +76,10 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
     }
   })
 
-  const handleDeleteThread = (e: MouseEvent<HTMLButtonElement>) => {
+  const handleDeletePage = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     setIsDeleting(true)
-    deleteThread({
+    deletePage({
       id: threadIdFromURL!
     })
   }
@@ -138,9 +138,9 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete this thread</AlertDialogTitle>
+                        <AlertDialogTitle>Delete this page</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete this thread? This
+                          Are you sure you want to delete this page? This
                           operation is not revertible.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
@@ -148,7 +148,7 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           className={buttonVariants({ variant: 'destructive' })}
-                          onClick={handleDeleteThread}
+                          onClick={handleDeletePage}
                         >
                           {isDeleting && (
                             <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
