@@ -1,6 +1,6 @@
 # Voyage AI
 
-[Voyage AI](https://voyage.ai/) is a company that specializes in developing high-performance embedding models, particularly optimized for code understanding and processing tasks.
+[Voyage AI](https://voyage.ai/) is a company that provides a range of embedding models. Tabby supports Voyage AI's models for embedding tasks.
 
 ## Embeddings model
 

@@ -10,7 +10,7 @@ OpenAI provides a comprehensive chat API interface. Note: Do not append the `/ch
 [model.chat.http]
 kind = "openai/chat"
 model_name = "gpt-4o"  # Please make sure to use a chat model, such as gpt-4o
-api_endpoint = "https://api.openai.com/v1"
+api_endpoint = "https://api.openai.com/v1"   # DO NOT append the `/chat/completions` suffix
 api_key = "your-api-key"
 ```
 
@@ -25,7 +25,7 @@ OpenAI provides powerful embedding models through their API interface. Note: Do 
 ```toml title="~/.tabby/config.toml"
 [model.embedding.http]
 kind = "openai/embedding"
-model_name = "text-embedding-3-small"  # Please make sure to use an embedding model, such as text-embedding-3-small
-api_endpoint = "https://api.openai.com/v1"
+model_name = "text-embedding-3-small"  # Please make sure to use a embedding model, such as text-embedding-3-small
+api_endpoint = "https://api.openai.com/v1"  # DO NOT append the `/embeddings` suffix
 api_key = "your-api-key"
 ```

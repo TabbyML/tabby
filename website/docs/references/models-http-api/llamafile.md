@@ -10,9 +10,9 @@ llamafile provides an OpenAI-compatible chat API interface. Note that the endpoi
 
 ```toml title="~/.tabby/config.toml"
 [model.chat.http]
-kind = "openai/chat"
+kind = "openai/chat"  # llamafile uses openai/chat kind
 model_name = "your_model"
-api_endpoint = "http://localhost:8081/v1"
+api_endpoint = "http://localhost:8081/v1"  # Please add and conclude with the `v1` suffix
 api_key = ""
 ```
 
@@ -24,7 +24,7 @@ llamafile uses llama.cpp's completion API interface. Note that the endpoint URL 
 [model.completion.http]
 kind = "llama.cpp/completion"
 model_name = "your_model"
-api_endpoint = "http://localhost:8081"
+api_endpoint = "http://localhost:8081"  # DO NOT append the `v1` suffix
 api_key = "secret-api-key"
 prompt_template = "<|fim_prefix|>{prefix}<|fim_suffix|>{suffix}<|fim_middle|>" # Example prompt template for the Qwen2.5 Coder model series.
 ```
@@ -37,6 +37,6 @@ llamafile provides embedding functionality through llama.cpp's API interface. No
 [model.embedding.http]
 kind = "llama.cpp/embedding"
 model_name = "your_model"
-api_endpoint = "http://localhost:8082"
+api_endpoint = "http://localhost:8082"  # DO NOT append the `v1` suffix
 api_key = ""
 ```
