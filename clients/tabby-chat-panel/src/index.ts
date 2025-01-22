@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { createThreadFromIframe, createThreadFromInsideIframe } from 'tabby-threads'
 import { version } from '../package.json'
 
