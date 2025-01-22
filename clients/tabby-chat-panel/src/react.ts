@@ -9,13 +9,10 @@ function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApiMethod
   let isCreated = false
 
   useEffect(() => {
-    const init = async () => {
-      if (iframeRef.current && !isCreated) {
-        isCreated = true
-        setClient(await createClient(iframeRef.current!, api))
-      }
+    if (iframeRef.current && !isCreated) {
+      isCreated = true
+      createClient(iframeRef.current!, api).then(setClient)
     }
-    init()
   }, [iframeRef.current])
 
   return client
@@ -26,29 +23,11 @@ function useServer(api: ServerApi) {
   let isCreated = false
 
   useEffect(() => {
-    const init = async () => {
-      const isInIframe = window.self !== window.top
-      // eslint-disable-next-line no-console
-      console.log('[useServer] isInIframe:', isInIframe)
-      if (isInIframe && !isCreated) {
-        isCreated = true
-        try {
-          // eslint-disable-next-line no-console
-          console.log('[useServer] Creating server...')
-          setServer(await createServer(api))
-          // eslint-disable-next-line no-console
-          console.log('[useServer] Server created successfully')
-        }
-        catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('[useServer] Failed to create server:', error)
-          isCreated = false
-        }
-      }
+    const isInIframe = window.self !== window.top
+    if (isInIframe && !isCreated) {
+      isCreated = true
+      createServer(api).then(setServer)
     }
-    // eslint-disable-next-line no-console
-    console.log('[useServer] Starting initialization...')
-    init()
   }, [])
 
   return server

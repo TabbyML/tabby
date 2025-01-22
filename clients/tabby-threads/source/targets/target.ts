@@ -99,13 +99,6 @@ export async function createThread<
     encoder = createBasicEncoder(),
   }: ThreadOptions<Self, Target> = {}
 ): Promise<Thread<Target>> {
-  console.log("[createThread] Initializing with options:", {
-    hasExpose: !!expose,
-    hasCallable: !!callable,
-    hasSignal: !!signal,
-    exposeMethods: expose ? Object.keys(expose) : [],
-  });
-
   let terminated = false;
   const activeApi = new Map<string | number, AnyFunction>();
   const functionsToId = new Map<AnyFunction, string>();
@@ -130,53 +123,41 @@ export async function createThread<
   >();
 
   // Create functions for method exchange
-  const exchangeMethods = () => {
-    console.log("[createThread] Starting expose list exchange");
+  const exchangeMethods = async () => {
     const ourMethods = Array.from(activeApi.keys()).map(String);
-    console.log("[createThread] Our expose list:", ourMethods);
 
     const id = uuid();
-    console.log("[createThread] Setting up expose list resolver");
 
-    // This will be called when we receive the RESULT with other side's methods
-    callIdsToResolver.set(id, (_, __, value) => {
-      const theirMethods = encoder.decode(value, encoderApi) as string[];
-      console.log(
-        "[createThread] Got RESULT with other side's methods:",
-        theirMethods
-      );
-      // Cache their methods
-      theirMethodsCache = theirMethods;
-      console.log("[createThread] Expose list exchange completed");
+    // Create a promise that will resolve when we receive their methods
+    const methodsPromise = new Promise<void>((resolve) => {
+      callIdsToResolver.set(id, (_, __, value) => {
+        const theirMethods = encoder.decode(value, encoderApi) as string[];
+        // Cache their methods
+        theirMethodsCache = theirMethods;
+        resolve();
+      });
     });
 
     // Send EXPOSE_LIST with our methods
-    console.log("[createThread] Sending EXPOSE_LIST with our methods");
     send(EXPOSE_LIST, [id, ourMethods]);
+
+    // Wait for their methods to be received
+    return methodsPromise;
   };
 
   // Create a function to request methods from the other side
   const requestMethods = async () => {
     // If we have cached methods and connection is still active, return them
     if (theirMethodsCache !== null && !terminated) {
-      console.log(
-        "[createThread] Returning cached methods:",
-        theirMethodsCache
-      );
       return theirMethodsCache;
     }
 
-    console.log("[createThread] Requesting methods from other side");
     const id = uuid();
 
     // Create a promise that will resolve with the other side's methods
     const methodsPromise = new Promise<string[]>((resolve) => {
       callIdsToResolver.set(id, (_, __, value) => {
         const theirMethods = encoder.decode(value, encoderApi) as string[];
-        console.log(
-          "[createThread] Got RESULT with other side's methods:",
-          theirMethods
-        );
         // Cache the methods for future use
         theirMethodsCache = theirMethods;
         resolve(theirMethods);
@@ -184,14 +165,12 @@ export async function createThread<
     });
 
     // Send EXPOSE_LIST with empty methods array to request other side's methods
-    console.log("[createThread] Sending method request");
     send(EXPOSE_LIST, [id, []]);
 
     return methodsPromise;
   };
 
   // Create proxy for method calls
-  console.log("[createThread] Creating proxy without waiting for response");
   const call = createCallable<Thread<Target>>(
     handlerForCall,
     callable,
@@ -311,20 +290,12 @@ export async function createThread<
     transferables?: Transferable[]
   ) {
     if (terminated) {
-      console.log("[createThread] Not sending message - thread terminated");
       return;
     }
-    console.log("[createThread] Sending message:", {
-      type,
-      args,
-      transferables,
-    });
     target.send([type, args], transferables);
   }
 
   async function listener(rawData: unknown) {
-    console.log("[createThread] Received raw data:", rawData);
-
     // FIXME: don't ignore anything, just for testing now
     const isThreadMessageData =
       Array.isArray(rawData) &&
@@ -332,12 +303,10 @@ export async function createThread<
       (rawData[1] == null || Array.isArray(rawData[1]));
 
     if (!isThreadMessageData) {
-      console.log("[createThread] Invalid message format, ignoring:,", rawData);
       return;
     }
 
     const data = rawData as MessageData;
-    console.log("[createThread] Processing message type:", data[0]);
 
     switch (data[0]) {
       case TERMINATE: {
@@ -371,25 +340,6 @@ export async function createThread<
         break;
       }
       case RESULT: {
-        const [id, error, value] = data[1];
-        console.log("[createThread] Received RESULT message:", {
-          id,
-          error,
-          value,
-        });
-
-        // If this is a response to our EXPOSE_LIST
-        const resolver = callIdsToResolver.get(id);
-        if (resolver) {
-          console.log("[createThread] Found resolver for RESULT");
-          if (error) {
-            console.log("[createThread] Error in RESULT:", error);
-          } else {
-            const methods = encoder.decode(value, encoderApi);
-            console.log("[createThread] Decoded methods from RESULT:", methods);
-          }
-        }
-
         resolveCall(...data[1]);
         break;
       }
@@ -450,31 +400,19 @@ export async function createThread<
       }
       case EXPOSE_LIST: {
         const [id, theirMethods] = data[1];
-        console.log(
-          "[createThread] Received EXPOSE_LIST with their methods:",
-          theirMethods
-        );
 
         // Store their methods for future use
         const theirMethodsList = theirMethods as string[];
-        console.log("[createThread] Stored their methods:", theirMethodsList);
-
+        // Save their methods in cache
+        theirMethodsCache = theirMethodsList;
         // Send back our methods as RESULT
         const ourMethods = Array.from(activeApi.keys()).map(String);
-        console.log(
-          "[createThread] Sending RESULT with our methods:",
-          ourMethods
-        );
 
         send(RESULT, [
           id,
           undefined,
           encoder.encode(ourMethods, encoderApi)[0],
         ]);
-
-        console.log(
-          "[createThread] Expose list exchange completed for this side"
-        );
         break;
       }
     }
@@ -584,7 +522,6 @@ function createCallable<T>(
     isTerminated: () => boolean;
   }
 ): T {
-  console.log("[createCallable] Creating callable with methods:", callable);
   let call: any;
 
   if (callable == null) {
@@ -602,11 +539,9 @@ function createCallable<T>(
         get(_target, property) {
           if (property === "then") return undefined;
           if (property === "exchangeMethods") {
-            console.log("[createCallable] Accessing exchangeMethods");
             return methods?.exchangeMethods;
           }
           if (property === "requestMethods") {
-            console.log("[createCallable] Accessing requestMethods");
             return methods?.requestMethods;
           }
           if (property === "supports") {
@@ -624,19 +559,15 @@ function createCallable<T>(
               }
             );
           }
-          console.log("[createCallable] Accessing property:", property);
           if (cache.has(property)) {
-            console.log("[createCallable] Using cached handler for:", property);
             return cache.get(property);
           }
 
-          console.log("[createCallable] Creating new handler for:", property);
           const handler = handlerForCall(property);
           cache.set(property, handler);
           return handler;
         },
         has(_target, property) {
-          console.log("[createCallable] Checking has property:", property);
           if (
             property === "then" ||
             property === "exchangeMethods" ||
@@ -645,18 +576,12 @@ function createCallable<T>(
             return true;
           }
           if (!state) {
-            console.log("[createCallable] No state available, returning false");
             return false;
           }
           const cache = state.getMethodsCache();
           if (cache !== null && !state.isTerminated()) {
-            console.log(
-              "[createCallable] Checking cache for method:",
-              property
-            );
             return cache.includes(String(property));
           }
-          console.log("[createCallable] No cache available, returning false");
           return false;
         },
       }

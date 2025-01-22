@@ -42,14 +42,11 @@ export async function createThreadFromInsideIframe<
     ? new NestedAbortController(options.signal)
     : new AbortController();
 
-  console.log("[createThreadFromInsideIframe] Starting connection process");
-
   const connectionPromise = new Promise<void>((resolve) => {
     let isConnected = false;
 
     const respond = () => {
       if (!isConnected) {
-        console.log("[createThreadFromInsideIframe] Sending RESPONSE_MESSAGE");
         isConnected = true;
         parent.postMessage(RESPONSE_MESSAGE, targetOrigin);
         resolve();
@@ -59,12 +56,7 @@ export async function createThreadFromInsideIframe<
     self.addEventListener(
       "message",
       ({ data }) => {
-        console.log(
-          "[createThreadFromInsideIframe] Received message:",
-          JSON.stringify(data)
-        );
         if (data === CHECK_MESSAGE) {
-          console.log("[createThreadFromInsideIframe] Received CHECK_MESSAGE");
           respond();
         }
       },
@@ -72,21 +64,12 @@ export async function createThreadFromInsideIframe<
     );
 
     if (document.readyState === "complete") {
-      console.log(
-        "[createThreadFromInsideIframe] Document already complete, responding"
-      );
       respond();
     } else {
-      console.log(
-        "[createThreadFromInsideIframe] Waiting for document to complete"
-      );
       document.addEventListener(
         "readystatechange",
         () => {
           if (document.readyState === "complete") {
-            console.log(
-              "[createThreadFromInsideIframe] Document completed, responding"
-            );
             respond();
             abort.abort();
           }
@@ -97,31 +80,17 @@ export async function createThreadFromInsideIframe<
   });
 
   await connectionPromise;
-  console.log(
-    "[createThreadFromInsideIframe] Connection established, creating thread"
-  );
 
   const thread = await createThread(
     {
       send(message, transfer) {
-        console.log(
-          "[createThreadFromInsideIframe] Sending message:",
-          JSON.stringify(message)
-        );
         return parent.postMessage(message, targetOrigin, transfer);
       },
       listen(listen, { signal }) {
-        console.log(
-          "[createThreadFromInsideIframe] Setting up message listener"
-        );
         self.addEventListener(
           "message",
           (event) => {
             if (event.data === CHECK_MESSAGE) return;
-            console.log(
-              "[createThreadFromInsideIframe] Received message:",
-              JSON.stringify(event.data)
-            );
             listen(event.data);
           },
           { signal }
@@ -131,17 +100,7 @@ export async function createThreadFromInsideIframe<
     options
   );
 
-  console.log("[createThreadFromInsideIframe] Thread created successfully");
-
-  // After connection is established and thread is created, request methods from outside
-  console.log(
-    "[createThreadFromInsideIframe] Connection ready, requesting methods from outside"
-  );
-  const methods = await thread.requestMethods();
-  console.log(
-    "[createThreadFromInsideIframe] Received methods from outside:",
-    methods
-  );
+  await thread.requestMethods();
 
   return thread;
 }

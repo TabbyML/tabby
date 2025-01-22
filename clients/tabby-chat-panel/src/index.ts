@@ -352,8 +352,12 @@ export interface ClientApiMethods {
    */
   readFileContent?: (info: FileRange) => Promise<string | null>
 }
+
 type ClientApiMethod = keyof ClientApiMethods
 
+/**
+ * Provide a convenient way to check if the client supports a specific method.
+ */
 type SupportProxy = {
   [K in ClientApiMethod]: boolean
 }
@@ -365,6 +369,9 @@ export interface ClientApi extends ClientApiMethods {
    */
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 
+  /**
+   * The convenient accessor to check if the client supports a specific method from {@link ClientApiMethods}.
+   */
   supports: SupportProxy
 }
 
@@ -389,7 +396,7 @@ export async function createClient(target: HTMLIFrameElement, api: ClientApiMeth
       readFileContent: api.readFileContent,
     },
   })
-  return thread as unknown as ServerApi
+  return thread as unknown as Promise<ServerApi>
 }
 
 export async function createServer(api: ServerApi): Promise<ClientApi> {

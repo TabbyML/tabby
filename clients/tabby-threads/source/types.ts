@@ -24,7 +24,7 @@ export type Thread<Target> = {
    * This should be called only after the connection is ready to ensure
    * proper method exchange.
    */
-  exchangeMethods(): void;
+  exchangeMethods(): Promise<void>;
 
   /**
    * Request methods from the other side and wait for response.
