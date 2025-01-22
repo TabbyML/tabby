@@ -96,11 +96,9 @@ export class ChatWebview {
     };
     this.webview = webview;
 
-    this.logger.info("Initializing chat panel webview.");
     this.createChatPanelApiClient().then((client) => {
       this.client = client;
     });
-    this.logger.info("Chat panel webview initialized.");
     const statusListener = () => {
       this.checkStatusAndLoadContent();
     };

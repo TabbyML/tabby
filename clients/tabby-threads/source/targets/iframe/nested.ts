@@ -56,9 +56,7 @@ export async function createThreadFromInsideIframe<
     self.addEventListener(
       "message",
       ({ data }) => {
-        if (data === CHECK_MESSAGE) {
-          respond();
-        }
+        if (data === CHECK_MESSAGE) respond();
       },
       { signal: options.signal }
     );
