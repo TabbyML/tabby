@@ -26,7 +26,7 @@ async function createThreadFromWebview<Self = Record<string, never>, Target = Re
 }
 
 export async function createClient(webview: Webview, api: ClientApiMethods): Promise<ServerApi> {
-  const thread = await createThreadFromWebview(webview, {
+  return await createThreadFromWebview(webview, {
     expose: {
       refresh: api.refresh,
       onApplyInEditor: api.onApplyInEditor,
@@ -45,5 +45,4 @@ export async function createClient(webview: Webview, api: ClientApiMethods): Pro
       readFileContent: api.readFileContent,
     },
   });
-  return thread as unknown as ServerApi;
 }

@@ -374,9 +374,8 @@ export interface ClientApi extends ClientApiMethods {
   supports: SupportProxy
 }
 
-// TODO: change this to async
 export async function createClient(target: HTMLIFrameElement, api: ClientApiMethods): Promise<ServerApi> {
-  const thread = await createThreadFromIframe(target, {
+  return await createThreadFromIframe(target, {
     expose: {
       refresh: api.refresh,
       onApplyInEditor: api.onApplyInEditor,
@@ -395,7 +394,6 @@ export async function createClient(target: HTMLIFrameElement, api: ClientApiMeth
       readFileContent: api.readFileContent,
     },
   })
-  return thread as unknown as Promise<ServerApi>
 }
 
 export async function createServer(api: ServerApi): Promise<ClientApi> {
