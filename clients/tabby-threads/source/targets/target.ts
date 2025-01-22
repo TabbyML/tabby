@@ -121,30 +121,6 @@ export async function createThread<
       ...args: MessageMap[typeof FUNCTION_RESULT] | MessageMap[typeof RESULT]
     ) => void
   >();
-
-  // Create functions for method exchange
-  const exchangeMethods = async () => {
-    const ourMethods = Array.from(activeApi.keys()).map(String);
-
-    const id = uuid();
-
-    // Create a promise that will resolve when we receive their methods
-    const methodsPromise = new Promise<void>((resolve) => {
-      callIdsToResolver.set(id, (_, __, value) => {
-        const theirMethods = encoder.decode(value, encoderApi) as string[];
-        // Cache their methods
-        theirMethodsCache = theirMethods;
-        resolve();
-      });
-    });
-
-    // Send EXPOSE_LIST with our methods
-    send(EXPOSE_LIST, [id, ourMethods]);
-
-    // Wait for their methods to be received
-    return methodsPromise;
-  };
-
   // Create a function to request methods from the other side
   const requestMethods = async () => {
     // If we have cached methods and connection is still active, return them
@@ -175,7 +151,6 @@ export async function createThread<
     handlerForCall,
     callable,
     {
-      exchangeMethods,
       requestMethods,
     },
     {
@@ -514,7 +489,6 @@ function createCallable<T>(
   ) => AnyFunction | undefined,
   callable?: (keyof T)[],
   methods?: {
-    exchangeMethods: () => void;
     requestMethods: () => Promise<string[]>;
   },
   state?: {
@@ -538,9 +512,6 @@ function createCallable<T>(
       {
         get(_target, property) {
           if (property === "then") return undefined;
-          if (property === "exchangeMethods") {
-            return methods?.exchangeMethods;
-          }
           if (property === "requestMethods") {
             return methods?.requestMethods;
           }
@@ -568,11 +539,7 @@ function createCallable<T>(
           return handler;
         },
         has(_target, property) {
-          if (
-            property === "then" ||
-            property === "exchangeMethods" ||
-            property === "requestMethods"
-          ) {
+          if (property === "then" || property === "requestMethods") {
             return true;
           }
           if (!state) {

@@ -20,13 +20,6 @@ export type Thread<Target> = {
     : never;
 } & {
   /**
-   * Exchange method lists between threads after connection is established.
-   * This should be called only after the connection is ready to ensure
-   * proper method exchange.
-   */
-  exchangeMethods(): Promise<void>;
-
-  /**
    * Request methods from the other side and wait for response.
    * Returns a promise that resolves with the list of available methods.
    * This is useful when you want to get the methods list from the other side
