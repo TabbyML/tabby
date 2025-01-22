@@ -77,7 +77,7 @@ export function RepoSelect({
         <PopoverTrigger className="outline-none" asChild>
           <Button
             variant="ghost"
-            className="gap-2 px-1.5 py-1 font-normal"
+            className="gap-2 px-1.5 py-1 font-normal text-foreground/90"
             title={selectedRepoName || 'select codebase'}
           >
             {selectedRepo ? (

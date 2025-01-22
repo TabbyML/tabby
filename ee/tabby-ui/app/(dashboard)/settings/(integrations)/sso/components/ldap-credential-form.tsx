@@ -90,13 +90,18 @@ interface LDAPFormProps extends React.HTMLAttributes<HTMLDivElement> {
   isNew?: boolean
   defaultValues?: Partial<LDAPFormValues> | undefined
   onSuccess?: (formValues: LDAPFormValues) => void
+  existed?: boolean
 }
+
+const providerExistedError =
+  'LDAP provider already exists and cannot be created again.'
 
 export function LDAPCredentialForm({
   className,
   isNew,
   defaultValues,
   onSuccess,
+  existed,
   ...props
 }: LDAPFormProps) {
   const router = useRouter()
@@ -157,7 +162,7 @@ export function LDAPCredentialForm({
         .then(res => !!res?.data?.ldapCredential)
       if (hasExistingProvider) {
         form.setError('root', {
-          message: 'Provider already exists.'
+          message: providerExistedError
         })
         return
       }
@@ -205,8 +210,13 @@ export function LDAPCredentialForm({
   return (
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
+        {existed && (
+          <div className="mt-2 text-sm font-medium text-destructive">
+            {providerExistedError}
+          </div>
+        )}
         <form
-          className="grid gap-4"
+          className="mt-6 grid gap-4"
           onSubmit={form.handleSubmit(onSubmit)}
           ref={formRef}
         >
@@ -381,7 +391,7 @@ export function LDAPCredentialForm({
             name="skipTlsVerify"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>Connection security</FormLabel>
+                <FormLabel>Connection security</FormLabel>
                 <div className="flex items-center gap-1">
                   <FormControl>
                     <Checkbox
@@ -443,7 +453,8 @@ export function LDAPCredentialForm({
               </FormItem>
             )}
           />
-          <div className="mt-4">
+          <Separator className="my-2" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
             <Button
               onClick={onTestLdapCredential}
               type="button"
@@ -455,66 +466,63 @@ export function LDAPCredentialForm({
                 <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
               )}
             </Button>
-          </div>
-
-          <Separator />
-
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={navigateToSSOSettings}
-            >
-              Back
-            </Button>
-            {!isNew && (
-              <AlertDialog
-                open={deleteAlertVisible}
-                onOpenChange={setDeleteAlertVisible}
+            <div className="flex items-center justify-end gap-4 sm:justify-start">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={navigateToSSOSettings}
               >
-                <AlertDialogTrigger asChild>
-                  <Button variant="hover-destructive">Delete</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Are you absolutely sure?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. It will permanently delete
-                      the current credential.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className={buttonVariants({ variant: 'destructive' })}
-                      onClick={onDelete}
-                    >
-                      {isDeleting && (
-                        <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      Yes, delete it
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            <LicenseGuard licenses={[LicenseType.Enterprise]}>
-              {({ hasValidLicense }) => (
-                <Button
-                  type="submit"
-                  disabled={
-                    !hasValidLicense || isSubmitting || (!isNew && !isDirty)
-                  }
+                Back
+              </Button>
+              {!isNew && (
+                <AlertDialog
+                  open={deleteAlertVisible}
+                  onOpenChange={setDeleteAlertVisible}
                 >
-                  {isSubmitting && (
-                    <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isNew ? 'Create' : 'Update'}
-                </Button>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="hover-destructive">Delete</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Are you absolutely sure?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. It will permanently delete
+                        the current credential.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className={buttonVariants({ variant: 'destructive' })}
+                        onClick={onDelete}
+                      >
+                        {isDeleting && (
+                          <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Yes, delete it
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
-            </LicenseGuard>
+              <LicenseGuard licenses={[LicenseType.Enterprise]}>
+                {({ hasValidLicense }) => (
+                  <Button
+                    type="submit"
+                    disabled={
+                      !hasValidLicense || isSubmitting || (!isNew && !isDirty)
+                    }
+                  >
+                    {isSubmitting && (
+                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {isNew ? 'Create' : 'Update'}
+                  </Button>
+                )}
+              </LicenseGuard>
+            </div>
           </div>
         </form>
         <FormMessage className="text-center" />

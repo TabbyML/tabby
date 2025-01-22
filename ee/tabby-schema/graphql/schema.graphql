@@ -296,6 +296,7 @@ interface User {
   isAdmin: Boolean!
   isOwner: Boolean!
   active: Boolean!
+  isSsoUser: Boolean!
 }
 
 """
@@ -965,6 +966,7 @@ type UserSecured implements User {
   active: Boolean!
   authToken: String!
   isPasswordSet: Boolean!
+  isSsoUser: Boolean!
 }
 
 type WebContextSource implements ContextSourceId & ContextSource {

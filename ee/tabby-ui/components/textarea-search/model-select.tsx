@@ -44,7 +44,7 @@ export function ModelSelect({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="gap-2 px-1.5 py-1 text-foreground/70"
+              className="gap-2 px-1.5 py-1 text-foreground/90"
             >
               <IconBox />
               {value}

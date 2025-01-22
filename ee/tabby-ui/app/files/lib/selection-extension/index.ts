@@ -1,11 +1,13 @@
 import { Extension } from '@codemirror/state'
 import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view'
 
-interface SelectionContext {
-  content: string
-  startLine: number
-  endLine: number
-}
+type SelectionContext =
+  | {
+      content: string
+      startLine: number
+      endLine: number
+    }
+  | { content: string }
 
 export function SelectionChangeExtension(
   onSelectionChange: (fileContext: SelectionContext | null) => void
@@ -24,18 +26,17 @@ export function SelectionChangeExtension(
             // ignore changes if the view has lost focus
             return
           } else {
-            onSelectionChange(null)
-          }
-          if (update.selectionSet) {
             this.handleSelectionChange(update.view)
-          } else if (!update.focusChanged || update.view.hasFocus) {
-            onSelectionChange(null)
           }
         }
 
-        handleSelectionChange(view: EditorView) {
-          const data = getActiveSelection(view)
-          onSelectionChange(data)
+        handleSelectionChange(view: EditorView | null) {
+          if (!view) {
+            onSelectionChange(null)
+          } else {
+            const data = getActiveSelection(view)
+            onSelectionChange(data)
+          }
         }
       }
     )
@@ -44,7 +45,11 @@ export function SelectionChangeExtension(
 
 export function getActiveSelection(view: EditorView): SelectionContext | null {
   const selection = view.state.selection.main
-  if (selection.empty) return null
+  if (selection.empty) {
+    return {
+      content: view.state.doc.toString()
+    }
+  }
 
   const content = view.state.sliceDoc(selection.from, selection.to)
   const startLine = view.state.doc.lineAt(selection.from).number
