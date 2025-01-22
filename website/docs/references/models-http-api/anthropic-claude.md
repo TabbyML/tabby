@@ -1,4 +1,4 @@
-# Anthropic
+# Anthropic Claude
 
 [Anthropic](https://www.anthropic.com/) is an AI research company that develops large language models, including the Claude family of models. While Tabby doesn't natively support Claude's API, you can access Claude models through an OpenAI-compatible API interface using [claude2openai](https://github.com/missuo/claude2openai) as a middleware.
 
