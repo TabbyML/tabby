@@ -63,7 +63,7 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
     quickFixEditing.command = {
       command: "tabby.chat.edit.start",
       title: "Fix using Tabby",
-      arguments: [quickFixCmd, mergedRange],
+      arguments: [undefined, mergedRange, quickFixCmd],
     };
 
     const explainErrorCmd = `\nHere is some error information that occurred in the selection:

@@ -266,48 +266,51 @@ export class Commands {
     "chat.createPanel": async () => {
       await createChatPanel(this.context, this.client, this.gitProvider);
     },
-    "chat.edit.start": async (userCommand?: string, range?: Range) => {
-      const editor = window.activeTextEditor;
+    "chat.edit.start": async (
+      fileUri?: string | undefined,
+      range?: Range | undefined,
+      userCommand?: string | undefined,
+    ) => {
+      if (this.contextVariables.chatEditInProgress) {
+        window.setStatusBarMessage("Edit is already in progress.", 3000);
+        return;
+      }
+
+      let editor: TextEditor | undefined;
+      if (fileUri) {
+        try {
+          const uri = Uri.parse(fileUri, true);
+          editor = window.visibleTextEditors.find((editor) => editor.document.uri.toString() === uri.toString());
+        } catch {
+          // ignore
+        }
+      }
+      if (!editor) {
+        editor = window.activeTextEditor;
+      }
       if (!editor) {
         return;
       }
 
-      const editRange = range || editor.selection;
-
-      const editLocation = {
-        uri: editor.document.uri.toString(),
-        range: {
-          start: { line: editRange.start.line, character: 0 },
-          end: {
-            line: editRange.end.character === 0 ? editRange.end.line : editRange.end.line + 1,
-            character: 0,
-          },
-        },
-      };
-
-      if (userCommand) {
-        try {
-          // when invoke from editor context menu, the first param `userCommand` is the current file path, we reset userCommand to undefined.
-          // uri parse will throw error when no scheme can be parsed.
-          Uri.parse(userCommand, true);
-          userCommand = undefined;
-        } catch {
-          //
-        }
-      }
+      const editRange = range ?? editor.selection;
 
       const inlineEditController = new InlineEditController(
         this.client,
         this.config,
         this.contextVariables,
         editor,
-        editLocation,
-        userCommand,
+        editRange,
       );
-      inlineEditController.start();
+      const cancellationTokenSource = new CancellationTokenSource();
+      this.chatEditCancellationTokenSource = cancellationTokenSource;
+      await inlineEditController.start(userCommand, cancellationTokenSource.token);
+      cancellationTokenSource.dispose();
+      this.chatEditCancellationTokenSource = null;
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
+      this.chatEditCancellationTokenSource?.dispose();
+      this.chatEditCancellationTokenSource = null;
     },
     "chat.edit.accept": async () => {
       const editor = window.activeTextEditor;
