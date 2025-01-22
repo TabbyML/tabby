@@ -28,8 +28,6 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
-import { set } from 'date-fns'
-
 import { saveFetcherOptions } from '@/lib/tabby/token-management'
 import { PromptFormRef } from '@/components/chat/form-editor/types'
 
