@@ -397,12 +397,12 @@
         "command": "tabby.chat.edit.accept",
         "key": "ctrl+enter",
         "mac": "cmd+enter",
-        "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
+        "when": "tabby.chatEditResolving && !tabby.chatEditInProgress && editorTextFocus && !editorReadonly"
       },
       {
         "command": "tabby.chat.edit.discard",
         "key": "escape",
-        "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
+        "when": "tabby.chatEditResolving && !tabby.chatEditInProgress && editorTextFocus && !editorReadonly"
       },
       {
         "command": "tabby.chat.addRelevantContext",

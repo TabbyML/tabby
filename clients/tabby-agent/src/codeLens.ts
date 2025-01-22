@@ -91,7 +91,7 @@ export class CodeLensProvider implements Feature {
         if (match && editId) {
           lineInPreviewBlock = -1;
 
-          if (previewBlockMarkers.includes(".")) {
+          if (previewBlockMarkers.includes(".") || previewBlockMarkers.includes("|")) {
             lineCodeLenses.push({
               range: codeLensRange,
               command: {
@@ -115,7 +115,7 @@ export class CodeLensProvider implements Feature {
                 line: changesPreviewLineType.header,
               },
             });
-          } else if (!previewBlockMarkers.includes("x")) {
+          } else {
             lineCodeLenses.push({
               range: codeLensRange,
               command: {
