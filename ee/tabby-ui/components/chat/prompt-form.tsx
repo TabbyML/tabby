@@ -9,6 +9,7 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
 import {
+  Editor,
   EditorContent,
   Extension,
   ReactRenderer,
@@ -90,6 +91,9 @@ function PromptFormRenderer(
           deleteTriggerWithBackspace: true,
           // Customize how mention suggestions are fetched and rendered
           suggestion: {
+            allow: (_props) => {
+              return !!listFileInWorkspace
+            },
             char: '@', // Trigger character for mention
             items: async ({ query }: { query: string }) => {
               if (!listFileInWorkspace) return []
@@ -102,8 +106,6 @@ function PromptFormRenderer(
 
               return {
                 onStart: (props: SuggestionProps) => {
-                  // Don't show tippy if enableMention is false
-                  if (!listFileInWorkspace) return
                   component = new ReactRenderer(MentionList, {
                     props: { ...props, listFileInWorkspace },
                     editor: props.editor
@@ -126,17 +128,13 @@ function PromptFormRenderer(
                   })
                 },
                 onUpdate: (props: SuggestionProps) => {
-                  if (!component) return
                   component.updateProps(props)
                 },
                 onExit: () => {
-                  if (!component || !popup) return
                   popup[0].destroy()
                   component.destroy()
                 },
                 onKeyDown: (props: SuggestionKeyDownProps) => {
-                  // Don't show tippy if listWorkspaceFile doesn't exist
-                  if (!component) return false
                   if (props.event.key === 'Escape') {
                     popup[0].hide()
 
@@ -262,7 +260,7 @@ function PromptFormRenderer(
         </span>
         <div
           className="max-h-32 flex-1 overflow-y-auto py-4"
-          onClick={e => {
+          onClick={() => {
             if (editor && !editor.isFocused) {
               editor?.commands.focus()
             }
