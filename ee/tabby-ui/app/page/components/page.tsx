@@ -12,7 +12,6 @@ import {
   useState
 } from 'react'
 import Link from 'next/link'
-import slugify from '@sindresorhus/slugify'
 import { compact, some, uniq, uniqBy } from 'lodash-es'
 import { nanoid } from 'nanoid'
 import { ImperativePanelHandle } from 'react-resizable-panels'
@@ -23,14 +22,10 @@ import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import {
-  CodeQueryInput,
   ContextInfo,
-  DocQueryInput,
-  InputMaybe,
   Maybe,
   Message,
   MessageAttachmentClientCode,
-  Role,
   SectionEdge
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -56,13 +51,7 @@ import {
   ExtendedCombinedError,
   ThreadRunContexts
 } from '@/lib/types'
-import {
-  cn,
-  getMentionsFromText,
-  getThreadRunContextsFromMentions,
-  getTitleFromMessages,
-  isCodeSourceContext
-} from '@/lib/utils'
+import { cn, getTitleFromMessages, isCodeSourceContext } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconClock,
@@ -80,12 +69,11 @@ import NotFoundPage from '@/components/not-found-page'
 import TextAreaSearch from '@/components/textarea-search'
 import { MyAvatar } from '@/components/user-avatar'
 
-import { DocSelect } from './doc-select'
 import { Header } from './header'
 import { MessagesSkeleton } from './messages-skeleton'
 import { Navbar } from './nav-bar'
-import { RepoSelect } from './repo-select'
 import { SectionContent } from './section-content'
+import SectionForm from './section-form'
 import { SectionTitle } from './section-title'
 
 export type ConversationMessage = Omit<
@@ -113,7 +101,6 @@ type PageContextValue = {
   // flag for initialize the pathname
   isPathnameInitialized: boolean
   isLoading: boolean
-  onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
@@ -155,7 +142,7 @@ const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
 
 export function Page() {
   const [{ data: meData }] = useMe()
-  const { updateUrlComponents, pathname } = useRouterStuff()
+  const { pathname } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const [mode, setMode] = useState<'edit' | 'view'>('view')
@@ -195,29 +182,6 @@ export function Page() {
   ): Promise<ExtendedCombinedError | undefined> => {
     // todo
     return
-    const messageIndex = sections.findIndex(o => o.id === message.id)
-    if (messageIndex > -1 && pageId) {
-      // 1. call api
-      const result = await updateThreadMessage({
-        input: {
-          threadId: pageId,
-          id: message.id,
-          content: message.content
-        }
-      })
-      if (result?.data?.updateThreadMessage) {
-        // 2. set messages
-        await setSections(prev => {
-          const newMessages = [...prev]
-          newMessages[messageIndex] = message
-          return newMessages
-        })
-      } else {
-        return result?.error || new Error('Failed to save')
-      }
-    } else {
-      return new Error('Failed to save')
-    }
   }
 
   useEffect(() => {
@@ -419,75 +383,6 @@ export function Page() {
     })
   }
 
-  // regenerate ths last assistant message
-  const onRegenerateResponse = () => {
-    if (!pageId) return
-    // need to get the sources from contextInfo
-    if (fetchingContextInfo) return
-
-    const assistantMessageIndex = sections.length - 1
-    const userMessageIndex = assistantMessageIndex - 1
-    if (assistantMessageIndex === -1 || userMessageIndex <= -1) return
-
-    const prevUserMessageId = sections[userMessageIndex].id
-    const prevAssistantMessageId = sections[assistantMessageIndex].id
-
-    const newMessages = sections.slice(0, -2)
-    const userMessage = sections[userMessageIndex]
-    const newUserMessage: ConversationMessage = {
-      ...userMessage,
-      id: tempNanoId()
-    }
-    const newAssistantMessage: ConversationMessage = {
-      id: tempNanoId(),
-      role: Role.Assistant,
-      content: '',
-      attachment: {
-        code: null,
-        doc: null,
-        clientCode: null
-      },
-      error: undefined
-    }
-
-    const mentions = getMentionsFromText(
-      newUserMessage.content,
-      contextInfoData?.contextInfo?.sources
-    )
-
-    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(getThreadRunContextsFromMentions(mentions))
-
-    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
-      ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }
-      : null
-
-    const docQuery: InputMaybe<DocQueryInput> = {
-      sourceIds: sourceIdsForDocQuery,
-      content: newUserMessage.content,
-      searchPublic
-    }
-
-    setCurrentUserMessageId(newUserMessage.id)
-    setCurrentAssistantMessageId(newAssistantMessage.id)
-    setSections([...newMessages, newUserMessage, newAssistantMessage])
-
-    regenerate({
-      threadId: pageId,
-      userMessageId: prevUserMessageId,
-      assistantMessageId: prevAssistantMessageId,
-      userMessage: {
-        content: newUserMessage.content
-      },
-      threadRunOptions: {
-        generateRelevantQuestions: true,
-        codeQuery,
-        docQuery,
-        modelName: selectedModel
-      }
-    })
-  }
-
   const onToggleFullScreen = (fullScreen: boolean) => {
     let nextSize = prevDevPanelSize.current
     if (fullScreen) {
@@ -521,36 +416,10 @@ export function Page() {
   }
 
   const formatedThreadError = undefined
-  // const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
-  //   if (!isReady || fetchingThread || !threadIdFromURL) return undefined
-  //   if (threadError || !threadData?.threads?.edges?.length) {
-  //     return threadError || new Error(ERROR_CODE_NOT_FOUND)
-  //   }
-  // }, [threadData, fetchingThread, threadError, isReady, threadIdFromURL])
-
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections || pageSections?.pageSections?.pageInfo?.hasNextPage,
     200
   )
-
-  // const qaPairs = useMemo(() => {
-  //   const pairs: Array<ConversationPair> = []
-  //   let currentPair: ConversationPair = { question: null, answer: null }
-  //   messages.forEach(message => {
-  //     if (message.role === Role.User) {
-  //       currentPair.question = message
-  //     } else if (message.role === Role.Assistant) {
-  //       if (!currentPair.answer) {
-  //         // Take the first answer
-  //         currentPair.answer = message
-  //         pairs.push(currentPair)
-  //         currentPair = { question: null, answer: null }
-  //       }
-  //     }
-  //   })
-
-  //   return pairs
-  // }, [messages])
 
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
@@ -587,7 +456,6 @@ export function Page() {
     <PageContext.Provider
       value={{
         isLoading,
-        onRegenerateResponse,
         onSubmitSearch,
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
@@ -675,18 +543,11 @@ export function Page() {
                       {/* <RepoSelect repos={repos} />
                       <DocSelect docs={docs} /> */}
                     </div>
-                    <TextAreaSearch
+                    <SectionForm
                       onSearch={onSubmitSearch}
                       className="min-h-[5rem] border-0 lg:max-w-5xl"
                       placeholder="What is the section about?"
-                      isFollowup
                       isLoading={isLoading}
-                      contextInfo={contextInfoData?.contextInfo}
-                      fetchingContextInfo={fetchingContextInfo}
-                      modelName={selectedModel}
-                      onModelSelect={onModelSelect}
-                      isFetchingModels={isFetchingModels}
-                      models={models}
                     />
                   </div>
                 )}
@@ -745,33 +606,6 @@ export function Page() {
                   Stop generating
                 </Button>
               )}
-              {/* {!stopButtonVisible && mode === 'view' && (
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0}>
-                      <Button
-                        className="gap-2 bg-background"
-                        variant="outline"
-                        onClick={onClickShare}
-                        disabled={persistenceDisabled}
-                      >
-                        {persistenceDisabled ? (
-                          <IconInfoCircled />
-                        ) : isShareLinkCopied ? (
-                          <IconCheck className="text-green-600" />
-                        ) : (
-                          <IconShare />
-                        )}
-                        Share Link
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent hidden={!persistenceDisabled}>
-                    Please resolve errors in messages before sharing this
-                    thread.
-                  </TooltipContent>
-                </Tooltip>
-              )} */}
             </div>
             {mode === 'view' && (
               <div
