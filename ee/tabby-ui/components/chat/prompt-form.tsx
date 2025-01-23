@@ -17,6 +17,7 @@ import {
 
 import './prompt-form.css'
 
+import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import { isEqual } from 'lodash-es'
 import { EditorFileContext } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
@@ -90,7 +91,7 @@ function PromptFormRenderer(
           // Customize how mention suggestions are fetched and rendered
           suggestion: {
             char: '@', // Trigger character for mention
-            items: async ({ query }) => {
+            items: async ({ query }: { query: string }) => {
               if (!listFileInWorkspace) return []
               const files = await listFileInWorkspace({ query })
               return files?.map(fileItemToSourceItem) || []
@@ -100,7 +101,9 @@ function PromptFormRenderer(
               let popup: Instance[]
 
               return {
-                onStart: props => {
+                onStart: (props: SuggestionProps) => {
+                  // Don't show tippy if enableMention is false
+                  if (!listFileInWorkspace) return
                   component = new ReactRenderer(MentionList, {
                     props: { ...props, listFileInWorkspace },
                     editor: props.editor
@@ -122,14 +125,18 @@ function PromptFormRenderer(
                     animation: 'shift-away'
                   })
                 },
-                onUpdate: props => {
+                onUpdate: (props: SuggestionProps) => {
+                  if (!component) return
                   component.updateProps(props)
                 },
                 onExit: () => {
+                  if (!component || !popup) return
                   popup[0].destroy()
                   component.destroy()
                 },
-                onKeyDown: props => {
+                onKeyDown: (props: SuggestionKeyDownProps) => {
+                  // Don't show tippy if listWorkspaceFile doesn't exist
+                  if (!component) return false
                   if (props.event.key === 'Escape') {
                     popup[0].hide()
 
