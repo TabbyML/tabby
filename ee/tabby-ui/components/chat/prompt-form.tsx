@@ -9,7 +9,6 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
 import {
-  Editor,
   EditorContent,
   Extension,
   ReactRenderer,
@@ -91,7 +90,7 @@ function PromptFormRenderer(
           deleteTriggerWithBackspace: true,
           // Customize how mention suggestions are fetched and rendered
           suggestion: {
-            allow: (_props) => {
+            allow: _props => {
               return !!listFileInWorkspace
             },
             char: '@', // Trigger character for mention
