@@ -28,7 +28,6 @@ import {
   cn,
   formatLineHashForCodeBrowser,
   getContent,
-  getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -52,9 +51,7 @@ import {
   IconEdit,
   IconGitMerge,
   IconGitPullRequest,
-  IconLayers,
   IconMore,
-  IconPlus,
   IconRefresh,
   IconSpinner
 } from '@/components/ui/icons'
