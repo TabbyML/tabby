@@ -21,7 +21,6 @@ import {
 import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
-import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import { isEqual } from 'lodash-es'
 import { EditorFileContext } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
