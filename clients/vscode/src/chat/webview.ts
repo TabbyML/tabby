@@ -82,7 +82,7 @@ export class ChatWebview {
   private pendingCallbacks = new Map<string, (...arg: unknown[]) => void>();
 
   // Store the chat state to be reload when webview is reloaded
-  private sessionState: Record<string, unknown> = {};
+  private sessionStateMap = new Map<string, Record<string, unknown>>();
 
   constructor(
     private readonly context: ExtensionContext,
@@ -479,24 +479,29 @@ export class ChatWebview {
       },
 
       fetchSessionState: async (keys?: string[] | undefined): Promise<Record<string, unknown> | null> => {
+        const sessionStateKey = this.currentConfig?.endpoint ?? "";
+        const sessionState = this.sessionStateMap.get(sessionStateKey) ?? {};
+
         if (!keys) {
-          return { ...this.sessionState };
+          return { ...sessionState };
         }
 
         const filtered: Record<string, unknown> = {};
         for (const key of keys) {
-          if (key in this.sessionState) {
-            filtered[key] = this.sessionState[key];
+          if (key in sessionState) {
+            filtered[key] = sessionState[key];
           }
         }
         return filtered;
       },
 
       storeSessionState: async (state: Record<string, unknown>) => {
-        this.sessionState = {
-          ...this.sessionState,
+        const sessionStateKey = this.currentConfig?.endpoint ?? "";
+        const sessionState = this.sessionStateMap.get(sessionStateKey) ?? {};
+        this.sessionStateMap.set(sessionStateKey, {
+          ...sessionState,
           ...state,
-        };
+        });
       },
 
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
