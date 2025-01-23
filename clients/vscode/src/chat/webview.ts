@@ -739,6 +739,11 @@ export class ChatWebview {
   }
 
   private async notifyActiveEditorSelectionChange(editor: TextEditor | undefined) {
+    if (editor && editor.document.uri.scheme === "output") {
+      // do not update when the active editor is an output channel
+      return;
+    }
+
     if (!editor || !isValidForSyncActiveEditorSelection(editor)) {
       await this.client?.updateActiveSelection(null);
       return;
