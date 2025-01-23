@@ -5,18 +5,22 @@ import React, {
   useImperativeHandle
 } from 'react'
 import Document from '@tiptap/extension-document'
+import Mention from '@tiptap/extension-mention'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
 import {
+  Editor,
   EditorContent,
   Extension,
+  Range,
   ReactRenderer,
   useEditor
 } from '@tiptap/react'
 
 import './prompt-form.css'
 
+import { EditorState } from '@tiptap/pm/state'
 import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import { isEqual } from 'lodash-es'
 import { EditorFileContext } from 'tabby-chat-panel/index'
@@ -90,8 +94,20 @@ function PromptFormRenderer(
           deleteTriggerWithBackspace: true,
           // Customize how mention suggestions are fetched and rendered
           suggestion: {
-            allow: _props => {
-              return !!listFileInWorkspace
+            allow: ({
+              state,
+              range
+            }: {
+              editor: Editor
+              state: EditorState
+              range: Range
+              isActive?: boolean
+            }) => {
+              const $from = state.doc.resolve(range.from)
+              const type = state.schema.nodes[Mention.name]
+              const allow = !!$from.parent.type.contentMatch.matchType(type)
+
+              return !!listFileInWorkspace && allow
             },
             char: '@', // Trigger character for mention
             items: async ({ query }: { query: string }) => {
