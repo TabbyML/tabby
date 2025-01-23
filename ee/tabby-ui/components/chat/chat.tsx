@@ -1,5 +1,5 @@
 import React, { RefObject } from 'react'
-import { Content } from '@tiptap/core'
+import { Content, EditorEvents } from '@tiptap/core'
 import {
   compact,
   findIndex,
@@ -153,7 +153,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
 export interface SessionState {
   threadId?: string | undefined
   qaPairs?: QuestionAnswerPair[] | undefined
-  input?: string | undefined
+  input?: Content | undefined
   relevantContext?: Context[] | undefined
   selectedRepoId?: string | undefined
 }
@@ -220,11 +220,11 @@ function ChatRenderer(
   }
   const input = chatPanelRef.current?.input ?? ''
 
-  React.useEffect(() => {
+  const onUpdate = (p: EditorEvents['update']) => {
     if (isDataSetup) {
-      storeSessionState?.({ input })
+      storeSessionState?.({ input: p.editor.getJSON() })
     }
-  }, [input, isDataSetup, storeSessionState])
+  }
 
   const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
     query: repositorySourceListQuery
@@ -613,10 +613,12 @@ function ChatRenderer(
   }, [qaPairs])
 
   React.useEffect(() => {
-    storeSessionState?.({
-      relevantContext
-    })
-  }, [relevantContext, storeSessionState])
+    if (isDataSetup) {
+      storeSessionState?.({
+        relevantContext
+      })
+    }
+  }, [relevantContext, isDataSetup, storeSessionState])
 
   const debouncedUpdateActiveSelection = useDebounceCallback(
     (ctx: Context | null) => {
@@ -779,6 +781,7 @@ function ChatRenderer(
             reload={onReload}
             input={input}
             setInput={setInput}
+            onUpdate={onUpdate}
             chatMaxWidthClass={chatMaxWidthClass}
             ref={chatPanelRef}
             chatInputRef={chatInputRef}
