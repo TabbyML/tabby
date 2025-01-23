@@ -110,7 +110,7 @@ function PromptFormRenderer(
               return !!listFileInWorkspace && allow
             },
             char: '@', // Trigger character for mention
-            items: async ({ query }: { query: string }) => {
+            items: async ({ query }) => {
               if (!listFileInWorkspace) return []
               const files = await listFileInWorkspace({ query })
               return files?.map(fileItemToSourceItem) || []
@@ -120,7 +120,7 @@ function PromptFormRenderer(
               let popup: Instance[]
 
               return {
-                onStart: (props: SuggestionProps) => {
+                onStart: props => {
                   component = new ReactRenderer(MentionList, {
                     props: { ...props, listFileInWorkspace },
                     editor: props.editor
@@ -142,14 +142,14 @@ function PromptFormRenderer(
                     animation: 'shift-away'
                   })
                 },
-                onUpdate: (props: SuggestionProps) => {
+                onUpdate: props => {
                   component.updateProps(props)
                 },
                 onExit: () => {
                   popup[0].destroy()
                   component.destroy()
                 },
-                onKeyDown: (props: SuggestionKeyDownProps) => {
+                onKeyDown: props => {
                   if (props.event.key === 'Escape') {
                     popup[0].hide()
 
