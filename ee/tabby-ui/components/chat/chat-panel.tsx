@@ -1,6 +1,6 @@
 import React, { RefObject, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
-import { Content } from '@tiptap/core'
+import { Content, EditorEvents } from '@tiptap/core'
 import { useWindowSize } from '@uidotdev/usehooks'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -51,6 +51,7 @@ export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
   id?: string
   className?: string
   onSubmit: (content: string) => Promise<any>
+  onUpdate: (p: EditorEvents['update']) => void
   reload: () => void
   chatMaxWidthClass: string
   chatInputRef: RefObject<PromptFormRef>
@@ -68,6 +69,7 @@ function ChatPanelRenderer(
     reload,
     className,
     onSubmit,
+    onUpdate,
     chatMaxWidthClass,
     chatInputRef
   }: ChatPanelProps,
@@ -380,6 +382,7 @@ function ChatPanelRenderer(
           <PromptForm
             ref={chatInputRef}
             onSubmit={onSubmit}
+            onUpdate={onUpdate}
             isLoading={isLoading}
           />
           <FooterText className="hidden sm:block" />
