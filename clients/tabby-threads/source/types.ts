@@ -48,10 +48,7 @@ export interface ThreadTarget {
    * and handle its content. This method may be passed an `AbortSignal` to abort the
    * listening process.
    */
-  listen(
-    listener: (value: any) => void,
-    options: { signal?: AbortSignal }
-  ): void;
+  listen(listener: (value: any) => void, options: {signal?: AbortSignal}): void;
 }
 
 /**

@@ -78,6 +78,7 @@ export function createThreadFromIframe<
             if (connected) return sendMessage(message, transfer);
           });
         }
+
         return sendMessage(message, transfer);
       },
       listen(listen, { signal }) {
