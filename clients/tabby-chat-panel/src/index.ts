@@ -383,8 +383,8 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
   })
 }
 
-export async function createServer(api: ServerApi): Promise<ClientApi> {
-  return await createThreadFromInsideIframe({
+export function createServer(api: ServerApi): Promise<ClientApi> {
+  return createThreadFromInsideIframe({
     expose: {
       init: api.init,
       executeCommand: api.executeCommand,
