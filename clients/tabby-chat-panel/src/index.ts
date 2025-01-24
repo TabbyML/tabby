@@ -374,8 +374,8 @@ export interface ClientApi extends ClientApiMethods {
   supports: SupportProxy
 }
 
-export async function createClient(target: HTMLIFrameElement, api: ClientApiMethods): Promise<ServerApi> {
-  return await createThreadFromIframe(target, {
+export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
+  return createThreadFromIframe(target, {
     expose: {
       refresh: api.refresh,
       onApplyInEditor: api.onApplyInEditor,

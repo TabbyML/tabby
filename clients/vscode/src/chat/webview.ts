@@ -96,9 +96,7 @@ export class ChatWebview {
     };
     this.webview = webview;
 
-    this.createChatPanelApiClient().then((client) => {
-      this.client = client;
-    });
+    this.client = this.createChatPanelApiClient();
     const statusListener = () => {
       this.checkStatusAndLoadContent();
     };
@@ -207,12 +205,12 @@ export class ChatWebview {
     }
   }
 
-  private async createChatPanelApiClient(): Promise<ServerApi | undefined> {
+  private createChatPanelApiClient(): ServerApi | undefined {
     const webview = this.webview;
     if (!webview) {
       return undefined;
     }
-    return await createClient(webview, {
+    return createClient(webview, {
       refresh: async () => {
         commands.executeCommand("tabby.reconnectToServer");
         return;

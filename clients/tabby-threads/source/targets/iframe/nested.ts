@@ -42,7 +42,7 @@ export async function createThreadFromInsideIframe<
     ? new NestedAbortController(options.signal)
     : new AbortController();
 
-  const connectionPromise = new Promise<void>((resolve) => {
+  new Promise<void>((resolve) => {
     let isConnected = false;
 
     const respond = () => {
@@ -77,9 +77,7 @@ export async function createThreadFromInsideIframe<
     }
   });
 
-  await connectionPromise;
-
-  const thread = await createThread(
+  const thread = createThread(
     {
       send(message, transfer) {
         return parent.postMessage(message, targetOrigin, transfer);

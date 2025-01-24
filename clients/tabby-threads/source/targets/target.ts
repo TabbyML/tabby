@@ -10,6 +10,7 @@ import { RELEASE_METHOD, RETAINED_BY, RETAIN_METHOD } from "../constants";
 
 import { StackFrame, isMemoryManageable } from "../memory";
 import { createBasicEncoder } from "../encoding/basic";
+import { RESPONSE_MESSAGE } from "./iframe/shared";
 
 export type { ThreadTarget };
 
@@ -86,7 +87,7 @@ type MessageData = {
  * Creates a thread from any object that conforms to the `ThreadTarget`
  * interface.
  */
-export async function createThread<
+export function createThread<
   Self = Record<string, never>,
   Target = Record<string, never>,
 >(
@@ -98,7 +99,7 @@ export async function createThread<
     uuid = defaultUuid,
     encoder = createBasicEncoder(),
   }: ThreadOptions<Self, Target> = {}
-): Promise<Thread<Target>> {
+): Thread<Target> {
   let terminated = false;
   const activeApi = new Map<string | number, AnyFunction>();
   const functionsToId = new Map<AnyFunction, string>();
@@ -121,30 +122,6 @@ export async function createThread<
       ...args: MessageMap[typeof FUNCTION_RESULT] | MessageMap[typeof RESULT]
     ) => void
   >();
-  // Create a function to request methods from the other side
-  const requestMethods = async () => {
-    // If we have cached methods and connection is still active, return them
-    if (theirMethodsCache !== null && !terminated) {
-      return theirMethodsCache;
-    }
-
-    const id = uuid();
-
-    // Create a promise that will resolve with the other side's methods
-    const methodsPromise = new Promise<string[]>((resolve) => {
-      callIdsToResolver.set(id, (_, __, value) => {
-        const theirMethods = encoder.decode(value, encoderApi) as string[];
-        // Cache the methods for future use
-        theirMethodsCache = theirMethods;
-        resolve(theirMethods);
-      });
-    });
-
-    // Send EXPOSE_LIST with empty methods array to request other side's methods
-    send(EXPOSE_LIST, [id, []]);
-
-    return methodsPromise;
-  };
 
   // Create proxy for method calls
   const call = createCallable<Thread<Target>>(
@@ -154,7 +131,6 @@ export async function createThread<
       requestMethods,
     },
     {
-      getMethodsCache: () => theirMethodsCache,
       isTerminated: () => terminated,
     }
   );
@@ -270,7 +246,41 @@ export async function createThread<
     target.send([type, args], transferables);
   }
 
+  // Create a function to request methods from the other side
+  async function requestMethods() {
+    // If we have cached methods and connection is still active, return them
+    if (theirMethodsCache !== null && !terminated) {
+      return theirMethodsCache;
+    }
+
+    const id = uuid();
+
+    // Create a promise that will resolve with the other side's methods
+    const methodsPromise = new Promise<string[]>((resolve) => {
+      callIdsToResolver.set(id, (_, __, value) => {
+        const theirMethods = encoder.decode(value, encoderApi) as string[];
+        // Cache the methods for future use
+        theirMethodsCache = theirMethods;
+        resolve(theirMethods);
+      });
+    });
+
+    // Send EXPOSE_LIST with empty methods array to request other side's methods
+    send(EXPOSE_LIST, [id, []]);
+
+    return methodsPromise;
+  }
+
   async function listener(rawData: unknown) {
+    if (rawData === RESPONSE_MESSAGE) {
+      console.log("response message received");
+      requestMethods()
+        .then((res) => {
+          console.log("their methods: ", res);
+        })
+        .catch(() => {});
+      return;
+    }
     // FIXME: don't ignore anything, just for testing now
     const isThreadMessageData =
       Array.isArray(rawData) &&
@@ -467,6 +477,108 @@ export async function createThread<
       callIdsToResolver.delete(callId);
     }
   }
+
+  function createCallable<T>(
+    handlerForCall: (
+      property: string | number | symbol
+    ) => AnyFunction | undefined,
+    callable?: (keyof T)[],
+    methods?: {
+      requestMethods: () => Promise<string[]>;
+    },
+    state?: {
+      isTerminated: () => boolean;
+    }
+  ): T {
+    let call: any;
+
+    if (callable == null) {
+      if (typeof Proxy !== "function") {
+        throw new Error(
+          `You must pass an array of callable methods in environments without Proxies.`
+        );
+      }
+
+      const cache = new Map<
+        string | number | symbol,
+        AnyFunction | undefined
+      >();
+
+      call = new Proxy(
+        {},
+        {
+          get(_target, property) {
+            if (property === "then") {
+              console.warn("then not found");
+              return undefined;
+            }
+            if (property === "requestMethods") {
+              return methods?.requestMethods;
+            }
+            if (property === "supports") {
+              return new Proxy(
+                {},
+                {
+                  get(_target, method: string) {
+                    if (!state) return false;
+                    const cache = theirMethodsCache;
+                    console.log("cache for supports", cache);
+                    if (cache !== null && !state.isTerminated()) {
+                      return cache.includes(method);
+                    }
+                    return false;
+                  },
+                }
+              );
+            }
+
+            if (
+              theirMethodsCache &&
+              !theirMethodsCache.includes(String(property))
+            ) {
+              console.log("method not found", property);
+              return undefined;
+            }
+
+            if (cache.has(property)) {
+              return cache.get(property);
+            }
+
+            const handler = handlerForCall(property);
+            cache.set(property, handler);
+            return handler;
+          },
+          has(_target, property) {
+            if (property === "then" || property === "requestMethods") {
+              return true;
+            }
+            if (!state) {
+              return false;
+            }
+            const cache = theirMethodsCache;
+            console.log("cache for has", cache);
+            if (cache !== null && !state.isTerminated()) {
+              return cache.includes(String(property));
+            }
+            return false;
+          },
+        }
+      );
+    } else {
+      call = {};
+
+      for (const method of callable) {
+        Object.defineProperty(call, method, {
+          value: handlerForCall(method),
+          writable: false,
+          configurable: true,
+          enumerable: true,
+        });
+      }
+    }
+
+    return call;
+  }
 }
 
 class ThreadTerminatedError extends Error {
@@ -481,90 +593,4 @@ function defaultUuid() {
 
 function uuidSegment() {
   return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-}
-
-function createCallable<T>(
-  handlerForCall: (
-    property: string | number | symbol
-  ) => AnyFunction | undefined,
-  callable?: (keyof T)[],
-  methods?: {
-    requestMethods: () => Promise<string[]>;
-  },
-  state?: {
-    getMethodsCache: () => string[] | null;
-    isTerminated: () => boolean;
-  }
-): T {
-  let call: any;
-
-  if (callable == null) {
-    if (typeof Proxy !== "function") {
-      throw new Error(
-        `You must pass an array of callable methods in environments without Proxies.`
-      );
-    }
-
-    const cache = new Map<string | number | symbol, AnyFunction | undefined>();
-
-    call = new Proxy(
-      {},
-      {
-        get(_target, property) {
-          if (property === "then") return undefined;
-          if (property === "requestMethods") {
-            return methods?.requestMethods;
-          }
-          if (property === "supports") {
-            return new Proxy(
-              {},
-              {
-                get(_target, method: string) {
-                  if (!state) return false;
-                  const cache = state.getMethodsCache();
-                  if (cache !== null && !state.isTerminated()) {
-                    return cache.includes(method);
-                  }
-                  return false;
-                },
-              }
-            );
-          }
-          if (cache.has(property)) {
-            return cache.get(property);
-          }
-
-          const handler = handlerForCall(property);
-          cache.set(property, handler);
-          return handler;
-        },
-        has(_target, property) {
-          if (property === "then" || property === "requestMethods") {
-            return true;
-          }
-          if (!state) {
-            return false;
-          }
-          const cache = state.getMethodsCache();
-          if (cache !== null && !state.isTerminated()) {
-            return cache.includes(String(property));
-          }
-          return false;
-        },
-      }
-    );
-  } else {
-    call = {};
-
-    for (const method of callable) {
-      Object.defineProperty(call, method, {
-        value: handlerForCall(method),
-        writable: false,
-        configurable: true,
-        enumerable: true,
-      });
-    }
-  }
-
-  return call;
 }
