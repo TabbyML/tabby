@@ -362,8 +362,8 @@ export interface ClientApi extends ClientApiMethods {
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 }
 
-export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
-  return createThreadFromIframe(target, {
+export async function createClient(target: HTMLIFrameElement, api: ClientApiMethods): Promise<ServerApi> {
+  const thread = createThreadFromIframe(target, {
     expose: {
       refresh: api.refresh,
       onApplyInEditor: api.onApplyInEditor,
@@ -382,10 +382,18 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       readFileContent: api.readFileContent,
     },
   })
+
+  const serverMethods = await thread._requestMethods() as (keyof ServerApi)[]
+  const serverApi = {} as ServerApi
+  for (const method of serverMethods) {
+    serverApi[method] = thread[method]
+  }
+
+  return serverApi
 }
 
-export function createServer(api: ServerApi): ClientApi {
-  return createThreadFromInsideIframe({
+export async function createServer(api: ServerApi): Promise<ClientApi> {
+  const thread = createThreadFromInsideIframe({
     expose: {
       init: api.init,
       executeCommand: api.executeCommand,
@@ -396,4 +404,11 @@ export function createServer(api: ServerApi): ClientApi {
       updateActiveSelection: api.updateActiveSelection,
     },
   })
+  const clientMethods = await thread._requestMethods() as (keyof ClientApi)[]
+  const clientApi = {} as ClientApi
+  for (const method of clientMethods) {
+    clientApi[method] = thread[method]
+  }
+
+  return clientApi
 }
