@@ -70,7 +70,7 @@ export function createThreadFromIframe<
     sendMessage(CHECK_MESSAGE);
   });
 
-  const thread = createThread(
+  return createThread(
     {
       send(message, transfer) {
         if (!connected) {
@@ -94,10 +94,4 @@ export function createThreadFromIframe<
     },
     options
   );
-
-  // FIXME(Sma1lboy): We don't have this need for now.
-  // After connection is established and thread is created, exchange methods
-  // await thread.requestMethods();
-
-  return thread;
 }

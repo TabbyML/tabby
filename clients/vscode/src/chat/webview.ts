@@ -97,6 +97,7 @@ export class ChatWebview {
     this.webview = webview;
 
     this.client = this.createChatPanelApiClient();
+
     const statusListener = () => {
       this.checkStatusAndLoadContent();
     };

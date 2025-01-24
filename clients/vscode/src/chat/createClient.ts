@@ -12,9 +12,7 @@ function createThreadFromWebview<Self = Record<string, never>, Target = Record<s
         webview.postMessage({ action: "postMessageToChatPanel", message });
       },
       listen(listener, { signal }) {
-        const { dispose } = webview.onDidReceiveMessage((msg) => {
-          listener(msg);
-        });
+        const { dispose } = webview.onDidReceiveMessage(listener);
         signal?.addEventListener("abort", () => {
           dispose();
         });

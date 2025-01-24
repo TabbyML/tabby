@@ -42,17 +42,10 @@ export async function createThreadFromInsideIframe<
     ? new NestedAbortController(options.signal)
     : new AbortController();
 
-  new Promise<void>((resolve) => {
-    let isConnected = false;
+  const ready = () => {
+    const respond = () => parent.postMessage(RESPONSE_MESSAGE, targetOrigin);
 
-    const respond = () => {
-      if (!isConnected) {
-        isConnected = true;
-        parent.postMessage(RESPONSE_MESSAGE, targetOrigin);
-        resolve();
-      }
-    };
-
+    // Handles wrappers that want to connect after the page has already loaded
     self.addEventListener(
       "message",
       ({ data }) => {
@@ -61,21 +54,25 @@ export async function createThreadFromInsideIframe<
       { signal: options.signal }
     );
 
-    if (document.readyState === "complete") {
-      respond();
-    } else {
-      document.addEventListener(
-        "readystatechange",
-        () => {
-          if (document.readyState === "complete") {
-            respond();
-            abort.abort();
-          }
-        },
-        { signal: abort.signal }
-      );
-    }
-  });
+    respond();
+  };
+
+  // Listening to `readyState` in iframe, though the child iframe could probably
+  // send a `postMessage` that it is ready to receive messages sooner than that.
+  if (document.readyState === "complete") {
+    ready();
+  } else {
+    document.addEventListener(
+      "readystatechange",
+      () => {
+        if (document.readyState === "complete") {
+          ready();
+          abort.abort();
+        }
+      },
+      { signal: abort.signal }
+    );
+  }
 
   const thread = createThread(
     {
@@ -95,8 +92,6 @@ export async function createThreadFromInsideIframe<
     },
     options
   );
-
   await thread.requestMethods();
-
   return thread;
 }

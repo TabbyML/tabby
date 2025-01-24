@@ -272,6 +272,7 @@ export function createThread<
   }
 
   async function listener(rawData: unknown) {
+    // this method receives messages from the other side means the other side is ready
     if (rawData === RESPONSE_MESSAGE) {
       console.log("response message received");
       requestMethods()
