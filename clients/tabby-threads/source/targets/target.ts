@@ -240,9 +240,7 @@ export function createThread<
     args: MessageMap[Type],
     transferables?: Transferable[]
   ) {
-    if (terminated) {
-      return;
-    }
+    if (terminated) return;
     target.send([type, args], transferables);
   }
 
@@ -282,7 +280,7 @@ export function createThread<
         .catch(() => {});
       return;
     }
-    // FIXME: don't ignore anything, just for testing now
+
     const isThreadMessageData =
       Array.isArray(rawData) &&
       typeof rawData[0] === "number" &&
@@ -510,29 +508,13 @@ export function createThread<
         {
           get(_target, property) {
             if (property === "then") {
-              console.warn("then not found");
+              console.log("target then", property);
+              console.log("_target", _target);
               return undefined;
             }
             if (property === "requestMethods") {
               return methods?.requestMethods;
             }
-            if (property === "supports") {
-              return new Proxy(
-                {},
-                {
-                  get(_target, method: string) {
-                    if (!state) return false;
-                    const cache = theirMethodsCache;
-                    console.log("cache for supports", cache);
-                    if (cache !== null && !state.isTerminated()) {
-                      return cache.includes(method);
-                    }
-                    return false;
-                  },
-                }
-              );
-            }
-
             if (
               theirMethodsCache &&
               !theirMethodsCache.includes(String(property))

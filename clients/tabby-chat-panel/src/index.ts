@@ -352,14 +352,6 @@ export interface ClientApiMethods {
   readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
-type ClientApiMethod = keyof ClientApiMethods
-
-/**
- * Provide a convenient way to check if the client supports a specific method.
- */
-type SupportProxy = {
-  [K in ClientApiMethod]: boolean
-}
 export interface ClientApi extends ClientApiMethods {
   /**
    * Checks if the client supports this capability.
@@ -367,11 +359,6 @@ export interface ClientApi extends ClientApiMethods {
    * Note: This method should not be used to ensure compatibility across different chat panel SDK versions.
    */
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
-
-  /**
-   * The convenient accessor to check if the client supports a specific method from {@link ClientApiMethods}.
-   */
-  supports: SupportProxy
 }
 
 export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
