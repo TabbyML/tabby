@@ -272,12 +272,7 @@ export function createThread<
   async function listener(rawData: unknown) {
     // this method receives messages from the other side means the other side is ready
     if (rawData === RESPONSE_MESSAGE) {
-      console.log("response message received");
-      requestMethods()
-        .then((res) => {
-          console.log("their methods: ", res);
-        })
-        .catch(() => {});
+      requestMethods().catch(() => {});
       return;
     }
 
@@ -507,29 +502,22 @@ export function createThread<
         {},
         {
           get(_target, property) {
-            if (property === "then") {
-              console.log("target then", property);
-              console.log("_target", _target);
-              return undefined;
-            }
-            if (property === "requestMethods") {
-              return methods?.requestMethods;
-            }
-            if (
-              theirMethodsCache &&
-              !theirMethodsCache.includes(String(property))
-            ) {
-              console.log("method not found", property);
-              return undefined;
-            }
+            switch (property) {
+              // FIXME: remove this, now is hack way
+              case "then":
+                return undefined;
+              case "requestMethods":
+                return methods?.requestMethods;
+              case "hasCapability":
+              default:
+                if (cache.has(property)) {
+                  return cache.get(property);
+                }
 
-            if (cache.has(property)) {
-              return cache.get(property);
+                const handler = handlerForCall(property);
+                cache.set(property, handler);
+                return handler;
             }
-
-            const handler = handlerForCall(property);
-            cache.set(property, handler);
-            return handler;
           },
           has(_target, property) {
             if (property === "then" || property === "requestMethods") {
