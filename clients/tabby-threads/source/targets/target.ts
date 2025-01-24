@@ -509,7 +509,11 @@ export function createThread<
               case "requestMethods":
                 return methods?.requestMethods;
               case "hasCapability":
+                return handlerForCall(property);
               default:
+                if (!theirMethodsCache?.includes(String(property))) {
+                  return undefined;
+                }
                 if (cache.has(property)) {
                   return cache.get(property);
                 }
