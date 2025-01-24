@@ -244,20 +244,34 @@ export default function ChatPage() {
         apiVersion: TABBY_CHAT_PANEL_API_VERSION
       })
 
-      setSupportProvideFileAtInfo(!!server?.supports['listFileInWorkspace'])
-      setSupportsReadFileContent(!!server?.supports['readFileContent'])
-      setSupportsOnApplyInEditorV2(!!server?.supports['onApplyInEditorV2'])
-      setSupportsOnLookupSymbol(!!server?.supports['lookupSymbol'])
-      setSupportsReadWorkspaceGitRepoInfo(
-        !!server?.supports['readWorkspaceGitRepositories']
-      )
-      if (
-        !!server?.supports['fetchSessionState'] &&
-        !!server?.supports['storeSessionState']
-      ) {
-        setSupportsStoreAndFetchSessionState(true)
+      const checkCapabilities = async () => {
+        server
+          ?.hasCapability('onApplyInEditorV2')
+          .then(setSupportsOnApplyInEditorV2)
+        server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
+        server
+          ?.hasCapability('readWorkspaceGitRepositories')
+          .then(setSupportsReadWorkspaceGitRepoInfo)
+        server
+          ?.hasCapability('listFileInWorkspace')
+          .then(setSupportProvideFileAtInfo)
+        server
+          ?.hasCapability('readFileContent')
+          .then(setSupportsReadFileContent)
+
+        Promise.all([
+          server?.hasCapability('fetchSessionState'),
+          server?.hasCapability('storeSessionState')
+        ]).then(results => {
+          setSupportsStoreAndFetchSessionState(
+            results.every(result => !!result)
+          )
+        })
       }
-      setIsServerLoaded(true)
+
+      checkCapabilities().then(() => {
+        setIsServerLoaded(true)
+      })
     }
   }, [server])
 
