@@ -46,12 +46,12 @@ export const MentionComponent = ({ node }: { node: any }) => {
     <NodeViewWrapper as="span" className="rounded-sm px-1">
       <span
         className={cn(
-          'rounded bg-muted px-1.5 py-0.5 text-sm font-medium text-foreground whitespace-nowrap align-middle space-x-0.5'
+          'space-x-0.5 whitespace-nowrap rounded bg-muted px-1.5 py-0.5 align-middle text-sm font-medium text-foreground'
         )}
         data-category={node.attrs.category}
       >
         <IconFile className="relative -top-px inline-block h-3.5 w-3.5" />
-        <span className="whitespace-normal relative">
+        <span className="relative whitespace-normal">
           {resolveFileNameForDisplay(filepathString)}
         </span>
       </span>
@@ -242,7 +242,7 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
   return (
     <div
       className={cn(
-        'flex cursor-pointer flex-nowrap items-center gap-1 rounded-md px-2 py-1.5 text-sm overflow-hidden',
+        'flex cursor-pointer flex-nowrap items-center gap-1 overflow-hidden rounded-md px-2 py-1.5 text-sm',
         {
           'bg-accent text-accent-foreground': isSelected
         }
@@ -253,7 +253,7 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
       <span className="flex h-5 shrink-0 items-center">
         <IconFile />
       </span>
-      <span className="whitespace-nowrap mr-2 truncate">{data.name}</span>
+      <span className="mr-2 truncate whitespace-nowrap">{data.name}</span>
       <span className="flex-1 truncate text-xs text-muted-foreground">
         {filepathWithoutFilename}
       </span>
