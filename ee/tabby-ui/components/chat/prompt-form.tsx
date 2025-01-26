@@ -21,7 +21,7 @@ import {
 import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
-import { isEqual } from 'lodash-es'
+import { isEqual, uniqBy } from 'lodash-es'
 import { EditorFileContext } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
@@ -112,7 +112,7 @@ function PromptFormRenderer(
             items: async ({ query }) => {
               if (!listFileInWorkspace) return []
               const files = await listFileInWorkspace({ query })
-              return files?.map(fileItemToSourceItem) || []
+              return uniqBy(files?.map(fileItemToSourceItem) || [], 'id')
             },
             render: () => {
               let component: ReactRenderer<MentionListActions, MentionListProps>
