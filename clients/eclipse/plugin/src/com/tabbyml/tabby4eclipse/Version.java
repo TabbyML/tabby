@@ -67,6 +67,10 @@ public class Version {
 		return this.patch == other.patch;
 	}
 
+	public boolean isZero() {
+		return this.major == 0 && this.minor == 0 && this.patch == 0;
+	}
+
 	private int parseInt(String str) {
 		try {
 			return Integer.parseInt(str);
