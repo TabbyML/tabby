@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     EmitBuilder::builder()
         .all_build()
         .all_git()
-        .git_describe(false, true, Some("v*"))
+        .git_describe(false, true, None) // TODO(kweizh): use correct match pattern in v0.25.0
         .emit()?;
     Ok(())
 }
