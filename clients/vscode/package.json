@@ -298,7 +298,7 @@
         "properties": {
           "tabby.endpoint": {
             "type": "string",
-            "default": "",
+            "default": "http://localhost:8080",
             "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
             "patternErrorMessage": "Please enter a valid HTTP or HTTPS URL.",
             "markdownDescription": "Please use the command [Connect to Server](command:tabby.connectToServer) to specify the endpoint of the Tabby server."
