@@ -194,7 +194,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
           {!items.length ? (
             <div className="px-2 py-1.5 text-xs text-muted-foreground">
               {/* If no items are found, show a message. */}
-              {query ? 'No results found' : 'Typing to search...'}
+              {query ? 'No results found' : 'Type to search...'}
             </div>
           ) : (
             <div className="grid gap-0.5">
