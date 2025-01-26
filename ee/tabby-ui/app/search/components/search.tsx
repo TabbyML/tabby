@@ -398,7 +398,7 @@ export function Search() {
 
     // update assistant message
     currentAssistantMessage.content = answer.content
-
+    currentAssistantMessage.codeSourceId = answer.codeSourceId
     // get and format scores from streaming answer
     if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
       currentAssistantMessage.attachment = {
@@ -430,6 +430,9 @@ export function Search() {
     }
 
     currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
+
+    // update expose steps
+    currentAssistantMessage.readingCode = answer?.readingCode
 
     // update message pair ids
     const newUserMessageId = answer.userMessageId

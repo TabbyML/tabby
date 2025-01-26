@@ -77,6 +77,7 @@ import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
 import { UserAvatar } from '@/components/user-avatar'
 
+import { AgentSteps } from './agent-steps'
 import { SOURCE_CARD_STYLE } from './search'
 import { SearchContext } from './search-context'
 import { ConversationMessage } from './types'
@@ -329,6 +330,15 @@ export function AssistantMessageSection({
             </Button>
           )}
         </div>
+
+        {/* expose step */}
+        {!!message.readingCode && (
+          <AgentSteps
+            steps={message.readingCode}
+            codeSourceId={message.codeSourceId}
+            isReadingCode={message.isReadingCode}
+          />
+        )}
 
         {/* attachment clientCode & code */}
         {messageAttachmentCodeLen > 0 && (
