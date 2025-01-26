@@ -68,7 +68,8 @@ optional = true
 version = "*"
 
 [build-dependencies]
-vergen = { version = "8.0.0", features = ["build", "git", "gitcl"] }
+vergen = { version = "9.0.0", features = ["build"] }
+vergen-gitcl = { version = "1.0.0", features = ["build", "cargo"] }
 
 [dev-dependencies]
 assert-json-diff = "2.0.2"

@@ -1,13 +1,16 @@
 use std::error::Error;
 
-use vergen::EmitBuilder;
+use vergen_gitcl::{BuildBuilder, Emitter, GitclBuilder};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // touch
-    EmitBuilder::builder()
-        .all_build()
-        .all_git()
-        .git_describe(false, true, Some("v*"))
+    Emitter::default()
+        .add_instructions(&BuildBuilder::all_build()?)?
+        .add_instructions(
+            &GitclBuilder::default()
+                .all()
+                .describe(false, true, Some("v*"))
+                .build()?,
+        )?
         .emit()?;
     Ok(())
 }
