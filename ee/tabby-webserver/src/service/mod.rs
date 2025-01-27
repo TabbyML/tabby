@@ -10,6 +10,7 @@ pub mod integration;
 pub mod job;
 mod license;
 mod notification;
+mod page;
 mod preset_web_documents_data;
 pub mod repository;
 mod setting;
@@ -55,6 +56,7 @@ use tabby_schema::{
     job::JobService,
     license::{IsLicenseValid, LicenseService},
     notification::NotificationService,
+    page::PageService,
     policy,
     repository::RepositoryService,
     setting::SettingService,
@@ -84,6 +86,7 @@ struct ServerContext {
     job: Arc<dyn JobService>,
     web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
+    page: Arc<dyn PageService>,
     context: Arc<dyn ContextService>,
     user_group: Arc<dyn UserGroupService>,
     access_policy: Arc<dyn AccessPolicyService>,
@@ -121,6 +124,12 @@ impl ServerContext {
             answer.clone(),
             Some(auth.clone()),
         ));
+        let page = Arc::new(page::create(
+            db_conn.clone(),
+            auth.clone(),
+            thread.clone(),
+            answer.clone(),
+        ));
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
         let notification = Arc::new(notification::create(db_conn.clone()));
@@ -147,6 +156,7 @@ impl ServerContext {
             auth,
             web_documents,
             thread,
+            page,
             context,
             license,
             repository,
@@ -349,6 +359,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn thread(&self) -> Arc<dyn ThreadService> {
         self.0.thread.clone()
+    }
+
+    fn page(&self) -> Arc<dyn tabby_schema::page::PageService> {
+        self.0.page.clone()
     }
 
     fn context(&self) -> Arc<dyn ContextService> {
