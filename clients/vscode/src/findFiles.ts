@@ -16,6 +16,9 @@ const gitIgnorePatternsMap = new Map<string, Set<string>>();
 
 function gitIgnoreItemToExcludePatterns(item: string, prefix?: string | undefined): string[] {
   let pattern = item.trim();
+  if (pattern.length === 0) {
+    return [];
+  }
   if (pattern.indexOf("/") === -1 || pattern.indexOf("/") === pattern.length - 1) {
     if (!pattern.startsWith("**/")) {
       pattern = `**/${pattern}`;
