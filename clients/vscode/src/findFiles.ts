@@ -1,7 +1,7 @@
-// We want to use the findFiles2 api, but it is still in proposed state.
-// So wee implement a findFiles function here that could use the following rules in exclude pattern:
+// We want to use the findFiles2 API, but it is still in the proposed state.
+// Therefore, we implement a findFiles function here that can use the following rules in the exclude pattern:
 // 1. .gitignore files
-// 2. settings from `files.exclude` and `search.exclude`
+// 2. Settings from `files.exclude` and `search.exclude`
 //
 // See https://github.com/microsoft/vscode/blob/main/src/vscode-dts/vscode.proposed.findFiles2.d.ts
 
