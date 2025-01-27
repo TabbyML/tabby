@@ -4,12 +4,14 @@ import {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState
 } from 'react'
 import Mention from '@tiptap/extension-mention'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
+import { uniqBy } from 'lodash-es'
 import {
   Filepath,
   ListFileItem,
@@ -21,7 +23,7 @@ import { IconFile } from '@/components/ui/icons'
 
 import { emitter } from '../event-emitter'
 import type { SourceItem } from './types'
-import { fileItemToSourceItem, shortenLabel } from './utils'
+import { fileItemToSourceItem } from './utils'
 
 /**
  * A React component to render a mention node in the editor.
@@ -41,17 +43,15 @@ export const MentionComponent = ({ node }: { node: any }) => {
   }, [])
 
   return (
-    <NodeViewWrapper className="-my-1 inline-block align-middle">
+    <NodeViewWrapper as="span" className="rounded-sm px-1">
       <span
         className={cn(
-          'prose inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-sm font-medium text-foreground',
-          'ring-1 ring-inset ring-muted',
-          'relative top-[0.1em]'
+          'space-x-0.5 whitespace-nowrap rounded bg-muted px-1.5 py-0.5 align-middle text-sm font-medium text-foreground'
         )}
         data-category={node.attrs.category}
       >
-        <IconFile />
-        <span className="relative top-[-0.5px]">
+        <IconFile className="relative -top-px inline-block h-3.5 w-3.5" />
+        <span className="relative whitespace-normal">
           {resolveFileNameForDisplay(filepathString)}
         </span>
       </span>
@@ -161,7 +161,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
         if (!listFileInWorkspace) return []
         const files = await listFileInWorkspace({ query })
         const result = files?.map(fileItemToSourceItem) || []
-        setItems(result)
+        setItems(uniqBy(result, 'id'))
       }
       fetchOptions()
     }, [query])
@@ -194,7 +194,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
           {!items.length ? (
             <div className="px-2 py-1.5 text-xs text-muted-foreground">
               {/* If no items are found, show a message. */}
-              {query ? 'No results found' : 'Typing to search...'}
+              {query ? 'No results found' : 'Type to search...'}
             </div>
           ) : (
             <div className="grid gap-0.5">
@@ -205,7 +205,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
                     key={`${JSON.stringify(filepath)}`}
                     onClick={() => handleSelectItem(index)}
                     onMouseEnter={() => setSelectedIndex(index)}
-                    title={item.name}
+                    title={item.filepath}
                     data={item}
                     isSelected={index === selectedIndex}
                   />
@@ -226,6 +226,10 @@ interface OptionItemView extends HTMLAttributes<HTMLDivElement> {
 }
 function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
   const ref = useRef<HTMLDivElement>(null)
+  const filepathWithoutFilename = useMemo(() => {
+    return data.filepath.split('/').slice(0, -1).join('/')
+  }, [data.filepath])
+
   useLayoutEffect(() => {
     if (isSelected && ref.current) {
       ref.current?.scrollIntoView({
@@ -238,7 +242,7 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
   return (
     <div
       className={cn(
-        'flex cursor-pointer flex-nowrap items-center gap-1 rounded-md px-2 py-1.5 text-sm',
+        'flex cursor-pointer flex-nowrap items-center gap-1 overflow-hidden rounded-md px-2 py-1.5 text-sm',
         {
           'bg-accent text-accent-foreground': isSelected
         }
@@ -249,9 +253,9 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
       <span className="flex h-5 shrink-0 items-center">
         <IconFile />
       </span>
-      <span className="flex-1 truncate">{shortenLabel(data.name)}</span>
-      <span className="max-w-[150px] truncate text-xs text-muted-foreground">
-        {shortenLabel(data.filepath, 20)}
+      <span className="mr-2 truncate whitespace-nowrap">{data.name}</span>
+      <span className="flex-1 truncate text-xs text-muted-foreground">
+        {filepathWithoutFilename}
       </span>
     </div>
   )

@@ -4,7 +4,7 @@ import { Filepath } from 'tabby-chat-panel/index'
 
 import { PLACEHOLDER_FILE_REGEX } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
-import { convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
+import { convertFilepath, nanoid, resolveFileNameForDisplay } from '@/lib/utils'
 
 import { FileItem, SourceItem } from './types'
 
@@ -13,11 +13,22 @@ import { FileItem, SourceItem } from './types'
  */
 export function fileItemToSourceItem(info: FileItem): SourceItem {
   const filepathString = convertFilepath(info.filepath).filepath
-  return {
+  const source: Omit<SourceItem, 'id'> = {
     fileItem: info,
     name: resolveFileNameForDisplay(filepathString), // Extract the last segment of the path as the name
     filepath: filepathString,
     category: 'file'
+  }
+  try {
+    return {
+      id: JSON.stringify(info.filepath),
+      ...source
+    }
+  } catch (e) {
+    return {
+      id: nanoid(),
+      ...source
+    }
   }
 }
 
