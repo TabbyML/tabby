@@ -10,6 +10,7 @@ use tabby_common::config::{
     config_id_to_index, config_index_to_id, CodeRepository, Config, RepositoryConfig,
 };
 use tabby_db::DbConn;
+use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
@@ -20,6 +21,8 @@ use tabby_schema::{
     },
     Result,
 };
+
+use super::answer::prompt_tools::pipeline_related_questions_with_repo_dirs;
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
@@ -43,6 +46,25 @@ pub fn create(
 
 #[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
+    async fn generate_repo_questions(
+        &self,
+        chat: Arc<dyn ChatCompletionStream>,
+        policy: &AccessPolicy,
+        source_id: String,
+    ) -> Result<Vec<String>, anyhow::Error> {
+        let repositories = self.repository_list(Some(policy)).await?;
+        let repo = repositories
+            .iter()
+            .find(|r| r.source_id == source_id)
+            .ok_or_else(|| anyhow::anyhow!("Repository not found"))?;
+
+        let files = self
+            .list_files(policy, &repo.kind, &repo.id, None, Some(300))
+            .await?;
+
+        pipeline_related_questions_with_repo_dirs(chat, files).await
+    }
+
     async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>> {
         let mut repos: Vec<CodeRepository> = self
             .git
