@@ -158,6 +158,17 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "bash",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_bash::language(),
+                        include_str!("../../queries/bash.scm"),
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
         ])
     };
 }

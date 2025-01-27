@@ -38,6 +38,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Lua](https://www.lua.org)
 * [Elixir](https://elixir-lang.org)
 * [OCaml](https://ocaml.org/)
+* [Bash / shellscript](https://www.gnu.org/software/bash/)
 
 ## Languages Missing Certain Support
 

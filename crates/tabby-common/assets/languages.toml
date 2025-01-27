@@ -350,16 +350,45 @@ languages = ["powershell"]
 exts = ["ps1", "psd1", "psm1"]
 
 [[config]]
+languages = ["shellscript"]
+exts = ["sh", "bash", "command", "zsh"]
+line_comment = "#"
+top_level_keywords = [
+    "break",
+    "case",
+    "coproc",
+    "continue",
+    "do",
+    "done",
+    "else",
+    "elif",
+    "end",
+    "esac",
+    "eval",
+    "exec",
+    "exit",
+    "for",
+    "fi",
+    "function",
+    "if",
+    "in",
+    "return",
+    "select",
+    "shift",
+    "source",
+    "then",
+    "until",
+    "wait",
+    "while"
+]
+
+[[config]]
 languages = ["sql"]
 exts = ["sql"]
 
 [[config]]
 languages = ["scala"]
 exts = ["scala"]
-
-[[config]]
-languages = ["shellscript"]
-exts = ["sh", "bash", "command", "zsh"]
 
 [[config]]
 languages = ["tex"]
