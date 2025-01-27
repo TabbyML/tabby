@@ -51,6 +51,7 @@ import {
   localUriToListFileItem,
   escapeGlobPattern,
 } from "./utils";
+import { findFiles } from "../findFiles";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
 
@@ -529,10 +530,8 @@ export class ChatWebview {
             .join("");
 
           const globPattern = `**/${caseInsensitivePattern}*`;
-
           this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
-
-          const files = await workspace.findFiles(globPattern, undefined, maxResults);
+          const files = await findFiles(globPattern, { maxResults });
           this.logger.info(`Found ${files.length} files.`);
           return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
         } catch (error) {
