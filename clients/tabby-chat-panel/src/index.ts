@@ -384,7 +384,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
   })
 }
 
-export function createServer(api: ServerApi): ClientApi {
+export function createServer(api: ServerApi): Promise<ClientApi> {
   return createThreadFromInsideIframe({
     expose: {
       init: api.init,

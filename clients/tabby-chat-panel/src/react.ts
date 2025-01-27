@@ -26,7 +26,7 @@ function useServer(api: ServerApi) {
     const isInIframe = window.self !== window.top
     if (isInIframe && !isCreated) {
       isCreated = true
-      setServer(createServer(api))
+      createServer(api).then(setServer)
     }
   }, [])
 

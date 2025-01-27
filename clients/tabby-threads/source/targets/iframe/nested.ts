@@ -15,7 +15,7 @@ import { CHECK_MESSAGE, RESPONSE_MESSAGE } from "./shared";
  * const thread = createThreadFromInsideIframe();
  * await thread.sendMessage('Hello world!');
  */
-export function createThreadFromInsideIframe<
+export async function createThreadFromInsideIframe<
   Self = Record<string, never>,
   Target = Record<string, never>,
 >({
@@ -74,7 +74,7 @@ export function createThreadFromInsideIframe<
     );
   }
 
-  return createThread(
+  const thread = createThread(
     {
       send(message, transfer) {
         return parent.postMessage(message, targetOrigin, transfer);
@@ -92,4 +92,6 @@ export function createThreadFromInsideIframe<
     },
     options
   );
+  await thread.requestMethods();
+  return thread;
 }

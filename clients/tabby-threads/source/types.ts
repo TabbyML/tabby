@@ -3,7 +3,7 @@ import type {
   RETAIN_METHOD,
   ENCODE_METHOD,
   RETAINED_BY,
-} from './constants.ts';
+} from "./constants.ts";
 
 /**
  * A thread represents a target JavaScript environment that exposes a set
@@ -18,6 +18,14 @@ export type Thread<Target> = {
       ? Target[K]
       : never
     : never;
+} & {
+  /**
+   * Request methods from the other side and wait for response.
+   * Returns a promise that resolves with the list of available methods.
+   * This is useful when you want to get the methods list from the other side
+   * without sending your own methods.
+   */
+  requestMethods(): Promise<string[]>;
 };
 
 /**
@@ -82,7 +90,7 @@ export interface ThreadEncoder {
   decode(
     value: unknown,
     api: ThreadEncoderApi,
-    retainedBy?: Iterable<MemoryRetainer>,
+    retainedBy?: Iterable<MemoryRetainer>
   ): unknown;
 }
 
@@ -112,7 +120,7 @@ export interface ThreadEncoderApi {
  * An object that provides a custom process to encode its value.
  */
 export interface ThreadEncodable {
-  [ENCODE_METHOD](api: {encode(value: any): unknown}): any;
+  [ENCODE_METHOD](api: { encode(value: any): unknown }): any;
 }
 
 export type AnyFunction = Function;
