@@ -2,7 +2,7 @@
 
 import { useContext, useState } from 'react'
 import type { MouseEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
@@ -40,6 +40,12 @@ const deleteThreadMutation = graphql(/* GraphQL */ `
   }
 `)
 
+const convertThreadToPageMutation = graphql(/* GraphQL */ `
+  mutation convertThreadToPage($threadId: ID!) {
+    convertThreadToPage(threadId: $threadId)
+  }
+`)
+
 type HeaderProps = {
   threadIdFromURL?: string
   streamingDone?: boolean
@@ -47,9 +53,11 @@ type HeaderProps = {
 
 export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { isThreadOwner } = useContext(SearchContext)
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [converting, setConverting] = useState(false)
 
   const deleteThread = useMutation(deleteThreadMutation, {
     onCompleted(data) {
@@ -65,6 +73,30 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
       setIsDeleting(false)
     }
   })
+
+  const convertThreadToPage = useMutation(convertThreadToPageMutation, {
+    onCompleted(data) {
+      if (data.convertThreadToPage) {
+        // router.push(pathname.replace(/^\/search/, '/page'))
+        router.push(`/page/${data.convertThreadToPage}`)
+      } else {
+        toast.error('Failed to convert')
+        setConverting(false)
+      }
+    },
+    onError(err) {
+      toast.error(err?.message || 'Failed to convert')
+      setConverting(false)
+    }
+  })
+
+  const handleConvertThreadToPage = () => {
+    if (converting || !threadIdFromURL) return
+    setConverting(true)
+    convertThreadToPage({
+      threadId: threadIdFromURL
+    })
+  }
 
   const handleDeleteThread = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
@@ -103,38 +135,45 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
             <IconPlus />
           </Button>
         )}
+
         {streamingDone && threadIdFromURL && isThreadOwner && (
-          <AlertDialog
-            open={deleteAlertVisible}
-            onOpenChange={setDeleteAlertVisible}
-          >
-            <AlertDialogTrigger asChild>
-              <Button size="icon" variant="hover-destructive">
-                <IconTrash />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this thread</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this thread? This operation is
-                  not revertible.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className={buttonVariants({ variant: 'destructive' })}
-                  onClick={handleDeleteThread}
-                >
-                  {isDeleting && (
-                    <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Yes, delete it
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <>
+            <AlertDialog
+              open={deleteAlertVisible}
+              onOpenChange={setDeleteAlertVisible}
+            >
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="hover-destructive">
+                  <IconTrash />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this thread</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this thread? This operation
+                    is not revertible.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={buttonVariants({ variant: 'destructive' })}
+                    onClick={handleDeleteThread}
+                  >
+                    {isDeleting && (
+                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Yes, delete it
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button variant="ghost" onClick={handleConvertThreadToPage}>
+              {converting && <IconSpinner />}
+              Convert to page
+            </Button>
+          </>
         )}
         <ClientOnly>
           <ThemeToggle />

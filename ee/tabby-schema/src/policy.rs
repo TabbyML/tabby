@@ -68,6 +68,16 @@ impl AccessPolicy {
         Ok(())
     }
 
+    pub fn check_update_page(&self, user_id: &ID) -> Result<()> {
+        if self.user_id != *user_id {
+            return Err(CoreError::Forbidden(
+                "You cannot edit a page that you do not own.",
+            ));
+        }
+
+        Ok(())
+    }
+
     pub fn check_read_analytic(&self, users: &[ID]) -> Result<()> {
         const ERROR: Result<()> = Err(CoreError::Forbidden(
             "You must be admin to read other users' analytic data",

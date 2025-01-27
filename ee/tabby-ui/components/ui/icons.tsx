@@ -31,6 +31,7 @@ import {
   IndentIncrease,
   Layers2,
   Link,
+  List,
   ListFilter,
   Mail,
   MessagesSquare,
@@ -38,6 +39,7 @@ import {
   Regex,
   Search,
   Share2,
+  Sheet,
   Sparkles,
   SquareActivity,
   SquareChevronRight,
@@ -1750,6 +1752,17 @@ function IconBell({ className, ...props }: React.ComponentProps<typeof Bell>) {
   return <Bell className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconList({ className, ...props }: React.ComponentProps<typeof List>) {
+  return <List className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconSheet({
+  className,
+  ...props
+}: React.ComponentProps<typeof Sheet>) {
+  return <Sheet className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1863,5 +1876,7 @@ export {
   IconGitMerge,
   IconSquareChevronRight,
   IconFileSearch2,
-  IconBell
+  IconBell,
+  IconList,
+  IconSheet
 }
