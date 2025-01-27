@@ -409,6 +409,8 @@ export async function createServer(api: ServerApi): Promise<ClientApi> {
   for (const method of clientMethods) {
     clientApi[method] = thread[method]
   }
+  // hasCapability is not exposed from client
+  clientApi.hasCapability = thread.hasCapability
 
   return clientApi
 }
