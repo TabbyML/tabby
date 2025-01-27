@@ -852,7 +852,7 @@ impl Query {
                 source_id,
             )
             .await
-            .map_err(|e| CoreError::NotFound(&format!("Not found this repository: {:?}", e)))
+            .map_err(|e| CoreError::NotFound("Repository not found"))
     }
 }
 
