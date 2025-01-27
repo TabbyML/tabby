@@ -442,7 +442,30 @@ export type ChatEditParams = {
    *    use {@link ChatEditResolveRequest} to resolve it later.
    */
   format: "previewChanges";
+
+  /**
+   * list of file contexts.
+   */
+  context?: FileContext[];
 };
+
+/**
+ * Represents a file context.
+ * This type should only be used for sending context from client to server.
+ */
+export interface FileContext {
+  /**
+   * The filepath of the file.
+   * The path is relative to the workspace root.
+   */
+  path: string;
+
+  /**
+   * The range of the selected content in the file.
+   * If the range is not provided, the whole file is considered.
+   */
+  range?: Range;
+}
 
 export type ChatEditToken = string;
 

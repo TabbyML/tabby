@@ -10,16 +10,22 @@ import {
   Position,
   CancellationToken,
   Range,
+  workspace,
+  Uri,
+  TabInputText,
 } from "vscode";
-import { ChatEditCommand } from "tabby-agent";
+import { ChatEditCommand, FileContext } from "tabby-agent";
 import { Client } from "../lsp/client";
 import { Config } from "../Config";
 import { ContextVariables } from "../ContextVariables";
 import { getLogger } from "../logger";
+import { parseInput, InlineChatParseResult, replaceLastOccurrence } from "./util";
+import { caseInsensitivePattern, findFiles } from "../findFiles";
 
 export class InlineEditController {
   private readonly logger = getLogger("InlineEditController");
   private readonly editLocation: Location;
+  private maxSearchFileResult = 30;
 
   constructor(
     private client: Client,
@@ -40,32 +46,63 @@ export class InlineEditController {
     };
   }
 
+  private get workspaceFolder() {
+    return workspace.getWorkspaceFolder(this.editor.document.uri);
+  }
+
+  async searchFileList(searchQuery: string) {
+    if (!this.workspaceFolder) {
+      return [];
+    }
+    const globPattern = caseInsensitivePattern(searchQuery);
+    const fileList = await findFiles(globPattern, { maxResults: this.maxSearchFileResult });
+    return fileList.sort((a, b) => a.fsPath.length - b.fsPath.length).map((file) => workspace.asRelativePath(file));
+  }
+
   async start(userCommand: string | undefined, cancellationToken: CancellationToken) {
-    const command = userCommand ?? (await this.showQuickPick());
-    if (command) {
-      this.logger.log(`Start inline edit with user command: ${command}`);
-      await this.provideEditWithCommand(command, cancellationToken);
+    const input: InlineChatParseResult | undefined = userCommand
+      ? { command: userCommand }
+      : await this.showQuickPick();
+    if (input?.command) {
+      await this.provideEditWithCommand(input, cancellationToken);
     }
   }
 
-  private async showQuickPick(): Promise<string | undefined> {
+  private getFileContext(mentions?: string[]): FileContext[] | undefined {
+    if (!mentions) {
+      return undefined;
+    }
+    const worksapceUri = this.workspaceFolder?.uri;
+    if (!worksapceUri) {
+      return;
+    }
+    return mentions.map<FileContext>((mention) => ({
+      path: Uri.joinPath(worksapceUri, mention).fsPath,
+    }));
+  }
+
+  private async showQuickPick(): Promise<InlineChatParseResult | undefined> {
     return new Promise((resolve) => {
       const quickPick = window.createQuickPick<CommandQuickPickItem>();
-      quickPick.placeholder = "Enter the command for editing";
+      quickPick.placeholder = "Enter the command for editing (type @ to include file)";
       quickPick.matchOnDescription = true;
 
       const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.maxChatEditHistory);
       const suggestedCommand: ChatEditCommand[] = [];
 
-      const updateQuickPickList = () => {
-        const input = quickPick.value;
-        const list: CommandQuickPickItem[] = [];
+      const getInputParseResult = (): InlineChatParseResult => {
+        return parseInput(quickPick.value);
+      };
+
+      const getCommandList = (input: string) => {
+        const list: (QuickPickItem & { value: string })[] = [];
         list.push(
           ...suggestedCommand.map((item) => ({
             label: item.label,
             value: item.command,
             iconPath: item.source === "preset" ? new ThemeIcon("run") : new ThemeIcon("spark"),
             description: item.source === "preset" ? item.command : "Suggested",
+            alwaysShow: true,
           })),
         );
         if (list.length > 0) {
@@ -76,13 +113,16 @@ export class InlineEditController {
             alwaysShow: true,
           });
         }
-        const recentlyCommandToAdd = recentlyCommand.filter((item) => !list.find((i) => i.value === item));
+        const recentlyCommandToAdd = recentlyCommand.filter(
+          (item) => !list.find((i) => i.value === item) && item.includes(input),
+        );
         list.push(
           ...recentlyCommandToAdd.map((item) => ({
             label: item,
             value: item,
             iconPath: new ThemeIcon("history"),
             description: "History",
+            alwaysShow: true,
             buttons: [
               {
                 iconPath: new ThemeIcon("edit"),
@@ -101,6 +141,64 @@ export class InlineEditController {
             description: "",
             alwaysShow: true,
           });
+        }
+
+        return list;
+      };
+
+      const getFileListFromMention = async (mention: string) => {
+        const list: (QuickPickItem & { value: string })[] = [];
+        if (mention === "") {
+          if (window.activeTextEditor) {
+            const path = workspace.asRelativePath(window.activeTextEditor?.document.uri);
+            list.push({
+              label: path,
+              value: path,
+              alwaysShow: true,
+            });
+          }
+
+          if (list.length > 0) {
+            list.push({
+              label: "",
+              value: "",
+              kind: QuickPickItemKind.Separator,
+              alwaysShow: true,
+            });
+          }
+
+          getOpenTabs().forEach((path) => {
+            if (list.find((i) => i.value === path) === undefined) {
+              list.push({
+                label: path,
+                value: path,
+                alwaysShow: true,
+              });
+            }
+          });
+        } else {
+          const fileList = await this.searchFileList(mention);
+          list.push(
+            ...fileList.map((file) => ({
+              label: file,
+              value: file,
+              alwaysShow: true,
+            })),
+          );
+        }
+
+        return list;
+      };
+
+      const updateQuickPickList = async () => {
+        let list: (QuickPickItem & { value: string })[] = [];
+        const { mentionQuery, command } = getInputParseResult();
+        if (mentionQuery !== undefined) {
+          quickPick.busy = true;
+          list = await getFileListFromMention(mentionQuery);
+          quickPick.busy = false;
+        } else {
+          list = getCommandList(command);
         }
         quickPick.items = list;
       };
@@ -131,8 +229,7 @@ export class InlineEditController {
         }
       });
 
-      quickPick.onDidAccept(async () => {
-        const command = quickPick.selectedItems[0]?.value;
+      const acceptCommand = async (command: string | undefined, mentions?: string[]) => {
         if (!command) {
           resolve(undefined);
           return;
@@ -149,8 +246,26 @@ export class InlineEditController {
           .slice(0, this.config.maxChatEditHistory);
         await this.config.updateChatEditRecentlyCommand(updatedRecentlyCommand);
 
-        resolve(command);
+        resolve({ command, mentions });
         quickPick.hide();
+      };
+
+      const acceptFile = async (file: string | undefined, query: string) => {
+        if (!file) {
+          return;
+        }
+        const newValue = replaceLastOccurrence(quickPick.value, query, file);
+        quickPick.value = newValue + " ";
+      };
+
+      quickPick.onDidAccept(async () => {
+        const commandOrFile = quickPick.selectedItems[0]?.value;
+        const inputParseResult = getInputParseResult();
+        if (inputParseResult.mentionQuery !== undefined) {
+          acceptFile(commandOrFile, inputParseResult.mentionQuery);
+        } else {
+          acceptCommand(commandOrFile, inputParseResult.mentions);
+        }
       });
       quickPick.onDidHide(() => {
         fetchingSuggestedCommandCancellationTokenSource.cancel();
@@ -161,7 +276,7 @@ export class InlineEditController {
     });
   }
 
-  private async provideEditWithCommand(command: string, cancellationToken: CancellationToken) {
+  private async provideEditWithCommand(inputResult: InlineChatParseResult, cancellationToken: CancellationToken) {
     // Lock the cursor (editor selection) at start position, it will be unlocked after the edit is done
     const startPosition = new Position(this.range.start.line, 0);
     const resetEditorSelection = () => {
@@ -175,12 +290,13 @@ export class InlineEditController {
     resetEditorSelection();
 
     this.contextVariables.chatEditInProgress = true;
-    this.logger.log(`Provide edit with command: ${command}`);
+    this.logger.log(`Provide edit with command: ${JSON.stringify(inputResult)}`);
     try {
       await this.client.chat.provideEdit(
         {
           location: this.editLocation,
-          command,
+          command: inputResult.command,
+          context: this.getFileContext(inputResult.mentions),
           format: "previewChanges",
         },
         cancellationToken,
@@ -202,3 +318,11 @@ export class InlineEditController {
 interface CommandQuickPickItem extends QuickPickItem {
   value: string;
 }
+
+export const getOpenTabs = () => {
+  return window.tabGroups.all
+    .flatMap((group) =>
+      group.tabs.map((tab) => (tab.input instanceof TabInputText ? workspace.asRelativePath(tab.input.uri) : null)),
+    )
+    .filter((item): item is string => item !== null);
+};

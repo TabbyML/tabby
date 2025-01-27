@@ -235,3 +235,22 @@ export async function findFiles(
     });
   }
 }
+
+export function escapeGlobPattern(query: string): string {
+  // escape special glob characters: * ? [ ] { } ( ) ! @
+  return query.replace(/[*?[\]{}()!@]/g, "\\$&");
+}
+
+export function caseInsensitivePattern(query: string) {
+  const caseInsensitivePattern = query
+    .split("")
+    .map((char) => {
+      if (char.toLowerCase() !== char.toUpperCase()) {
+        return `{${char.toLowerCase()},${char.toUpperCase()}}`;
+      }
+      return escapeGlobPattern(char);
+    })
+    .join("");
+
+  return `**/${caseInsensitivePattern}*`;
+}
