@@ -128,6 +128,7 @@ export class CodeLensProvider implements Feature {
                 line: changesPreviewLineType.header,
               },
             });
+
             lineCodeLenses.push({
               range: codeLensRange,
               command: {

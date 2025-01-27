@@ -12,6 +12,7 @@ import {
 import { CodeLensMiddleware as VscodeLspCodeLensMiddleware, ProvideCodeLensesSignature } from "vscode-languageclient";
 import { CodeLens as TabbyCodeLens } from "tabby-agent";
 import { findTextEditor } from "./vscodeWindowUtils";
+import { isBrowser } from "../env";
 
 type CodeLens = VscodeCodeLens & TabbyCodeLens;
 
@@ -74,7 +75,9 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     if (!editor) {
       return codeLenses;
     }
+
     this.removeDecorations(editor);
+
     const result =
       codeLenses
         ?.map((codeLens) => this.handleCodeLens(codeLens, editor))
@@ -84,6 +87,7 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
   }
 
   private handleCodeLens(codeLens: CodeLens, editor: TextEditor): CodeLens | null {
+    this.addShortcut(codeLens);
     if (!codeLens.data || codeLens.data.type !== "previewChanges") {
       return codeLens;
     }
@@ -104,6 +108,19 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
       return codeLens;
     }
     return null;
+  }
+
+  private addShortcut(codeLens: CodeLens) {
+    if (codeLens.command?.arguments?.[0].action === "accept") {
+      // FIXME: Read ~/.config/Code/User/keybindings.json from LSP client, then send to LSP server to avoid hardcode.
+      const acceptShortcut = isBrowser ? "" : ` (${process.platform === "darwin" ? "⌘+Enter" : "Ctrl+Enter"})`;
+
+      codeLens.command.title += acceptShortcut;
+    } else if (codeLens.command?.arguments?.[0].action === "discard") {
+      const discardShortcut = isBrowser ? "" : ` (Esc)`;
+
+      codeLens.command.title += discardShortcut;
+    }
   }
 
   private addDecorationRange(editor: TextEditor, decorationType: TextEditorDecorationType, range: Range) {
