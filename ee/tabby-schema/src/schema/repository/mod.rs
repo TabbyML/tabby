@@ -1,6 +1,7 @@
 mod types;
 use std::{path::PathBuf, sync::Arc};
 
+use tabby_inference::ChatCompletionStream;
 pub use types::*;
 
 mod git;
@@ -293,4 +294,10 @@ pub trait RepositoryService: Send + Sync {
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
 
     async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>>;
+    async fn generate_repo_questions(
+        &self,
+        chat: Arc<dyn ChatCompletionStream>,
+        policy: &AccessPolicy,
+        source_id: String,
+    ) -> Result<Vec<String>>;
 }
