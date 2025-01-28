@@ -36,7 +36,7 @@ use tabby_schema::{
     auth::AuthenticationService,
     context::{ContextInfoHelper, ContextService},
     policy::AccessPolicy,
-    repository::{Repository, RepositoryService},
+    repository::{Repository, RepositoryKind, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
         MessageAttachmentCodeInput, MessageAttachmentDoc, MessageAttachmentInput,

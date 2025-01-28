@@ -3,6 +3,7 @@ mod analytic;
 pub mod answer;
 mod auth;
 pub mod background_job;
+pub mod common_prompt_tools;
 pub mod context;
 mod email;
 pub mod event_logger;
