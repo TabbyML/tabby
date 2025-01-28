@@ -798,7 +798,7 @@ type Query {
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
   testModelConnection(backend: ModelHealthBackend!): ModelBackendHealthInfo!
-  generateRepoRelateQuestion(sourceId: String!): [String!]!
+  readRepositoryRelatedQuestions(sourceId: String!): [String!]!
 }
 
 type RefreshTokenResponse {
