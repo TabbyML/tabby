@@ -4,6 +4,7 @@ mod third_party;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use cached::{Cached, TimedCache};
 use futures::StreamExt;
 use juniper::ID;
 use tabby_common::config::{
@@ -21,15 +22,18 @@ use tabby_schema::{
     },
     Result,
 };
+use tokio::sync::Mutex;
 
-use super::answer::prompt_tools::pipeline_related_questions_with_repo_dirs;
+use super::common_prompt_tools::pipeline_related_questions_with_repo_dirs;
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
     third_party: Arc<dyn ThirdPartyRepositoryService>,
     config: Vec<RepositoryConfig>,
+    relavent_dirs_questions_cache: Mutex<TimedCache<String, Vec<String>>>,
 }
 
+static RELAVENT_QUESTION_CACHE_LIFESPAN: u64 = 60 * 30; // 30 minutes
 pub fn create(
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
@@ -41,6 +45,9 @@ pub fn create(
         config: Config::load()
             .map(|config| config.repositories)
             .unwrap_or_default(),
+        relavent_dirs_questions_cache: Mutex::new(TimedCache::with_lifespan(
+            RELAVENT_QUESTION_CACHE_LIFESPAN,
+        )),
     })
 }
 
@@ -51,18 +58,38 @@ impl RepositoryService for RepositoryServiceImpl {
         chat: Arc<dyn ChatCompletionStream>,
         policy: &AccessPolicy,
         source_id: String,
-    ) -> Result<Vec<String>, anyhow::Error> {
+    ) -> Result<Vec<String>> {
+        if source_id.is_empty() {
+            return Err(anyhow::anyhow!("Invalid source_id format"))?;
+        }
+
+        let mut cache = self.relavent_dirs_questions_cache.lock().await;
+        if let Some(questions) = cache.cache_get(&source_id) {
+            return Ok(questions.clone());
+        }
+
         let repositories = self.repository_list(Some(policy)).await?;
         let repo = repositories
             .iter()
             .find(|r| r.source_id == source_id)
-            .ok_or_else(|| anyhow::anyhow!("Repository not found"))?;
+            .ok_or_else(|| anyhow::anyhow!("Repository not found: {}", source_id))?;
 
-        let files = self
+        let files = match self
             .list_files(policy, &repo.kind, &repo.id, None, Some(300))
-            .await?;
+            .await
+        {
+            Ok(files) => files,
+            Err(_) => {
+                return Err(anyhow::anyhow!(
+                    "Repository exists but not accessible: {}",
+                    source_id
+                ))?
+            }
+        };
 
-        pipeline_related_questions_with_repo_dirs(chat, files).await
+        let questions = pipeline_related_questions_with_repo_dirs(chat, files).await?;
+        cache.cache_set(source_id, questions.clone());
+        Ok(questions)
     }
 
     async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>> {

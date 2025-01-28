@@ -299,5 +299,5 @@ pub trait RepositoryService: Send + Sync {
         chat: Arc<dyn ChatCompletionStream>,
         policy: &AccessPolicy,
         source_id: String,
-    ) -> Result<Vec<String>, anyhow::Error>;
+    ) -> Result<Vec<String>>;
 }
