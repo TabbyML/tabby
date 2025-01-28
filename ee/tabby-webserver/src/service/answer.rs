@@ -1,4 +1,4 @@
-pub mod prompt_tools;
+mod prompt_tools;
 
 use std::{
     collections::HashMap,
