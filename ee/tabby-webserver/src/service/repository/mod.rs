@@ -53,7 +53,7 @@ pub fn create(
 
 #[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
-    async fn generate_repo_questions(
+    async fn read_repository_related_questions(
         &self,
         chat: Arc<dyn ChatCompletionStream>,
         policy: &AccessPolicy,

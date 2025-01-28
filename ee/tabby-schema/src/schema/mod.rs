@@ -844,7 +844,7 @@ impl Query {
         let user = check_user(ctx).await?;
         ctx.locator
             .repository()
-            .generate_repo_questions(
+            .read_repository_related_questions(
                 ctx.locator
                     .chat()
                     .ok_or(CoreError::NotFound("The Chat didn't initialize yet"))?,

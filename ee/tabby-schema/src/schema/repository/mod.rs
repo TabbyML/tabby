@@ -294,7 +294,7 @@ pub trait RepositoryService: Send + Sync {
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
 
     async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>>;
-    async fn generate_repo_questions(
+    async fn read_repository_related_questions(
         &self,
         chat: Arc<dyn ChatCompletionStream>,
         policy: &AccessPolicy,
