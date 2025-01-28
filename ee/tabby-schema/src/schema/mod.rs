@@ -892,7 +892,7 @@ impl Query {
         }
     }
 
-    async fn generate_repo_relate_question(
+    async fn read_repository_related_questions(
         ctx: &Context,
         source_id: String,
     ) -> Result<Vec<String>, CoreError> {

@@ -32,7 +32,7 @@ struct RepositoryServiceImpl {
     relavent_dirs_questions_cache: Mutex<TimedCache<String, Vec<String>>>,
 }
 
-static RELAVENT_QUESTION_CACHE_LIFESPAN: u64 = 60 * 30; // 30 minutes
+static RELEVANT_QUESTION_CACHE_LIFESPAN: u64 = 60 * 30; // 30 minutes
 pub fn create(
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
@@ -45,7 +45,7 @@ pub fn create(
             .map(|config| config.repositories)
             .unwrap_or_default(),
         relavent_dirs_questions_cache: Mutex::new(TimedCache::with_lifespan(
-            RELAVENT_QUESTION_CACHE_LIFESPAN,
+            RELEVANT_QUESTION_CACHE_LIFESPAN,
         )),
     })
 }
@@ -71,8 +71,12 @@ impl RepositoryService for RepositoryServiceImpl {
         let repo = repositories
             .iter()
             .find(|r| r.source_id == source_id)
-            .ok_or_else(|| anyhow::anyhow!("Repository not found: {}", source_id))?;
-
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Repository not found or 'sourceId' is invalid: {}",
+                    source_id
+                )
+            })?;
         let files = match self
             .list_files(policy, &repo.kind, &repo.id, None, Some(300))
             .await
