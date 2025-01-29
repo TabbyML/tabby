@@ -252,6 +252,13 @@ export interface ListFileItem {
   filepath: Filepath
 }
 
+// Draft list active symbol item
+export interface ListActiveSymbolItem {
+  filepath: Filepath
+  range: LineRange
+  label: string
+}
+
 export interface ServerApi {
   init: (request: InitRequest) => void
 
@@ -344,6 +351,8 @@ export interface ClientApiMethods {
    */
   listFileInWorkspace?: (params: ListFilesInWorkspaceParams) => Promise<ListFileItem[]>
 
+  listActiveSymbols?: () => Promise<ListActiveSymbolItem[]>
+
   /**
    * Returns the content of a file within the specified range.
    * If `range` is not provided, the entire file content is returned.
@@ -351,6 +360,7 @@ export interface ClientApiMethods {
    * @returns The content of the file as a string, or `null` if the file or range cannot be accessed.
    */
   readFileContent?: (info: FileRange) => Promise<string | null>
+
 }
 
 export interface ClientApi extends ClientApiMethods {

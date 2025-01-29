@@ -15,6 +15,9 @@ import {
   Location,
   LocationLink,
   TabInputText,
+  SymbolInformation,
+  DocumentSymbol,
+  SymbolKind,
 } from "vscode";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import type {
@@ -30,6 +33,7 @@ import type {
   ListFilesInWorkspaceParams,
   ListFileItem,
   FileRange,
+  ListActiveSymbolItem,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
@@ -549,6 +553,67 @@ export class ChatWebview {
         }
         const document = await workspace.openTextDocument(uri);
         return document.getText(chatPanelLocationToVSCodeRange(info.range) ?? undefined);
+      },
+      listActiveSymbols: async (): Promise<ListActiveSymbolItem[]> => {
+        const editor = window.activeTextEditor;
+        if (!editor) {
+          return [];
+        }
+
+        try {
+          const symbols =
+            ((await commands.executeCommand("vscode.executeDocumentSymbolProvider", editor.document.uri)) as (
+              | SymbolInformation
+              | DocumentSymbol
+            )[]) || [];
+
+          // FIXME: remove this
+          this.logger.info(`Fetched symbols: ${symbols?.length}`);
+          this.logger.info("Symbols:", symbols);
+          // TODO: put this into utils
+          const includesSymbolList = [
+            SymbolKind.Function,
+            SymbolKind.Struct,
+            SymbolKind.Interface,
+            SymbolKind.Class,
+            SymbolKind.Method,
+            SymbolKind.Module,
+          ];
+
+          const collectFunctions = (symbols: (SymbolInformation | DocumentSymbol)[]): SymbolInformation[] => {
+            const result: SymbolInformation[] = [];
+
+            for (const symbol of symbols) {
+              if (symbol instanceof DocumentSymbol) {
+                if (includesSymbolList.includes(symbol.kind)) {
+                  result.push(
+                    new SymbolInformation(
+                      symbol.name,
+                      symbol.kind,
+                      symbol.detail,
+                      new Location(editor.document.uri, symbol.range),
+                    ),
+                  );
+                }
+                if (symbol.children?.length) {
+                  result.push(...collectFunctions(symbol.children));
+                }
+              } else if (includesSymbolList.includes(symbol.kind)) {
+                result.push(symbol);
+              }
+            }
+            return result;
+          };
+          const filepath = localUriToChatPanelFilepath(editor.document.uri, this.gitProvider);
+          return collectFunctions(symbols || []).map((symbol) => ({
+            filepath,
+            range: { start: symbol.location.range.start.line + 1, end: symbol.location.range.end.line + 1 },
+            label: symbol.name,
+          }));
+        } catch (error) {
+          this.logger.error(`Failed to fetch symbols: ${error}`);
+          return [];
+        }
       },
     });
   }
