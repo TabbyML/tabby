@@ -121,6 +121,13 @@ export function chatPanelLineRangeToVSCodeRange(lineRange: LineRange): VSCodeRan
   return new VSCodeRange(Math.max(0, lineRange.start - 1), 0, lineRange.end, 0);
 }
 
+export function vscodeRangeToChatPanelLineRange(range: VSCodeRange): LineRange {
+  return {
+    start: range.start.line + 1,
+    end: range.end.line + 1,
+  };
+}
+
 export function chatPanelLocationToVSCodeRange(location: Location | undefined): VSCodeRange | null {
   if (!location) {
     return null;

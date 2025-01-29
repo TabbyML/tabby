@@ -54,6 +54,7 @@ import {
   isValidForSyncActiveEditorSelection,
   localUriToListFileItem,
   escapeGlobPattern,
+  vscodeRangeToChatPanelLineRange,
 } from "./utils";
 import { findFiles } from "../findFiles";
 import mainHtml from "./html/main.html";
@@ -607,7 +608,7 @@ export class ChatWebview {
           const filepath = localUriToChatPanelFilepath(editor.document.uri, this.gitProvider);
           return collectFunctions(symbols || []).map((symbol) => ({
             filepath,
-            range: { start: symbol.location.range.start.line + 1, end: symbol.location.range.end.line + 1 },
+            range: vscodeRangeToChatPanelLineRange(symbol.location.range),
             label: symbol.name,
           }));
         } catch (error) {
