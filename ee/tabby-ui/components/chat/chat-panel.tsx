@@ -43,7 +43,7 @@ import { FooterText } from '@/components/footer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat'
 import { PromptFormRef } from './form-editor/types'
-import { isSameEntireFileContextFromMention } from './form-editor/utils'
+import { isSameFileContext } from './form-editor/utils'
 import { RepoSelect } from './repo-select'
 
 export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
@@ -156,13 +156,21 @@ function ChatPanelRenderer(
 
     const currentContext: FileContext = relevantContext[idx]
     state.doc.descendants((node, pos) => {
-      if (node.type.name === 'mention' && node.attrs.category === 'file') {
+      // TODO: use a easy way to dealling with mention node
+      if (
+        node.type.name === 'mention' &&
+        (node.attrs.category === 'file' || node.attrs.category === 'symbol')
+      ) {
         const fileContext = convertEditorContext({
           filepath: node.attrs.fileItem.filepath,
           content: '',
-          kind: 'file'
+          kind: 'file',
+          range:
+            node.attrs.category === 'symbol'
+              ? node.attrs.fileItem.range
+              : undefined
         })
-        if (isSameEntireFileContextFromMention(fileContext, currentContext)) {
+        if (isSameFileContext(fileContext, currentContext)) {
           positionsToDelete.push({ from: pos, to: pos + node.nodeSize })
         }
       }
