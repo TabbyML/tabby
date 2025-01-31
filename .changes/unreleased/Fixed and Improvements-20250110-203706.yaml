@@ -1,3 +1,0 @@
-kind: Fixed and Improvements
-body: Fixed a bug that prevented the client code context in historical messages from being added to the prompt.
-time: 2025-01-10T20:37:06.22245-08:00
