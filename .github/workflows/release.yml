@@ -151,7 +151,7 @@ jobs:
         run: mv target/${{ matrix.target }}/release/llama-server${{ matrix.ext }} llama-server_${{ matrix.binary }}${{ matrix.ext }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           retention-days: 3
           name: llama-server_${{ matrix.binary }}${{ matrix.ext }}
@@ -235,7 +235,7 @@ jobs:
         run: mv target/${{ matrix.target }}/release/tabby${{ matrix.ext }} tabby_${{ matrix.binary }}${{ matrix.ext }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           retention-days: 3
           name: tabby_${{ matrix.binary }}${{ matrix.ext }}
@@ -253,7 +253,7 @@ jobs:
           submodules: recursive
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Display structure of downloaded files
         run: ls -R
@@ -267,7 +267,7 @@ jobs:
           LLAMA_CPP_PLATFORM=cuda-cu12.2.0-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda122 ./ci/package-win.sh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           retention-days: 3
           name: dist
@@ -281,7 +281,7 @@ jobs:
       contents: write
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Display structure of downloaded files
         run: ls -R
