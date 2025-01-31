@@ -104,6 +104,25 @@ pub async fn search(
     Ok(entries)
 }
 
+pub async fn list(
+    repository: git2::Repository,
+    rev: Option<&str>,
+    limit: Option<usize>,
+) -> anyhow::Result<Vec<GitFileSearch>> {
+    let entries: Vec<GitFileSearch> = stream! {
+        for await (is_file, basepath) in walk_stream(repository, rev).await {
+            let r#type = if is_file { "file" } else { "dir" };
+            let basepath = basepath.display().to_string();
+            yield GitFileSearch::new(r#type, basepath, Vec::new());
+        }
+    }
+    .take(limit.unwrap_or(usize::MAX))
+    .collect()
+    .await;
+
+    Ok(entries)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
