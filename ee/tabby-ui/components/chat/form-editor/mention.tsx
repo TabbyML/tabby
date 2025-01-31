@@ -12,26 +12,29 @@ import Mention from '@tiptap/extension-mention'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import { uniqBy } from 'lodash-es'
+import { FileText, SquareFunctionIcon } from 'lucide-react'
 import {
   Filepath,
+  ListActiveSymbolItem,
   ListFileItem,
   ListFilesInWorkspaceParams
 } from 'tabby-chat-panel/index'
 
 import { cn, convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
-import { IconFile } from '@/components/ui/icons'
+import { IconChevronLeft } from '@/components/ui/icons'
 
 import { emitter } from '../event-emitter'
-import type { SourceItem } from './types'
-import { fileItemToSourceItem } from './utils'
+import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from './types'
+import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
 
 /**
  * A React component to render a mention node in the editor.
  * Displays the filename and an icon in a highlighted style.
  */
 export const MentionComponent = ({ node }: { node: any }) => {
-  const fileItem = node.attrs.fileItem
-  const filepathString = convertFilepath(fileItem.filepath).filepath
+  const { category, fileItem, label } = node.attrs
+  // eslint-disable-next-line no-console
+  console.log('fileItem', JSON.stringify(fileItem))
 
   // FIXME(@jueliang) fine a better way to detect the mention
   useEffect(() => {
@@ -41,19 +44,22 @@ export const MentionComponent = ({ node }: { node: any }) => {
       emitter.emit('file_mention_update')
     }
   }, [])
-
+  // eslint-disable-next-line no-console
+  console.log('node attrs', node.attrs)
   return (
     <NodeViewWrapper as="span" className="rounded-sm px-1">
       <span
         className={cn(
           'space-x-0.5 whitespace-nowrap rounded bg-muted px-1.5 py-0.5 align-middle text-sm font-medium text-foreground'
         )}
-        data-category={node.attrs.category}
+        data-category={category}
       >
-        <IconFile className="relative -top-px inline-block h-3.5 w-3.5" />
-        <span className="relative whitespace-normal">
-          {resolveFileNameForDisplay(filepathString)}
-        </span>
+        {/* TODO: use attr to passing node's icon  */}
+
+        <>
+          <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
+          <span className="relative whitespace-normal">{label}</span>
+        </>
       </span>
     </NodeViewWrapper>
   )
@@ -103,6 +109,15 @@ export const PromptFormMentionExtension = Mention.extend({
           if (!attrs.category) return {}
           return { 'data-category': attrs.category }
         }
+      },
+      // label could be basename of path or symbol name
+      label: {
+        default: '',
+        parseHTML: element => element.getAttribute('data-label'),
+        renderHTML: attrs => {
+          if (!attrs.label) return {}
+          return { 'data-label': attrs.label }
+        }
       }
     }
   }
@@ -117,6 +132,7 @@ export interface MentionListProps extends SuggestionProps {
   listFileInWorkspace?: (
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
+  listActiveSymbols?: () => Promise<ListActiveSymbolItem[]>
   onSelectItem: (item: SourceItem) => void
 }
 
@@ -125,92 +141,163 @@ export interface MentionListProps extends SuggestionProps {
  * Displays when a user types '@...' and suggestions are fetched.
  */
 export const MentionList = forwardRef<MentionListActions, MentionListProps>(
-  ({ items: propItems, command, query, listFileInWorkspace }, ref) => {
+  (
+    {
+      items: propItems,
+      command,
+      query,
+      listFileInWorkspace,
+      listActiveSymbols
+    },
+    ref
+  ) => {
     const [items, setItems] = useState<SourceItem[]>(propItems)
     const [selectedIndex, setSelectedIndex] = useState(0)
+    const [mode, setMode] = useState<CategoryMenu>('category')
+    const categories = useMemo(
+      () =>
+        [
+          {
+            label: 'Files',
+            category: 'file',
+            icon: <FileText className="w-4 h-4" />
+          },
+          {
+            label: 'Symbols',
+            category: 'symbol',
+            icon: <SquareFunctionIcon className="w-4 h-4" />
+          }
+        ] as CategoryItem[],
+      []
+    )
 
-    const upHandler = () => {
-      setSelectedIndex((selectedIndex + items.length - 1) % items.length)
-    }
+    const handleSelect = (item: SourceItem) => {
+      if (item.isRootCategoryItem) {
+        setMode(item.category)
+        return
+      }
 
-    const downHandler = () => {
-      setSelectedIndex((selectedIndex + 1) % items.length)
-    }
+      let label = item.name
+      if (item.category === 'file') {
+        label = resolveFileNameForDisplay(
+          convertFilepath(item.fileItem.filepath).filepath || ''
+        )
+      }
 
-    /**
-     * Handle the user selecting an item from the mention list.
-     */
-    const handleSelectItem = (idx: number) => {
-      const item = items[idx]
-      if (!item) return
       command({
-        category: 'file',
-        fileItem: item.fileItem
+        category: item.category,
+        fileItem: item.fileItem,
+        label: label
       })
-      // onSelectItem(item)
-    }
-
-    const enterHandler = () => {
-      handleSelectItem(selectedIndex)
     }
 
     useEffect(() => setSelectedIndex(0), [items])
 
     useEffect(() => {
       const fetchOptions = async () => {
-        if (!listFileInWorkspace) return []
-        const files = await listFileInWorkspace({ query })
-        const result = files?.map(fileItemToSourceItem) || []
-        setItems(uniqBy(result, 'id'))
+        if (mode === 'category') {
+          if (query) {
+            const files = (await listFileInWorkspace?.({ query })) || []
+            setItems(files.map(fileItemToSourceItem))
+            return
+          }
+
+          const [files] = await Promise.all([
+            listFileInWorkspace?.({ query: '' }) || []
+          ])
+          setItems([
+            ...categories.map(
+              c =>
+                ({
+                  id: c.type,
+                  name: c.label,
+                  filepath: '',
+                  category: c.category,
+                  isRootCategoryItem: true,
+                  fileItem: {} as FileItem,
+                  icon: c.icon
+                } as SourceItem)
+            ),
+            ...files.map(fileItemToSourceItem)
+          ])
+          return
+        }
+
+        if (mode === 'file') {
+          const files = (await listFileInWorkspace?.({ query })) || []
+          setItems(files.map(fileItemToSourceItem))
+        } else {
+          const symbols = await listActiveSymbols?.()
+          // eslint-disable-next-line no-console
+          console.log('symbols', symbols)
+          setItems(uniqBy(symbols?.map(symbolItemToSourceItem), 'id'))
+        }
       }
+
       fetchOptions()
-    }, [query])
+    }, [categories, listActiveSymbols, listFileInWorkspace, mode, query])
 
     useImperativeHandle(ref, () => ({
-      onKeyDown: ({ event }: { event: KeyboardEvent }) => {
-        if (event.key === 'ArrowUp') {
-          upHandler()
-          return true
+      onKeyDown: ({ event }) => {
+        const lastIndex = items.length - 1
+        let newIndex = selectedIndex
+
+        switch (event.key) {
+          case 'ArrowUp':
+            newIndex = selectedIndex > 0 ? selectedIndex - 1 : lastIndex
+            break
+          case 'ArrowDown':
+            newIndex = selectedIndex < lastIndex ? selectedIndex + 1 : 0
+            break
+          case 'Enter':
+            if (items[selectedIndex]) {
+              handleSelect(items[selectedIndex])
+              if (items[selectedIndex].isRootCategoryItem) {
+                setSelectedIndex(0)
+              }
+            }
+            return true
+          default:
+            return false
         }
 
-        if (event.key === 'ArrowDown') {
-          downHandler()
-          return true
-        }
-
-        if (event.key === 'Enter') {
-          enterHandler()
-          return true
-        }
-
-        return false
+        setSelectedIndex(newIndex)
+        return true
       }
     }))
 
     return (
       <div className="flex max-h-[300px] min-w-[60vw] max-w-[90vw] flex-col overflow-hidden rounded-md border bg-background p-1">
-        <div className="p-1 pl-2 text-sm text-muted-foreground">Files</div>
+        {mode !== 'category' && (
+          <div className="text-muted-foreground flex items-center  p-1 text-sm">
+            <button
+              className="hover:bg-accent mr-2 rounded p-1"
+              onClick={() => setMode('category')}
+            >
+              <IconChevronLeft className="h-4 w-4" />
+            </button>
+            {mode === 'file' ? 'Files' : 'Symbols'}
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto">
-          {!items.length ? (
-            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+          {items.length === 0 ? (
+            <div className="text-muted-foreground px-2 py-1.5 text-xs">
               {/* If no items are found, show a message. */}
               {query ? 'No results found' : 'Type to search...'}
             </div>
           ) : (
             <div className="grid gap-0.5">
-              {items.map((item, index) => {
-                const filepath = item.fileItem.filepath
-                return (
-                  <OptionItemView
-                    key={`${JSON.stringify(filepath)}`}
-                    onClick={() => handleSelectItem(index)}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    title={item.filepath}
-                    data={item}
-                    isSelected={index === selectedIndex}
-                  />
-                )
-              })}
+              {items.map((item, index) => (
+                <OptionItemView
+                  key={item.id + '-' + index}
+                  onClick={() => handleSelect(item)}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  title={item.name}
+                  isSelected={index === selectedIndex}
+                  data={item}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -250,9 +337,7 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
       {...rest}
       ref={ref}
     >
-      <span className="flex h-5 shrink-0 items-center">
-        <IconFile />
-      </span>
+      <span className="flex h-5 shrink-0 items-center">{data.icon}</span>
       <span className="mr-2 truncate whitespace-nowrap">{data.name}</span>
       <span className="flex-1 truncate text-xs text-muted-foreground">
         {filepathWithoutFilename}

@@ -21,7 +21,7 @@ import {
 import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
-import { isEqual, uniqBy } from 'lodash-es'
+import { isEqual } from 'lodash-es'
 import { EditorFileContext } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
@@ -42,10 +42,7 @@ import {
   PromptFormMentionExtension
 } from './form-editor/mention'
 import { PromptFormRef, PromptProps } from './form-editor/types'
-import {
-  fileItemToSourceItem,
-  isSameEntireFileContextFromMention
-} from './form-editor/utils'
+import { isSameEntireFileContextFromMention } from './form-editor/utils'
 
 /**
  * PromptFormRenderer is the internal component used by React.forwardRef
@@ -59,7 +56,8 @@ function PromptFormRenderer(
     listFileInWorkspace,
     readFileContent,
     relevantContext,
-    setRelevantContext
+    setRelevantContext,
+    listActiveSymbols
   } = useContext(ChatContext)
 
   const doSubmit = useLatest(async () => {
@@ -109,11 +107,7 @@ function PromptFormRenderer(
               return !!listFileInWorkspace && allow
             },
             char: '@', // Trigger character for mention
-            items: async ({ query }) => {
-              if (!listFileInWorkspace) return []
-              const files = await listFileInWorkspace({ query })
-              return uniqBy(files?.map(fileItemToSourceItem) || [], 'id')
-            },
+
             render: () => {
               let component: ReactRenderer<MentionListActions, MentionListProps>
               let popup: Instance[]
@@ -121,7 +115,7 @@ function PromptFormRenderer(
               return {
                 onStart: props => {
                   component = new ReactRenderer(MentionList, {
-                    props: { ...props, listFileInWorkspace },
+                    props: { ...props, listFileInWorkspace, listActiveSymbols },
                     editor: props.editor
                   })
 

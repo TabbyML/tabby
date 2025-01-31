@@ -15,6 +15,7 @@ import type {
   FileLocation,
   FileRange,
   GitRepository,
+  ListActiveSymbolItem,
   ListFileItem,
   ListFilesInWorkspaceParams,
   LookupSymbolHint,
@@ -96,6 +97,7 @@ type ChatContextValue = {
   listFileInWorkspace?: (
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
+  listActiveSymbols?: () => Promise<ListActiveSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
@@ -143,6 +145,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   listFileInWorkspace?: (
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
+  listActiveSymbols?: () => Promise<ListActiveSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
@@ -183,7 +186,8 @@ function ChatRenderer(
     fetchSessionState,
     storeSessionState,
     listFileInWorkspace,
-    readFileContent
+    readFileContent,
+    listActiveSymbols
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -748,7 +752,8 @@ function ChatRenderer(
         fetchingRepos,
         initialized,
         listFileInWorkspace,
-        readFileContent
+        readFileContent,
+        listActiveSymbols
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
