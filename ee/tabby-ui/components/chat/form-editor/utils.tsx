@@ -142,3 +142,15 @@ export function isSameEntireFileContextFromMention(
     !fileContext2.range
   )
 }
+
+export const isSameFileContext = (a: FileContext, b: FileContext) => {
+  const sameBasicInfo = a.filepath === b.filepath && a.git_url === b.git_url
+
+  if (!a.range && !b.range) return sameBasicInfo
+
+  return (
+    sameBasicInfo &&
+    a.range?.start === b.range?.start &&
+    a.range?.end === b.range?.end
+  )
+}

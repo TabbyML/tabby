@@ -1,4 +1,4 @@
-import {
+import React, {
   forwardRef,
   HTMLAttributes,
   useEffect,
@@ -54,10 +54,12 @@ export const MentionComponent = ({ node }: { node: any }) => {
         )}
         data-category={category}
       >
-        {/* TODO: use attr to passing node's icon  */}
-
         <>
-          <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
+          {category === 'file' ? (
+            <FileText className="relative -top-px inline-block h-3.5 w-3.5" />
+          ) : category === 'symbol' ? (
+            <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
+          ) : null}
           <span className="relative whitespace-normal">{label}</span>
         </>
       </span>
@@ -79,8 +81,16 @@ export const PromptFormMentionExtension = Mention.extend({
   renderText({ node }) {
     const fileItem = node.attrs.fileItem
     const filePath = fileItem.filepath as Filepath
+    const category = node.attrs.category
+
     // If symbols can be mentioned later, the placeholder could be [[symbol:{label}]].
-    return `[[file:${JSON.stringify(filePath)}]]`
+    switch (category) {
+      case 'symbol':
+        return `[[symbol:${JSON.stringify(node.attrs.fileItem)}]]`
+      case 'file':
+      default:
+        return `[[file:${JSON.stringify(filePath)}]]`
+    }
   },
 
   // Defines custom attributes for the mention node
