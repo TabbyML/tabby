@@ -275,6 +275,7 @@ export type CodeLens = LspCodeLens & {
   data?: {
     type: CodeLensType;
     line?: ChangesPreviewLineType;
+    text?: ChangesPreviewTextType;
   };
 };
 
@@ -289,6 +290,8 @@ export type ChangesPreviewLineType =
   | "unchanged"
   | "inserted"
   | "deleted";
+
+export type ChangesPreviewTextType = "inserted" | "deleted";
 
 /**
  * Extends LSP method Completion Request(↩️)
