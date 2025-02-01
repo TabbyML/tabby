@@ -49,9 +49,8 @@ import {
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
   localUriToListFileItem,
-  escapeGlobPattern,
 } from "./utils";
-import { findFiles } from "../findFiles";
+import { caseInsensitivePattern, findFiles } from "../findFiles";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
 
@@ -519,17 +518,7 @@ export class ChatWebview {
         }
 
         try {
-          const caseInsensitivePattern = searchQuery
-            .split("")
-            .map((char) => {
-              if (char.toLowerCase() !== char.toUpperCase()) {
-                return `{${char.toLowerCase()},${char.toUpperCase()}}`;
-              }
-              return escapeGlobPattern(char);
-            })
-            .join("");
-
-          const globPattern = `**/${caseInsensitivePattern}*`;
+          const globPattern = caseInsensitivePattern(searchQuery);
           this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
           const files = await findFiles(globPattern, { maxResults });
           this.logger.info(`Found ${files.length} files.`);

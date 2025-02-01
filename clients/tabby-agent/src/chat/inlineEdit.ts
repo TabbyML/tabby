@@ -22,6 +22,10 @@ import cryptoRandomString from "crypto-random-string";
 import { isEmptyRange } from "../utils/range";
 import { readResponseStream, Edit, applyWorkspaceEdit } from "./utils";
 import { initMutexAbortController, mutexAbortController, resetMutexAbortController } from "./global";
+import { readFile } from "fs-extra";
+import { getLogger } from "../logger";
+
+const logger = getLogger("ChatEditProvider");
 
 export class ChatEditProvider implements Feature {
   private lspConnection: Connection | undefined = undefined;
@@ -170,6 +174,20 @@ export class ChatEditProvider implements Feature {
       }
     }
 
+    // get file context
+    const fileContext =
+      (
+        await Promise.all(
+          (params.context ?? []).map(async (item) => {
+            const content = await readFile(item.path, "utf-8");
+            const fileContent = content.toString().substring(0, config.chat.edit.documentMaxChars);
+            return `filePath: "${item.path}" \n ${fileContent} \n`;
+          }),
+        )
+      ).join("\n") ?? "";
+
+    logger.debug(`fileContext: ${fileContext}`);
+
     const messages: { role: "user"; content: string }[] = [
       {
         role: "user",
@@ -189,6 +207,8 @@ export class ChatEditProvider implements Feature {
                 return userCommand;
               case "{{languageId}}":
                 return document.languageId;
+              case "{{fileContext}}":
+                return fileContext;
               default:
                 return "";
             }
@@ -196,6 +216,7 @@ export class ChatEditProvider implements Feature {
         ),
       },
     ];
+    logger.debug(`messages: ${JSON.stringify(messages)}`);
     const readableStream = await this.tabbyApiClient.fetchChatStream(
       {
         messages,

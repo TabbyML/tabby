@@ -454,10 +454,12 @@
     "ovsx:publish-prerelease": "ovsx publish --no-dependencies --pre-release --pat $OVSX_PAT",
     "package": "pnpm run vscode:package",
     "publish": "pnpm run vscode:publish && pnpm run ovsx:publish",
-    "publish-prerelease": "pnpm run vscode:publish-prerelease && pnpm run ovsx:publish-prerelease"
+    "publish-prerelease": "pnpm run vscode:publish-prerelease && pnpm run ovsx:publish-prerelease",
+    "test": "mocha"
   },
   "devDependencies": {
     "@types/dedent": "^0.7.2",
+    "@types/chai": "^4.3.5",
     "@types/deep-equal": "^1.0.4",
     "@types/diff": "^5.2.1",
     "@types/fs-extra": "^11.0.1",
@@ -474,6 +476,7 @@
     "@vscode/vsce": "^2.15.0",
     "assert": "^2.0.0",
     "debounce": "^2.2.0",
+    "chai": "^4.3.11",
     "dedent": "^0.7.0",
     "deep-equal": "^2.2.1",
     "diff": "^5.2.0",
@@ -483,6 +486,7 @@
     "eslint-config-prettier": "^9.0.0",
     "fs-extra": "^11.1.1",
     "get-installed-path": "^4.0.8",
+    "mocha": "^10.2.0",
     "object-hash": "^3.0.0",
     "ovsx": "^0.9.5",
     "prettier": "^3.0.0",
