@@ -1,5 +1,5 @@
 import { uniq } from 'lodash-es'
-import type { Filepath, ListActiveSymbolItem } from 'tabby-chat-panel'
+import type { Filepath } from 'tabby-chat-panel'
 
 import {
   ContextInfo,
