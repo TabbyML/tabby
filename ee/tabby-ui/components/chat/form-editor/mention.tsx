@@ -25,7 +25,11 @@ import { IconChevronLeft } from '@/components/ui/icons'
 
 import { emitter } from '../event-emitter'
 import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from './types'
-import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
+import {
+  fileItemToSourceItem,
+  filterItemsByQuery,
+  symbolItemToSourceItem
+} from './utils'
 
 /**
  * A React component to render a mention node in the editor.
@@ -238,9 +242,8 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
           setItems(files.map(fileItemToSourceItem))
         } else {
           const symbols = await listActiveSymbols?.()
-          // eslint-disable-next-line no-console
-          console.log('symbols', symbols)
-          setItems(uniqBy(symbols?.map(symbolItemToSourceItem), 'id'))
+          const symbolItems = uniqBy(symbols?.map(symbolItemToSourceItem), 'id')
+          setItems(filterItemsByQuery(symbolItems, query))
         }
       }
 
