@@ -5,7 +5,7 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::thread::ThreadAssistantMessageReadingCode;
 use tracing::debug;
 
-use crate::service::common_prompt_tools::{detect_content, request_llm, transform_line_items};
+use crate::service::utils::prompt::{detect_content, request_llm, transform_line_items};
 
 /// Given context and a question, generate related questions.
 pub async fn pipeline_related_questions(
