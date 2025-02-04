@@ -3,7 +3,6 @@ mod analytic;
 pub mod answer;
 mod auth;
 pub mod background_job;
-pub mod common_prompt_tools;
 pub mod context;
 mod email;
 pub mod event_logger;
@@ -18,6 +17,7 @@ mod setting;
 mod thread;
 mod user_event;
 mod user_group;
+pub mod utils;
 pub mod web_documents;
 
 use std::sync::Arc;

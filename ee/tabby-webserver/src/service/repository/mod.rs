@@ -1,4 +1,5 @@
 mod git;
+mod prompt_tools;
 mod third_party;
 
 use std::sync::Arc;
@@ -7,6 +8,7 @@ use async_trait::async_trait;
 use cached::{Cached, TimedCache};
 use futures::StreamExt;
 use juniper::ID;
+use prompt_tools::pipeline_related_questions_with_repo_dirs;
 use tabby_common::config::{
     config_id_to_index, config_index_to_id, CodeRepository, Config, RepositoryConfig,
 };
@@ -22,8 +24,6 @@ use tabby_schema::{
     Result,
 };
 use tokio::sync::Mutex;
-
-use super::common_prompt_tools::pipeline_related_questions_with_repo_dirs;
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
