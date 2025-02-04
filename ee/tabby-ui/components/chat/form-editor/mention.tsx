@@ -37,8 +37,6 @@ import {
  */
 export const MentionComponent = ({ node }: { node: any }) => {
   const { category, fileItem, label } = node.attrs
-  // eslint-disable-next-line no-console
-  console.log('fileItem', JSON.stringify(fileItem))
 
   // FIXME(@jueliang) fine a better way to detect the mention
   useEffect(() => {
