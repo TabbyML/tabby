@@ -46,8 +46,6 @@ export const MentionComponent = ({ node }: { node: any }) => {
       emitter.emit('file_mention_update')
     }
   }, [])
-  // eslint-disable-next-line no-console
-  console.log('node attrs', node.attrs)
   return (
     <NodeViewWrapper as="span" className="rounded-sm px-1">
       <span
