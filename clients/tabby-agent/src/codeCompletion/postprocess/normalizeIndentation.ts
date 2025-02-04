@@ -16,7 +16,16 @@ export function normalizeIndentation(): PostprocessFilter {
     const { context, lines } = item;
     if (!Array.isArray(lines) || lines.length === 0) return item;
 
-    // skip if current line has content
+    if (context.currentLinePrefix.includes("\t")) {
+      const normalizedLines = [...lines];
+      if (normalizedLines[0] && normalizedLines[0].length > 0) {
+        if (/^[ \t]/.test(normalizedLines[0])) {
+          normalizedLines[0] = normalizedLines[0].substring(1);
+        }
+      }
+      return item.withText(normalizedLines.join(""));
+    }
+
     if (!isOnlySpaces(context.currentLinePrefix)) {
       return item;
     }
