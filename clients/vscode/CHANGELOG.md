@@ -1,3 +1,17 @@
+## 1.20.0
+
+### Features
+
+- **Chat**:
+  - You can now use `@` to add a selected file as context for the chat conversation when typing in the chat panel. (Requires connecting to a Tabby server version 0.24.0 or later.)
+- Added an inline edit option in the editor right-click context menu.
+
+### Fixes & Improvements
+
+- Retained the chat conversation when moving the chat panel to a different view group. (Requires connecting to a Tabby server version 0.24.0 or later.)
+- The chat panel now uses the active editor as context by default.
+- Fixed the handling of inline edit cancellations.
+
 ## 1.18.0
 
 ### Features
