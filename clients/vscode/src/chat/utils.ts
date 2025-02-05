@@ -1,5 +1,5 @@
 import path from "path";
-import { TextEditor, Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
+import { TextEditor, Position as VSCodePosition, Range as VSCodeRange, Uri, workspace, SymbolKind } from "vscode";
 import type {
   Filepath,
   Position as ChatPanelPosition,
@@ -220,3 +220,15 @@ function generateNotebookCellUri(notebook: Uri, handle: number): Uri {
   const fragment = `${p}${s}s${Buffer.from(notebook.scheme).toString("base64")}`;
   return notebook.with({ scheme: DocumentSchemes.vscodeNotebookCell, fragment });
 }
+
+/**
+ * The symbol tabby is looking for in mention
+ */
+export const includesSymbolList = [
+  SymbolKind.Function,
+  SymbolKind.Struct,
+  SymbolKind.Interface,
+  SymbolKind.Class,
+  SymbolKind.Method,
+  SymbolKind.Module,
+];

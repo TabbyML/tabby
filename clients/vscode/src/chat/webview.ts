@@ -17,7 +17,6 @@ import {
   TabInputText,
   SymbolInformation,
   DocumentSymbol,
-  SymbolKind,
 } from "vscode";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import type {
@@ -55,6 +54,7 @@ import {
   localUriToListFileItem,
   escapeGlobPattern,
   vscodeRangeToChatPanelLineRange,
+  includesSymbolList,
 } from "./utils";
 import { findFiles } from "../findFiles";
 import mainHtml from "./html/main.html";
@@ -558,8 +558,10 @@ export class ChatWebview {
       listActiveSymbols: async (): Promise<ListActiveSymbolItem[]> => {
         const editor = window.activeTextEditor;
         if (!editor) {
+          this.logger.warn("listActiveSymbols: No active editor found.");
           return [];
         }
+        this.logger.info(`listActiveSymbols: Listing symbols for editor ${editor.document.uri.toString()}`);
 
         try {
           const symbols =
@@ -568,25 +570,16 @@ export class ChatWebview {
               | DocumentSymbol
             )[]) || [];
 
-          // FIXME: remove this
-          this.logger.info(`Fetched symbols: ${symbols?.length}`);
-          this.logger.info("Symbols:", symbols);
-          // TODO: put this into utils
-          const includesSymbolList = [
-            SymbolKind.Function,
-            SymbolKind.Struct,
-            SymbolKind.Interface,
-            SymbolKind.Class,
-            SymbolKind.Method,
-            SymbolKind.Module,
-          ];
+          this.logger.debug(`listActiveSymbols: Received ${symbols.length} symbols from documentSymbolProvider.`);
 
           const collectFunctions = (symbols: (SymbolInformation | DocumentSymbol)[]): SymbolInformation[] => {
             const result: SymbolInformation[] = [];
-
             for (const symbol of symbols) {
               if (symbol instanceof DocumentSymbol) {
                 if (includesSymbolList.includes(symbol.kind)) {
+                  this.logger.debug(
+                    `listActiveSymbols: Adding DocumentSymbol "${symbol.name}" of kind ${symbol.kind}.`,
+                  );
                   result.push(
                     new SymbolInformation(
                       symbol.name,
@@ -597,22 +590,32 @@ export class ChatWebview {
                   );
                 }
                 if (symbol.children?.length) {
+                  this.logger.debug(
+                    `listActiveSymbols: Processing ${symbol.children.length} children of "${symbol.name}".`,
+                  );
                   result.push(...collectFunctions(symbol.children));
                 }
               } else if (includesSymbolList.includes(symbol.kind)) {
+                this.logger.debug(
+                  `listActiveSymbols: Adding SymbolInformation "${symbol.name}" of kind ${symbol.kind}.`,
+                );
                 result.push(symbol);
               }
             }
             return result;
           };
+
+          const collectedSymbols = collectFunctions(symbols);
+          this.logger.info(`listActiveSymbols: Collected ${collectedSymbols.length} active symbols.`);
+
           const filepath = localUriToChatPanelFilepath(editor.document.uri, this.gitProvider);
-          return collectFunctions(symbols || []).map((symbol) => ({
+          return collectedSymbols.map((symbol) => ({
             filepath,
             range: vscodeRangeToChatPanelLineRange(symbol.location.range),
             label: symbol.name,
           }));
         } catch (error) {
-          this.logger.error(`Failed to fetch symbols: ${error}`);
+          this.logger.error(`listActiveSymbols: Failed to fetch symbols: ${error}`);
           return [];
         }
       },
