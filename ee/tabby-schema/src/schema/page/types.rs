@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use juniper::{GraphQLInputObject, GraphQLObject, ID};
+use juniper::{GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -62,4 +62,53 @@ impl NodeType for Section {
 pub struct AddPageSectionInput {
     pub page_id: ID,
     pub title: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageCreated {
+    pub id: ID,
+    pub author_id: ID,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageTitleDelta {
+    pub delta: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageTitleCompleted {
+    pub id: ID,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageContentDelta {
+    pub delta: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageContentCompleted {
+    pub id: ID,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageSectionCreated {
+    pub id: ID,
+    pub title: String,
+    pub content: String,
+}
+
+/// Schema of page convert stream.
+#[derive(GraphQLUnion)]
+#[graphql(context = Context)]
+pub enum PageConvertItem {
+    PageCreated(PageCreated),
+    PageTitleDelta(PageTitleDelta),
+    PageTitleCompleted(PageTitleCompleted),
+    PageContentDelta(PageContentDelta),
+    PageContentCompleted(PageContentCompleted),
+
+    // PageSection is converted from thread messages,
+    // will return title and content directly instead of delta.
+    // At least one PageSectionCreated will be present in the stream.
+    PageSectionCreated(PageSectionCreated),
 }

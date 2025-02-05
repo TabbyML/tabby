@@ -1,9 +1,12 @@
 mod types;
 use async_trait::async_trait;
+use futures::stream::BoxStream;
 use juniper::ID;
 pub use types::*;
 
 use crate::schema::Result;
+
+pub type PageConvertStream = BoxStream<'static, Result<PageConvertItem>>;
 
 #[async_trait]
 pub trait PageService: Send + Sync {

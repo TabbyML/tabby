@@ -657,15 +657,6 @@ type Mutation {
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
   updateThreadMessage(input: UpdateMessageInput!): Boolean!
-  """
-    Utilize an existing thread and its messages to create a page.
-    This will automatically generate the page title and a summary of the content.
-
-    Every two messages will be converted into a page section.
-    The user's message will serve as the title of the section.
-    The assistant's message will become the content of the section.
-  """
-  convertThreadToPage(threadId: ID!): ID!
   "delete a page and all its sections."
   deletePage(id: ID!): Boolean!
   """
@@ -719,6 +710,19 @@ type PageConnection {
   pageInfo: PageInfo!
 }
 
+type PageContentCompleted {
+  id: ID!
+}
+
+type PageContentDelta {
+  delta: String!
+}
+
+type PageCreated {
+  id: ID!
+  authorId: ID!
+}
+
 type PageEdge {
   node: Page!
   cursor: String!
@@ -729,6 +733,20 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type PageSectionCreated {
+  id: ID!
+  title: String!
+  content: String!
+}
+
+type PageTitleCompleted {
+  id: ID!
+}
+
+type PageTitleDelta {
+  delta: String!
 }
 
 type PresetDocumentConnection {
@@ -919,6 +937,15 @@ type SourceIdAccessPolicy {
 type Subscription {
   createThreadAndRun(input: CreateThreadAndRunInput!): ThreadRunItem!
   createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
+  """
+    Utilize an existing thread and its messages to create a page.
+    This will automatically generate the page title and a summary of the content.
+
+    Every two messages will be converted into a page section.
+    The user's message will serve as the title of the section.
+    The assistant's message will become the content of the section.
+  """
+  convertThreadToPage(threadId: ID!): PageConvertItem!
 }
 
 type Thread {
@@ -1039,6 +1066,9 @@ type WebContextSource implements ContextSourceId & ContextSource {
 }
 
 union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc
+
+"Schema of page convert stream."
+union PageConvertItem = PageCreated | PageTitleDelta | PageTitleCompleted | PageContentDelta | PageContentCompleted | PageSectionCreated
 
 """
   Schema of thread run stream.
