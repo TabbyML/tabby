@@ -72,22 +72,6 @@ export default function ChatPage() {
   const isInEditor = !!client || undefined
   const useMacOSKeyboardEventHandler = useRef<boolean>()
 
-  // server feature support check
-  const [supportsOnApplyInEditorV2, setSupportsOnApplyInEditorV2] =
-    useState(false)
-  const [supportsOnLookupSymbol, setSupportsOnLookupSymbol] = useState(false)
-  const [
-    supportsReadWorkspaceGitRepoInfo,
-    setSupportsReadWorkspaceGitRepoInfo
-  ] = useState(false)
-  const [
-    supportsStoreAndFetchSessionState,
-    setSupportsStoreAndFetchSessionState
-  ] = useState(false)
-  const [supportsListFileInWorkspace, setSupportProvideFileAtInfo] =
-    useState(false)
-  const [supportsReadFileContent, setSupportsReadFileContent] = useState(false)
-
   const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
       chatRef.current.executeCommand(command)
@@ -244,34 +228,7 @@ export default function ChatPage() {
         apiVersion: TABBY_CHAT_PANEL_API_VERSION
       })
 
-      const checkCapabilities = async () => {
-        server
-          ?.hasCapability('onApplyInEditorV2')
-          .then(setSupportsOnApplyInEditorV2)
-        server?.hasCapability('lookupSymbol').then(setSupportsOnLookupSymbol)
-        server
-          ?.hasCapability('readWorkspaceGitRepositories')
-          .then(setSupportsReadWorkspaceGitRepoInfo)
-        server
-          ?.hasCapability('listFileInWorkspace')
-          .then(setSupportProvideFileAtInfo)
-        server
-          ?.hasCapability('readFileContent')
-          .then(setSupportsReadFileContent)
-
-        Promise.all([
-          server?.hasCapability('fetchSessionState'),
-          server?.hasCapability('storeSessionState')
-        ]).then(results => {
-          setSupportsStoreAndFetchSessionState(
-            results.every(result => !!result)
-          )
-        })
-      }
-
-      checkCapabilities().then(() => {
-        setIsServerLoaded(true)
-      })
+      setIsServerLoaded(true)
     }
   }, [server])
 
@@ -429,6 +386,9 @@ export default function ChatPage() {
     )
   }
 
+  const supportsStoreAndFetchSessionState =
+    server?.storeSessionState && server?.fetchSessionState
+
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <Chat
@@ -441,22 +401,15 @@ export default function ChatPage() {
         onCopyContent={isInEditor && server?.onCopy}
         onApplyInEditor={
           isInEditor &&
-          (supportsOnApplyInEditorV2
+          (server?.onApplyInEditorV2
             ? server?.onApplyInEditorV2
             : server?.onApplyInEditor)
         }
-        supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-        onLookupSymbol={
-          isInEditor &&
-          (supportsOnLookupSymbol ? server?.lookupSymbol : undefined)
-        }
+        supportsOnApplyInEditorV2={!!server?.onApplyInEditorV2}
+        onLookupSymbol={isInEditor && server?.lookupSymbol}
         openInEditor={openInEditor}
         openExternal={openExternal}
-        readWorkspaceGitRepositories={
-          supportsReadWorkspaceGitRepoInfo
-            ? server?.readWorkspaceGitRepositories
-            : undefined
-        }
+        readWorkspaceGitRepositories={server?.readWorkspaceGitRepositories}
         getActiveEditorSelection={getActiveEditorSelection}
         fetchSessionState={
           supportsStoreAndFetchSessionState ? fetchSessionState : undefined
@@ -464,16 +417,8 @@ export default function ChatPage() {
         storeSessionState={
           supportsStoreAndFetchSessionState ? storeSessionState : undefined
         }
-        listFileInWorkspace={
-          isInEditor && supportsListFileInWorkspace
-            ? server?.listFileInWorkspace
-            : undefined
-        }
-        readFileContent={
-          isInEditor && supportsReadFileContent
-            ? server?.readFileContent
-            : undefined
-        }
+        listFileInWorkspace={isInEditor && server?.listFileInWorkspace}
+        readFileContent={isInEditor && server?.readFileContent}
       />
     </ErrorBoundary>
   )
