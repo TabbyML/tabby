@@ -398,7 +398,11 @@ export function Search() {
 
     // update assistant message
     currentAssistantMessage.content = answer.content
+
     currentAssistantMessage.codeSourceId = answer.codeSourceId
+    // update assiatant message status
+    currentAssistantMessage.isReadingCode = answer.isReadingCode
+
     // get and format scores from streaming answer
     if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
       currentAssistantMessage.attachment = {
