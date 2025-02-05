@@ -23,11 +23,13 @@ interface AgentStepsProps {
 export function AgentSteps({
   steps,
   className,
-  codeSourceId,
   isReadingCode
 }: AgentStepsProps) {
   const { contextInfo } = useContext(SearchContext)
+  const codeSourceId = steps?.codeSourceId
   const targetRepo = useMemo(() => {
+    if (!codeSourceId) return undefined
+    
     const target = contextInfo?.sources.find(
       x => isCodeSourceContext(x.sourceKind) && x.sourceId === codeSourceId
     )

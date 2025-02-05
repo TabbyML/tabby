@@ -38,6 +38,7 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageReadingCode {
         snippet
         fileList
+        codeSourceId
       }
       ... on ThreadRelevantQuestions {
         questions
@@ -121,6 +122,7 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageReadingCode {
         snippet
         fileList
+        codeSourceId
       }
       ... on ThreadRelevantQuestions {
         questions
@@ -290,7 +292,8 @@ export function useThreadRun({
         x.isReadingCode = true
         x.readingCode = {
           fileList: data.fileList,
-          snippet: data.snippet
+          snippet: data.snippet,
+          codeSourceId: data.codeSourceId
         }
         break
       case 'ThreadAssistantMessageAttachmentsCode':
@@ -302,6 +305,9 @@ export function useThreadRun({
         x.attachmentsDoc = data.hits
         break
       case 'ThreadAssistantMessageContentDelta':
+        if (x.isReadingCode === true) {
+          x.isReadingCode = false
+        }
         x.content += data.delta
         break
       case 'ThreadAssistantMessageCompleted':
