@@ -169,7 +169,11 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button variant="ghost" onClick={handleConvertThreadToPage}>
+            <Button
+              variant="ghost"
+              onClick={handleConvertThreadToPage}
+              className='gap-1'
+            >
               {converting && <IconSpinner />}
               Convert to page
             </Button>
