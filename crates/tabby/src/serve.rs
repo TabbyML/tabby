@@ -14,7 +14,7 @@ use tabby_download::ModelKind;
 use tabby_inference::ChatCompletionStream;
 use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
@@ -201,16 +201,52 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn load_model(config: &Config) {
-    if let Some(ModelConfig::Local(ref model)) = config.model.completion {
-        download_model_if_needed(&model.model_id, ModelKind::Completion).await;
+    match config.model.completion {
+        Some(ModelConfig::Local(ref model)) => {
+            info!(model_id = model.model_id, "Using local completion model.");
+            download_model_if_needed(&model.model_id, ModelKind::Completion).await;
+        }
+        Some(ModelConfig::Http(ref model)) => {
+            info!(
+                model_name = model.model_name,
+                endpoint = model.api_endpoint,
+                "Using remote completion model.",
+            );
+        }
+        None => warn!(
+            "No completion model is configured, the server will not be able to serve completions."
+        ),
     }
 
-    if let Some(ModelConfig::Local(ref model)) = config.model.chat {
-        download_model_if_needed(&model.model_id, ModelKind::Chat).await;
+    match config.model.chat {
+        Some(ModelConfig::Local(ref model)) => {
+            info!(model_id = model.model_id, "Using local chat model.",);
+            download_model_if_needed(&model.model_id, ModelKind::Chat).await;
+        }
+        Some(ModelConfig::Http(ref model)) => {
+            info!(
+                model_name = model.model_name,
+                endpoint = model.api_endpoint,
+                "Using remote chat model."
+            );
+        }
+        None => warn!(
+            "No chat model is configured, the server will not be able to serve chat completions."
+        ),
     }
 
-    if let ModelConfig::Local(ref model) = config.model.embedding {
-        download_model_if_needed(&model.model_id, ModelKind::Embedding).await;
+    match config.model.embedding {
+        ModelConfig::Local(ref model) => {
+            info!(model_id = model.model_id, "Using local embedding model.");
+            download_model_if_needed(&model.model_id, ModelKind::Embedding).await;
+        }
+        ModelConfig::Http(ref model) => {
+            info!(
+                model_name = model.model_name,
+                endpoint = model.api_endpoint,
+                "Using remote embedding model."
+            );
+        }
     }
 }
 
