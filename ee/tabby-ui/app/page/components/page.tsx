@@ -475,7 +475,7 @@ export function Page() {
         <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
           <ScrollArea className="h-full w-full" ref={contentContainerRef}>
             <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
-              <div className="col-span-3">
+              <div className="col-span-3 relative">
                 {/* page title */}
                 <div className="mb-2 mt-4">
                   <h1 className="text-4xl font-semibold">{page?.title}</h1>
@@ -551,6 +551,61 @@ export function Page() {
                     />
                   </div>
                 )}
+                <div
+                  className={cn(
+                    'pointer-events-none fixed bottom-5 z-30 w-full',
+                    {
+                      'opacity-100 translate-y-0': showSearchInput,
+                      'opacity-0 translate-y-10': !showSearchInput,
+                      hidden: devPanelOpen
+                    }
+                  )}
+                  style={Object.assign(
+                    { transition: 'all 0.35s ease-out' },
+                    theme === 'dark'
+                      ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                      : {}
+                  )}
+                >
+                  <div className='pointer-events-auto'>
+                    <div
+                      className={cn('absolute flex items-center gap-4')}
+                      style={isPageOwner ? { top: '-2.5rem' } : undefined}
+                    >
+                      {stopButtonVisible && (
+                        <Button
+                          className="bg-background"
+                          variant="outline"
+                          onClick={() => stop()}
+                        >
+                          <IconStop className="mr-2" />
+                          Stop generating
+                        </Button>
+                      )}
+                    </div>
+                    {mode === 'view' && (
+                      <div
+                        className={cn(
+                          'z-20'
+                        )}
+                      >
+                        <TextAreaSearch
+                          onSearch={onSubmitSearch}
+                          className="min-h-[5rem] lg:max-w-4xl"
+                          placeholder="Ask a follow up question"
+                          isFollowup
+                          isLoading={isLoading}
+                          contextInfo={contextInfoData?.contextInfo}
+                          fetchingContextInfo={fetchingContextInfo}
+                          modelName={selectedModel}
+                          onSelectModel={onModelSelect}
+                          isInitializingResources={isFetchingModels}
+                          models={models}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="relative col-span-1">
                 <Navbar sections={sections} />
@@ -575,60 +630,6 @@ export function Page() {
                 : {}
             }
           />
-
-          <div
-            className={cn(
-              'fixed bottom-5 left-0 z-30 flex min-h-[3rem] w-full flex-col items-center gap-y-2',
-              {
-                'opacity-100 translate-y-0': showSearchInput,
-                'opacity-0 translate-y-10': !showSearchInput,
-                hidden: devPanelOpen
-              }
-            )}
-            style={Object.assign(
-              { transition: 'all 0.35s ease-out' },
-              theme === 'dark'
-                ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                : {}
-            )}
-          >
-            <div
-              className={cn('absolute flex items-center gap-4')}
-              style={isPageOwner ? { top: '-2.5rem' } : undefined}
-            >
-              {stopButtonVisible && (
-                <Button
-                  className="bg-background"
-                  variant="outline"
-                  onClick={() => stop()}
-                >
-                  <IconStop className="mr-2" />
-                  Stop generating
-                </Button>
-              )}
-            </div>
-            {mode === 'view' && (
-              <div
-                className={cn(
-                  'relative z-20 flex justify-center self-stretch px-4'
-                )}
-              >
-                <TextAreaSearch
-                  onSearch={onSubmitSearch}
-                  className="min-h-[5rem] lg:max-w-4xl"
-                  placeholder="Ask a follow up question"
-                  isFollowup
-                  isLoading={isLoading}
-                  contextInfo={contextInfoData?.contextInfo}
-                  fetchingContextInfo={fetchingContextInfo}
-                  modelName={selectedModel}
-                  onSelectModel={onModelSelect}
-                  isInitializingResources={isFetchingModels}
-                  models={models}
-                />
-              </div>
-            )}
-          </div>
         </main>
       </div>
     </PageContext.Provider>
