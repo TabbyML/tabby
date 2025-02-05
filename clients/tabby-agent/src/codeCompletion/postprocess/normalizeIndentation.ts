@@ -11,6 +11,32 @@ function getLeadingSpaces(str: string): number {
   return match ? match[0].length : 0;
 }
 
+/**
+ * normalizeIndentation postprocess filter.
+ *
+ * This function adjusts the indentation of code snippets (lines) based on the
+ * current cursor's indentation context (context.currentLinePrefix). The primary
+ * goal is to ensure that the inserted snippet aligns correctly with the surrounding code.
+ *
+ * How it works:
+ * 1. If the current line prefix contains a tab, we assume the user is using tab-based indentation.
+ *    - In this case, we only process the first line of the snippet: if its first character is a whitespace
+ *      (either a space or a tab), we remove it. This simple adjustment helps avoid an extra indent.
+ *
+ * 2. If the current line prefix is space-indented (or contains only spaces) and is empty,
+ *    we normalize the snippet further:
+ *    - For the first snippet line: we calculate the total number of leading spaces by adding the
+ *      cursor's prefix spaces to the snippet's first line spaces. If this sum is odd and the first
+ *      line itself has an odd number of leading spaces, we remove all leading spaces from that line.
+ *      This addresses cases where an "odd" indentation (i.e. not a multiple of the expected indent unit)
+ *      would otherwise cause misalignment.
+ *
+ * 3. For every snippet line: if the line's leading spaces count is odd (and greater than zero),
+ *    we remove one space to make the indentation even.
+ *
+ * The adjustments ensure that the snippet's indentation blends seamlessly with the user's current context,
+ * preventing unintended extra indentation.
+ */
 export function normalizeIndentation(): PostprocessFilter {
   return (item: CompletionItem): CompletionItem => {
     const { context, lines } = item;
