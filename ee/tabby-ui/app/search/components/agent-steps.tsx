@@ -38,9 +38,10 @@ export function AgentSteps({
     <Accordion
       type="single"
       collapsible
-      className={cn('w-full border rounded-lg px-4 my-1.5', className)}
+      defaultValue="steps"
+      className={cn('w-full border rounded-lg px-4', className)}
     >
-      <AccordionItem value="item" className="border-0">
+      <AccordionItem value="steps" className="border-0">
         <AccordionTrigger className="w-full">
           <div className="font-semibold">Tabby Agent</div>
         </AccordionTrigger>

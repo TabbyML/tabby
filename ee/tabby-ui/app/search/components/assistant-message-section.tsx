@@ -266,6 +266,15 @@ export function AssistantMessageSection({
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
+      {/* expose steps */}
+      {!!message.readingCode && (
+        <AgentSteps
+          steps={message.readingCode}
+          codeSourceId={message.codeSourceId}
+          isReadingCode={message.isReadingCode}
+        />
+      )}
+
       {/* document search hits */}
       {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
         <div>
@@ -330,15 +339,6 @@ export function AssistantMessageSection({
             </Button>
           )}
         </div>
-
-        {/* expose step */}
-        {!!message.readingCode && (
-          <AgentSteps
-            steps={message.readingCode}
-            codeSourceId={message.codeSourceId}
-            isReadingCode={message.isReadingCode}
-          />
-        )}
 
         {/* attachment clientCode & code */}
         {messageAttachmentCodeLen > 0 && (
