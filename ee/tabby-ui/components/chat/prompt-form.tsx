@@ -21,7 +21,7 @@ import {
 import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
-import { isEqual } from 'lodash-es'
+import { isEqual, uniqBy } from 'lodash-es'
 import { EditorFileContext } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
@@ -42,7 +42,7 @@ import {
   PromptFormMentionExtension
 } from './form-editor/mention'
 import { PromptFormRef, PromptProps } from './form-editor/types'
-import { isSameFileContext } from './form-editor/utils'
+import { fileItemToSourceItem, isSameFileContext } from './form-editor/utils'
 
 /**
  * PromptFormRenderer is the internal component used by React.forwardRef
@@ -107,6 +107,28 @@ function PromptFormRenderer(
               return !!listFileInWorkspace && allow
             },
             char: '@', // Trigger character for mention
+            items: async ({ query }) => {
+              if (!listFileInWorkspace) return []
+              const files = await listFileInWorkspace({ query })
+              const items = [
+                ...(listSymbols
+                  ? [
+                      listSymbols ?? {
+                        id: 'category',
+                        name: 'Files',
+                        category: 'category'
+                      },
+                      {
+                        id: 'category',
+                        name: 'Symbols-tes-test',
+                        category: 'category'
+                      }
+                    ]
+                  : []),
+                ...uniqBy(files.map(fileItemToSourceItem), 'id')
+              ]
+              return items
+            },
 
             render: () => {
               let component: ReactRenderer<MentionListActions, MentionListProps>
