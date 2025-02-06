@@ -2,6 +2,7 @@ import { HTMLAttributes, useContext } from 'react'
 
 import { cn } from '@/lib/utils'
 import { ChatContext } from '@/components/chat/chat'
+import { CollapsibleContainer } from '@/components/collapsible-container'
 import { MessageMarkdown } from '@/components/message-markdown'
 
 import { SearchContext } from './search-context'
@@ -20,15 +21,17 @@ export function UserMessageSection({
   const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
   return (
     <div className={cn('font-semibold', className)} {...props}>
-      <MessageMarkdown
-        message={message.content}
-        contextInfo={contextInfo}
-        supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-        fetchingContextInfo={fetchingContextInfo}
-        className="text-xl prose-p:mb-2 prose-p:mt-0"
-        headline
-        canWrapLongLines
-      />
+      <CollapsibleContainer>
+        <MessageMarkdown
+          message={message.content}
+          contextInfo={contextInfo}
+          supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+          fetchingContextInfo={fetchingContextInfo}
+          className="text-xl prose-p:mb-2 prose-p:mt-0"
+          headline
+          canWrapLongLines
+        />
+      </CollapsibleContainer>
     </div>
   )
 }
