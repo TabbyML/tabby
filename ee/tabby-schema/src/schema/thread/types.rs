@@ -270,6 +270,7 @@ pub struct ThreadAssistantMessageReadingCode {
 
 #[derive(GraphQLObject)]
 pub struct ThreadAssistantMessageAttachmentsCode {
+    #[graphql(skip)]
     pub code_source_id: String,
     pub hits: Vec<MessageCodeSearchHit>,
 }
