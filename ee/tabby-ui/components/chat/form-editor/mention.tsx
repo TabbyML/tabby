@@ -15,9 +15,10 @@ import { uniqBy } from 'lodash-es'
 import { FileText, SquareFunctionIcon } from 'lucide-react'
 import {
   Filepath,
-  ListActiveSymbolItem,
   ListFileItem,
-  ListFilesInWorkspaceParams
+  ListFilesInWorkspaceParams,
+  ListSymbolItem,
+  ListSymbolsParams
 } from 'tabby-chat-panel/index'
 
 import { cn, convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
@@ -25,11 +26,7 @@ import { IconChevronLeft } from '@/components/ui/icons'
 
 import { emitter } from '../event-emitter'
 import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from './types'
-import {
-  fileItemToSourceItem,
-  filterItemsByQuery,
-  symbolItemToSourceItem
-} from './utils'
+import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
 
 /**
  * A React component to render a mention node in the editor.
@@ -142,7 +139,7 @@ export interface MentionListProps extends SuggestionProps {
   listFileInWorkspace?: (
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
-  listActiveSymbols?: () => Promise<ListActiveSymbolItem[]>
+  listSymbols?: (params: ListSymbolsParams) => Promise<ListSymbolItem[]>
   onSelectItem: (item: SourceItem) => void
 }
 
@@ -152,13 +149,7 @@ export interface MentionListProps extends SuggestionProps {
  */
 export const MentionList = forwardRef<MentionListActions, MentionListProps>(
   (
-    {
-      items: propItems,
-      command,
-      query,
-      listFileInWorkspace,
-      listActiveSymbols
-    },
+    { items: propItems, command, query, listFileInWorkspace, listSymbols },
     ref
   ) => {
     const [items, setItems] = useState<SourceItem[]>(propItems)
@@ -205,46 +196,50 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
     useEffect(() => {
       const fetchOptions = async () => {
-        if (mode === 'category') {
-          if (query) {
-            const files = (await listFileInWorkspace?.({ query })) || []
-            setItems(files.map(fileItemToSourceItem))
+        setSelectedIndex(0)
+        try {
+          if (mode === 'category') {
+            if (query) {
+              const files = (await listFileInWorkspace?.({ query })) || []
+              setItems(files.map(fileItemToSourceItem))
+              return
+            }
+
+            const [files] = await Promise.all([
+              listFileInWorkspace?.({ query: '' }) || []
+            ])
+            setItems([
+              ...categories.map(
+                c =>
+                  ({
+                    id: c.type,
+                    name: c.label,
+                    filepath: '',
+                    category: c.category,
+                    isRootCategoryItem: true,
+                    fileItem: {} as FileItem,
+                    icon: c.icon
+                  } as SourceItem)
+              ),
+              ...files.map(fileItemToSourceItem)
+            ])
             return
           }
 
-          const [files] = await Promise.all([
-            listFileInWorkspace?.({ query: '' }) || []
-          ])
-          setItems([
-            ...categories.map(
-              c =>
-                ({
-                  id: c.type,
-                  name: c.label,
-                  filepath: '',
-                  category: c.category,
-                  isRootCategoryItem: true,
-                  fileItem: {} as FileItem,
-                  icon: c.icon
-                } as SourceItem)
-            ),
-            ...files.map(fileItemToSourceItem)
-          ])
-          return
-        }
-
-        if (mode === 'file') {
-          const files = (await listFileInWorkspace?.({ query })) || []
-          setItems(files.map(fileItemToSourceItem))
-        } else {
-          const symbols = await listActiveSymbols?.()
-          const symbolItems = uniqBy(symbols?.map(symbolItemToSourceItem), 'id')
-          setItems(filterItemsByQuery(symbolItems, query))
+          if (mode === 'file') {
+            const files = (await listFileInWorkspace?.({ query })) || []
+            setItems(files.map(fileItemToSourceItem))
+          } else {
+            const symbols = await listSymbols?.({ query })
+            setItems(uniqBy(symbols?.map(symbolItemToSourceItem), 'id'))
+          }
+        } finally {
+          setSelectedIndex(0)
         }
       }
 
       fetchOptions()
-    }, [categories, listActiveSymbols, listFileInWorkspace, mode, query])
+    }, [categories, listSymbols, listFileInWorkspace, mode, query])
 
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }) => {

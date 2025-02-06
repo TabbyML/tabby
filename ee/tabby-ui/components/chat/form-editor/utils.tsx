@@ -1,7 +1,7 @@
 // utils.ts
 import { JSONContent } from '@tiptap/core'
 import { SquareFunction } from 'lucide-react'
-import { Filepath, ListActiveSymbolItem } from 'tabby-chat-panel/index'
+import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import { PLACEHOLDER_FILE_REGEX } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
@@ -35,7 +35,7 @@ export function fileItemToSourceItem(info: FileItem): SourceItem {
   }
 }
 
-export function symbolItemToSourceItem(info: ListActiveSymbolItem): SourceItem {
+export function symbolItemToSourceItem(info: ListSymbolItem): SourceItem {
   const filepath = convertFilepath(info.filepath).filepath
   return {
     category: 'symbol',
@@ -153,40 +153,4 @@ export const isSameFileContext = (a: FileContext, b: FileContext) => {
     a.range?.start === b.range?.start &&
     a.range?.end === b.range?.end
   )
-}
-
-// Remove - and _ and convert to lowercase
-const normalizeString = (str: string): string => {
-  return str.toLowerCase().replace(/[-_]/g, '')
-}
-
-export const filterItemsByQuery = (
-  items: SourceItem[],
-  query: string
-): SourceItem[] => {
-  if (!query) return items
-
-  const normalizedQuery = normalizeString(query)
-
-  return items.filter(item => {
-    if (item.isRootCategoryItem) return true
-
-    const normalizedName = normalizeString(item.name)
-    const nameStartsWith = normalizedName.startsWith(normalizedQuery)
-
-    if (item.category === 'file') {
-      const pathParts = item.filepath.split('/')
-      const normalizedParts = pathParts.map(part => normalizeString(part))
-      const pathStartsWith = normalizedParts.some(part =>
-        part.startsWith(normalizedQuery)
-      )
-      return nameStartsWith || pathStartsWith
-    }
-
-    if (item.category === 'symbol') {
-      return nameStartsWith
-    }
-
-    return nameStartsWith
-  })
 }

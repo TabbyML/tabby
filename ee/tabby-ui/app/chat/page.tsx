@@ -474,7 +474,7 @@ export default function ChatPage() {
             ? server?.readFileContent
             : undefined
         }
-        listActiveSymbols={isInEditor && server?.listActiveSymbols}
+        listSymbols={isInEditor && server?.listSymbols}
       />
     </ErrorBoundary>
   )

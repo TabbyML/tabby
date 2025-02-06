@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Content, Editor, EditorEvents } from '@tiptap/react'
-import { ListActiveSymbolItem, ListFileItem } from 'tabby-chat-panel/index'
+import { ListFileItem } from 'tabby-chat-panel/index'
 
 /**
  * PromptProps defines the props for the PromptForm component.

@@ -57,7 +57,7 @@ function PromptFormRenderer(
     readFileContent,
     relevantContext,
     setRelevantContext,
-    listActiveSymbols
+    listSymbols
   } = useContext(ChatContext)
 
   const doSubmit = useLatest(async () => {
@@ -115,7 +115,7 @@ function PromptFormRenderer(
               return {
                 onStart: props => {
                   component = new ReactRenderer(MentionList, {
-                    props: { ...props, listFileInWorkspace, listActiveSymbols },
+                    props: { ...props, listFileInWorkspace, listSymbols },
                     editor: props.editor
                   })
 
