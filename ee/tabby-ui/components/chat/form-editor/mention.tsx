@@ -155,22 +155,22 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     const [items, setItems] = useState<SourceItem[]>(propItems)
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [mode, setMode] = useState<CategoryMenu>('category')
-    const categories = useMemo(
-      () =>
-        [
-          {
-            label: 'Files',
-            category: 'file',
-            icon: <FileText className="w-4 h-4" />
-          },
-          {
-            label: 'Symbols',
-            category: 'symbol',
-            icon: <SquareFunctionIcon className="w-4 h-4" />
-          }
-        ] as CategoryItem[],
-      []
-    )
+    const categories = useMemo(() => {
+      const items = [
+        listFileInWorkspace && {
+          label: 'Files',
+          category: 'file' as const,
+          icon: <FileText className="w-4 h-4" />
+        },
+        listSymbols && {
+          label: 'Symbols',
+          category: 'symbol' as const,
+          icon: <SquareFunctionIcon className="w-4 h-4" />
+        }
+      ].filter(Boolean) as CategoryItem[]
+
+      return items
+    }, [listFileInWorkspace, listSymbols])
 
     const handleSelect = (item: SourceItem) => {
       if (item.isRootCategoryItem) {
