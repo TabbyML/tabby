@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
@@ -30,7 +31,7 @@ struct EmbeddingRequest {
 
 #[derive(Deserialize)]
 struct EmbeddingResponse {
-    embedding: Vec<f32>,
+    embedding: Vec<Vec<f32>>,
 }
 
 #[async_trait]
@@ -58,8 +59,14 @@ impl Embedding for LlamaCppEngine {
             ));
         }
 
-        let response = response.json::<EmbeddingResponse>().await?;
-        Ok(response.embedding)
+        let response = response.json::<Vec<EmbeddingResponse>>().await?;
+        Ok(response
+            .first()
+            .ok_or_else(|| anyhow!("Error from server: no embedding found"))?
+            .embedding
+            .first()
+            .ok_or_else(|| anyhow!("Error from server: no embedding found"))?
+            .clone())
     }
 }
 
