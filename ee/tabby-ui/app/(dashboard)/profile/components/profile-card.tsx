@@ -1,5 +1,6 @@
 import React from 'react'
 
+import { useMe } from '@/lib/hooks/use-me'
 import { cn } from '@/lib/utils'
 import { CardContent, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -9,6 +10,7 @@ interface ProfileCardProps extends React.HTMLAttributes<HTMLDivElement> {
   description?: string
   footer?: React.ReactNode
   footerClassname?: string
+  hideForSsoUser?: boolean
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({
@@ -17,9 +19,17 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   footer,
   footerClassname,
   className,
+  hideForSsoUser,
   children,
   ...props
 }) => {
+  const [{ data }] = useMe()
+  const isSsoUser = data?.me?.isSsoUser
+
+  if (isSsoUser && hideForSsoUser) {
+    return null
+  }
+
   return (
     <div
       className={cn(

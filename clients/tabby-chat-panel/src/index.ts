@@ -211,6 +211,47 @@ export interface GitRepository {
  */
 export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
 
+/**
+ * Represents a file reference for retrieving file content.
+ * If `range` is not provided, the entire file is considered.
+ */
+export interface FileRange {
+  /**
+   * The file path of the file.
+   */
+  filepath: Filepath
+
+  /**
+   * The range of the selected content in the file.
+   * If the range is not provided, the whole file is considered.
+   */
+  range?: LineRange | PositionRange
+}
+
+/**
+ * Defines optional parameters used to filter or limit the results of a file query.
+ */
+export interface ListFilesInWorkspaceParams {
+  /**
+   * The query string to filter the files.
+   * The query string could be an empty string. In this case, we do not read all files in the workspace,
+   * but only list the opened files in the editor.
+   */
+  query: string
+
+  /**
+   * The maximum number of files to list.
+   */
+  limit?: number
+}
+
+export interface ListFileItem {
+  /**
+   * The filepath of the file.
+   */
+  filepath: Filepath
+}
+
 export interface ServerApi {
   init: (request: InitRequest) => void
 
@@ -275,9 +316,41 @@ export interface ClientApiMethods {
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
 
   /**
-   * @returns The active selection of active editor.
+   * Get the active editor selection as context, or the whole file if no selection.
+   * @returns The context of the active editor, or null if no active editor is found.
    */
   getActiveEditorSelection: () => Promise<EditorFileContext | null>
+
+  /**
+   * Fetch the saved session state from the client.
+   * When initialized, the chat panel attempts to fetch the saved session state to restore the session.
+   * @param keys The keys to be fetched. If not provided, all keys will be returned.
+   * @return The saved persisted state, or null if no state is found.
+   */
+  fetchSessionState?: (keys?: string[] | undefined) => Promise<Record<string, unknown> | null>
+
+  /**
+   * Save the session state of the chat panel.
+   * The client is responsible for maintaining the state in case of a webview reload.
+   * The saved state should be merged and updated by the record key.
+   * @param state The state to save.
+   */
+  storeSessionState?: (state: Record<string, unknown>) => Promise<void>
+
+  /**
+   * Returns a list of file information matching the specified query.
+   * @param params An {@link ListFilesInWorkspaceParams} object that includes a search query and a limit for the results.
+   * @returns An array of {@link ListFileItem} objects that could be empty.
+   */
+  listFileInWorkspace?: (params: ListFilesInWorkspaceParams) => Promise<ListFileItem[]>
+
+  /**
+   * Returns the content of a file within the specified range.
+   * If `range` is not provided, the entire file content is returned.
+   * @param info A {@link FileRange} object that includes the file path and optionally a 1-based line range.
+   * @returns The content of the file as a string, or `null` if the file or range cannot be accessed.
+   */
+  readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
 export interface ClientApi extends ClientApiMethods {
@@ -289,8 +362,8 @@ export interface ClientApi extends ClientApiMethods {
   hasCapability: (method: keyof ClientApiMethods) => Promise<boolean>
 }
 
-export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): ServerApi {
-  return createThreadFromIframe(target, {
+export async function createClient(target: HTMLIFrameElement, api: ClientApiMethods): Promise<ServerApi> {
+  const thread = createThreadFromIframe(target, {
     expose: {
       refresh: api.refresh,
       onApplyInEditor: api.onApplyInEditor,
@@ -303,12 +376,24 @@ export function createClient(target: HTMLIFrameElement, api: ClientApiMethods): 
       openExternal: api.openExternal,
       readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
       getActiveEditorSelection: api.getActiveEditorSelection,
+      fetchSessionState: api.fetchSessionState,
+      storeSessionState: api.storeSessionState,
+      listFileInWorkspace: api.listFileInWorkspace,
+      readFileContent: api.readFileContent,
     },
   })
+
+  const serverMethods = await thread._requestMethods() as (keyof ServerApi)[]
+  const serverApi = {} as ServerApi
+  for (const method of serverMethods) {
+    serverApi[method] = thread[method]
+  }
+
+  return serverApi
 }
 
-export function createServer(api: ServerApi): ClientApi {
-  return createThreadFromInsideIframe({
+export async function createServer(api: ServerApi): Promise<ClientApi> {
+  const thread = createThreadFromInsideIframe({
     expose: {
       init: api.init,
       executeCommand: api.executeCommand,
@@ -319,4 +404,13 @@ export function createServer(api: ServerApi): ClientApi {
       updateActiveSelection: api.updateActiveSelection,
     },
   })
+  const clientMethods = await thread._requestMethods() as (keyof ClientApi)[]
+  const clientApi = {} as ClientApi
+  for (const method of clientMethods) {
+    clientApi[method] = thread[method]
+  }
+  // hasCapability is not exposed from client
+  clientApi.hasCapability = thread.hasCapability
+
+  return clientApi
 }

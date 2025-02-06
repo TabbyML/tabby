@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { compact, find } from 'lodash-es'
 import { useQuery } from 'urql'
 
-import { graphql } from '@/lib/gql/generates'
 import {
   AuthProviderKind,
   LdapCredentialQuery,
@@ -14,7 +13,7 @@ import {
   OAuthCredentialQuery,
   OAuthProvider
 } from '@/lib/gql/generates/graphql'
-import { ldapCredentialQuery } from '@/lib/tabby/query'
+import { ldapCredentialQuery, oauthCredential } from '@/lib/tabby/query'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -28,17 +27,6 @@ import { LicenseGuard } from '@/components/license-guard'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { PROVIDER_METAS } from '../constant'
-
-export const oauthCredential = graphql(/* GraphQL */ `
-  query OAuthCredential($provider: OAuthProvider!) {
-    oauthCredential(provider: $provider) {
-      provider
-      clientId
-      createdAt
-      updatedAt
-    }
-  }
-`)
 
 export const CredentialList = () => {
   const authProviderKindCount = useMemo(() => {

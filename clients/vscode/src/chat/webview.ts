@@ -14,6 +14,7 @@ import {
   ProgressLocation,
   Location,
   LocationLink,
+  TabInputText,
 } from "vscode";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import type {
@@ -26,15 +27,20 @@ import type {
   FileLocation,
   GitRepository,
   EditorFileContext,
+  ListFilesInWorkspaceParams,
+  ListFileItem,
+  FileRange,
 } from "tabby-chat-panel";
 import * as semver from "semver";
+import debounce from "debounce";
+import { v4 as uuid } from "uuid";
 import type { StatusInfo, Config } from "tabby-agent";
 import type { GitProvider } from "../git/GitProvider";
 import type { Client as LspClient } from "../lsp/Client";
 import { createClient } from "./createClient";
 import { isBrowser } from "../env";
 import { getLogger } from "../logger";
-import { getFileContextFromSelection } from "./fileContext";
+import { getEditorContext } from "./context";
 import {
   localUriToChatPanelFilepath,
   chatPanelFilepathToLocalUri,
@@ -42,7 +48,10 @@ import {
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
+  localUriToListFileItem,
+  escapeGlobPattern,
 } from "./utils";
+import { findFiles } from "../findFiles";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
 
@@ -70,8 +79,11 @@ export class ChatWebview {
   // A number to ensure the html is reloaded when assigned a new value
   private reloadCount = 0;
 
-  // A callback list for `isFocused` method
-  private pendingFocusCheckCallbacks: ((focused: boolean) => void)[] = [];
+  // A callback list for invoke javascript function by postMessage
+  private pendingCallbacks = new Map<string, (...arg: unknown[]) => void>();
+
+  // Store the chat state to be reload when webview is reloaded
+  private sessionStateMap = new Map<string, Record<string, unknown>>();
 
   constructor(
     private readonly context: ExtensionContext,
@@ -102,14 +114,14 @@ export class ChatWebview {
     this.disposables.push(
       window.onDidChangeActiveTextEditor((editor) => {
         if (this.chatPanelLoaded) {
-          this.notifyActiveEditorSelectionChange(editor);
+          this.debouncedNotifyActiveEditorSelectionChange(editor);
         }
       }),
     );
     this.disposables.push(
       window.onDidChangeTextEditorSelection((event) => {
         if (event.textEditor === window.activeTextEditor && this.chatPanelLoaded) {
-          this.notifyActiveEditorSelectionChange(event.textEditor);
+          this.debouncedNotifyActiveEditorSelectionChange(event.textEditor);
         }
       }),
     );
@@ -135,9 +147,9 @@ export class ChatWebview {
             this.client?.updateTheme(event.style, this.getColorThemeString());
             return;
           }
-          case "checkFocusedResult": {
-            this.pendingFocusCheckCallbacks.forEach((cb) => cb(event.focused));
-            this.pendingFocusCheckCallbacks = [];
+          case "jsCallback": {
+            this.pendingCallbacks.get(event.id)?.(...event.args);
+            this.pendingCallbacks.delete(event.id);
             return;
           }
         }
@@ -164,8 +176,11 @@ export class ChatWebview {
       return false;
     }
     return new Promise((resolve) => {
-      webview.postMessage({ action: "checkFocused" });
-      this.pendingFocusCheckCallbacks.push(resolve);
+      const id = uuid();
+      this.pendingCallbacks.set(id, (...args) => {
+        resolve(args[0] as boolean);
+      });
+      webview.postMessage({ id, action: "checkFocused" });
     });
   }
 
@@ -461,8 +476,79 @@ export class ChatWebview {
           return null;
         }
 
-        const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
-        return fileContext;
+        return await getEditorContext(editor, this.gitProvider);
+      },
+
+      fetchSessionState: async (keys?: string[] | undefined): Promise<Record<string, unknown> | null> => {
+        const sessionStateKey = this.currentConfig?.endpoint ?? "";
+        const sessionState = this.sessionStateMap.get(sessionStateKey) ?? {};
+
+        if (!keys) {
+          return { ...sessionState };
+        }
+
+        const filtered: Record<string, unknown> = {};
+        for (const key of keys) {
+          if (key in sessionState) {
+            filtered[key] = sessionState[key];
+          }
+        }
+        return filtered;
+      },
+
+      storeSessionState: async (state: Record<string, unknown>) => {
+        const sessionStateKey = this.currentConfig?.endpoint ?? "";
+        const sessionState = this.sessionStateMap.get(sessionStateKey) ?? {};
+        this.sessionStateMap.set(sessionStateKey, {
+          ...sessionState,
+          ...state,
+        });
+      },
+
+      listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
+        const maxResults = params.limit || 50;
+        const searchQuery = params.query?.trim();
+
+        if (!searchQuery) {
+          const openTabs = window.tabGroups.all
+            .flatMap((group) => group.tabs)
+            .filter((tab) => tab.input && (tab.input as TabInputText).uri);
+
+          this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
+          return openTabs.map((tab) => localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
+        }
+
+        try {
+          const caseInsensitivePattern = searchQuery
+            .split("")
+            .map((char) => {
+              if (char.toLowerCase() !== char.toUpperCase()) {
+                return `{${char.toLowerCase()},${char.toUpperCase()}}`;
+              }
+              return escapeGlobPattern(char);
+            })
+            .join("");
+
+          const globPattern = `**/${caseInsensitivePattern}*`;
+          this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
+          const files = await findFiles(globPattern, { maxResults });
+          this.logger.info(`Found ${files.length} files.`);
+          return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
+        } catch (error) {
+          this.logger.warn("Failed to find files:", error);
+          window.showErrorMessage("Failed to find files.");
+          return [];
+        }
+      },
+
+      readFileContent: async (info: FileRange): Promise<string | null> => {
+        const uri = chatPanelFilepathToLocalUri(info.filepath, this.gitProvider);
+        if (!uri) {
+          this.logger.warn(`Could not resolve URI from filepath: ${JSON.stringify(info.filepath)}`);
+          return null;
+        }
+        const document = await workspace.openTextDocument(uri);
+        return document.getText(chatPanelLocationToVSCodeRange(info.range) ?? undefined);
       },
     });
   }
@@ -652,14 +738,23 @@ export class ChatWebview {
   }
 
   private async notifyActiveEditorSelectionChange(editor: TextEditor | undefined) {
+    if (editor && editor.document.uri.scheme === "output") {
+      // do not update when the active editor is an output channel
+      return;
+    }
+
     if (!editor || !isValidForSyncActiveEditorSelection(editor)) {
       await this.client?.updateActiveSelection(null);
       return;
     }
 
-    const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
+    const fileContext = await getEditorContext(editor, this.gitProvider);
     await this.client?.updateActiveSelection(fileContext);
   }
+
+  private debouncedNotifyActiveEditorSelectionChange = debounce(async (editor: TextEditor | undefined) => {
+    await this.notifyActiveEditorSelectionChange(editor);
+  }, 100);
 
   private getColorThemeString() {
     switch (window.activeColorTheme.kind) {

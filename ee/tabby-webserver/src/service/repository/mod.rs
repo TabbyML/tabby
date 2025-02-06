@@ -44,6 +44,7 @@ pub fn create(
 #[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
     async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>> {
+        // Read repositories configured as git url.
         let mut repos: Vec<CodeRepository> = self
             .git
             .list(None, None, None, None)
@@ -52,11 +53,23 @@ impl RepositoryService for RepositoryServiceImpl {
             .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id()))
             .collect();
 
+        // Read repositories configured as third party integration (e.g Github, Gitlab)
         repos.extend(
             self.third_party
                 .list_code_repositories()
                 .await
                 .unwrap_or_default(),
+        );
+
+        // Read repositories configured in `config.toml`
+        repos.extend(
+            self.config
+                .iter()
+                .enumerate()
+                .map(|(index, repo)| {
+                    CodeRepository::new(repo.git_url(), &config_index_to_id(index))
+                })
+                .collect::<Vec<CodeRepository>>(),
         );
 
         Ok(repos)
@@ -74,12 +87,13 @@ impl RepositoryService for RepositoryServiceImpl {
         let mut all = vec![];
         all.extend(self.git().repository_list().await?);
         all.extend(self.third_party().repository_list().await?);
+
         all.extend(
             self.config
                 .iter()
                 .enumerate()
                 .map(|(index, repo)| repository_config_to_repository(index, repo))
-                .collect::<Result<Vec<_>>>()?,
+                .collect::<Vec<_>>(),
         );
 
         if let Some(policy) = policy {
@@ -106,7 +120,7 @@ impl RepositoryService for RepositoryServiceImpl {
             RepositoryKind::GitConfig => {
                 let index = config_id_to_index(id)?;
                 let config = &self.config[index];
-                return repository_config_to_repository(index, config);
+                return Ok(repository_config_to_repository(index, config));
             }
             RepositoryKind::Git => self.git().get_repository(id).await,
             RepositoryKind::Github
@@ -262,15 +276,16 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
     }
 }
 
-fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
+fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Repository {
     let source_id = config_index_to_id(index);
-    Ok(Repository {
+    Repository {
         id: ID::new(source_id.clone()),
         source_id,
         name: config.display_name(),
         kind: RepositoryKind::GitConfig,
         dir: config.dir(),
-        refs: tabby_git::list_refs(&config.dir())?
+        refs: tabby_git::list_refs(&config.dir())
+            .unwrap_or_default()
             .into_iter()
             .map(|r| GitReference {
                 name: r.name,
@@ -278,7 +293,7 @@ fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> R
             })
             .collect(),
         git_url: config.git_url().to_owned(),
-    })
+    }
 }
 
 #[cfg(test)]

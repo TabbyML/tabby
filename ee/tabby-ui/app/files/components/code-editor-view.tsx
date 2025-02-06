@@ -108,28 +108,37 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       result.push(
         SelectionChangeExtension(
           (
-            context: {
-              content: string
-              startLine: number
-              endLine: number
-            } | null
+            context:
+              | {
+                  content: string
+                }
+              | {
+                  content: string
+                  startLine: number
+                  endLine: number
+                }
+              | null
           ) => {
-            const editorFileContext: EditorFileContext | null =
-              context && activeEntryInfo.basename && activeRepo
-                ? {
-                    kind: 'file',
-                    filepath: {
-                      kind: 'git',
-                      filepath: activeEntryInfo.basename,
-                      gitUrl: activeRepo?.gitUrl
-                    },
-                    range: {
+            if (!context || !activeEntryInfo?.basename || !activeRepo) {
+              return null
+            }
+
+            const editorFileContext: EditorFileContext = {
+              kind: 'file',
+              filepath: {
+                kind: 'git',
+                filepath: activeEntryInfo.basename,
+                gitUrl: activeRepo?.gitUrl
+              },
+              range:
+                'startLine' in context
+                  ? {
                       start: context.startLine,
                       end: context.endLine
-                    },
-                    content: context.content
-                  }
-                : null
+                    }
+                  : undefined,
+              content: context.content
+            }
 
             emitter.emit('selection_change', editorFileContext)
           }
@@ -270,6 +279,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
+      emitter.emit('selection_change', null)
     }
   }, [editorView])
 

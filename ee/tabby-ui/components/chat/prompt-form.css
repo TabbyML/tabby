@@ -1,0 +1,14 @@
+.ProseMirror {
+
+  &:focus {
+    outline: none !important;
+  }
+
+  .ProseMirror-selectednode {
+    outline: none !important;
+  }
+
+  ::selection {
+    background: transparent;
+  }
+}

@@ -29,6 +29,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 import './page.css'
 
 import { saveFetcherOptions } from '@/lib/tabby/token-management'
+import { PromptFormRef } from '@/components/chat/form-editor/types'
 
 const convertToHSLColor = (style: string) => {
   return Color(style)
@@ -64,7 +65,7 @@ export default function ChatPage() {
   const chatRef = useRef<ChatRef>(null)
   const { width } = useWindowSize()
   const prevWidthRef = useRef(width)
-  const chatInputRef = useRef<HTMLTextAreaElement>(null)
+  const chatInputRef = useRef<PromptFormRef>(null)
 
   const searchParams = useSearchParams()
   const client = searchParams.get('client') as ClientType
@@ -79,6 +80,13 @@ export default function ChatPage() {
     supportsReadWorkspaceGitRepoInfo,
     setSupportsReadWorkspaceGitRepoInfo
   ] = useState(false)
+  const [
+    supportsStoreAndFetchSessionState,
+    setSupportsStoreAndFetchSessionState
+  ] = useState(false)
+  const [supportsListFileInWorkspace, setSupportProvideFileAtInfo] =
+    useState(false)
+  const [supportsReadFileContent, setSupportsReadFileContent] = useState(false)
 
   const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
@@ -244,6 +252,21 @@ export default function ChatPage() {
         server
           ?.hasCapability('readWorkspaceGitRepositories')
           .then(setSupportsReadWorkspaceGitRepoInfo)
+        server
+          ?.hasCapability('listFileInWorkspace')
+          .then(setSupportProvideFileAtInfo)
+        server
+          ?.hasCapability('readFileContent')
+          .then(setSupportsReadFileContent)
+
+        Promise.all([
+          server?.hasCapability('fetchSessionState'),
+          server?.hasCapability('storeSessionState')
+        ]).then(results => {
+          setSupportsStoreAndFetchSessionState(
+            results.every(result => !!result)
+          )
+        })
       }
 
       checkCapabilities().then(() => {
@@ -302,6 +325,14 @@ export default function ChatPage() {
 
   const getActiveEditorSelection = async () => {
     return server?.getActiveEditorSelection() ?? null
+  }
+
+  const fetchSessionState = async () => {
+    return server?.fetchSessionState?.() ?? null
+  }
+
+  const storeSessionState = async (state: Record<string, any>) => {
+    return server?.storeSessionState?.(state)
   }
 
   const refresh = async () => {
@@ -427,6 +458,22 @@ export default function ChatPage() {
             : undefined
         }
         getActiveEditorSelection={getActiveEditorSelection}
+        fetchSessionState={
+          supportsStoreAndFetchSessionState ? fetchSessionState : undefined
+        }
+        storeSessionState={
+          supportsStoreAndFetchSessionState ? storeSessionState : undefined
+        }
+        listFileInWorkspace={
+          isInEditor && supportsListFileInWorkspace
+            ? server?.listFileInWorkspace
+            : undefined
+        }
+        readFileContent={
+          isInEditor && supportsReadFileContent
+            ? server?.readFileContent
+            : undefined
+        }
       />
     </ErrorBoundary>
   )

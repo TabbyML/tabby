@@ -136,6 +136,7 @@ export const listSecuredUsers = graphql(/* GraphQL */ `
           createdAt
           active
           name
+          isSsoUser
         }
         cursor
       }
@@ -487,6 +488,17 @@ export const ldapCredentialQuery = graphql(/* GraphQL */ `
       skipTlsVerify
       emailAttribute
       nameAttribute
+      createdAt
+      updatedAt
+    }
+  }
+`)
+
+export const oauthCredential = graphql(/* GraphQL */ `
+  query OAuthCredential($provider: OAuthProvider!) {
+    oauthCredential(provider: $provider) {
+      provider
+      clientId
       createdAt
       updatedAt
     }

@@ -123,36 +123,57 @@ pub async fn get_github_pull_doc(
         None
     };
 
+    let url = pull
+        .html_url
+        .clone()
+        .map(|url| url.to_string())
+        .unwrap_or_else(|| pull.url.clone());
+
     // Fetch the diff only if the number of changed lines is fewer than 100,000,
     // assuming 80 characters per line,
     // and the size of the diff is less than 8MB.
-    let diff =
-        if pull.additions.unwrap_or_default() + pull.deletions.unwrap_or_default() < 100 * 1024 {
-            let (owner, repo) = full_name
-                .split_once('/')
-                .ok_or_else(|| anyhow!("Invalid repository name"))?;
+    //
+    // When there are more than 300 files, we must utilize the `List pull requests files` API to retrieve the diff.
+    let diff = if pull.additions.unwrap_or_default() + pull.deletions.unwrap_or_default()
+        < 100 * 1024
+        && pull.changed_files.unwrap_or_default() < 300
+    {
+        let (owner, repo) = full_name
+            .split_once('/')
+            .ok_or_else(|| anyhow!("Invalid repository name"))?;
 
-            octocrab
-                .pulls(owner, repo)
-                .get_diff(pull.number)
-                .await
-                .map_err(|e| {
-                    anyhow!(
-                        "Failed to fetch pull request diff: {}",
+        match octocrab.pulls(owner, repo).get_diff(pull.number).await {
+            Ok(diff) => diff,
+            Err(e) => {
+                if let octocrab::Error::GitHub { source, .. } = &e {
+                    // in most cases, GitHub API does not set the changed_files,
+                    // so we need to handle the 406 status code here.
+                    if source.status_code == 406 {
+                        String::new()
+                    } else {
+                        return Err(anyhow!(
+                            "Failed to fetch pull request diff for {}: {}",
+                            url,
+                            octocrab_error_message(e)
+                        ));
+                    }
+                } else {
+                    return Err(anyhow!(
+                        "Failed to fetch pull request diff for {}: {}",
+                        url,
                         octocrab_error_message(e)
-                    )
-                })?
-        } else {
-            String::new()
-        };
+                    ));
+                }
+            }
+        }
+    } else {
+        String::new()
+    };
 
     Ok(StructuredDoc {
         source_id: source_id.to_string(),
         fields: StructuredDocFields::Pull(StructuredDocPullDocumentFields {
-            link: pull
-                .html_url
-                .map(|url| url.to_string())
-                .unwrap_or_else(|| pull.url),
+            link: url,
             title: pull.title.clone().unwrap_or_default(),
             author_email: email.clone(),
             body: pull.body.clone().unwrap_or_default(),

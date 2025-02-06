@@ -88,7 +88,7 @@ public class ChatViewUtils {
 			if (version != null) {
 				Version parsedVersion = new Version(version);
 				Version requiredVersion = new Version(MIN_SERVER_VERSION);
-				if (!parsedVersion.isGreaterOrEqualThan(requiredVersion)) {
+				if (!parsedVersion.isZero() && !parsedVersion.isGreaterOrEqualThan(requiredVersion)) {
 					return String.format(
 							"Tabby Chat requires Tabby server version %s or later. Your server is running version %s.",
 							MIN_SERVER_VERSION, version);
@@ -212,24 +212,25 @@ public class ChatViewUtils {
 	public static void openExternal(String url) {
 		Program.launch(url);
 	}
-	
+
 	public static List<GitRepository> readGitRepositoriesInWorkspace() {
 		List<GitRepository> repositories = new ArrayList<>();
-        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-        IProject[] projects = workspaceRoot.getProjects();
-        
-        for (IProject project : projects) {
-        	try {
-        		URI projectRootUri = project.getLocation().toFile().toURI();
-                com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository repo = GitProvider.getInstance().getRepository(new GitRepositoryParams(projectRootUri.toString()));
-                if (repo != null) {
-                	repositories.add(new GitRepository(repo.getRemoteUrl()));
-                }
-            } catch (Exception e) {
-                logger.warn("Error when read git repository.", e);
-            }
-        }
-        return repositories;
+		IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+		IProject[] projects = workspaceRoot.getProjects();
+
+		for (IProject project : projects) {
+			try {
+				URI projectRootUri = project.getLocation().toFile().toURI();
+				com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository repo = GitProvider.getInstance()
+						.getRepository(new GitRepositoryParams(projectRootUri.toString()));
+				if (repo != null) {
+					repositories.add(new GitRepository(repo.getRemoteUrl()));
+				}
+			} catch (Exception e) {
+				logger.warn("Error when read git repository.", e);
+			}
+		}
+		return repositories;
 	}
 
 	public static void setClipboardContent(String content) {
@@ -261,7 +262,8 @@ public class ChatViewUtils {
 
 	public static Filepath fileUriToChatPanelFilepath(URI fileUri) {
 		String fileUriString = fileUri.toString();
-        com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository gitRepo = GitProvider.getInstance().getRepository(new GitRepositoryParams(fileUriString));
+		com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository gitRepo = GitProvider.getInstance()
+				.getRepository(new GitRepositoryParams(fileUriString));
 		String gitUrl = (gitRepo != null) ? gitRepo.getRemoteUrl() : null;
 		if (gitUrl != null) {
 			gitRemoteUrlToLocalRoot.put(gitUrl, gitRepo.getRoot());

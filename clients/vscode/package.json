@@ -7,7 +7,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.17.0-dev",
+  "version": "1.21.0-dev",
   "keywords": [
     "ai",
     "autocomplete",
@@ -298,7 +298,7 @@
         "properties": {
           "tabby.endpoint": {
             "type": "string",
-            "default": "",
+            "default": "http://localhost:8080",
             "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
             "patternErrorMessage": "Please enter a valid HTTP or HTTPS URL.",
             "markdownDescription": "Please use the command [Connect to Server](command:tabby.connectToServer) to specify the endpoint of the Tabby server."
@@ -397,12 +397,12 @@
         "command": "tabby.chat.edit.accept",
         "key": "ctrl+enter",
         "mac": "cmd+enter",
-        "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
+        "when": "tabby.chatEditResolving && !tabby.chatEditInProgress && editorTextFocus && !editorReadonly"
       },
       {
         "command": "tabby.chat.edit.discard",
         "key": "escape",
-        "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
+        "when": "tabby.chatEditResolving && !tabby.chatEditInProgress && editorTextFocus && !editorReadonly"
       },
       {
         "command": "tabby.chat.addRelevantContext",
@@ -457,6 +457,7 @@
     "publish-prerelease": "pnpm run vscode:publish-prerelease && pnpm run ovsx:publish-prerelease"
   },
   "devDependencies": {
+    "@types/dedent": "^0.7.2",
     "@types/deep-equal": "^1.0.4",
     "@types/diff": "^5.2.1",
     "@types/fs-extra": "^11.0.1",
@@ -472,6 +473,7 @@
     "@vscode/test-web": "^0.0.63",
     "@vscode/vsce": "^2.15.0",
     "assert": "^2.0.0",
+    "debounce": "^2.2.0",
     "dedent": "^0.7.0",
     "deep-equal": "^2.2.1",
     "diff": "^5.2.0",

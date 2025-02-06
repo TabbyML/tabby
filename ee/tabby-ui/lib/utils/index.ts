@@ -195,12 +195,26 @@ export function getPromptForChatCommand(command: ChatCommand) {
   }
 }
 
+export const convertFilepath = (filepath: Filepath) => {
+  if (filepath.kind === 'uri') {
+    return {
+      filepath: filepath.uri,
+      git_url: ''
+    }
+  }
+
+  return {
+    filepath: filepath.filepath,
+    git_url: filepath.gitUrl
+  }
+}
+
 export function convertEditorContext(
   editorContext: EditorContext
 ): FileContext {
   const convertRange = (range: LineRange | PositionRange | undefined) => {
     // If the range is not provided, the whole file is considered.
-    if (!range) {
+    if (!range || typeof range.start === 'undefined') {
       return undefined
     }
 
@@ -212,20 +226,6 @@ export function convertEditorContext(
     return {
       start: positionRange.start.line,
       end: positionRange.end.line
-    }
-  }
-
-  const convertFilepath = (filepath: Filepath) => {
-    if (filepath.kind === 'uri') {
-      return {
-        filepath: filepath.uri,
-        git_url: ''
-      }
-    }
-
-    return {
-      filepath: filepath.filepath,
-      git_url: filepath.gitUrl
     }
   }
 

@@ -18,7 +18,7 @@ import {
 import { IconExternalLink, IconFile, IconFileSearch2 } from '../ui/icons'
 
 interface ContextReferencesProps {
-  isInEditor?: boolean
+  supportsOpenInEditor?: boolean
   contexts: RelevantCodeContext[]
   clientContexts?: RelevantCodeContext[]
   className?: string
@@ -50,7 +50,7 @@ export const CodeReferences = forwardRef<
       highlightIndex,
       showExternalLink,
       showClientCodeIcon,
-      isInEditor
+      supportsOpenInEditor
     },
     ref
   ) => {
@@ -97,7 +97,7 @@ export const CodeReferences = forwardRef<
                   context={item}
                   onContextClick={ctx => onContextClick?.(ctx, true)}
                   isHighlighted={highlightIndex === index}
-                  clickable={isInEditor || !!item.git_url}
+                  clickable={supportsOpenInEditor}
                   showClientCodeIcon={showClientCodeIcon}
                 />
               )

@@ -8,28 +8,31 @@ use tabby_schema::{context::ContextService, CoreError};
 use super::helper::Job;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DbMaintainanceJob;
+pub struct DbMaintenanceJob;
 
-impl Job for DbMaintainanceJob {
-    const NAME: &'static str = "db_maintainance";
+impl Job for DbMaintenanceJob {
+    const NAME: &'static str = "db_maintenance";
 }
 
-impl DbMaintainanceJob {
+impl DbMaintenanceJob {
     pub async fn cron(
         now: DateTime<Utc>,
         context: Arc<dyn ContextService>,
         db: DbConn,
     ) -> tabby_schema::Result<()> {
-        let mut errors = vec![];
+        let mut has_error = false;
 
         if let Err(e) = db.delete_expired_token().await {
-            errors.push(format!("Failed to delete expired token: {}", e));
+            has_error = true;
+            logkit::warn!("Failed to delete expired tokens: {}", e);
         };
         if let Err(e) = db.delete_expired_password_resets().await {
-            errors.push(format!("Failed to delete expired password resets: {}", e));
+            has_error = true;
+            logkit::warn!("Failed to delete expired password resets: {}", e);
         };
         if let Err(e) = db.delete_expired_ephemeral_threads().await {
-            errors.push(format!("Failed to delete expired ephemeral threads: {}", e));
+            has_error = true;
+            logkit::warn!("Failed to delete expired ephemeral threads: {}", e);
         };
 
         // Read all active sources
@@ -44,54 +47,57 @@ impl DbMaintainanceJob {
                     .delete_unused_source_id_read_access_policy(&active_source_ids)
                     .await
                 {
-                    errors.push(format!(
+                    has_error = true;
+                    logkit::warn!(
                         "Failed to delete unused source id read access policy: {}",
                         e
-                    ));
+                    );
                 };
             }
             Err(e) => {
-                errors.push(format!("Failed to read active sources: {}", e));
+                has_error = true;
+                logkit::warn!("Failed to read active sources: {}", e);
             }
         }
 
         if let Err(e) = Self::data_retention(now, &db).await {
-            errors.push(format!("Failed to run data retention job: {}", e));
+            has_error = true;
+            logkit::warn!("Failed to run data retention job: {}", e);
         }
 
-        if errors.is_empty() {
+        if !has_error {
             Ok(())
         } else {
             Err(CoreError::Other(anyhow::anyhow!(
-                "Failed to run db maintenance job:\n{}",
-                errors.join(";\n")
+                "Failed to run db maintenance job"
             )))
         }
     }
 
     async fn data_retention(now: DateTime<Utc>, db: &DbConn) -> tabby_schema::Result<()> {
-        let mut errors = vec![];
+        let mut has_error = false;
 
         if let Err(e) = db.delete_job_run_before_three_months(now).await {
-            errors.push(format!(
+            has_error = true;
+            logkit::warn!(
                 "Failed to clean up and retain only the last 3 months of jobs: {}",
                 e
-            ));
+            );
         }
 
         if let Err(e) = db.delete_user_events_before_three_months(now).await {
-            errors.push(format!(
+            has_error = true;
+            logkit::warn!(
                 "Failed to clean up and retain only the last 3 months of user events: {}",
                 e
-            ));
+            );
         }
 
-        if errors.is_empty() {
+        if !has_error {
             Ok(())
         } else {
             Err(CoreError::Other(anyhow::anyhow!(
-                "Failed to run data retention job:\n{}",
-                errors.join(";\n")
+                "Failed to run data retention job"
             )))
         }
     }
@@ -149,7 +155,7 @@ mod tests {
                 .unwrap();
             assert_eq!(events.len(), 1);
 
-            DbMaintainanceJob::data_retention(now, &db).await.unwrap();
+            DbMaintenanceJob::data_retention(now, &db).await.unwrap();
 
             let events = db
                 .list_user_events(
@@ -211,7 +217,7 @@ mod tests {
                 .unwrap();
             assert_eq!(events.len(), 1);
 
-            DbMaintainanceJob::data_retention(now, &db).await.unwrap();
+            DbMaintenanceJob::data_retention(now, &db).await.unwrap();
 
             let events = db
                 .list_user_events(

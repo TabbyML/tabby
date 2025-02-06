@@ -1,11 +1,22 @@
 import React, { RefObject } from 'react'
-import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
+import { Content, EditorEvents } from '@tiptap/core'
+import {
+  compact,
+  findIndex,
+  isEqual,
+  isEqualWith,
+  some,
+  uniqWith
+} from 'lodash-es'
 import type {
   ChatCommand,
   EditorContext,
   EditorFileContext,
   FileLocation,
+  FileRange,
   GitRepository,
+  ListFileItem,
+  ListFilesInWorkspaceParams,
   LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel'
@@ -48,6 +59,8 @@ import {
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
+import { PromptFormRef } from './form-editor/types'
+import { convertTextToTiptapContent } from './form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
@@ -71,15 +84,19 @@ type ChatContextValue = {
   ) => Promise<SymbolInfo | undefined>
   openInEditor: (target: FileLocation) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
-  relevantContext: Context[]
   activeSelection: Context | null
-  removeRelevantContext: (index: number) => void
-  chatInputRef: RefObject<HTMLTextAreaElement>
+  relevantContext: Context[]
+  setRelevantContext: React.Dispatch<React.SetStateAction<Context[]>>
+  chatInputRef: RefObject<PromptFormRef>
   supportsOnApplyInEditorV2: boolean
   selectedRepoId: string | undefined
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
   repos: RepositorySourceListQuery['repositoryList'] | undefined
   fetchingRepos: boolean
+  listFileInWorkspace?: (
+    params: ListFilesInWorkspaceParams
+  ) => Promise<ListFileItem[]>
+  readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -117,10 +134,28 @@ interface ChatProps extends React.ComponentProps<'div'> {
   ) => Promise<SymbolInfo | undefined>
   openInEditor: (target: FileLocation) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
-  chatInputRef: RefObject<HTMLTextAreaElement>
+  chatInputRef: RefObject<PromptFormRef>
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
   getActiveEditorSelection?: () => Promise<EditorFileContext | null>
+  fetchSessionState?: () => Promise<SessionState | null>
+  storeSessionState?: (state: Partial<SessionState>) => Promise<void>
+  listFileInWorkspace?: (
+    params: ListFilesInWorkspaceParams
+  ) => Promise<ListFileItem[]>
+  readFileContent?: (info: FileRange) => Promise<string | null>
+}
+
+/**
+ * The state used to restore the chat panel, should be json serializable.
+ * Save this state to client so that the chat panel can be restored across webview reloading.
+ */
+export interface SessionState {
+  threadId?: string | undefined
+  qaPairs?: QuestionAnswerPair[] | undefined
+  input?: Content | undefined
+  relevantContext?: Context[] | undefined
+  selectedRepoId?: string | undefined
 }
 
 function ChatRenderer(
@@ -144,7 +179,11 @@ function ChatRenderer(
     chatInputRef,
     supportsOnApplyInEditorV2,
     readWorkspaceGitRepositories,
-    getActiveEditorSelection
+    getActiveEditorSelection,
+    fetchSessionState,
+    storeSessionState,
+    listFileInWorkspace,
+    readFileContent
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -153,21 +192,39 @@ function ChatRenderer(
   const [threadId, setThreadId] = React.useState<string | undefined>()
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
-  const [input, setInput] = React.useState<string>('')
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
+
   // sourceId
   const [selectedRepoId, setSelectedRepoId] = React.useState<
     string | undefined
   >()
+
+  React.useEffect(() => {
+    if (isDataSetup) {
+      storeSessionState?.({ selectedRepoId })
+    }
+  }, [selectedRepoId, isDataSetup, storeSessionState])
 
   const enableActiveSelection = useChatStore(
     state => state.enableActiveSelection
   )
 
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
+
+  // both set/get input from prompt form
+  const setInput = (str: Content) => {
+    chatPanelRef.current?.setInput(str)
+  }
+  const input = chatPanelRef.current?.input ?? ''
+
+  const onUpdate = (p: EditorEvents['update']) => {
+    if (isDataSetup) {
+      storeSessionState?.({ input: p.editor.getJSON() })
+    }
+  }
 
   const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
     query: repositorySourceListQuery
@@ -196,6 +253,9 @@ function ChatRenderer(
 
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
+    storeSessionState?.({
+      qaPairs: nextQaPairs
+    })
 
     deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
@@ -226,15 +286,15 @@ function ChatRenderer(
         }
       ]
       setQaPairs(nextQaPairs)
-      const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user
-      )
+
+      const [createMessageInput, threadRunOptions] =
+        await generateRequestPayload(qaPair.user)
 
       return regenerate({
         threadId,
         userMessageId: qaPair.user.id,
         assistantMessageId: qaPair.assistant.id,
-        userMessage,
+        userMessage: createMessageInput,
         threadRunOptions
       })
     }
@@ -254,12 +314,25 @@ function ChatRenderer(
       nextClientContext = nextClientContext.concat(userMessage.relevantContext)
     }
 
-    setRelevantContext(uniqWith(nextClientContext, isEqual))
+    const updatedRelevantContext = uniqWith(nextClientContext, isEqual)
+    setRelevantContext(updatedRelevantContext)
 
     // delete message pair
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
+
+    storeSessionState?.({
+      qaPairs: nextQaPairs
+    })
+
     setInput(userMessage.message)
+
+    const inputContent = convertTextToTiptapContent(userMessage.message)
+    setInput({
+      type: 'doc',
+      content: inputContent
+    })
+
     if (userMessage.activeContext) {
       openInEditor(getFileLocationFromContext(userMessage.activeContext))
     }
@@ -282,6 +355,10 @@ function ChatRenderer(
     stop(true)
     setQaPairs([])
     setThreadId(undefined)
+    storeSessionState?.({
+      qaPairs: [],
+      threadId: undefined
+    })
   }
 
   const handleMessageAction = (
@@ -311,6 +388,9 @@ function ChatRenderer(
     // update threadId
     if (answer.threadId && !threadId) {
       setThreadId(answer.threadId)
+      storeSessionState?.({
+        threadId: answer.threadId
+      })
     }
 
     setQaPairs(prev => {
@@ -334,21 +414,28 @@ function ChatRenderer(
         }
       ]
     })
+
+    if (!isLoading) {
+      storeSessionState?.({ qaPairs })
+    }
   }, [answer, isLoading])
 
-  const scrollToBottom = useDebounceCallback(() => {
-    if (container) {
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: 'smooth'
-      })
-    } else {
-      window.scrollTo({
-        top: document.body.offsetHeight,
-        behavior: 'smooth'
-      })
-    }
-  }, 100)
+  const scrollToBottom = useDebounceCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      if (container) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior
+        })
+      } else {
+        window.scrollTo({
+          top: document.body.offsetHeight,
+          behavior
+        })
+      }
+    },
+    100
+  )
 
   React.useLayoutEffect(() => {
     // scroll to bottom when a request is sent
@@ -361,7 +448,7 @@ function ChatRenderer(
     if (error && qaPairs?.length) {
       setQaPairs(prev => {
         let lastQaPairs = prev[prev.length - 1]
-        return [
+        const nextQaPairs = [
           ...prev.slice(0, prev.length - 1),
           {
             ...lastQaPairs,
@@ -373,6 +460,10 @@ function ChatRenderer(
             }
           }
         ]
+        storeSessionState?.({
+          qaPairs: nextQaPairs
+        })
+        return nextQaPairs
       })
     }
 
@@ -381,11 +472,12 @@ function ChatRenderer(
     }
   }, [error])
 
-  const generateRequestPayload = (
+  const generateRequestPayload = async (
     userMessage: UserMessage
-  ): [CreateMessageInput, ThreadRunOptionsInput] => {
+  ): Promise<[CreateMessageInput, ThreadRunOptionsInput]> => {
     const hasUsableActiveContext =
       enableActiveSelection && !!userMessage.activeContext
+
     const clientFileContexts: FileContext[] = uniqWith(
       compact([
         userMessage.selectContext,
@@ -448,9 +540,11 @@ function ChatRenderer(
         // If no id is provided, set a fallback id.
         id: userMessage.id ?? nanoid(),
         selectContext: userMessage.selectContext,
-        // For forward compatibility
         activeContext:
-          enableActiveSelection && activeSelection ? activeSelection : undefined
+          enableActiveSelection && activeSelection
+            ? activeSelection
+            : undefined,
+        relevantContext: [...(userMessage.relevantContext || [])]
       }
 
       const nextQaPairs = [
@@ -465,10 +559,14 @@ function ChatRenderer(
           }
         }
       ]
-
       setQaPairs(nextQaPairs)
 
-      sendUserMessage(...generateRequestPayload(newUserMessage))
+      storeSessionState?.({
+        qaPairs: nextQaPairs
+      })
+
+      const payload = await generateRequestPayload(newUserMessage)
+      sendUserMessage(...payload)
     }
   )
 
@@ -491,13 +589,17 @@ function ChatRenderer(
   const handleSubmit = async (value: string) => {
     sendUserChat({
       message: value,
-      relevantContext: relevantContext
+      relevantContext
     })
+
     setRelevantContext([])
   }
 
   const handleAddRelevantContext = useLatest((context: Context) => {
-    setRelevantContext(oldValue => appendContextAndDedupe(oldValue, context))
+    setRelevantContext(oldValue => {
+      const updatedValue = appendContextAndDedupe(oldValue, context)
+      return updatedValue
+    })
   })
 
   const addRelevantContext = (editorContext: EditorContext) => {
@@ -505,16 +607,18 @@ function ChatRenderer(
     handleAddRelevantContext.current?.(context)
   }
 
-  const removeRelevantContext = (index: number) => {
-    const newRelevantContext = [...relevantContext]
-    newRelevantContext.splice(index, 1)
-    setRelevantContext(newRelevantContext)
-  }
-
   React.useEffect(() => {
     if (!isOnLoadExecuted.current) return
     onThreadUpdates?.(qaPairs)
   }, [qaPairs])
+
+  React.useEffect(() => {
+    if (isDataSetup) {
+      storeSessionState?.({
+        relevantContext
+      })
+    }
+  }, [relevantContext, isDataSetup, storeSessionState])
 
   const debouncedUpdateActiveSelection = useDebounceCallback(
     (ctx: Context | null) => {
@@ -542,26 +646,48 @@ function ChatRenderer(
 
   React.useEffect(() => {
     const init = async () => {
-      const [workspaceGitRepositories, activeEditorSelecition] =
-        await Promise.all([
-          fetchWorkspaceGitRepo(),
-          initActiveEditorSelection()
-        ])
+      const [persistedState, activeEditorSelection] = await Promise.all([
+        fetchSessionState?.(),
+        initActiveEditorSelection()
+      ])
+
+      if (persistedState?.threadId) {
+        setThreadId(persistedState.threadId)
+      }
+      if (persistedState?.qaPairs) {
+        setQaPairs(persistedState.qaPairs)
+      }
+      if (persistedState?.input) {
+        setInput(persistedState.input)
+      }
+      if (persistedState?.relevantContext) {
+        setRelevantContext(persistedState.relevantContext)
+      }
+      scrollToBottom.run('instant')
+
       // get default repository
-      if (workspaceGitRepositories?.length && repos?.length) {
-        const defaultGitUrl = workspaceGitRepositories[0].url
-        const repo = findClosestGitRepository(
-          repos.map(x => ({ url: x.gitUrl, sourceId: x.sourceId })),
-          defaultGitUrl
-        )
-        if (repo) {
-          setSelectedRepoId(repo.sourceId)
+      if (
+        persistedState?.selectedRepoId &&
+        repos?.find(x => x.sourceId === persistedState.selectedRepoId)
+      ) {
+        setSelectedRepoId(persistedState.selectedRepoId)
+      } else {
+        const workspaceGitRepositories = await fetchWorkspaceGitRepo()
+        if (workspaceGitRepositories?.length && repos?.length) {
+          const defaultGitUrl = workspaceGitRepositories[0].url
+          const repo = findClosestGitRepository(
+            repos.map(x => ({ url: x.gitUrl, sourceId: x.sourceId })),
+            defaultGitUrl
+          )
+          if (repo) {
+            setSelectedRepoId(repo.sourceId)
+          }
         }
       }
 
       // update active selection
-      if (activeEditorSelecition) {
-        const context = convertEditorContext(activeEditorSelecition)
+      if (activeEditorSelection) {
+        const context = convertEditorContext(activeEditorSelection)
         setActiveSelection(context)
       }
     }
@@ -612,7 +738,7 @@ function ChatRenderer(
         openInEditor,
         openExternal,
         relevantContext,
-        removeRelevantContext,
+        setRelevantContext,
         chatInputRef,
         activeSelection,
         supportsOnApplyInEditorV2,
@@ -620,7 +746,9 @@ function ChatRenderer(
         setSelectedRepoId,
         repos,
         fetchingRepos,
-        initialized
+        initialized,
+        listFileInWorkspace,
+        readFileContent
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
@@ -653,6 +781,7 @@ function ChatRenderer(
             reload={onReload}
             input={input}
             setInput={setInput}
+            onUpdate={onUpdate}
             chatMaxWidthClass={chatMaxWidthClass}
             ref={chatPanelRef}
             chatInputRef={chatInputRef}
@@ -667,7 +796,16 @@ function appendContextAndDedupe(
   ctxList: Context[],
   newCtx: Context
 ): Context[] {
-  if (!ctxList.some(ctx => isEqual(ctx, newCtx))) {
+  const fieldsToIgnore: Array<keyof Context> = ['content']
+  const isEqualIgnoringFields = (obj1: Context, obj2: Context) => {
+    return isEqualWith(obj1, obj2, (_value1, _value2, key) => {
+      // If the key is in the fieldsToIgnore array, consider the values equal
+      if (fieldsToIgnore.includes(key as keyof Context)) {
+        return true
+      }
+    })
+  }
+  if (!ctxList.some(ctx => isEqualIgnoringFields(ctx, newCtx))) {
     return ctxList.concat([newCtx])
   }
   return ctxList
