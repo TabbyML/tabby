@@ -40,7 +40,9 @@ pub struct ThreadMessageAttachment {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ThreadMessageAttachmentCodeFileList {}
+pub struct ThreadMessageAttachmentCodeFileList {
+    pub file_list: Vec<String>,
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)] // Mark the serde serialization format as untagged for backward compatibility: https://serde.rs/enum-representations.html#untagged
@@ -237,8 +239,11 @@ impl DbConn {
     pub async fn update_thread_message_code_file_list_attachment(
         &self,
         message_id: i64,
+        file_list: &[String],
     ) -> Result<()> {
-        let code_file_list_attachment = Json(ThreadMessageAttachmentCodeFileList {});
+        let code_file_list_attachment = Json(ThreadMessageAttachmentCodeFileList {
+            file_list: file_list.into(),
+        });
         query!(
             "UPDATE thread_messages SET attachment = JSON_SET(IFNULL(attachment, '{}'), '$.code_file_list', ?), updated_at = DATETIME('now') WHERE id = ?",
             code_file_list_attachment,
@@ -246,7 +251,7 @@ impl DbConn {
         )
         .execute(&self.pool)
         .await?;
-    
+
         Ok(())
     }
 

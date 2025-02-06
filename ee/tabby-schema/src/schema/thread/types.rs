@@ -69,8 +69,13 @@ pub struct MessageAttachment {
     /// Documents retrieved from various sources, all from the server side.
     pub doc: Vec<MessageAttachmentDoc>,
 
-    /// Whether file list retrieved from the server side codebase is used for generating this message.
-    pub code_file_list: bool,
+    /// File list retrieved from the server side codebase is used for generating this message.
+    pub code_file_list: Option<MessageAttachmentCodeFileList>,
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentCodeFileList {
+    pub file_list: Vec<String>,
 }
 
 #[derive(GraphQLObject, Clone)]
@@ -272,6 +277,11 @@ pub struct ThreadAssistantMessageReadingCode {
 }
 
 #[derive(GraphQLObject)]
+pub struct ThreadAssistantMessageAttachmentsCodeFileList {
+    pub file_list: Vec<String>,
+}
+
+#[derive(GraphQLObject)]
 pub struct ThreadAssistantMessageAttachmentsCode {
     #[graphql(skip)]
     pub code_source_id: String,
@@ -305,6 +315,7 @@ pub enum ThreadRunItem {
     ThreadUserMessageCreated(ThreadUserMessageCreated),
     ThreadAssistantMessageCreated(ThreadAssistantMessageCreated),
     ThreadAssistantMessageReadingCode(ThreadAssistantMessageReadingCode),
+    ThreadAssistantMessageAttachmentsCodeFileList(ThreadAssistantMessageAttachmentsCodeFileList),
     ThreadAssistantMessageAttachmentsCode(ThreadAssistantMessageAttachmentsCode),
     ThreadAssistantMessageAttachmentsDoc(ThreadAssistantMessageAttachmentsDoc),
     ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta),

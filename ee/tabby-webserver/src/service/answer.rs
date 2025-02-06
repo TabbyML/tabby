@@ -39,10 +39,11 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentCodeInput, MessageAttachmentDoc, MessageAttachmentInput,
-        MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
-        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
-        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
+        MessageAttachmentCodeFileList, MessageAttachmentCodeInput, MessageAttachmentDoc,
+        MessageAttachmentInput, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
+        ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
+        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
+        ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -108,7 +109,6 @@ impl AnswerService {
             };
 
             let mut attachment = MessageAttachment::default();
-            let mut code_file_list: Option<Vec<String>> = None;
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
@@ -119,7 +119,13 @@ impl AnswerService {
                         // List at most 300 files in the repository.
                         match self.repository.list_files(&policy, &repository.kind, &repository.id, None, Some(300)).await {
                             Ok(files) => {
-                                code_file_list = Some(files.into_iter().map(|x| x.path).collect());
+                                let file_list: Vec<_> = files.into_iter().map(|x| x.path).collect();
+                                attachment.code_file_list = Some(MessageAttachmentCodeFileList {
+                                    file_list: file_list.clone(),
+                                });
+                                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCodeFileList(ThreadAssistantMessageAttachmentsCodeFileList {
+                                    file_list,
+                                }));
                             }
                             Err(e) => {
                                 error!("failed to list files for repository {}: {}", repository.id, e);
@@ -196,7 +202,7 @@ impl AnswerService {
 
             // 4. Prepare requesting LLM
             let request = {
-                let chat_messages = convert_messages_to_chat_completion_request(&self.config, &context_info_helper, &messages, &attachment, user_attachment_input.as_ref(), code_file_list.as_deref())?;
+                let chat_messages = convert_messages_to_chat_completion_request(&self.config, &context_info_helper, &messages, &attachment, user_attachment_input.as_ref())?;
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -411,7 +417,6 @@ fn convert_messages_to_chat_completion_request(
     messages: &[tabby_schema::thread::Message],
     attachment: &tabby_schema::thread::MessageAttachment,
     user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
-    code_file_list: Option<&[String]>,
 ) -> anyhow::Result<Vec<ChatCompletionRequestMessage>> {
     let mut output = vec![];
     output.reserve(messages.len() + 1);
@@ -445,12 +450,8 @@ fn convert_messages_to_chat_completion_request(
             let user_attachment_input =
                 user_attachment_input_from_user_message_attachment(&x.attachment);
 
-            let content = build_user_prompt(
-                &x.content,
-                &y.attachment,
-                Some(&user_attachment_input),
-                None,
-            );
+            let content =
+                build_user_prompt(&x.content, &y.attachment, Some(&user_attachment_input));
             ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
                 content: ChatCompletionRequestUserMessageContent::Text(
                     helper.rewrite_tag(&content),
@@ -473,7 +474,6 @@ fn convert_messages_to_chat_completion_request(
         &messages[messages.len() - 1].content,
         attachment,
         user_attachment_input,
-        code_file_list,
     );
 
     output.push(ChatCompletionRequestMessage::User(
@@ -492,7 +492,6 @@ fn build_user_prompt(
     user_input: &str,
     assistant_attachment: &tabby_schema::thread::MessageAttachment,
     user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
-    code_file_list: Option<&[String]>,
 ) -> String {
     // If the user message has no code attachment and the assistant message has no code attachment or doc attachment, return the user message directly.
     if user_attachment_input
@@ -500,17 +499,19 @@ fn build_user_prompt(
         .unwrap_or(true)
         && assistant_attachment.code.is_empty()
         && assistant_attachment.doc.is_empty()
-        && code_file_list.is_none()
+        && assistant_attachment.code_file_list.is_none()
     {
         return user_input.to_owned();
     }
 
-    let maybe_file_list_context = code_file_list
-        .filter(|file_list| !file_list.is_empty())
-        .map(|file_list| {
+    let maybe_file_list_context = assistant_attachment
+        .code_file_list
+        .as_ref()
+        .filter(|x| !x.file_list.is_empty())
+        .map(|x| {
             format!(
                 "Here is the list of files in the workspace available for reference:\n\n{}\n\n",
-                file_list.join("\n")
+                x.file_list.join("\n")
             )
         })
         .unwrap_or_default();
