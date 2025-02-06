@@ -529,9 +529,13 @@ type Message {
   updatedAt: DateTime!
 }
 
+"Represents an attachment to a message, which can include various types of content."
 type MessageAttachment {
-  code: [MessageAttachmentCode!]!
+  "Code snippets retrieved from the client side."
   clientCode: [MessageAttachmentClientCode!]!
+  "Code snippets retrieved from the server side codebase."
+  code: [MessageAttachmentCode!]!
+  "Documents retrieved from various sources, all from the server side."
   doc: [MessageAttachmentDoc!]!
 }
 
@@ -866,7 +870,6 @@ type Thread {
 }
 
 type ThreadAssistantMessageAttachmentsCode {
-  codeSourceId: String!
   hits: [MessageCodeSearchHit!]!
 }
 
@@ -884,6 +887,11 @@ type ThreadAssistantMessageContentDelta {
 
 type ThreadAssistantMessageCreated {
   id: ID!
+}
+
+type ThreadAssistantMessageReadingCode {
+  snippet: Boolean!
+  fileList: Boolean!
 }
 
 type ThreadConnection {
@@ -983,4 +991,4 @@ union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc
 
   Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 """
-union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageReadingCode | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted

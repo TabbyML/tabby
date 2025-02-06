@@ -173,6 +173,30 @@ impl RepositoryService for RepositoryServiceImpl {
         Ok(matching)
     }
 
+    async fn list_files(
+        &self,
+        policy: &AccessPolicy,
+        kind: &RepositoryKind,
+        id: &ID,
+        rev: Option<&str>,
+        top_n: Option<usize>,
+    ) -> Result<Vec<FileEntrySearchResult>> {
+        let dir = self.resolve_repository(policy, kind, id).await?.dir;
+        let files = tabby_git::list_files(&dir, rev, top_n)
+            .await
+            .map(|x| {
+                x.into_iter()
+                    .map(|f| FileEntrySearchResult {
+                        r#type: f.r#type,
+                        path: f.path,
+                        indices: f.indices,
+                    })
+                    .collect()
+            })
+            .map_err(anyhow::Error::from)?;
+        Ok(files)
+    }
+
     async fn grep(
         &self,
         policy: &AccessPolicy,

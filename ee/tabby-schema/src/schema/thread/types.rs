@@ -58,9 +58,15 @@ pub struct UpdateMessageInput {
 
 #[derive(GraphQLObject, Clone, Default)]
 #[graphql(context = Context)]
+/// Represents an attachment to a message, which can include various types of content.
 pub struct MessageAttachment {
-    pub code: Vec<MessageAttachmentCode>,
+    /// Code snippets retrieved from the client side.
     pub client_code: Vec<MessageAttachmentClientCode>,
+
+    /// Code snippets retrieved from the server side codebase.
+    pub code: Vec<MessageAttachmentCode>,
+
+    /// Documents retrieved from various sources, all from the server side.
     pub doc: Vec<MessageAttachmentDoc>,
 }
 
@@ -255,8 +261,16 @@ pub struct ThreadAssistantMessageCreated {
     pub id: ID,
 }
 
+#[derive(GraphQLObject, Clone, Debug)]
+pub struct ThreadAssistantMessageReadingCode {
+    pub snippet: bool,
+    pub file_list: bool,
+    // pub commit_history: bool
+}
+
 #[derive(GraphQLObject)]
 pub struct ThreadAssistantMessageAttachmentsCode {
+    #[graphql(skip)]
     pub code_source_id: String,
     pub hits: Vec<MessageCodeSearchHit>,
 }
@@ -287,6 +301,7 @@ pub enum ThreadRunItem {
     ThreadRelevantQuestions(ThreadRelevantQuestions),
     ThreadUserMessageCreated(ThreadUserMessageCreated),
     ThreadAssistantMessageCreated(ThreadAssistantMessageCreated),
+    ThreadAssistantMessageReadingCode(ThreadAssistantMessageReadingCode),
     ThreadAssistantMessageAttachmentsCode(ThreadAssistantMessageAttachmentsCode),
     ThreadAssistantMessageAttachmentsDoc(ThreadAssistantMessageAttachmentsDoc),
     ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta),
