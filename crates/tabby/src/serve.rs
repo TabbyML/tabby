@@ -14,7 +14,7 @@ use tabby_download::ModelKind;
 use tabby_inference::ChatCompletionStream;
 use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
@@ -203,11 +203,11 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 async fn load_model(config: &Config) {
     match config.model.completion {
         Some(ModelConfig::Local(ref model)) => {
-            info!(model_id = model.model_id, "Using local completion model.");
+            debug!(model_id = model.model_id, "Using local completion model.");
             download_model_if_needed(&model.model_id, ModelKind::Completion).await;
         }
         Some(ModelConfig::Http(ref model)) => {
-            info!(
+            debug!(
                 model_name = model.model_name,
                 endpoint = model.api_endpoint,
                 "Using remote completion model.",
@@ -220,11 +220,11 @@ async fn load_model(config: &Config) {
 
     match config.model.chat {
         Some(ModelConfig::Local(ref model)) => {
-            info!(model_id = model.model_id, "Using local chat model.",);
+            debug!(model_id = model.model_id, "Using local chat model.",);
             download_model_if_needed(&model.model_id, ModelKind::Chat).await;
         }
         Some(ModelConfig::Http(ref model)) => {
-            info!(
+            debug!(
                 model_name = model.model_name,
                 endpoint = model.api_endpoint,
                 "Using remote chat model."
@@ -237,11 +237,11 @@ async fn load_model(config: &Config) {
 
     match config.model.embedding {
         ModelConfig::Local(ref model) => {
-            info!(model_id = model.model_id, "Using local embedding model.");
+            debug!(model_id = model.model_id, "Using local embedding model.");
             download_model_if_needed(&model.model_id, ModelKind::Embedding).await;
         }
         ModelConfig::Http(ref model) => {
-            info!(
+            debug!(
                 model_name = model.model_name,
                 endpoint = model.api_endpoint,
                 "Using remote embedding model."
