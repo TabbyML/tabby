@@ -34,6 +34,7 @@ import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
  */
 export const MentionComponent = ({ node }: { node: any }) => {
   const { category, fileItem, label } = node.attrs
+  const filepathString = convertFilepath(fileItem.filepath).filepath
 
   // FIXME(@jueliang) fine a better way to detect the mention
   useEffect(() => {
@@ -51,19 +52,16 @@ export const MentionComponent = ({ node }: { node: any }) => {
         )}
         data-category={category}
       >
-        <>
-          {category === 'file' ? (
-            <FileText className="relative -top-px inline-block h-3.5 w-3.5" />
-          ) : category === 'symbol' ? (
-            <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
-          ) : null}
-          <span className="relative whitespace-normal">{label}</span>
-        </>
+        {category === 'file' ? (
+          <FileText className="relative -top-px inline-block h-3.5 w-3.5" />
+        ) : (
+          <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
+        )}
+        <span className="relative whitespace-normal">{label}</span>
       </span>
     </NodeViewWrapper>
   )
 }
-
 /**
  * A custom TipTap extension to handle file mentions (like @filename).
  * When converted to plain text, it produces a placeholder with file info.
@@ -155,6 +153,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     const [items, setItems] = useState<SourceItem[]>(propItems)
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [mode, setMode] = useState<CategoryMenu>('category')
+
     const categories = useMemo(() => {
       const items = [
         listFileInWorkspace && {
@@ -169,52 +168,49 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
         }
       ].filter(Boolean) as CategoryItem[]
 
+      if (items.length === 1) {
+        setMode(items[0].category)
+      }
       return items
     }, [listFileInWorkspace, listSymbols])
 
+    const isSingleMode = categories.length === 1
+    const shouldShowCategoryMenu = !isSingleMode && mode === 'category'
+
     const handleSelect = (item: SourceItem) => {
-      if (item.isRootCategoryItem) {
+      if (item.isRootCategoryItem && !isSingleMode) {
         setMode(item.category)
         return
       }
 
-      let label = item.name
-      if (item.category === 'file') {
-        label = resolveFileNameForDisplay(
-          convertFilepath(item.fileItem.filepath).filepath || ''
-        )
-      }
+      const label =
+        item.category === 'file'
+          ? resolveFileNameForDisplay(
+              convertFilepath(item.fileItem.filepath).filepath || ''
+            )
+          : item.name
 
-      command({
-        category: item.category,
-        fileItem: item.fileItem,
-        label: label
-      })
+      command({ category: item.category, fileItem: item.fileItem, label })
     }
-
-    useEffect(() => setSelectedIndex(0), [items])
 
     useEffect(() => {
       const fetchOptions = async () => {
         setSelectedIndex(0)
         try {
-          if (mode === 'category') {
+          if (shouldShowCategoryMenu) {
+            const files =
+              (await listFileInWorkspace?.({ query: query || '' })) || []
             if (query) {
-              const files = (await listFileInWorkspace?.({ query })) || []
               setItems(files.map(fileItemToSourceItem))
               return
             }
 
-            const [files] = await Promise.all([
-              listFileInWorkspace?.({ query: '' }) || []
-            ])
             setItems([
               ...categories.map(
                 c =>
                   ({
-                    id: c.type,
+                    id: c.category,
                     name: c.label,
-                    filepath: '',
                     category: c.category,
                     isRootCategoryItem: true,
                     fileItem: {} as FileItem,
@@ -230,8 +226,8 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
             const files = (await listFileInWorkspace?.({ query })) || []
             setItems(files.map(fileItemToSourceItem))
           } else {
-            const symbols = await listSymbols?.({ query })
-            setItems(uniqBy(symbols?.map(symbolItemToSourceItem), 'id'))
+            const symbols = (await listSymbols?.({ query })) || []
+            setItems(uniqBy(symbols.map(symbolItemToSourceItem), 'id'))
           }
         } finally {
           setSelectedIndex(0)
@@ -239,7 +235,14 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
       }
 
       fetchOptions()
-    }, [categories, listSymbols, listFileInWorkspace, mode, query])
+    }, [
+      mode,
+      query,
+      categories,
+      shouldShowCategoryMenu,
+      listFileInWorkspace,
+      listSymbols
+    ])
 
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }) => {
@@ -248,10 +251,10 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
         switch (event.key) {
           case 'ArrowUp':
-            newIndex = selectedIndex > 0 ? selectedIndex - 1 : lastIndex
+            newIndex = Math.max(0, selectedIndex - 1)
             break
           case 'ArrowDown':
-            newIndex = selectedIndex < lastIndex ? selectedIndex + 1 : 0
+            newIndex = Math.min(lastIndex, selectedIndex + 1)
             break
           case 'Enter':
             if (items[selectedIndex]) {
@@ -272,8 +275,8 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
     return (
       <div className="flex max-h-[300px] min-w-[60vw] max-w-[90vw] flex-col overflow-hidden rounded-md border bg-background p-1">
-        {mode !== 'category' && (
-          <div className="text-muted-foreground flex items-center  p-1 text-sm">
+        {!isSingleMode && mode !== 'category' && (
+          <div className="text-muted-foreground flex items-center p-1 text-sm">
             <button
               className="hover:bg-accent mr-2 rounded p-1"
               onClick={() => setMode('category')}
@@ -294,7 +297,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
             <div className="grid gap-0.5">
               {items.map((item, index) => (
                 <OptionItemView
-                  key={item.id + '-' + index}
+                  key={`${item.id}-${index}`}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   title={item.name}
@@ -318,7 +321,7 @@ interface OptionItemView extends HTMLAttributes<HTMLDivElement> {
 function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
   const ref = useRef<HTMLDivElement>(null)
   const filepathWithoutFilename = useMemo(() => {
-    return data.filepath.split('/').slice(0, -1).join('/')
+    return data.filepath ? data.filepath.split('/').slice(0, -1).join('/') : ''
   }, [data.filepath])
 
   useLayoutEffect(() => {
