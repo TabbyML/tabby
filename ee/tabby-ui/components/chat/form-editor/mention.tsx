@@ -321,6 +321,7 @@ interface OptionItemView extends HTMLAttributes<HTMLDivElement> {
 function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
   const ref = useRef<HTMLDivElement>(null)
   const filepathWithoutFilename = useMemo(() => {
+    if (!data.filepath) return ''
     return data.filepath ? data.filepath.split('/').slice(0, -1).join('/') : ''
   }, [data.filepath])
 
