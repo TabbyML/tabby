@@ -46,10 +46,45 @@ impl Embedding for LlamaCppEngine {
             request = request.bearer_auth(api_key);
         }
 
-        let response = request
-            .send()
-            .instrument(embedding_info_span!("llamacpp"))
-            .await?;
+        // Some initial requests to llama.cpp are experiencing issues
+        // would failed with `Connection reset by peer` or `Broken pipe`
+        //
+        // This serves as a temporary solution to attempt the request up to three times.
+        //
+        // Track issue: https://github.com/ggerganov/llama.cpp/issues/11411
+        let mut attempts = 0;
+        let max_attempts = 3;
+        let response = loop {
+            let result = request
+                .try_clone()
+                .ok_or_else(|| anyhow::anyhow!("Failed to clone the request"))?
+                .send()
+                .instrument(embedding_info_span!("llamacpp"))
+                .await;
+
+            match result {
+                Ok(resp) => break Ok(resp),
+
+                // The `Connection reset by peer` issue is Kind::Request in reqwest.
+                // The error message lacks sufficient detail to pinpoint the problem,
+                // Therefore, we must use the Debug trait to retrieve the detailed error message.
+                Err(e) if e.is_request() && attempts < max_attempts => {
+                    let message = format!("{:?}", e);
+                    if message.contains("Connection reset by peer")
+                        || message.contains("Broken pipe")
+                    {
+                        attempts += 1;
+                        // the interval is required to avoid the issue of `Connection reset by peer`
+                        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+                        continue;
+                    }
+                    break Err(e);
+                }
+                Err(e) => {
+                    break Err(e);
+                }
+            }
+        }?;
         if response.status().is_server_error() {
             let error = response.text().await?;
             return Err(anyhow::anyhow!(
