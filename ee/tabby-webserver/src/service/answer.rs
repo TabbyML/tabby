@@ -807,6 +807,7 @@ mod tests {
                 start_line: Some(1),
             }],
             client_code: vec![],
+            code_file_list: None,
         };
         let user_attachment_input = None;
 
@@ -814,7 +815,6 @@ mod tests {
             user_input,
             &assistant_attachment,
             user_attachment_input,
-            None,
         );
 
         println!("{}", prompt.as_str());
@@ -849,6 +849,9 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: Some(MessageAttachmentCodeFileList {
+                file_list: vec!["client.py".to_owned(), "server.py".to_owned()]
+            }),
         };
 
         let messages = vec![
@@ -882,7 +885,6 @@ mod tests {
 
         let rewriter = context_info.helper();
 
-        let code_file_list = vec!["client.py".to_owned(), "server.py".to_owned()];
         let config = make_answer_config();
         let output = super::convert_messages_to_chat_completion_request(
             &config,
@@ -890,7 +892,6 @@ mod tests {
             &messages,
             &tabby_schema::thread::MessageAttachment::default(),
             Some(&user_attachment_input),
-            Some(&code_file_list),
         )
         .unwrap();
 
@@ -1028,6 +1029,7 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: None,
         };
 
         let question = "What is the purpose of this code?";
@@ -1090,6 +1092,7 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: None,
         };
 
         let question = "What is the purpose of this code?";
