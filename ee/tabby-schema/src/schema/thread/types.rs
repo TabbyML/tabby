@@ -68,6 +68,9 @@ pub struct MessageAttachment {
 
     /// Documents retrieved from various sources, all from the server side.
     pub doc: Vec<MessageAttachmentDoc>,
+
+    /// Whether file list retrieved from the server side codebase is used for generating this message.
+    pub code_file_list: bool,
 }
 
 #[derive(GraphQLObject, Clone)]

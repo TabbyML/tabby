@@ -57,6 +57,10 @@ impl ThreadServiceImpl {
                 } else {
                     vec![]
                 },
+                code_file_list: message
+                    .attachment
+                    .and_then(|x| x.0.code_file_list)
+                    .is_some(),
             };
 
             output.push(thread::Message {
@@ -204,6 +208,12 @@ impl ThreadService for ThreadServiceImpl {
                 match &item {
                     Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(x)) => {
                         db.append_thread_message_content(assistant_message_id, &x.delta).await?;
+                    }
+
+                    Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(x)) => {
+                        if x.file_list {
+                            db.update_thread_message_code_file_list_attachment(assistant_message_id).await?;
+                        }
                     }
 
                     Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(x)) => {
