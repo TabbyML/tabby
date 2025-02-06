@@ -68,16 +68,18 @@ pub struct AddPageSectionInput {
 pub struct PageCreated {
     pub id: ID,
     pub author_id: ID,
+    pub title: String,
 }
 
 #[derive(GraphQLObject)]
-pub struct PageTitleDelta {
-    pub delta: String,
+pub struct PageSectionsTitleCreated {
+    pub sections: Vec<PageSectionTitle>,
 }
 
 #[derive(GraphQLObject)]
-pub struct PageTitleCompleted {
+pub struct PageSectionTitle {
     pub id: ID,
+    pub title: String,
 }
 
 #[derive(GraphQLObject)]
@@ -91,24 +93,30 @@ pub struct PageContentCompleted {
 }
 
 #[derive(GraphQLObject)]
-pub struct PageSectionCreated {
+pub struct PageSectionContentDelta {
     pub id: ID,
-    pub title: String,
-    pub content: String,
+    pub delta: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageSectionContentCompleted {
+    pub id: ID,
 }
 
 /// Schema of page convert stream.
 #[derive(GraphQLUnion)]
 #[graphql(context = Context)]
 pub enum PageConvertItem {
+    // PageCreated will return at the beginning of the stream,
+    // containing the page ID, author and title.
     PageCreated(PageCreated),
-    PageTitleDelta(PageTitleDelta),
-    PageTitleCompleted(PageTitleCompleted),
+
     PageContentDelta(PageContentDelta),
     PageContentCompleted(PageContentCompleted),
 
-    // PageSection is converted from thread messages,
-    // will return title and content directly instead of delta.
-    // At least one PageSectionCreated will be present in the stream.
-    PageSectionCreated(PageSectionCreated),
+    // PageSectionsTitleCreated will return the titles of all sections.
+    PageSectionsTitleCreated(PageSectionsTitleCreated),
+
+    PageSectionContentDelta(PageSectionContentDelta),
+    PageSectionContentCompleted(PageSectionContentCompleted),
 }
