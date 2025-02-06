@@ -32,7 +32,9 @@ import type {
   ListFilesInWorkspaceParams,
   ListFileItem,
   FileRange,
-  ListActiveSymbolItem,
+  Filepath,
+  ListSymbolsParams,
+  ListSymbolItem,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
@@ -555,67 +557,182 @@ export class ChatWebview {
         const document = await workspace.openTextDocument(uri);
         return document.getText(chatPanelLocationToVSCodeRange(info.range) ?? undefined);
       },
-      listActiveSymbols: async (): Promise<ListActiveSymbolItem[]> => {
+      listSymbols: async (params: ListSymbolsParams): Promise<ListSymbolItem[]> => {
+        const { query } = params;
+        let { limit } = params;
         const editor = window.activeTextEditor;
+
         if (!editor) {
           this.logger.warn("listActiveSymbols: No active editor found.");
           return [];
         }
-        this.logger.info(`listActiveSymbols: Listing symbols for editor ${editor.document.uri.toString()}`);
+        if (!limit || limit < 0) {
+          limit = 20;
+        }
 
-        try {
+        const getDocumentSymbols = async (editor: TextEditor): Promise<SymbolInformation[]> => {
+          this.logger.debug(`getDocumentSymbols: Fetching document symbols for ${editor.document.uri.toString()}`);
           const symbols =
-            ((await commands.executeCommand("vscode.executeDocumentSymbolProvider", editor.document.uri)) as (
-              | SymbolInformation
-              | DocumentSymbol
-            )[]) || [];
+            (await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
+              "vscode.executeDocumentSymbolProvider",
+              editor.document.uri,
+            )) || [];
 
-          this.logger.debug(`listActiveSymbols: Received ${symbols.length} symbols from documentSymbolProvider.`);
+          const result: SymbolInformation[] = [];
+          const queue: (DocumentSymbol | SymbolInformation)[] = [...symbols];
 
-          const collectFunctions = (symbols: (SymbolInformation | DocumentSymbol)[]): SymbolInformation[] => {
-            const result: SymbolInformation[] = [];
-            for (const symbol of symbols) {
-              if (symbol instanceof DocumentSymbol) {
-                if (includesSymbolList.includes(symbol.kind)) {
-                  this.logger.debug(
-                    `listActiveSymbols: Adding DocumentSymbol "${symbol.name}" of kind ${symbol.kind}.`,
-                  );
-                  result.push(
-                    new SymbolInformation(
-                      symbol.name,
-                      symbol.kind,
-                      symbol.detail,
-                      new Location(editor.document.uri, symbol.range),
-                    ),
-                  );
+          // BFS to get all symbols up to the limit
+          while (queue.length > 0 && result.length < limit) {
+            const current = queue.shift();
+            if (!current) {
+              continue;
+            }
+
+            if (current instanceof DocumentSymbol) {
+              const converted = new SymbolInformation(
+                current.name,
+                current.kind,
+                current.detail,
+                new Location(editor.document.uri, current.range),
+              );
+
+              if (includesSymbolList.includes(converted.kind)) {
+                result.push(converted);
+              }
+
+              if (result.length >= limit) {
+                break;
+              }
+              this.logger.info("current symbol", converted.name);
+              this.logger.info("current symbol children", current.children.length);
+
+              queue.push(...current.children);
+            } else {
+              if (includesSymbolList.includes(current.kind)) {
+                result.push(current);
+
+                if (result.length >= limit) {
+                  break;
                 }
-                if (symbol.children?.length) {
-                  this.logger.debug(
-                    `listActiveSymbols: Processing ${symbol.children.length} children of "${symbol.name}".`,
-                  );
-                  result.push(...collectFunctions(symbol.children));
-                }
-              } else if (includesSymbolList.includes(symbol.kind)) {
-                this.logger.debug(
-                  `listActiveSymbols: Adding SymbolInformation "${symbol.name}" of kind ${symbol.kind}.`,
-                );
-                result.push(symbol);
               }
             }
-            return result;
+          }
+
+          this.logger.debug(`getDocumentSymbols: Found ${result.length} symbols.`);
+          return result;
+        };
+
+        const getWorkspaceSymbols = async (query: string): Promise<ListSymbolItem[]> => {
+          this.logger.debug(`getWorkspaceSymbols: Fetching workspace symbols for query "${query}"`);
+          try {
+            const symbols =
+              (await commands.executeCommand<SymbolInformation[]>("vscode.executeWorkspaceSymbolProvider", query)) ||
+              [];
+
+            const items = symbols.map((symbol) => ({
+              filepath: localUriToChatPanelFilepath(symbol.location.uri, this.gitProvider),
+              range: vscodeRangeToChatPanelLineRange(symbol.location.range),
+              label: symbol.name,
+            }));
+            this.logger.debug(`getWorkspaceSymbols: Found ${items.length} symbols.`);
+            return items;
+          } catch (error) {
+            this.logger.error(`Workspace symbols failed: ${error}`);
+            return [];
+          }
+        };
+
+        const filterSymbols = (symbols: SymbolInformation[], query: string): SymbolInformation[] => {
+          const lowerQuery = query.toLowerCase();
+          const filtered = symbols.filter(
+            (s) => s.name.toLowerCase().includes(lowerQuery) || s.containerName?.toLowerCase().includes(lowerQuery),
+          );
+          this.logger.debug(`filterSymbols: Filtered down to ${filtered.length} symbols with query "${query}"`);
+          return filtered;
+        };
+
+        const mergeResults = (
+          local: ListSymbolItem[],
+          workspace: ListSymbolItem[],
+          query: string,
+          limit = 20,
+        ): ListSymbolItem[] => {
+          this.logger.debug(
+            `mergeResults: Merging ${local.length} local symbols and ${workspace.length} workspace symbols with query "${query}" and limit ${limit}`,
+          );
+
+          const seen = new Set<string>();
+          const allItems = [...local, ...workspace];
+          const uniqueItems: ListSymbolItem[] = [];
+
+          for (const item of allItems) {
+            const key = `${item.filepath}-${item.label}-${item.range.start}-${item.range.end}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              uniqueItems.push(item);
+            }
+          }
+
+          // Sort all items by the match score
+          const getMatchScore = (label: string): number => {
+            const lowerLabel = label.toLowerCase();
+            const lowerQuery = query.toLowerCase();
+
+            if (lowerLabel === lowerQuery) return 3;
+            if (lowerLabel.startsWith(lowerQuery)) return 2;
+            if (lowerLabel.includes(lowerQuery)) return 1;
+            return 0;
           };
 
-          const collectedSymbols = collectFunctions(symbols);
-          this.logger.info(`listActiveSymbols: Collected ${collectedSymbols.length} active symbols.`);
+          uniqueItems.sort((a, b) => {
+            const scoreA = getMatchScore(a.label);
+            const scoreB = getMatchScore(b.label);
 
-          const filepath = localUriToChatPanelFilepath(editor.document.uri, this.gitProvider);
-          return collectedSymbols.map((symbol) => ({
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            return a.label.length - b.label.length;
+          });
+
+          this.logger.debug(`mergeResults: Returning ${Math.min(uniqueItems.length, limit)} sorted symbols.`);
+          return uniqueItems.slice(0, limit);
+        };
+
+        const symbolToItem = (symbol: SymbolInformation, filepath: Filepath): ListSymbolItem => {
+          return {
             filepath,
             range: vscodeRangeToChatPanelLineRange(symbol.location.range),
             label: symbol.name,
-          }));
+          };
+        };
+
+        try {
+          this.logger.info("listActiveSymbols: Starting to fetch symbols.");
+          const defaultSymbols = await getDocumentSymbols(editor);
+          const filepath = localUriToChatPanelFilepath(editor.document.uri, this.gitProvider);
+
+          if (!query) {
+            const items = defaultSymbols.slice(0, limit).map((symbol) => symbolToItem(symbol, filepath));
+            this.logger.debug(`listActiveSymbols: Returning ${items.length} symbols.`);
+            return items;
+          }
+
+          const [filteredDefault, workspaceSymbols] = await Promise.all([
+            Promise.resolve(filterSymbols(defaultSymbols, query)),
+            getWorkspaceSymbols(query),
+          ]);
+          this.logger.info(
+            `listActiveSymbols: Found ${filteredDefault.length} filtered local symbols and ${workspaceSymbols.length} workspace symbols.`,
+          );
+
+          const mergedItems = mergeResults(
+            filteredDefault.map((s) => symbolToItem(s, filepath)),
+            workspaceSymbols,
+            query,
+            limit,
+          );
+          this.logger.info(`listActiveSymbols: Returning ${mergedItems.length} merged symbols.`);
+          return mergedItems;
         } catch (error) {
-          this.logger.error(`listActiveSymbols: Failed to fetch symbols: ${error}`);
+          this.logger.error(`listActiveSymbols: Failed - ${error}`);
           return [];
         }
       },

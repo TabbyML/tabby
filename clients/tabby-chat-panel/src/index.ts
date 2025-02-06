@@ -245,6 +245,13 @@ export interface ListFilesInWorkspaceParams {
   limit?: number
 }
 
+export interface ListSymbolsParams {
+
+  query: string
+
+  limit?: number
+}
+
 export interface ListFileItem {
   /**
    * The filepath of the file.
@@ -253,7 +260,7 @@ export interface ListFileItem {
 }
 
 // Draft list active symbol item
-export interface ListActiveSymbolItem {
+export interface ListSymbolItem {
   filepath: Filepath
   range: LineRange
   label: string
@@ -351,7 +358,12 @@ export interface ClientApiMethods {
    */
   listFileInWorkspace?: (params: ListFilesInWorkspaceParams) => Promise<ListFileItem[]>
 
-  listActiveSymbols?: () => Promise<ListActiveSymbolItem[]>
+  /**
+   * Returns active editor symbols when no query is provided. Otherwise, returns workspace symbols that match the query.
+   * @param params An {@link ListSymbolsParams} object that includes a search query and a limit for the results.
+   * @returns An array of {@link ListSymbolItem} objects that could be empty.
+   */
+  listSymbols?: (params: ListSymbolsParams) => Promise<ListSymbolItem[]>
 
   /**
    * Returns the content of a file within the specified range.
