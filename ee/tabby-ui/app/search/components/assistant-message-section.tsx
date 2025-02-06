@@ -14,7 +14,8 @@ import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import {
   Maybe,
   MessageAttachmentClientCode,
-  MessageAttachmentCode
+  MessageAttachmentCode,
+  ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
@@ -29,7 +30,8 @@ import {
   formatLineHashForCodeBrowser,
   getContent,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
+  getRangeTextFromAttachmentCode,
+  isCodeSourceContext
 } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -75,9 +77,9 @@ import {
 } from '@/components/message-markdown'
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
+import { SourceIcon } from '@/components/source-icon'
 import { UserAvatar } from '@/components/user-avatar'
 
-import { AgentSteps } from './agent-steps'
 import { SOURCE_CARD_STYLE } from './search'
 import { SearchContext } from './search-context'
 import { ConversationMessage } from './types'
@@ -266,15 +268,6 @@ export function AssistantMessageSection({
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
-      {/* expose steps */}
-      {!!message.readingCode && (
-        <AgentSteps
-          steps={message.readingCode}
-          codeSourceId={message.codeSourceId}
-          isReadingCode={message.isReadingCode}
-        />
-      )}
-
       {/* document search hits */}
       {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
         <div>
@@ -341,7 +334,7 @@ export function AssistantMessageSection({
         </div>
 
         {/* attachment clientCode & code */}
-        {messageAttachmentCodeLen > 0 && (
+        {(message.isReadingCode || messageAttachmentCodeLen > 0) && (
           <CodeReferences
             clientContexts={clientCodeContexts}
             contexts={serverCodeContexts}
@@ -356,6 +349,14 @@ export function AssistantMessageSection({
             }}
             highlightIndex={relevantCodeHighlightIndex}
             supportsOpenInEditor={false}
+            title={
+              <RelevantCodeTitle
+                isReadingCode={message.isReadingCode}
+                readingCode={message.readingCode}
+                filesCount={messageAttachmentCodeLen}
+                codeSourceId={message.codeSourceId}
+              />
+            }
           />
         )}
 
@@ -705,4 +706,80 @@ const normalizedText = (input: string) => {
   const decoded = he.decode(parsed)
   const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
   return plainText
+}
+
+function RelevantCodeTitle({
+  isReadingCode,
+  readingCode,
+  codeSourceId,
+  filesCount
+}: {
+  isReadingCode?: boolean
+  readingCode?: ThreadAssistantMessageReadingCode
+  codeSourceId?: Maybe<string>
+  filesCount?: number
+}) {
+  const { contextInfo } = useContext(SearchContext)
+  const targetRepo = useMemo(() => {
+    if (!codeSourceId) return undefined
+
+    const target = contextInfo?.sources.find(
+      x => isCodeSourceContext(x.sourceKind) && x.sourceId === codeSourceId
+    )
+    return target
+  }, [codeSourceId, contextInfo])
+  const readFileList = readingCode?.fileList
+  const readCodeSnippets = readingCode?.snippet || !!filesCount
+
+  const desc = useMemo(() => {
+    if (isReadingCode) {
+      const textList: string[] = []
+      if (readFileList) {
+        textList.push('file list')
+      }
+      if (readCodeSnippets) {
+        textList.push('code snippets')
+      }
+      return `Read ${textList.join(' and ')}`
+    }
+
+    if (filesCount) {
+      if (readFileList) {
+        return `Read file list and ${filesCount} file${
+          filesCount && filesCount > 1 ? 's' : ''
+        }`
+      } else {
+        return `Read ${filesCount} file${
+          filesCount && filesCount > 1 ? 's' : ''
+        }`
+      }
+    }
+
+    return ''
+  }, [readCodeSnippets, readFileList, filesCount, isReadingCode])
+
+  if (!isReadingCode && !filesCount) {
+    return undefined
+  }
+
+  return (
+    <div className="inline-flex gap-1">
+      {isReadingCode && <IconSpinner />}
+      <div className="flex items-center">
+        <span>{desc}</span>
+        {!!targetRepo && (
+          <>
+            <span>&nbsp;from&nbsp;</span>
+            <div className="inline-flex items-center gap-1 cursor-pointer font-medium">
+              <SourceIcon
+                kind={targetRepo.sourceKind}
+                className="h-3.5 w-3.5 shrink-0"
+              />
+              <span className="truncate text-sm">{targetRepo.sourceName}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
 }

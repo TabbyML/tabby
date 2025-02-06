@@ -399,10 +399,6 @@ export function Search() {
     // update assistant message
     currentAssistantMessage.content = answer.content
 
-    currentAssistantMessage.codeSourceId = answer.codeSourceId
-    // update assiatant message status
-    currentAssistantMessage.isReadingCode = answer.isReadingCode
-
     // get and format scores from streaming answer
     if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
       currentAssistantMessage.attachment = {
@@ -434,6 +430,11 @@ export function Search() {
     }
 
     currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
+
+    // update assiatant message status
+    if ('isReadingCode' in answer) {
+      currentAssistantMessage.isReadingCode = answer.isReadingCode
+    }
 
     // update expose steps
     currentAssistantMessage.readingCode = answer?.readingCode
@@ -509,6 +510,9 @@ export function Search() {
   }, [devPanelOpen])
 
   const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(selectedRepository?.sourceId, ctx)
+
     const newUserMessageId = tempNanoId()
     const newAssistantMessageId = tempNanoId()
     const newUserMessage: ConversationMessage = {
@@ -519,11 +523,9 @@ export function Search() {
     const newAssistantMessage: ConversationMessage = {
       id: newAssistantMessageId,
       role: Role.Assistant,
-      content: ''
+      content: '',
+      codeSourceId: sourceIdForCodeQuery
     }
-
-    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(selectedRepository?.sourceId, ctx)
 
     const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
       ? { sourceId: sourceIdForCodeQuery, content: question }
@@ -567,6 +569,11 @@ export function Search() {
 
     const newMessages = messages.slice(0, -2)
     const userMessage = messages[userMessageIndex]
+    const assistantMessage = messages[assistantMessageIndex]
+
+    const codeSourceId =
+      assistantMessage?.codeSourceId || selectedRepository?.sourceId
+
     const newUserMessage: ConversationMessage = {
       ...userMessage,
       id: tempNanoId()
@@ -575,6 +582,7 @@ export function Search() {
       id: tempNanoId(),
       role: Role.Assistant,
       content: '',
+      codeSourceId,
       attachment: {
         code: null,
         doc: null,
@@ -589,10 +597,7 @@ export function Search() {
     )
 
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(
-        selectedRepository?.sourceId,
-        getThreadRunContextsFromMentions(mentions)
-      )
+      getSourceInputs(codeSourceId, getThreadRunContextsFromMentions(mentions))
 
     const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
       ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }

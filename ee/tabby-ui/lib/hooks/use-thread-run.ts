@@ -38,13 +38,11 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageReadingCode {
         snippet
         fileList
-        codeSourceId
       }
       ... on ThreadRelevantQuestions {
         questions
       }
       ... on ThreadAssistantMessageAttachmentsCode {
-        codeSourceId
         hits {
           code {
             gitUrl
@@ -122,13 +120,11 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageReadingCode {
         snippet
         fileList
-        codeSourceId
       }
       ... on ThreadRelevantQuestions {
         questions
       }
       ... on ThreadAssistantMessageAttachmentsCode {
-        codeSourceId
         hits {
           code {
             gitUrl
@@ -292,14 +288,12 @@ export function useThreadRun({
         x.isReadingCode = true
         x.readingCode = {
           fileList: data.fileList,
-          snippet: data.snippet,
-          codeSourceId: data.codeSourceId
+          snippet: data.snippet
         }
         break
       case 'ThreadAssistantMessageAttachmentsCode':
         x.isReadingCode = false
         x.attachmentsCode = data.hits
-        x.codeSourceId = data.codeSourceId
         break
       case 'ThreadAssistantMessageAttachmentsDoc':
         x.attachmentsDoc = data.hits
