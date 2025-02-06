@@ -1,6 +1,6 @@
 import React, { RefObject, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
-import { Content } from '@tiptap/core'
+import { Content, EditorEvents } from '@tiptap/core'
 import { useWindowSize } from '@uidotdev/usehooks'
 import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -51,6 +51,7 @@ export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
   id?: string
   className?: string
   onSubmit: (content: string) => Promise<any>
+  onUpdate: (p: EditorEvents['update']) => void
   reload: () => void
   chatMaxWidthClass: string
   chatInputRef: RefObject<PromptFormRef>
@@ -68,6 +69,7 @@ function ChatPanelRenderer(
     reload,
     className,
     onSubmit,
+    onUpdate,
     chatMaxWidthClass,
     chatInputRef
   }: ChatPanelProps,
@@ -285,55 +287,46 @@ function ChatPanelRenderer(
           className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4"
         >
           <div className="flex flex-wrap gap-2">
-            <AnimatePresence presenceAffectsLayout>
-              <RepoSelect
-                value={selectedRepoId}
-                onChange={onSelectRepo}
-                repos={repos}
-                isInitializing={!initialized}
-              />
-              {activeSelection ? (
-                <motion.div
-                  key="active-selection"
-                  initial={{ opacity: 0, scale: 0.9, y: -5 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{
-                    ease: 'easeInOut',
-                    duration: 0.1
+            <RepoSelect
+              id="repo-select"
+              value={selectedRepoId}
+              onChange={onSelectRepo}
+              repos={repos}
+              isInitializing={!initialized}
+            />
+            {activeSelection ? (
+              <Badge
+                id="active-selection-badge"
+                variant="outline"
+                className={cn(
+                  'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md pr-0 text-sm font-semibold',
+                  {
+                    'border-dashed !text-muted-foreground italic line-through':
+                      !enableActiveSelection
+                  }
+                )}
+              >
+                <IconFileText />
+                <ContextLabel
+                  context={activeSelection}
+                  className="flex-1 truncate"
+                />
+                <span className="shrink-0 text-muted-foreground">
+                  Current file
+                </span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0 rounded-l-none hover:bg-muted/50"
+                  onClick={e => {
+                    updateEnableActiveSelection(!enableActiveSelection)
                   }}
-                  exit={{ opacity: 0, scale: 0.9, y: -5 }}
                 >
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md pr-0 text-sm font-semibold',
-                      {
-                        'border-dashed !text-muted-foreground italic line-through':
-                          !enableActiveSelection
-                      }
-                    )}
-                  >
-                    <IconFileText />
-                    <ContextLabel
-                      context={activeSelection}
-                      className="flex-1 truncate"
-                    />
-                    <span className="shrink-0 text-muted-foreground">
-                      Current file
-                    </span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 shrink-0 rounded-l-none hover:bg-muted/50"
-                      onClick={e => {
-                        updateEnableActiveSelection(!enableActiveSelection)
-                      }}
-                    >
-                      {enableActiveSelection ? <IconEye /> : <IconEyeOff />}
-                    </Button>
-                  </Badge>
-                </motion.div>
-              ) : null}
+                  {enableActiveSelection ? <IconEye /> : <IconEyeOff />}
+                </Button>
+              </Badge>
+            ) : null}
+            <AnimatePresence>
               {relevantContext.map((item, idx) => {
                 // `git_url + filepath + range` as unique key
                 const key = `${item.git_url}_${item.filepath}_${item.range?.start}_${item.range?.end}`
@@ -380,6 +373,7 @@ function ChatPanelRenderer(
           <PromptForm
             ref={chatInputRef}
             onSubmit={onSubmit}
+            onUpdate={onUpdate}
             isLoading={isLoading}
           />
           <FooterText className="hidden sm:block" />

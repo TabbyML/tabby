@@ -45,6 +45,7 @@ export type FileItem = ListFileItem
  * Represents a file source item for the mention suggestion list.
  */
 export interface SourceItem {
+  id: string
   name: string
   filepath: string
   category: 'file'

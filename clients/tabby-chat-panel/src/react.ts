@@ -11,7 +11,7 @@ function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApiMethod
   useEffect(() => {
     if (iframeRef.current && !isCreated) {
       isCreated = true
-      setClient(createClient(iframeRef.current!, api))
+      createClient(iframeRef.current!, api).then(setClient)
     }
   }, [iframeRef.current])
 
@@ -26,7 +26,7 @@ function useServer(api: ServerApi) {
     const isInIframe = window.self !== window.top
     if (isInIframe && !isCreated) {
       isCreated = true
-      setServer(createServer(api))
+      createServer(api).then(setServer)
     }
   }, [])
 
