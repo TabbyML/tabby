@@ -770,7 +770,7 @@ function RelevantCodeTitle({
         {!!targetRepo && (
           <>
             <span>&nbsp;from&nbsp;</span>
-            <div className="inline-flex items-center gap-1 cursor-pointer font-medium">
+            <div className="inline-flex cursor-pointer items-center gap-1 font-medium">
               <SourceIcon
                 kind={targetRepo.sourceKind}
                 className="h-3.5 w-3.5 shrink-0"
