@@ -40,7 +40,7 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       storeSessionState: api.storeSessionState,
       listFileInWorkspace: api.listFileInWorkspace,
       readFileContent: api.readFileContent,
-      listActiveSymbols: api.listActiveSymbols,
+      listSymbols: api.listSymbols,
     },
   });
 }
