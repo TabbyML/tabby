@@ -19,38 +19,38 @@ function getLeadingSpaces(str: string): number {
  * goal is to ensure that the inserted snippet aligns correctly with the surrounding code.
  *
  * How it works:
- * 1. If the current line prefix contains a tab, we assume the user is using tab-based indentation.
- *    - In this case, we only process the first line of the snippet: if its first character is a whitespace
- *      (either a space or a tab), we remove it. This simple adjustment helps avoid an extra indent.
+ * 1. Early returns: The function returns the original item without modification if any of these conditions are met:
+ *    - Lines array is invalid or empty
+ *    - Current line prefix is empty
+ *    - Current line prefix contains a tab character
  *
- * 2. If the current line prefix is space-indented (or contains only spaces) and is empty,
- *    we normalize the snippet further:
- *    - For the first snippet line: we calculate the total number of leading spaces by adding the
- *      cursor's prefix spaces to the snippet's first line spaces. If this sum is odd and the first
- *      line itself has an odd number of leading spaces, we remove all leading spaces from that line.
- *      This addresses cases where an "odd" indentation (i.e. not a multiple of the expected indent unit)
- *      would otherwise cause misalignment.
+ * 2. Space-based indentation check:
+ *    - If the current line prefix contains any non-space characters, return the original item
+ *    - Otherwise, proceed with indentation normalization
  *
- * 3. For every snippet line: if the line's leading spaces count is odd (and greater than zero),
- *    we remove one space to make the indentation even.
+ * 3. Indentation normalization process:
+ *    - For the first line: Calculate total leading spaces (cursor prefix + first line spaces)
+ *      If both the total and the first line spaces are odd, remove all leading spaces from first line
+ *      This prevents misalignment in cases of odd indentation units
  *
- * The adjustments ensure that the snippet's indentation blends seamlessly with the user's current context,
- * preventing unintended extra indentation.
+ * 4. Line-by-line normalization:
+ *    - For each non-empty line: if leading spaces count is odd (and > 0),
+ *      reduce it by 1 space to maintain even indentation
+ *    - Empty or whitespace-only lines are skipped
+ *
+ * The adjustments ensure consistent indentation alignment throughout the code snippet,
+ * particularly focusing on maintaining even space counts for proper alignment.
  */
 export function normalizeIndentation(): PostprocessFilter {
   return (item: CompletionItem): CompletionItem => {
     const { context, lines } = item;
-    if (!Array.isArray(lines) || lines.length === 0) return item;
-
-    if (context.currentLinePrefix.includes("\t")) {
-      const normalizedLines = [...lines];
-      if (normalizedLines[0] && normalizedLines[0].length > 0) {
-        if (/^[ \t]/.test(normalizedLines[0])) {
-          normalizedLines[0] = normalizedLines[0].substring(1);
-        }
-      }
-      return item.withText(normalizedLines.join(""));
-    }
+    if (
+      !Array.isArray(lines) ||
+      lines.length === 0 ||
+      context.currentLinePrefix.length == 0 ||
+      context.currentLinePrefix.includes("\t")
+    )
+      return item;
 
     if (!isOnlySpaces(context.currentLinePrefix)) {
       return item;
