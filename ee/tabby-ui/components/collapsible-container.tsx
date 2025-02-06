@@ -46,8 +46,8 @@ export const CollapsibleContainer = ({
       {showButton && (
         <div
           className={cn({
-            'absolute left-2 -bottom-1 z-10': isCollapsed,
-            'flex justify-start my-2': !isCollapsed
+            'absolute right-2 -bottom-4 z-10': isCollapsed,
+            'flex justify-end my-2': !isCollapsed
           })}
         >
           <Button variant="outline" size="icon" onClick={handleToggle}>
