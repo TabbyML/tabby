@@ -1,11 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use futures::StreamExt;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
     auth::AuthenticationService,
-    page::{AddPageSectionInput, Page, PageService, Section},
+    page::{
+        AddPageSectionInput, Page, PageContentCompleted, PageContentDelta, PageConvertStream,
+        PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
+        PageSectionContentDelta, PageSectionsCreated, PageService, Section,
+    },
     thread::ThreadService,
     AsID, AsRowid, CoreError, Result,
 };
@@ -35,7 +40,11 @@ pub fn create(
 
 #[async_trait]
 impl PageService for PageServiceImpl {
-    async fn convert_thread_to_page(&self, author_id: &ID, thread_id: &ID) -> Result<ID> {
+    async fn convert_thread_to_page(
+        &self,
+        author_id: &ID,
+        thread_id: &ID,
+    ) -> Result<PageConvertStream> {
         let _thread = self
             .thread
             .get(thread_id)
@@ -61,7 +70,55 @@ impl PageService for PageServiceImpl {
         self.generate_page_title(&page_id.as_id()).await?;
         self.generate_page_content(&page_id.as_id()).await?;
 
-        Ok(page_id.as_id())
+        let author_id = author_id.clone();
+        Ok(async_stream::stream! {
+            yield Ok(PageRunItem::PageCreated(PageCreated {
+                id: page_id.as_id(),
+                author_id: author_id.clone(),
+                title: "Title".into(),
+            }));
+
+            for i in 0..10 {
+                yield Ok(PageRunItem::PageContentDelta(PageContentDelta {
+                    delta: format!("Content {}, ", i).into(),
+                }));
+            }
+
+            yield Ok(PageRunItem::PageContentCompleted(PageContentCompleted {
+                id: page_id.as_id(),
+            }));
+
+            yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
+                sections: vec![
+                PageSection {
+                    id: ID::new("section1"),
+                    title: "Section 1".into(),
+                },
+                PageSection {
+                    id: ID::new("section2"),
+                    title: "Section 2".into(),
+                },
+                PageSection {
+                    id: ID::new("section3"),
+                    title: "Section 3".into(),
+                },
+                ],
+            }));
+
+            for i in 1..3 {
+                for j in 0..10 {
+                    yield Ok(PageRunItem::PageSectionContentDelta(PageSectionContentDelta {
+                        id: ID::new(format!("section{}", i)),
+                        delta: format!("Section Content {}, ", j).into(),
+                    }));
+                }
+
+                yield Ok(PageRunItem::PageSectionContentCompleted(PageSectionContentCompleted {
+                    id: ID::new(format!("section{}", i)),
+                }));
+            }
+        }
+        .boxed())
     }
 
     //TODO: generate page title and content

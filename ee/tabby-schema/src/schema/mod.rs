@@ -21,7 +21,6 @@ pub mod worker;
 use std::{sync::Arc, time::Instant};
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
-use anyhow::anyhow;
 use async_openai_alt::{
     error::OpenAIError,
     types::{
@@ -1607,9 +1606,7 @@ impl Subscription {
         let user = check_user(ctx).await?;
 
         let svc = ctx.locator.page();
-        svc.convert_thread_to_page(&user.id, &thread_id).await;
-
-        Err(CoreError::Other(anyhow!("Not implemented")))
+        svc.convert_thread_to_page(&user.id, &thread_id).await
     }
 }
 

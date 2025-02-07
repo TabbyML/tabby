@@ -10,7 +10,11 @@ pub type PageConvertStream = BoxStream<'static, Result<PageRunItem>>;
 
 #[async_trait]
 pub trait PageService: Send + Sync {
-    async fn convert_thread_to_page(&self, author_id: &ID, thread_id: &ID) -> Result<ID>;
+    async fn convert_thread_to_page(
+        &self,
+        author_id: &ID,
+        thread_id: &ID,
+    ) -> Result<PageConvertStream>;
 
     async fn generate_page_title(&self, id: &ID) -> Result<String>;
     async fn generate_page_content(&self, id: &ID) -> Result<String>;
