@@ -11,6 +11,7 @@ import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
 import { ChatSidePanelProvider } from "./chat/sidePanel";
 import { Commands } from "./commands";
+import { init as initFindFiles } from "./findFiles";
 import { CodeActions } from "./CodeActions";
 import { isBrowser } from "./env";
 
@@ -85,11 +86,20 @@ export async function activate(context: ExtensionContext) {
 
   logger.info("Tabby extension activated.");
 
-  await gitProvider.init();
+  // Start async initialization
+  await Promise.all([
+    (async () => {
+      await gitProvider.init();
 
-  logger.info("Launching language server tabby-agent...");
-  await client.start();
-  logger.info("Language server tabby-agent launched.");
+      logger.info("Launching language server tabby-agent...");
+      await client.start();
+      logger.info("Language server tabby-agent launched.");
+    })(),
+    (async () => {
+      // preheat findFiles
+      await initFindFiles(context);
+    })(),
+  ]);
 }
 
 export async function deactivate() {
