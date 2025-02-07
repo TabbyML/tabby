@@ -21,6 +21,7 @@ pub mod worker;
 use std::{sync::Arc, time::Instant};
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
+use anyhow::anyhow;
 use async_openai_alt::{
     error::OpenAIError,
     types::{
@@ -45,6 +46,7 @@ use juniper::{
 };
 use ldap3::result::LdapError;
 use notification::NotificationService;
+use page::PageConvertStream;
 use repository::RepositoryGrepOutput;
 use strum::IntoEnumIterator;
 use tabby_common::{
@@ -1361,19 +1363,6 @@ impl Mutation {
 
     // page mutations
 
-    /// Utilize an existing thread and its messages to create a page.
-    /// This will automatically generate the page title and a summary of the content.
-    ///
-    /// Every two messages will be converted into a page section.
-    /// The user's message will serve as the title of the section.
-    /// The assistant's message will become the content of the section.
-    async fn convert_thread_to_page(ctx: &Context, thread_id: ID) -> Result<ID> {
-        let user = check_user(ctx).await?;
-
-        let svc = ctx.locator.page();
-        svc.convert_thread_to_page(&user.id, &thread_id).await
-    }
-
     /// delete a page and all its sections.
     async fn delete_page(ctx: &Context, id: ID) -> Result<bool> {
         let user = check_user(ctx).await?;
@@ -1608,6 +1597,19 @@ impl Subscription {
             false,
         )
         .await
+    }
+
+    /// Utilize an existing thread and its messages to create a page.
+    /// This will automatically generate:
+    /// - the page title and a summary of the content.
+    /// - a few sections based on the thread messages.
+    async fn convert_thread_to_page(ctx: &Context, thread_id: ID) -> Result<PageConvertStream> {
+        let user = check_user(ctx).await?;
+
+        let svc = ctx.locator.page();
+        svc.convert_thread_to_page(&user.id, &thread_id).await;
+
+        Err(CoreError::Other(anyhow!("Not implemented")))
     }
 }
 

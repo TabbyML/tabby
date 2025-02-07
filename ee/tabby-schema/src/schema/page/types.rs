@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use juniper::{GraphQLInputObject, GraphQLObject, ID};
+use juniper::{GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -62,4 +62,61 @@ impl NodeType for Section {
 pub struct AddPageSectionInput {
     pub page_id: ID,
     pub title: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageCreated {
+    pub id: ID,
+    pub author_id: ID,
+    pub title: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageSectionsCreated {
+    pub sections: Vec<PageSection>,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageSection {
+    pub id: ID,
+    pub title: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageContentDelta {
+    pub delta: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageContentCompleted {
+    pub id: ID,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageSectionContentDelta {
+    pub id: ID,
+    pub delta: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageSectionContentCompleted {
+    pub id: ID,
+}
+
+/// Schema of page convert stream.
+#[derive(GraphQLUnion)]
+#[graphql(context = Context)]
+pub enum PageRunItem {
+    // PageCreated will return at the beginning of the stream,
+    // containing the page ID, author and title.
+    PageCreated(PageCreated),
+
+    PageContentDelta(PageContentDelta),
+    PageContentCompleted(PageContentCompleted),
+
+    // PageSectionsCreated will return the titles of all sections.
+    PageSectionsCreated(PageSectionsCreated),
+
+    PageSectionContentDelta(PageSectionContentDelta),
+    PageSectionContentCompleted(PageSectionContentCompleted),
 }
