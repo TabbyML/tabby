@@ -109,15 +109,13 @@ async function updateGitIgnorePatterns(workspaceFolder: WorkspaceFolder, token?:
   gitIgnorePatternsMap.set(workspaceFolder.uri.toString(), patterns);
 }
 
-const updateGitIgnorePatternsMap = wrapCancelableFunction(
-  async (token?: CancellationToken) => {
-    await Promise.all(
-      workspace.workspaceFolders?.map(async (workspaceFolder) => {
-        await updateGitIgnorePatterns(workspaceFolder, token);
-      }) ?? [],
-    );
-  }
-);
+const updateGitIgnorePatternsMap = wrapCancelableFunction(async (token?: CancellationToken) => {
+  await Promise.all(
+    workspace.workspaceFolders?.map(async (workspaceFolder) => {
+      await updateGitIgnorePatterns(workspaceFolder, token);
+    }) ?? [],
+  );
+});
 
 export async function init(context: ExtensionContext) {
   context.subscriptions.push(
