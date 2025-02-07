@@ -52,6 +52,7 @@ import {
   escapeGlobPattern,
 } from "./utils";
 import { findFiles } from "../findFiles";
+import { wrapCancelableFunction } from "../cancelableFunction";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
 
@@ -531,7 +532,7 @@ export class ChatWebview {
 
           const globPattern = `**/${caseInsensitivePattern}*`;
           this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
-          const files = await findFiles(globPattern, { maxResults });
+          const files = await this.findFiles(globPattern, { maxResults });
           this.logger.info(`Found ${files.length} files.`);
           return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
         } catch (error) {
@@ -755,6 +756,12 @@ export class ChatWebview {
   private debouncedNotifyActiveEditorSelectionChange = debounce(async (editor: TextEditor | undefined) => {
     await this.notifyActiveEditorSelectionChange(editor);
   }, 100);
+
+  private findFiles = wrapCancelableFunction(
+    findFiles,
+    (args) => args[1]?.token,
+    (args, token) => [args[0], { ...args[1], token }] as Parameters<typeof findFiles>,
+  );
 
   private getColorThemeString() {
     switch (window.activeColorTheme.kind) {

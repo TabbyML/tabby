@@ -16,6 +16,7 @@ import {
   workspace,
 } from "vscode";
 import path from "path";
+import { wrapCancelableFunction } from "./cancelableFunction";
 import { getLogger } from "./logger";
 
 const logger = getLogger("FindFiles");
@@ -108,18 +109,15 @@ async function updateGitIgnorePatterns(workspaceFolder: WorkspaceFolder, token?:
   gitIgnorePatternsMap.set(workspaceFolder.uri.toString(), patterns);
 }
 
-// Ensure only on updating job is running at a time
-let updatingJobCancellationTokenSource: CancellationTokenSource | undefined = undefined;
-
-async function updateGitIgnorePatternsMap() {
-  updatingJobCancellationTokenSource?.cancel();
-  updatingJobCancellationTokenSource = new CancellationTokenSource();
-  await Promise.all(
-    workspace.workspaceFolders?.map(async (workspaceFolder) => {
-      await updateGitIgnorePatterns(workspaceFolder, updatingJobCancellationTokenSource?.token);
-    }) ?? [],
-  );
-}
+const updateGitIgnorePatternsMap = wrapCancelableFunction(
+  async (token?: CancellationToken) => {
+    await Promise.all(
+      workspace.workspaceFolders?.map(async (workspaceFolder) => {
+        await updateGitIgnorePatterns(workspaceFolder, token);
+      }) ?? [],
+    );
+  }
+);
 
 export async function init(context: ExtensionContext) {
   context.subscriptions.push(
@@ -176,7 +174,7 @@ export async function findFiles(
   } else {
     return new Promise((resolve, reject) => {
       if (options?.token?.isCancellationRequested) {
-        reject();
+        reject(new Error("Operation canceled."));
         return;
       }
 
@@ -184,7 +182,7 @@ export async function findFiles(
       if (options?.token) {
         options?.token.onCancellationRequested(() => {
           cancellationTokenSource.cancel();
-          reject();
+          reject(new Error("Operation canceled."));
         });
       }
 
