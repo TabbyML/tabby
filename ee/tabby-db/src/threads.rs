@@ -225,7 +225,7 @@ impl DbConn {
                 role,
                 content,
                 attachment
-            ) VALUES (?, ?, ?, JSON_OBJECT('code', ?, 'client_code', ?, 'doc', ?))"#,
+            ) VALUES (?, ?, ?, JSON_OBJECT('code', JSON(?), 'client_code', JSON(?), 'doc', JSON(?)))"#,
             thread_id,
             role,
             content,
