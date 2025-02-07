@@ -537,6 +537,8 @@ type MessageAttachment {
   code: [MessageAttachmentCode!]!
   "Documents retrieved from various sources, all from the server side."
   doc: [MessageAttachmentDoc!]!
+  "File list retrieved from the server side codebase is used for generating this message."
+  codeFileList: MessageAttachmentCodeFileList
 }
 
 type MessageAttachmentClientCode {
@@ -553,6 +555,10 @@ type MessageAttachmentCode {
   content: String!
   "When start line is `None`, it represents the entire file."
   startLine: Int
+}
+
+type MessageAttachmentCodeFileList {
+  fileList: [String!]!
 }
 
 type MessageAttachmentCodeScores {
@@ -873,6 +879,10 @@ type ThreadAssistantMessageAttachmentsCode {
   hits: [MessageCodeSearchHit!]!
 }
 
+type ThreadAssistantMessageAttachmentsCodeFileList {
+  fileList: [String!]!
+}
+
 type ThreadAssistantMessageAttachmentsDoc {
   hits: [MessageDocSearchHit!]!
 }
@@ -991,4 +1001,4 @@ union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc
 
   Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 """
-union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageReadingCode | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageReadingCode | ThreadAssistantMessageAttachmentsCodeFileList | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted

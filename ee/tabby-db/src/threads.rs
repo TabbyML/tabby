@@ -24,6 +24,7 @@ pub struct ThreadMessageDAO {
     pub content: String,
 
     pub code_source_id: Option<String>,
+    pub attachment: Option<Json<ThreadMessageAttachment>>,
 
     pub code_attachments: Option<Json<Vec<ThreadMessageAttachmentCode>>>,
     pub client_code_attachments: Option<Json<Vec<ThreadMessageAttachmentClientCode>>>,
@@ -31,6 +32,16 @@ pub struct ThreadMessageDAO {
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachment {
+    pub code_file_list: Option<ThreadMessageAttachmentCodeFileList>, // FIXME(meng): consider migrate code / client / doc attachments into this struct.
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentCodeFileList {
+    pub file_list: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -225,6 +236,25 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
+    pub async fn update_thread_message_code_file_list_attachment(
+        &self,
+        message_id: i64,
+        file_list: &[String],
+    ) -> Result<()> {
+        let code_file_list_attachment = Json(ThreadMessageAttachmentCodeFileList {
+            file_list: file_list.into(),
+        });
+        query!(
+            "UPDATE thread_messages SET attachment = JSON_SET(IFNULL(attachment, '{}'), '$.code_file_list', ?), updated_at = DATETIME('now') WHERE id = ?",
+            code_file_list_attachment,
+            message_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn update_thread_message_code_attachments(
         &self,
         message_id: i64,
@@ -304,6 +334,7 @@ impl DbConn {
                 role,
                 content,
                 code_source_id,
+                attachment as "attachment: Json<ThreadMessageAttachment>",
                 code_attachments as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
                 client_code_attachments as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
                 doc_attachments as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
@@ -338,6 +369,7 @@ impl DbConn {
                 "role",
                 "content",
                 "code_source_id",
+                "attachment" as "attachment: Json<ThreadMessageAttachment>",
                 "code_attachments" as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
                 "client_code_attachments" as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
                 "doc_attachments" as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",

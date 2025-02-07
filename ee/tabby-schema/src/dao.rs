@@ -4,8 +4,9 @@ use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
     OAuthCredentialDAO, ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode,
-    ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
-    ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc, UserEventDAO,
+    ThreadMessageAttachmentCode, ThreadMessageAttachmentCodeFileList, ThreadMessageAttachmentDoc,
+    ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc,
+    UserEventDAO,
 };
 
 use crate::{
@@ -261,6 +262,14 @@ impl From<&thread::MessageAttachmentCodeInput> for ThreadMessageAttachmentClient
             filepath: val.filepath.clone(),
             content: val.content.clone(),
             start_line: val.start_line.map(|x| x as usize),
+        }
+    }
+}
+
+impl From<ThreadMessageAttachmentCodeFileList> for thread::MessageAttachmentCodeFileList {
+    fn from(value: ThreadMessageAttachmentCodeFileList) -> Self {
+        Self {
+            file_list: value.file_list,
         }
     }
 }
