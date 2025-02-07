@@ -72,12 +72,12 @@ pub struct PageCreated {
 }
 
 #[derive(GraphQLObject)]
-pub struct PageSectionsTitleCreated {
-    pub sections: Vec<PageSectionTitle>,
+pub struct PageSectionsCreated {
+    pub sections: Vec<PageSection>,
 }
 
 #[derive(GraphQLObject)]
-pub struct PageSectionTitle {
+pub struct PageSection {
     pub id: ID,
     pub title: String,
 }
@@ -106,7 +106,7 @@ pub struct PageSectionContentCompleted {
 /// Schema of page convert stream.
 #[derive(GraphQLUnion)]
 #[graphql(context = Context)]
-pub enum PageConvertItem {
+pub enum PageRunItem {
     // PageCreated will return at the beginning of the stream,
     // containing the page ID, author and title.
     PageCreated(PageCreated),
@@ -114,8 +114,8 @@ pub enum PageConvertItem {
     PageContentDelta(PageContentDelta),
     PageContentCompleted(PageContentCompleted),
 
-    // PageSectionsTitleCreated will return the titles of all sections.
-    PageSectionsTitleCreated(PageSectionsTitleCreated),
+    // PageSectionsCreated will return the titles of all sections.
+    PageSectionsCreated(PageSectionsCreated),
 
     PageSectionContentDelta(PageSectionContentDelta),
     PageSectionContentCompleted(PageSectionContentCompleted),

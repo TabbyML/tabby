@@ -721,6 +721,7 @@ type PageContentDelta {
 type PageCreated {
   id: ID!
   authorId: ID!
+  title: String!
 }
 
 type PageEdge {
@@ -735,18 +736,22 @@ type PageInfo {
   endCursor: String
 }
 
-type PageSectionCreated {
+type PageSection {
   id: ID!
   title: String!
-  content: String!
 }
 
-type PageTitleCompleted {
+type PageSectionContentCompleted {
   id: ID!
 }
 
-type PageTitleDelta {
+type PageSectionContentDelta {
+  id: ID!
   delta: String!
+}
+
+type PageSectionsCreated {
+  sections: [PageSection!]!
 }
 
 type PresetDocumentConnection {
@@ -939,13 +944,11 @@ type Subscription {
   createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
   """
     Utilize an existing thread and its messages to create a page.
-    This will automatically generate the page title and a summary of the content.
-
-    Every two messages will be converted into a page section.
-    The user's message will serve as the title of the section.
-    The assistant's message will become the content of the section.
+    This will automatically generate:
+    - the page title and a summary of the content.
+    - a few sections based on the thread messages.
   """
-  convertThreadToPage(threadId: ID!): PageConvertItem!
+  convertThreadToPage(threadId: ID!): PageRunItem!
 }
 
 type Thread {
@@ -1068,7 +1071,7 @@ type WebContextSource implements ContextSourceId & ContextSource {
 union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc
 
 "Schema of page convert stream."
-union PageConvertItem = PageCreated | PageTitleDelta | PageTitleCompleted | PageContentDelta | PageContentCompleted | PageSectionCreated
+union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionContentDelta | PageSectionContentCompleted
 
 """
   Schema of thread run stream.

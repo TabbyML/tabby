@@ -1600,11 +1600,9 @@ impl Subscription {
     }
 
     /// Utilize an existing thread and its messages to create a page.
-    /// This will automatically generate the page title and a summary of the content.
-    ///
-    /// Every two messages will be converted into a page section.
-    /// The user's message will serve as the title of the section.
-    /// The assistant's message will become the content of the section.
+    /// This will automatically generate:
+    /// - the page title and a summary of the content.
+    /// - a few sections based on the thread messages.
     async fn convert_thread_to_page(ctx: &Context, thread_id: ID) -> Result<PageConvertStream> {
         let user = check_user(ctx).await?;
 
