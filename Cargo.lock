@@ -1929,6 +1929,7 @@ dependencies = [
  "tabby-common",
  "tabby-inference",
  "tokio",
+ "tokio-retry",
  "tracing",
 ]
 

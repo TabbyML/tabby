@@ -8,7 +8,7 @@ aim-downloader = { path = "../aim-downloader" }
 tabby-common = { path = "../tabby-common" }
 anyhow = { workspace = true }
 tracing = { workspace = true }
-tokio-retry = "0.3.0"
+tokio-retry = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
