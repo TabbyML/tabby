@@ -1,4 +1,7 @@
-import { CodeActionProvider, ExtensionContext, languages } from "vscode";
+import { CodeActionProvider, ExtensionContext, Uri, languages } from "vscode";
+import { LanguageClientOptions } from "vscode-languageclient";
+import { LanguageClient as NodeLanguageClient, ServerOptions, TransportKind } from "vscode-languageclient/node";
+import { LanguageClient as BrowserLanguageClient } from "vscode-languageclient/browser";
 import { BaseLanguageClient } from "vscode-languageclient";
 import { AgentStatusFeature } from "./AgentStatusFeature";
 import { AgentConfigFeature } from "./AgentConfigFeature";
@@ -17,9 +20,43 @@ import { WorkspaceFileSystemFeature } from "./WorkspaceFileSystemFeature";
 import { Config } from "../Config";
 import { InlineCompletionProvider } from "../InlineCompletionProvider";
 import { GitProvider } from "../git/GitProvider";
-import { getLogger } from "../logger";
+import { getLogger, LogOutputChannel } from "../logger";
 import { WorkSpaceFeature } from "./WorkspaceFeature";
 import { FileTrackerFeature } from "./FileTrackFeature";
+import { isBrowser } from "../env";
+
+export function createClient(context: ExtensionContext, logger: LogOutputChannel): Client {
+  const clientOptions: LanguageClientOptions = {
+    documentSelector: [
+      { scheme: "file" },
+      { scheme: "vscode-vfs" },
+      { scheme: "untitled" },
+      { scheme: "vscode-notebook-cell" },
+      { scheme: "vscode-userdata" },
+    ],
+    outputChannel: logger,
+  };
+  if (isBrowser) {
+    const workerModulePath = Uri.joinPath(context.extensionUri, "dist/tabby-agent/browser/index.mjs");
+    const worker = new Worker(workerModulePath.toString());
+    const languageClient = new BrowserLanguageClient("Tabby", "Tabby", clientOptions, worker);
+    return new Client(context, languageClient);
+  } else {
+    const serverModulePath = context.asAbsolutePath("dist/tabby-agent/node/index.js");
+    const serverOptions: ServerOptions = {
+      run: {
+        module: serverModulePath,
+        transport: TransportKind.ipc,
+      },
+      debug: {
+        module: serverModulePath,
+        transport: TransportKind.ipc,
+      },
+    };
+    const languageClient = new NodeLanguageClient("Tabby", serverOptions, clientOptions);
+    return new Client(context, languageClient);
+  }
+}
 
 export class Client {
   private readonly logger = getLogger("");

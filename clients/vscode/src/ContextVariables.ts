@@ -1,5 +1,5 @@
 import { commands, window, workspace, Range } from "vscode";
-import { Client } from "./lsp/Client";
+import { Client } from "./lsp/client";
 import { Config } from "./Config";
 
 export class ContextVariables {
