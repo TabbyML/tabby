@@ -80,7 +80,7 @@ impl PageService for PageServiceImpl {
 
             for i in 0..10 {
                 yield Ok(PageRunItem::PageContentDelta(PageContentDelta {
-                    delta: format!("Content {}, ", i).into(),
+                    delta: format!("Content {}, ", i),
                 }));
             }
 
@@ -109,7 +109,7 @@ impl PageService for PageServiceImpl {
                 for j in 0..10 {
                     yield Ok(PageRunItem::PageSectionContentDelta(PageSectionContentDelta {
                         id: ID::new(format!("section{}", i)),
-                        delta: format!("Section Content {}, ", j).into(),
+                        delta: format!("Section Content {}, ", j),
                     }));
                 }
 
