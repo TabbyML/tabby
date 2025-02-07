@@ -41,25 +41,27 @@ impl ThreadServiceImpl {
         output.reserve(messages.len());
 
         for message in messages {
-            let code = message.code_attachments;
-            let client_code = message.client_code_attachments;
-            let doc = message.doc_attachments;
-
-            let attachment = MessageAttachment {
-                code: code
-                    .map(|x| x.0.into_iter().map(|i| i.into()).collect())
-                    .unwrap_or_default(),
-                client_code: client_code
-                    .map(|x| x.0.into_iter().map(|i| i.into()).collect())
-                    .unwrap_or_default(),
-                doc: if let Some(docs) = doc {
-                    self.to_message_attachment_docs(docs.0).await
-                } else {
-                    vec![]
-                },
-                code_file_list: message
-                    .attachment
-                    .and_then(|x| x.0.code_file_list.map(|x| x.into())),
+            let attachment = if let Some(attachment) = message.attachment {
+                let code = attachment.0.code;
+                let client_code = attachment.0.client_code;
+                let doc = attachment.0.doc;
+                let code_file_list= attachment.0.code_file_list;
+                MessageAttachment {
+                    code: code
+                        .map(|x| x.into_iter().map(|i| i.into()).collect())
+                        .unwrap_or_default(),
+                    client_code: client_code
+                        .map(|x| x.into_iter().map(|i| i.into()).collect())
+                        .unwrap_or_default(),
+                    doc: if let Some(docs) = doc {
+                        self.to_message_attachment_docs(docs).await
+                    } else {
+                        vec![]
+                    },
+                    code_file_list: code_file_list.map(|x| x.into()),
+                }
+            } else {
+                Default::default()
             };
 
             output.push(thread::Message {

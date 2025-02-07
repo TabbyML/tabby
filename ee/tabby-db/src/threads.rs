@@ -26,9 +26,11 @@ pub struct ThreadMessageDAO {
     pub code_source_id: Option<String>,
     pub attachment: Option<Json<ThreadMessageAttachment>>,
 
-    pub code_attachments: Option<Json<Vec<ThreadMessageAttachmentCode>>>,
-    pub client_code_attachments: Option<Json<Vec<ThreadMessageAttachmentClientCode>>>,
-    pub doc_attachments: Option<Json<Vec<ThreadMessageAttachmentDoc>>>,
+    // Deprecated since 0.25 (not removed from db yet).
+    // FIXME(meng): remove these columns from db in 0.26.
+    // pub code_attachments: Option<Json<Vec<ThreadMessageAttachmentCode>>>,
+    // pub client_code_attachments: Option<Json<Vec<ThreadMessageAttachmentClientCode>>>,
+    // pub doc_attachments: Option<Json<Vec<ThreadMessageAttachmentDoc>>>,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -36,7 +38,17 @@ pub struct ThreadMessageDAO {
 
 #[derive(Serialize, Deserialize)]
 pub struct ThreadMessageAttachment {
-    pub code_file_list: Option<ThreadMessageAttachmentCodeFileList>, // FIXME(meng): consider migrate code / client / doc attachments into this struct.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<Vec<ThreadMessageAttachmentCode>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_code: Option<Vec<ThreadMessageAttachmentClientCode>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doc: Option<Vec<ThreadMessageAttachmentDoc>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code_file_list: Option<ThreadMessageAttachmentCodeFileList>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -219,10 +231,8 @@ impl DbConn {
                 thread_id,
                 role,
                 content,
-                code_attachments,
-                client_code_attachments,
-                doc_attachments
-            ) VALUES (?, ?, ?, ?, ?, ?)"#,
+                attachment
+            ) VALUES (?, ?, ?, JSON_OBJECT('code', ?, 'client_code', ?, 'doc', ?))"#,
             thread_id,
             role,
             content,
@@ -245,7 +255,7 @@ impl DbConn {
             file_list: file_list.into(),
         });
         query!(
-            "UPDATE thread_messages SET attachment = JSON_SET(IFNULL(attachment, '{}'), '$.code_file_list', ?), updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE thread_messages SET attachment = JSON_SET(attachment, '$.code_file_list', JSON(?)), updated_at = DATETIME('now') WHERE id = ?",
             code_file_list_attachment,
             message_id
         )
@@ -263,7 +273,7 @@ impl DbConn {
     ) -> Result<()> {
         let code_attachments = Json(code_attachments);
         query!(
-            "UPDATE thread_messages SET code_attachments = ?, code_source_id = ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE thread_messages SET attachment = JSON_SET(attachment, '$.code', JSON(?)), code_source_id = ?, updated_at = DATETIME('now') WHERE id = ?",
             code_attachments,
             code_source_id,
             message_id
@@ -281,7 +291,7 @@ impl DbConn {
     ) -> Result<()> {
         let doc_attachments = Json(doc_attachments);
         query!(
-            "UPDATE thread_messages SET doc_attachments = ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE thread_messages SET attachment = JSON_SET(attachment, '$.doc', JSON(?)), updated_at = DATETIME('now') WHERE id = ?",
             doc_attachments,
             message_id
         )
@@ -335,9 +345,6 @@ impl DbConn {
                 content,
                 code_source_id,
                 attachment as "attachment: Json<ThreadMessageAttachment>",
-                code_attachments as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
-                client_code_attachments as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
-                doc_attachments as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
                 created_at as "created_at: DateTime<Utc>",
                 updated_at as "updated_at: DateTime<Utc>"
             FROM thread_messages
@@ -370,9 +377,6 @@ impl DbConn {
                 "content",
                 "code_source_id",
                 "attachment" as "attachment: Json<ThreadMessageAttachment>",
-                "code_attachments" as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
-                "client_code_attachments" as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
-                "doc_attachments" as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
                 "created_at" as "created_at: DateTime<Utc>",
                 "updated_at" as "updated_at: DateTime<Utc>"
             ],
