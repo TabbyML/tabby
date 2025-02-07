@@ -4,19 +4,12 @@ import { useContext, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import DOMPurify from 'dompurify'
 import he from 'he'
-import { compact, isEmpty } from 'lodash-es'
 import { marked } from 'marked'
 import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
 import * as z from 'zod'
 
-import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
-import {
-  Maybe,
-  MessageAttachmentClientCode,
-  MessageAttachmentCode,
-  Section
-} from '@/lib/gql/generates/graphql'
+import { MessageAttachmentCode, Section } from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
   AttachmentCodeItem,
@@ -24,13 +17,7 @@ import {
   ExtendedCombinedError,
   FileContext
 } from '@/lib/types'
-import {
-  cn,
-  formatLineHashForCodeBrowser,
-  getContent,
-  getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
-} from '@/lib/utils'
+import { cn, formatLineHashForCodeBrowser, getContent } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -52,9 +39,7 @@ import {
   IconEdit,
   IconGitMerge,
   IconGitPullRequest,
-  IconLayers,
   IconMore,
-  IconPlus,
   IconRefresh,
   IconSpinner
 } from '@/components/ui/icons'
@@ -69,131 +54,28 @@ import {
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CopyButton } from '@/components/copy-button'
-import {
-  ErrorMessageBlock,
-  MessageMarkdown
-} from '@/components/message-markdown'
+import { MessageMarkdown } from '@/components/message-markdown'
 import { SiteFavicon } from '@/components/site-favicon'
 import { UserAvatar } from '@/components/user-avatar'
 
-import { ConversationMessage, PageContext } from './page'
+import { PageContext } from './page-context'
 
 export function SectionContent({
   className,
   message,
-  showRelatedQuestion,
   isLoading
 }: {
   className?: string
   message: Section
-  showRelatedQuestion: boolean
   isLoading?: boolean
-  isLastAssistantMessage?: boolean
-  isDeletable?: boolean
-  clientCode?: Maybe<Array<MessageAttachmentClientCode>>
 }) {
-  const {
-    onRegenerateResponse,
-    onSubmitSearch,
-    enableDeveloperMode,
-    contextInfo,
-    fetchingContextInfo,
-    onDeleteMessage,
-    isThreadOwner,
-    onUpdateMessage,
-    mode
-  } = useContext(PageContext)
+  const { mode, isPageOwner } = useContext(PageContext)
 
   const [isEditing, setIsEditing] = useState(false)
-  const getCopyContent = (answer: ConversationMessage) => {
-    if (isEmpty(answer?.attachment?.doc) && isEmpty(answer?.attachment?.code)) {
-      return answer.content
-    }
 
-    const content = answer.content
-      .replace(MARKDOWN_CITATION_REGEX, match => {
-        const citationNumberMatch = match?.match(/\d+/)
-        return `[${citationNumberMatch}]`
-      })
-      .trim()
-    const docCitations =
-      answer.attachment?.doc
-        ?.map((doc, idx) => `[${idx + 1}] ${doc.link}`)
-        .join('\n') ?? ''
-    const docCitationLen = answer.attachment?.doc?.length ?? 0
-    const codeCitations =
-      answer.attachment?.code
-        ?.map((code, idx) => {
-          const lineRangeText = getRangeTextFromAttachmentCode(code)
-          const filenameText = compact([code.filepath, lineRangeText]).join(':')
-          return `[${idx + docCitationLen + 1}] ${filenameText}`
-        })
-        .join('\n') ?? ''
-    const citations = docCitations + codeCitations
-
-    return `${content}\n\nCitations:\n${citations}`
-  }
-
-  // const relevantCodeGitURL = message?.attachment?.code?.[0]?.gitUrl || ''
-
-  // const clientCodeContexts: RelevantCodeContext[] = useMemo(() => {
-  //   if (!clientCode?.length) return []
-  //   return (
-  //     clientCode.map(code => {
-  //       const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
-  //       return {
-  //         kind: 'file',
-  //         range: {
-  //           start: startLine,
-  //           end: endLine
-  //         },
-  //         filepath: code.filepath || '',
-  //         content: code.content,
-  //         git_url: relevantCodeGitURL
-  //       }
-  //     }) ?? []
-  //   )
-  // }, [clientCode, relevantCodeGitURL])
-
-  // const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
-  //   return (
-  //     message?.attachment?.code?.map(code => {
-  //       const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
-  //       return {
-  //         kind: 'file',
-  //         range: {
-  //           start: startLine,
-  //           end: endLine
-  //         },
-  //         filepath: code.filepath,
-  //         content: code.content,
-  //         git_url: code.gitUrl,
-  //         extra: {
-  //           scores: code?.extra?.scores
-  //         }
-  //       }
-  //     }) ?? []
-  //   )
-  // }, [clientCode, message?.attachment?.code])
-
-  // const messageAttachmentDocs = message?.attachment?.doc
-
-  const sources = []
-  // const sources = useMemo(() => {
-  //   return concat<AttachmentDocItem | AttachmentCodeItem>(
-  //     [],
-  //     messageAttachmentDocs,
-  //     messageAttachmentClientCode,
-  //     message.attachment?.code
-  //   )
-  // }, [
-  //   messageAttachmentDocs,
-  //   messageAttachmentClientCode,
-  //   message.attachment?.code
-  // ])
-  const sourceLen = sources.length
+  // FIXME
+  const sources: any[] = []
+  const sourceLen = 0
 
   const onCodeContextClick = (ctx: FileContext) => {
     if (!ctx.filepath) return
@@ -228,8 +110,13 @@ export function SectionContent({
     }
   }
 
-  const handleUpdateAssistantMessage = async (message: ConversationMessage) => {
-    const error = await onUpdateMessage(message)
+  const onDeleteMessage = (id: string) => {}
+  const onUpdateMessage = async (content: string) => {
+    return undefined
+  }
+
+  const handleUpdateAssistantMessage = async (content: string) => {
+    const error = await onUpdateMessage(content)
     if (error) {
       return error
     } else {
@@ -254,20 +141,15 @@ export function SectionContent({
           <>
             <MessageMarkdown
               message={message.content}
-              // attachmentDocs={messageAttachmentDocs}
-              // attachmentClientCode={messageAttachmentClientCode}
-              // attachmentCode={message.attachment?.code}
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
-              contextInfo={contextInfo}
-              fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
               supportsOnApplyInEditorV2={false}
               className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
             />
             {/* if isEditing, do not display error message block */}
-            {message.error && <ErrorMessageBlock error={message.error} />}
+            {/* {message.error && <ErrorMessageBlock error={message.error} />} */}
 
             {!isLoading && !isEditing && (
               <div className="mt-3 flex items-center gap-3 text-sm">
@@ -299,11 +181,11 @@ export function SectionContent({
                   {mode === 'view' && (
                     <CopyButton
                       className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
-                      value={getCopyContent(message)}
+                      value={message.content}
                       text="Copy"
                     />
                   )}
-                  {isThreadOwner && mode === 'edit' && (
+                  {isPageOwner && mode === 'edit' && (
                     <>
                       <Button
                         className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
@@ -331,8 +213,6 @@ export function SectionContent({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
-                          <DropdownMenuItem>Move Up</DropdownMenuItem>
-                          <DropdownMenuItem>Move Down</DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => {
                               onDeleteMessage(message.id)
@@ -350,36 +230,6 @@ export function SectionContent({
           </>
         )}
       </div>
-
-      {/* Related questions */}
-      {/* {showRelatedQuestion &&
-        !isEditing &&
-        !isLoading &&
-        message.threadRelevantQuestions &&
-        message.threadRelevantQuestions.length > 0 && (
-          <div>
-            <div className="flex items-center gap-x-1.5">
-              <IconLayers />
-              <p className="text-sm font-bold leading-none">Suggestions</p>
-            </div>
-            <div className="mt-2 flex flex-col gap-y-3">
-              {message.threadRelevantQuestions?.map(
-                (relevantQuestion, index) => (
-                  <div
-                    key={index}
-                    className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                    onClick={onSubmitSearch.bind(null, relevantQuestion)}
-                  >
-                    <p className="w-full overflow-hidden text-ellipsis text-sm">
-                      {relevantQuestion}
-                    </p>
-                    <IconPlus />
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        )} */}
     </div>
   )
 }
@@ -511,25 +361,22 @@ function MessageContentForm({
   onCancel,
   onSubmit
 }: {
-  message: Section
+  message: string
   onCancel: () => void
-  onSubmit: (newMessage: Section) => Promise<ExtendedCombinedError | void>
+  onSubmit: (newMessage: string) => Promise<ExtendedCombinedError | void>
 }) {
   const formSchema = z.object({
     content: z.string().trim()
   })
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { content: message.content }
+    defaultValues: { content: message }
   })
   const { isSubmitting } = form.formState
-  const [draftMessage] = useState<Section>(message)
+  const [draftMessage] = useState<string | undefined>(message)
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    const error = await onSubmit({
-      ...draftMessage,
-      content: values.content
-    })
+    const error = await onSubmit(values.content)
 
     if (error) {
       makeFormErrorHandler(form)(error)

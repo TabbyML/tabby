@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-import { SectionEdge } from '@/lib/gql/generates/graphql'
+import { ListPageSectionsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 
 interface Props {
-  sections: SectionEdge['node'][]
+  sections: ListPageSectionsQuery['pageSections']['edges'] | undefined
 }
 
 export const Navbar = ({ sections }: Props) => {
@@ -18,7 +18,6 @@ export const Navbar = ({ sections }: Props) => {
     const options = {
       root: null,
       rootMargin: '70px'
-      // threshold: 0.5,
     }
 
     observer.current = new IntersectionObserver(entries => {
@@ -43,7 +42,7 @@ export const Navbar = ({ sections }: Props) => {
   return (
     <nav className="sticky right-0 top-0 p-4">
       <ul className="flex flex-col space-y-1">
-        {sections?.map(section => (
+        {sections?.map(({ node: section }) => (
           <li key={section.id}>
             <div
               className={`truncate whitespace-nowrap text-sm ${

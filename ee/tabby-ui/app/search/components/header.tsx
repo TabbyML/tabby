@@ -2,10 +2,11 @@
 
 import { useContext, useState } from 'react'
 import type { MouseEvent } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
+import { updatePendingThreadId } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
@@ -40,12 +41,6 @@ const deleteThreadMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const convertThreadToPageMutation = graphql(/* GraphQL */ `
-  mutation convertThreadToPage($threadId: ID!) {
-    convertThreadToPage(threadId: $threadId)
-  }
-`)
-
 type HeaderProps = {
   threadIdFromURL?: string
   streamingDone?: boolean
@@ -53,12 +48,9 @@ type HeaderProps = {
 
 export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
-  const pathname = usePathname()
   const { isThreadOwner } = useContext(SearchContext)
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [converting, setConverting] = useState(false)
-
   const deleteThread = useMutation(deleteThreadMutation, {
     onCompleted(data) {
       if (data.deleteThread) {
@@ -74,30 +66,6 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
     }
   })
 
-  const convertThreadToPage = useMutation(convertThreadToPageMutation, {
-    onCompleted(data) {
-      if (data.convertThreadToPage) {
-        // router.push(pathname.replace(/^\/search/, '/page'))
-        router.push(`/page/${data.convertThreadToPage}`)
-      } else {
-        toast.error('Failed to convert')
-        setConverting(false)
-      }
-    },
-    onError(err) {
-      toast.error(err?.message || 'Failed to convert')
-      setConverting(false)
-    }
-  })
-
-  const handleConvertThreadToPage = () => {
-    if (converting || !threadIdFromURL) return
-    setConverting(true)
-    convertThreadToPage({
-      threadId: threadIdFromURL
-    })
-  }
-
   const handleDeleteThread = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     setIsDeleting(true)
@@ -111,6 +79,12 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
       clearHomeScrollPosition()
     }
     router.push('/')
+  }
+
+  const onConvertToPage = () => {
+    if (!threadIdFromURL) return
+    updatePendingThreadId(threadIdFromURL)
+    router.push('/page')
   }
 
   return (
@@ -169,12 +143,7 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button
-              variant="ghost"
-              onClick={handleConvertThreadToPage}
-              className='gap-1'
-            >
-              {converting && <IconSpinner />}
+            <Button variant="ghost" onClick={onConvertToPage} className="gap-1">
               Convert to page
             </Button>
           </>

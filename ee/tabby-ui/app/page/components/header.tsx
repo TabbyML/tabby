@@ -19,7 +19,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -41,7 +40,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
-import { PageContext } from './page'
+import { PageContext } from './page-context'
 
 const deletePageMutation = graphql(/* GraphQL */ `
   mutation DeletePage($id: ID!) {
@@ -50,13 +49,13 @@ const deletePageMutation = graphql(/* GraphQL */ `
 `)
 
 type HeaderProps = {
-  threadIdFromURL?: string
+  pageIdFromURL?: string
   streamingDone?: boolean
 }
 
-export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
+export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
-  const { isThreadOwner, mode, setMode } = useContext(PageContext)
+  const { isPageOwner, mode, setMode } = useContext(PageContext)
   const isEditMode = mode === 'edit'
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -80,7 +79,7 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
     e.preventDefault()
     setIsDeleting(true)
     deletePage({
-      id: threadIdFromURL!
+      id: pageIdFromURL!
     })
   }
 
@@ -103,9 +102,6 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
           Home
         </Button>
       </div>
-      <div>
-        {isEditMode ? <Badge>Editing</Badge> : <Badge>Draft Page</Badge>}
-      </div>
       <div className="flex items-center gap-2">
         {!isEditMode ? (
           <>
@@ -116,7 +112,7 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {streamingDone && threadIdFromURL && (
+                {streamingDone && pageIdFromURL && (
                   <DropdownMenuItem
                     className="cursor-pointer gap-2"
                     onClick={() => onNavigateToHomePage(true)}
@@ -125,7 +121,7 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
                     <span>Add new page</span>
                   </DropdownMenuItem>
                 )}
-                {streamingDone && threadIdFromURL && isThreadOwner && (
+                {streamingDone && pageIdFromURL && isPageOwner && (
                   <AlertDialog
                     open={deleteAlertVisible}
                     onOpenChange={setDeleteAlertVisible}

@@ -576,8 +576,6 @@ export const listPageSections = graphql(/* GraphQL */ `
           pageId
           title
           content
-          createdAt
-          updatedAt
         }
         cursor
       }

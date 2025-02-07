@@ -4,10 +4,9 @@ import { Section } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconEdit } from '@/components/ui/icons'
-import { ChatContext } from '@/components/chat/chat'
 import { MessageMarkdown } from '@/components/message-markdown'
 
-import { PageContext } from './page'
+import { PageContext } from './page-context'
 
 interface QuestionBlockProps extends HTMLAttributes<HTMLDivElement> {
   message: Section
@@ -18,8 +17,7 @@ export function SectionTitle({
   className,
   ...props
 }: QuestionBlockProps) {
-  const { fetchingContextInfo, mode } = useContext(PageContext)
-  const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
+  const { mode } = useContext(PageContext)
   return (
     <div>
       <div
@@ -27,15 +25,13 @@ export function SectionTitle({
         id={message.id}
         {...props}
       >
-        {/* todo use markdown? */}
+        {/* FIXME: use markdown? */}
         <MessageMarkdown
           message={message.title}
           contextInfo={undefined}
-          supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
-          fetchingContextInfo={fetchingContextInfo}
+          supportsOnApplyInEditorV2={false}
           className="text-3xl prose-h2:text-foreground prose-p:mb-1 prose-p:mt-0"
           headline
-          canWrapLongLines
         />
         {mode === 'edit' && (
           <Button variant="outline" className="px-2">
