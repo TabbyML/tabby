@@ -38,16 +38,9 @@ pub struct ThreadMessageDAO {
 
 #[derive(Serialize, Deserialize)]
 pub struct ThreadMessageAttachment {
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub code: Option<Vec<ThreadMessageAttachmentCode>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub client_code: Option<Vec<ThreadMessageAttachmentClientCode>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub doc: Option<Vec<ThreadMessageAttachmentDoc>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub code_file_list: Option<ThreadMessageAttachmentCodeFileList>,
 }
 
