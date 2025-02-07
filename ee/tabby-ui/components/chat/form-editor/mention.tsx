@@ -157,6 +157,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     const [debouncedIsLoading] = useDebounceValue(isLoading, 100)
     const [isFirstShow, setIsFirstShow] = useState(true)
     const [debouncedQuery] = useDebounceValue(query || '', 150)
+    const fetchIdRef = useRef(0)
 
     const categories = useMemo(() => {
       const items = [
@@ -199,12 +200,19 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
     useEffect(() => {
       const fetchOptions = async () => {
+        const currentFetchId = ++fetchIdRef.current
         setIsLoading(true)
         try {
           const currentQuery = isFirstShow ? query : debouncedQuery
+
+          // If this is not the latest request, ignore the result
+          if (currentFetchId !== fetchIdRef.current) {
+            return
+          }
           if (shouldShowCategoryMenu) {
             const files =
               (await listFileInWorkspace?.({ query: currentQuery || '' })) || []
+            if (currentFetchId !== fetchIdRef.current) return
             if (currentQuery) {
               setItems(files.map(fileItemToSourceItem))
               return
@@ -230,16 +238,20 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
           if (mode === 'file') {
             const files =
               (await listFileInWorkspace?.({ query: currentQuery })) || []
+            if (currentFetchId !== fetchIdRef.current) return
             setItems(files.map(fileItemToSourceItem))
           } else {
             const symbols = (await listSymbols?.({ query: currentQuery })) || []
+            if (currentFetchId !== fetchIdRef.current) return
             setItems(uniqBy(symbols.map(symbolItemToSourceItem), 'id'))
           }
         } finally {
-          setSelectedIndex(0)
-          setIsLoading(false)
-          if (isFirstShow) {
-            setIsFirstShow(false)
+          if (currentFetchId === fetchIdRef.current) {
+            setSelectedIndex(0)
+            setIsLoading(false)
+            if (isFirstShow) {
+              setIsFirstShow(false)
+            }
           }
         }
       }
