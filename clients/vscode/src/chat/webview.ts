@@ -537,7 +537,6 @@ export class ChatWebview {
           return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
         } catch (error) {
           this.logger.warn("Failed to find files:", error);
-          window.showErrorMessage("Failed to find files.");
           return [];
         }
       },
