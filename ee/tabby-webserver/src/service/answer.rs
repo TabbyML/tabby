@@ -811,11 +811,8 @@ mod tests {
         };
         let user_attachment_input = None;
 
-        let prompt = super::build_user_prompt(
-            user_input,
-            &assistant_attachment,
-            user_attachment_input,
-        );
+        let prompt =
+            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
 
         println!("{}", prompt.as_str());
         assert!(prompt.contains(user_input));
@@ -850,7 +847,7 @@ mod tests {
                 start_line: Some(1),
             }],
             code_file_list: Some(MessageAttachmentCodeFileList {
-                file_list: vec!["client.py".to_owned(), "server.py".to_owned()]
+                file_list: vec!["client.py".to_owned(), "server.py".to_owned()],
             }),
         };
 
