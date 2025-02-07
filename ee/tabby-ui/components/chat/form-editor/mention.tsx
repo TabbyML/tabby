@@ -12,7 +12,7 @@ import Mention from '@tiptap/extension-mention'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import { uniqBy } from 'lodash-es'
-import { FileText, SquareFunctionIcon } from 'lucide-react'
+import { FileText, Loader2, SquareFunctionIcon } from 'lucide-react'
 import {
   Filepath,
   ListFileItem,
@@ -24,6 +24,7 @@ import {
 import { cn, convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons'
 
+import { useDebounceValue } from '../../../lib/hooks/use-debounce'
 import { emitter } from '../event-emitter'
 import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from './types'
 import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
@@ -34,7 +35,6 @@ import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
  */
 export const MentionComponent = ({ node }: { node: any }) => {
   const { category, fileItem, label } = node.attrs
-  const filepathString = convertFilepath(fileItem.filepath).filepath
 
   // FIXME(@jueliang) fine a better way to detect the mention
   useEffect(() => {
@@ -153,6 +153,8 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     const [items, setItems] = useState<SourceItem[]>(propItems)
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [mode, setMode] = useState<CategoryMenu>('category')
+    const [isLoading, setIsLoading] = useState(false)
+    const [debouncedIsLoading] = useDebounceValue(isLoading, 100)
 
     const categories = useMemo(() => {
       const items = [
@@ -195,6 +197,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
     useEffect(() => {
       const fetchOptions = async () => {
+        setIsLoading(true)
         try {
           if (shouldShowCategoryMenu) {
             const files =
@@ -230,6 +233,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
           }
         } finally {
           setSelectedIndex(0)
+          setIsLoading(false)
         }
       }
 
@@ -273,7 +277,12 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     }))
 
     return (
-      <div className="flex max-h-[300px] min-w-[60vw] max-w-[90vw] flex-col overflow-hidden rounded-md border bg-background p-1">
+      <div className="relative flex max-h-[300px] min-w-[60vw] max-w-[90vw] flex-col overflow-hidden rounded-md border bg-background p-1">
+        {debouncedIsLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        )}
         {!isSingleMode && mode !== 'category' && (
           <div className="text-muted-foreground flex items-center p-1 text-sm">
             <button

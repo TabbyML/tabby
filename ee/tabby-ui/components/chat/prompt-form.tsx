@@ -120,7 +120,7 @@ function PromptFormRenderer(
                       },
                       {
                         id: 'category',
-                        name: 'Symbols-tes-test',
+                        name: 'Symbols',
                         category: 'category'
                       }
                     ]
