@@ -104,7 +104,7 @@ export default function SectionForm({
     >
       {showBetaBadge && <BetaBadge />}
 
-      <div className={cn('flex items-end pr-4 min-h-[2.5rem]')}>
+      <div className={cn('flex min-h-[2.5rem] items-end pr-4')}>
         <div className="mr-1 flex-1 overflow-x-hidden pl-4">
           <PromptEditor
             editable

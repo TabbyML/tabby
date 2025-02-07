@@ -615,7 +615,6 @@ const client = new Client({
         const input = { ...request, query: request.query || '' }
         return {
           subscribe(sink) {
-
             // delay start
             const queue: any[] = []
             let isProcessing = false

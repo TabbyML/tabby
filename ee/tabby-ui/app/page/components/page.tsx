@@ -529,7 +529,7 @@ export function Page() {
           <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
             <ScrollArea className="h-full w-full" ref={contentContainerRef}>
               <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
-                <div className="col-span-3 relative">
+                <div className="relative col-span-3">
                   {/* page title */}
                   <div className="mb-2 mt-4">
                     <LoadingWrapper loading={!page} fallback={<Skeleton />}>
