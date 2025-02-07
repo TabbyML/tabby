@@ -155,6 +155,8 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     const [mode, setMode] = useState<CategoryMenu>('category')
     const [isLoading, setIsLoading] = useState(false)
     const [debouncedIsLoading] = useDebounceValue(isLoading, 100)
+    const [isFirstShow, setIsFirstShow] = useState(true)
+    const [debouncedQuery] = useDebounceValue(query || '', 150)
 
     const categories = useMemo(() => {
       const items = [
@@ -199,10 +201,11 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
       const fetchOptions = async () => {
         setIsLoading(true)
         try {
+          const currentQuery = isFirstShow ? query : debouncedQuery
           if (shouldShowCategoryMenu) {
             const files =
-              (await listFileInWorkspace?.({ query: query || '' })) || []
-            if (query) {
+              (await listFileInWorkspace?.({ query: currentQuery || '' })) || []
+            if (currentQuery) {
               setItems(files.map(fileItemToSourceItem))
               return
             }
@@ -225,15 +228,19 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
           }
 
           if (mode === 'file') {
-            const files = (await listFileInWorkspace?.({ query })) || []
+            const files =
+              (await listFileInWorkspace?.({ query: currentQuery })) || []
             setItems(files.map(fileItemToSourceItem))
           } else {
-            const symbols = (await listSymbols?.({ query })) || []
+            const symbols = (await listSymbols?.({ query: currentQuery })) || []
             setItems(uniqBy(symbols.map(symbolItemToSourceItem), 'id'))
           }
         } finally {
           setSelectedIndex(0)
           setIsLoading(false)
+          if (isFirstShow) {
+            setIsFirstShow(false)
+          }
         }
       }
 
@@ -241,6 +248,8 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     }, [
       mode,
       query,
+      debouncedQuery,
+      isFirstShow,
       categories,
       shouldShowCategoryMenu,
       listFileInWorkspace,
