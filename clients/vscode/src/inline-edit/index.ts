@@ -12,7 +12,7 @@ import {
   Range,
 } from "vscode";
 import { ChatEditCommand } from "tabby-agent";
-import { Client } from "../lsp/Client";
+import { Client } from "../lsp/client";
 import { Config } from "../Config";
 import { ContextVariables } from "../ContextVariables";
 import { getLogger } from "../logger";

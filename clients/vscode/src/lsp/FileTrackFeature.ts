@@ -1,5 +1,5 @@
 import { DidChangeActiveEditorNotification, DidChangeActiveEditorParams } from "tabby-agent";
-import { Client } from "./Client";
+import { Client } from "./client";
 import { ExtensionContext, TextEditor, window } from "vscode";
 import {
   DocumentSelector,
