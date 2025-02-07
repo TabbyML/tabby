@@ -7,8 +7,8 @@ use tabby_db::DbConn;
 use tabby_schema::{
     auth::AuthenticationService,
     page::{
-        AddPageSectionInput, Page, PageContentCompleted, PageContentDelta, PageConvertStream,
-        PageCreated, PageRunCompleted, PageRunItem, PageSection, PageSectionContentCompleted,
+        AddPageSectionInput, Page, PageCompleted, PageContentCompleted, PageContentDelta,
+        PageConvertStream, PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
         PageSectionContentDelta, PageSectionsCreated, PageService, Section,
     },
     thread::ThreadService,
@@ -19,9 +19,9 @@ use super::{answer::AnswerService, graphql_pagination_to_filter};
 
 struct PageServiceImpl {
     db: DbConn,
-    auth: Arc<dyn AuthenticationService>,
+    _auth: Arc<dyn AuthenticationService>,
     thread: Arc<dyn ThreadService>,
-    answer: Option<Arc<AnswerService>>,
+    _answer: Option<Arc<AnswerService>>,
 }
 
 pub fn create(
@@ -33,8 +33,8 @@ pub fn create(
     PageServiceImpl {
         db,
         thread,
-        auth,
-        answer,
+        _auth: auth,
+        _answer: answer,
     }
 }
 
@@ -118,7 +118,7 @@ impl PageService for PageServiceImpl {
                 }));
             }
 
-            yield Ok(PageRunItem::PageRunCompleted(PageRunCompleted {
+            yield Ok(PageRunItem::PageCompleted(PageCompleted {
                 id: page_id.as_id(),
             }));
         }

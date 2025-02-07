@@ -104,7 +104,7 @@ pub struct PageSectionContentCompleted {
 }
 
 #[derive(GraphQLObject)]
-pub struct PageRunCompleted {
+pub struct PageCompleted {
     pub id: ID,
 }
 
@@ -125,5 +125,5 @@ pub enum PageRunItem {
     PageSectionContentDelta(PageSectionContentDelta),
     PageSectionContentCompleted(PageSectionContentCompleted),
 
-    PageRunCompleted(PageRunCompleted),
+    PageCompleted(PageCompleted),
 }
