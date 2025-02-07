@@ -31,7 +31,6 @@ pub struct ThreadMessageDAO {
     // pub code_attachments: Option<Json<Vec<ThreadMessageAttachmentCode>>>,
     // pub client_code_attachments: Option<Json<Vec<ThreadMessageAttachmentClientCode>>>,
     // pub doc_attachments: Option<Json<Vec<ThreadMessageAttachmentDoc>>>,
-
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

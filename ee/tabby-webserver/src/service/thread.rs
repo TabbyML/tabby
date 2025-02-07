@@ -45,7 +45,7 @@ impl ThreadServiceImpl {
                 let code = attachment.0.code;
                 let client_code = attachment.0.client_code;
                 let doc = attachment.0.doc;
-                let code_file_list= attachment.0.code_file_list;
+                let code_file_list = attachment.0.code_file_list;
                 MessageAttachment {
                     code: code
                         .map(|x| x.into_iter().map(|i| i.into()).collect())
