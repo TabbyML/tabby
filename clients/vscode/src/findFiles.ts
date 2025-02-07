@@ -52,7 +52,7 @@ async function updateGitIgnorePatterns(workspaceFolder: WorkspaceFolder, token?:
 
     const gitignore = parent.with({ path: path.join(parent.path, ".gitignore") });
     try {
-      const content = (await workspace.fs.readFile(gitignore)).toString();
+      const content = new TextDecoder().decode(await workspace.fs.readFile(gitignore));
       content.split(/\r?\n/).forEach((line) => {
         if (!line.trim().startsWith("#")) {
           gitIgnoreItemToExcludePatterns(line).forEach((pattern) => patterns.add(pattern));
@@ -90,7 +90,7 @@ async function updateGitIgnorePatterns(workspaceFolder: WorkspaceFolder, token?:
       }
       const prefix = path.relative(workspaceFolder.uri.path, path.dirname(ignoreFile.path));
       try {
-        const content = (await workspace.fs.readFile(ignoreFile)).toString();
+        const content = new TextDecoder().decode(await workspace.fs.readFile(ignoreFile));
         content.split(/\r?\n/).forEach((line) => {
           if (!line.trim().startsWith("#")) {
             gitIgnoreItemToExcludePatterns(line, prefix).forEach((pattern) => patterns.add(pattern));
@@ -204,7 +204,7 @@ export async function findFiles(
             ...combinedExcludes,
             ...(gitIgnorePatternsMap.get(workspaceFolder.uri.toString()) ?? []),
           ]);
-          const sortedExcludes = [...allExcludes].sort((a, b) => a.length - b.length).slice(0, 100); // Limit to 100 patterns
+          const sortedExcludes = [...allExcludes].sort((a, b) => a.length - b.length).slice(0, 1000); // Limit to 1000 patterns
           const excludesPattern = `{${sortedExcludes.join(",")}}`;
           logger.debug(
             `Executing search: ${JSON.stringify({ includePattern, excludesPattern, maxResults: options?.maxResults })}`,

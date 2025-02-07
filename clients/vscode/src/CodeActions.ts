@@ -2,7 +2,7 @@ import { CodeActionProvider } from "vscode";
 import { InlineEditCodeActionProvider } from "./code-action/InlineEdit";
 import { QuickFixCodeActionProvider } from "./code-action/QuickFix";
 import { ContextVariables } from "./ContextVariables";
-import { Client } from "./lsp/Client";
+import { Client } from "./lsp/client";
 export class CodeActions {
   private codeActionProviders: CodeActionProvider[] = [
     new InlineEditCodeActionProvider(this.contextVariables),

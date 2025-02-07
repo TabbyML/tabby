@@ -1,6 +1,6 @@
 import { commands, window, ExtensionContext, StatusBarAlignment, ThemeColor } from "vscode";
 import { State as LanguageClientState } from "vscode-languageclient";
-import { Client } from "./lsp/Client";
+import { Client } from "./lsp/client";
 import { Config } from "./Config";
 
 const label = "Tabby";

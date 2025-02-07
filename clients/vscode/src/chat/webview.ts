@@ -36,7 +36,7 @@ import debounce from "debounce";
 import { v4 as uuid } from "uuid";
 import type { StatusInfo, Config } from "tabby-agent";
 import type { GitProvider } from "../git/GitProvider";
-import type { Client as LspClient } from "../lsp/Client";
+import type { Client as LspClient } from "../lsp/client";
 import { createClient } from "./createClient";
 import { isBrowser } from "../env";
 import { getLogger } from "../logger";

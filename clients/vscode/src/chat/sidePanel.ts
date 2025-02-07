@@ -2,7 +2,7 @@ import { ExtensionContext, WebviewViewProvider, WebviewView } from "vscode";
 import type { ChatCommand, EditorContext } from "tabby-chat-panel";
 import { ChatWebview } from "./webview";
 import type { ContextVariables } from "../ContextVariables";
-import type { Client } from "../lsp/Client";
+import type { Client } from "../lsp/client";
 import { GitProvider } from "../git/GitProvider";
 
 export class ChatSidePanelProvider implements WebviewViewProvider {

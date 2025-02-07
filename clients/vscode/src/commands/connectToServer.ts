@@ -8,7 +8,7 @@ import {
   ProgressLocation,
 } from "vscode";
 import { isBrowser } from "../env";
-import { Client } from "../lsp/Client";
+import { Client } from "../lsp/client";
 import { Config } from "../Config";
 
 interface ServerQuickPickItem extends QuickPickItem {
