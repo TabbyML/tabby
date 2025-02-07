@@ -8,7 +8,7 @@ use tabby_schema::{
     auth::AuthenticationService,
     page::{
         AddPageSectionInput, Page, PageContentCompleted, PageContentDelta, PageConvertStream,
-        PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
+        PageCreated, PageRunCompleted, PageRunItem, PageSection, PageSectionContentCompleted,
         PageSectionContentDelta, PageSectionsCreated, PageService, Section,
     },
     thread::ThreadService,
@@ -117,6 +117,10 @@ impl PageService for PageServiceImpl {
                     id: ID::new(format!("section{}", i)),
                 }));
             }
+
+            yield Ok(PageRunItem::PageRunCompleted(PageRunCompleted {
+                id: page_id.as_id(),
+            }));
         }
         .boxed())
     }

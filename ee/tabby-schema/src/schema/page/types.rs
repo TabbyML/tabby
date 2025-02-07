@@ -103,6 +103,11 @@ pub struct PageSectionContentCompleted {
     pub id: ID,
 }
 
+#[derive(GraphQLObject)]
+pub struct PageRunCompleted {
+    pub id: ID,
+}
+
 /// Schema of page convert stream.
 #[derive(GraphQLUnion)]
 #[graphql(context = Context)]
@@ -119,4 +124,6 @@ pub enum PageRunItem {
 
     PageSectionContentDelta(PageSectionContentDelta),
     PageSectionContentCompleted(PageSectionContentCompleted),
+
+    PageRunCompleted(PageRunCompleted),
 }
