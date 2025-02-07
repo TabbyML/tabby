@@ -22,7 +22,7 @@ import {
 } from 'tabby-chat-panel/index'
 
 import { cn, convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
-import { IconChevronLeft } from '@/components/ui/icons'
+import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons'
 
 import { emitter } from '../event-emitter'
 import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from './types'
@@ -158,18 +158,18 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
       const items = [
         listFileInWorkspace && {
           label: 'Files',
-          category: 'file' as const,
+          categoryKind: 'file' as const,
           icon: <FileText className="w-4 h-4" />
         },
         listSymbols && {
           label: 'Symbols',
-          category: 'symbol' as const,
+          categoryKind: 'symbol' as const,
           icon: <SquareFunctionIcon className="w-4 h-4" />
         }
       ].filter(Boolean) as CategoryItem[]
 
       if (items.length === 1) {
-        setMode(items[0].category)
+        setMode(items[0].categoryKind)
       }
       return items
     }, [listFileInWorkspace, listSymbols])
@@ -179,7 +179,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
     const handleSelect = (item: SourceItem) => {
       if (item.isRootCategoryItem && !isSingleMode) {
-        setMode(item.category)
+        setMode(item.id as unknown as CategoryMenu)
         return
       }
 
@@ -195,7 +195,6 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
     useEffect(() => {
       const fetchOptions = async () => {
-        setSelectedIndex(0)
         try {
           if (shouldShowCategoryMenu) {
             const files =
@@ -209,9 +208,9 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
               ...categories.map(
                 c =>
                   ({
-                    id: c.category,
+                    id: c.categoryKind,
                     name: c.label,
-                    category: c.category,
+                    category: 'category',
                     isRootCategoryItem: true,
                     fileItem: {} as FileItem,
                     icon: c.icon
@@ -350,6 +349,9 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
       <span className="flex-1 truncate text-xs text-muted-foreground">
         {filepathWithoutFilename}
       </span>
+      {data.category === 'category' && (
+        <IconChevronRight className="h-4 w-4 text-muted-foreground" />
+      )}
     </div>
   )
 }

@@ -57,7 +57,7 @@ export interface SourceItem {
 export interface CategoryItem {
   label: string
   type: 'category'
-  category: 'file' | 'symbol'
+  categoryKind: 'file' | 'symbol'
   icon: ReactNode
 }
 
