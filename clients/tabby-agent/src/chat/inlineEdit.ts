@@ -1,5 +1,5 @@
-import type { Connection, CancellationToken } from "vscode-languageserver";
-import type { TextDocument } from "vscode-languageserver-textdocument";
+import type { Connection, CancellationToken, Range, URI } from "vscode-languageserver";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import type { TextDocuments } from "../lsp/textDocuments";
 import type { Feature } from "../feature";
 import type { Configurations } from "../config";
@@ -17,18 +17,22 @@ import {
   ChatEditMutexError,
   ServerCapabilities,
   ChatEditResolveParams,
+  ClientCapabilities,
+  ReadFileParams,
+  ReadFileRequest,
 } from "../protocol";
 import cryptoRandomString from "crypto-random-string";
 import { isEmptyRange } from "../utils/range";
-import { readResponseStream, Edit, applyWorkspaceEdit } from "./utils";
+import { readResponseStream, Edit, applyWorkspaceEdit, truncateFileContent } from "./utils";
 import { initMutexAbortController, mutexAbortController, resetMutexAbortController } from "./global";
 import { readFile } from "fs-extra";
 import { getLogger } from "../logger";
-
-const logger = getLogger("ChatEditProvider");
+import { isBrowser } from "../env";
 
 export class ChatEditProvider implements Feature {
+  private logger = getLogger("ChatEditProvider");
   private lspConnection: Connection | undefined = undefined;
+  private clientCapabilities: ClientCapabilities | undefined = undefined;
   private currentEdit: Edit | undefined = undefined;
 
   constructor(
@@ -37,8 +41,9 @@ export class ChatEditProvider implements Feature {
     private readonly documents: TextDocuments<TextDocument>,
   ) {}
 
-  initialize(connection: Connection): ServerCapabilities {
+  initialize(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities {
     this.lspConnection = connection;
+    this.clientCapabilities = clientCapabilities;
     connection.onRequest(ChatEditCommandRequest.type, async (params) => {
       return this.provideEditCommands(params);
     });
@@ -96,6 +101,44 @@ export class ChatEditProvider implements Feature {
     return result;
   }
 
+  async fetchFileContent(uri: URI, range?: Range, token?: CancellationToken) {
+    this.logger.trace("Prepare to fetch text content...");
+    let text: string | undefined = undefined;
+    const targetDocument = this.documents.get(uri);
+    if (targetDocument) {
+      this.logger.trace("Fetching text content from synced text document.", {
+        uri: targetDocument.uri,
+        range: range,
+      });
+      text = targetDocument.getText(range);
+      this.logger.trace("Fetched text content from synced text document.", { text });
+    } else if (this.clientCapabilities?.tabby?.workspaceFileSystem) {
+      const params: ReadFileParams = {
+        uri: uri,
+        format: "text",
+        range: range
+          ? {
+              start: { line: range.start.line, character: 0 },
+              end: { line: range.end.line, character: range.end.character },
+            }
+          : undefined,
+      };
+      this.logger.trace("Fetching text content from ReadFileRequest.", { params });
+      const result = await this.lspConnection?.sendRequest(ReadFileRequest.type, params, token);
+      this.logger.trace("Fetched text content from ReadFileRequest.", { result });
+      text = result?.text;
+    } else if (!isBrowser) {
+      try {
+        const content = await readFile(uri, "utf-8");
+        const textDocument = TextDocument.create(uri, "text", 0, content);
+        text = textDocument.getText(range);
+      } catch (error) {
+        this.logger.trace("Failed to fetch text content from file system.", { error });
+      }
+    }
+    return text;
+  }
+
   async provideEdit(params: ChatEditParams, token: CancellationToken): Promise<ChatEditToken | null> {
     if (params.format !== "previewChanges") {
       return null;
@@ -134,7 +177,7 @@ export class ChatEditProvider implements Feature {
     if (mutexAbortController && !mutexAbortController.signal.aborted) {
       throw {
         name: "ChatEditMutexError",
-        message: "Another smart edit is already in progress",
+        message: "Another chat edit is already in progress",
       } as ChatEditMutexError;
     }
 
@@ -174,19 +217,23 @@ export class ChatEditProvider implements Feature {
       }
     }
 
-    // get file context
     const fileContext =
       (
         await Promise.all(
-          (params.context ?? []).map(async (item) => {
-            const content = await readFile(item.path, "utf-8");
-            const fileContent = content.toString().substring(0, config.chat.edit.documentMaxChars);
-            return `filePath: "${item.path}" \n ${fileContent} \n`;
+          (params.context ?? []).slice(0, config.chat.edit.fileContext.maxFiles).map(async (item) => {
+            const content = await this.fetchFileContent(item.uri, item.range, token);
+            if (!content) {
+              return undefined;
+            }
+            const fileContent = truncateFileContent(content, config.chat.edit.fileContext.maxCharsPerFile);
+            return `File "${item.uri}" referer to "@${item.referer}" in command, content:\n ${fileContent} \n`;
           }),
         )
-      ).join("\n") ?? "";
+      )
+        .filter((item): item is string => item !== undefined)
+        .join("\n") ?? "";
 
-    logger.debug(`fileContext: ${fileContext}`);
+    this.logger.debug(`fileContext: ${fileContext}`);
 
     const messages: { role: "user"; content: string }[] = [
       {
@@ -216,7 +263,7 @@ export class ChatEditProvider implements Feature {
         ),
       },
     ];
-    logger.debug(`messages: ${JSON.stringify(messages)}`);
+    this.logger.debug(`messages: ${JSON.stringify(messages)}`);
     const readableStream = await this.tabbyApiClient.fetchChatStream(
       {
         messages,

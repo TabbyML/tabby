@@ -1,10 +1,18 @@
-export interface InlineChatParseResult {
-  command: string;
+export interface InlineEditParseResult {
+  /**
+   * mentions, start with '@'
+   */
   mentions?: string[];
+  /**
+   * last mention in the end of user commnad.
+   * for `explain @`, mentionQuery is `''`,  we can trigger file pick
+   * for `explain @file`, mentionQuery is `file`,  we know user is editing the mention
+   * for `explain @file to me`, mentionQuery is `undefined`
+   */
   mentionQuery?: string;
 }
 
-export const parseInput = (input: string): InlineChatParseResult => {
+export const parseUserCommand = (input: string): InlineEditParseResult => {
   const mentions: string[] = [];
   const regex = /(?<=\s|^)@(\S*)/g;
   let match;
@@ -29,10 +37,7 @@ export const parseInput = (input: string): InlineChatParseResult => {
     }
   }
 
-  const command = input.replace(regex, "").trim();
-
   return {
-    command,
     mentions,
     mentionQuery: mentionQuery !== undefined ? mentionQuery : undefined,
   };
@@ -47,3 +52,20 @@ export const replaceLastOccurrence = (str: string, substrToReplace: string, repl
 
   return str.substring(0, lastIndex) + replacementStr + str.substring(lastIndex + substrToReplace.length);
 };
+
+export const noop = () => {
+  //
+};
+
+export class Deferred<T> {
+  public resolve: (value: T | PromiseLike<T>) => void = noop;
+  public reject: (err?: unknown) => void = noop;
+  public readonly promise: Promise<T>;
+
+  constructor() {
+    this.promise = new Promise<T>((resolve, reject) => {
+      this.resolve = resolve;
+      this.reject = reject;
+    });
+  }
+}

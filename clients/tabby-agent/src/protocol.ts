@@ -446,22 +446,25 @@ export type ChatEditParams = {
   /**
    * list of file contexts.
    */
-  context?: FileContext[];
+  context?: ChatEditFileContext[];
 };
 
 /**
- * Represents a file context.
- * This type should only be used for sending context from client to server.
+ * Represents a file context use in {@link ChatEditParams}.
  */
-export interface FileContext {
+export interface ChatEditFileContext {
   /**
-   * The filepath of the file.
-   * The path is relative to the workspace root.
+   * The symbol in the user command that refer to this file context.
    */
-  path: string;
+  referer: string;
 
   /**
-   * The range of the selected content in the file.
+   * The uri of the file.
+   */
+  uri: URI;
+
+  /**
+   * The context range in the file.
    * If the range is not provided, the whole file is considered.
    */
   range?: Range;
