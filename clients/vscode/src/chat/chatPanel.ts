@@ -1,6 +1,6 @@
 import { window, ExtensionContext, ViewColumn } from "vscode";
 import { ChatWebview } from "./webview";
-import type { Client } from "../lsp/Client";
+import type { Client } from "../lsp/client";
 import type { GitProvider } from "../git/GitProvider";
 
 export async function createChatPanel(context: ExtensionContext, client: Client, gitProvider: GitProvider) {

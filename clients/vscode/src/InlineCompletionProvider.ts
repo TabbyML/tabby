@@ -14,7 +14,7 @@ import { InlineCompletionParams } from "vscode-languageclient";
 import { InlineCompletionRequest, InlineCompletionList, EventParams } from "tabby-agent";
 import { EventEmitter } from "events";
 import { getLogger } from "./logger";
-import { Client } from "./lsp/Client";
+import { Client } from "./lsp/client";
 import { Config } from "./Config";
 
 interface DisplayedCompletion {
