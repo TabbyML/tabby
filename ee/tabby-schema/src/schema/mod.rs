@@ -45,7 +45,7 @@ use juniper::{
 };
 use ldap3::result::LdapError;
 use notification::NotificationService;
-use page::PageConvertStream;
+use page::ThreadToPageRunStream;
 use repository::RepositoryGrepOutput;
 use strum::IntoEnumIterator;
 use tabby_common::{
@@ -1602,7 +1602,10 @@ impl Subscription {
     /// This will automatically generate:
     /// - the page title and a summary of the content.
     /// - a few sections based on the thread messages.
-    async fn convert_thread_to_page(ctx: &Context, thread_id: ID) -> Result<PageConvertStream> {
+    async fn create_thread_to_page_run(
+        ctx: &Context,
+        thread_id: ID,
+    ) -> Result<ThreadToPageRunStream> {
         let user = check_user(ctx).await?;
 
         let svc = ctx.locator.page();

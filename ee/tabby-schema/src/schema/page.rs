@@ -6,7 +6,7 @@ pub use types::*;
 
 use crate::schema::Result;
 
-pub type PageConvertStream = BoxStream<'static, Result<PageRunItem>>;
+pub type ThreadToPageRunStream = BoxStream<'static, Result<PageRunItem>>;
 
 #[async_trait]
 pub trait PageService: Send + Sync {
@@ -14,7 +14,7 @@ pub trait PageService: Send + Sync {
         &self,
         author_id: &ID,
         thread_id: &ID,
-    ) -> Result<PageConvertStream>;
+    ) -> Result<ThreadToPageRunStream>;
 
     async fn generate_page_title(&self, id: &ID) -> Result<String>;
     async fn generate_page_content(&self, id: &ID) -> Result<String>;

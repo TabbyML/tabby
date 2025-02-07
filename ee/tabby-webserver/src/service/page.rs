@@ -8,8 +8,8 @@ use tabby_schema::{
     auth::AuthenticationService,
     page::{
         AddPageSectionInput, Page, PageCompleted, PageContentCompleted, PageContentDelta,
-        PageConvertStream, PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
-        PageSectionContentDelta, PageSectionsCreated, PageService, Section,
+        PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
+        PageSectionContentDelta, PageSectionsCreated, PageService, Section, ThreadToPageRunStream,
     },
     thread::ThreadService,
     AsID, AsRowid, CoreError, Result,
@@ -44,7 +44,7 @@ impl PageService for PageServiceImpl {
         &self,
         author_id: &ID,
         thread_id: &ID,
-    ) -> Result<PageConvertStream> {
+    ) -> Result<ThreadToPageRunStream> {
         let _thread = self
             .thread
             .get(thread_id)

@@ -963,7 +963,7 @@ type Subscription {
     - the page title and a summary of the content.
     - a few sections based on the thread messages.
   """
-  convertThreadToPage(threadId: ID!): PageRunItem!
+  createThreadToPageRun(threadId: ID!): PageRunItem!
 }
 
 type Thread {
