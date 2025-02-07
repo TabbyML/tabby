@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
 import * as z from 'zod'
 
-import { MessageAttachmentCode, Section } from '@/lib/gql/generates/graphql'
+import { MessageAttachmentCode } from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
   AttachmentCodeItem,
@@ -54,25 +54,28 @@ import {
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CopyButton } from '@/components/copy-button'
+import LoadingWrapper from '@/components/loading-wrapper'
 import { MessageMarkdown } from '@/components/message-markdown'
 import { SiteFavicon } from '@/components/site-favicon'
+import { ListSkeleton } from '@/components/skeleton'
 import { UserAvatar } from '@/components/user-avatar'
 
+import { SectionItem } from '../types'
 import { PageContext } from './page-context'
 
 export function SectionContent({
   className,
   message,
-  isLoading
+  isGenerating
 }: {
   className?: string
-  message: Section
-  isLoading?: boolean
+  message: SectionItem
+  isGenerating?: boolean
 }) {
-  const { mode, isPageOwner } = useContext(PageContext)
+  const { mode, isPageOwner, pendingSectionIds } = useContext(PageContext)
 
   const [isEditing, setIsEditing] = useState(false)
-
+  const isPending = pendingSectionIds.has(message.id) && !message.content
   // FIXME
   const sources: any[] = []
   const sourceLen = 0
@@ -126,110 +129,116 @@ export function SectionContent({
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
-      {/* Section content */}
-      <div>
-        {isLoading && !message.content && (
-          <Skeleton className="mt-1 h-40 w-full" />
-        )}
-        {isEditing ? (
-          <MessageContentForm
-            message={message.content}
-            onCancel={() => setIsEditing(false)}
-            onSubmit={handleUpdateAssistantMessage}
-          />
-        ) : (
-          <>
-            <MessageMarkdown
+      <LoadingWrapper loading={isPending} fallback={<ListSkeleton />}>
+        <div>
+          {isGenerating && !message.content && (
+            <Skeleton className="mt-1 h-40 w-full" />
+          )}
+          {isEditing ? (
+            <MessageContentForm
               message={message.content}
-              onCodeCitationClick={onCodeCitationClick}
-              onCodeCitationMouseEnter={onCodeCitationMouseEnter}
-              onCodeCitationMouseLeave={onCodeCitationMouseLeave}
-              canWrapLongLines={!isLoading}
-              supportsOnApplyInEditorV2={false}
-              className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
+              onCancel={() => setIsEditing(false)}
+              onSubmit={handleUpdateAssistantMessage}
             />
-            {/* if isEditing, do not display error message block */}
-            {/* {message.error && <ErrorMessageBlock error={message.error} />} */}
+          ) : (
+            <>
+              <MessageMarkdown
+                message={message.content}
+                onCodeCitationClick={onCodeCitationClick}
+                onCodeCitationMouseEnter={onCodeCitationMouseEnter}
+                onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+                canWrapLongLines={!isGenerating}
+                supportsOnApplyInEditorV2={false}
+                className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
+              />
+              {/* if isEditing, do not display error message block */}
+              {/* {message.error && <ErrorMessageBlock error={message.error} />} */}
 
-            {!isLoading && !isEditing && (
-              <div className="mt-3 flex items-center gap-3 text-sm">
-                {sourceLen > 0 && (
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <div className="cursor-pointer rounded-full border px-2 py-1">
-                        {sourceLen} sources
-                      </div>
-                    </SheetTrigger>
-                    <SheetContent className="flex w-[50vw] min-w-[300px] flex-col">
-                      <SheetHeader className="border-b">
-                        <SheetTitle>Sources</SheetTitle>
-                        <SheetClose />
-                      </SheetHeader>
-                      <div className="flex-1 space-y-3 overflow-y-auto">
-                        {sources.map((x, index) => {
-                          // FIXME id
-                          return <SourceCard source={x} key={index} />
-                        })}
-                      </div>
-                      <SheetFooter>
-                        <Button>Remove sources</Button>
-                      </SheetFooter>
-                    </SheetContent>
-                  </Sheet>
-                )}
-                <div className="flex items-center gap-x-3">
-                  {mode === 'view' && (
-                    <CopyButton
-                      className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
-                      value={message.content}
-                      text="Copy"
-                    />
+              {!isGenerating && !isEditing && (
+                <div className="mt-3 flex items-center gap-3 text-sm">
+                  {sourceLen > 0 && (
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <div className="cursor-pointer rounded-full border px-2 py-1">
+                          {sourceLen} sources
+                        </div>
+                      </SheetTrigger>
+                      <SheetContent className="flex w-[50vw] min-w-[300px] flex-col">
+                        <SheetHeader className="border-b">
+                          <SheetTitle>Sources</SheetTitle>
+                          <SheetClose />
+                        </SheetHeader>
+                        <div className="flex-1 space-y-3 overflow-y-auto">
+                          {sources.map((x, index) => {
+                            // FIXME id
+                            return <SourceCard source={x} key={index} />
+                          })}
+                        </div>
+                        <SheetFooter>
+                          <Button>Remove sources</Button>
+                        </SheetFooter>
+                      </SheetContent>
+                    </Sheet>
                   )}
-                  {isPageOwner && mode === 'edit' && (
-                    <>
-                      <Button
-                        className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                        variant="ghost"
-                        onClick={e => setIsEditing(true)}
-                      >
-                        <IconEdit />
-                        <p>Edit</p>
-                      </Button>
-                      <Button
-                        className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                        variant="ghost"
-                      >
-                        <IconRefresh />
-                        <p>Regenerate</p>
-                      </Button>
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                            variant="ghost"
-                          >
-                            <IconMore />
-                            <p>More</p>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              onDeleteMessage(message.id)
-                            }}
-                          >
-                            Delete Section
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </>
-                  )}
+                  <div className="flex items-center gap-x-3">
+                    {mode === 'view' && (
+                      <CopyButton
+                        className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
+                        value={message.content}
+                        text="Copy"
+                      />
+                    )}
+                    {isPageOwner && mode === 'edit' && (
+                      <>
+                        <Button
+                          className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                          variant="ghost"
+                          onClick={e => setIsEditing(true)}
+                        >
+                          <IconEdit />
+                          <p>Edit</p>
+                        </Button>
+                        <Button
+                          className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                          variant="ghost"
+                        >
+                          <IconRefresh />
+                          <p>Regenerate</p>
+                        </Button>
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                              variant="ghost"
+                            >
+                              <IconMore />
+                              <p>More</p>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                onDeleteMessage(message.id)
+                              }}
+                            >
+                              Delete Section
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </>
+              )}
+            </>
+          )}
+        </div>
+        {isGenerating && (
+          <div>
+            <IconSpinner />
+          </div>
         )}
-      </div>
+      </LoadingWrapper>
     </div>
   )
 }

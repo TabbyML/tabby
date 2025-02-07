@@ -13,6 +13,9 @@ type PageContextValue = {
   onUpdateSectionContent: (
     message: string
   ) => Promise<ExtendedCombinedError | undefined>
+  pendingSectionIds: Set<string>
+  setPendingSectionIds: (value: SetStateAction<Set<string>>) => void
+  currentSectionId: string | undefined
 }
 
 export const PageContext = createContext<PageContextValue>(

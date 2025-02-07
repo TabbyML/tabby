@@ -1,15 +1,15 @@
 import { HTMLAttributes, useContext } from 'react'
 
-import { Section } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconEdit } from '@/components/ui/icons'
 import { MessageMarkdown } from '@/components/message-markdown'
 
+import { SectionItem } from '../types'
 import { PageContext } from './page-context'
 
 interface QuestionBlockProps extends HTMLAttributes<HTMLDivElement> {
-  message: Section
+  message: SectionItem
 }
 
 export function SectionTitle({
@@ -17,7 +17,9 @@ export function SectionTitle({
   className,
   ...props
 }: QuestionBlockProps) {
-  const { mode } = useContext(PageContext)
+  const { mode, pendingSectionIds } = useContext(PageContext)
+  const isPending = pendingSectionIds.has(message.id) && !message.content
+
   return (
     <div>
       <div
@@ -30,7 +32,12 @@ export function SectionTitle({
           message={message.title}
           contextInfo={undefined}
           supportsOnApplyInEditorV2={false}
-          className="text-3xl prose-h2:text-foreground prose-p:mb-1 prose-p:mt-0"
+          className={cn(
+            'text-3xl prose-h2:text-foreground prose-p:mb-1 prose-p:mt-0',
+            {
+              'text-foreground/50': isPending
+            }
+          )}
           headline
         />
         {mode === 'edit' && (

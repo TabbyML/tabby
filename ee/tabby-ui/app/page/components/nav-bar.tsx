@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-import { ListPageSectionsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 
+import { SectionItem } from '../types'
+
 interface Props {
-  sections: ListPageSectionsQuery['pageSections']['edges'] | undefined
+  sections: SectionItem[] | undefined
 }
 
 export const Navbar = ({ sections }: Props) => {
@@ -42,7 +43,7 @@ export const Navbar = ({ sections }: Props) => {
   return (
     <nav className="sticky right-0 top-0 p-4">
       <ul className="flex flex-col space-y-1">
-        {sections?.map(({ node: section }) => (
+        {sections?.map(section => (
           <li key={section.id}>
             <div
               className={`truncate whitespace-nowrap text-sm ${

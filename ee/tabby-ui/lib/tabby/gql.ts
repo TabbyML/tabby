@@ -615,7 +615,39 @@ const client = new Client({
         const input = { ...request, query: request.query || '' }
         return {
           subscribe(sink) {
-            const unsubscribe = wsClient.subscribe(input, sink)
+
+            // delay start
+            const queue: any[] = []
+            let isProcessing = false
+
+            const processQueue = () => {
+              if (queue.length === 0) {
+                isProcessing = false
+                return
+              }
+              isProcessing = true
+              const { type, value } = queue.shift()
+              setTimeout(() => {
+                sink[type](value)
+                processQueue()
+              }, 500)
+            }
+
+            const enqueue = (type, value) => {
+              queue.push({ type, value })
+              if (!isProcessing) {
+                processQueue()
+              }
+            }
+
+            const delayedSink = {
+              next: value => enqueue('next', value),
+              error: err => enqueue('error', err),
+              complete: () => enqueue('complete')
+            }
+            // delay end
+
+            const unsubscribe = wsClient.subscribe(input, delayedSink)
             return { unsubscribe }
           }
         }

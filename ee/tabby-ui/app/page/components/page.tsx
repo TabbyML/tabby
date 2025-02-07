@@ -10,18 +10,14 @@ import {
 } from 'react'
 import Link from 'next/link'
 import { some, uniqBy } from 'lodash-es'
+import moment from 'moment'
 import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import {
-  ConvertThreadToPageSubscription,
-  ListPageSectionsQuery,
-  ListPagesQuery,
-  Message
-} from '@/lib/gql/generates/graphql'
+import { CreateThreadToPageRunSubscription } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -40,9 +36,11 @@ import {
   IconList,
   IconPlus,
   IconSheet,
+  IconSpinner,
   IconStop
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -50,6 +48,7 @@ import { MessageMarkdown } from '@/components/message-markdown'
 import NotFoundPage from '@/components/not-found-page'
 import { MyAvatar } from '@/components/user-avatar'
 
+import { PageItem, SectionItem } from '../types'
 import { Header } from './header'
 import { MessagesSkeleton } from './messages-skeleton'
 import { Navbar } from './nav-bar'
@@ -58,12 +57,14 @@ import { SectionContent } from './section-content'
 import SectionForm from './section-form'
 import { SectionTitle } from './section-title'
 
-const convertThreadToPageSubscription = graphql(/* GraphQL */ `
-  subscription ConvertThreadToPage($threadId: ID!) {
-    convertThreadToPage(threadId: $threadId) {
+const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
+  subscription createThreadToPageRun($threadId: ID!) {
+    createThreadToPageRun(threadId: $threadId) {
       __typename
       ... on PageCreated {
         id
+        authorId
+        title
       }
       ... on PageContentDelta {
         delta
@@ -84,18 +85,12 @@ const convertThreadToPageSubscription = graphql(/* GraphQL */ `
       ... on PageSectionContentCompleted {
         id
       }
+      ... on PageCompleted {
+        id
+      }
     }
   }
 `)
-
-export type SectionItem = Omit<
-  Message,
-  '__typename' | 'updatedAt' | 'createdAt'
-> & {
-  pageId?: string
-  sectionId: string
-  error?: string
-}
 
 const deletePageSectionMutation = graphql(/* GraphQL */ `
   mutation DeletePageSection($sectionId: ID!) {
@@ -120,6 +115,7 @@ export function Page() {
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const [mode, setMode] = useState<'edit' | 'view'>('view')
+  const [isGeneratingPageContent, setIsGeneratingPageContent] = useState(false)
   // for pending stream sections
   const [pendingSectionIds, setPendingSectionIds] = useState<Set<string>>(
     new Set()
@@ -139,12 +135,11 @@ export function Page() {
   const initializing = useRef(false)
   const { theme } = useCurrentTheme()
   const [pageId, setPageId] = useState<string | undefined>()
-  const [page, setPage] = useState<
-    ListPagesQuery['pages']['edges'][0]['node'] | undefined
-  >()
-  const [sections, setSections] =
-    useState<Array<ListPageSectionsQuery['pageSections']['edges'][0]['node']>>()
+  const [page, setPage] = useState<PageItem | undefined>()
+  const [sections, setSections] = useState<Array<SectionItem>>()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<ExtendedCombinedError | undefined>()
+
   const pageIdFromURL = useMemo(() => {
     const regex = /^\/page\/(.*)/
     if (!activePathname) return undefined
@@ -155,37 +150,44 @@ export function Page() {
   const unsubscribeFn = useRef<(() => void) | undefined>()
 
   const processPageStream = (
-    data: ConvertThreadToPageSubscription['convertThreadToPage']
+    data: CreateThreadToPageRunSubscription['createThreadToPageRun']
   ) => {
     switch (data.__typename) {
       case 'PageCreated':
-        // FIXME should return other information of a page?
         setPageId(data.id)
-        if (!page) {
-          const now = new Date().toISOString()
-          setPage({
-            id: data.id,
-            authorId: meData?.me.id || '',
-            updatedAt: now,
-            createdAt: now
-          })
-        }
+        const now = new Date().toISOString()
+        setPage({
+          id: data.id,
+          authorId: data.authorId,
+          title: data.title,
+          content: '',
+          updatedAt: now,
+          createdAt: now
+        })
+        // FIXME
+        setIsGeneratingPageContent(true)
         break
-      case 'PageContentDelta':
-        if (page) {
-          setPage(prev => ({
-            ...prev,
-            content: (prev?.content || '') + data.delta
-          }))
-        }
+      case 'PageContentDelta': {
+        setPage(p => {
+          if (!p) return p
+          return {
+            __typename: 'Page',
+            ...p,
+            content: p.content + data.delta
+          }
+        })
         break
+      }
+
       case 'PageContentCompleted': {
-        // todo
+        setIsGeneratingPageContent(false)
         break
       }
       case 'PageSectionsCreated': {
-        const nextSections = data.sections.map(x => ({
+        const nextSections: SectionItem[] = data.sections.map(x => ({
           ...x,
+          // FIXME
+          __typename: 'Section',
           pageId: pageId as string,
           content: ''
         }))
@@ -194,6 +196,7 @@ export function Page() {
         break
       }
       case 'PageSectionContentDelta': {
+        setCurrentSectionId(data.id)
         setSections(prev => {
           const section = prev?.find(x => x.id === data.id)
           if (!section || !prev) {
@@ -211,44 +214,40 @@ export function Page() {
         })
       }
       case 'PageSectionContentCompleted': {
-        const newSet = new Set(pendingSectionIds)
-        if (newSet.has(data.id)) {
+        setPendingSectionIds(prev => {
+          if (!prev.has(data.id)) {
+            return prev
+          }
+          const newSet = new Set(prev)
           newSet.delete(data.id)
-          setPendingSectionIds(newSet)
-        }
+          return newSet
+        })
         break
       }
-      // todo pagecompleted
+      case 'PageCompleted':
+        stop.current()
+        break
+      default:
+        break
     }
   }
 
   const convertThreadToPage = (threadId: string) => {
     const { unsubscribe } = client
-      .subscription(convertThreadToPageSubscription, {
+      .subscription(createThreadToPageRunSubscription, {
         threadId
       })
       .subscribe(res => {
         if (res?.error) {
           setIsLoading(false)
-          // todo error
-          // setError(res.error)
+          setError(res.error)
           unsubscribe()
           return
         }
 
-        const value = res.data?.convertThreadToPage
+        const value = res.data?.createThreadToPageRun
         if (!value) {
           return
-        }
-
-        // if (value?.__typename === 'ThreadAssistantMessageCompleted') {
-        //   stop.current()
-        // }
-
-        if (value?.__typename === 'PageCreated') {
-          if (value.id !== pageId) {
-            setPageId(value.id)
-          }
         }
 
         processPageStream(value)
@@ -263,6 +262,9 @@ export function Page() {
     unsubscribeFn.current?.()
     unsubscribeFn.current = undefined
     setIsLoading(false)
+    setIsGeneratingPageContent(false)
+    setPendingSectionIds(new Set())
+    setCurrentSectionId(undefined)
 
     onPageCompleted?.()
   })
@@ -321,8 +323,10 @@ export function Page() {
     if (pageSectionsStale) return
 
     if (pageSectionData?.pageSections?.edges?.length) {
-      const messages = pageSectionData.pageSections.edges.slice()
-      setSections(prev => uniqBy([...(prev || []), ...messages], 'cursor'))
+      const messages = pageSectionData.pageSections.edges
+        .map(x => x.node)
+        .slice()
+      setSections(prev => uniqBy([...(prev || []), ...messages], 'id'))
     }
 
     if (pageSectionData?.pageSections) {
@@ -376,7 +380,19 @@ export function Page() {
       initializing.current = true
 
       if (pendingThreadId) {
-        convertThreadToPage(pendingThreadId)
+        setIsLoading(true)
+        setError(undefined)
+        // setPage({
+        //   title: '',
+        //   content: '',
+        //   createdAt: '',
+        //   updatedAt: '',
+        //   id: tempNanoId(),
+        //   authorId: '',
+        // })
+
+        // trigger convert
+        unsubscribeFn.current = convertThreadToPage(pendingThreadId)
         updatePendingThreadId(undefined)
       }
     }
@@ -441,7 +457,7 @@ export function Page() {
 
     deletePageSection({ sectionId }).then(data => {
       if (data?.data?.deletePageSection) {
-        const nextSections = sections?.filter(x => x.node.id !== sectionId)
+        const nextSections = sections?.filter(x => x.id !== sectionId)
         setSections(nextSections)
       } else {
         toast.error('Failed to delete')
@@ -493,7 +509,10 @@ export function Page() {
         isPageOwner,
         onUpdateSectionContent,
         mode,
-        setMode
+        setMode,
+        pendingSectionIds,
+        setPendingSectionIds,
+        currentSectionId
       }}
     >
       <div style={style}>
@@ -513,20 +532,26 @@ export function Page() {
                 <div className="col-span-3 relative">
                   {/* page title */}
                   <div className="mb-2 mt-4">
-                    <h1 className="text-4xl font-semibold">{page?.title}</h1>
+                    <LoadingWrapper loading={!page} fallback={<Skeleton />}>
+                      <h1 className="text-4xl font-semibold">{page?.title}</h1>
+                    </LoadingWrapper>
                     <div className="my-4 flex gap-4 text-sm text-muted-foreground">
                       {/* FIXME fetch author */}
-                      <div className="flex items-center gap-1">
-                        <MyAvatar className="h-6 w-6" />
-                        <div>{meData?.me?.name}</div>
-                      </div>
+                      {!!page && (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <MyAvatar className="h-6 w-6" />
+                            <div>{meData?.me?.name}</div>
+                          </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-0.5">
-                          <IconClock />
-                          <span>{page?.createdAt}</span>
-                        </div>
-                      </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-0.5">
+                              <IconClock />
+                              <span>{formatTime(page.createdAt)}</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -535,12 +560,16 @@ export function Page() {
                     message={page?.content ?? ''}
                     supportsOnApplyInEditorV2={false}
                   />
+                  {isGeneratingPageContent && (
+                    <div>
+                      <IconSpinner />
+                    </div>
+                  )}
 
                   {/* sections */}
                   <div className="flex flex-col">
-                    {sections?.map(({ node: section }, index) => {
-                      const isLastSection = index === sections.length - 1
-                      const isSectionLoading =
+                    {sections?.map((section, index) => {
+                      const isSectionGenerating =
                         isLoading && section.id === currentSectionId
                       return (
                         <Fragment key={section.id}>
@@ -549,9 +578,8 @@ export function Page() {
                             message={section}
                           />
                           <SectionContent
-                            className="pb-8"
                             message={section}
-                            isLoading={isSectionLoading}
+                            isGenerating={isSectionGenerating}
                           />
                         </Fragment>
                       )
@@ -575,45 +603,44 @@ export function Page() {
                       />
                     </div>
                   )}
-                  <div
-                    className={cn(
-                      'pointer-events-none fixed bottom-5 z-30 w-full',
-                      {
-                        'opacity-100 translate-y-0': showSectionInput,
-                        'opacity-0 translate-y-10': !showSectionInput
-                      }
-                    )}
-                    style={Object.assign(
-                      { transition: 'all 0.35s ease-out' },
-                      theme === 'dark'
-                        ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                        : {}
-                    )}
-                  >
-                    <div className="pointer-events-auto">
-                      <div
-                        className={cn('absolute flex items-center gap-4')}
-                        style={isPageOwner ? { top: '-2.5rem' } : undefined}
-                      >
-                        {stopButtonVisible && (
-                          <Button
-                            className="bg-background"
-                            variant="outline"
-                            onClick={() => stop.current()}
-                          >
-                            <IconStop className="mr-2" />
-                            Stop generating
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
                 <div className="relative col-span-1">
                   <Navbar sections={sections} />
                 </div>
               </div>
             </ScrollArea>
+
+            <div
+              className={cn(
+                'pointer-events-none fixed inset-x-0 bottom-5 z-30 w-full',
+                {
+                  'opacity-100 translate-y-0': showSectionInput,
+                  'opacity-0 translate-y-10': !showSectionInput
+                }
+              )}
+              style={Object.assign(
+                { transition: 'all 0.35s ease-out' },
+                theme === 'dark'
+                  ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                  : {}
+              )}
+            >
+              <div
+                className={cn('absolute flex items-center gap-4')}
+                style={isPageOwner ? { top: '-2.5rem' } : undefined}
+              >
+                {stopButtonVisible && (
+                  <Button
+                    className="bg-background"
+                    variant="outline"
+                    onClick={() => stop.current()}
+                  >
+                    <IconStop className="mr-2" />
+                    Stop generating
+                  </Button>
+                )}
+              </div>
+            </div>
 
             <ButtonScrollToBottom
               className={cn(
@@ -687,4 +714,20 @@ function formatThreadRunErrorMessage(error?: ExtendedCombinedError) {
   }
 
   return error.message || 'Failed to fetch'
+}
+
+function formatTime(time: string) {
+  const targetTime = moment(time)
+
+  if (targetTime.isBefore(moment().subtract(1, 'year'))) {
+    const timeText = targetTime.format('MMM D, YYYY, h:mm A')
+    return timeText
+  }
+
+  if (targetTime.isBefore(moment().subtract(1, 'month'))) {
+    const timeText = targetTime.format('MMM D, hh:mm A')
+    return `${timeText}`
+  }
+
+  return `${targetTime.fromNow()}`
 }
