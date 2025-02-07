@@ -3,8 +3,9 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
-    OAuthCredentialDAO, ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode,
-    ThreadMessageAttachmentCode, ThreadMessageAttachmentCodeFileList, ThreadMessageAttachmentDoc,
+    OAuthCredentialDAO, PageDAO, PageSectionDAO, ServerSettingDAO, ThreadDAO,
+    ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
+    ThreadMessageAttachmentCodeFileList, ThreadMessageAttachmentDoc,
     ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc,
     UserEventDAO,
 };
@@ -14,6 +15,7 @@ use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
     interface::UserValue,
     notification::{Notification, NotificationRecipient},
+    page,
     repository::RepositoryKind,
     schema::{
         auth::{self, LdapCredential, OAuthCredential, OAuthProvider},
@@ -350,6 +352,32 @@ impl From<ThreadDAO> for thread::Thread {
         Self {
             id: value.id.as_id(),
             user_id: value.user_id.as_id(),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
+impl From<PageDAO> for page::Page {
+    fn from(value: PageDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            author_id: value.author_id.as_id(),
+            title: value.title,
+            content: value.content,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
+impl From<PageSectionDAO> for page::Section {
+    fn from(value: PageSectionDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            page_id: value.page_id.as_id(),
+            title: value.title,
+            content: value.content,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
