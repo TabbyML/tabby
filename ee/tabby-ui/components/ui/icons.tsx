@@ -32,6 +32,7 @@ import {
   Layers2,
   Link,
   ListFilter,
+  ListTree,
   Mail,
   MessagesSquare,
   PanelLeft,
@@ -1750,6 +1751,13 @@ function IconBell({ className, ...props }: React.ComponentProps<typeof Bell>) {
   return <Bell className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconListTree({
+  className,
+  ...props
+}: React.ComponentProps<typeof ListTree>) {
+  return <ListTree className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1863,5 +1871,6 @@ export {
   IconGitMerge,
   IconSquareChevronRight,
   IconFileSearch2,
-  IconBell
+  IconBell,
+  IconListTree
 }

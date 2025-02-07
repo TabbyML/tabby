@@ -5,6 +5,7 @@ import { graphql } from '@/lib/gql/generates'
 import {
   CreateMessageInput,
   CreateThreadRunSubscription as CreateThreadRunSubscriptionResponse,
+  ThreadAssistantMessageReadingCode,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
 import { client, useMutation } from '../tabby/gql'
@@ -34,11 +35,14 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageCreated {
         id
       }
+      ... on ThreadAssistantMessageReadingCode {
+        snippet
+        fileList
+      }
       ... on ThreadRelevantQuestions {
         questions
       }
       ... on ThreadAssistantMessageAttachmentsCode {
-        codeSourceId
         hits {
           code {
             gitUrl
@@ -113,11 +117,14 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageCreated {
         id
       }
+      ... on ThreadAssistantMessageReadingCode {
+        snippet
+        fileList
+      }
       ... on ThreadRelevantQuestions {
         questions
       }
       ... on ThreadAssistantMessageAttachmentsCode {
-        codeSourceId
         hits {
           code {
             gitUrl
@@ -200,13 +207,16 @@ export interface AnswerStream {
   relevantQuestions?: Array<string>
   attachmentsCode?: ThreadAssistantMessageAttachmentCodeHits
   attachmentsDoc?: ThreadAssistantMessageAttachmentDocHits
+  readingCode?: ThreadAssistantMessageReadingCode
+  isReadingCode: boolean
   content: string
   completed: boolean
 }
 
 const defaultAnswerStream = (): AnswerStream => ({
   content: '',
-  completed: false
+  completed: false,
+  isReadingCode: false
 })
 
 export interface ThreadRun {
@@ -274,14 +284,24 @@ export function useThreadRun({
       case 'ThreadRelevantQuestions':
         x.relevantQuestions = data.questions
         break
+      case 'ThreadAssistantMessageReadingCode':
+        x.isReadingCode = true
+        x.readingCode = {
+          fileList: data.fileList,
+          snippet: data.snippet
+        }
+        break
       case 'ThreadAssistantMessageAttachmentsCode':
+        x.isReadingCode = false
         x.attachmentsCode = data.hits
-        x.codeSourceId = data.codeSourceId
         break
       case 'ThreadAssistantMessageAttachmentsDoc':
         x.attachmentsDoc = data.hits
         break
       case 'ThreadAssistantMessageContentDelta':
+        if (x.isReadingCode === true) {
+          x.isReadingCode = false
+        }
         x.content += data.delta
         break
       case 'ThreadAssistantMessageCompleted':
