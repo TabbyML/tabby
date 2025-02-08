@@ -1,3 +1,9 @@
+## 1.20.1
+
+### Fixes & Improvements
+
+- **Chat**: Optimized file search performance when using `@` to add file context.
+
 ## 1.20.0
 
 ### Features
