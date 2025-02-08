@@ -13,6 +13,7 @@ use tabby_common::config::{
     config_id_to_index, config_index_to_id, CodeRepository, Config, RepositoryConfig,
 };
 use tabby_db::DbConn;
+use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
