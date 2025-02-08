@@ -16,7 +16,7 @@ import {
 import os from "os";
 import path from "path";
 import { StatusIssuesName } from "tabby-agent";
-import { Client } from "../lsp/Client";
+import { Client } from "../lsp/client";
 import { Config } from "../Config";
 import { ContextVariables } from "../ContextVariables";
 import { InlineCompletionProvider } from "../InlineCompletionProvider";

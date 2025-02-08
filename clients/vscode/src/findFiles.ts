@@ -5,8 +5,18 @@
 //
 // See https://github.com/microsoft/vscode/blob/main/src/vscode-dts/vscode.proposed.findFiles2.d.ts
 
-import { GlobPattern, RelativePattern, Uri, WorkspaceFolder, CancellationToken, workspace } from "vscode";
+import {
+  ExtensionContext,
+  GlobPattern,
+  RelativePattern,
+  Uri,
+  WorkspaceFolder,
+  CancellationToken,
+  CancellationTokenSource,
+  workspace,
+} from "vscode";
 import path from "path";
+import { wrapCancelableFunction } from "./cancelableFunction";
 import { getLogger } from "./logger";
 
 const logger = getLogger("FindFiles");
@@ -29,7 +39,7 @@ function gitIgnoreItemToExcludePatterns(item: string, prefix?: string | undefine
   return [path.join(prefix ?? "", pattern), path.join(prefix ?? "", pattern, "/**")];
 }
 
-async function buildGitIgnorePatterns(workspaceFolder: WorkspaceFolder) {
+async function updateGitIgnorePatterns(workspaceFolder: WorkspaceFolder, token?: CancellationToken | undefined) {
   const patterns = new Set<string>();
   logger.debug(`Building gitignore patterns for workspace folder: ${workspaceFolder.uri.toString()}`);
 
@@ -37,9 +47,13 @@ async function buildGitIgnorePatterns(workspaceFolder: WorkspaceFolder) {
   let current = workspaceFolder.uri;
   let parent = current.with({ path: path.dirname(current.path) });
   while (parent.path !== current.path) {
+    if (token?.isCancellationRequested) {
+      return;
+    }
+
     const gitignore = parent.with({ path: path.join(parent.path, ".gitignore") });
     try {
-      const content = (await workspace.fs.readFile(gitignore)).toString();
+      const content = new TextDecoder().decode(await workspace.fs.readFile(gitignore));
       content.split(/\r?\n/).forEach((line) => {
         if (!line.trim().startsWith("#")) {
           gitIgnoreItemToExcludePatterns(line).forEach((pattern) => patterns.add(pattern));
@@ -54,13 +68,30 @@ async function buildGitIgnorePatterns(workspaceFolder: WorkspaceFolder) {
     parent = current.with({ path: path.dirname(current.path) });
   }
 
+  if (token?.isCancellationRequested) {
+    return;
+  }
   // Read subdirectories gitignore files
-  const ignoreFiles = await workspace.findFiles(new RelativePattern(workspaceFolder, "**/.gitignore"));
+  let ignoreFiles: Uri[] = [];
+  try {
+    ignoreFiles = await workspace.findFiles(
+      new RelativePattern(workspaceFolder, "**/.gitignore"),
+      undefined,
+      undefined,
+      token,
+    );
+  } catch (error) {
+    // ignore
+  }
+
   await Promise.all(
     ignoreFiles.map(async (ignoreFile) => {
+      if (token?.isCancellationRequested) {
+        return;
+      }
       const prefix = path.relative(workspaceFolder.uri.path, path.dirname(ignoreFile.path));
       try {
-        const content = (await workspace.fs.readFile(ignoreFile)).toString();
+        const content = new TextDecoder().decode(await workspace.fs.readFile(ignoreFile));
         content.split(/\r?\n/).forEach((line) => {
           if (!line.trim().startsWith("#")) {
             gitIgnoreItemToExcludePatterns(line, prefix).forEach((pattern) => patterns.add(pattern));
@@ -78,15 +109,32 @@ async function buildGitIgnorePatterns(workspaceFolder: WorkspaceFolder) {
   gitIgnorePatternsMap.set(workspaceFolder.uri.toString(), patterns);
 }
 
-workspace.onDidChangeTextDocument(async (event) => {
-  const uri = event.document.uri;
-  if (path.basename(uri.fsPath) === ".gitignore") {
-    const workspaceFolder = workspace.getWorkspaceFolder(uri);
-    if (workspaceFolder) {
-      await buildGitIgnorePatterns(workspaceFolder);
-    }
-  }
+const updateGitIgnorePatternsMap = wrapCancelableFunction(async (token?: CancellationToken) => {
+  await Promise.all(
+    workspace.workspaceFolders?.map(async (workspaceFolder) => {
+      await updateGitIgnorePatterns(workspaceFolder, token);
+    }) ?? [],
+  );
 });
+
+export async function init(context: ExtensionContext) {
+  context.subscriptions.push(
+    workspace.onDidChangeWorkspaceFolders(async () => {
+      await updateGitIgnorePatternsMap();
+    }),
+  );
+
+  context.subscriptions.push(
+    workspace.onDidChangeTextDocument(async (event) => {
+      const uri = event.document.uri;
+      if (path.basename(uri.fsPath) === ".gitignore") {
+        await updateGitIgnorePatternsMap();
+      }
+    }),
+  );
+
+  await updateGitIgnorePatternsMap();
+}
 
 export async function findFiles(
   pattern: GlobPattern,
@@ -122,18 +170,17 @@ export async function findFiles(
     );
     return await workspace.findFiles(pattern, excludesPattern, options.maxResults, options.token);
   } else {
-    await Promise.all(
-      workspace.workspaceFolders?.map(async (workspaceFolder) => {
-        if (!gitIgnorePatternsMap.has(workspaceFolder.uri.toString())) {
-          await buildGitIgnorePatterns(workspaceFolder);
-        }
-      }) ?? [],
-    );
-
     return new Promise((resolve, reject) => {
+      if (options?.token?.isCancellationRequested) {
+        reject(new Error("Operation canceled."));
+        return;
+      }
+
+      const cancellationTokenSource = new CancellationTokenSource();
       if (options?.token) {
-        options?.token.onCancellationRequested((reason) => {
-          reject(reason);
+        options?.token.onCancellationRequested(() => {
+          cancellationTokenSource.cancel();
+          reject(new Error("Operation canceled."));
         });
       }
 
@@ -153,11 +200,17 @@ export async function findFiles(
             ...combinedExcludes,
             ...(gitIgnorePatternsMap.get(workspaceFolder.uri.toString()) ?? []),
           ]);
-          const excludesPattern = `{${[...allExcludes].slice(0, 1000).join(",")}}`; // Limit to 1000 patterns
+          const sortedExcludes = [...allExcludes].sort((a, b) => a.length - b.length).slice(0, 1000); // Limit to 1000 patterns
+          const excludesPattern = `{${sortedExcludes.join(",")}}`;
           logger.debug(
-            `Executing search: ${JSON.stringify({ includePattern, excludesPattern, maxResults: options?.maxResults, token: options?.token })}`,
+            `Executing search: ${JSON.stringify({ includePattern, excludesPattern, maxResults: options?.maxResults })}`,
           );
-          return await workspace.findFiles(includePattern, excludesPattern, options?.maxResults, options?.token);
+          return await workspace.findFiles(
+            includePattern,
+            excludesPattern,
+            options?.maxResults,
+            cancellationTokenSource.token,
+          );
         }) ?? [];
 
       const results: Uri[] = [];
@@ -168,6 +221,7 @@ export async function findFiles(
             if (result.length > 0) {
               results.push(...result);
               if (options?.maxResults && results.length >= options.maxResults) {
+                cancellationTokenSource.cancel();
                 resolve(results.slice(0, options.maxResults));
               }
             }

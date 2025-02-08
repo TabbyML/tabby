@@ -105,3 +105,13 @@ const enableDeveloperModeFactory = new ExperimentFlagFactory(
 export const EXP_enable_developer_mode =
   enableDeveloperModeFactory.defineGlobalVar()
 export const useEnableDeveloperMode = enableDeveloperModeFactory.defineHook()
+
+const enablePageFactory = new ExperimentFlagFactory(
+  'enable_page',
+  'Answer Engine Page',
+  'Enable the Answer Engine Page. This feature allows you to convert Answer Engine threads to pages.',
+  false
+)
+
+export const EXP_enable_page = enablePageFactory.defineGlobalVar()
+export const useEnablePage = enablePageFactory.defineHook()

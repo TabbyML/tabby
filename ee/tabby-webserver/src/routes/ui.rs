@@ -44,23 +44,27 @@ where
     }
 }
 
+fn set_path(path: &mut String, query: Option<&str>, base: &str) {
+    if let Some(q) = query {
+        if q.contains("_rsc=") {
+            format!("{}.txt", base).clone_into(path);
+            return;
+        }
+    }
+    format!("{}.html", base).clone_into(path);
+}
+
 pub async fn handler(uri: Uri) -> impl IntoResponse {
     let mut path = uri.path().trim_start_matches('/').to_string();
     let query = uri.query();
     if path.is_empty() {
         "index.html".clone_into(&mut path)
     } else if path.starts_with("files/") {
-        if query.is_some_and(|x| x.contains("_rsc=")) {
-            "files.txt".clone_into(&mut path)
-        } else {
-            "files.html".clone_into(&mut path)
-        }
+        set_path(&mut path, query, "files");
     } else if path.starts_with("search/") {
-        if query.is_some_and(|x| x.contains("_rsc=")) {
-            "search.txt".clone_into(&mut path)
-        } else {
-            "search.html".clone_into(&mut path)
-        }
+        set_path(&mut path, query, "search");
+    } else if path.starts_with("pages/") {
+        set_path(&mut path, query, "pages");
     } else if !path.contains('.') && WebAssets::get(&format!("{}.html", path)).is_some() {
         path += ".html"
     }

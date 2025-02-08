@@ -11,14 +11,17 @@ pub use job_runs::JobRunDAO;
 pub use ldap_credential::LdapCredentialDAO;
 pub use notifications::NotificationDAO;
 pub use oauth_credential::OAuthCredentialDAO;
+pub use pages::{PageDAO, PageSectionDAO};
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
 pub use threads::{
-    ThreadDAO, ThreadMessageAttachmentAuthor, ThreadMessageAttachmentClientCode,
-    ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageAttachmentIssueDoc,
-    ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc, ThreadMessageDAO,
+    ThreadDAO, ThreadMessageAttachment, ThreadMessageAttachmentAuthor,
+    ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
+    ThreadMessageAttachmentCodeFileList, ThreadMessageAttachmentDoc,
+    ThreadMessageAttachmentIssueDoc, ThreadMessageAttachmentPullDoc, ThreadMessageAttachmentWebDoc,
+    ThreadMessageDAO,
 };
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
@@ -38,6 +41,7 @@ mod ldap_credential;
 mod migration_tests;
 mod notifications;
 mod oauth_credential;
+mod pages;
 mod password_reset;
 mod provided_repositories;
 mod refresh_tokens;

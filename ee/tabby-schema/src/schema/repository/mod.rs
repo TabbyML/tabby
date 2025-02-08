@@ -1,6 +1,7 @@
 mod types;
 use std::{path::PathBuf, sync::Arc};
 
+use tabby_inference::ChatCompletionStream;
 pub use types::*;
 
 mod git;
@@ -265,6 +266,20 @@ pub trait RepositoryService: Send + Sync {
         top_n: usize,
     ) -> Result<Vec<FileEntrySearchResult>>;
 
+    /// Read files from a repository.
+    /// When `rev` is None, this retrieves files from the default branch.
+    /// When `top_n` is None, this retrieves all files.
+    ///
+    /// The file listing is in breadth first order.
+    async fn list_files(
+        &self,
+        policy: &AccessPolicy,
+        kind: &RepositoryKind,
+        id: &ID,
+        rev: Option<&str>,
+        top_n: Option<usize>,
+    ) -> Result<Vec<FileEntrySearchResult>>;
+
     async fn grep(
         &self,
         policy: &AccessPolicy,
@@ -279,4 +294,10 @@ pub trait RepositoryService: Send + Sync {
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
 
     async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>>;
+    async fn read_repository_related_questions(
+        &self,
+        chat: Arc<dyn ChatCompletionStream>,
+        policy: &AccessPolicy,
+        source_id: String,
+    ) -> Result<Vec<String>>;
 }

@@ -1,7 +1,8 @@
 import {
   Maybe,
   Message,
-  MessageAttachmentClientCode
+  MessageAttachmentClientCode,
+  ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 
@@ -17,6 +18,8 @@ export type ConversationMessage = Omit<
     code: Maybe<Array<AttachmentCodeItem>> | undefined
     doc: Maybe<Array<AttachmentDocItem>> | undefined
   }
+  readingCode?: ThreadAssistantMessageReadingCode
+  isReadingCode?: boolean
 }
 export type ConversationPair = {
   question: ConversationMessage | null

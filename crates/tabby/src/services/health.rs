@@ -55,7 +55,10 @@ impl HealthState {
 fn to_model_name(model: &Option<ModelConfig>) -> Option<String> {
     if let Some(model) = model {
         match model {
-            ModelConfig::Http(_http) => Some("Remote".to_owned()),
+            ModelConfig::Http(http) => http
+                .model_name
+                .clone()
+                .or_else(|| Some("Remote".to_string())),
             ModelConfig::Local(llama) => Some(llama.model_id.clone()),
         }
     } else {

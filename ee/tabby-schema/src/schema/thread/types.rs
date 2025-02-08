@@ -58,10 +58,24 @@ pub struct UpdateMessageInput {
 
 #[derive(GraphQLObject, Clone, Default)]
 #[graphql(context = Context)]
+/// Represents an attachment to a message, which can include various types of content.
 pub struct MessageAttachment {
-    pub code: Vec<MessageAttachmentCode>,
+    /// Code snippets retrieved from the client side.
     pub client_code: Vec<MessageAttachmentClientCode>,
+
+    /// Code snippets retrieved from the server side codebase.
+    pub code: Vec<MessageAttachmentCode>,
+
+    /// Documents retrieved from various sources, all from the server side.
     pub doc: Vec<MessageAttachmentDoc>,
+
+    /// File list retrieved from the server side codebase is used for generating this message.
+    pub code_file_list: Option<MessageAttachmentCodeFileList>,
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentCodeFileList {
+    pub file_list: Vec<String>,
 }
 
 #[derive(GraphQLObject, Clone)]
@@ -255,8 +269,21 @@ pub struct ThreadAssistantMessageCreated {
     pub id: ID,
 }
 
+#[derive(GraphQLObject, Clone, Debug)]
+pub struct ThreadAssistantMessageReadingCode {
+    pub snippet: bool,
+    pub file_list: bool,
+    // pub commit_history: bool
+}
+
+#[derive(GraphQLObject)]
+pub struct ThreadAssistantMessageAttachmentsCodeFileList {
+    pub file_list: Vec<String>,
+}
+
 #[derive(GraphQLObject)]
 pub struct ThreadAssistantMessageAttachmentsCode {
+    #[graphql(skip)]
     pub code_source_id: String,
     pub hits: Vec<MessageCodeSearchHit>,
 }
@@ -287,6 +314,8 @@ pub enum ThreadRunItem {
     ThreadRelevantQuestions(ThreadRelevantQuestions),
     ThreadUserMessageCreated(ThreadUserMessageCreated),
     ThreadAssistantMessageCreated(ThreadAssistantMessageCreated),
+    ThreadAssistantMessageReadingCode(ThreadAssistantMessageReadingCode),
+    ThreadAssistantMessageAttachmentsCodeFileList(ThreadAssistantMessageAttachmentsCodeFileList),
     ThreadAssistantMessageAttachmentsCode(ThreadAssistantMessageAttachmentsCode),
     ThreadAssistantMessageAttachmentsDoc(ThreadAssistantMessageAttachmentsDoc),
     ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta),
