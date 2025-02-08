@@ -891,6 +891,23 @@ impl Query {
             }
         }
     }
+
+    async fn read_repository_related_questions(
+        ctx: &Context,
+        source_id: String,
+    ) -> Result<Vec<String>, CoreError> {
+        let user = check_user(ctx).await?;
+        ctx.locator
+            .repository()
+            .read_repository_related_questions(
+                ctx.locator
+                    .chat()
+                    .ok_or(CoreError::NotFound("The Chat didn't initialize yet"))?,
+                &user.policy,
+                source_id,
+            )
+            .await
+    }
 }
 
 #[derive(GraphQLObject)]

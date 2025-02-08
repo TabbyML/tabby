@@ -17,6 +17,7 @@ mod setting;
 mod thread;
 mod user_event;
 mod user_group;
+pub mod utils;
 pub mod web_documents;
 
 use std::sync::Arc;
