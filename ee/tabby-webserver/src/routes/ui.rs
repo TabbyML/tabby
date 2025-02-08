@@ -63,8 +63,8 @@ pub async fn handler(uri: Uri) -> impl IntoResponse {
         set_path(&mut path, query, "files");
     } else if path.starts_with("search/") {
         set_path(&mut path, query, "search");
-    } else if path.starts_with("page/") {
-        set_path(&mut path, query, "page");
+    } else if path.starts_with("pages/") {
+        set_path(&mut path, query, "pages");
     } else if !path.contains('.') && WebAssets::get(&format!("{}.html", path)).is_some() {
         path += ".html"
     }
