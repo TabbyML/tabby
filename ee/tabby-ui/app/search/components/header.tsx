@@ -5,7 +5,9 @@ import type { MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
+import { useEnablePage } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
+import { updatePendingThreadId } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
@@ -51,6 +53,8 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  const [enablePage] = useEnablePage()
+
   const deleteThread = useMutation(deleteThreadMutation, {
     onCompleted(data) {
       if (data.deleteThread) {
@@ -81,6 +85,12 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
     router.push('/')
   }
 
+  const onConvertToPage = () => {
+    if (!threadIdFromURL) return
+    updatePendingThreadId(threadIdFromURL)
+    router.push('/pages')
+  }
+
   return (
     <header className="flex h-16 items-center justify-between px-4 lg:px-10">
       <div className="flex items-center gap-x-6">
@@ -103,38 +113,51 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
             <IconPlus />
           </Button>
         )}
+
         {streamingDone && threadIdFromURL && isThreadOwner && (
-          <AlertDialog
-            open={deleteAlertVisible}
-            onOpenChange={setDeleteAlertVisible}
-          >
-            <AlertDialogTrigger asChild>
-              <Button size="icon" variant="hover-destructive">
-                <IconTrash />
+          <>
+            <AlertDialog
+              open={deleteAlertVisible}
+              onOpenChange={setDeleteAlertVisible}
+            >
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="hover-destructive">
+                  <IconTrash />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this thread</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this thread? This operation
+                    is not revertible.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={buttonVariants({ variant: 'destructive' })}
+                    onClick={handleDeleteThread}
+                  >
+                    {isDeleting && (
+                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Yes, delete it
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {!!enablePage.value && (
+              <Button
+                variant="ghost"
+                onClick={onConvertToPage}
+                className="gap-1"
+              >
+                Convert to page
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this thread</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this thread? This operation is
-                  not revertible.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className={buttonVariants({ variant: 'destructive' })}
-                  onClick={handleDeleteThread}
-                >
-                  {isDeleting && (
-                    <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Yes, delete it
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            )}
+          </>
         )}
         <ClientOnly>
           <ThemeToggle />

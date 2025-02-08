@@ -69,6 +69,7 @@ const RELEASE = 3;
 const FUNCTION_APPLY = 5;
 const FUNCTION_RESULT = 6;
 const CHECK_CAPABILITY = 7;
+const EXPOSE_LIST = 8;
 
 interface MessageMap {
   [CALL]: [string, string | number, any];
@@ -78,6 +79,7 @@ interface MessageMap {
   [FUNCTION_APPLY]: [string, string, any];
   [FUNCTION_RESULT]: [string, Error?, any?];
   [CHECK_CAPABILITY]: [string, string];
+  [EXPOSE_LIST]: [string];
 }
 
 type MessageData = {
@@ -121,7 +123,9 @@ export function createThread<
     ) => void
   >();
 
-  const call = createCallable<Thread<Target>>(handlerForCall, callable);
+  const call = createCallable<Thread<Target>>(handlerForCall, callable, {
+    _requestMethods,
+  });
 
   const encoderApi: ThreadEncoderApi = {
     functions: {
@@ -333,6 +337,18 @@ export function createThread<
         send(RESULT, [id, undefined, encoder.encode(hasMethod, encoderApi)[0]]);
         break;
       }
+
+      case EXPOSE_LIST: {
+        // return our list of exposed methods
+        const [id] = data[1];
+        const exposedMethods = Array.from(activeApi.keys());
+        send(RESULT, [
+          id,
+          undefined,
+          encoder.encode(exposedMethods, encoderApi)[0],
+        ]);
+        break;
+      }
     }
   }
 
@@ -410,6 +426,13 @@ export function createThread<
       callIdsToResolver.delete(callId);
     }
   }
+
+  async function _requestMethods() {
+    const id = uuid();
+    const done = waitForResult(id);
+    send(EXPOSE_LIST, [id]);
+    return done;
+  }
 }
 
 class ThreadTerminatedError extends Error {
@@ -430,7 +453,10 @@ function createCallable<T>(
   handlerForCall: (
     property: string | number | symbol
   ) => AnyFunction | undefined,
-  callable?: (keyof T)[]
+  callable?: (keyof T)[],
+  methods?: {
+    _requestMethods(): Promise<string[]>;
+  }
 ): T {
   let call: any;
 
@@ -447,6 +473,12 @@ function createCallable<T>(
       {},
       {
         get(_target, property) {
+          if (property === "then") {
+            return undefined;
+          }
+          if (property === "_requestMethods") {
+            return methods?._requestMethods;
+          }
           if (cache.has(property)) {
             return cache.get(property);
           }

@@ -112,6 +112,11 @@ enum Role {
   ASSISTANT
 }
 
+input AddPageSectionInput {
+  pageId: ID!
+  title: String!
+}
+
 input CodeQueryInput {
   filepath: String
   language: String
@@ -529,10 +534,16 @@ type Message {
   updatedAt: DateTime!
 }
 
+"Represents an attachment to a message, which can include various types of content."
 type MessageAttachment {
-  code: [MessageAttachmentCode!]!
+  "Code snippets retrieved from the client side."
   clientCode: [MessageAttachmentClientCode!]!
+  "Code snippets retrieved from the server side codebase."
+  code: [MessageAttachmentCode!]!
+  "Documents retrieved from various sources, all from the server side."
   doc: [MessageAttachmentDoc!]!
+  "File list retrieved from the server side codebase is used for generating this message."
+  codeFileList: MessageAttachmentCodeFileList
 }
 
 type MessageAttachmentClientCode {
@@ -549,6 +560,10 @@ type MessageAttachmentCode {
   content: String!
   "When start line is `None`, it represents the entire file."
   startLine: Int
+}
+
+type MessageAttachmentCodeFileList {
+  fileList: [String!]!
 }
 
 type MessageAttachmentCodeScores {
@@ -653,6 +668,15 @@ type Mutation {
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
   updateThreadMessage(input: UpdateMessageInput!): Boolean!
+  "delete a page and all its sections."
+  deletePage(id: ID!): Boolean!
+  """
+    Creates a new page section.
+    Only the title is required; the answer will be generated as the content.
+  """
+  addPageSection(input: AddPageSectionInput!): ID!
+  "delete a single page section."
+  deletePageSection(sectionId: ID!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
@@ -683,11 +707,66 @@ type OAuthCredential {
   updatedAt: DateTime!
 }
 
+type Page {
+  id: ID!
+  authorId: ID!
+  title: String
+  content: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type PageCompleted {
+  id: ID!
+}
+
+type PageConnection {
+  edges: [PageEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PageContentCompleted {
+  id: ID!
+}
+
+type PageContentDelta {
+  delta: String!
+}
+
+type PageCreated {
+  id: ID!
+  authorId: ID!
+  title: String!
+}
+
+type PageEdge {
+  node: Page!
+  cursor: String!
+}
+
 type PageInfo {
   hasPreviousPage: Boolean!
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type PageSection {
+  id: ID!
+  title: String!
+}
+
+type PageSectionContentCompleted {
+  id: ID!
+}
+
+type PageSectionContentDelta {
+  id: ID!
+  delta: String!
+}
+
+type PageSectionsCreated {
+  sections: [PageSection!]!
 }
 
 type PresetDocumentConnection {
@@ -789,12 +868,16 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  "Read pages by page IDs."
+  pages(ids: [ID!], after: String, before: String, first: Int, last: Int): PageConnection!
+  pageSections(pageId: ID!, after: String, before: String, first: Int, last: Int): SectionConnection!
   customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
   presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
   testModelConnection(backend: ModelHealthBackend!): ModelBackendHealthInfo!
+  readRepositoryRelatedQuestions(sourceId: String!): [String!]!
 }
 
 type RefreshTokenResponse {
@@ -835,6 +918,25 @@ type RepositoryGrepOutput {
   elapsedMs: Int!
 }
 
+type Section {
+  id: ID!
+  pageId: ID!
+  title: String!
+  content: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type SectionConnection {
+  edges: [SectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type SectionEdge {
+  node: Section!
+  cursor: String!
+}
+
 type SecuritySetting {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
@@ -856,6 +958,13 @@ type SourceIdAccessPolicy {
 type Subscription {
   createThreadAndRun(input: CreateThreadAndRunInput!): ThreadRunItem!
   createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
+  """
+    Utilize an existing thread and its messages to create a page.
+    This will automatically generate:
+    - the page title and a summary of the content.
+    - a few sections based on the thread messages.
+  """
+  createThreadToPageRun(threadId: ID!): PageRunItem!
 }
 
 type Thread {
@@ -866,8 +975,11 @@ type Thread {
 }
 
 type ThreadAssistantMessageAttachmentsCode {
-  codeSourceId: String!
   hits: [MessageCodeSearchHit!]!
+}
+
+type ThreadAssistantMessageAttachmentsCodeFileList {
+  fileList: [String!]!
 }
 
 type ThreadAssistantMessageAttachmentsDoc {
@@ -884,6 +996,11 @@ type ThreadAssistantMessageContentDelta {
 
 type ThreadAssistantMessageCreated {
   id: ID!
+}
+
+type ThreadAssistantMessageReadingCode {
+  snippet: Boolean!
+  fileList: Boolean!
 }
 
 type ThreadConnection {
@@ -978,9 +1095,12 @@ type WebContextSource implements ContextSourceId & ContextSource {
 
 union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc
 
+"Schema of page convert stream."
+union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
+
 """
   Schema of thread run stream.
 
   Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 """
-union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageReadingCode | ThreadAssistantMessageAttachmentsCodeFileList | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted

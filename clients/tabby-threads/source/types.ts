@@ -3,7 +3,7 @@ import type {
   RETAIN_METHOD,
   ENCODE_METHOD,
   RETAINED_BY,
-} from './constants.ts';
+} from "./constants.ts";
 
 /**
  * A thread represents a target JavaScript environment that exposes a set
@@ -18,6 +18,12 @@ export type Thread<Target> = {
       ? Target[K]
       : never
     : never;
+} & {
+  
+  /**
+   * A method that used to get all exposed methods of the opposite thread.
+   */
+  _requestMethods(): Promise<string[]>;
 };
 
 /**

@@ -2,6 +2,8 @@
 sidebar_position: 0
 ---
 
+import Collapse from '@site/src/components/Collapse';
+
 # Docker
 
 This guide explains how to launch Tabby using docker.
@@ -13,14 +15,45 @@ import TabItem from '@theme/TabItem';
   <TabItem value="cuda" label="CUDA" default>
 
 
-  For CUDA support in Tabby, install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
-  After installation, you can start Tabby with the following command:
+  To run Tabby with CUDA support in Docker, please install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+  Once installed, you can launch Tabby using the command below:
 
   ```bash title="run.sh"
-  docker run -it --gpus all \
-    -p 8080:8080 -v $HOME/.tabby:/data \
+  docker run -d \
+    --name tabby \
+    --gpus all \
+    -p 8080:8080 \
+    -v $HOME/.tabby:/data \
     registry.tabbyml.com/tabbyml/tabby \
-    serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct --device cuda
+      serve \
+      --model StarCoder-1B \
+      --chat-model Qwen2-1.5B-Instruct \
+      --device cuda
+  ```
+
+  <Collapse title="For the systems with SELinux enabled, you may need to add the `:Z` option to the volume mount">
+
+  ```bash title="run.sh"
+  docker run -d \
+    --name tabby \
+    --gpus all \
+    -p 8080:8080 \
+    -v $HOME/.tabby:/data:Z \
+    registry.tabbyml.com/tabbyml/tabby \
+      serve \
+      --model StarCoder-1B \
+      --chat-model Qwen2-1.5B-Instruct \
+      --device cuda
+  ```
+
+  </Collapse>
+
+  After Tabby is running, you can access it at [http://localhost:8080](http://localhost:8080).
+
+  To view the logs, you can use the following command:
+
+  ```bash
+  docker logs -f tabby
   ```
 
   </TabItem>

@@ -122,7 +122,7 @@ impl HTTPSHandler {
         let parsed_address = ParsedAddress::parse_address(input, bar.silent);
         let (mut out, mut downloaded) = io::get_output(output, bar.silent);
 
-        let res = Client::new()
+        let mut request = Client::new()
             .get(input)
             .header(
                 "Range",
@@ -131,8 +131,13 @@ impl HTTPSHandler {
             .header(
                 reqwest::header::USER_AGENT,
                 reqwest::header::HeaderValue::from_static(CLIENT_ID),
-            )
-            .basic_auth(parsed_address.username, Some(parsed_address.password))
+            );
+
+        if parsed_address.password != "anonymous" {
+            request = request.basic_auth(parsed_address.username, Some(parsed_address.password));
+        }
+
+        let res = request
             .send()
             .await
             .and_then(|r| r.error_for_status())

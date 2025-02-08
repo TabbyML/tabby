@@ -20,10 +20,7 @@ use async_openai_alt::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use prompt_tools::{
-    pipeline_decide_need_codebase_commit_history, pipeline_decide_need_codebase_directory_tree,
-    pipeline_related_questions,
-};
+use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
 use tabby_common::{
     api::{
         code::{
@@ -42,10 +39,11 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentCodeInput, MessageAttachmentDoc, MessageAttachmentInput,
-        MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
-        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
-        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
+        MessageAttachmentCodeFileList, MessageAttachmentCodeInput, MessageAttachmentDoc,
+        MessageAttachmentInput, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
+        ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
+        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
+        ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -115,37 +113,44 @@ impl AnswerService {
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
                 if let Some(repository) = self.find_repository(&context_info_helper, code_query, policy.clone()).await {
-                    let hits = self.collect_relevant_code(
-                        &repository,
-                        &context_info_helper,
-                        code_query,
-                        &self.config.code_search_params,
-                        options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()),
-                    ).await;
-                    attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
-
-                    // FIXME(zwpaper): Turn on directory tree in prod when it got stored in index.
-                    if !cfg!(feature = "prod") {
-                        let need_codebase_directory_tree = pipeline_decide_need_codebase_directory_tree(self.chat.clone(), &query.content).await.unwrap_or_default();
-                        if need_codebase_directory_tree {
-                            todo!("inject codebase directory structure into MessageAttachment and ThreadRunItem::ThreadAssistantMessageAttachmentsCode");
+                    let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &query.content).await?;
+                    yield Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(need_codebase_context.clone()));
+                    if need_codebase_context.file_list {
+                        // List at most 300 files in the repository.
+                        match self.repository.list_files(&policy, &repository.kind, &repository.id, None, Some(300)).await {
+                            Ok(files) => {
+                                let file_list: Vec<_> = files.into_iter().map(|x| x.path).collect();
+                                attachment.code_file_list = Some(MessageAttachmentCodeFileList {
+                                    file_list: file_list.clone(),
+                                });
+                                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCodeFileList(ThreadAssistantMessageAttachmentsCodeFileList {
+                                    file_list,
+                                }));
+                            }
+                            Err(e) => {
+                                error!("failed to list files for repository {}: {}", repository.id, e);
+                            }
                         }
                     }
 
-                    // FIXME(zwpaper): Turn on codebase commit history in prod when it got stored in index.
-                    if !cfg!(feature = "prod") {
-                        let need_codebase_commit_history = pipeline_decide_need_codebase_commit_history(self.chat.clone(), &query.content).await.unwrap_or_default();
-                        if need_codebase_commit_history {
-                            todo!("inject codebase commit history into MessageAttachment and ThreadRunItem::ThreadAssistantMessageAttachmentsCode");
+                    if need_codebase_context.snippet {
+                        let hits = self.collect_relevant_code(
+                            &repository,
+                            &context_info_helper,
+                            code_query,
+                            &self.config.code_search_params,
+                            options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()),
+                        ).await;
+                        attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
+
+                        if !hits.is_empty() {
+                            let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                            yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
+                                ThreadAssistantMessageAttachmentsCode { code_source_id: repository.source_id, hits }
+                            ));
                         }
                     }
 
-                    if !hits.is_empty() {
-                        let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
-                        yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                            ThreadAssistantMessageAttachmentsCode { code_source_id: repository.source_id, hits }
-                        ));
-                    }
                 };
             };
 
@@ -465,15 +470,17 @@ fn convert_messages_to_chat_completion_request(
         output.push(message);
     }
 
+    let user_prompt = build_user_prompt(
+        &messages[messages.len() - 1].content,
+        attachment,
+        user_attachment_input,
+    );
+
     output.push(ChatCompletionRequestMessage::User(
         ChatCompletionRequestUserMessage {
-            content: ChatCompletionRequestUserMessageContent::Text(helper.rewrite_tag(
-                &build_user_prompt(
-                    &messages[messages.len() - 1].content,
-                    attachment,
-                    user_attachment_input,
-                ),
-            )),
+            content: ChatCompletionRequestUserMessageContent::Text(
+                helper.rewrite_tag(&user_prompt),
+            ),
             ..Default::default()
         },
     ));
@@ -492,42 +499,64 @@ fn build_user_prompt(
         .unwrap_or(true)
         && assistant_attachment.code.is_empty()
         && assistant_attachment.doc.is_empty()
+        && assistant_attachment.code_file_list.is_none()
     {
         return user_input.to_owned();
     }
 
-    let snippets: Vec<String> = assistant_attachment
-        .doc
-        .iter()
-        .map(|doc| format!("```\n{}\n```", get_content(doc)))
-        .chain(
-            user_attachment_input
-                .map(|x| &x.code)
-                .unwrap_or(&vec![])
-                .iter()
-                .map(|snippet| {
-                    if let Some(filepath) = &snippet.filepath {
-                        format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
-                    } else {
-                        format!("```\n{}\n```", snippet.content)
-                    }
-                }),
-        )
-        .chain(assistant_attachment.code.iter().map(|snippet| {
+    let maybe_file_list_context = assistant_attachment
+        .code_file_list
+        .as_ref()
+        .filter(|x| !x.file_list.is_empty())
+        .map(|x| {
             format!(
-                "```{} title=\"{}\"\n{}\n```",
-                snippet.language, snippet.filepath, snippet.content
+                "Here is the list of files in the workspace available for reference:\n\n{}\n\n",
+                x.file_list.join("\n")
             )
-        }))
-        .collect();
+        })
+        .unwrap_or_default();
 
-    let citations: Vec<String> = snippets
-        .iter()
-        .enumerate()
-        .map(|(i, snippet)| format!("[[citation:{}]]\n{}", i + 1, *snippet))
-        .collect();
+    let maybe_file_snippet_context = {
+        let snippets: Vec<String> = assistant_attachment
+            .doc
+            .iter()
+            .map(|doc| format!("```\n{}\n```", get_content(doc)))
+            .chain(
+                user_attachment_input
+                    .map(|x| &x.code)
+                    .unwrap_or(&vec![])
+                    .iter()
+                    .map(|snippet| {
+                        if let Some(filepath) = &snippet.filepath {
+                            format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
+                        } else {
+                            format!("```\n{}\n```", snippet.content)
+                        }
+                    }),
+            )
+            .chain(assistant_attachment.code.iter().map(|snippet| {
+                format!(
+                    "```{} title=\"{}\"\n{}\n```",
+                    snippet.language, snippet.filepath, snippet.content
+                )
+            }))
+            .collect();
 
-    let context = citations.join("\n\n");
+        let citations: Vec<String> = snippets
+            .iter()
+            .enumerate()
+            .map(|(i, snippet)| format!("[[citation:{}]]\n{}", i + 1, *snippet))
+            .collect();
+
+        if !citations.is_empty() {
+            format!(
+                "Here are the set of contexts:\n\n{}",
+                citations.join("\n\n")
+            )
+        } else {
+            String::default()
+        }
+    };
 
     format!(
         r#"You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
@@ -536,9 +565,7 @@ Your answer must be correct, accurate and written by an expert using an unbiased
 
 Please cite the contexts with the reference numbers, in the format [[citation:x]]. If a sentence comes from multiple contexts, please list all applicable citations, like [[citation:3]][[citation:5]]. Other than code and specific names and citations, your answer must be written in the same language as the question.
 
-Here are the set of contexts:
-
-{context}
+{maybe_file_list_context}{maybe_file_snippet_context}
 
 Remember, don't blindly repeat the contexts verbatim. When possible, give code snippet to demonstrate the answer. And here is the user question:
 
@@ -780,6 +807,7 @@ mod tests {
                 start_line: Some(1),
             }],
             client_code: vec![],
+            code_file_list: None,
         };
         let user_attachment_input = None;
 
@@ -818,6 +846,9 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: Some(MessageAttachmentCodeFileList {
+                file_list: vec!["client.py".to_owned(), "server.py".to_owned()],
+            }),
         };
 
         let messages = vec![
@@ -995,6 +1026,7 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: None,
         };
 
         let question = "What is the purpose of this code?";
@@ -1057,6 +1089,7 @@ mod tests {
                 content: "print('Hello, client!')".to_owned(),
                 start_line: Some(1),
             }],
+            code_file_list: None,
         };
 
         let question = "What is the purpose of this code?";

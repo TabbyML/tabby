@@ -1,6 +1,6 @@
 [package]
 name = "tabby-download"
-version = "0.24.0-dev.0"
+version = "0.25.0-dev.0"
 edition = "2021"
 
 [dependencies]
@@ -8,7 +8,7 @@ aim-downloader = { path = "../aim-downloader" }
 tabby-common = { path = "../tabby-common" }
 anyhow = { workspace = true }
 tracing = { workspace = true }
-tokio-retry = "0.3.0"
+tokio-retry = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

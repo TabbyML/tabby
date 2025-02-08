@@ -1,5 +1,4 @@
-use std::fmt::Display;
-
+use anyhow::bail;
 use juniper::ID;
 use tabby_common::api::event::{Event, EventLogger, LogEntry};
 use tabby_db::DbConn;
@@ -8,13 +7,6 @@ use tracing::warn;
 
 struct DbEventLogger {
     db: DbConn,
-}
-
-// FIXME(boxbeam, TAB-629): Refactor to `write_impl` which returns `Result` to allow `?` to still be used
-fn log_err<T, E: Display>(res: Result<T, E>) {
-    if let Err(e) = res {
-        warn!("Failed to log event: {e}");
-    }
 }
 
 pub fn create_event_logger(db: DbConn) -> impl EventLogger + 'static {
@@ -34,62 +26,54 @@ impl EventLogger for DbEventLogger {
         match entry.event {
             Event::View { completion_id, .. } => {
                 let db = self.db.clone();
-                tokio::spawn(async move {
-                    log_err(
-                        db.add_to_user_completion(entry.ts, &completion_id, 1, 0, 0)
-                            .await,
-                    );
+                run_in_background(async move {
+                    db.add_to_user_completion(entry.ts, &completion_id, 1, 0, 0)
+                        .await?;
                     if let Some(user) = get_user_id(entry.user) {
-                        log_err(
-                            db.create_user_event(
-                                user,
-                                EventKind::View.as_enum_str().into(),
-                                entry.ts,
-                                event_json,
-                            )
-                            .await,
-                        );
+                        db.create_user_event(
+                            user,
+                            EventKind::View.as_enum_str().into(),
+                            entry.ts,
+                            event_json,
+                        )
+                        .await?;
                     }
+
+                    Ok(())
                 });
             }
             Event::Select { completion_id, .. } => {
                 let db = self.db.clone();
-                tokio::spawn(async move {
-                    log_err(
-                        db.add_to_user_completion(entry.ts, &completion_id, 0, 1, 0)
-                            .await,
-                    );
+                run_in_background(async move {
+                    db.add_to_user_completion(entry.ts, &completion_id, 0, 1, 0)
+                        .await?;
                     if let Some(user) = get_user_id(entry.user) {
-                        log_err(
-                            db.create_user_event(
-                                user,
-                                EventKind::Select.as_enum_str().into(),
-                                entry.ts,
-                                event_json,
-                            )
-                            .await,
-                        );
+                        db.create_user_event(
+                            user,
+                            EventKind::Select.as_enum_str().into(),
+                            entry.ts,
+                            event_json,
+                        )
+                        .await?;
                     }
+                    Ok(())
                 });
             }
             Event::Dismiss { completion_id, .. } => {
                 let db = self.db.clone();
-                tokio::spawn(async move {
-                    log_err(
-                        db.add_to_user_completion(entry.ts, &completion_id, 0, 0, 1)
-                            .await,
-                    );
+                run_in_background(async move {
+                    db.add_to_user_completion(entry.ts, &completion_id, 0, 0, 1)
+                        .await?;
                     if let Some(user) = get_user_id(entry.user) {
-                        log_err(
-                            db.create_user_event(
-                                user,
-                                EventKind::Dismiss.as_enum_str().into(),
-                                entry.ts,
-                                event_json,
-                            )
-                            .await,
-                        );
+                        db.create_user_event(
+                            user,
+                            EventKind::Dismiss.as_enum_str().into(),
+                            entry.ts,
+                            event_json,
+                        )
+                        .await?;
                     }
+                    Ok(())
                 });
             }
             Event::Completion {
@@ -101,35 +85,39 @@ impl EventLogger for DbEventLogger {
                     return;
                 };
                 let db = self.db.clone();
-                tokio::spawn(async move {
+                run_in_background(async move {
                     let user_db = db.get_user(user).await;
                     let Ok(Some(user_db)) = user_db else {
-                        warn!("Failed to retrieve user for {user}");
-                        return;
+                        bail!("Failed to retrieve user for {user}");
                     };
-                    log_err(
-                        db.create_user_completion(
-                            entry.ts,
-                            user_db.id,
-                            completion_id.clone(),
-                            language,
-                        )
-                        .await,
-                    );
-                    log_err(
-                        db.create_user_event(
-                            user,
-                            EventKind::Completion.as_enum_str().into(),
-                            entry.ts,
-                            event_json,
-                        )
-                        .await,
-                    );
+                    db.create_user_completion(
+                        entry.ts,
+                        user_db.id,
+                        completion_id.clone(),
+                        language,
+                    )
+                    .await?;
+                    db.create_user_event(
+                        user,
+                        EventKind::Completion.as_enum_str().into(),
+                        entry.ts,
+                        event_json,
+                    )
+                    .await?;
+
+                    Ok(())
                 });
             }
             Event::ChatCompletion { .. } => {}
         }
     }
+}
+
+fn run_in_background<F>(future: F)
+where
+    F: std::future::Future<Output = anyhow::Result<()>> + Send + 'static,
+{
+    tokio::spawn(future);
 }
 
 #[cfg(test)]
