@@ -9,7 +9,8 @@ import {
   useState
 } from 'react'
 import Link from 'next/link'
-import { some, uniqBy } from 'lodash-es'
+import slugify from '@sindresorhus/slugify'
+import { compact, some, uniqBy } from 'lodash-es'
 import moment from 'moment'
 import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
@@ -111,7 +112,7 @@ const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
 
 export function Page() {
   const [{ data: meData }] = useMe()
-  const { pathname } = useRouterStuff()
+  const { updateUrlComponents, pathname } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const [mode, setMode] = useState<'edit' | 'view'>('view')
@@ -156,15 +157,17 @@ export function Page() {
       case 'PageCreated':
         setPageId(data.id)
         const now = new Date().toISOString()
-        setPage({
+        const nextPage: PageItem = {
           id: data.id,
           authorId: data.authorId,
           title: data.title,
           content: '',
           updatedAt: now,
           createdAt: now
-        })
+        }
+        setPage(nextPage)
         setIsGeneratingPageContent(true)
+        updatePageURL(nextPage)
         break
       case 'PageContentDelta': {
         setPage(prev => {
@@ -360,6 +363,21 @@ export function Page() {
       setIsReady(true)
     }
   }, [pageSectionsError])
+
+  // `/page` -> `/page/{slug}-{pageId}`
+  const updatePageURL = (page: PageItem) => {
+    if (!page) return
+    const { title, id } = page
+    const slug = slugify(title ?? '')
+    const slugWithPageId = compact([slug, id]).join('-')
+
+    const path = updateUrlComponents({
+      pathname: `/page/${slugWithPageId}`,
+      replace: true
+    })
+
+    return location.origin + path
+  }
 
   // for synchronizing the active pathname
   useEffect(() => {
