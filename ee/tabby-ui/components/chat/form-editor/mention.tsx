@@ -296,6 +296,9 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }) => {
+        if (isLoading) {
+          return false
+        }
         const lastIndex = items.length - 1
         let newIndex = selectedIndex
 
