@@ -1,6 +1,7 @@
 :8080 {
 	rewrite /files/* /files
 	rewrite /search/* /search
+	rewrite /pages/* /pages
 
 	@backend {
 		path /graphql
