@@ -2,6 +2,10 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
+use tokio_retry::{
+    strategy::{jitter, ExponentialBackoff},
+    RetryIf,
+};
 use tracing::Instrument;
 
 use crate::{create_reqwest_client, embedding_info_span};
@@ -37,19 +41,40 @@ struct EmbeddingResponse {
 #[async_trait]
 impl Embedding for LlamaCppEngine {
     async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
-        let request = EmbeddingRequest {
-            content: prompt.to_owned(),
-        };
+        // Occasionally, when the embedding server has been idle for a period,
+        // some of the concurrent initial requests to llama.cpp encounter problems,
+        // resulting in failures with `Connection reset by peer` or `Broken pipe`.
+        //
+        // This serves as a temporary solution to attempt the request up to three times.
+        //
+        // Track issue: https://github.com/ggerganov/llama.cpp/issues/11411
+        let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(3);
+        let response = RetryIf::spawn(
+            strategy,
+            || {
+                let request = EmbeddingRequest {
+                    content: prompt.to_owned(),
+                };
+                let mut request = self.client.post(&self.api_endpoint).json(&request);
+                if let Some(api_key) = &self.api_key {
+                    request = request.bearer_auth(api_key);
+                }
 
-        let mut request = self.client.post(&self.api_endpoint).json(&request);
-        if let Some(api_key) = &self.api_key {
-            request = request.bearer_auth(api_key);
-        }
-
-        let response = request
-            .send()
-            .instrument(embedding_info_span!("llamacpp"))
-            .await?;
+                async move {
+                    request
+                        .send()
+                        .instrument(embedding_info_span!("llamacpp"))
+                        .await
+                }
+            },
+            |e: &reqwest::Error| {
+                let message = format!("{:?}", e);
+                e.is_request()
+                    && (message.contains("Connection reset by peer")
+                        || message.contains("Broken pipe"))
+            },
+        )
+        .await?;
         if response.status().is_server_error() {
             let error = response.text().await?;
             return Err(anyhow::anyhow!(
