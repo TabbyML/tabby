@@ -41,8 +41,9 @@ struct EmbeddingResponse {
 #[async_trait]
 impl Embedding for LlamaCppEngine {
     async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
-        // Some initial requests to llama.cpp are experiencing issues
-        // would failed with `Connection reset by peer` or `Broken pipe`
+        // Occasionally, when the embedding server has been idle for a period,
+        // some of the concurrent initial requests to llama.cpp encounter problems,
+        // resulting in failures with `Connection reset by peer` or `Broken pipe`.
         //
         // This serves as a temporary solution to attempt the request up to three times.
         //
