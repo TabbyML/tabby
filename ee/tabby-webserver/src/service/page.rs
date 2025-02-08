@@ -7,11 +7,11 @@ use tabby_db::DbConn;
 use tabby_schema::{
     auth::AuthenticationService,
     page::{
-        AddPageSectionInput, Page, PageCompleted, PageContentCompleted, PageContentDelta,
-        PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
-        PageSectionContentDelta, PageSectionsCreated, PageService, Section, ThreadToPageRunStream,
+        AddPageSectionInput, Page, PageCompleted, PageContentCompleted, PageCreated, PageRunItem,
+        PageSection, PageSectionContentCompleted, PageSectionContentDelta, PageSectionsCreated,
+        PageService, Section, ThreadToPageRunStream,
     },
-    thread::ThreadService,
+    thread::{Message, ThreadService},
     AsID, AsRowid, CoreError, Result,
 };
 
@@ -21,20 +21,20 @@ struct PageServiceImpl {
     db: DbConn,
     _auth: Arc<dyn AuthenticationService>,
     thread: Arc<dyn ThreadService>,
-    _answer: Option<Arc<AnswerService>>,
+    answer: Arc<AnswerService>,
 }
 
 pub fn create(
     db: DbConn,
     auth: Arc<dyn AuthenticationService>,
     thread: Arc<dyn ThreadService>,
-    answer: Option<Arc<AnswerService>>,
+    answer: Arc<AnswerService>,
 ) -> impl PageService {
     PageServiceImpl {
         db,
         thread,
         _auth: auth,
-        _answer: answer,
+        answer,
     }
 }
 
@@ -50,91 +50,83 @@ impl PageService for PageServiceImpl {
             .get(thread_id)
             .await?
             .ok_or_else(|| CoreError::NotFound("Thread not found"))?;
-        let page_id = self.db.create_page(author_id.as_rowid()?).await?;
+        let page_id = self.db.create_page(author_id.as_rowid()?).await?.as_id();
 
         let messages = self
             .thread
             .list_thread_messages(thread_id, None, None, None, None)
             .await?;
 
-        for qa in messages.chunks(2) {
-            if let [question, answer] = qa {
-                let question = question.content.clone();
-                let answer = answer.content.clone();
-                self.db
-                    .create_page_section(page_id, &question, &answer)
-                    .await?;
-            }
-        }
-
-        self.generate_page_title(&page_id.as_id()).await?;
-        self.generate_page_content(&page_id.as_id()).await?;
+        let title = self.generate_page_title(page_id.clone(), &messages).await?;
+        let answer = self.answer.clone();
+        let db = self.db.clone();
 
         let author_id = author_id.clone();
-        Ok(async_stream::stream! {
+        let s = async_stream::stream! {
             yield Ok(PageRunItem::PageCreated(PageCreated {
-                id: page_id.as_id(),
+                id: page_id.clone(),
                 author_id: author_id.clone(),
-                title: "Title".into(),
+                title: title,
             }));
 
-            for i in 0..10 {
-                yield Ok(PageRunItem::PageContentDelta(PageContentDelta {
-                    delta: format!("Content {}, ", i),
-                }));
+            let content_stream = answer.generate_page_content(&messages).await?;
+            for await delta in content_stream {
+                let delta = delta?;
+                db.append_page_content(page_id.as_rowid()?, &delta.delta).await?;
+                yield Ok(PageRunItem::PageContentDelta(delta));
             }
 
             yield Ok(PageRunItem::PageContentCompleted(PageContentCompleted {
-                id: page_id.as_id(),
+                id: page_id.clone(),
             }));
+
+            let sections = answer.generate_page_sections(&messages).await?;
+            let mut page_sections = Vec::new();
+            for section_title in sections {
+                let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
+                page_sections.push(PageSection {
+                    id: section.as_id(),
+                    title: section_title,
+                });
+            }
 
             yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
-                sections: vec![
-                PageSection {
-                    id: ID::new("section1"),
-                    title: "Section 1".into(),
-                },
-                PageSection {
-                    id: ID::new("section2"),
-                    title: "Section 2".into(),
-                },
-                PageSection {
-                    id: ID::new("section3"),
-                    title: "Section 3".into(),
-                },
-                ],
+                sections: page_sections.clone(),
             }));
 
-            for i in 1..3 {
-                for j in 0..10 {
+            let section_titles = page_sections.iter().map(|x| x.title.clone()).collect();
+            for section in page_sections {
+                let section_id = section.id.clone();
+                let content_stream = answer.generate_page_section_content(&messages, &section_titles, &section.title).await?;
+                for await delta in content_stream {
+                    let delta = delta?;
+                    db.append_page_section_content(section_id.clone().as_rowid()?, &delta).await?;
                     yield Ok(PageRunItem::PageSectionContentDelta(PageSectionContentDelta {
-                        id: ID::new(format!("section{}", i)),
-                        delta: format!("Section Content {}, ", j),
+                        id: section_id.clone(),
+                        delta
                     }));
                 }
 
                 yield Ok(PageRunItem::PageSectionContentCompleted(PageSectionContentCompleted {
-                    id: ID::new(format!("section{}", i)),
+                    id: section_id,
                 }));
             }
 
             yield Ok(PageRunItem::PageCompleted(PageCompleted {
-                id: page_id.as_id(),
+                id: page_id,
             }));
-        }
-        .boxed())
+        };
+
+        Ok(s.boxed())
     }
 
-    //TODO: generate page title and content
-    async fn generate_page_title(&self, id: &ID) -> Result<String> {
-        self.db.update_page_title(id.as_rowid()?, "Title").await?;
-        Ok("Title".into())
-    }
-    async fn generate_page_content(&self, id: &ID) -> Result<String> {
+    async fn generate_page_title(&self, page_id: ID, messages: &Vec<Message>) -> Result<String> {
+        let title = self.answer.generate_page_title(messages).await?;
+
         self.db
-            .update_page_content(id.as_rowid()?, "Content")
+            .update_page_title(page_id.as_rowid()?, &title)
             .await?;
-        Ok("Content".into())
+        Ok(title)
     }
 
     async fn delete(&self, id: &ID) -> Result<()> {
@@ -205,7 +197,7 @@ impl PageService for PageServiceImpl {
         //TODO: generate section content
         let section = self
             .db
-            .create_page_section(input.page_id.as_rowid()?, &input.title, "Content")
+            .create_page_section(input.page_id.as_rowid()?, &input.title)
             .await?;
         Ok(section.as_id())
     }

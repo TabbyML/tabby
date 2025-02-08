@@ -48,9 +48,9 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_page_content(&self, page_id: i64, content: &str) -> Result<()> {
+    pub async fn append_page_content(&self, page_id: i64, content: &str) -> Result<()> {
         query!(
-            "UPDATE pages SET content = ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE pages SET content = content || ?, updated_at = DATETIME('now') WHERE id = ?",
             content,
             page_id
         )
@@ -178,22 +178,28 @@ impl DbConn {
         Ok(section)
     }
 
-    pub async fn create_page_section(
-        &self,
-        page_id: i64,
-        title: &str,
-        content: &str,
-    ) -> Result<i64> {
+    pub async fn create_page_section(&self, page_id: i64, title: &str) -> Result<i64> {
         let res = query!(
-            "INSERT INTO page_sections(page_id, title, content) VALUES (?, ?, ?)",
+            "INSERT INTO page_sections(page_id, title) VALUES (?, ?)",
             page_id,
             title,
-            content
         )
         .execute(&self.pool)
         .await?;
 
         Ok(res.last_insert_rowid())
+    }
+
+    pub async fn append_page_section_content(&self, id: i64, content: &str) -> Result<()> {
+        query!(
+            "UPDATE page_sections SET content = content || ?, updated_at = DATETIME('now') WHERE id = ?",
+            content,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 
     pub async fn delete_page_section(&self, id: i64) -> Result<()> {

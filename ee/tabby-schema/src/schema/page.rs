@@ -5,6 +5,7 @@ use juniper::ID;
 pub use types::*;
 
 use crate::schema::Result;
+use crate::thread::Message;
 
 pub type ThreadToPageRunStream = BoxStream<'static, Result<PageRunItem>>;
 
@@ -16,8 +17,7 @@ pub trait PageService: Send + Sync {
         thread_id: &ID,
     ) -> Result<ThreadToPageRunStream>;
 
-    async fn generate_page_title(&self, id: &ID) -> Result<String>;
-    async fn generate_page_content(&self, id: &ID) -> Result<String>;
+    async fn generate_page_title(&self, page_id: ID, messages: &Vec<Message>) -> Result<String>;
 
     async fn list(
         &self,
