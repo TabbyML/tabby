@@ -1,6 +1,7 @@
 import React, {
   forwardRef,
   HTMLAttributes,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -157,7 +158,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     const [debouncedIsLoading] = useDebounceValue(isLoading, 100)
     const [isFirstShow, setIsFirstShow] = useState(true)
     const [debouncedQuery] = useDebounceValue(query || '', 150)
-    const fetchIdRef = useRef(0)
+    const latestPromiseRef = useRef<Promise<SourceItem[]> | null>(null)
 
     const categories = useMemo(() => {
       const items = [
@@ -182,6 +183,101 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     const isSingleMode = categories.length === 1
     const shouldShowCategoryMenu = !isSingleMode && mode === 'category'
 
+    const fetchOptions = useCallback(async () => {
+      setIsLoading(true)
+      let isCurrent = true
+
+      try {
+        const currentQuery = isFirstShow ? query : debouncedQuery
+
+        if (latestPromiseRef.current) {
+          ;(latestPromiseRef.current as any).isCurrent = false
+        }
+
+        const currentPromise = (async () => {
+          let result: SourceItem[] = []
+          if (shouldShowCategoryMenu) {
+            const files =
+              (await listFileInWorkspace?.({ query: currentQuery || '' })) || []
+
+            if (currentQuery) {
+              result = files.map(fileItemToSourceItem)
+            } else {
+              result = [
+                ...categories.map(
+                  c =>
+                    ({
+                      id: c.categoryKind,
+                      name: c.label,
+                      category: 'category',
+                      isRootCategoryItem: true,
+                      fileItem: {} as FileItem,
+                      icon: c.icon
+                    } as SourceItem)
+                ),
+                ...files.map(fileItemToSourceItem)
+              ]
+            }
+          } else {
+            if (mode === 'file') {
+              const files =
+                (await listFileInWorkspace?.({ query: currentQuery })) || []
+              result = files.map(fileItemToSourceItem)
+            } else {
+              const symbols =
+                (await listSymbols?.({ query: currentQuery })) || []
+              result = uniqBy(symbols.map(symbolItemToSourceItem), 'id')
+            }
+          }
+          return result
+        })()
+
+        ;(currentPromise as any).isCurrent = true
+        latestPromiseRef.current = currentPromise
+
+        const results = await currentPromise
+
+        if ((latestPromiseRef.current as any)?.isCurrent) {
+          setItems(results)
+          setSelectedIndex(0)
+          setIsLoading(false)
+          if (isFirstShow) setIsFirstShow(false)
+        }
+      } catch (error) {
+        if (isCurrent) {
+          setIsLoading(false)
+        }
+      }
+    }, [
+      categories,
+      debouncedQuery,
+      isFirstShow,
+      listFileInWorkspace,
+      listSymbols,
+      mode,
+      query,
+      shouldShowCategoryMenu
+    ])
+
+    useEffect(() => {
+      fetchOptions()
+    }, [
+      mode,
+      query,
+      debouncedQuery,
+      isFirstShow,
+      shouldShowCategoryMenu,
+      fetchOptions
+    ])
+
+    useEffect(() => {
+      return () => {
+        if (latestPromiseRef.current) {
+          ;(latestPromiseRef.current as any).isCurrent = false
+        }
+      }
+    }, [])
+
     const handleSelect = (item: SourceItem) => {
       if (item.isRootCategoryItem && !isSingleMode) {
         setMode(item.id as unknown as CategoryMenu)
@@ -197,76 +293,6 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
       command({ category: item.category, fileItem: item.fileItem, label })
     }
-
-    useEffect(() => {
-      const fetchOptions = async () => {
-        const currentFetchId = ++fetchIdRef.current
-        setIsLoading(true)
-        try {
-          const currentQuery = isFirstShow ? query : debouncedQuery
-
-          // If this is not the latest request, ignore the result
-          if (currentFetchId !== fetchIdRef.current) {
-            return
-          }
-          if (shouldShowCategoryMenu) {
-            const files =
-              (await listFileInWorkspace?.({ query: currentQuery || '' })) || []
-            if (currentFetchId !== fetchIdRef.current) return
-            if (currentQuery) {
-              setItems(files.map(fileItemToSourceItem))
-              return
-            }
-
-            setItems([
-              ...categories.map(
-                c =>
-                  ({
-                    id: c.categoryKind,
-                    name: c.label,
-                    category: 'category',
-                    isRootCategoryItem: true,
-                    fileItem: {} as FileItem,
-                    icon: c.icon
-                  } as SourceItem)
-              ),
-              ...files.map(fileItemToSourceItem)
-            ])
-            return
-          }
-
-          if (mode === 'file') {
-            const files =
-              (await listFileInWorkspace?.({ query: currentQuery })) || []
-            if (currentFetchId !== fetchIdRef.current) return
-            setItems(files.map(fileItemToSourceItem))
-          } else {
-            const symbols = (await listSymbols?.({ query: currentQuery })) || []
-            if (currentFetchId !== fetchIdRef.current) return
-            setItems(uniqBy(symbols.map(symbolItemToSourceItem), 'id'))
-          }
-        } finally {
-          if (currentFetchId === fetchIdRef.current) {
-            setSelectedIndex(0)
-            setIsLoading(false)
-            if (isFirstShow) {
-              setIsFirstShow(false)
-            }
-          }
-        }
-      }
-
-      fetchOptions()
-    }, [
-      mode,
-      query,
-      debouncedQuery,
-      isFirstShow,
-      categories,
-      shouldShowCategoryMenu,
-      listFileInWorkspace,
-      listSymbols
-    ])
 
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }) => {
