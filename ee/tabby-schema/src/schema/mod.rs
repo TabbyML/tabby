@@ -907,7 +907,6 @@ impl Query {
                 source_id,
             )
             .await
-            .map_err(|e| e.into())
     }
 }
 

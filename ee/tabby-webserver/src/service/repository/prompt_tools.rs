@@ -1,5 +1,6 @@
-use anyhow::Result;
 use std::sync::Arc;
+
+use anyhow::Result;
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::repository::FileEntrySearchResult;
 
