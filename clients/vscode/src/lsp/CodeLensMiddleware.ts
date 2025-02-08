@@ -44,17 +44,22 @@ const decorationTypeTextInserted = window.createTextEditorDecorationType({
   isWholeLine: false,
   rangeBehavior: DecorationRangeBehavior.ClosedOpen,
 });
+const decorationTypeTextDeleted = window.createTextEditorDecorationType({
+  backgroundColor: new ThemeColor("diffEditor.removedTextBackground"),
+  isWholeLine: false,
+  rangeBehavior: DecorationRangeBehavior.ClosedOpen,
+});
 const decorationTypeLineInserted = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("diffEditor.insertedLineBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
-const decorationTypeDeleted = window.createTextEditorDecorationType({
+const decorationTypeLineDeleted = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("diffEditor.removedLineBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
-const decorationTypes: Record<string, TextEditorDecorationType> = {
+const lineDecorationTypes: Record<string, TextEditorDecorationType> = {
   header: decorationTypeHeader,
   footer: decorationTypeFooter,
   commentsFirstLine: decorationTypeComments,
@@ -63,11 +68,12 @@ const decorationTypes: Record<string, TextEditorDecorationType> = {
   inProgress: decorationTypeLineInserted,
   unchanged: decorationTypeUnchanged,
   inserted: decorationTypeLineInserted,
-  deleted: decorationTypeDeleted,
+  deleted: decorationTypeLineDeleted,
 };
 
 const textDecorationTypes: Record<string, TextEditorDecorationType> = {
   inserted: decorationTypeTextInserted,
+  deleted: decorationTypeTextDeleted,
 };
 
 export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
@@ -103,8 +109,8 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
       codeLens.range.end.character,
     );
     const lineType = codeLens.data.line;
-    if (typeof lineType === "string" && lineType in decorationTypes) {
-      const decorationType = decorationTypes[lineType];
+    if (typeof lineType === "string" && lineType in lineDecorationTypes) {
+      const decorationType = lineDecorationTypes[lineType];
       if (decorationType) {
         this.addDecorationRange(editor, decorationType, decorationRange);
       }

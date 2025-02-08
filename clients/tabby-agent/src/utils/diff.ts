@@ -1,52 +1,94 @@
-import { Position, Range } from "vscode-languageserver";
-import { diffChars } from "diff";
+import { Range, Position } from "vscode-languageserver";
+import { linesDiffComputers, Range as DiffRange } from "codiff";
 
-export function calcCharDiffRange(originText: string, editText: string, editTextRanges: Range[]): Range[] {
-  const diffRanges: Range[] = [];
-  const changes = diffChars(originText, editText);
-  let index = 0;
-  changes.forEach((item) => {
-    if (item.added) {
-      const position = getPositionFromIndex(index, editTextRanges);
-      const addedRange: Range = {
-        start: position,
-        end: { line: position.line, character: position.character + (item.count ?? 0) },
-      };
-      diffRanges.push(addedRange);
-      index += item.count ?? 0;
-    } else if (item.removed) {
-      // nothing
-    } else {
-      index += item.count ?? 0;
-    }
-  });
-  return diffRanges;
+interface CodeDiffResult {
+  originRanges: Range[];
+  modifiedRanges: Range[];
 }
 
-export function getPositionFromIndex(index: number, ranges: Range[]): Position {
-  let line = 0;
-  let character = 0;
-  let length = 0;
-  for (let i = 0; i < ranges.length; i++) {
-    const range = ranges[i];
-    if (!range) {
-      continue;
-    }
-    const rangeLength = range.end.character - range.start.character + length + 1;
-    if (index >= length && index < rangeLength) {
-      line = range.start.line;
-      character = index - length;
-      return {
-        line,
-        character,
-      };
-    } else {
-      length = rangeLength;
-    }
+export function mapDiffRangeToEditorRange(diffRange: DiffRange, editorRanges: Range[]): Range | undefined {
+  if (diffRange.isEmpty()) {
+    return undefined;
+  }
+
+  const start: Position = {
+    line: editorRanges[diffRange.startLineNumber - 1]?.start.line ?? 0,
+    character: diffRange.startColumn - 1,
+  };
+
+  let end: Position;
+
+  /**
+   * In most case, start line and end line are equal in diff change.
+   * when start line and end line are different in change, it usually means a range that include a whole line.
+   * {
+   *   "startLineNumber": 2,
+   *   "startColumn": 1,
+   *   "endLineNumber": 3,
+   *   "endColumn": 1
+   * }
+   *
+   * In our case, the origin code and modified code are mixed tegether. so we should translate range to below to avoid wrong range mapping.
+   * {
+   *   "startLineNumber": 2,
+   *   "startColumn": 1,
+   *   "endLineNumber": 2,
+   *   "endColumn": // end of line 2
+   * }
+   *
+   */
+  if (diffRange.isSingleLine()) {
+    end = {
+      line: editorRanges[diffRange.startLineNumber - 1]?.start.line ?? 0,
+      character: diffRange.endColumn - 1,
+    };
+  } else {
+    end = {
+      line: editorRanges[diffRange.startLineNumber - 1]?.start.line ?? 0,
+      character: editorRanges[diffRange.startLineNumber - 1]?.end.character ?? 0,
+    };
   }
 
   return {
-    line,
-    character,
+    start,
+    end,
+  };
+}
+
+/**
+ * Diff code and mapping the diff result range to editor range
+ */
+export function codeDiff(
+  originCode: string[],
+  originCodeRanges: Range[],
+  modifiedCode: string[],
+  modifiedCodeRanges: Range[],
+): CodeDiffResult {
+  const originRanges: Range[] = [];
+  const modifiedRanges: Range[] = [];
+
+  const diffResult = linesDiffComputers.getDefault().computeDiff(originCode, modifiedCode, {
+    computeMoves: false,
+    ignoreTrimWhitespace: true,
+    maxComputationTimeMs: 100,
+  });
+
+  diffResult.changes.forEach((change) => {
+    change.innerChanges?.forEach((innerChange) => {
+      const originRange = mapDiffRangeToEditorRange(innerChange.originalRange, originCodeRanges);
+      if (originRange) {
+        originRanges.push(originRange);
+      }
+
+      const modifiedRange = mapDiffRangeToEditorRange(innerChange.modifiedRange, modifiedCodeRanges);
+      if (modifiedRange) {
+        modifiedRanges.push(modifiedRange);
+      }
+    });
+  });
+
+  return {
+    modifiedRanges,
+    originRanges,
   };
 }
