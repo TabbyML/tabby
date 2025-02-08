@@ -88,7 +88,7 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const onConvertToPage = () => {
     if (!threadIdFromURL) return
     updatePendingThreadId(threadIdFromURL)
-    router.push('/page')
+    router.push('/pages')
   }
 
   return (

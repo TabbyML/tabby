@@ -142,7 +142,7 @@ export function Page() {
   const [error, setError] = useState<ExtendedCombinedError | undefined>()
 
   const pageIdFromURL = useMemo(() => {
-    const regex = /^\/page\/(.*)/
+    const regex = /^\/pages\/(.*)/
     if (!activePathname) return undefined
 
     return activePathname.match(regex)?.[1]?.split('-').pop()
@@ -364,7 +364,7 @@ export function Page() {
     }
   }, [pageSectionsError])
 
-  // `/page` -> `/page/{slug}-{pageId}`
+  // `/pages` -> `/pages/{slug}-{pageId}`
   const updatePageURL = (page: PageItem) => {
     if (!page) return
     const { title, id } = page
@@ -372,7 +372,7 @@ export function Page() {
     const slugWithPageId = compact([slug, id]).join('-')
 
     const path = updateUrlComponents({
-      pathname: `/page/${slugWithPageId}`,
+      pathname: `/pages/${slugWithPageId}`,
       replace: true
     })
 
