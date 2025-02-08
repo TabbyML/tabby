@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useEffect, useRef, useState } from 'react'
 
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'

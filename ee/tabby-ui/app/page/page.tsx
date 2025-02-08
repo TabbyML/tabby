@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 
-import { Page as PageComponent } from './components/page'
+import { Page as PageComponent } from './components/page-main'
 
 export const metadata: Metadata = {
   title: 'Page'

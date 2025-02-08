@@ -1,3 +1,5 @@
+'use client'
+
 import { HTMLAttributes, useContext } from 'react'
 
 import { cn } from '@/lib/utils'
