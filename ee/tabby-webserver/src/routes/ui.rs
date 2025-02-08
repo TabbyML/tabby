@@ -61,6 +61,12 @@ pub async fn handler(uri: Uri) -> impl IntoResponse {
         } else {
             "search.html".clone_into(&mut path)
         }
+    } else if path.starts_with("page/") {
+        if query.is_some_and(|x| x.contains("_rsc=")) {
+            "page.txt".clone_into(&mut path)
+        } else {
+            "page.html".clone_into(&mut path)
+        }
     } else if !path.contains('.') && WebAssets::get(&format!("{}.html", path)).is_some() {
         path += ".html"
     }
