@@ -5,6 +5,7 @@ import type { MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
+import { useEnablePage } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import { updatePendingThreadId } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
@@ -51,6 +52,9 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const { isThreadOwner } = useContext(SearchContext)
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  const [enablePage] = useEnablePage()
+
   const deleteThread = useMutation(deleteThreadMutation, {
     onCompleted(data) {
       if (data.deleteThread) {
@@ -143,9 +147,16 @@ export function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button variant="ghost" onClick={onConvertToPage} className="gap-1">
-              Convert to page
-            </Button>
+
+            {!!enablePage.value && (
+              <Button
+                variant="ghost"
+                onClick={onConvertToPage}
+                className="gap-1"
+              >
+                Convert to page
+              </Button>
+            )}
           </>
         )}
         <ClientOnly>

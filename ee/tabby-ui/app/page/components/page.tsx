@@ -164,16 +164,15 @@ export function Page() {
           updatedAt: now,
           createdAt: now
         })
-        // FIXME
         setIsGeneratingPageContent(true)
         break
       case 'PageContentDelta': {
-        setPage(p => {
-          if (!p) return p
+        setPage(prev => {
+          if (!prev) return prev
           return {
             __typename: 'Page',
-            ...p,
-            content: p.content + data.delta
+            ...prev,
+            content: prev.content + data.delta
           }
         })
         break
@@ -186,7 +185,6 @@ export function Page() {
       case 'PageSectionsCreated': {
         const nextSections: SectionItem[] = data.sections.map(x => ({
           ...x,
-          // FIXME
           __typename: 'Section',
           pageId: pageId as string,
           content: ''
@@ -350,14 +348,13 @@ export function Page() {
     return meData.me.id === page.node.authorId
   }, [meData, pagesData, pageIdFromURL])
 
-  // todo title slug and update title
   useEffect(() => {
     if (page?.title) {
       document.title = page.title
     }
   }, [page?.title])
 
-  // todo pagesData error
+  // FIXME pagesData error handling
   useEffect(() => {
     if (pageSectionsError && !isReady) {
       setIsReady(true)
@@ -382,14 +379,6 @@ export function Page() {
       if (pendingThreadId) {
         setIsLoading(true)
         setError(undefined)
-        // setPage({
-        //   title: '',
-        //   content: '',
-        //   createdAt: '',
-        //   updatedAt: '',
-        //   id: tempNanoId(),
-        //   authorId: '',
-        // })
 
         // trigger convert
         unsubscribeFn.current = convertThreadToPage(pendingThreadId)
@@ -536,7 +525,7 @@ export function Page() {
                       <h1 className="text-4xl font-semibold">{page?.title}</h1>
                     </LoadingWrapper>
                     <div className="my-4 flex gap-4 text-sm text-muted-foreground">
-                      {/* FIXME fetch author */}
+                      {/* FIXME fetch author by id */}
                       {!!page && (
                         <>
                           <div className="flex items-center gap-1">

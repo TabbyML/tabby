@@ -170,7 +170,6 @@ export function SectionContent({
                         </SheetHeader>
                         <div className="flex-1 space-y-3 overflow-y-auto">
                           {sources.map((x, index) => {
-                            // FIXME id
                             return <SourceCard source={x} key={index} />
                           })}
                         </div>

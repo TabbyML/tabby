@@ -27,7 +27,6 @@ export function SectionTitle({
         id={message.id}
         {...props}
       >
-        {/* FIXME: use markdown? */}
         <MessageMarkdown
           message={message.title}
           contextInfo={undefined}
