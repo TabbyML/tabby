@@ -66,7 +66,7 @@ impl PageService for PageServiceImpl {
             yield Ok(PageRunItem::PageCreated(PageCreated {
                 id: page_id.clone(),
                 author_id: author_id.clone(),
-                title: title,
+                title,
             }));
 
             let content_stream = answer.generate_page_content(&messages).await?;

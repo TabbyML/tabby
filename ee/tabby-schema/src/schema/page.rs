@@ -4,8 +4,7 @@ use futures::stream::BoxStream;
 use juniper::ID;
 pub use types::*;
 
-use crate::schema::Result;
-use crate::thread::Message;
+use crate::{schema::Result, thread::Message};
 
 pub type ThreadToPageRunStream = BoxStream<'static, Result<PageRunItem>>;
 

@@ -125,16 +125,12 @@ impl ServerContext {
             answer.clone(),
             Some(auth.clone()),
         ));
-        let page = if let Some(answer) = answer {
-            Some(Arc::new(page::create(
+        let page = answer.map(|answer| Arc::new(page::create(
                 db_conn.clone(),
                 auth.clone(),
                 thread.clone(),
                 answer.clone(),
-            )) as Arc<dyn PageService>)
-        } else {
-            None
-        };
+            )) as Arc<dyn PageService>);
 
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
