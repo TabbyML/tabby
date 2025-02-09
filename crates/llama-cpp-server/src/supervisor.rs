@@ -1,6 +1,12 @@
-use std::{env::var, net::TcpListener, process::Stdio, time::Duration};
+use std::{
+    collections::VecDeque, env::var, net::TcpListener, process::Stdio, sync::Arc, time::Duration,
+};
 
-use tokio::{io::AsyncBufReadExt, task::JoinHandle};
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    sync::Mutex,
+    task::JoinHandle,
+};
 use tracing::{debug, warn};
 use which::which;
 
@@ -48,7 +54,6 @@ impl LlamaCppSupervisor {
                     .arg(port.to_string())
                     .arg("-np")
                     .arg(parallelism.to_string())
-                    .arg("--log-disable")
                     .arg("--ctx-size")
                     .arg(context_size.to_string())
                     .kill_on_drop(true)
@@ -80,12 +85,30 @@ impl LlamaCppSupervisor {
 
                 let command_args = format!("{:?}", command);
 
+                const MAX_LOG_LINES: usize = 100;
+                let log_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(MAX_LOG_LINES)));
+
                 let mut process = command.spawn().unwrap_or_else(|e| {
                     panic!(
                         "Failed to start llama-server <{}> with command {:?}: {}",
                         name, command, e
                     )
                 });
+
+                if let Some(stderr_pipe) = process.stderr.take() {
+                    let log_buffer_clone = log_buffer.clone();
+                    tokio::spawn(async move {
+                        let reader = BufReader::new(stderr_pipe);
+                        let mut lines = reader.lines();
+                        while let Ok(Some(line)) = lines.next_line().await {
+                            let mut buf = log_buffer_clone.lock().await;
+                            if buf.len() >= MAX_LOG_LINES {
+                                buf.pop_front();
+                            }
+                            buf.push_back(line);
+                        }
+                    });
+                }
 
                 let status_code = process
                     .wait()
@@ -95,19 +118,28 @@ impl LlamaCppSupervisor {
                     .unwrap_or(-1);
 
                 if status_code != 0 {
-                    warn!(
-                        "llama-server <{}> exited with status code {}, args: `{}`",
-                        name, status_code, command_args
-                    );
-                    let mut stderr = process
-                        .stderr
-                        .take()
-                        .map(tokio::io::BufReader::new)
-                        .map(|reader| reader.lines())
-                        .expect("Failed to read stderr");
+                    let buf = log_buffer.lock().await;
+                    let mut error_message = String::new();
+                    for line in buf.iter().filter(|line| !line.contains("GET /health")) {
+                        error_message.push_str(line);
+                        error_message.push('\n');
+                    }
+                    eprintln!(
+                            "Error: llama-server <{}> exited with status code {}.\nCommand: {}\nRecent error output:\n{}",
+                            name, status_code, command_args, error_message
+                        );
 
-                    while let Ok(Some(line)) = stderr.next_line().await {
-                        warn!("<{}>: {}", name, line);
+                    match status_code {
+                        1 => {
+                            eprintln!("llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.", name);
+                            std::process::exit(1);
+                        }
+                        _ => {
+                            panic!(
+                                "llama-server <{}> exited with status code {}. Retrying...",
+                                name, status_code
+                            );
+                        }
                     }
 
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
