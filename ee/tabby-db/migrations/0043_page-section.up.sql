@@ -18,7 +18,7 @@ CREATE TABLE page_sections(
     page_id INTEGER NOT NULL,
 
     title TEXT NOT NULL,
-    content TEXT NOT NULL,
+    content TEXT,
 
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
