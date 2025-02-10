@@ -56,7 +56,6 @@ import {
   localUriToListFileItem,
   escapeGlobPattern,
   vscodeRangeToChatPanelLineRange,
-  includesSymbolList,
 } from "./utils";
 import { findFiles } from "../findFiles";
 import { wrapCancelableFunction } from "../cancelableFunction";
@@ -596,24 +595,18 @@ export class ChatWebview {
                 new Location(editor.document.uri, current.range),
               );
 
-              if (includesSymbolList.includes(converted.kind)) {
-                result.push(converted);
-              }
+              result.push(converted);
 
               if (result.length >= limit) {
                 break;
               }
-              this.logger.info("current symbol", converted.name);
-              this.logger.info("current symbol children", current.children.length);
 
               queue.push(...current.children);
             } else {
-              if (includesSymbolList.includes(current.kind)) {
-                result.push(current);
+              result.push(current);
 
-                if (result.length >= limit) {
-                  break;
-                }
+              if (result.length >= limit) {
+                break;
               }
             }
           }
