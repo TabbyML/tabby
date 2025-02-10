@@ -108,7 +108,7 @@ pub trait ServiceLocator: Send + Sync {
     fn user_event(&self) -> Arc<dyn UserEventService>;
     fn web_documents(&self) -> Arc<dyn WebDocumentService>;
     fn thread(&self) -> Arc<dyn ThreadService>;
-    fn page(&self) -> Arc<dyn PageService>;
+    fn page(&self) -> Option<Arc<dyn PageService>>;
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
@@ -711,14 +711,19 @@ impl Query {
     ) -> Result<Connection<page::Page>> {
         check_user(ctx).await?;
 
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+
         relay::query_async(
             after,
             before,
             first,
             last,
             |after, before, first, last| async move {
-                ctx.locator
-                    .page()
+                page_service
                     .list(ids.as_deref(), after, before, first, last)
                     .await
             },
@@ -736,14 +741,19 @@ impl Query {
     ) -> Result<Connection<page::Section>> {
         check_user(ctx).await?;
 
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+
         relay::query_async(
             after,
             before,
             first,
             last,
             |after, before, first, last| async move {
-                ctx.locator
-                    .page()
+                page_service
                     .list_sections(&page_id, after, before, first, last)
                     .await
             },
@@ -1382,11 +1392,16 @@ impl Mutation {
     async fn delete_page(ctx: &Context, id: ID) -> Result<bool> {
         let user = check_user(ctx).await?;
 
-        let svc = ctx.locator.page();
-        let page = svc.get(&id).await?;
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+
+        let page = page_service.get(&id).await?;
 
         user.policy.check_update_page(&page.author_id)?;
-        svc.delete(&id).await.map(|_| true)
+        page_service.delete(&id).await.map(|_| true)
     }
 
     /// Creates a new page section.
@@ -1394,25 +1409,33 @@ impl Mutation {
     async fn add_page_section(ctx: &Context, input: page::AddPageSectionInput) -> Result<ID> {
         let user = check_user(ctx).await?;
 
-        let svc = ctx.locator.page();
-        let page = svc.get(&input.page_id).await?;
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+        let page = page_service.get(&input.page_id).await?;
 
         user.policy.check_update_page(&page.author_id)?;
 
-        svc.add_section(&input).await
+        page_service.add_section(&input).await
     }
 
     /// delete a single page section.
     async fn delete_page_section(ctx: &Context, section_id: ID) -> Result<bool> {
         let user = check_user(ctx).await?;
 
-        let svc = ctx.locator.page();
-        let section = svc.get_section(&section_id).await?;
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+        let section = page_service.get_section(&section_id).await?;
 
-        let page = svc.get(&section.page_id).await?;
+        let page = page_service.get(&section.page_id).await?;
         user.policy.check_update_page(&page.author_id)?;
 
-        svc.delete_section(&section_id).await.map(|_| true)
+        page_service.delete_section(&section_id).await.map(|_| true)
     }
 
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
@@ -1624,8 +1647,15 @@ impl Subscription {
     ) -> Result<ThreadToPageRunStream> {
         let user = check_user(ctx).await?;
 
-        let svc = ctx.locator.page();
-        svc.convert_thread_to_page(&user.id, &thread_id).await
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+
+        page_service
+            .convert_thread_to_page(&user.policy, &user.id, &thread_id)
+            .await
     }
 }
 

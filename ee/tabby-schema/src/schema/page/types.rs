@@ -76,7 +76,7 @@ pub struct PageSectionsCreated {
     pub sections: Vec<PageSection>,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 pub struct PageSection {
     pub id: ID,
     pub title: String,

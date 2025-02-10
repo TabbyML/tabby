@@ -87,7 +87,7 @@ struct ServerContext {
     job: Arc<dyn JobService>,
     web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
-    page: Arc<dyn PageService>,
+    page: Option<Arc<dyn PageService>>,
     context: Arc<dyn ContextService>,
     user_group: Arc<dyn UserGroupService>,
     access_policy: Arc<dyn AccessPolicyService>,
@@ -125,12 +125,15 @@ impl ServerContext {
             answer.clone(),
             Some(auth.clone()),
         ));
-        let page = Arc::new(page::create(
-            db_conn.clone(),
-            auth.clone(),
-            thread.clone(),
-            answer.clone(),
-        ));
+        let page = chat.as_ref().map(|chat| {
+            Arc::new(page::create(
+                db_conn.clone(),
+                chat.clone(),
+                thread.clone(),
+                context.clone(),
+            )) as Arc<dyn PageService>
+        });
+
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
         let notification = Arc::new(notification::create(db_conn.clone()));
@@ -362,7 +365,7 @@ impl ServiceLocator for ArcServerContext {
         self.0.thread.clone()
     }
 
-    fn page(&self) -> Arc<dyn tabby_schema::page::PageService> {
+    fn page(&self) -> Option<Arc<dyn PageService>> {
         self.0.page.clone()
     }
 
