@@ -165,12 +165,12 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
         listFileInWorkspace && {
           label: 'Files',
           categoryKind: 'file' as const,
-          icon: <FileText className="w-4 h-4" />
+          icon: <FileText className="h-4 w-4" />
         },
         listSymbols && {
           label: 'Symbols',
           categoryKind: 'symbol' as const,
-          icon: <SquareFunctionIcon className="w-4 h-4" />
+          icon: <SquareFunctionIcon className="h-4 w-4" />
         }
       ].filter(Boolean) as CategoryItem[]
 
@@ -334,9 +334,9 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
           </div>
         )}
         {!isSingleMode && mode !== 'category' && (
-          <div className="text-muted-foreground flex items-center p-1 text-sm">
+          <div className="flex items-center p-1 text-sm text-muted-foreground">
             <button
-              className="hover:bg-accent mr-2 rounded p-1"
+              className="mr-2 rounded p-1 hover:bg-accent"
               onClick={() => setMode('category')}
             >
               <IconChevronLeft className="h-4 w-4" />
@@ -347,7 +347,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
         <div className="flex-1 overflow-y-auto">
           {items.length === 0 ? (
-            <div className="text-muted-foreground px-2 py-1.5 text-xs">
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
               {/* If no items are found, show a message. */}
               {query ? 'No results found' : 'Type to search...'}
             </div>
