@@ -39,6 +39,7 @@ import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
 import { AnimationWrapper } from './components/animation-wrapper'
+import { RelatedQuestions } from './components/related-questions'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
 
@@ -99,6 +100,19 @@ function MainPanel() {
     updatePendingUserMessage({
       content: question,
       context
+    })
+    router.push('/search')
+  }
+
+  const onClickRelatedQuestion = (question: string, sourceId: string) => {
+    updateSelectedRepoSourceId(sourceId)
+    updatePendingUserMessage({
+      content: question,
+      context: {
+        docSourceIds: [sourceId as string],
+        codeSourceIds: [sourceId as string],
+        modelName: selectedModel
+      }
     })
     router.push('/search')
   }
@@ -172,6 +186,10 @@ function MainPanel() {
                     isFetchingModels || isFetchingRepositories
                   }
                   models={models}
+                />
+                <RelatedQuestions
+                  sourceId={selectedRepository?.sourceId}
+                  onClickQuestion={onClickRelatedQuestion}
                 />
               </AnimationWrapper>
             )}
