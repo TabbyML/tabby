@@ -13,7 +13,7 @@ interface CollapsibleContainerProps {
 }
 
 export const CollapsibleContainer = ({
-  maxHeight = 200,
+  maxHeight = 196,
   children
 }: CollapsibleContainerProps) => {
   const [isCollapsed, setIsCollapsed] = useState(true)
@@ -37,7 +37,7 @@ export const CollapsibleContainer = ({
       <div
         ref={contentRef}
         className={cn('overflow-hidden h-auto', {
-          'pb-8': showButton
+          'mb-8': showButton && isCollapsed
         })}
         style={{ maxHeight: isCollapsed ? `${maxHeight}px` : 'none' }}
       >
@@ -46,8 +46,8 @@ export const CollapsibleContainer = ({
       {showButton && (
         <div
           className={cn({
-            'absolute right-2 -bottom-4 z-10': isCollapsed,
-            'flex justify-end my-2': !isCollapsed
+            'absolute right-0 -bottom-8 z-10': isCollapsed,
+            'flex justify-end my-1': !isCollapsed
           })}
         >
           <Button variant="outline" size="icon" onClick={handleToggle}>
