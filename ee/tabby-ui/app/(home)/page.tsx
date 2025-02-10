@@ -215,12 +215,12 @@ function MainPanel() {
                   models={models}
                 />
                 {!!sourceIdForQuestions && !!repositoryRelatedQuestion && (
-                  <div className="flex flex-col gap-2 my-3">
+                  <div className="my-3 flex flex-col gap-2">
                     {repositoryRelatedQuestion.map((x, idx) => {
                       return (
                         <div
                           key={`${x}_${idx}`}
-                          className="w-auto cursor-pointer px-4 py-2 bg-muted hover:bg-muted/70 rounded-lg"
+                          className="w-auto cursor-pointer rounded-lg bg-muted px-4 py-2 hover:bg-muted/70"
                           onClick={e => onClickRelatedQuestion(x)}
                         >
                           {repoForQuestions && (
