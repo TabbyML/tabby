@@ -190,7 +190,6 @@ function MainPanel() {
                 <RelatedQuestions
                   sourceId={selectedRepository?.sourceId}
                   onClickQuestion={onClickRelatedQuestion}
-                  contextInfo={contextInfoData?.contextInfo}
                 />
               </AnimationWrapper>
             )}
