@@ -5,7 +5,9 @@ use derive_builder::Builder;
 use futures::StreamExt;
 use tabby_common::{config::ModelConfig, languages::Language};
 
-use crate::{decoding::StopConditionFactory, CompletionOptionsBuilder, CompletionStream};
+use crate::{
+    clip_prompt, decoding::StopConditionFactory, CompletionOptionsBuilder, CompletionStream,
+};
 
 #[derive(Builder, Debug)]
 pub struct CodeGenerationOptions {
@@ -54,14 +56,14 @@ impl CodeGeneration {
         let s = stream! {
             // Clip prompt by options.max_input_length (truncate from begining)
             let prompt = if options.max_input_length > 0 {
-                prompt.chars().rev().take(options.max_input_length).collect::<String>().chars().rev().collect::<String>()
+                clip_prompt(prompt, options.max_input_length)
             } else {
-                prompt.to_string()
+                prompt
             };
 
             let mut text = String::new();
             let mut stop_condition = self.stop_condition_factory.create(
-                &prompt,
+                prompt,
                 options.language,
             );
 
@@ -72,7 +74,7 @@ impl CodeGeneration {
                 .build()
                 .expect("Failed to build completion options");
 
-            for await new_text in self.imp.generate(&prompt, options).await {
+            for await new_text in self.imp.generate(prompt, options).await {
                 let (should_stop, stop_length) = stop_condition.should_stop(&new_text);
                 text += &new_text;
                 if should_stop {
