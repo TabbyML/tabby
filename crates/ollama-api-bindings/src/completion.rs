@@ -23,7 +23,6 @@ impl CompletionStream for OllamaCompletion {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
         // FIXME: options.presence_penalty is not used
         let ollama_options = GenerationOptions::default()
-            .num_ctx(options.max_input_length as u32)
             .num_predict(options.max_decoding_tokens)
             .seed(options.seed as i32)
             .repeat_last_n(0)
