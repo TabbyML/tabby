@@ -16,8 +16,10 @@ use tracing::{error, warn};
 /// Sends a prompt to the provided ChatCompletionStream and returns the generated response as a String using a stream.
 pub async fn request_llm_stream(
     chat: Arc<dyn ChatCompletionStream>,
-    prompt: String,
+    prompt: &str,
 ) -> BoxStream<'static, tabby_schema::Result<String>> {
+    let prompt = prompt.to_owned();
+
     Box::pin(stream! {
         let request = CreateChatCompletionRequestArgs::default()
             .messages(vec![ChatCompletionRequestMessage::User(

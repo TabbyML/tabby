@@ -254,7 +254,7 @@ async fn generate_page_content(
     let context = context_info_helper.rewrite_tag(&content);
 
     let prompt = prompt_page_content(&context, &content);
-    Ok(request_llm_stream(chat, prompt).await)
+    Ok(request_llm_stream(chat, &prompt).await)
 }
 
 pub async fn generate_page_sections(
@@ -302,5 +302,5 @@ pub async fn generate_page_section_content(
     let current = current_section.to_owned();
 
     let prompt = prompt_page_section_content(&context, &content, &sections, &current);
-    Ok(request_llm_stream(chat.clone(), prompt).await)
+    Ok(request_llm_stream(chat.clone(), &prompt).await)
 }

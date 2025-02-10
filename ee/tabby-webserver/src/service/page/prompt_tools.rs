@@ -5,7 +5,7 @@ use tabby_inference::ChatCompletionStream;
 
 use crate::service::utils::prompt::{request_llm, transform_line_items};
 
-pub(super) async fn pipeline_page_title(
+pub async fn pipeline_page_title(
     chat: Arc<dyn ChatCompletionStream>,
     context: &str,
     conversation: &str,
