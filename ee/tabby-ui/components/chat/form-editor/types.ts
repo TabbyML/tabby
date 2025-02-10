@@ -1,5 +1,6 @@
+import { ReactNode } from 'react'
 import { Content, Editor, EditorEvents } from '@tiptap/react'
-import { ListFileItem } from 'tabby-chat-panel/index'
+import { ListFileItem, ListSymbolItem } from 'tabby-chat-panel/index'
 
 /**
  * PromptProps defines the props for the PromptForm component.
@@ -39,7 +40,7 @@ export interface PromptFormRef {
 /**
  * Represents a file item in the workspace.
  */
-export type FileItem = ListFileItem
+export type FileItem = ListFileItem | ListSymbolItem
 
 /**
  * Represents a file source item for the mention suggestion list.
@@ -48,16 +49,26 @@ export interface SourceItem {
   id: string
   name: string
   filepath: string
-  category: 'file'
+  category: CategoryMenu
+  isRootCategoryItem?: boolean
   fileItem: FileItem
+  icon: ReactNode
+}
+export interface CategoryItem {
+  label: string
+  type: 'category'
+  categoryKind: 'file' | 'symbol'
+  icon: ReactNode
 }
 
+export type CategoryMenu = 'file' | 'symbol' | 'category'
 /**
  * Defines the attributes to be stored in a mention node.
  */
 export interface MentionNodeAttrs {
-  category: 'file'
+  category: 'file' | 'symbol'
   filepath: string
+  label: string
 }
 
 /**

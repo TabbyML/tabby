@@ -42,10 +42,7 @@ import {
   PromptFormMentionExtension
 } from './form-editor/mention'
 import { PromptFormRef, PromptProps } from './form-editor/types'
-import {
-  fileItemToSourceItem,
-  isSameEntireFileContextFromMention
-} from './form-editor/utils'
+import { fileItemToSourceItem, isSameFileContext } from './form-editor/utils'
 
 /**
  * PromptFormRenderer is the internal component used by React.forwardRef
@@ -59,7 +56,8 @@ function PromptFormRenderer(
     listFileInWorkspace,
     readFileContent,
     relevantContext,
-    setRelevantContext
+    setRelevantContext,
+    listSymbols
   } = useContext(ChatContext)
 
   const doSubmit = useLatest(async () => {
@@ -112,8 +110,26 @@ function PromptFormRenderer(
             items: async ({ query }) => {
               if (!listFileInWorkspace) return []
               const files = await listFileInWorkspace({ query })
-              return uniqBy(files?.map(fileItemToSourceItem) || [], 'id')
+              const items = [
+                ...(listSymbols
+                  ? [
+                      listSymbols ?? {
+                        id: 'category',
+                        name: 'Files',
+                        category: 'category'
+                      },
+                      {
+                        id: 'category',
+                        name: 'Symbols',
+                        category: 'category'
+                      }
+                    ]
+                  : []),
+                ...uniqBy(files.map(fileItemToSourceItem), 'id')
+              ]
+              return items
             },
+
             render: () => {
               let component: ReactRenderer<MentionListActions, MentionListProps>
               let popup: Instance[]
@@ -121,7 +137,7 @@ function PromptFormRenderer(
               return {
                 onStart: props => {
                   component = new ReactRenderer(MentionList, {
-                    props: { ...props, listFileInWorkspace },
+                    props: { ...props, listFileInWorkspace, listSymbols },
                     editor: props.editor
                   })
 
@@ -200,13 +216,21 @@ function PromptFormRenderer(
    */
   const diffAndUpdateMentionContext = useDebounceCallback(async () => {
     if (!readFileContent || !editor) return
-    let contextInEditor: EditorFileContext[] = []
+
+    const contextInEditor: EditorFileContext[] = []
     editor.view.state.doc.descendants(node => {
-      if (node.type.name === 'mention' && node.attrs.category === 'file') {
+      if (
+        node.type.name === 'mention' &&
+        (node.attrs.category === 'file' || node.attrs.category === 'symbol')
+      ) {
         contextInEditor.push({
           kind: 'file',
           content: '',
-          filepath: node.attrs.fileItem.filepath
+          filepath: node.attrs.fileItem.filepath,
+          range:
+            node.attrs.category === 'symbol'
+              ? node.attrs.fileItem.range
+              : undefined
         })
       }
     })
@@ -214,23 +238,18 @@ function PromptFormRenderer(
     let prevContext: FileContext[] = relevantContext
     let updatedContext = [...prevContext]
 
-    // Determine mentions to add and remove
     const mentionsToAdd = contextInEditor.filter(
       ctx =>
         !prevContext.some(prevCtx =>
-          isSameEntireFileContextFromMention(convertEditorContext(ctx), prevCtx)
+          isSameFileContext(convertEditorContext(ctx), prevCtx)
         )
     )
 
-    /**
-     * Remove mentions from the context if they are no longer present in the editor
-     * Only remove mentions that refer to the whole file, not selections.
-     */
+    // Remove mentions from the context if they are no longer present in the editor
     const mentionsToRemove = prevContext.filter(
       prevCtx =>
-        !prevCtx.range &&
         !contextInEditor.some(ctx =>
-          isSameEntireFileContextFromMention(convertEditorContext(ctx), prevCtx)
+          isSameFileContext(convertEditorContext(ctx), prevCtx)
         )
     )
 
@@ -240,12 +259,16 @@ function PromptFormRenderer(
 
     for (const ctx of mentionsToAdd) {
       // Read the file content and add it to the context
-      const content = await readFileContent({ filepath: ctx.filepath })
+      const content = await readFileContent({
+        filepath: ctx.filepath,
+        range: ctx.range
+      })
       updatedContext.push(
         convertEditorContext({
           kind: 'file',
           content: content || '',
-          filepath: ctx.filepath
+          filepath: ctx.filepath,
+          range: ctx.range
         })
       )
     }

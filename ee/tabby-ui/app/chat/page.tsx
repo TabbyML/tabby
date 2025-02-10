@@ -474,6 +474,7 @@ export default function ChatPage() {
             ? server?.readFileContent
             : undefined
         }
+        listSymbols={isInEditor && server?.listSymbols}
       />
     </ErrorBoundary>
   )
