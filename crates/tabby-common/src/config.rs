@@ -401,10 +401,10 @@ pub struct EmbeddingConfig {
 }
 
 // In the majority of instances, the ratio of tokens to words is 100:75,
-// The default_embedding_max_input_length configured to be 2048 characters,
-// as specified by the default `CompletionConfig.max_input_length` setting.
+// The default_embedding_max_input_length configured to be 5120 characters,
+// since the default argument for ubatch-size in llama.cpp is 4096.
 fn default_embedding_max_input_length() -> usize {
-    2048
+    5120
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
