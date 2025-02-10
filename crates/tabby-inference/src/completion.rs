@@ -4,8 +4,6 @@ use futures::stream::BoxStream;
 
 #[derive(Builder, Debug)]
 pub struct CompletionOptions {
-    pub max_input_length: usize,
-
     pub max_decoding_tokens: i32,
 
     pub sampling_temperature: f32,

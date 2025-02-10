@@ -834,7 +834,6 @@ impl Query {
                     let config = CompletionConfig::default();
                     let options = CompletionOptionsBuilder::default()
                         .max_decoding_tokens(config.max_decoding_tokens as i32)
-                        .max_input_length(config.max_input_length)
                         .sampling_temperature(0.1)
                         .seed(0)
                         .build()
