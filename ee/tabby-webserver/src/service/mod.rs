@@ -5,6 +5,7 @@ mod auth;
 pub mod background_job;
 pub mod context;
 mod email;
+pub mod embedding;
 pub mod event_logger;
 pub mod integration;
 pub mod job;

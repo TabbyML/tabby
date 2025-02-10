@@ -29,6 +29,9 @@ pub struct Config {
     pub completion: CompletionConfig,
 
     #[serde(default)]
+    pub embedding: EmbeddingConfig,
+
+    #[serde(default)]
     pub answer: AnswerConfig,
 
     #[serde(default)]
@@ -66,7 +69,6 @@ impl Config {
         }
 
         if let Err(e) = cfg.validate_config() {
-            cfg = Default::default();
             InfoMessage::new(
                 "Parsing config failed",
                 HeaderFormat::BoldRed,
@@ -390,6 +392,19 @@ impl Default for CompletionConfig {
             code_search_params: CodeSearchParams::default(),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct EmbeddingConfig {
+    #[serde(default = "default_embedding_max_input_length")]
+    pub max_input_length: usize,
+}
+
+// In the majority of instances, the ratio of tokens to words is 100:75,
+// The default_embedding_max_input_length configured to be 5120 characters,
+// since the default argument for ubatch-size in llama.cpp is 4096.
+fn default_embedding_max_input_length() -> usize {
+    5120
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

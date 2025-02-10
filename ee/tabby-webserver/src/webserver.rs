@@ -18,7 +18,7 @@ use crate::{
     path::db_file,
     routes,
     service::{
-        create_service_locator, event_logger::create_event_logger, integration, job,
+        create_service_locator, embedding, event_logger::create_event_logger, integration, job,
         new_auth_service, new_email_service, new_license_service, new_setting_service, repository,
         web_documents,
     },
@@ -120,6 +120,8 @@ impl Webserver {
             ))
         });
 
+        let embedding = embedding::create(&config.embedding, self.embedding.clone());
+
         let ctx = create_service_locator(
             self.logger(),
             auth,
@@ -136,7 +138,7 @@ impl Webserver {
             license,
             setting,
             self.db.clone(),
-            self.embedding.clone(),
+            embedding,
         )
         .await;
 
