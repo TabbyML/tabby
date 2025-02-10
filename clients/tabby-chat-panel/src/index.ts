@@ -259,7 +259,6 @@ export interface ListFileItem {
   filepath: Filepath
 }
 
-// Draft list active symbol item
 export interface ListSymbolItem {
   filepath: Filepath
   range: LineRange
