@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'framer-motion'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -39,27 +40,39 @@ export function RelatedQuestions({
     onClickQuestion(question, sourceIdInOperation as string)
   }
 
-  if (
-    !repositoryRelatedQuestions ||
-    !sourceIdInOperation ||
-    sourceIdInOperation !== sourceId
-  ) {
-    return null
-  }
+  const showList =
+    !!repositoryRelatedQuestions &&
+    !!sourceIdInOperation &&
+    sourceIdInOperation === sourceId
 
   return (
-    <div className="mb-3 mt-5 flex flex-wrap justify-center gap-2 align-middle text-xs">
-      {repositoryRelatedQuestions.map((x, idx) => {
-        return (
-          <div
-            key={`${x}_${idx}`}
-            className="cursor-pointer truncate rounded-lg bg-muted px-4 py-2 transition-opacity hover:bg-muted/70"
-            onClick={e => onClickRelatedQuestion(x)}
-          >
-            <span>{x}</span>
+    <AnimatePresence>
+      {showList ? (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{
+            duration: 0.2,
+            ease: 'easeOut',
+            delay: 0.1
+          }}
+        >
+          <div className="flex flex-wrap justify-center gap-2 pb-3 pt-5 align-middle text-xs">
+            {repositoryRelatedQuestions.map((x, idx) => {
+              return (
+                <div
+                  key={`${x}_${idx}`}
+                  className="cursor-pointer truncate rounded-lg bg-muted px-4 py-2 transition-opacity hover:bg-muted/70"
+                  onClick={e => onClickRelatedQuestion(x)}
+                >
+                  <span>{x}</span>
+                </div>
+              )
+            })}
           </div>
-        )
-      })}
-    </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   )
 }
