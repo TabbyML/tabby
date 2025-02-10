@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import { useQuery } from 'urql'
 import { useStore } from 'zustand'
 
+import { graphql } from '@/lib/gql/generates'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import { useSelectedRepository } from '@/lib/hooks/use-repositories'
@@ -44,6 +45,12 @@ import { ThreadFeeds } from './components/thread-feeds'
 
 // const ThreadFeeds = lazy(() => import('./components/thread-feeds').then(module => ({ default: module.ThreadFeeds })))
 
+const readRepositoryRelatedQuestionsQuery = graphql(/* GraphQL */ `
+  query readRepositoryRelatedQuestions($sourceId: String!) {
+    readRepositoryRelatedQuestions(sourceId: $sourceId)
+  }
+`)
+
 function MainPanel() {
   const resettingScroller = useRef(false)
   const scroller = useRef<HTMLDivElement>(null)
@@ -63,6 +70,28 @@ function MainPanel() {
   const { selectedRepository, isFetchingRepositories } = useSelectedRepository()
 
   const showMainSection = !!data?.me || !isFetchingServerInfo
+
+  const [
+    {
+      data: repositoryRelatedQuestionsData,
+      operation: repositoryRelatedQuestionsOperation
+    }
+  ] = useQuery({
+    query: readRepositoryRelatedQuestionsQuery,
+    variables: {
+      sourceId: selectedRepository?.sourceId as string
+    },
+    pause: !selectedRepository?.sourceId
+  })
+  const sourceIdForQuestions =
+    repositoryRelatedQuestionsOperation?.variables?.sourceId
+  const repoForQuestions = useMemo(() => {
+    return contextInfoData?.contextInfo.sources.find(
+      source => source.sourceId === sourceIdForQuestions
+    )
+  }, [contextInfoData, sourceIdForQuestions])
+  const repositoryRelatedQuestion =
+    repositoryRelatedQuestionsData?.readRepositoryRelatedQuestions
 
   // Prefetch the search page
   useEffect(() => {
@@ -99,6 +128,18 @@ function MainPanel() {
     updatePendingUserMessage({
       content: question,
       context
+    })
+    router.push('/search')
+  }
+
+  const onClickRelatedQuestion = (question: string) => {
+    updatePendingUserMessage({
+      content: question,
+      context: {
+        docSourceIds: [sourceIdForQuestions as string],
+        codeSourceIds: [sourceIdForQuestions as string],
+        modelName: selectedModel
+      }
     })
     router.push('/search')
   }
@@ -173,6 +214,24 @@ function MainPanel() {
                   }
                   models={models}
                 />
+                {!!sourceIdForQuestions && !!repositoryRelatedQuestion && (
+                  <div className="flex flex-col gap-2 my-3">
+                    {repositoryRelatedQuestion.map((x, idx) => {
+                      return (
+                        <div
+                          key={`${x}_${idx}`}
+                          className="w-auto cursor-pointer px-4 py-2 bg-muted hover:bg-muted/70 rounded-lg"
+                          onClick={e => onClickRelatedQuestion(x)}
+                        >
+                          {repoForQuestions && (
+                            <span>{repoForQuestions.sourceName}:&nbsp;</span>
+                          )}
+                          <span>{x}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </AnimationWrapper>
             )}
             <Stats />
