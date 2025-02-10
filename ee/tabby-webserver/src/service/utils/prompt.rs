@@ -1,11 +1,63 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
-use async_openai_alt::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
-    CreateChatCompletionRequestArgs,
+use async_openai_alt::{
+    error::OpenAIError,
+    types::{
+        ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
+        CreateChatCompletionRequestArgs,
+    },
 };
+use async_stream::stream;
+use futures::stream::BoxStream;
 use tabby_inference::ChatCompletionStream;
+use tracing::{error, warn};
+
+/// Sends a prompt to the provided ChatCompletionStream and returns the generated response as a String using a stream.
+pub async fn request_llm_stream(
+    chat: Arc<dyn ChatCompletionStream>,
+    prompt: String,
+) -> BoxStream<'static, tabby_schema::Result<String>> {
+    Box::pin(stream! {
+        let request = CreateChatCompletionRequestArgs::default()
+            .messages(vec![ChatCompletionRequestMessage::User(
+                ChatCompletionRequestUserMessageArgs::default()
+                    .content(prompt)
+                    .build()
+                    .expect("Failed to create ChatCompletionRequestUserMessage"),
+            )])
+            .build().map_err(|e| anyhow!("Failed to build chat completion request: {:?}", e))?;
+
+        let s = match chat.chat_stream(request).await {
+            Ok(s) => s,
+            Err(err) => {
+                warn!("Failed to create chat completion stream: {:?}", err);
+                return;
+            }
+        };
+
+        for await chunk in s {
+            let chunk = match chunk {
+                Ok(chunk) => chunk,
+                Err(err) => {
+                    if let OpenAIError::StreamError(content) = &err {
+                        if content == "Stream ended" {
+                            break;
+                        }
+                    }
+                    error!("Failed to get chat completion chunk: {:?}", err);
+                    yield Err(anyhow!("Failed to get chat completion chunk: {:?}", err).into());
+                    return;
+                }
+            };
+
+            let content = chunk.choices.first().and_then(|x| x.delta.content.as_deref());
+            if let Some(content) = content {
+                yield Ok(content.to_owned());
+            }
+        }
+    })
+}
 
 /// Sends a prompt to the provided ChatCompletionStream and returns the generated response as a String.
 pub async fn request_llm(chat: Arc<dyn ChatCompletionStream>, prompt: &str) -> Result<String> {

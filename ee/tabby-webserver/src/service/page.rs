@@ -1,11 +1,17 @@
+mod prompt_tools;
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::StreamExt;
+use futures::{stream::BoxStream, StreamExt};
 use juniper::ID;
+use prompt_tools::{
+    pipeline_page_sections, pipeline_page_title, prompt_page_content, prompt_page_section_content,
+};
 use tabby_db::DbConn;
+use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
-    auth::AuthenticationService,
+    context::ContextService,
     page::{
         AddPageSectionInput, Page, PageCompleted, PageContentCompleted, PageContentDelta,
         PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
@@ -16,26 +22,27 @@ use tabby_schema::{
     AsID, AsRowid, CoreError, Result,
 };
 
-use super::{answer::AnswerService, graphql_pagination_to_filter};
+use super::graphql_pagination_to_filter;
+use crate::service::utils::prompt::request_llm_stream;
 
 struct PageServiceImpl {
     db: DbConn,
-    _auth: Arc<dyn AuthenticationService>,
+    chat: Arc<dyn ChatCompletionStream>,
     thread: Arc<dyn ThreadService>,
-    answer: Arc<AnswerService>,
+    context: Arc<dyn ContextService>,
 }
 
 pub fn create(
     db: DbConn,
-    auth: Arc<dyn AuthenticationService>,
+    chat: Arc<dyn ChatCompletionStream>,
     thread: Arc<dyn ThreadService>,
-    answer: Arc<AnswerService>,
+    context: Arc<dyn ContextService>,
 ) -> impl PageService {
     PageServiceImpl {
         db,
+        chat,
         thread,
-        _auth: auth,
-        answer,
+        context,
     }
 }
 
@@ -62,9 +69,10 @@ impl PageService for PageServiceImpl {
         let title = self
             .generate_page_title(policy, page_id.clone(), &messages)
             .await?;
-        let answer = self.answer.clone();
         let db = self.db.clone();
         let policy = policy.clone();
+        let chat = self.chat.clone();
+        let context = self.context.clone();
 
         let author_id = author_id.clone();
         let s = async_stream::stream! {
@@ -74,7 +82,7 @@ impl PageService for PageServiceImpl {
                 title,
             }));
 
-            let content_stream = answer.generate_page_content(&policy, &messages).await?;
+            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &messages).await?;
             for await delta in content_stream {
                 let delta = delta?;
                 db.append_page_content(page_id.as_rowid()?, &delta).await?;
@@ -87,7 +95,7 @@ impl PageService for PageServiceImpl {
                 id: page_id.clone(),
             }));
 
-            let sections = answer.generate_page_sections(&policy, &messages).await?;
+            let sections = generate_page_sections(chat.clone(), context.clone(), &policy, &messages).await?;
             let mut page_sections = Vec::new();
             for section_title in sections {
                 let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
@@ -104,7 +112,7 @@ impl PageService for PageServiceImpl {
             let section_titles = page_sections.iter().map(|x| x.title.clone()).collect();
             for section in page_sections {
                 let section_id = section.id.clone();
-                let content_stream = answer.generate_page_section_content(&policy, &messages, &section_titles, &section.title).await?;
+                let content_stream = generate_page_section_content(chat.clone(), context.clone(), &policy, &messages, &section_titles, &section.title).await?;
                 for await delta in content_stream {
                     let delta = delta?;
                     db.append_page_section_content(section_id.clone().as_rowid()?, &delta).await?;
@@ -133,7 +141,15 @@ impl PageService for PageServiceImpl {
         page_id: ID,
         messages: &Vec<Message>,
     ) -> Result<String> {
-        let title = self.answer.generate_page_title(policy, messages).await?;
+        let context_info = self.context.read(Some(policy)).await?;
+        let context_info_helper = context_info.helper();
+        let content = messages
+            .iter()
+            .map(|x| x.content.clone())
+            .collect::<Vec<_>>()
+            .join("\n");
+        let context = context_info_helper.rewrite_tag(&content);
+        let title = pipeline_page_title(self.chat.clone(), &context, &content).await?;
 
         self.db
             .update_page_title(page_id.as_rowid()?, &title)
@@ -206,7 +222,7 @@ impl PageService for PageServiceImpl {
     }
 
     async fn add_section(&self, input: &AddPageSectionInput) -> Result<ID> {
-        //TODO: generate section content
+        //TODO(kweizh): generate section content
         let section = self
             .db
             .create_page_section(input.page_id.as_rowid()?, &input.title)
@@ -218,4 +234,73 @@ impl PageService for PageServiceImpl {
         self.db.delete_page_section(id.as_rowid()?).await?;
         Ok(())
     }
+}
+
+async fn generate_page_content(
+    chat: Arc<dyn ChatCompletionStream>,
+    context: Arc<dyn ContextService>,
+    policy: &AccessPolicy,
+    messages: &Vec<Message>,
+) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
+    let context_info = context.read(Some(policy)).await?;
+    let context_info_helper = context_info.helper();
+
+    let content = messages
+        .iter()
+        .map(|x| x.content.clone())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let context = context_info_helper.rewrite_tag(&content);
+
+    let prompt = prompt_page_content(&context, &content);
+    Ok(request_llm_stream(chat, prompt).await)
+}
+
+pub async fn generate_page_sections(
+    chat: Arc<dyn ChatCompletionStream>,
+    context: Arc<dyn ContextService>,
+    policy: &AccessPolicy,
+    messages: &Vec<Message>,
+) -> anyhow::Result<Vec<String>> {
+    let context_info = context.read(Some(policy)).await?;
+    let context_info_helper = context_info.helper();
+    let content = messages
+        .iter()
+        .map(|x| x.content.clone())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let context = context_info_helper.rewrite_tag(&content);
+    pipeline_page_sections(chat.clone(), &context, &content).await
+}
+
+pub async fn generate_page_section_content(
+    chat: Arc<dyn ChatCompletionStream>,
+    context: Arc<dyn ContextService>,
+    policy: &AccessPolicy,
+    messages: &Vec<Message>,
+    sections: &Vec<String>,
+    current_section: &str,
+) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
+    let context_info = context.read(Some(policy)).await?;
+    let context_info_helper = context_info.helper();
+
+    let content = messages
+        .iter()
+        .map(|x| x.content.clone())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let context = context_info_helper.rewrite_tag(&content);
+
+    let sections = sections
+        .iter()
+        .map(|s| format!("- {}", s))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let current = current_section.to_owned();
+
+    let prompt = prompt_page_section_content(&context, &content, &sections, &current);
+    Ok(request_llm_stream(chat.clone(), prompt).await)
 }

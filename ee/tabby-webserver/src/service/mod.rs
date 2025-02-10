@@ -125,12 +125,12 @@ impl ServerContext {
             answer.clone(),
             Some(auth.clone()),
         ));
-        let page = answer.map(|answer| {
+        let page = chat.as_ref().map(|chat| {
             Arc::new(page::create(
                 db_conn.clone(),
-                auth.clone(),
+                chat.clone(),
                 thread.clone(),
-                answer.clone(),
+                context.clone(),
             )) as Arc<dyn PageService>
         });
 

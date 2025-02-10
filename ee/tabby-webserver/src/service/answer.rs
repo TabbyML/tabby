@@ -15,16 +15,12 @@ use async_openai_alt::{
         ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
         ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
         ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
-        ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContent,
-        CreateChatCompletionRequestArgs, Role,
+        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs, Role,
     },
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use prompt_tools::{
-    pipeline_decide_need_codebase_context, pipeline_page_sections, pipeline_page_title,
-    pipeline_related_questions, prompt_page_content, prompt_page_section_content,
-};
+use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
 use tabby_common::{
     api::{
         code::{
@@ -399,130 +395,6 @@ impl AnswerService {
 
         let context: String = snippets.join("\n\n");
         pipeline_related_questions(self.chat.clone(), &context, question).await
-    }
-
-    async fn request_llm_stream(&self, prompt: String) -> BoxStream<tabby_schema::Result<String>> {
-        Box::pin(stream! {
-            let request = CreateChatCompletionRequestArgs::default()
-                .messages(vec![ChatCompletionRequestMessage::User(
-                    ChatCompletionRequestUserMessageArgs::default()
-                        .content(prompt)
-                        .build()
-                        .expect("Failed to create ChatCompletionRequestUserMessage"),
-                )])
-                .build().map_err(|e| anyhow!("Failed to build chat completion request: {:?}", e))?;
-
-            let s = match self.chat.chat_stream(request).await {
-                Ok(s) => s,
-                Err(err) => {
-                    warn!("Failed to create chat completion stream: {:?}", err);
-                    return;
-                }
-            };
-
-            for await chunk in s {
-                let chunk = match chunk {
-                    Ok(chunk) => chunk,
-                    Err(err) => {
-                        if let OpenAIError::StreamError(content) = &err {
-                            if content == "Stream ended" {
-                                break;
-                            }
-                        }
-                        error!("Failed to get chat completion chunk: {:?}", err);
-                        yield Err(anyhow!("Failed to get chat completion chunk: {:?}", err).into());
-                        return;
-                    }
-                };
-
-                let content = chunk.choices.first().and_then(|x| x.delta.content.as_deref());
-                if let Some(content) = content {
-                    yield Ok(content.to_owned());
-                }
-            }
-        })
-    }
-
-    pub async fn generate_page_title(
-        &self,
-        policy: &AccessPolicy,
-        messages: &Vec<thread::Message>,
-    ) -> anyhow::Result<String> {
-        let context_info = self.context.read(Some(policy)).await?;
-        let context_info_helper = context_info.helper();
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-        let context = context_info_helper.rewrite_tag(&content);
-        pipeline_page_title(self.chat.clone(), &context, &content).await
-    }
-
-    pub async fn generate_page_content(
-        &self,
-        policy: &AccessPolicy,
-        messages: &Vec<thread::Message>,
-    ) -> tabby_schema::Result<BoxStream<tabby_schema::Result<String>>> {
-        let context_info = self.context.read(Some(policy)).await?;
-        let context_info_helper = context_info.helper();
-
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let context = context_info_helper.rewrite_tag(&content);
-
-        let prompt = prompt_page_content(&context, &content);
-        Ok(self.request_llm_stream(prompt).await)
-    }
-
-    pub async fn generate_page_sections(
-        &self,
-        policy: &AccessPolicy,
-        messages: &Vec<thread::Message>,
-    ) -> anyhow::Result<Vec<String>> {
-        let context_info = self.context.read(Some(policy)).await?;
-        let context_info_helper = context_info.helper();
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-        let context = context_info_helper.rewrite_tag(&content);
-        pipeline_page_sections(self.chat.clone(), &context, &content).await
-    }
-
-    pub async fn generate_page_section_content(
-        &self,
-        policy: &AccessPolicy,
-        messages: &Vec<thread::Message>,
-        sections: &Vec<String>,
-        current_section: &str,
-    ) -> tabby_schema::Result<BoxStream<tabby_schema::Result<String>>> {
-        let context_info = self.context.read(Some(policy)).await?;
-        let context_info_helper = context_info.helper();
-
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let context = context_info_helper.rewrite_tag(&content);
-
-        let sections = sections
-            .iter()
-            .map(|s| format!("- {}", s))
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let current = current_section.to_owned();
-
-        let prompt = prompt_page_section_content(&context, &content, &sections, &current);
-        Ok(self.request_llm_stream(prompt).await)
     }
 }
 
