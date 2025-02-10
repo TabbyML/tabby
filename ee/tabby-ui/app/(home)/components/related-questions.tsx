@@ -51,12 +51,12 @@ export function RelatedQuestions({
   if (!repositoryRelatedQuestions || !sourceIdForQuestions) return null
 
   return (
-    <div className="flex flex-wrap gap-2 mb-3 mt-5 text-sm justify-center align-middle">
+    <div className="mb-3 mt-5 flex flex-wrap justify-center gap-2 align-middle text-sm">
       {repositoryRelatedQuestions.map((x, idx) => {
         return (
           <div
             key={`${x}_${idx}`}
-            className="cursor-pointer px-4 py-2 bg-muted hover:bg-muted/70 rounded-lg truncate transition-opacity"
+            className="cursor-pointer truncate rounded-lg bg-muted px-4 py-2 transition-opacity hover:bg-muted/70"
             onClick={e => onClickRelatedQuestion(x)}
           >
             {repoForQuestions && (
