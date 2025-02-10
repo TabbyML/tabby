@@ -25,6 +25,7 @@ tree-sitter-c-sharp = "0.21.2"
 tree-sitter-solidity = { git = "https://github.com/JoranHonig/tree-sitter-solidity", rev = "0e86ae647bda22c9bee00ec59752df7b3d3b000b" }
 tree-sitter-lua = "0.1.0"
 tree-sitter-elixir = "0.2.0"
+tree-sitter-gdscript = { git = "https://github.com/faceCutWall/tree-sitter-gdscript", rev = "8a8c067899d734840e8ce86fdeeeadbe8088446b" }
 ignore.workspace = true
 tokio = { workspace = true, features = ["process"] }
 text-splitter = { version = "0.13.3", features = ["code"] }

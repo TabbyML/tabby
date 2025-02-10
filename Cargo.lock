@@ -5489,6 +5489,7 @@ dependencies = [
  "tree-sitter-c-sharp",
  "tree-sitter-cpp",
  "tree-sitter-elixir",
+ "tree-sitter-gdscript",
  "tree-sitter-go",
  "tree-sitter-java",
  "tree-sitter-kotlin",
@@ -6395,6 +6396,15 @@ name = "tree-sitter-elixir"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94bf7f057768b1cab2ee1f14812ed4ae33f9e04d09254043eeaa797db4ef70"
+dependencies = [
+ "cc",
+ "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-gdscript"
+version = "0.0.1"
+source = "git+https://github.com/faceCutWall/tree-sitter-gdscript?rev=8a8c067899d734840e8ce86fdeeeadbe8088446b#8a8c067899d734840e8ce86fdeeeadbe8088446b"
 dependencies = [
  "cc",
  "tree-sitter",

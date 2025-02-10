@@ -158,6 +158,17 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "gdscript",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_gdscript::language(),
+                        include_str!("../../queries/gdscript.scm"),
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
         ])
     };
 }

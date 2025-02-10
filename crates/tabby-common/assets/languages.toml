@@ -420,3 +420,17 @@ top_level_keywords = [
   "while",
   "with",
 ]
+
+[[config]]
+languages = ["gdscript"]
+exts = ["gd", "tscn", "tres"]
+line_comment = "#"
+top_level_keywords = [
+    "var",
+    "const",
+    "enum",
+    "func",
+    "class",
+    "class_name",
+    "extends",
+]
