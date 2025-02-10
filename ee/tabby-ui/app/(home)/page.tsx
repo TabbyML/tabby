@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import { useQuery } from 'urql'
 import { useStore } from 'zustand'
 
-import { graphql } from '@/lib/gql/generates'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import { useSelectedRepository } from '@/lib/hooks/use-repositories'
@@ -40,16 +39,11 @@ import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
 import { AnimationWrapper } from './components/animation-wrapper'
+import { RelatedQuestions } from './components/related-questions'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
 
 // const ThreadFeeds = lazy(() => import('./components/thread-feeds').then(module => ({ default: module.ThreadFeeds })))
-
-const readRepositoryRelatedQuestionsQuery = graphql(/* GraphQL */ `
-  query readRepositoryRelatedQuestions($sourceId: String!) {
-    readRepositoryRelatedQuestions(sourceId: $sourceId)
-  }
-`)
 
 function MainPanel() {
   const resettingScroller = useRef(false)
@@ -70,28 +64,6 @@ function MainPanel() {
   const { selectedRepository, isFetchingRepositories } = useSelectedRepository()
 
   const showMainSection = !!data?.me || !isFetchingServerInfo
-
-  const [
-    {
-      data: repositoryRelatedQuestionsData,
-      operation: repositoryRelatedQuestionsOperation
-    }
-  ] = useQuery({
-    query: readRepositoryRelatedQuestionsQuery,
-    variables: {
-      sourceId: selectedRepository?.sourceId as string
-    },
-    pause: !selectedRepository?.sourceId
-  })
-  const sourceIdForQuestions =
-    repositoryRelatedQuestionsOperation?.variables?.sourceId
-  const repoForQuestions = useMemo(() => {
-    return contextInfoData?.contextInfo.sources.find(
-      source => source.sourceId === sourceIdForQuestions
-    )
-  }, [contextInfoData, sourceIdForQuestions])
-  const repositoryRelatedQuestion =
-    repositoryRelatedQuestionsData?.readRepositoryRelatedQuestions
 
   // Prefetch the search page
   useEffect(() => {
@@ -132,12 +104,13 @@ function MainPanel() {
     router.push('/search')
   }
 
-  const onClickRelatedQuestion = (question: string) => {
+  const onClickRelatedQuestion = (question: string, sourceId: string) => {
+    updateSelectedRepoSourceId(sourceId)
     updatePendingUserMessage({
       content: question,
       context: {
-        docSourceIds: [sourceIdForQuestions as string],
-        codeSourceIds: [sourceIdForQuestions as string],
+        docSourceIds: [sourceId as string],
+        codeSourceIds: [sourceId as string],
         modelName: selectedModel
       }
     })
@@ -214,24 +187,11 @@ function MainPanel() {
                   }
                   models={models}
                 />
-                {!!sourceIdForQuestions && !!repositoryRelatedQuestion && (
-                  <div className="my-3 flex flex-col gap-2">
-                    {repositoryRelatedQuestion.map((x, idx) => {
-                      return (
-                        <div
-                          key={`${x}_${idx}`}
-                          className="w-auto cursor-pointer rounded-lg bg-muted px-4 py-2 hover:bg-muted/70"
-                          onClick={e => onClickRelatedQuestion(x)}
-                        >
-                          {repoForQuestions && (
-                            <span>{repoForQuestions.sourceName}:&nbsp;</span>
-                          )}
-                          <span>{x}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+                <RelatedQuestions
+                  sourceId={selectedRepository?.sourceId}
+                  onClickQuestion={onClickRelatedQuestion}
+                  contextInfo={contextInfoData?.contextInfo}
+                />
               </AnimationWrapper>
             )}
             <Stats />
