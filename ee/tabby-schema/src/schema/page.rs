@@ -4,7 +4,7 @@ use futures::stream::BoxStream;
 use juniper::ID;
 pub use types::*;
 
-use crate::{schema::Result, thread::Message};
+use crate::{policy::AccessPolicy, schema::Result, thread::Message};
 
 pub type ThreadToPageRunStream = BoxStream<'static, Result<PageRunItem>>;
 
@@ -12,11 +12,17 @@ pub type ThreadToPageRunStream = BoxStream<'static, Result<PageRunItem>>;
 pub trait PageService: Send + Sync {
     async fn convert_thread_to_page(
         &self,
+        policy: &AccessPolicy,
         author_id: &ID,
         thread_id: &ID,
     ) -> Result<ThreadToPageRunStream>;
 
-    async fn generate_page_title(&self, page_id: ID, messages: &Vec<Message>) -> Result<String>;
+    async fn generate_page_title(
+        &self,
+        policy: &AccessPolicy,
+        page_id: ID,
+        messages: &Vec<Message>,
+    ) -> Result<String>;
 
     async fn list(
         &self,

@@ -7,10 +7,11 @@ use tabby_db::DbConn;
 use tabby_schema::{
     auth::AuthenticationService,
     page::{
-        AddPageSectionInput, Page, PageCompleted, PageContentCompleted, PageCreated, PageRunItem,
-        PageSection, PageSectionContentCompleted, PageSectionContentDelta, PageSectionsCreated,
-        PageService, Section, ThreadToPageRunStream,
+        AddPageSectionInput, Page, PageCompleted, PageContentCompleted, PageContentDelta,
+        PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
+        PageSectionContentDelta, PageSectionsCreated, PageService, Section, ThreadToPageRunStream,
     },
+    policy::AccessPolicy,
     thread::{Message, ThreadService},
     AsID, AsRowid, CoreError, Result,
 };
@@ -42,6 +43,7 @@ pub fn create(
 impl PageService for PageServiceImpl {
     async fn convert_thread_to_page(
         &self,
+        policy: &AccessPolicy,
         author_id: &ID,
         thread_id: &ID,
     ) -> Result<ThreadToPageRunStream> {
@@ -57,9 +59,12 @@ impl PageService for PageServiceImpl {
             .list_thread_messages(thread_id, None, None, None, None)
             .await?;
 
-        let title = self.generate_page_title(page_id.clone(), &messages).await?;
+        let title = self
+            .generate_page_title(policy, page_id.clone(), &messages)
+            .await?;
         let answer = self.answer.clone();
         let db = self.db.clone();
+        let policy = policy.clone();
 
         let author_id = author_id.clone();
         let s = async_stream::stream! {
@@ -69,18 +74,20 @@ impl PageService for PageServiceImpl {
                 title,
             }));
 
-            let content_stream = answer.generate_page_content(&messages).await?;
+            let content_stream = answer.generate_page_content(&policy, &messages).await?;
             for await delta in content_stream {
                 let delta = delta?;
-                db.append_page_content(page_id.as_rowid()?, &delta.delta).await?;
-                yield Ok(PageRunItem::PageContentDelta(delta));
+                db.append_page_content(page_id.as_rowid()?, &delta).await?;
+                yield Ok(PageRunItem::PageContentDelta(PageContentDelta{
+                    delta
+                }));
             }
 
             yield Ok(PageRunItem::PageContentCompleted(PageContentCompleted {
                 id: page_id.clone(),
             }));
 
-            let sections = answer.generate_page_sections(&messages).await?;
+            let sections = answer.generate_page_sections(&policy, &messages).await?;
             let mut page_sections = Vec::new();
             for section_title in sections {
                 let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
@@ -97,7 +104,7 @@ impl PageService for PageServiceImpl {
             let section_titles = page_sections.iter().map(|x| x.title.clone()).collect();
             for section in page_sections {
                 let section_id = section.id.clone();
-                let content_stream = answer.generate_page_section_content(&messages, &section_titles, &section.title).await?;
+                let content_stream = answer.generate_page_section_content(&policy, &messages, &section_titles, &section.title).await?;
                 for await delta in content_stream {
                     let delta = delta?;
                     db.append_page_section_content(section_id.clone().as_rowid()?, &delta).await?;
@@ -120,8 +127,13 @@ impl PageService for PageServiceImpl {
         Ok(s.boxed())
     }
 
-    async fn generate_page_title(&self, page_id: ID, messages: &Vec<Message>) -> Result<String> {
-        let title = self.answer.generate_page_title(messages).await?;
+    async fn generate_page_title(
+        &self,
+        policy: &AccessPolicy,
+        page_id: ID,
+        messages: &Vec<Message>,
+    ) -> Result<String> {
+        let title = self.answer.generate_page_title(policy, messages).await?;
 
         self.db
             .update_page_title(page_id.as_rowid()?, &title)

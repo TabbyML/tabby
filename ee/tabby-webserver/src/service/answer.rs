@@ -39,7 +39,6 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     auth::AuthenticationService,
     context::{ContextInfoHelper, ContextService},
-    page::PageContentDelta,
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
     thread::{
@@ -402,128 +401,12 @@ impl AnswerService {
         pipeline_related_questions(self.chat.clone(), &context, question).await
     }
 
-    pub async fn generate_page_title(
-        &self,
-        messages: &Vec<thread::Message>,
-    ) -> anyhow::Result<String> {
-        //TODO(kweizh): policy
-        let context_info = self.context.read(None).await?;
-        let context_info_helper = context_info.helper();
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-        let context = context_info_helper.rewrite_tag(&content);
-        pipeline_page_title(self.chat.clone(), &context, &content).await
-    }
-
-    pub async fn generate_page_content(
-        &self,
-        messages: &Vec<thread::Message>,
-    ) -> tabby_schema::Result<BoxStream<tabby_schema::Result<PageContentDelta>>> {
-        //TODO(kweizh): policy
-        let context_info = self.context.read(None).await?;
-        let context_info_helper = context_info.helper();
-
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let context = context_info_helper.rewrite_tag(&content);
-
-        Ok(Box::pin(stream! {
+    async fn request_llm_stream(&self, prompt: String) -> BoxStream<tabby_schema::Result<String>> {
+        Box::pin(stream! {
             let request = CreateChatCompletionRequestArgs::default()
                 .messages(vec![ChatCompletionRequestMessage::User(
                     ChatCompletionRequestUserMessageArgs::default()
-                        .content(prompt_page_content(&context, &content).as_str())
-                        .build()
-                        .expect("Failed to create ChatCompletionRequestUserMessage"),
-                )])
-                .build().map_err(|e| anyhow!("Failed to build chat completion request: {:?}", e))?;
-
-            let s = match self.chat.chat_stream(request).await {
-                Ok(s) => s,
-                Err(err) => {
-                    warn!("Failed to create chat completion stream: {:?}", err);
-                    return;
-                }
-            };
-
-            for await chunk in s {
-                let chunk = match chunk {
-                    Ok(chunk) => chunk,
-                    Err(err) => {
-                        if let OpenAIError::StreamError(content) = &err {
-                            if content == "Stream ended" {
-                                break;
-                            }
-                        }
-                        error!("Failed to get chat completion chunk: {:?}", err);
-                        yield Err(anyhow!("Failed to get chat completion chunk: {:?}", err).into());
-                        return;
-                    }
-                };
-
-                let content = chunk.choices.first().and_then(|x| x.delta.content.as_deref());
-                if let Some(content) = content {
-                    yield Ok(PageContentDelta {
-                        delta: content.to_owned()
-                    });
-                }
-            }
-        }))
-    }
-
-    pub async fn generate_page_sections(
-        &self,
-        messages: &Vec<thread::Message>,
-    ) -> anyhow::Result<Vec<String>> {
-        //TODO(kweizh): policy
-        let context_info = self.context.read(None).await?;
-        let context_info_helper = context_info.helper();
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-        let context = context_info_helper.rewrite_tag(&content);
-        pipeline_page_sections(self.chat.clone(), &context, &content).await
-    }
-
-    pub async fn generate_page_section_content(
-        &self,
-        messages: &Vec<thread::Message>,
-        sections: &Vec<String>,
-        current_section: &str,
-    ) -> tabby_schema::Result<BoxStream<tabby_schema::Result<String>>> {
-        //TODO(kweizh): policy
-        let context_info = self.context.read(None).await?;
-        let context_info_helper = context_info.helper();
-
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let context = context_info_helper.rewrite_tag(&content);
-
-        let sections = sections
-            .iter()
-            .map(|s| format!("- {}", s))
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let current = current_section.to_owned();
-
-        Ok(Box::pin(stream! {
-            let request = CreateChatCompletionRequestArgs::default()
-                .messages(vec![ChatCompletionRequestMessage::User(
-                    ChatCompletionRequestUserMessageArgs::default()
-                        .content(prompt_page_section_content(&context, &content, &sections, &current).as_str())
+                        .content(prompt)
                         .build()
                         .expect("Failed to create ChatCompletionRequestUserMessage"),
                 )])
@@ -557,7 +440,89 @@ impl AnswerService {
                     yield Ok(content.to_owned());
                 }
             }
-        }))
+        })
+    }
+
+    pub async fn generate_page_title(
+        &self,
+        policy: &AccessPolicy,
+        messages: &Vec<thread::Message>,
+    ) -> anyhow::Result<String> {
+        let context_info = self.context.read(Some(policy)).await?;
+        let context_info_helper = context_info.helper();
+        let content = messages
+            .iter()
+            .map(|x| x.content.clone())
+            .collect::<Vec<_>>()
+            .join("\n");
+        let context = context_info_helper.rewrite_tag(&content);
+        pipeline_page_title(self.chat.clone(), &context, &content).await
+    }
+
+    pub async fn generate_page_content(
+        &self,
+        policy: &AccessPolicy,
+        messages: &Vec<thread::Message>,
+    ) -> tabby_schema::Result<BoxStream<tabby_schema::Result<String>>> {
+        let context_info = self.context.read(Some(policy)).await?;
+        let context_info_helper = context_info.helper();
+
+        let content = messages
+            .iter()
+            .map(|x| x.content.clone())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let context = context_info_helper.rewrite_tag(&content);
+
+        let prompt = prompt_page_content(&context, &content);
+        Ok(self.request_llm_stream(prompt).await)
+    }
+
+    pub async fn generate_page_sections(
+        &self,
+        policy: &AccessPolicy,
+        messages: &Vec<thread::Message>,
+    ) -> anyhow::Result<Vec<String>> {
+        let context_info = self.context.read(Some(policy)).await?;
+        let context_info_helper = context_info.helper();
+        let content = messages
+            .iter()
+            .map(|x| x.content.clone())
+            .collect::<Vec<_>>()
+            .join("\n");
+        let context = context_info_helper.rewrite_tag(&content);
+        pipeline_page_sections(self.chat.clone(), &context, &content).await
+    }
+
+    pub async fn generate_page_section_content(
+        &self,
+        policy: &AccessPolicy,
+        messages: &Vec<thread::Message>,
+        sections: &Vec<String>,
+        current_section: &str,
+    ) -> tabby_schema::Result<BoxStream<tabby_schema::Result<String>>> {
+        let context_info = self.context.read(Some(policy)).await?;
+        let context_info_helper = context_info.helper();
+
+        let content = messages
+            .iter()
+            .map(|x| x.content.clone())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let context = context_info_helper.rewrite_tag(&content);
+
+        let sections = sections
+            .iter()
+            .map(|s| format!("- {}", s))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let current = current_section.to_owned();
+
+        let prompt = prompt_page_section_content(&context, &content, &sections, &current);
+        Ok(self.request_llm_stream(prompt).await)
     }
 }
 

@@ -1655,7 +1655,7 @@ impl Subscription {
         };
 
         page_service
-            .convert_thread_to_page(&user.id, &thread_id)
+            .convert_thread_to_page(&user.policy, &user.id, &thread_id)
             .await
     }
 }
