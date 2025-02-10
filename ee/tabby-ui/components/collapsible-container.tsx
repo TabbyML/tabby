@@ -36,7 +36,7 @@ export const CollapsibleContainer = ({
     <div className="relative">
       <div
         ref={contentRef}
-        className={cn('overflow-hidden h-auto', {
+        className={cn('h-auto overflow-hidden', {
           'mb-8': showButton && isCollapsed
         })}
         style={{ maxHeight: isCollapsed ? `${maxHeight}px` : 'none' }}
@@ -60,7 +60,7 @@ export const CollapsibleContainer = ({
         </div>
       )}
       {isCollapsed && showButton && (
-        <div className="h-9 bg-gradient-to-t from-background to-transparent absolute inset-x-0 bottom-0"></div>
+        <div className="absolute inset-x-0 bottom-0 h-9 bg-gradient-to-t from-background to-transparent"></div>
       )}
     </div>
   )
