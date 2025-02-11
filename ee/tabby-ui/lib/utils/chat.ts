@@ -11,7 +11,8 @@ import type { MentionAttributes } from '@/lib/types'
 import {
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
-  PLACEHOLDER_FILE_REGEX
+  PLACEHOLDER_FILE_REGEX,
+  PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
@@ -215,12 +216,21 @@ export function replaceAtMentionPlaceHolder(value: string) {
 export function encodeMentionPlaceHolder(value: string): string {
   let newValue = value
   let match
-
   while ((match = PLACEHOLDER_FILE_REGEX.exec(value)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
         `[[file:${encodeURIComponent(match[1])}]]`
+      )
+    } catch (error) {
+      continue
+    }
+  }
+  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(value)) !== null) {
+    try {
+      newValue = newValue.replace(
+        match[0],
+        `[[symbol:${encodeURIComponent(match[1])}]]`
       )
     } catch (error) {
       continue

@@ -17,6 +17,8 @@ import type {
   GitRepository,
   ListFileItem,
   ListFilesInWorkspaceParams,
+  ListSymbolItem,
+  ListSymbolsParams,
   LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel'
@@ -96,6 +98,7 @@ type ChatContextValue = {
   listFileInWorkspace?: (
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
+  listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
@@ -143,6 +146,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   listFileInWorkspace?: (
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
+  listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
 }
 
@@ -183,7 +187,8 @@ function ChatRenderer(
     fetchSessionState,
     storeSessionState,
     listFileInWorkspace,
-    readFileContent
+    readFileContent,
+    listSymbols
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -748,7 +753,8 @@ function ChatRenderer(
         fetchingRepos,
         initialized,
         listFileInWorkspace,
-        readFileContent
+        readFileContent,
+        listSymbols
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
