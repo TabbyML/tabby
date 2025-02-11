@@ -445,6 +445,9 @@ export const listThreadMessages = graphql(/* GraphQL */ `
                 merged
               }
             }
+            codeFileList {
+              fileList
+            }
           }
         }
         cursor

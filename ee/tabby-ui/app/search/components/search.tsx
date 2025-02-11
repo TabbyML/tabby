@@ -429,6 +429,8 @@ export function Search() {
       }
     }
 
+    // FIXME showFileList
+
     currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
 
     // update assiatant message status

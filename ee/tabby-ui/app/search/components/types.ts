@@ -17,6 +17,7 @@ export type ConversationMessage = Omit<
     clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
     code: Maybe<Array<AttachmentCodeItem>> | undefined
     doc: Maybe<Array<AttachmentDocItem>> | undefined
+    codeFileList?: Maybe<Array<{ fileList: string }>>
   }
   readingCode?: ThreadAssistantMessageReadingCode
   isReadingCode?: boolean

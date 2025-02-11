@@ -42,6 +42,9 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadRelevantQuestions {
         questions
       }
+      ... on ThreadAssistantMessageAttachmentsCodeFileList {
+        codeFileList: fileList
+      }
       ... on ThreadAssistantMessageAttachmentsCode {
         hits {
           code {
@@ -123,6 +126,9 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       }
       ... on ThreadRelevantQuestions {
         questions
+      }
+      ... on ThreadAssistantMessageAttachmentsCodeFileList {
+        codeFileList: fileList
       }
       ... on ThreadAssistantMessageAttachmentsCode {
         hits {
