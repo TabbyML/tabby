@@ -1,4 +1,5 @@
 pub mod code;
+pub mod commit;
 pub mod completion;
 pub mod embedding;
 pub mod event;

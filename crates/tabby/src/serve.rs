@@ -150,6 +150,11 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         index_reader_provider.clone(),
     ));
 
+    let commit_history_search = Arc::new(services::commit::create(
+        embedding.clone(),
+        index_reader_provider.clone(),
+    ));
+
     let model = &config.model;
     let (completion, completion_stream, chat) = create_completion_service_and_chat(
         &config.completion,
@@ -186,6 +191,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
                 completion_stream,
                 docsearch,
                 |x| Box::new(services::structured_doc::create_serper(x)),
+                commit_history_search,
             )
             .await;
         api = new_api;
