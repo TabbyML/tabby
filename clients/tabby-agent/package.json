@@ -54,6 +54,7 @@
     "@typescript-eslint/parser": "^6.13.1",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
+    "codiff": "^0.1.2",
     "crypto-random-string": "^5.0.0",
     "dedent": "^0.7.0",
     "deep-equal": "^2.2.1",
