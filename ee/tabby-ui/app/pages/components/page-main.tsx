@@ -162,9 +162,8 @@ export function Page() {
         setPage(prev => {
           if (!prev) return prev
           return {
-            __typename: 'Page',
             ...prev,
-            content: prev.content + data.delta
+            content: (prev.content || '') + data.delta
           }
         })
         break
