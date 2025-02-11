@@ -107,7 +107,7 @@ export interface ErrorMessage {
 /**
  * Represents a filepath to identify a file.
  */
-export type Filepath = FilepathInGitRepository | FilepathUri
+export type Filepath = FilepathInGitRepository | FilepathInWorkspace | FilepathUri
 
 /**
  * This is used for files in a Git repository, and should be used in priority.
@@ -135,7 +135,26 @@ export interface FilepathInGitRepository {
 }
 
 /**
- * This is used for files not in a Git repository.
+ * This is used for files in the workspace, but not in a Git repository.
+ */
+export interface FilepathInWorkspace {
+  kind: 'workspace'
+
+  /**
+   * A string that is a relative path to `baseDir`.
+   */
+  filepath: string
+
+  /**
+   * A string that can be parsed as a URI, used to identify the directory in the client.
+   * The scheme of the URI could be 'file' or some other protocol to access the directory.
+   */
+  baseDir: string
+}
+
+/**
+ * This is used for files not in a Git repository and not in the workspace.
+ * Also used for untitled files not saved.
  */
 export interface FilepathUri {
   kind: 'uri'

@@ -55,6 +55,18 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
     }
   }
 
+  if (workspaceFolder) {
+    const baseDir = workspaceFolder.uri.toString(true);
+    const relativeFilePath = path.relative(baseDir, uriFilePath);
+    if (!relativeFilePath.startsWith("..")) {
+      return {
+        kind: "workspace",
+        filepath: relativeFilePath,
+        baseDir: baseDir,
+      };
+    }
+  }
+
   return {
     kind: "uri",
     uri: uriFilePath,
@@ -67,11 +79,16 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
     try {
       result = Uri.parse(filepath.uri, true);
     } catch (e) {
-      // FIXME(@icycodes): this is a hack for uri is relative filepaths in workspaces
-      const workspaceRoot = workspace.workspaceFolders?.[0];
-      if (workspaceRoot) {
-        result = Uri.joinPath(workspaceRoot.uri, filepath.uri);
+      // nothing
+    }
+  } else if (filepath.kind === "workspace") {
+    try {
+      const workspaceFolder = workspace.getWorkspaceFolder(Uri.parse(filepath.baseDir, true));
+      if (workspaceFolder) {
+        result = Uri.joinPath(workspaceFolder.uri, filepath.filepath);
       }
+    } catch (e) {
+      // do nothing
     }
   } else if (filepath.kind === "git") {
     const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(filepath.gitUrl);

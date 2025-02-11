@@ -11,7 +11,16 @@ import { ArrayElementType } from './common'
 
 export interface FileContext {
   kind: 'file'
+  /**
+   * filepath can be:
+   * - uri, file://path/to/file.txt or untitled://Untitled-1
+   * - relative path, path/to/file.txt, in this case, `baseDir` or `git_uri` is required
+   */
   filepath: string
+  /**
+   * Uri to the base dir, provided when filepath is relative path and git_url is not available.
+   */
+  baseDir?: string
   /**
    * The range of the selected content in the file.
    * If the range is not provided, the whole file is considered.
