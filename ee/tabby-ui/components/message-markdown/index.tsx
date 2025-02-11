@@ -28,7 +28,7 @@ import { SquareFunctionIcon } from 'lucide-react'
 import {
   FileLocation,
   Filepath,
-  ListActiveSymbolItem,
+  ListSymbolItem,
   LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel/index'
@@ -478,7 +478,7 @@ function SymbolTag({
     if (!encodedSymbol) return null
     try {
       const decodedSymbol = decodeURIComponent(encodedSymbol)
-      return JSON.parse(decodedSymbol) as ListActiveSymbolItem
+      return JSON.parse(decodedSymbol) as ListSymbolItem
     } catch (e) {
       return null
     }
