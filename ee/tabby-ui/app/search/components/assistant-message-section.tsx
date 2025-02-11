@@ -69,7 +69,6 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { ChatContext } from '@/components/chat/chat'
-import { CodeReferences } from '@/components/chat/code-references'
 import { CopyButton } from '@/components/copy-button'
 import {
   ErrorMessageBlock,

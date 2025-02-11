@@ -61,11 +61,11 @@ export function ReadingCodeStepper({
 
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
-      <AccordionItem value="readingCode" className="border-0 mb-4">
+      <AccordionItem value="readingCode" className="mb-4 border-0">
         <AccordionTrigger className="w-full py-2">
           <div className="flex flex-1 items-center justify-between pr-2">
-            <div className="flex gap-2 items-center flex-1">
-              <IconCode className="h-5 w-5 mr-1 ml-1 shrink-0" />
+            <div className="flex flex-1 items-center gap-2">
+              <IconCode className="mx-1 h-5 w-5 shrink-0" />
               <span>Reading</span>
               {!!targetRepo && (
                 <div className="inline-flex cursor-pointer items-center gap-0.5 font-medium">
@@ -101,7 +101,7 @@ export function ReadingCodeStepper({
                 open={codeSnippetExpand}
                 onOpenChange={setCodeSnippetExpand}
               >
-                <div className="mb-2 mt-2">Reading</div>
+                <div className="my-2">Reading</div>
                 <div className="flex flex-wrap gap-4 text-xs font-semibold">
                   {clientCodeContexts?.map((item, index) => {
                     return (
@@ -156,24 +156,24 @@ function StepItem({
       >
         <AccordionItem value="default" className="border-0">
           {/* vertical separator */}
-          <div className="group-data-[disabled]:bg-muted group-data-[disabled]:opacity-50 absolute left-3 top-5 block h-full w-0.5 shrink-0 rounded-full bg-muted group-data-[state=completed]:bg-primary"></div>
+          <div className="absolute left-3 top-5 block h-full w-0.5 shrink-0 rounded-full bg-muted group-data-[disabled]:bg-muted group-data-[state=completed]:bg-primary group-data-[disabled]:opacity-50"></div>
           <AccordionTrigger
-            className="group py-1 w-full gap-2 hover:bg-muted/70 !no-underline px-2 rounded-lg"
+            className="group w-full gap-2 rounded-lg px-2 py-1 !no-underline hover:bg-muted/70"
             showChevron={!!children}
           >
             <div className="flex flex-1 items-center gap-4">
               <div className="bg-background group-hover:bg-muted/70">
                 {isLoading ? (
-                  <IconSpinner className="w-3 h-3" />
+                  <IconSpinner className="h-3 w-3" />
                 ) : (
-                  <IconCheck2 className="w-3 h-3 bg-foreground/70 rounded-full text-background" />
+                  <IconCheck2 className="h-3 w-3 rounded-full bg-foreground/70 text-background" />
                 )}
               </div>
               <span>{title}</span>
             </div>
           </AccordionTrigger>
           {!!children && (
-            <AccordionContent className="pl-9 pb-0">
+            <AccordionContent className="pb-0 pl-9">
               {children}
             </AccordionContent>
           )}
@@ -219,12 +219,12 @@ function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
     <Tooltip delayDuration={100}>
       <TooltipTrigger asChild>
         <div
-          className="whitespace-nowrap px-1.5 py-0.5 bg-muted rounded-md cursor-pointer"
+          className="cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5"
           onClick={e => onContextClick?.(context)}
         >
           <span>{fileName}</span>
           {rangeText ? (
-            <span className="text-muted-foreground font-normal">
+            <span className="font-normal text-muted-foreground">
               :{rangeText}
             </span>
           ) : null}
