@@ -54,7 +54,7 @@ export const Navbar = ({ sections }: Props) => {
                   : 'text-muted-foreground'
               }`}
             >
-              {section.content}
+              {section.title}
             </div>
           </li>
         ))}

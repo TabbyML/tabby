@@ -12,7 +12,6 @@ import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
 import { compact, some, uniqBy } from 'lodash-es'
 import moment from 'moment'
-import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
@@ -30,15 +29,12 @@ import { client, useMutation } from '@/lib/tabby/gql'
 import { listPages, listPageSections } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import {
   IconClock,
   IconFileSearch,
-  IconList,
   IconPlus,
-  IconSheet,
-  IconSpinner,
-  IconStop
+  IconSpinner
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -55,7 +51,6 @@ import { MessagesSkeleton } from './messages-skeleton'
 import { Navbar } from './nav-bar'
 import { PageContext } from './page-context'
 import { SectionContent } from './section-content'
-import SectionForm from './section-form'
 import { SectionTitle } from './section-title'
 
 const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
@@ -107,12 +102,9 @@ const addPageSectionMutation = graphql(/* GraphQL */ `
 
 const PAGE_SIZE = 30
 
-const TEMP_MSG_ID_PREFIX = '_temp_msg_'
-const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
-
 export function Page() {
   const [{ data: meData }] = useMe()
-  const { updateUrlComponents, pathname } = useRouterStuff()
+  const { updateUrlComponents, pathname, router } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const [mode, setMode] = useState<'edit' | 'view'>('view')
@@ -121,8 +113,6 @@ export function Page() {
   const [pendingSectionIds, setPendingSectionIds] = useState<Set<string>>(
     new Set()
   )
-  const [stopButtonVisible, setStopButtonVisible] = useState(true)
-
   const pendingThreadId = usePageStore(state => state.pendingThreadId)
 
   const [isReady, setIsReady] = useState(!!pendingThreadId)
@@ -131,7 +121,6 @@ export function Page() {
     undefined
   )
   const contentContainerRef = useRef<HTMLDivElement>(null)
-  const [showSectionInput, setShowSectionInput] = useState(false)
   const [isShowDemoBanner] = useShowDemoBanner()
   const initializing = useRef(false)
   const { theme } = useCurrentTheme()
@@ -257,8 +246,6 @@ export function Page() {
     return unsubscribe
   }
 
-  const onPageCompleted = () => {}
-
   const stop = useLatest(() => {
     unsubscribeFn.current?.()
     unsubscribeFn.current = undefined
@@ -266,19 +253,9 @@ export function Page() {
     setIsGeneratingPageContent(false)
     setPendingSectionIds(new Set())
     setCurrentSectionId(undefined)
-
-    onPageCompleted?.()
   })
 
   const deletePageSection = useMutation(deletePageSectionMutation)
-  const addPageSection = useMutation(addPageSectionMutation)
-
-  const onUpdateSectionContent = async (
-    content: string
-  ): Promise<ExtendedCombinedError | undefined> => {
-    // todo
-    return
-  }
 
   useEffect(() => {
     if (pageIdFromURL) {
@@ -288,7 +265,7 @@ export function Page() {
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
 
-  const [{ data: pagesData }] = useQuery({
+  const [{ data: pagesData, error: pageError, fetching: fetchingPage }] = useQuery({
     query: listPages,
     variables: {
       ids: [pageIdFromURL] as string[]
@@ -401,6 +378,11 @@ export function Page() {
         // trigger convert
         unsubscribeFn.current = convertThreadToPage(pendingThreadId)
         updatePendingThreadId(undefined)
+        return
+      }
+
+      if (!pageId) {
+        router.replace('/')
       }
     }
 
@@ -408,56 +390,6 @@ export function Page() {
       init()
     }
   }, [isPathnameInitialized])
-
-  // Display the input field with a delayed animatio
-  useEffect(() => {
-    if (isReady) {
-      setTimeout(() => {
-        setShowSectionInput(true)
-      }, 300)
-    }
-  }, [isReady])
-
-  // Delay showing the stop button
-  const showStopTimeoutId = useRef<number>()
-
-  const isLoadingRef = useLatest(isLoading)
-
-  useEffect(() => {
-    if (isLoadingRef.current) {
-      showStopTimeoutId.current = window.setTimeout(() => {
-        if (!isLoadingRef.current) return
-        setStopButtonVisible(true)
-
-        // Scroll to the bottom
-        const container = contentContainerRef?.current
-        if (container) {
-          container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth'
-          })
-        }
-      }, 300)
-    }
-
-    if (!isLoadingRef.current) {
-      setStopButtonVisible(false)
-    }
-
-    return () => {
-      window.clearTimeout(showStopTimeoutId.current)
-    }
-  }, [isLoading])
-
-  const onAddSection = (title: string) => {
-    if (!pageIdFromURL) return
-    addPageSection({
-      input: {
-        title,
-        pageId: pageIdFromURL
-      }
-    })
-  }
 
   const onDeleteSection = (sectionId: string) => {
     if (!pageIdFromURL) return
@@ -472,10 +404,15 @@ export function Page() {
     })
   }
 
-  const formatedThreadError = undefined
+  const formatedPageError: ExtendedCombinedError | undefined = useMemo(() => {
+    if (!isReady || fetchingPage || !pageIdFromURL) return undefined
+    if (pageError || !pagesData?.pages?.edges?.length) {
+      return pageError || new Error(ERROR_CODE_NOT_FOUND)
+    }
+  }, [pagesData, fetchingPage, pageError, isReady, pageIdFromURL])
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections ||
-      pageSectionData?.pageSections?.pageInfo?.hasNextPage,
+    pageSectionData?.pageSections?.pageInfo?.hasNextPage,
     200
   )
 
@@ -483,11 +420,11 @@ export function Page() {
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
 
-  if (isReady && (formatedThreadError || pageSectionsError)) {
+  if (isReady && (formatedPageError || pageSectionsError)) {
     return (
       <ErrorView
         error={
-          (formatedThreadError || pageSectionsError) as ExtendedCombinedError
+          (formatedPageError || pageSectionsError) as ExtendedCombinedError
         }
         pageIdFromURL={pageIdFromURL}
       />
@@ -510,11 +447,9 @@ export function Page() {
     <PageContext.Provider
       value={{
         isLoading,
-        onAddSection,
         isPathnameInitialized,
         onDeleteSection,
         isPageOwner,
-        onUpdateSectionContent,
         mode,
         setMode,
         pendingSectionIds,
@@ -578,76 +513,31 @@ export function Page() {
                     {sections?.map((section, index) => {
                       const isSectionGenerating =
                         isLoading && section.id === currentSectionId
+                      const enableMoveUp = index !== 0
+                      const enableMoveDown = index < sections.length - 1
+
                       return (
                         <Fragment key={section.id}>
                           <SectionTitle
                             className="section-title pt-8"
-                            message={section}
+                            section={section}
                           />
                           <SectionContent
-                            message={section}
+                            section={section}
                             isGenerating={isSectionGenerating}
+                            enableMoveUp={enableMoveUp}
+                            enableMoveDown={enableMoveDown}
                           />
                         </Fragment>
                       )
                     })}
                   </div>
-                  {mode === 'edit' && (
-                    <div className="rounded-xl border p-2">
-                      <div className="flex items-center gap-1">
-                        <Button size="icon" variant="ghost">
-                          <IconList />
-                        </Button>
-                        <Button size="icon" variant="ghost">
-                          <IconSheet />
-                        </Button>
-                      </div>
-                      <SectionForm
-                        onSearch={onAddSection}
-                        className="min-h-[5rem] border-0 lg:max-w-5xl"
-                        placeholder="What is the section about?"
-                        isLoading={isLoading}
-                      />
-                    </div>
-                  )}
                 </div>
                 <div className="relative col-span-1">
                   <Navbar sections={sections} />
                 </div>
               </div>
             </ScrollArea>
-
-            <div
-              className={cn(
-                'pointer-events-none fixed inset-x-0 bottom-5 z-30 w-full',
-                {
-                  'opacity-100 translate-y-0': showSectionInput,
-                  'opacity-0 translate-y-10': !showSectionInput
-                }
-              )}
-              style={Object.assign(
-                { transition: 'all 0.35s ease-out' },
-                theme === 'dark'
-                  ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                  : {}
-              )}
-            >
-              <div
-                className={cn('absolute flex items-center gap-4')}
-                style={isPageOwner ? { top: '-2.5rem' } : undefined}
-              >
-                {stopButtonVisible && (
-                  <Button
-                    className="bg-background"
-                    variant="outline"
-                    onClick={() => stop.current()}
-                  >
-                    <IconStop className="mr-2" />
-                    Stop generating
-                  </Button>
-                )}
-              </div>
-            </div>
 
             <ButtonScrollToBottom
               className={cn(
@@ -705,22 +595,6 @@ function ErrorView({ error, pageIdFromURL }: ErrorViewProps) {
       </div>
     </div>
   )
-}
-
-function formatThreadRunErrorMessage(error?: ExtendedCombinedError) {
-  if (!error) return 'Failed to fetch'
-
-  if (error.message === '401') {
-    return 'Unauthorized'
-  }
-
-  if (
-    some(error.graphQLErrors, o => o.extensions?.code === ERROR_CODE_NOT_FOUND)
-  ) {
-    return `The thread has expired or does not exist.`
-  }
-
-  return error.message || 'Failed to fetch'
 }
 
 function formatTime(time: string) {

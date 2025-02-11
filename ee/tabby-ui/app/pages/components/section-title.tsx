@@ -3,34 +3,32 @@
 import { HTMLAttributes, useContext } from 'react'
 
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { IconEdit } from '@/components/ui/icons'
 import { MessageMarkdown } from '@/components/message-markdown'
 
 import { SectionItem } from '../types'
 import { PageContext } from './page-context'
 
 interface QuestionBlockProps extends HTMLAttributes<HTMLDivElement> {
-  message: SectionItem
+  section: SectionItem
 }
 
 export function SectionTitle({
-  message,
+  section,
   className,
   ...props
 }: QuestionBlockProps) {
-  const { mode, pendingSectionIds } = useContext(PageContext)
-  const isPending = pendingSectionIds.has(message.id) && !message.content
+  const { pendingSectionIds } = useContext(PageContext)
+  const isPending = pendingSectionIds.has(section.id) && !section.content
 
   return (
     <div>
       <div
         className={cn('flex items-center gap-2 font-semibold', className)}
-        id={message.id}
+        id={section.id}
         {...props}
       >
         <MessageMarkdown
-          message={message.title}
+          message={section.title}
           contextInfo={undefined}
           supportsOnApplyInEditorV2={false}
           className={cn(
@@ -41,11 +39,6 @@ export function SectionTitle({
           )}
           headline
         />
-        {mode === 'edit' && (
-          <Button variant="outline" className="px-2">
-            <IconEdit className="h-6 w-6" />
-          </Button>
-        )}
       </div>
       {/* mock tags */}
       {/* <div className="mb-4 mt-1 flex items-center gap-2">

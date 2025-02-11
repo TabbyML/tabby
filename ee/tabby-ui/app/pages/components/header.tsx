@@ -30,7 +30,6 @@ import {
   IconChevronLeft,
   IconEdit,
   IconMore,
-  IconPlus,
   IconSpinner,
   IconTrash
 } from '@/components/ui/icons'
@@ -112,22 +111,13 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {streamingDone && pageIdFromURL && (
-                  <DropdownMenuItem
-                    className="cursor-pointer gap-2"
-                    onClick={() => onNavigateToHomePage(true)}
-                  >
-                    <IconPlus />
-                    <span>Add new page</span>
-                  </DropdownMenuItem>
-                )}
                 {streamingDone && pageIdFromURL && isPageOwner && (
                   <AlertDialog
                     open={deleteAlertVisible}
                     onOpenChange={setDeleteAlertVisible}
                   >
                     <AlertDialogTrigger asChild>
-                      <DropdownMenuItem className="cursor-pointer gap-2">
+                      <DropdownMenuItem className="cursor-pointer gap-2 !text-destructive">
                         <IconTrash />
                         Delete Page
                       </DropdownMenuItem>
@@ -164,7 +154,7 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
               onClick={() => setMode('edit')}
             >
               <IconEdit />
-              Edit Page
+              Edit
             </Button>
           </>
         ) : (
