@@ -266,8 +266,10 @@ export function AssistantMessageSection({
     }
   }
 
-  const hasFileList = !!message.readingCode?.fileList
-  const hasCodeSnippets =
+  const showFileListStep =
+    !!message.readingCode?.fileList ||
+    !!message.attachment?.codeFileList?.length
+  const showCodeSnippetsStep =
     message.readingCode?.snippet || !!messageAttachmentCodeLen
 
   return (
@@ -346,8 +348,8 @@ export function AssistantMessageSection({
             onContextClick={onCodeContextClick}
             codeSourceId={message.codeSourceId}
             readingCode={{
-              fileList: hasFileList,
-              snippet: hasCodeSnippets
+              fileList: showFileListStep,
+              snippet: showCodeSnippetsStep
             }}
           />
         )}

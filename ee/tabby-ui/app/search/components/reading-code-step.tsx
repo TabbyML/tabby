@@ -62,7 +62,7 @@ export function ReadingCodeStepper({
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
       <AccordionItem value="readingCode" className="mb-4 border-0">
-        <AccordionTrigger className="w-full py-2">
+        <AccordionTrigger className="w-full py-2 pr-2">
           <div className="flex flex-1 items-center justify-between pr-2">
             <div className="flex flex-1 items-center gap-2">
               <IconCode className="mx-1 h-5 w-5 shrink-0" />
