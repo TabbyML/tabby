@@ -67,13 +67,9 @@ export function SectionContent({
     // todo delete and remove section
   }
 
-  const onMoveUp = (sectionId: string) => {
+  const onMoveUp = (sectionId: string) => {}
 
-  }
-
-  const onMoveDown = (sectionId: string) => {
-
-  }
+  const onMoveDown = (sectionId: string) => {}
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
@@ -132,18 +128,18 @@ export function SectionContent({
                       <DropdownMenuContent align="start">
                         {enableMoveUp && (
                           <DropdownMenuItem
-                            className='gap-2'
+                            className="gap-2"
                             onSelect={() => {
                               onMoveUp(section.id)
                             }}
                           >
-                            <IconArrowDown className='rotate-180' />
+                            <IconArrowDown className="rotate-180" />
                             Move Up
                           </DropdownMenuItem>
                         )}
                         {enableMoveDown && (
                           <DropdownMenuItem
-                            className='gap-2'
+                            className="gap-2"
                             onSelect={() => {
                               onMoveDown(section.id)
                             }}
@@ -153,7 +149,7 @@ export function SectionContent({
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
-                          className='gap-2'
+                          className="gap-2"
                           onSelect={() => {
                             onDeleteSection(section.id)
                           }}

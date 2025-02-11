@@ -10,7 +10,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, some, uniqBy } from 'lodash-es'
+import { compact, uniqBy } from 'lodash-es'
 import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
@@ -265,13 +265,14 @@ export function Page() {
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
 
-  const [{ data: pagesData, error: pageError, fetching: fetchingPage }] = useQuery({
-    query: listPages,
-    variables: {
-      ids: [pageIdFromURL] as string[]
-    },
-    pause: !pageIdFromURL
-  })
+  const [{ data: pagesData, error: pageError, fetching: fetchingPage }] =
+    useQuery({
+      query: listPages,
+      variables: {
+        ids: [pageIdFromURL] as string[]
+      },
+      pause: !pageIdFromURL
+    })
 
   useEffect(() => {
     const _page = pagesData?.pages.edges?.[0]?.node
@@ -412,7 +413,7 @@ export function Page() {
   }, [pagesData, fetchingPage, pageError, isReady, pageIdFromURL])
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections ||
-    pageSectionData?.pageSections?.pageInfo?.hasNextPage,
+      pageSectionData?.pageSections?.pageInfo?.hasNextPage,
     200
   )
 
