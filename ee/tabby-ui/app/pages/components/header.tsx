@@ -160,7 +160,9 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
           </>
         ) : (
           <>
-            <Button onClick={e => setMode('view')}>Done</Button>
+            <Button disabled={!streamingDone} onClick={e => setMode('view')}>
+              Done
+            </Button>
           </>
         )}
         <ClientOnly>

@@ -103,12 +103,14 @@ export function Page() {
   const { updateUrlComponents, pathname, router } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
-  const [mode, setMode] = useState<'edit' | 'view'>('view')
+  const pendingThreadId = usePageStore(state => state.pendingThreadId)
+  const [mode, setMode] = useState<'edit' | 'view'>(
+    pendingThreadId ? 'edit' : 'view'
+  )
   // for pending stream sections
   const [pendingSectionIds, setPendingSectionIds] = useState<Set<string>>(
     new Set()
   )
-  const pendingThreadId = usePageStore(state => state.pendingThreadId)
 
   const [isReady, setIsReady] = useState(!!pendingThreadId)
   // for section skeleton

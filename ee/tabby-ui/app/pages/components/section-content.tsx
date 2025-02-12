@@ -59,6 +59,7 @@ export function SectionContent({
   const {
     mode,
     isPageOwner,
+    isLoading,
     pendingSectionIds,
     onDeleteSection,
     onUpdateSectionPosition
@@ -135,6 +136,7 @@ export function SectionContent({
                           <DropdownMenuItem
                             className="gap-2"
                             onSelect={onMoveUp}
+                            disabled={isLoading}
                           >
                             <IconArrowDown className="rotate-180" />
                             Move Up
@@ -144,6 +146,7 @@ export function SectionContent({
                           <DropdownMenuItem
                             className="gap-2"
                             onSelect={onMoveDown}
+                            disabled={isLoading}
                           >
                             <IconArrowDown />
                             Move Down
@@ -151,6 +154,7 @@ export function SectionContent({
                         )}
                         <DropdownMenuItem
                           className="gap-2"
+                          disabled={isLoading}
                           onSelect={() => {
                             onDeleteSection(section.id)
                           }}
