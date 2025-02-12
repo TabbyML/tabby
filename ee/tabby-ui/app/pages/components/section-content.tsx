@@ -10,18 +10,11 @@ import { cn, getContent } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
-import {
   IconArrowDown,
   IconCheckCircled,
   IconCircleDot,
   IconGitMerge,
   IconGitPullRequest,
-  IconMore,
   IconTrash
 } from '@/components/ui/icons'
 import {
@@ -90,9 +83,6 @@ export function SectionContent({
             supportsOnApplyInEditorV2={false}
             className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
           />
-          {/* if isEditing, do not display error section block */}
-          {/* {section.error && <ErrorMessageBlock error={section.error} />} */}
-
           {!isGenerating && (
             <div className="mt-3 flex items-center gap-3 text-sm">
               {sourceLen > 0 && (
@@ -121,49 +111,42 @@ export function SectionContent({
               <div className="flex items-center gap-x-3">
                 {isPageOwner && mode === 'edit' && !isLoading && (
                   <>
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                          variant="ghost"
-                        >
-                          <IconMore />
-                          <p>More</p>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        {enableMoveUp && (
-                          <DropdownMenuItem
-                            className="gap-2"
-                            onSelect={onMoveUp}
-                            disabled={isLoading}
-                          >
-                            <IconArrowDown className="rotate-180" />
-                            Move Up
-                          </DropdownMenuItem>
-                        )}
-                        {enableMoveDown && (
-                          <DropdownMenuItem
-                            className="gap-2"
-                            onSelect={onMoveDown}
-                            disabled={isLoading}
-                          >
-                            <IconArrowDown />
-                            Move Down
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          className="gap-2"
-                          disabled={isLoading}
-                          onSelect={() => {
-                            onDeleteSection(section.id)
-                          }}
-                        >
-                          <IconTrash />
-                          Delete Section
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {enableMoveUp && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-auto gap-0.5 px-2 py-1 font-normal"
+                        onClick={e => onMoveUp()}
+                        disabled={isLoading}
+                      >
+                        <IconArrowDown className="rotate-180" />
+                        Move Up
+                      </Button>
+                    )}
+                    {enableMoveDown && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-auto gap-0.5 px-2 py-1 font-normal"
+                        onClick={e => onMoveDown()}
+                        disabled={isLoading}
+                      >
+                        <IconArrowDown />
+                        Move Down
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="hover-destructive"
+                      className="h-auto gap-0.5 px-2 py-1 font-normal"
+                      disabled={isLoading}
+                      onClick={() => {
+                        onDeleteSection(section.id)
+                      }}
+                    >
+                      <IconTrash />
+                      Delete Section
+                    </Button>
                   </>
                 )}
               </div>
