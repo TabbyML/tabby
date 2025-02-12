@@ -89,7 +89,7 @@ impl PageService for PageServiceImpl {
             let sections = generate_page_sections(chat.clone(), context.clone(), &policy, &messages).await?;
             let mut page_sections = Vec::new();
             for (i, section_title) in sections.iter().enumerate() {
-                let section = db.create_page_section(page_id.as_rowid()?, &section_title, i as i32).await?;
+                let section = db.create_page_section(page_id.as_rowid()?, section_title, i as i32).await?;
                 page_sections.push(PageSection {
                     id: section.as_id(),
                     title: trim_title(section_title).to_owned(),
