@@ -66,20 +66,39 @@ impl PageService for PageServiceImpl {
             .list_thread_messages(thread_id, None, None, None, None)
             .await?;
 
-        let title = self
-            .generate_page_title(policy, page_id.clone(), &messages)
-            .await?;
+        let title = trim_title(
+            self.generate_page_title(policy, page_id.clone(), &messages)
+                .await?
+                .as_str(),
+        )
+        .to_owned();
+
         let db = self.db.clone();
         let policy = policy.clone();
         let chat = self.chat.clone();
         let context = self.context.clone();
-
         let author_id = author_id.clone();
+
         let s = async_stream::stream! {
             yield Ok(PageRunItem::PageCreated(PageCreated {
                 id: page_id.clone(),
                 author_id: author_id.clone(),
                 title,
+            }));
+
+            let sections = generate_page_sections(chat.clone(), context.clone(), &policy, &messages).await?;
+            let mut page_sections = Vec::new();
+            for (i, section_title) in sections.iter().enumerate() {
+                let section = db.create_page_section(page_id.as_rowid()?, &section_title, i as i32).await?;
+                page_sections.push(PageSection {
+                    id: section.as_id(),
+                    title: trim_title(section_title).to_owned(),
+                    position: i as i32,
+                });
+            }
+
+            yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
+                sections: page_sections.clone(),
             }));
 
             let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &messages).await?;
@@ -93,20 +112,6 @@ impl PageService for PageServiceImpl {
 
             yield Ok(PageRunItem::PageContentCompleted(PageContentCompleted {
                 id: page_id.clone(),
-            }));
-
-            let sections = generate_page_sections(chat.clone(), context.clone(), &policy, &messages).await?;
-            let mut page_sections = Vec::new();
-            for section_title in sections {
-                let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
-                page_sections.push(PageSection {
-                    id: section.as_id(),
-                    title: section_title,
-                });
-            }
-
-            yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
-                sections: page_sections.clone(),
             }));
 
             let section_titles = page_sections.iter().map(|x| x.title.clone()).collect();
@@ -223,9 +228,19 @@ impl PageService for PageServiceImpl {
 
     async fn add_section(&self, input: &AddPageSectionInput) -> Result<ID> {
         //TODO(kweizh): generate section content
+
+        let sections = self
+            .db
+            .list_page_sections(input.page_id.as_rowid()?, None, None, false)
+            .await?;
+
         let section = self
             .db
-            .create_page_section(input.page_id.as_rowid()?, &input.title)
+            .create_page_section(
+                input.page_id.as_rowid()?,
+                &input.title,
+                sections.len() as i32,
+            )
             .await?;
         Ok(section.as_id())
     }
@@ -234,6 +249,17 @@ impl PageService for PageServiceImpl {
         self.db.delete_page_section(id.as_rowid()?).await?;
         Ok(())
     }
+
+    async fn update_section_position(&self, page_id: &ID, id: &ID, position: i32) -> Result<()> {
+        self.db
+            .update_page_section_position(page_id.as_rowid()?, id.as_rowid()?, position)
+            .await?;
+        Ok(())
+    }
+}
+
+fn trim_title(title: &str) -> &str {
+    title.trim_matches(&['"', '#', ' ', '-', '*'][..])
 }
 
 async fn generate_page_content(

@@ -37,6 +37,7 @@ pub struct Section {
     pub page_id: ID,
     pub title: String,
     pub content: String,
+    pub position: i32,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -80,6 +81,7 @@ pub struct PageSectionsCreated {
 pub struct PageSection {
     pub id: ID,
     pub title: String,
+    pub position: i32,
 }
 
 #[derive(GraphQLObject)]

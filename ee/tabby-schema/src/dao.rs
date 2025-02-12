@@ -377,7 +377,8 @@ impl From<PageSectionDAO> for page::Section {
             id: value.id.as_id(),
             page_id: value.page_id.as_id(),
             title: value.title,
-            content: value.content,
+            position: value.position as i32,
+            content: value.content.unwrap_or_default(),
             created_at: value.created_at,
             updated_at: value.updated_at,
         }

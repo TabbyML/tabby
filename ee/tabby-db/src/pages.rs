@@ -21,7 +21,8 @@ pub struct PageSectionDAO {
     pub page_id: i64,
 
     pub title: String,
-    pub content: String,
+    pub content: Option<String>,
+    pub position: i64,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -50,7 +51,7 @@ impl DbConn {
 
     pub async fn append_page_content(&self, page_id: i64, content: &str) -> Result<()> {
         query!(
-            "UPDATE pages SET content = content || ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE pages SET content = COALESCE(content, '') || ?, updated_at = DATETIME('now') WHERE id = ?",
             content,
             page_id
         )
@@ -144,6 +145,7 @@ impl DbConn {
                 "page_id",
                 "title",
                 "content",
+                "position",
                 "created_at" as "created_at: DateTime<Utc>",
                 "updated_at" as "updated_at: DateTime<Utc>"
             ],
@@ -165,6 +167,7 @@ impl DbConn {
                 id,
                 page_id,
                 title,
+                position,
                 content,
                 created_at as "created_at: DateTime<Utc>",
                 updated_at  as "updated_at: DateTime<Utc>"
@@ -178,11 +181,17 @@ impl DbConn {
         Ok(section)
     }
 
-    pub async fn create_page_section(&self, page_id: i64, title: &str) -> Result<i64> {
+    pub async fn create_page_section(
+        &self,
+        page_id: i64,
+        title: &str,
+        position: i32,
+    ) -> Result<i64> {
         let res = query!(
-            "INSERT INTO page_sections(page_id, title) VALUES (?, ?)",
+            "INSERT INTO page_sections(page_id, title, position) VALUES (?, ?, ?)",
             page_id,
             title,
+            position,
         )
         .execute(&self.pool)
         .await?;
@@ -192,7 +201,7 @@ impl DbConn {
 
     pub async fn append_page_section_content(&self, id: i64, content: &str) -> Result<()> {
         query!(
-            "UPDATE page_sections SET content = content || ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE page_sections SET content = COALESCE(content, '') || ?, updated_at = DATETIME('now') WHERE id = ?",
             content,
             id
         )
@@ -207,6 +216,86 @@ impl DbConn {
             .execute(&self.pool)
             .await?;
 
+        Ok(())
+    }
+
+    pub async fn update_page_section_position(
+        &self,
+        page_id: i64,
+        id: i64,
+        position: i32,
+    ) -> Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        // 1. Get the current position
+        let current_position = query!("SELECT position FROM page_sections WHERE id = ?", id)
+            .fetch_one(&mut *tx)
+            .await?
+            .position;
+
+        let new_position = position as i64;
+        if current_position == new_position {
+            // No change needed
+            tx.commit().await?;
+            return Ok(());
+        }
+
+        query!("UPDATE page_sections SET position = ? WHERE id = ?", -1, id)
+            .execute(&mut *tx)
+            .await?;
+
+        let (min, max) = if current_position < new_position {
+            (current_position, new_position)
+        } else {
+            (new_position, current_position)
+        };
+        // select id, position from page_sections where page_id = page_id and position in old and new range order by position;
+        let sections = query!(
+            "SELECT id, position FROM page_sections WHERE page_id = ? AND position BETWEEN ? AND ? ORDER BY position",
+            page_id,
+            min,
+            max,
+        ).fetch_all(&mut *tx).await?;
+
+        if current_position < new_position {
+            for section in sections {
+                let move_position = section.position - 1;
+
+                query!(
+                    "UPDATE page_sections SET position = ? WHERE id = ?",
+                    move_position,
+                    section.id
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+        } else {
+            for section in sections.iter().rev() {
+                let move_position = section.position + 1;
+
+                println!(
+                    "{:?}, current: {}, new: {}, updated: {}",
+                    section, current_position, new_position, move_position
+                );
+                query!(
+                    "UPDATE page_sections SET position = ? WHERE id = ?",
+                    move_position,
+                    section.id
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+        }
+
+        query!(
+            "UPDATE page_sections SET position = ? WHERE id = ?",
+            new_position,
+            id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
         Ok(())
     }
 }

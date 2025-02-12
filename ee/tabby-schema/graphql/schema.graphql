@@ -677,6 +677,7 @@ type Mutation {
   addPageSection(input: AddPageSectionInput!): ID!
   "delete a single page section."
   deletePageSection(sectionId: ID!): Boolean!
+  updatePageSectionPosition(id: ID!, position: Int!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
@@ -754,6 +755,7 @@ type PageInfo {
 type PageSection {
   id: ID!
   title: String!
+  position: Int!
 }
 
 type PageSectionContentCompleted {
@@ -923,6 +925,7 @@ type Section {
   pageId: ID!
   title: String!
   content: String!
+  position: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }

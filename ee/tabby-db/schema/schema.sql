@@ -276,8 +276,11 @@ CREATE TABLE page_sections(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   page_id INTEGER NOT NULL,
   title TEXT NOT NULL,
-  content TEXT NOT NULL,
+  content TEXT,
+  position INTEGER NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  --- Ensure that the position is unique for each page
+  CONSTRAINT `unique_page_id_position` UNIQUE(page_id, position),
   FOREIGN KEY(page_id) REFERENCES pages(id) ON DELETE CASCADE
 );

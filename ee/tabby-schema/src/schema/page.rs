@@ -45,5 +45,6 @@ pub trait PageService: Send + Sync {
     ) -> Result<Vec<Section>>;
     async fn add_section(&self, input: &AddPageSectionInput) -> Result<ID>;
     async fn get_section(&self, id: &ID) -> Result<Section>;
+    async fn update_section_position(&self, page_id: &ID, id: &ID, position: i32) -> Result<()>;
     async fn delete_section(&self, id: &ID) -> Result<()>;
 }

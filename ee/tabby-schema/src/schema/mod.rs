@@ -1438,6 +1438,25 @@ impl Mutation {
         page_service.delete_section(&section_id).await.map(|_| true)
     }
 
+    async fn update_page_section_position(ctx: &Context, id: ID, position: i32) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+
+        let section = page_service.get_section(&id).await?;
+        let page = page_service.get(&section.page_id).await?;
+        user.policy.check_update_page(&page.author_id)?;
+
+        page_service
+            .update_section_position(&page.id, &id, position)
+            .await
+            .map(|_| true)
+    }
+
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;
