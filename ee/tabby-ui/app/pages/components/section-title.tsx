@@ -21,7 +21,7 @@ export function SectionTitle({
   const isPending = pendingSectionIds.has(section.id) && !section.content
 
   return (
-    <div className="section-title">
+    <div className="section-title" id={section.id}>
       <div
         className={cn('flex items-center gap-2 font-semibold', className)}
         id={section.id}
@@ -40,21 +40,6 @@ export function SectionTitle({
           headline
         />
       </div>
-      {/* mock tags */}
-      {/* <div className="mb-4 mt-1 flex items-center gap-2">
-        <Badge variant="secondary">
-          <IconGithub className="mr-1" />
-          TabbyML/tabby
-        </Badge>
-        <Badge variant="secondary">
-          <IconEmojiBook className="mr-1" />
-          Tailwindcss
-        </Badge>
-        <Badge variant="secondary">
-          <IconEmojiBook className="mr-1" />
-          Pundit
-        </Badge>
-      </div> */}
     </div>
   )
 }

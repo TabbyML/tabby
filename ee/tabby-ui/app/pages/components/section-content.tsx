@@ -5,8 +5,6 @@ import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
 
-import { graphql } from '@/lib/gql/generates'
-import { useMutation } from '@/lib/tabby/gql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -45,12 +43,6 @@ import { UserAvatar } from '@/components/user-avatar'
 import { SectionItem } from '../types'
 import { PageContext } from './page-context'
 
-const updatePageSectionPositionMutation = graphql(/* GraphQL */ `
-  mutation updatePageSectionPosition($id: ID!, $position: Int!) {
-    updatePageSectionPosition(id: $id, position: $position)
-  }
-`)
-
 export function SectionContent({
   className,
   section,
@@ -64,29 +56,24 @@ export function SectionContent({
   enableMoveUp?: boolean
   enableMoveDown?: boolean
 }) {
-  const { mode, isPageOwner, pendingSectionIds, onDeleteSection } =
-    useContext(PageContext)
+  const {
+    mode,
+    isPageOwner,
+    pendingSectionIds,
+    onDeleteSection,
+    onUpdateSectionPosition
+  } = useContext(PageContext)
   const isPending = pendingSectionIds.has(section.id) && !section.content
   // FIXME
   const sources: any[] = []
   const sourceLen = 0
 
-  const updatePageSectionPosition = useMutation(
-    updatePageSectionPositionMutation
-  )
-
   const onMoveUp = () => {
-    updatePageSectionPosition({
-      id: section.id,
-      position: section.position - 1
-    })
+    onUpdateSectionPosition(section.id, section.position - 1)
   }
 
   const onMoveDown = () => {
-    updatePageSectionPosition({
-      id: section.id,
-      position: section.position + 1
-    })
+    onUpdateSectionPosition(section.id, section.position + 1)
   }
 
   return (

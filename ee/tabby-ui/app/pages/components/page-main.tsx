@@ -10,7 +10,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, uniqBy } from 'lodash-es'
+import { compact, isNil, uniqBy } from 'lodash-es'
 import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
@@ -90,6 +90,12 @@ const deletePageSectionMutation = graphql(/* GraphQL */ `
   }
 `)
 
+const updatePageSectionPositionMutation = graphql(/* GraphQL */ `
+  mutation updatePageSectionPosition($id: ID!, $position: Int!) {
+    updatePageSectionPosition(id: $id, position: $position)
+  }
+`)
+
 const PAGE_SIZE = 30
 
 export function Page() {
@@ -118,7 +124,7 @@ export function Page() {
   const [sections, setSections] = useState<Array<SectionItem>>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<ExtendedCombinedError | undefined>()
-
+  const [submitting, setSubmitting] = useState(false)
   const pageIdFromURL = useMemo(() => {
     const regex = /^\/pages\/(.*)/
     if (!activePathname) return undefined
@@ -244,6 +250,9 @@ export function Page() {
   })
 
   const deletePageSection = useMutation(deletePageSectionMutation)
+  const updatePageSectionPosition = useMutation(
+    updatePageSectionPositionMutation
+  )
 
   useEffect(() => {
     if (pageIdFromURL) {
@@ -381,10 +390,10 @@ export function Page() {
     }
   }, [isPathnameInitialized])
 
-  const onDeleteSection = (sectionId: string) => {
-    if (!pageIdFromURL) return
+  const onDeleteSection = async (sectionId: string) => {
+    if (!pageIdFromURL || isLoading) return
 
-    deletePageSection({ sectionId }).then(data => {
+    return deletePageSection({ sectionId }).then(data => {
       if (data?.data?.deletePageSection) {
         const nextSections = sections?.filter(x => x.id !== sectionId)
         setSections(nextSections)
@@ -392,6 +401,65 @@ export function Page() {
         toast.error('Failed to delete')
       }
     })
+  }
+
+  const reorderSections = (
+    sections: SectionItem[],
+    sectionId: string,
+    position: number
+  ) => {
+    const currentPosition = sections.find(x => x.id === sectionId)?.position
+    if (isNil(currentPosition)) return sections
+
+    let newPosition = position
+    if (currentPosition === newPosition) return sections
+
+    const updatedSections = sections.map(section => {
+      if (section.id === sectionId) {
+        return { ...section, position: newPosition }
+      }
+      if (
+        currentPosition < newPosition &&
+        section.position > currentPosition &&
+        section.position <= newPosition
+      ) {
+        return { ...section, position: section.position - 1 }
+      }
+      if (
+        currentPosition > newPosition &&
+        section.position >= newPosition &&
+        section.position < currentPosition
+      ) {
+        return { ...section, position: section.position + 1 }
+      }
+      return section
+    })
+
+    return updatedSections.sort((a, b) => a.position - b.position)
+  }
+
+  const onUpdateSectionPosition = async (
+    sectionId: string,
+    position: number
+  ) => {
+    if (!pageIdFromURL || isLoading || submitting) return
+
+    setSubmitting(true)
+    return updatePageSectionPosition({ id: sectionId, position })
+      .then(data => {
+        if (data?.data?.updatePageSectionPosition) {
+          setSections(prev => {
+            if (!prev) return prev
+            // reorder
+            return reorderSections(prev, sectionId, position)
+          })
+        } else {
+          toast.error('Failed to delete')
+        }
+      })
+      .finally(() => {
+        setSubmitting(false)
+      })
   }
 
   const formatedPageError: ExtendedCombinedError | undefined = useMemo(() => {
@@ -438,13 +506,14 @@ export function Page() {
       value={{
         isLoading,
         isPathnameInitialized,
-        onDeleteSection,
         isPageOwner,
         mode,
         setMode,
         pendingSectionIds,
         setPendingSectionIds,
-        currentSectionId
+        currentSectionId,
+        onDeleteSection,
+        onUpdateSectionPosition
       }}
     >
       <div style={style}>
@@ -463,7 +532,7 @@ export function Page() {
               <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
                 <div className="relative col-span-3">
                   {/* page title */}
-                  <div className="mb-2 mt-4">
+                  <div className="mb-2 mt-8">
                     <LoadingWrapper loading={!page} fallback={<Skeleton />}>
                       <h1 className="text-4xl font-semibold">{page?.title}</h1>
                     </LoadingWrapper>
