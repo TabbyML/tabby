@@ -92,26 +92,6 @@ impl LlamaCppSupervisor {
                     )
                 });
 
-                const MAX_LOG_LINES: usize = 100;
-                let stderr_future = if let Some(stderr_pipe) = process.stderr.take() {
-                    let reader = BufReader::new(stderr_pipe);
-                    Some(tokio::spawn(async move {
-                        let mut lines = reader.lines();
-                        let mut buffer = VecDeque::with_capacity(MAX_LOG_LINES);
-                        while let Ok(Some(line)) = lines.next_line().await {
-                            if !line.contains("GET /health") {
-                                if buffer.len() == MAX_LOG_LINES {
-                                    buffer.pop_front();
-                                }
-                                buffer.push_back(line);
-                            }
-                        }
-                        buffer.into_iter().collect::<Vec<_>>().join("\n")
-                    }))
-                } else {
-                    None
-                };
-
                 let status_code = process
                     .wait()
                     .await
@@ -119,36 +99,43 @@ impl LlamaCppSupervisor {
                     .and_then(|s| s.code())
                     .unwrap_or(-1);
 
-                let error_output = if let Some(stderr_future) = stderr_future {
-                    stderr_future
-                        .await
-                        .unwrap_or_else(|_| String::from("<Failed to capture stderr>"))
-                } else {
-                    String::new()
-                };
                 if status_code != 0 {
                     warn!(
-                        "Error: llama-server <{}> exited with status code {}.\nCommand: {}\nRecent error output:\n{}",
-                        name, status_code, command_args, error_output
+                        "Error: llama-server <{}> exited with status code {}.\nCommand: {}\n",
+                        name, status_code, command_args
                     );
 
-                    match status_code {
-                        1 => {
-                            eprintln!(
-                                "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.",
-                                name
-                            );
-                            std::process::exit(1);
-                        }
-                        _ => {
-                            warn!(
-                                "llama-server <{}> exited with status code {}. Retrying...",
-                                name, status_code
-                            );
+                    let mut stderr = process
+                        .stderr
+                        .take()
+                        .map(tokio::io::BufReader::new)
+                        .map(|reader| reader.lines())
+                        .expect("Failed to read stderr");
+
+                    let mut error_lines = VecDeque::with_capacity(100);
+                    while let Ok(Some(line)) = stderr.next_line().await {
+                        if !line.contains("GET /health") {
+                            if error_lines.len() >= 100 {
+                                error_lines.pop_front();
+                            }
+                            error_lines.push_back(line);
                         }
                     }
 
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    let error_message = error_lines.into_iter().fold(
+                        String::from("Recent llama-cpp errors:\n"),
+                        |mut acc, line| {
+                            acc.push_str(&format!("{}\n", line));
+                            acc
+                        },
+                    );
+
+                    eprintln!("{}", error_message);
+                    eprintln!(
+                        "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.",
+                        name
+                    );
+                    std::process::exit(1);
                 }
             }
         });
