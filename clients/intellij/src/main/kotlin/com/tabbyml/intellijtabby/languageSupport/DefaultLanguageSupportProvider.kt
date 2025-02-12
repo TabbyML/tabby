@@ -1,14 +1,16 @@
 package com.tabbyml.intellijtabby.languageSupport
 
 import com.intellij.codeInsight.TargetElementUtil
-import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementWalkingVisitor
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.tabbyml.intellijtabby.findEditor
 import com.tabbyml.intellijtabby.languageSupport.LanguageSupportProvider.*
 import org.eclipse.lsp4j.SemanticTokenTypes
+import java.util.concurrent.Callable
+import java.util.concurrent.CompletableFuture
 
 /**
  * The default implementation of [LanguageSupportProvider].
@@ -17,17 +19,25 @@ import org.eclipse.lsp4j.SemanticTokenTypes
  * This implementation may not work effectively for all languages.
  */
 open class DefaultLanguageSupportProvider : LanguageSupportProvider {
-  private val logger = logger<DefaultLanguageSupportProvider>()
   private val targetElementUtil = TargetElementUtil.getInstance()
+  private val executor = AppExecutorUtil.getAppExecutorService()
 
-  override fun provideSemanticTokensRange(project: Project, fileRange: FileRange): List<SemanticToken>? {
+  override fun provideSemanticTokensRange(
+    project: Project,
+    fileRange: FileRange
+  ): CompletableFuture<List<SemanticToken>?> {
     val psiFile = fileRange.file
-    val editor = project.findEditor(psiFile.virtualFile) ?: return null
+    val editor = project.findEditor(psiFile.virtualFile) ?: return CompletableFuture.completedFuture(null)
 
-    return runReadAction {
+    val future = CompletableFuture<List<SemanticToken>?>()
+
+    ReadAction.nonBlocking(Callable {
       val leafElements = mutableListOf<PsiElement>()
       psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
         override fun visitElement(element: PsiElement) {
+          if (future.isCancelled) {
+            return
+          }
           if (element.children.isEmpty() &&
             element.text.matches(Regex("\\w+")) &&
             fileRange.range.contains(element.textRange) &&
@@ -41,7 +51,14 @@ open class DefaultLanguageSupportProvider : LanguageSupportProvider {
         }
       })
 
-      leafElements.mapNotNull {
+      if (future.isCancelled) {
+        return@Callable
+      }
+
+      val result = leafElements.mapNotNull {
+        if (future.isCancelled) {
+          return@mapNotNull null
+        }
         val target = try {
           targetElementUtil.findTargetElement(
             editor.editor,
@@ -49,7 +66,6 @@ open class DefaultLanguageSupportProvider : LanguageSupportProvider {
             it.textRange.startOffset
           )
         } catch (e: Exception) {
-          logger.debug("Failed to find target element when providing semantic tokens", e)
           null
         }
         if (target == it || target == null || target.text == null) {
@@ -62,14 +78,20 @@ open class DefaultLanguageSupportProvider : LanguageSupportProvider {
           )
         }
       }
-    }
+
+      future.complete(result)
+    }).inSmartMode(project).submit(executor)
+
+    return future
   }
 
-  override fun provideDeclaration(project: Project, filePosition: FilePosition): List<FileRange>? {
+  override fun provideDeclaration(project: Project, filePosition: FilePosition): CompletableFuture<List<FileRange>?> {
     val psiFile = filePosition.file
-    val editor = project.findEditor(psiFile.virtualFile) ?: return null
+    val editor = project.findEditor(psiFile.virtualFile) ?: return CompletableFuture.completedFuture(null)
 
-    return runReadAction {
+    val future = CompletableFuture<List<FileRange>?>()
+
+    ReadAction.nonBlocking(Callable {
       val target = try {
         targetElementUtil.findTargetElement(
           editor.editor,
@@ -77,12 +99,17 @@ open class DefaultLanguageSupportProvider : LanguageSupportProvider {
           filePosition.offset
         )
       } catch (e: Exception) {
-        logger.debug("Failed to find target element at ${psiFile.virtualFile.url}:${filePosition.offset}", e)
         null
       }
-      val file = target?.containingFile ?: return@runReadAction listOf()
-      val range = target.textRange
-      listOf(FileRange(file, range))
-    }
+      val file = target?.containingFile
+      val range = target?.textRange
+      if (file == null || range == null) {
+        future.complete(listOf())
+      } else {
+        future.complete(listOf(FileRange(file, range)))
+      }
+    }).inSmartMode(project).submit(executor)
+
+    return future
   }
 }
