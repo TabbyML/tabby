@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -54,7 +55,7 @@ type HeaderProps = {
 
 export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
-  const { isPageOwner, mode, setMode } = useContext(PageContext)
+  const { isPageOwner, mode, setMode, isLoading } = useContext(PageContext)
   const isEditMode = mode === 'edit'
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -90,7 +91,7 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
   }
 
   return (
-    <header className="flex h-16 w-full items-center justify-between border-b px-4 lg:px-10">
+    <header className="relative flex h-16 w-full items-center justify-between border-b px-4 lg:px-10">
       <div className="flex items-center gap-x-6">
         <Button
           variant="ghost"
@@ -175,6 +176,15 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
         >
           <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
+      </div>
+
+      {/* status badge */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        {isLoading ? (
+          <Badge variant="secondary">Writing...</Badge>
+        ) : mode === 'edit' ? (
+          <Badge>Editing</Badge>
+        ) : null}
       </div>
     </header>
   )
