@@ -127,7 +127,7 @@ impl LlamaCppSupervisor {
                     String::new()
                 };
                 if status_code != 0 {
-                    eprintln!(
+                    warn!(
                         "Error: llama-server <{}> exited with status code {}.\nCommand: {}\nRecent error output:\n{}",
                         name, status_code, command_args, error_output
                     );
@@ -141,7 +141,7 @@ impl LlamaCppSupervisor {
                             std::process::exit(1);
                         }
                         _ => {
-                            panic!(
+                            warn!(
                                 "llama-server <{}> exited with status code {}. Retrying...",
                                 name, status_code
                             );
