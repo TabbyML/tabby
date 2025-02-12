@@ -5,6 +5,8 @@ import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
 
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -22,7 +24,6 @@ import {
   IconGitMerge,
   IconGitPullRequest,
   IconMore,
-  IconSpinner,
   IconTrash
 } from '@/components/ui/icons'
 import {
@@ -44,6 +45,12 @@ import { UserAvatar } from '@/components/user-avatar'
 import { SectionItem } from '../types'
 import { PageContext } from './page-context'
 
+const updatePageSectionPositionMutation = graphql(/* GraphQL */ `
+  mutation updatePageSectionPosition($id: ID!, $position: Int!) {
+    updatePageSectionPosition(id: $id, position: $position)
+  }
+`)
+
 export function SectionContent({
   className,
   section,
@@ -57,19 +64,30 @@ export function SectionContent({
   enableMoveUp?: boolean
   enableMoveDown?: boolean
 }) {
-  const { mode, isPageOwner, pendingSectionIds } = useContext(PageContext)
+  const { mode, isPageOwner, pendingSectionIds, onDeleteSection } =
+    useContext(PageContext)
   const isPending = pendingSectionIds.has(section.id) && !section.content
   // FIXME
   const sources: any[] = []
   const sourceLen = 0
 
-  const onDeleteSection = (id: string) => {
-    // todo delete and remove section
+  const updatePageSectionPosition = useMutation(
+    updatePageSectionPositionMutation
+  )
+
+  const onMoveUp = () => {
+    updatePageSectionPosition({
+      id: section.id,
+      position: section.position - 1
+    })
   }
 
-  const onMoveUp = (sectionId: string) => {}
-
-  const onMoveDown = (sectionId: string) => {}
+  const onMoveDown = () => {
+    updatePageSectionPosition({
+      id: section.id,
+      position: section.position + 1
+    })
+  }
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
@@ -129,9 +147,7 @@ export function SectionContent({
                         {enableMoveUp && (
                           <DropdownMenuItem
                             className="gap-2"
-                            onSelect={() => {
-                              onMoveUp(section.id)
-                            }}
+                            onSelect={onMoveUp}
                           >
                             <IconArrowDown className="rotate-180" />
                             Move Up
@@ -140,9 +156,7 @@ export function SectionContent({
                         {enableMoveDown && (
                           <DropdownMenuItem
                             className="gap-2"
-                            onSelect={() => {
-                              onMoveDown(section.id)
-                            }}
+                            onSelect={onMoveDown}
                           >
                             <IconArrowDown />
                             Move Down
@@ -165,11 +179,6 @@ export function SectionContent({
             </div>
           )}
         </div>
-        {isGenerating && (
-          <div>
-            <IconSpinner />
-          </div>
-        )}
       </LoadingWrapper>
     </div>
   )

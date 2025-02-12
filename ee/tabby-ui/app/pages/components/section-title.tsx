@@ -21,7 +21,7 @@ export function SectionTitle({
   const isPending = pendingSectionIds.has(section.id) && !section.content
 
   return (
-    <div>
+    <div className="section-title">
       <div
         className={cn('flex items-center gap-2 font-semibold', className)}
         id={section.id}

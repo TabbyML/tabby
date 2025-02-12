@@ -30,12 +30,7 @@ import { listPages, listPageSections } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
-import {
-  IconClock,
-  IconFileSearch,
-  IconPlus,
-  IconSpinner
-} from '@/components/ui/icons'
+import { IconClock, IconFileSearch, IconPlus } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
@@ -72,6 +67,7 @@ const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
         sections {
           id
           title
+          position
         }
       }
       ... on PageSectionContentDelta {
@@ -94,12 +90,6 @@ const deletePageSectionMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const addPageSectionMutation = graphql(/* GraphQL */ `
-  mutation AddPageSection($input: AddPageSectionInput!) {
-    addPageSection(input: $input)
-  }
-`)
-
 const PAGE_SIZE = 30
 
 export function Page() {
@@ -108,7 +98,6 @@ export function Page() {
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const [mode, setMode] = useState<'edit' | 'view'>('view')
-  const [isGeneratingPageContent, setIsGeneratingPageContent] = useState(false)
   // for pending stream sections
   const [pendingSectionIds, setPendingSectionIds] = useState<Set<string>>(
     new Set()
@@ -144,7 +133,6 @@ export function Page() {
   ) => {
     switch (data.__typename) {
       case 'PageCreated':
-        setPageId(data.id)
         const now = new Date().toISOString()
         const nextPage: PageItem = {
           id: data.id,
@@ -155,7 +143,8 @@ export function Page() {
           createdAt: now
         }
         setPage(nextPage)
-        setIsGeneratingPageContent(true)
+        setPageId(data.id)
+        // todo remove this
         updatePageURL(nextPage)
         break
       case 'PageContentDelta': {
@@ -170,13 +159,11 @@ export function Page() {
       }
 
       case 'PageContentCompleted': {
-        setIsGeneratingPageContent(false)
         break
       }
       case 'PageSectionsCreated': {
         const nextSections: SectionItem[] = data.sections.map(x => ({
           ...x,
-          __typename: 'Section',
           pageId: pageId as string,
           content: ''
         }))
@@ -249,9 +236,11 @@ export function Page() {
     unsubscribeFn.current?.()
     unsubscribeFn.current = undefined
     setIsLoading(false)
-    setIsGeneratingPageContent(false)
     setPendingSectionIds(new Set())
     setCurrentSectionId(undefined)
+    // if (page) {
+    //   updatePageURL(page)
+    // }
   })
 
   const deletePageSection = useMutation(deletePageSectionMutation)
@@ -304,6 +293,7 @@ export function Page() {
       const messages = pageSectionData.pageSections.edges
         .map(x => x.node)
         .slice()
+        .sort((a, b) => a.position - b.position)
       setSections(prev => uniqBy([...(prev || []), ...messages], 'id'))
     }
 
@@ -502,11 +492,6 @@ export function Page() {
                     message={page?.content ?? ''}
                     supportsOnApplyInEditorV2={false}
                   />
-                  {isGeneratingPageContent && (
-                    <div>
-                      <IconSpinner />
-                    </div>
-                  )}
 
                   {/* sections */}
                   <div className="flex flex-col">
