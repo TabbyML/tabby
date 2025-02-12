@@ -45,6 +45,54 @@ fn walk(
     Ok(())
 }
 
+fn walk_bfs(
+    repository: git2::Repository,
+    rev: Option<&str>,
+    tx: tokio::sync::mpsc::Sender<(bool, PathBuf)>,
+) -> anyhow::Result<()> {
+    use std::collections::VecDeque;
+
+    let commit = rev_to_commit(&repository, rev)?;
+    let tree = commit.tree()?;
+
+    // Initialize queue with root tree
+    let mut queue = VecDeque::new();
+    queue.push_back(("".to_string(), tree));
+
+    while let Some((current_path, current_tree)) = queue.pop_front() {
+        // Process all entries in current directory
+        for entry in current_tree.iter() {
+            let entry_name = bytes2path(entry.name_bytes());
+            let path = if current_path.is_empty() {
+                PathBuf::from(&entry_name)
+            } else {
+                PathBuf::from(&current_path).join(&entry_name)
+            };
+
+            let is_file = entry.kind() == Some(git2::ObjectType::Blob);
+
+            if let Err(_e) = tx.blocking_send((is_file, path.clone())) {
+                return Err(anyhow::anyhow!("Failed to send path to channel"));
+            }
+
+            // If it's a directory, add to queue for later processing
+            match entry.to_object(&repository) {
+                Ok(obj) => {
+                    if let Ok(subtree) = obj.peel_to_tree() {
+                        queue.push_back((path.display().to_string(), subtree));
+                        eprintln!("Added directory to queue: {}", path.display());
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error processing entry {:?}: {}", path, e);
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 async fn walk_stream(
     repository: git2::Repository,
     rev: Option<&str>,
@@ -53,6 +101,24 @@ async fn walk_stream(
 
     let rev = rev.map(|s| s.to_owned());
     let task = tokio::task::spawn_blocking(move || walk(repository, rev.as_deref(), tx));
+
+    stream! {
+        while let Some(value) = rx.recv().await {
+            yield value;
+        }
+
+        let _ = task.await;
+    }
+}
+
+async fn walk_stream_bfs(
+    repository: git2::Repository,
+    rev: Option<&str>,
+) -> impl Stream<Item = (bool, PathBuf)> {
+    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+
+    let rev = rev.map(|s| s.to_owned());
+    let task = tokio::task::spawn_blocking(move || walk_bfs(repository, rev.as_deref(), tx));
 
     stream! {
         while let Some(value) = rx.recv().await {
@@ -111,6 +177,25 @@ pub async fn list(
 ) -> anyhow::Result<Vec<GitFileSearch>> {
     let entries: Vec<GitFileSearch> = stream! {
         for await (is_file, basepath) in walk_stream(repository, rev).await {
+            let r#type = if is_file { "file" } else { "dir" };
+            let basepath = basepath.display().to_string();
+            yield GitFileSearch::new(r#type, basepath, Vec::new());
+        }
+    }
+    .take(limit.unwrap_or(usize::MAX))
+    .collect()
+    .await;
+
+    Ok(entries)
+}
+
+pub async fn list_files_bfs(
+    repository: git2::Repository,
+    rev: Option<&str>,
+    limit: Option<usize>,
+) -> anyhow::Result<Vec<GitFileSearch>> {
+    let entries: Vec<GitFileSearch> = stream! {
+        for await (is_file, basepath) in walk_stream_bfs(repository, rev).await {
             let r#type = if is_file { "file" } else { "dir" };
             let basepath = basepath.display().to_string();
             yield GitFileSearch::new(r#type, basepath, Vec::new());

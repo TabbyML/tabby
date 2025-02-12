@@ -235,7 +235,7 @@ impl RepositoryService for RepositoryServiceImpl {
         top_n: Option<usize>,
     ) -> Result<Vec<FileEntrySearchResult>> {
         let dir = self.resolve_repository(policy, kind, id).await?.dir;
-        let files = tabby_git::list_files(&dir, rev, top_n)
+        let files = tabby_git::list_files_bfs(&dir, rev, top_n)
             .await
             .map(|x| {
                 x.into_iter()
