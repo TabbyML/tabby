@@ -26,15 +26,7 @@ pub async fn list_files(
     rev: Option<&str>,
     limit: Option<usize>,
 ) -> anyhow::Result<Vec<GitFileSearch>> {
-    file_search::list(git2::Repository::open(root)?, rev, limit, None).await
-}
-
-pub async fn list_files_bfs(
-    root: &Path,
-    rev: Option<&str>,
-    limit: Option<usize>,
-) -> anyhow::Result<Vec<GitFileSearch>> {
-    file_search::list(git2::Repository::open(root)?, rev, limit, Some(true)).await
+    file_search::list(git2::Repository::open(root)?, rev, limit).await
 }
 
 pub async fn grep(

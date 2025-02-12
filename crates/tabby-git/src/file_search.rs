@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use async_stream::stream;
 use futures::{Stream, StreamExt};
-use git2::TreeWalkResult;
 
 use super::rev_to_commit;
 use crate::bytes2path;
@@ -30,26 +29,6 @@ fn walk(
     rev: Option<&str>,
     tx: tokio::sync::mpsc::Sender<(bool, PathBuf)>,
 ) -> anyhow::Result<()> {
-    let commit = rev_to_commit(&repository, rev)?;
-    let tree = commit.tree()?;
-
-    tree.walk(git2::TreeWalkMode::PreOrder, |path, entry| {
-        let is_file = entry.kind() == Some(git2::ObjectType::Blob);
-        let path = PathBuf::from(path).join(bytes2path(entry.name_bytes()));
-        match tx.blocking_send((is_file, path)) {
-            Ok(_) => TreeWalkResult::Ok,
-            Err(_) => TreeWalkResult::Abort,
-        }
-    })?;
-
-    Ok(())
-}
-
-fn walk_bfs(
-    repository: git2::Repository,
-    rev: Option<&str>,
-    tx: tokio::sync::mpsc::Sender<(bool, PathBuf)>,
-) -> anyhow::Result<()> {
     use std::collections::VecDeque;
 
     let commit = rev_to_commit(&repository, rev)?;
@@ -69,21 +48,22 @@ fn walk_bfs(
                 PathBuf::from(&current_path).join(entry_name)
             };
 
-            let is_file = entry.kind() == Some(git2::ObjectType::Blob);
+            match entry.kind() {
+                Some(git2::ObjectType::Blob) => {
+                    tx.blocking_send((true, path))
+                        .map_err(|_| anyhow::anyhow!("Failed to send path to channel"))?;
+                }
+                Some(git2::ObjectType::Tree) => {
+                    tx.blocking_send((false, path.clone()))
+                        .map_err(|_| anyhow::anyhow!("Failed to send path to channel"))?;
 
-            if let Err(_e) = tx.blocking_send((is_file, path.clone())) {
-                return Err(anyhow::anyhow!("Failed to send path to channel"));
-            }
-
-            match entry.to_object(&repository) {
-                Ok(obj) => {
-                    if let Ok(subtree) = obj.peel_to_tree() {
-                        queue.push_back((path.display().to_string(), subtree));
+                    if let Ok(obj) = entry.to_object(&repository) {
+                        if let Ok(subtree) = obj.peel_to_tree() {
+                            queue.push_back((path.display().to_string(), subtree));
+                        }
                     }
                 }
-                Err(_e) => {
-                    continue;
-                }
+                _ => continue,
             }
         }
     }
@@ -94,18 +74,11 @@ fn walk_bfs(
 async fn walk_stream(
     repository: git2::Repository,
     rev: Option<&str>,
-    is_bfs: Option<bool>,
 ) -> impl Stream<Item = (bool, PathBuf)> {
     let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
     let rev = rev.map(|s| s.to_owned());
-    let task = tokio::task::spawn_blocking(move || {
-        if is_bfs.unwrap_or(false) {
-            walk_bfs(repository, rev.as_deref(), tx)
-        } else {
-            walk(repository, rev.as_deref(), tx)
-        }
-    });
+    let task = tokio::task::spawn_blocking(move || walk(repository, rev.as_deref(), tx));
 
     stream! {
         while let Some(value) = rx.recv().await {
@@ -131,7 +104,7 @@ pub async fn search(
             nucleo::pattern::AtomKind::Fuzzy,
         );
 
-        for await (is_file, basepath) in walk_stream(repository, rev, None).await {
+        for await (is_file, basepath) in walk_stream(repository, rev).await {
             let r#type = if is_file { "file" } else { "dir" };
             let basepath = basepath.display().to_string();
             let haystack: nucleo::Utf32String = basepath.clone().into();
@@ -161,10 +134,9 @@ pub async fn list(
     repository: git2::Repository,
     rev: Option<&str>,
     limit: Option<usize>,
-    is_bfs: Option<bool>,
 ) -> anyhow::Result<Vec<GitFileSearch>> {
     let entries: Vec<GitFileSearch> = stream! {
-        for await (is_file, basepath) in walk_stream(repository, rev, is_bfs).await {
+        for await (is_file, basepath) in walk_stream(repository, rev).await {
             let r#type = if is_file { "file" } else { "dir" };
             let basepath = basepath.display().to_string();
             yield GitFileSearch::new(r#type, basepath, Vec::new());
