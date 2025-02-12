@@ -85,9 +85,6 @@ impl LlamaCppSupervisor {
 
                 let command_args = format!("{:?}", command);
 
-                const MAX_LOG_LINES: usize = 100;
-                let log_buffer = Arc::new(Mutex::new(VecDeque::with_capacity(MAX_LOG_LINES)));
-
                 let mut process = command.spawn().unwrap_or_else(|e| {
                     panic!(
                         "Failed to start llama-server <{}> with command {:?}: {}",
@@ -95,20 +92,25 @@ impl LlamaCppSupervisor {
                     )
                 });
 
-                if let Some(stderr_pipe) = process.stderr.take() {
-                    let log_buffer_clone = log_buffer.clone();
-                    tokio::spawn(async move {
-                        let reader = BufReader::new(stderr_pipe);
+                const MAX_LOG_LINES: usize = 100;
+                let stderr_future = if let Some(stderr_pipe) = process.stderr.take() {
+                    let reader = BufReader::new(stderr_pipe);
+                    Some(tokio::spawn(async move {
                         let mut lines = reader.lines();
+                        let mut buffer = VecDeque::with_capacity(MAX_LOG_LINES);
                         while let Ok(Some(line)) = lines.next_line().await {
-                            let mut buf = log_buffer_clone.lock().await;
-                            if buf.len() >= MAX_LOG_LINES {
-                                buf.pop_front();
+                            if !line.contains("GET /health") {
+                                if buffer.len() == MAX_LOG_LINES {
+                                    buffer.pop_front();
+                                }
+                                buffer.push_back(line);
                             }
-                            buf.push_back(line);
                         }
-                    });
-                }
+                        buffer.into_iter().collect::<Vec<_>>().join("\n")
+                    }))
+                } else {
+                    None
+                };
 
                 let status_code = process
                     .wait()
@@ -117,21 +119,25 @@ impl LlamaCppSupervisor {
                     .and_then(|s| s.code())
                     .unwrap_or(-1);
 
+                let error_output = if let Some(stderr_future) = stderr_future {
+                    stderr_future
+                        .await
+                        .unwrap_or_else(|_| String::from("<Failed to capture stderr>"))
+                } else {
+                    String::new()
+                };
                 if status_code != 0 {
-                    let buf = log_buffer.lock().await;
-                    let mut error_message = String::new();
-                    for line in buf.iter().filter(|line| !line.contains("GET /health")) {
-                        error_message.push_str(line);
-                        error_message.push('\n');
-                    }
                     eprintln!(
-                            "Error: llama-server <{}> exited with status code {}.\nCommand: {}\nRecent error output:\n{}",
-                            name, status_code, command_args, error_message
-                        );
+                        "Error: llama-server <{}> exited with status code {}.\nCommand: {}\nRecent error output:\n{}",
+                        name, status_code, command_args, error_output
+                    );
 
                     match status_code {
                         1 => {
-                            eprintln!("llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.", name);
+                            eprintln!(
+                                "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.",
+                                name
+                            );
                             std::process::exit(1);
                         }
                         _ => {
