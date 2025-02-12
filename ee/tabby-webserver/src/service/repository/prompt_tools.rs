@@ -21,7 +21,7 @@ pub async fn pipeline_related_questions_with_repo_dirs(
     let prompt = format!(
         r#"You are a helpful assistant that helps the user to ask related questions about a codebase structure.
 Based on the following file structure, please generate 3 relevant questions that would help understand the codebase better.
-Each question should be no longer than 20 words and be specific enough to stand alone.
+Each question should be no longer than 10 words and be specific enough to stand alone.
 
 File structure:
 {}
