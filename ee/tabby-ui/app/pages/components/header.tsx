@@ -17,8 +17,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -84,6 +83,13 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
     setIsDeleting(true)
     deletePage({
       id: pageIdFromURL!
+    }).then(data => {
+      if (data?.data?.deletePage) {
+        router.replace('/')
+      } else {
+        toast.error('Failed to delete')
+        setIsDeleting(false)
+      }
     })
   }
 
@@ -131,42 +137,13 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
                       Share
                     </DropdownMenuItem>
                     {streamingDone && pageIdFromURL && isPageOwner && (
-                      <AlertDialog
-                        open={deleteAlertVisible}
-                        onOpenChange={setDeleteAlertVisible}
+                      <DropdownMenuItem
+                        className="cursor-pointer gap-2 !text-destructive"
+                        onSelect={() => setDeleteAlertVisible(true)}
                       >
-                        <AlertDialogTrigger asChild>
-                          <DropdownMenuItem className="cursor-pointer gap-2 !text-destructive">
-                            <IconTrash />
-                            Delete Page
-                          </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete this page
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this page? This
-                              operation is not revertible.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              className={buttonVariants({
-                                variant: 'destructive'
-                              })}
-                              onClick={handleDeletePage}
-                            >
-                              {isDeleting && (
-                                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                              )}
-                              Yes, delete it
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                        <IconTrash />
+                        Delete Page
+                      </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -215,6 +192,35 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
           <Badge>Editing</Badge>
         ) : null}
       </div>
+
+      <AlertDialog
+        open={deleteAlertVisible}
+        onOpenChange={setDeleteAlertVisible}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this page</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this page? This operation is not
+              revertible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={buttonVariants({
+                variant: 'destructive'
+              })}
+              onClick={handleDeletePage}
+            >
+              {isDeleting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Yes, delete it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }
