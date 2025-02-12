@@ -37,11 +37,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { MessageMarkdown } from '@/components/message-markdown'
 import { SiteFavicon } from '@/components/site-favicon'
-import { ListSkeleton } from '@/components/skeleton'
 import { UserAvatar } from '@/components/user-avatar'
 
 import { SectionItem } from '../types'
 import { PageContext } from './page-context'
+import { SectionContentSkeleton } from './skeleton'
 
 export function SectionContent({
   className,
@@ -79,7 +79,7 @@ export function SectionContent({
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
-      <LoadingWrapper loading={isPending} fallback={<ListSkeleton />}>
+      <LoadingWrapper loading={isPending} fallback={<SectionContentSkeleton />}>
         <div>
           {isGenerating && !section.content && (
             <Skeleton className="mt-1 h-40 w-full" />
@@ -119,7 +119,7 @@ export function SectionContent({
                 </Sheet>
               )}
               <div className="flex items-center gap-x-3">
-                {isPageOwner && mode === 'edit' && (
+                {isPageOwner && mode === 'edit' && !isLoading && (
                   <>
                     <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>

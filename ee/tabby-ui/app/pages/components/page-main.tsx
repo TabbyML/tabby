@@ -10,6 +10,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
+import { AnimatePresence, motion } from 'framer-motion'
 import { compact, isNil, uniqBy } from 'lodash-es'
 import moment from 'moment'
 import { toast } from 'sonner'
@@ -32,7 +33,6 @@ import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconClock, IconFileSearch, IconPlus } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -42,11 +42,16 @@ import { MyAvatar } from '@/components/user-avatar'
 
 import { PageItem, SectionItem } from '../types'
 import { Header } from './header'
-import { MessagesSkeleton } from './messages-skeleton'
 import { Navbar } from './nav-bar'
 import { PageContext } from './page-context'
 import { SectionContent } from './section-content'
 import { SectionTitle } from './section-title'
+import {
+  PageSkeleton,
+  SectionContentSkeleton,
+  SectionsSkeleton,
+  SectionTitleSkeleton
+} from './skeleton'
 
 const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
   subscription createThreadToPageRun($threadId: ID!) {
@@ -495,10 +500,7 @@ export function Page() {
     return (
       <div>
         <Header />
-        <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-5xl lg:px-0">
-          <MessagesSkeleton />
-          <MessagesSkeleton />
-        </div>
+        <PageSkeleton />
       </div>
     )
   }
@@ -520,22 +522,17 @@ export function Page() {
     >
       <div style={style}>
         <Header pageIdFromURL={pageIdFromURL} streamingDone={!isLoading} />
-        <LoadingWrapper
-          loading={!isReady}
-          fallback={
-            <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
-              <MessagesSkeleton />
-              <MessagesSkeleton />
-            </div>
-          }
-        >
+        <LoadingWrapper loading={!isReady || !page} fallback={<PageSkeleton />}>
           <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
             <ScrollArea className="h-full w-full" ref={contentContainerRef}>
               <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
                 <div className="relative col-span-3">
                   {/* page title */}
                   <div className="mb-2 mt-8">
-                    <LoadingWrapper loading={!page} fallback={<Skeleton />}>
+                    <LoadingWrapper
+                      loading={!page}
+                      fallback={<SectionTitleSkeleton />}
+                    >
                       <h1 className="text-4xl font-semibold">{page?.title}</h1>
                     </LoadingWrapper>
                     <div className="my-4 flex gap-4 text-sm text-muted-foreground">
@@ -559,35 +556,57 @@ export function Page() {
                   </div>
 
                   {/* page content */}
-                  <MessageMarkdown
-                    message={page?.content ?? ''}
-                    supportsOnApplyInEditorV2={false}
-                  />
+                  <LoadingWrapper
+                    // FIXME
+                    loading={!page || (isLoading && !page?.content)}
+                    fallback={<SectionContentSkeleton />}
+                  >
+                    <MessageMarkdown
+                      message={page?.content ?? ''}
+                      supportsOnApplyInEditorV2={false}
+                    />
+                  </LoadingWrapper>
 
                   {/* sections */}
-                  <div className="flex flex-col">
-                    {sections?.map((section, index) => {
-                      const isSectionGenerating =
-                        isLoading && section.id === currentSectionId
-                      const enableMoveUp = index !== 0
-                      const enableMoveDown = index < sections.length - 1
+                  <LoadingWrapper
+                    loading={!page || (isLoading && !sections?.length)}
+                    fallback={
+                      <div className="mb-8 w-full">
+                        <SectionsSkeleton />
+                      </div>
+                    }
+                  >
+                    <AnimatePresence
+                      key={`${isLoading}-${mode}`}
+                      initial={false}
+                    >
+                      {sections?.map((section, index) => {
+                        const isSectionGenerating =
+                          isLoading && section.id === currentSectionId
+                        const enableMoveUp = index !== 0
+                        const enableMoveDown = index < sections.length - 1
 
-                      return (
-                        <Fragment key={section.id}>
-                          <SectionTitle
-                            className="section-title pt-8"
-                            section={section}
-                          />
-                          <SectionContent
-                            section={section}
-                            isGenerating={isSectionGenerating}
-                            enableMoveUp={enableMoveUp}
-                            enableMoveDown={enableMoveDown}
-                          />
-                        </Fragment>
-                      )
-                    })}
-                  </div>
+                        return (
+                          <motion.div
+                            layout={!isLoading && mode === 'edit'}
+                            key={`section_${section.id}`}
+                            exit={{ opacity: 0 }}
+                          >
+                            <SectionTitle
+                              className="section-title pt-8"
+                              section={section}
+                            />
+                            <SectionContent
+                              section={section}
+                              isGenerating={isSectionGenerating}
+                              enableMoveUp={enableMoveUp}
+                              enableMoveDown={enableMoveDown}
+                            />
+                          </motion.div>
+                        )
+                      })}
+                    </AnimatePresence>
+                  </LoadingWrapper>
                 </div>
                 <div className="relative col-span-1">
                   <Navbar sections={sections} />
