@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
@@ -31,6 +32,7 @@ import {
   IconChevronLeft,
   IconEdit,
   IconMore,
+  IconShare,
   IconSpinner,
   IconTrash
 } from '@/components/ui/icons'
@@ -59,6 +61,8 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
   const isEditMode = mode === 'edit'
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  const { copyToClipboard } = useCopyToClipboard({})
 
   const deletePage = useMutation(deletePageMutation, {
     onCompleted(data) {
@@ -90,6 +94,11 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
     router.push('/')
   }
 
+  const onShare = () => {
+    if (typeof window === 'undefined') return
+    copyToClipboard(window.location.href)
+  }
+
   return (
     <header className="relative flex h-16 w-full items-center justify-between border-b px-4 lg:px-10">
       <div className="flex items-center gap-x-6">
@@ -114,6 +123,13 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      className="cursor-pointer gap-2"
+                      onSelect={onShare}
+                    >
+                      <IconShare />
+                      Share
+                    </DropdownMenuItem>
                     {streamingDone && pageIdFromURL && isPageOwner && (
                       <AlertDialog
                         open={deleteAlertVisible}

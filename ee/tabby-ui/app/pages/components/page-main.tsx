@@ -9,7 +9,7 @@ import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
-import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
+import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import {
   CreateThreadToPageRunSubscription,
@@ -345,7 +345,9 @@ export function Page() {
   const updatePageURL = (page: PageItem) => {
     if (!page) return
     const { title, id } = page
-    const slug = slugify(title ?? '')
+    const firstLine = (title || '').split('\n')[0] ?? ''
+    const _title = firstLine.slice(0, SLUG_TITLE_MAX_LENGTH)
+    const slug = slugify(_title)
     const slugWithPageId = compact([slug, id]).join('-')
 
     const path = updateUrlComponents({
