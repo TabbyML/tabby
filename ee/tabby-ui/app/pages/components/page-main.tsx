@@ -571,7 +571,7 @@ export function Page() {
                   <LoadingWrapper
                     loading={!page || (isLoading && !sections?.length)}
                     fallback={
-                      <div className="mb-8 w-full">
+                      <div className="my-8 w-full">
                         <SectionsSkeleton />
                       </div>
                     }

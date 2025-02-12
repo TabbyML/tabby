@@ -13,7 +13,7 @@ interface Props {
 }
 
 export const Navbar = ({ sections }: Props) => {
-  const { isLoading } = useContext(PageContext)
+  const { isLoading, pendingSectionIds } = useContext(PageContext)
   const [activeNavItem, setActiveNavItem] = useState<string | undefined>()
   const observer = useRef<IntersectionObserver | null>(null)
   const updateActiveNavItem = useDebounceCallback((v: string) => {
@@ -47,7 +47,7 @@ export const Navbar = ({ sections }: Props) => {
     return () => {
       observer.current?.disconnect()
     }
-  }, [isLoading])
+  }, [isLoading, pendingSectionIds])
 
   return (
     <nav className="sticky right-0 top-0 p-4 pt-8">
