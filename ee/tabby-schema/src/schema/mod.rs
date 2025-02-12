@@ -281,6 +281,7 @@ impl Query {
     /// List users, accessible for all login users.
     async fn users(
         ctx: &Context,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -295,7 +296,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .auth()
-                    .list_users(after, before, first, last)
+                    .list_users(ids, after, before, first, last)
                     .await
                     .map(|users| users.into_iter().map(UserValue::UserSecured).collect())
             },
