@@ -11,18 +11,31 @@ use tracing::Instrument;
 use crate::{create_reqwest_client, embedding_info_span};
 
 pub struct LlamaCppEngine {
+    // Determines if the legacy endpoint should be used.
+    // Llama.cpp has updated the endpoint from `/embedding` to `/embeddings`,
+    // where the new endpoint wraps both the response and embedding in an array.
+    // However, the legacy endpoint remains supported, for instance, for llamafile.
+    legacy: bool,
+
     client: reqwest::Client,
     api_endpoint: String,
     api_key: Option<String>,
 }
 
 impl LlamaCppEngine {
-    pub fn create(api_endpoint: &str, api_key: Option<String>) -> Box<dyn Embedding> {
+    pub fn create(api_endpoint: &str, api_key: Option<String>, legacy: bool) -> Box<dyn Embedding> {
         let client = create_reqwest_client(api_endpoint);
+        let api_endpoint = if legacy {
+            format!("{}/embedding", api_endpoint)
+        } else {
+            format!("{}/embeddings", api_endpoint)
+        };
 
         Box::new(Self {
+            legacy,
+
             client,
-            api_endpoint: format!("{}/embedding", api_endpoint),
+            api_endpoint,
             api_key,
         })
     }
@@ -36,6 +49,11 @@ struct EmbeddingRequest {
 #[derive(Deserialize)]
 struct EmbeddingResponse {
     embedding: Vec<Vec<f32>>,
+}
+
+#[derive(Deserialize)]
+struct EmbeddingLegacyResponse {
+    embedding: Vec<f32>,
 }
 
 #[async_trait]
@@ -84,14 +102,19 @@ impl Embedding for LlamaCppEngine {
             ));
         }
 
-        let response = response.json::<Vec<EmbeddingResponse>>().await?;
-        Ok(response
-            .first()
-            .ok_or_else(|| anyhow!("Error from server: no embedding found"))?
-            .embedding
-            .first()
-            .ok_or_else(|| anyhow!("Error from server: no embedding found"))?
-            .clone())
+        if self.legacy {
+            let response = response.json::<EmbeddingLegacyResponse>().await?;
+            Ok(response.embedding)
+        } else {
+            let response = response.json::<Vec<EmbeddingResponse>>().await?;
+            Ok(response
+                .first()
+                .ok_or_else(|| anyhow!("Error from server: no embedding found"))?
+                .embedding
+                .first()
+                .ok_or_else(|| anyhow!("Error from server: no embedding found"))?
+                .clone())
+        }
     }
 }
 
@@ -105,7 +128,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_embedding() {
-        let engine = LlamaCppEngine::create("http://localhost:8000", None);
+        let engine = LlamaCppEngine::create("http://localhost:8000", None, false);
         let embedding = engine.embed("hello").await.unwrap();
         assert_eq!(embedding.len(), 768);
     }
