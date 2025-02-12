@@ -1,24 +1,20 @@
 'use client'
 
-import {
-  CSSProperties,
-  Fragment,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
 import { AnimatePresence, motion } from 'framer-motion'
-import { compact, isNil, uniqBy } from 'lodash-es'
+import { compact, uniqBy } from 'lodash-es'
 import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { CreateThreadToPageRunSubscription } from '@/lib/gql/generates/graphql'
+import {
+  CreateThreadToPageRunSubscription,
+  MoveSectionDirection
+} from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -31,7 +27,7 @@ import { listPages, listPageSections } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
-import { IconClock, IconFileSearch, IconPlus } from '@/components/ui/icons'
+import { IconClock, IconFileSearch } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
@@ -95,9 +91,9 @@ const deletePageSectionMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const updatePageSectionPositionMutation = graphql(/* GraphQL */ `
-  mutation updatePageSectionPosition($id: ID!, $position: Int!) {
-    updatePageSectionPosition(id: $id, position: $position)
+const movePageSectionPositionMutation = graphql(/* GraphQL */ `
+  mutation movePageSection($id: ID!, $direction: MoveSectionDirection!) {
+    movePageSection(id: $id, direction: $direction)
   }
 `)
 
@@ -257,9 +253,7 @@ export function Page() {
   })
 
   const deletePageSection = useMutation(deletePageSectionMutation)
-  const updatePageSectionPosition = useMutation(
-    updatePageSectionPositionMutation
-  )
+  const movePageSectionPosition = useMutation(movePageSectionPositionMutation)
 
   useEffect(() => {
     if (pageIdFromURL) {
@@ -413,55 +407,60 @@ export function Page() {
   const reorderSections = (
     sections: SectionItem[],
     sectionId: string,
-    position: number
+    direction: MoveSectionDirection
   ) => {
-    const currentPosition = sections.find(x => x.id === sectionId)?.position
-    if (isNil(currentPosition)) return sections
+    const currentIndex = sections.findIndex(x => x.id === sectionId)
+    if (currentIndex === -1) return sections
 
-    let newPosition = position
-    if (currentPosition === newPosition) return sections
+    let swapIndex =
+      direction === MoveSectionDirection.Up
+        ? currentIndex - 1
+        : currentIndex + 1
 
-    const updatedSections = sections.map(section => {
-      if (section.id === sectionId) {
-        return { ...section, position: newPosition }
+    const updatedSections = sections.map((section, index) => {
+      if (index === currentIndex) {
+        return {
+          ...section,
+          position:
+            direction === MoveSectionDirection.Up
+              ? section.position - 1
+              : section.position + 1
+        }
       }
-      if (
-        currentPosition < newPosition &&
-        section.position > currentPosition &&
-        section.position <= newPosition
-      ) {
-        return { ...section, position: section.position - 1 }
+
+      if (index === swapIndex) {
+        return {
+          ...section,
+          position:
+            direction === MoveSectionDirection.Up
+              ? section.position + 1
+              : section.position - 1
+        }
       }
-      if (
-        currentPosition > newPosition &&
-        section.position >= newPosition &&
-        section.position < currentPosition
-      ) {
-        return { ...section, position: section.position + 1 }
-      }
+
       return section
     })
 
-    return updatedSections.sort((a, b) => a.position - b.position)
+    return updatedSections.slice().sort((a, b) => a.position - b.position)
   }
 
-  const onUpdateSectionPosition = async (
+  const onMoveSectionPosition = async (
     sectionId: string,
-    position: number
+    direction: MoveSectionDirection
   ) => {
     if (!pageIdFromURL || isLoading || submitting) return
 
     setSubmitting(true)
-    return updatePageSectionPosition({ id: sectionId, position })
+    return movePageSectionPosition({ id: sectionId, direction })
       .then(data => {
-        if (data?.data?.updatePageSectionPosition) {
+        if (data?.data?.movePageSection) {
           setSections(prev => {
             if (!prev) return prev
             // reorder
-            return reorderSections(prev, sectionId, position)
+            return reorderSections(prev, sectionId, direction)
           })
         } else {
-          toast.error('Failed to delete')
+          toast.error('Failed to move')
         }
       })
       .finally(() => {
@@ -517,7 +516,7 @@ export function Page() {
         setPendingSectionIds,
         currentSectionId,
         onDeleteSection,
-        onUpdateSectionPosition
+        onMoveSectionPosition
       }}
     >
       <div style={style}>
@@ -641,8 +640,7 @@ interface ErrorViewProps {
 }
 function ErrorView({ error, pageIdFromURL }: ErrorViewProps) {
   let title = 'Something went wrong'
-  let description =
-    'Failed to fetch, please refresh the page or create a new page'
+  let description = 'Failed to fetch, please refresh the page'
 
   if (error.message === ERROR_CODE_NOT_FOUND) {
     return <NotFoundPage />
@@ -663,8 +661,7 @@ function ErrorView({ error, pageIdFromURL }: ErrorViewProps) {
             onClick={clearHomeScrollPosition}
             className={cn(buttonVariants(), 'mt-4 gap-2')}
           >
-            <IconPlus />
-            <span>New Page</span>
+            <span>Home</span>
           </Link>
         </div>
       </div>

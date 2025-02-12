@@ -1,5 +1,7 @@
 import { createContext, Dispatch, SetStateAction } from 'react'
 
+import { MoveSectionDirection } from '@/lib/gql/generates/graphql'
+
 type PageContextValue = {
   mode: 'edit' | 'view'
   setMode: Dispatch<SetStateAction<'view' | 'edit'>>
@@ -10,9 +12,9 @@ type PageContextValue = {
   pendingSectionIds: Set<string>
   setPendingSectionIds: (value: SetStateAction<Set<string>>) => void
   currentSectionId: string | undefined
-  onUpdateSectionPosition: (
+  onMoveSectionPosition: (
     sectionId: string,
-    position: number
+    direction: MoveSectionDirection
   ) => Promise<void>
 }
 

@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
 
+import { MoveSectionDirection } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -55,7 +56,7 @@ export function SectionContent({
     isLoading,
     pendingSectionIds,
     onDeleteSection,
-    onUpdateSectionPosition
+    onMoveSectionPosition
   } = useContext(PageContext)
   const isPending = pendingSectionIds.has(section.id) && !section.content
   // FIXME
@@ -63,11 +64,11 @@ export function SectionContent({
   const sourceLen = 0
 
   const onMoveUp = () => {
-    onUpdateSectionPosition(section.id, section.position - 1)
+    onMoveSectionPosition(section.id, MoveSectionDirection.Up)
   }
 
   const onMoveDown = () => {
-    onUpdateSectionPosition(section.id, section.position + 1)
+    onMoveSectionPosition(section.id, MoveSectionDirection.Down)
   }
 
   return (
