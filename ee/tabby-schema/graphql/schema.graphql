@@ -92,6 +92,11 @@ enum ModelHealthBackend {
   EMBEDDING
 }
 
+enum MoveSectionDirection {
+  UP
+  DOWN
+}
+
 enum OAuthProvider {
   GITHUB
   GOOGLE
@@ -677,7 +682,7 @@ type Mutation {
   addPageSection(input: AddPageSectionInput!): ID!
   "delete a single page section."
   deletePageSection(sectionId: ID!): Boolean!
-  updatePageSectionPosition(id: ID!, position: Int!): Boolean!
+  movePageSection(id: ID!, direction: MoveSectionDirection!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!

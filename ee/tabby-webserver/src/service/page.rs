@@ -13,8 +13,8 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     context::ContextService,
     page::{
-        AddPageSectionInput, Page, PageCompleted, PageContentCompleted, PageContentDelta,
-        PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
+        AddPageSectionInput, MoveSectionDirection, Page, PageCompleted, PageContentCompleted,
+        PageContentDelta, PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
         PageSectionContentDelta, PageSectionsCreated, PageService, Section, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
@@ -250,9 +250,41 @@ impl PageService for PageServiceImpl {
         Ok(())
     }
 
-    async fn update_section_position(&self, page_id: &ID, id: &ID, position: i32) -> Result<()> {
+    async fn move_section(
+        &self,
+        page_id: &ID,
+        id: &ID,
+        direction: MoveSectionDirection,
+    ) -> Result<()> {
+        match direction {
+            MoveSectionDirection::Up => {
+                let section = self.db.get_page_section(id.as_rowid()?).await?;
+                if let Some(section) = section {
+                    if section.position == 0 {
+                        return Ok(());
+                    }
+                }
+            }
+            MoveSectionDirection::Down => {
+                let sections = self
+                    .db
+                    .list_page_sections(page_id.as_rowid()?, None, None, false)
+                    .await?;
+                let section = self.db.get_page_section(id.as_rowid()?).await?;
+                if let Some(section) = section {
+                    if section.position == sections.len() as i64 - 1 {
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        let change = match direction {
+            MoveSectionDirection::Up => -1,
+            MoveSectionDirection::Down => 1,
+        };
         self.db
-            .update_page_section_position(page_id.as_rowid()?, id.as_rowid()?, position)
+            .update_page_section_position(page_id.as_rowid()?, id.as_rowid()?, change)
             .await?;
         Ok(())
     }

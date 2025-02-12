@@ -223,7 +223,7 @@ impl DbConn {
         &self,
         page_id: i64,
         id: i64,
-        position: i32,
+        change: i32,
     ) -> Result<()> {
         let mut tx = self.pool.begin().await?;
 
@@ -233,7 +233,7 @@ impl DbConn {
             .await?
             .position;
 
-        let new_position = position as i64;
+        let new_position = current_position + change as i64;
         if current_position == new_position {
             // No change needed
             tx.commit().await?;
