@@ -172,11 +172,6 @@ export function localUriToListFileItem(uri: Uri, gitProvider: GitProvider): List
   };
 }
 
-export function escapeGlobPattern(query: string): string {
-  // escape special glob characters: * ? [ ] { } ( ) ! @
-  return query.replace(/[*?[\]{}()!@]/g, "\\$&");
-}
-
 // Notebook cell uri conversion
 
 function isJupyterNotebookFilepath(uri: Uri): boolean {

@@ -68,6 +68,10 @@ export const defaultConfigData: ConfigData = {
     edit: {
       documentMaxChars: 3000,
       commandMaxChars: 200,
+      fileContext: {
+        maxFiles: 20,
+        maxCharsPerFile: 3000,
+      },
       responseDocumentTag: ["<GENERATEDCODE>", "</GENERATEDCODE>"],
       responseCommentTag: undefined,
       promptTemplate: {

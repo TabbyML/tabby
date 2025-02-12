@@ -442,7 +442,33 @@ export type ChatEditParams = {
    *    use {@link ChatEditResolveRequest} to resolve it later.
    */
   format: "previewChanges";
+
+  /**
+   * list of file contexts.
+   */
+  context?: ChatEditFileContext[];
 };
+
+/**
+ * Represents a file context use in {@link ChatEditParams}.
+ */
+export interface ChatEditFileContext {
+  /**
+   * The symbol in the user command that refer to this file context.
+   */
+  referer: string;
+
+  /**
+   * The uri of the file.
+   */
+  uri: URI;
+
+  /**
+   * The context range in the file.
+   * If the range is not provided, the whole file is considered.
+   */
+  range?: Range;
+}
 
 export type ChatEditToken = string;
 
