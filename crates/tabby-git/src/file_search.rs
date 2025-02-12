@@ -66,7 +66,7 @@ fn walk_bfs(
             let path = if current_path.is_empty() {
                 PathBuf::from(&entry_name)
             } else {
-                PathBuf::from(&current_path).join(&entry_name)
+                PathBuf::from(&current_path).join(entry_name)
             };
 
             let is_file = entry.kind() == Some(git2::ObjectType::Blob);
