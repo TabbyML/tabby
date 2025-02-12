@@ -10,7 +10,7 @@ use crate::service::utils::prompt::{request_llm, transform_line_items};
 pub async fn pipeline_related_questions_with_repo_dirs(
     chat: Arc<dyn ChatCompletionStream>,
     files: Vec<FileEntrySearchResult>,
-    clipped: bool,
+    truncated: bool,
 ) -> Result<Vec<String>> {
     // Convert files into a formatted string for the prompt
     let files_content = files
@@ -29,8 +29,8 @@ File structure:
         files_content
     );
 
-    if clipped {
-        prompt.push_str("\nNote: The file list has been clipped. There may be more files in subdirectories that were not included due to the limit.\n");
+    if truncated {
+        prompt.push_str("\nNote: The file list has been truncated. There may be more files in subdirectories that were not included due to the limit.\n");
     }
 
     prompt.push_str(
