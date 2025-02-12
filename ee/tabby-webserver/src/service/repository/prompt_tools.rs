@@ -10,7 +10,7 @@ use crate::service::utils::prompt::{request_llm, transform_line_items};
 pub async fn pipeline_related_questions_with_repo_dirs(
     chat: Arc<dyn ChatCompletionStream>,
     files: Vec<FileEntrySearchResult>,
-    is_clipped: bool,
+    clipped: bool,
 ) -> Result<Vec<String>> {
     // Convert files into a formatted string for the prompt
     let files_content = files
@@ -29,7 +29,7 @@ File structure:
         files_content
     );
 
-    if is_clipped {
+    if clipped {
         prompt.push_str("\nNote: The file list has been clipped. There may be more files in subdirectories that were not included due to the limit.\n");
     }
 

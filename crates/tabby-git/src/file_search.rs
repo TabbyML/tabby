@@ -146,8 +146,8 @@ pub async fn list(
     .collect()
     .await;
 
-    let is_clipped = limit.map(|l| entries.len() >= l).unwrap_or(false);
-    Ok((entries, is_clipped))
+    let truncated = limit.map(|l| entries.len() >= l).unwrap_or(false);
+    Ok((entries, truncated))
 }
 
 #[cfg(test)]
