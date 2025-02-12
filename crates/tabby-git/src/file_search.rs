@@ -75,16 +75,14 @@ fn walk_bfs(
                 return Err(anyhow::anyhow!("Failed to send path to channel"));
             }
 
-            // If it's a directory, add to queue for later processing
             match entry.to_object(&repository) {
                 Ok(obj) => {
                     if let Ok(subtree) = obj.peel_to_tree() {
                         queue.push_back((path.display().to_string(), subtree));
-                        eprintln!("Added directory to queue: {}", path.display());
                     }
                 }
-                Err(e) => {
-                    eprintln!("Error processing entry {:?}: {}", path, e);
+                Err(_e) => {
+                    continue;
                 }
             }
         }
@@ -96,29 +94,18 @@ fn walk_bfs(
 async fn walk_stream(
     repository: git2::Repository,
     rev: Option<&str>,
+    is_bfs: Option<bool>,
 ) -> impl Stream<Item = (bool, PathBuf)> {
     let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
     let rev = rev.map(|s| s.to_owned());
-    let task = tokio::task::spawn_blocking(move || walk(repository, rev.as_deref(), tx));
-
-    stream! {
-        while let Some(value) = rx.recv().await {
-            yield value;
+    let task = tokio::task::spawn_blocking(move || {
+        if is_bfs.unwrap_or(false) {
+            walk_bfs(repository, rev.as_deref(), tx)
+        } else {
+            walk(repository, rev.as_deref(), tx)
         }
-
-        let _ = task.await;
-    }
-}
-
-async fn walk_stream_bfs(
-    repository: git2::Repository,
-    rev: Option<&str>,
-) -> impl Stream<Item = (bool, PathBuf)> {
-    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-
-    let rev = rev.map(|s| s.to_owned());
-    let task = tokio::task::spawn_blocking(move || walk_bfs(repository, rev.as_deref(), tx));
+    });
 
     stream! {
         while let Some(value) = rx.recv().await {
@@ -144,7 +131,7 @@ pub async fn search(
             nucleo::pattern::AtomKind::Fuzzy,
         );
 
-        for await (is_file, basepath) in walk_stream(repository, rev).await {
+        for await (is_file, basepath) in walk_stream(repository, rev, None).await {
             let r#type = if is_file { "file" } else { "dir" };
             let basepath = basepath.display().to_string();
             let haystack: nucleo::Utf32String = basepath.clone().into();
@@ -174,28 +161,10 @@ pub async fn list(
     repository: git2::Repository,
     rev: Option<&str>,
     limit: Option<usize>,
+    is_bfs: Option<bool>,
 ) -> anyhow::Result<Vec<GitFileSearch>> {
     let entries: Vec<GitFileSearch> = stream! {
-        for await (is_file, basepath) in walk_stream(repository, rev).await {
-            let r#type = if is_file { "file" } else { "dir" };
-            let basepath = basepath.display().to_string();
-            yield GitFileSearch::new(r#type, basepath, Vec::new());
-        }
-    }
-    .take(limit.unwrap_or(usize::MAX))
-    .collect()
-    .await;
-
-    Ok(entries)
-}
-
-pub async fn list_files_bfs(
-    repository: git2::Repository,
-    rev: Option<&str>,
-    limit: Option<usize>,
-) -> anyhow::Result<Vec<GitFileSearch>> {
-    let entries: Vec<GitFileSearch> = stream! {
-        for await (is_file, basepath) in walk_stream_bfs(repository, rev).await {
+        for await (is_file, basepath) in walk_stream(repository, rev, is_bfs).await {
             let r#type = if is_file { "file" } else { "dir" };
             let basepath = basepath.display().to_string();
             yield GitFileSearch::new(r#type, basepath, Vec::new());
