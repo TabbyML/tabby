@@ -134,7 +134,7 @@ pub async fn list(
     repository: git2::Repository,
     rev: Option<&str>,
     limit: Option<usize>,
-) -> anyhow::Result<Vec<GitFileSearch>> {
+) -> anyhow::Result<(Vec<GitFileSearch>, bool)> {
     let entries: Vec<GitFileSearch> = stream! {
         for await (is_file, basepath) in walk_stream(repository, rev).await {
             let r#type = if is_file { "file" } else { "dir" };
@@ -146,7 +146,8 @@ pub async fn list(
     .collect()
     .await;
 
-    Ok(entries)
+    let is_clipped = limit.map(|l| entries.len() >= l).unwrap_or(false);
+    Ok((entries, is_clipped))
 }
 
 #[cfg(test)]

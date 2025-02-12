@@ -25,7 +25,7 @@ pub async fn list_files(
     root: &Path,
     rev: Option<&str>,
     limit: Option<usize>,
-) -> anyhow::Result<Vec<GitFileSearch>> {
+) -> anyhow::Result<(Vec<GitFileSearch>, bool)> {
     file_search::list(git2::Repository::open(root)?, rev, limit).await
 }
 
