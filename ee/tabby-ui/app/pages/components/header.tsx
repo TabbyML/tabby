@@ -103,68 +103,79 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
         </Button>
       </div>
       <div className="flex items-center gap-2">
-        {!isEditMode ? (
+        {isPageOwner ? (
           <>
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost">
-                  <IconMore />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {streamingDone && pageIdFromURL && isPageOwner && (
-                  <AlertDialog
-                    open={deleteAlertVisible}
-                    onOpenChange={setDeleteAlertVisible}
-                  >
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem className="cursor-pointer gap-2 !text-destructive">
-                        <IconTrash />
-                        Delete Page
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete this page</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this page? This
-                          operation is not revertible.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className={buttonVariants({ variant: 'destructive' })}
-                          onClick={handleDeletePage}
-                        >
-                          {isDeleting && (
-                            <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                          )}
-                          Yes, delete it
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!isEditMode ? (
+              <>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost">
+                      <IconMore />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {streamingDone && pageIdFromURL && isPageOwner && (
+                      <AlertDialog
+                        open={deleteAlertVisible}
+                        onOpenChange={setDeleteAlertVisible}
+                      >
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem className="cursor-pointer gap-2 !text-destructive">
+                            <IconTrash />
+                            Delete Page
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete this page
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this page? This
+                              operation is not revertible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className={buttonVariants({
+                                variant: 'destructive'
+                              })}
+                              onClick={handleDeletePage}
+                            >
+                              {isDeleting && (
+                                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Yes, delete it
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-            <Button
-              variant="ghost"
-              className="flex items-center gap-1 px-2 font-normal"
-              onClick={() => setMode('edit')}
-            >
-              <IconEdit />
-              Edit
-            </Button>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-1 px-2 font-normal"
+                  onClick={() => setMode('edit')}
+                >
+                  <IconEdit />
+                  Edit
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  disabled={!streamingDone}
+                  onClick={e => setMode('view')}
+                >
+                  Done
+                </Button>
+              </>
+            )}
           </>
-        ) : (
-          <>
-            <Button disabled={!streamingDone} onClick={e => setMode('view')}>
-              Done
-            </Button>
-          </>
-        )}
+        ) : null}
         <ClientOnly>
           <ThemeToggle />
         </ClientOnly>
