@@ -223,19 +223,38 @@ impl DbConn {
         &self,
         page_id: i64,
         id: i64,
-        change: i32,
+        change: i64,
     ) -> Result<()> {
         let mut tx = self.pool.begin().await?;
 
-        // 1. Get the current position
         let current_position = query!("SELECT position FROM page_sections WHERE id = ?", id)
             .fetch_one(&mut *tx)
             .await?
             .position;
+        if current_position == 0 && change < 0 {
+            // Already at the top
+            tx.commit().await?;
+            return Ok(());
+        }
 
-        let new_position = current_position + change as i64;
+        let new_position = current_position + change;
         if current_position == new_position {
             // No change needed
+            tx.commit().await?;
+            return Ok(());
+        }
+
+        let max_position = query!(
+            "SELECT MAX(position) as max_position FROM page_sections WHERE page_id = ?",
+            page_id
+        )
+        .fetch_one(&mut *tx)
+        .await?
+        .max_position
+        .ok_or_else(|| anyhow::anyhow!("Failed to get max position"))?;
+
+        if current_position == max_position && change > 0 {
+            // Already at the bottom
             tx.commit().await?;
             return Ok(());
         }
@@ -249,7 +268,6 @@ impl DbConn {
         } else {
             (new_position, current_position)
         };
-        // select id, position from page_sections where page_id = page_id and position in old and new range order by position;
         let sections = query!(
             "SELECT id, position FROM page_sections WHERE page_id = ? AND position BETWEEN ? AND ? ORDER BY position",
             page_id,
@@ -260,7 +278,6 @@ impl DbConn {
         if current_position < new_position {
             for section in sections {
                 let move_position = section.position - 1;
-
                 query!(
                     "UPDATE page_sections SET position = ? WHERE id = ?",
                     move_position,
@@ -272,11 +289,6 @@ impl DbConn {
         } else {
             for section in sections.iter().rev() {
                 let move_position = section.position + 1;
-
-                println!(
-                    "{:?}, current: {}, new: {}, updated: {}",
-                    section, current_position, new_position, move_position
-                );
                 query!(
                     "UPDATE page_sections SET position = ? WHERE id = ?",
                     move_position,
