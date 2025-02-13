@@ -23,7 +23,11 @@ import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { updatePendingThreadId, usePageStore } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { client, useMutation } from '@/lib/tabby/gql'
-import { listPages, listPageSections } from '@/lib/tabby/query'
+import {
+  listPages,
+  listPageSections,
+  listSecuredUsers
+} from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
@@ -34,7 +38,7 @@ import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { MessageMarkdown } from '@/components/message-markdown'
 import NotFoundPage from '@/components/not-found-page'
-import { MyAvatar } from '@/components/user-avatar'
+import { UserAvatar } from '@/components/user-avatar'
 
 import { PageItem, SectionItem } from '../types'
 import { Header } from './header'
@@ -318,6 +322,15 @@ export function Page() {
     }
   }, [pageSectionData])
 
+  const [{ data: authorData, fetching: fetchingAuthor }] = useQuery({
+    query: listSecuredUsers,
+    variables: {
+      ids: compact([page?.authorId])
+    },
+    pause: !page?.authorId
+  })
+  const author = authorData?.users?.edges[0]?.node
+
   const isPageOwner = useMemo(() => {
     if (!meData) return false
     if (!pageIdFromURL) return true
@@ -537,22 +550,25 @@ export function Page() {
                       <h1 className="text-4xl font-semibold">{page?.title}</h1>
                     </LoadingWrapper>
                     <div className="my-4 flex gap-4 text-sm text-muted-foreground">
-                      {/* FIXME fetch author by id */}
-                      {!!page && (
-                        <>
-                          <div className="flex items-center gap-1">
-                            <MyAvatar className="h-6 w-6" />
-                            <div>{meData?.me?.name}</div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-0.5">
-                              <IconClock />
-                              <span>{formatTime(page.createdAt)}</span>
+                      <LoadingWrapper
+                        loading={fetchingAuthor || !page?.authorId}
+                      >
+                        {!!page && (
+                          <>
+                            <div className="flex items-center gap-1">
+                              <UserAvatar user={author} className="h-6 w-6" />
+                              <div>{author?.name}</div>
                             </div>
-                          </div>
-                        </>
-                      )}
+
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-0.5">
+                                <IconClock />
+                                <span>{formatTime(page.createdAt)}</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </LoadingWrapper>
                     </div>
                   </div>
 
