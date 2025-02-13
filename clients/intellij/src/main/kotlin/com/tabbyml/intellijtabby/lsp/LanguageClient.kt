@@ -132,14 +132,29 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   }
 
   override fun declaration(params: DeclarationParams): CompletableFuture<List<LocationLink>?> {
-    return CompletableFuture<List<LocationLink>?>().completeAsync {
-      val virtualFile = project.findVirtualFile(params.textDocument.uri) ?: return@completeAsync null
-      val document = project.findDocument(virtualFile) ?: return@completeAsync null
-      val psiFile = project.findPsiFile(virtualFile) ?: return@completeAsync null
-      val languageSupport = languageSupportService ?: return@completeAsync null
-      languageSupport.provideDeclaration(
-        LanguageSupportProvider.FilePosition(psiFile, offsetInDocument(document, params.position))
-      )?.mapNotNull {
+    val future = CompletableFuture<List<LocationLink>?>()
+    val virtualFile = project.findVirtualFile(params.textDocument.uri)
+    val document = virtualFile?.let { project.findDocument(it) }
+    val psiFile = virtualFile?.let { project.findPsiFile(it) }
+    val languageSupport = languageSupportService
+
+    if (virtualFile == null || document == null || psiFile == null || languageSupport == null) {
+      future.complete(null)
+      return future
+    }
+
+    val request = languageSupport.provideDeclaration(
+      LanguageSupportProvider.FilePosition(
+        psiFile,
+        offsetInDocument(document, params.position)
+      )
+    )
+
+    future.whenComplete { _, _ ->
+      request.cancel(true)
+    }
+    request.thenAccept { result ->
+      future.complete(result?.mapNotNull {
         val targetUri = it.file.virtualFile.url
         val targetDocument = project.findDocument(it.file.virtualFile) ?: return@mapNotNull null
         val range = Range(
@@ -147,28 +162,42 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
           positionInDocument(targetDocument, it.range.endOffset)
         )
         LocationLink(targetUri, range, range)
-      }
+      })
     }
+    return future
   }
 
   override fun semanticTokensRange(params: SemanticTokensRangeParams): CompletableFuture<SemanticTokensRangeResult?> {
-    return CompletableFuture<SemanticTokensRangeResult?>().completeAsync {
-      val virtualFile = project.findVirtualFile(params.textDocument.uri) ?: return@completeAsync null
-      val document = project.findDocument(virtualFile) ?: return@completeAsync null
-      val psiFile = project.findPsiFile(virtualFile) ?: return@completeAsync null
-      val languageSupport = languageSupportService ?: return@completeAsync null
-      languageSupport.provideSemanticTokensRange(
-        LanguageSupportProvider.FileRange(
-          psiFile,
-          TextRange(
-            offsetInDocument(document, params.range.start),
-            offsetInDocument(document, params.range.end)
-          )
-        )
-      )?.let {
-        encodeSemanticTokens(document, it)
-      }
+    val future = CompletableFuture<SemanticTokensRangeResult?>()
+    val virtualFile = project.findVirtualFile(params.textDocument.uri)
+    val document = virtualFile?.let { project.findDocument(it) }
+    val psiFile = virtualFile?.let { project.findPsiFile(it) }
+    val languageSupport = languageSupportService
+
+    if (virtualFile == null || document == null || psiFile == null || languageSupport == null) {
+      future.complete(null)
+      return future
     }
+
+    val request = languageSupport.provideSemanticTokensRange(
+      LanguageSupportProvider.FileRange(
+        psiFile,
+        TextRange(
+          offsetInDocument(document, params.range.start),
+          offsetInDocument(document, params.range.end)
+        )
+      )
+    )
+
+    future.whenComplete { _, _ ->
+      request.cancel(true)
+    }
+    request.thenAccept { result ->
+      future.complete(result?.let {
+        encodeSemanticTokens(document, it)
+      })
+    }
+    return future
   }
 
   override fun gitRepository(params: GitRepositoryParams): CompletableFuture<GitRepository?> {
