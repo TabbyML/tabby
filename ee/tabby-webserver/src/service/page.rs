@@ -286,13 +286,10 @@ pub async fn generate_page_sections(
         .join("\n");
     let context = context_info_helper.rewrite_tag(&content);
     pipeline_page_sections(chat.clone(), &context, &content)
-        .await
-        .and_then(|titles| {
-            Ok(titles
+        .await.map(|titles| titles
                 .iter()
                 .map(|x| trim_title(x).to_owned())
                 .collect::<Vec<_>>())
-        })
 }
 
 pub async fn generate_page_section_content(
@@ -330,14 +327,14 @@ pub async fn generate_page_section_content(
 mod tests {
     #[tokio::test]
     async fn test_move_section() {
+        use tabby_db::DbConn;
+        use tabby_schema::page::MoveSectionDirection;
+
         use super::*;
         use crate::{
             answer::testutils::{FakeChatCompletionStream, FakeContextService},
             service::thread,
         };
-        use tabby_db::DbConn;
-
-        use tabby_schema::page::MoveSectionDirection;
 
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = db
