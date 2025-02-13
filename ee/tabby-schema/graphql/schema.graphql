@@ -92,6 +92,11 @@ enum ModelHealthBackend {
   EMBEDDING
 }
 
+enum MoveSectionDirection {
+  UP
+  DOWN
+}
+
 enum OAuthProvider {
   GITHUB
   GOOGLE
@@ -110,11 +115,6 @@ enum RepositoryKind {
 enum Role {
   USER
   ASSISTANT
-}
-
-input AddPageSectionInput {
-  pageId: ID!
-  title: String!
 }
 
 input CodeQueryInput {
@@ -670,13 +670,9 @@ type Mutation {
   updateThreadMessage(input: UpdateMessageInput!): Boolean!
   "delete a page and all its sections."
   deletePage(id: ID!): Boolean!
-  """
-    Creates a new page section.
-    Only the title is required; the answer will be generated as the content.
-  """
-  addPageSection(input: AddPageSectionInput!): ID!
   "delete a single page section."
   deletePageSection(sectionId: ID!): Boolean!
+  movePageSection(id: ID!, direction: MoveSectionDirection!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
@@ -754,6 +750,7 @@ type PageInfo {
 type PageSection {
   id: ID!
   title: String!
+  position: Int!
 }
 
 type PageSectionContentCompleted {
@@ -923,6 +920,7 @@ type Section {
   pageId: ID!
   title: String!
   content: String!
+  position: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
