@@ -191,6 +191,7 @@ impl AuthenticationService for FakeAuthService {
 
     async fn list_users(
         &self,
+        _ids: Option<Vec<ID>>,
         _after: Option<String>,
         _before: Option<String>,
         _first: Option<usize>,

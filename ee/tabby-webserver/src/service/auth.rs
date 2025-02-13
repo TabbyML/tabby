@@ -518,6 +518,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn list_users(
         &self,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -525,9 +526,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
     ) -> Result<Vec<UserSecured>> {
         let (skip_id, limit, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
 
+        let rowids = ids.map(|ids| {
+            ids.into_iter()
+                .filter_map(|x| x.as_rowid().ok().map(|x| x as i32))
+                .collect()
+        });
+
         Ok(self
             .db
-            .list_users_with_filter(skip_id, limit, backwards)
+            .list_users_with_filter(rowids, skip_id, limit, backwards)
             .await?
             .into_iter()
             .map(|x| UserSecured::new(self.db.clone(), x))
@@ -1161,7 +1168,10 @@ mod tests {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(db.list_users(after, before, first, last).await.unwrap())
+                Ok(db
+                    .list_users(None, after, before, first, last)
+                    .await
+                    .unwrap())
             },
         )
         .await
@@ -1704,7 +1714,7 @@ mod tests {
     #[tokio::test]
     async fn test_sso_user_forbid_request_password_reset_email() {
         let service = test_authentication_service().await;
-        let id = service
+        let _id = service
             .db
             .create_user("test@example.com".into(), None, true, None)
             .await
