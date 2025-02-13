@@ -335,7 +335,7 @@ pub struct LocalModelConfig {
 }
 
 fn default_parallelism() -> u8 {
-    1
+    4
 }
 
 fn default_num_gpu_layers() -> u16 {
