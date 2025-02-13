@@ -80,7 +80,7 @@ export function ReadingCodeStepper({
           <div className="flex flex-1 items-center justify-between pr-2">
             <div className="flex flex-1 items-center gap-2">
               <IconCode className="mx-1 h-5 w-5 shrink-0" />
-              <span>Reading</span>
+              <span>Look into</span>
               {!!targetRepo && (
                 <div className="inline-flex cursor-pointer items-center gap-0.5 font-medium">
                   <SourceIcon
