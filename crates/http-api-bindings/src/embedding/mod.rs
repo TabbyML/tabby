@@ -23,7 +23,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             config.api_key.clone(),
             false,
         ),
-        "llama.cpp/legacy_embedding" => LlamaCppEngine::create(
+        "llama.cpp/before_b4356_embedding" => LlamaCppEngine::create(
             config
                 .api_endpoint
                 .as_deref()

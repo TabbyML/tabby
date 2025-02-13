@@ -11,11 +11,12 @@ use tracing::Instrument;
 use crate::{create_reqwest_client, embedding_info_span};
 
 pub struct LlamaCppEngine {
-    // Determines if the legacy endpoint should be used.
+    // Determine whether to use the legacy endpoint and response format.
     // Llama.cpp has updated the endpoint from `/embedding` to `/embeddings`,
-    // where the new endpoint wraps both the response and embedding in an array.
-    // However, the legacy endpoint remains supported, for instance, for llamafile.
-    legacy: bool,
+    // and wrapped both the response and embedding in an array from b4357.
+    //
+    // Ref: https://github.com/ggerganov/llama.cpp/pull/10861
+    before_b4356: bool,
 
     client: reqwest::Client,
     api_endpoint: String,
@@ -23,16 +24,20 @@ pub struct LlamaCppEngine {
 }
 
 impl LlamaCppEngine {
-    pub fn create(api_endpoint: &str, api_key: Option<String>, legacy: bool) -> Box<dyn Embedding> {
+    pub fn create(
+        api_endpoint: &str,
+        api_key: Option<String>,
+        before_b4356: bool,
+    ) -> Box<dyn Embedding> {
         let client = create_reqwest_client(api_endpoint);
-        let api_endpoint = if legacy {
+        let api_endpoint = if before_b4356 {
             format!("{}/embedding", api_endpoint)
         } else {
             format!("{}/embeddings", api_endpoint)
         };
 
         Box::new(Self {
-            legacy,
+            before_b4356,
 
             client,
             api_endpoint,
@@ -102,7 +107,7 @@ impl Embedding for LlamaCppEngine {
             ));
         }
 
-        if self.legacy {
+        if self.before_b4356 {
             let response = response.json::<EmbeddingLegacyResponse>().await?;
             Ok(response.embedding)
         } else {
