@@ -58,6 +58,21 @@ export function ReadingCodeStepper({
     return target
   }, [codeSourceId, contextInfo])
 
+  const steps = useMemo(() => {
+    let result: Array<'fileList' | 'snippet'> = []
+    if (readingCode?.fileList) {
+      result.push('fileList')
+    }
+    if (readingCode?.snippet) {
+      result.push('snippet')
+    }
+    return result
+  }, [readingCode?.fileList, readingCode?.snippet])
+
+  const lastItem = useMemo(() => {
+    return steps.slice().pop()
+  }, [steps])
+
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
       <AccordionItem value="readingCode" className="mb-6 border-0">
@@ -89,17 +104,19 @@ export function ReadingCodeStepper({
           <div className="space-y-2 text-sm text-muted-foreground">
             {readingCode?.fileList && (
               <StepItem
+                key="fileList"
                 title="Reading directory structure"
                 isLoading={isReadingFileList}
-                isLastItem={!readingCode.snippet}
+                isLastItem={lastItem === 'fileList'}
               />
             )}
             {readingCode?.snippet && (
               <StepItem
+                key="snippet"
                 title="Search code snippets..."
                 isLoading={isReadingCode}
                 defaultOpen={!isReadingCode}
-                isLastItem
+                isLastItem={lastItem === 'snippet'}
               >
                 {!!totalContextLength && (
                   <>
