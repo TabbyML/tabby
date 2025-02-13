@@ -6,6 +6,7 @@ export function PageSkeleton() {
       <div className="col-span-3 space-y-12">
         <div className="w-full">
           <Skeleton className="mb-6 h-6 w-[50%]" />
+          <AuthorSkeleton />
           <SectionContentSkeleton />
         </div>
         <SectionsSkeleton />
@@ -43,6 +44,15 @@ export function SectionContentSkeleton() {
       <Skeleton className="w-[30%]" />
       <Skeleton className="w-[80%]" />
       <Skeleton className="w-[30%]" />
+    </div>
+  )
+}
+
+export function AuthorSkeleton() {
+  return (
+    <div className="my-4 flex w-full items-center gap-4">
+      <Skeleton className="h-6 w-6 rounded-full" />
+      <Skeleton className="w-20" />
     </div>
   )
 }
