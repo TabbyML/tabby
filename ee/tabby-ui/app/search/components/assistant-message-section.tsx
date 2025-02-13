@@ -12,10 +12,10 @@ import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import {
+  ContextSource,
   Maybe,
   MessageAttachmentClientCode,
-  MessageAttachmentCode,
-  ThreadAssistantMessageReadingCode
+  MessageAttachmentCode
 } from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
@@ -29,9 +29,10 @@ import {
   cn,
   formatLineHashForCodeBrowser,
   getContent,
+  getMentionsFromText,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
-  isCodeSourceContext
+  isDocSourceContext
 } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,10 +48,8 @@ import {
   HoverCardTrigger
 } from '@/components/ui/hover-card'
 import {
-  IconBlocks,
   IconBug,
   IconCheckCircled,
-  IconChevronRight,
   IconCircleDot,
   IconEdit,
   IconGitMerge,
@@ -76,7 +75,6 @@ import {
 } from '@/components/message-markdown'
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
-import { SourceIcon } from '@/components/source-icon'
 import { UserAvatar } from '@/components/user-avatar'
 
 import { ReadingCodeStepper } from './reading-code-step'
@@ -87,6 +85,7 @@ import { ConversationMessage } from './types'
 export function AssistantMessageSection({
   className,
   message,
+  userMessage,
   showRelatedQuestion,
   isLoading,
   isLastAssistantMessage,
@@ -95,6 +94,7 @@ export function AssistantMessageSection({
 }: {
   className?: string
   message: ConversationMessage
+  userMessage: ConversationMessage
   showRelatedQuestion: boolean
   isLoading?: boolean
   isLastAssistantMessage?: boolean
@@ -116,6 +116,22 @@ export function AssistantMessageSection({
   } = useContext(SearchContext)
 
   const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
+
+  const docSources: Array<Omit<ContextSource, 'id'>> = useMemo(() => {
+    if (!contextInfo?.sources || !userMessage?.content) return []
+
+    const _sources = getMentionsFromText(
+      userMessage.content,
+      contextInfo?.sources
+    )
+    return _sources
+      .filter(x => isDocSourceContext(x.kind))
+      .map(x => ({
+        sourceId: x.id,
+        sourceKind: x.kind,
+        sourceName: x.label
+      }))
+  }, [contextInfo?.sources, userMessage?.content])
 
   const [isEditing, setIsEditing] = useState(false)
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -277,7 +293,7 @@ export function AssistantMessageSection({
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
       {/* document search hits */}
-      {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
+      {/* {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
         <div>
           <div className="mb-1 flex items-center gap-x-2">
             <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
@@ -316,7 +332,7 @@ export function AssistantMessageSection({
             <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
           </Button>
         </div>
-      )}
+      )} */}
 
       {/* Answer content */}
       <div>
@@ -347,12 +363,17 @@ export function AssistantMessageSection({
             serverCodeContexts={serverCodeContexts}
             isReadingFileList={message.isReadingFileList}
             isReadingCode={message.isReadingCode}
-            onContextClick={onCodeContextClick}
+            isReadingDocs={message.isReadingDocs}
             codeSourceId={message.codeSourceId}
+            docQuery
+            // todo refine
+            docQueryResources={docSources}
+            webResources={message?.attachment?.doc}
             readingCode={{
               fileList: showFileListStep,
               snippet: showCodeSnippetsStep
             }}
+            onContextClick={onCodeContextClick}
           />
         )}
 
@@ -702,80 +723,4 @@ const normalizedText = (input: string) => {
   const decoded = he.decode(parsed)
   const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
   return plainText
-}
-
-function RelevantCodeTitle({
-  isReadingCode,
-  readingCode,
-  codeSourceId,
-  filesCount
-}: {
-  isReadingCode?: boolean
-  readingCode?: ThreadAssistantMessageReadingCode
-  codeSourceId?: Maybe<string>
-  filesCount?: number
-}) {
-  const { contextInfo } = useContext(SearchContext)
-  const targetRepo = useMemo(() => {
-    if (!codeSourceId) return undefined
-
-    const target = contextInfo?.sources.find(
-      x => isCodeSourceContext(x.sourceKind) && x.sourceId === codeSourceId
-    )
-    return target
-  }, [codeSourceId, contextInfo])
-  const readFileList = readingCode?.fileList
-  const readCodeSnippets = readingCode?.snippet || !!filesCount
-
-  const desc = useMemo(() => {
-    if (isReadingCode) {
-      const textList: string[] = []
-      if (readFileList) {
-        textList.push('file list')
-      }
-      if (readCodeSnippets) {
-        textList.push('code snippets')
-      }
-      return `Read ${textList.join(' and ')}`
-    }
-
-    if (filesCount) {
-      if (readFileList) {
-        return `Read file list and ${filesCount} file${
-          filesCount && filesCount > 1 ? 's' : ''
-        }`
-      } else {
-        return `Read ${filesCount} file${
-          filesCount && filesCount > 1 ? 's' : ''
-        }`
-      }
-    }
-
-    return ''
-  }, [readCodeSnippets, readFileList, filesCount, isReadingCode])
-
-  if (!isReadingCode && !filesCount) {
-    return undefined
-  }
-
-  return (
-    <div className="inline-flex gap-1">
-      {isReadingCode && <IconSpinner />}
-      <div className="flex items-center">
-        <span>{desc}</span>
-        {!!targetRepo && (
-          <>
-            <span>&nbsp;from&nbsp;</span>
-            <div className="inline-flex cursor-pointer items-center gap-1 font-medium">
-              <SourceIcon
-                kind={targetRepo.sourceKind}
-                className="h-3.5 w-3.5 shrink-0"
-              />
-              <span className="truncate text-sm">{targetRepo.sourceName}</span>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )
 }
