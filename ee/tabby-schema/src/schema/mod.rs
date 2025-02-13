@@ -1404,23 +1404,6 @@ impl Mutation {
         page_service.delete(&id).await.map(|_| true)
     }
 
-    /// Creates a new page section.
-    /// Only the title is required; the answer will be generated as the content.
-    async fn add_page_section(ctx: &Context, input: page::AddPageSectionInput) -> Result<ID> {
-        let user = check_user(ctx).await?;
-
-        let page_service = if let Some(service) = ctx.locator.page() {
-            service
-        } else {
-            return Err(CoreError::Forbidden("Page service is not enabled"));
-        };
-        let page = page_service.get(&input.page_id).await?;
-
-        user.policy.check_update_page(&page.author_id)?;
-
-        page_service.add_section(&input).await
-    }
-
     /// delete a single page section.
     async fn delete_page_section(ctx: &Context, section_id: ID) -> Result<bool> {
         let user = check_user(ctx).await?;

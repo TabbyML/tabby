@@ -181,22 +181,27 @@ impl DbConn {
         Ok(section)
     }
 
-    pub async fn create_page_section(
-        &self,
-        page_id: i64,
-        title: &str,
-        position: i32,
-    ) -> Result<i64> {
+    // create_page_section creates a new section in the specified page with the given title,
+    // returning the id and position of the newly created section.
+    pub async fn create_page_section(&self, page_id: i64, title: &str) -> Result<(i64, i64)> {
         let res = query!(
-            "INSERT INTO page_sections(page_id, title, position) VALUES (?, ?, ?)",
+            r#"
+            WITH max_pos AS (
+                SELECT COALESCE(MAX(position) + 1, 0) as next_pos
+                FROM page_sections
+                WHERE page_id = ?1
+            )
+            INSERT INTO page_sections(page_id, title, position)
+            SELECT ?1, ?2, (SELECT next_pos FROM max_pos)
+            RETURNING id, position
+            "#,
             page_id,
-            title,
-            position,
+            title
         )
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await?;
 
-        Ok(res.last_insert_rowid())
+        Ok((res.id, res.position))
     }
 
     pub async fn append_page_section_content(&self, id: i64, content: &str) -> Result<()> {
@@ -219,86 +224,38 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_page_section_position(
-        &self,
-        page_id: i64,
-        id: i64,
-        change: i64,
-    ) -> Result<()> {
+    pub async fn move_page_section(&self, page_id: i64, id: i64, up: bool) -> Result<()> {
         let mut tx = self.pool.begin().await?;
 
         let current_position = query!("SELECT position FROM page_sections WHERE id = ?", id)
             .fetch_one(&mut *tx)
             .await?
             .position;
-        if current_position == 0 && change < 0 {
-            // Already at the top
-            tx.commit().await?;
-            return Ok(());
-        }
+        let new_position = if up {
+            current_position - 1
+        } else {
+            current_position + 1
+        };
 
-        let new_position = current_position + change;
-        if current_position == new_position {
-            // No change needed
-            tx.commit().await?;
-            return Ok(());
-        }
-
-        let max_position = query!(
-            "SELECT MAX(position) as max_position FROM page_sections WHERE page_id = ?",
-            page_id
+        let swap_section_id = query!(
+            "SELECT id FROM page_sections WHERE page_id = ? AND position = ?",
+            page_id,
+            new_position
         )
         .fetch_one(&mut *tx)
         .await?
-        .max_position
-        .ok_or_else(|| anyhow::anyhow!("Failed to get max position"))?;
-
-        if current_position == max_position && change > 0 {
-            // Already at the bottom
-            tx.commit().await?;
-            return Ok(());
-        }
+        .id;
 
         query!("UPDATE page_sections SET position = ? WHERE id = ?", -1, id)
             .execute(&mut *tx)
             .await?;
-
-        let (min, max) = if current_position < new_position {
-            (current_position, new_position)
-        } else {
-            (new_position, current_position)
-        };
-        let sections = query!(
-            "SELECT id, position FROM page_sections WHERE page_id = ? AND position BETWEEN ? AND ? ORDER BY position",
-            page_id,
-            min,
-            max,
-        ).fetch_all(&mut *tx).await?;
-
-        if current_position < new_position {
-            for section in sections {
-                let move_position = section.position - 1;
-                query!(
-                    "UPDATE page_sections SET position = ? WHERE id = ?",
-                    move_position,
-                    section.id
-                )
-                .execute(&mut *tx)
-                .await?;
-            }
-        } else {
-            for section in sections.iter().rev() {
-                let move_position = section.position + 1;
-                query!(
-                    "UPDATE page_sections SET position = ? WHERE id = ?",
-                    move_position,
-                    section.id
-                )
-                .execute(&mut *tx)
-                .await?;
-            }
-        }
-
+        query!(
+            "UPDATE page_sections SET position = ? WHERE id = ?",
+            current_position,
+            swap_section_id
+        )
+        .execute(&mut *tx)
+        .await?;
         query!(
             "UPDATE page_sections SET position = ? WHERE id = ?",
             new_position,

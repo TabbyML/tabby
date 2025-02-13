@@ -13,8 +13,8 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     context::ContextService,
     page::{
-        AddPageSectionInput, MoveSectionDirection, Page, PageCompleted, PageContentCompleted,
-        PageContentDelta, PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
+        MoveSectionDirection, Page, PageCompleted, PageContentCompleted, PageContentDelta,
+        PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
         PageSectionContentDelta, PageSectionsCreated, PageService, Section, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
@@ -66,12 +66,9 @@ impl PageService for PageServiceImpl {
             .list_thread_messages(thread_id, None, None, None, None)
             .await?;
 
-        let title = trim_title(
-            self.generate_page_title(policy, page_id.clone(), &messages)
-                .await?
-                .as_str(),
-        )
-        .to_owned();
+        let title = self
+            .generate_page_title(policy, page_id.clone(), &messages)
+            .await?;
 
         let db = self.db.clone();
         let policy = policy.clone();
@@ -88,12 +85,12 @@ impl PageService for PageServiceImpl {
 
             let sections = generate_page_sections(chat.clone(), context.clone(), &policy, &messages).await?;
             let mut page_sections = Vec::new();
-            for (i, section_title) in sections.iter().enumerate() {
-                let section = db.create_page_section(page_id.as_rowid()?, section_title, i as i32).await?;
+            for section_title in sections {
+                let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
                 page_sections.push(PageSection {
-                    id: section.as_id(),
-                    title: trim_title(section_title).to_owned(),
-                    position: i as i32,
+                    id: section.0.as_id(),
+                    title: section_title.to_owned(),
+                    position: section.1 as i32,
                 });
             }
 
@@ -155,11 +152,12 @@ impl PageService for PageServiceImpl {
             .join("\n");
         let context = context_info_helper.rewrite_tag(&content);
         let title = pipeline_page_title(self.chat.clone(), &context, &content).await?;
+        let title = trim_title(title.as_ref());
 
         self.db
-            .update_page_title(page_id.as_rowid()?, &title)
+            .update_page_title(page_id.as_rowid()?, title)
             .await?;
-        Ok(title)
+        Ok(title.to_owned())
     }
 
     async fn delete(&self, id: &ID) -> Result<()> {
@@ -226,25 +224,6 @@ impl PageService for PageServiceImpl {
         Ok(section.into())
     }
 
-    async fn add_section(&self, input: &AddPageSectionInput) -> Result<ID> {
-        //TODO(kweizh): generate section content
-
-        let sections = self
-            .db
-            .list_page_sections(input.page_id.as_rowid()?, None, None, false)
-            .await?;
-
-        let section = self
-            .db
-            .create_page_section(
-                input.page_id.as_rowid()?,
-                &input.title,
-                sections.len() as i32,
-            )
-            .await?;
-        Ok(section.as_id())
-    }
-
     async fn delete_section(&self, id: &ID) -> Result<()> {
         self.db.delete_page_section(id.as_rowid()?).await?;
         Ok(())
@@ -256,19 +235,19 @@ impl PageService for PageServiceImpl {
         id: &ID,
         direction: MoveSectionDirection,
     ) -> Result<()> {
-        let change = match direction {
-            MoveSectionDirection::Up => -1,
-            MoveSectionDirection::Down => 1,
-        };
         self.db
-            .update_page_section_position(page_id.as_rowid()?, id.as_rowid()?, change)
+            .move_page_section(
+                page_id.as_rowid()?,
+                id.as_rowid()?,
+                matches!(direction, MoveSectionDirection::Up),
+            )
             .await?;
         Ok(())
     }
 }
 
 fn trim_title(title: &str) -> &str {
-    title.trim_matches(&['"', '#', ' ', '-', '*'][..])
+    title.trim_matches(&['"', '#', ' ', '-'][..])
 }
 
 async fn generate_page_content(
@@ -306,7 +285,14 @@ pub async fn generate_page_sections(
         .collect::<Vec<_>>()
         .join("\n");
     let context = context_info_helper.rewrite_tag(&content);
-    pipeline_page_sections(chat.clone(), &context, &content).await
+    pipeline_page_sections(chat.clone(), &context, &content)
+        .await
+        .and_then(|titles| {
+            Ok(titles
+                .iter()
+                .map(|x| trim_title(x).to_owned())
+                .collect::<Vec<_>>())
+        })
 }
 
 pub async fn generate_page_section_content(
@@ -338,4 +324,93 @@ pub async fn generate_page_section_content(
 
     let prompt = prompt_page_section_content(&context, &content, &sections, &current);
     Ok(request_llm_stream(chat.clone(), &prompt).await)
+}
+
+#[cfg(test)]
+mod tests {
+    #[tokio::test]
+    async fn test_move_section() {
+        use super::*;
+        use crate::{
+            answer::testutils::{FakeChatCompletionStream, FakeContextService},
+            service::thread,
+        };
+        use tabby_db::DbConn;
+
+        use tabby_schema::page::MoveSectionDirection;
+
+        let db = DbConn::new_in_memory().await.unwrap();
+        let user_id = db
+            .create_user("test@example.com".into(), None, true, None)
+            .await
+            .unwrap();
+        let page_id = db.create_page(user_id).await.unwrap();
+        let section0 = db.create_page_section(page_id, "Section 0").await.unwrap();
+        assert_eq!(section0.1, 0);
+        let section1 = db.create_page_section(page_id, "Section 1").await.unwrap();
+        assert_eq!(section1.1, 1);
+        let section2 = db.create_page_section(page_id, "Section 2").await.unwrap();
+        assert_eq!(section2.1, 2);
+
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
+            return_error: false,
+        });
+        let thread = Arc::new(thread::create(db.clone(), None, None));
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let service = create(db, chat, thread, context);
+
+        // move down
+        service
+            .move_section(
+                &page_id.as_id(),
+                &section0.0.as_id(),
+                MoveSectionDirection::Down,
+            )
+            .await
+            .unwrap();
+        let sections = service
+            .list_sections(&page_id.as_id(), None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(0, sections[1].position as i64);
+        assert_eq!(1, sections[0].position as i64);
+        assert_eq!(2, sections[2].position as i64);
+
+        // move up
+        service
+            .move_section(
+                &page_id.as_id(),
+                &section2.0.as_id(),
+                MoveSectionDirection::Up,
+            )
+            .await
+            .unwrap();
+        let sections = service
+            .list_sections(&page_id.as_id(), None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(0, sections[1].position as i64);
+        assert_eq!(1, sections[2].position as i64);
+        assert_eq!(2, sections[0].position as i64);
+
+        // move the first section up, should return error
+        assert!(service
+            .move_section(
+                &page_id.as_id(),
+                &section1.0.as_id(),
+                MoveSectionDirection::Up,
+            )
+            .await
+            .is_err());
+
+        // move the last section down, should return error
+        assert!(service
+            .move_section(
+                &page_id.as_id(),
+                &section0.0.as_id(),
+                MoveSectionDirection::Down,
+            )
+            .await
+            .is_err());
+    }
 }
