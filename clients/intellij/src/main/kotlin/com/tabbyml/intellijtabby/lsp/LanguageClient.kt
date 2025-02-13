@@ -28,7 +28,6 @@ import com.tabbyml.intellijtabby.lsp.protocol.TextDocumentClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import com.tabbyml.intellijtabby.safeSyncPublisher
 import org.eclipse.lsp4j.*
-import org.eclipse.lsp4j.jsonrpc.CompletableFutures
 import java.util.concurrent.CompletableFuture
 
 class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.lsp.protocol.client.LanguageClient(),

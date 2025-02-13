@@ -111,7 +111,7 @@ class LanguageSupportService(private val project: Project) {
   }
 
   companion object {
-    private const val TIMEOUT_SEMANTIC_TOKENS_RANGE_PROVIDER = 50L // ms
+    private const val TIMEOUT_SEMANTIC_TOKENS_RANGE_PROVIDER = 100L // ms
     private const val TIMEOUT_DECLARATION_PROVIDER = 10L // ms
   }
 }

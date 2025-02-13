@@ -62,7 +62,7 @@ class KotlinLanguageSupportProvider : LanguageSupportProvider {
         element as? KtReferenceExpression ?: element?.parent as? KtReferenceExpression
       val referenceTarget =
         referenceExpression?.references?.map { it.resolve() }?.firstNotNullOfOrNull { it }
-      
+
       val file = referenceTarget?.containingFile
       val range = referenceTarget?.textRange
       if (file == null || range == null) {
