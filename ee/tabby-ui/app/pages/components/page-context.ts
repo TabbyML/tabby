@@ -1,21 +1,21 @@
 import { createContext, Dispatch, SetStateAction } from 'react'
 
-import { ExtendedCombinedError } from '@/lib/types'
+import { MoveSectionDirection } from '@/lib/gql/generates/graphql'
 
 type PageContextValue = {
   mode: 'edit' | 'view'
   setMode: Dispatch<SetStateAction<'view' | 'edit'>>
   isPathnameInitialized: boolean
   isLoading: boolean
-  onAddSection: (title: string) => void
-  onDeleteSection: (id: string) => void
+  onDeleteSection: (id: string) => Promise<void>
   isPageOwner: boolean
-  onUpdateSectionContent: (
-    message: string
-  ) => Promise<ExtendedCombinedError | undefined>
   pendingSectionIds: Set<string>
   setPendingSectionIds: (value: SetStateAction<Set<string>>) => void
   currentSectionId: string | undefined
+  onMoveSectionPosition: (
+    sectionId: string,
+    direction: MoveSectionDirection
+  ) => Promise<void>
 }
 
 export const PageContext = createContext<PageContextValue>(

@@ -31,7 +31,6 @@ import {
   IndentIncrease,
   Layers2,
   Link,
-  List,
   ListFilter,
   ListTree,
   Mail,
@@ -40,7 +39,6 @@ import {
   Regex,
   Search,
   Share2,
-  Sheet,
   Sparkles,
   SquareActivity,
   SquareChevronRight,
@@ -1760,17 +1758,6 @@ function IconListTree({
   return <ListTree className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconList({ className, ...props }: React.ComponentProps<typeof List>) {
-  return <List className={cn('h-4 w-4', className)} {...props} />
-}
-
-function IconSheet({
-  className,
-  ...props
-}: React.ComponentProps<typeof Sheet>) {
-  return <Sheet className={cn('h-4 w-4', className)} {...props} />
-}
-
 export {
   IconEdit,
   IconNextChat,
@@ -1885,7 +1872,5 @@ export {
   IconSquareChevronRight,
   IconFileSearch2,
   IconBell,
-  IconListTree,
-  IconList,
-  IconSheet
+  IconListTree
 }
