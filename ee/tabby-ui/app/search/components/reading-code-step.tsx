@@ -105,7 +105,7 @@ export function ReadingCodeStepper({
             {readingCode?.fileList && (
               <StepItem
                 key="fileList"
-                title="Reading directories and files ..."
+                title="Read codebase structure ..."
                 isLoading={isReadingFileList}
                 isLastItem={lastItem === 'fileList'}
               />
@@ -113,7 +113,7 @@ export function ReadingCodeStepper({
             {readingCode?.snippet && (
               <StepItem
                 key="snippet"
-                title="Searching code snippets ..."
+                title="Search for relevant code snippets ..."
                 isLoading={isReadingCode}
                 defaultOpen={!isReadingCode}
                 isLastItem={lastItem === 'snippet'}
