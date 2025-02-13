@@ -78,11 +78,12 @@ impl RepositoryService for RepositoryServiceImpl {
                     source_id
                 )
             })?;
-        let files = match self
+
+        let (files, truncated) = match self
             .list_files(policy, &repo.kind, &repo.id, None, Some(300))
             .await
         {
-            Ok(files) => files,
+            Ok((files, truncated)) => (files, truncated),
             Err(_) => {
                 return Err(anyhow::anyhow!(
                     "Repository exists but not accessible: {}",
@@ -91,7 +92,8 @@ impl RepositoryService for RepositoryServiceImpl {
             }
         };
 
-        let questions = pipeline_related_questions_with_repo_dirs(chat, files).await?;
+        let questions = pipeline_related_questions_with_repo_dirs(chat, files, truncated).await?;
+
         cache.cache_set(source_id, questions.clone());
         Ok(questions)
     }
@@ -233,21 +235,24 @@ impl RepositoryService for RepositoryServiceImpl {
         id: &ID,
         rev: Option<&str>,
         top_n: Option<usize>,
-    ) -> Result<Vec<FileEntrySearchResult>> {
+    ) -> Result<(Vec<FileEntrySearchResult>, bool)> {
         let dir = self.resolve_repository(policy, kind, id).await?.dir;
-        let files = tabby_git::list_files(&dir, rev, top_n)
+        let (files, truncated) = tabby_git::list_files(&dir, rev, top_n)
             .await
-            .map(|x| {
-                x.into_iter()
+            .map(|list_file| {
+                let files = list_file
+                    .files
+                    .into_iter()
                     .map(|f| FileEntrySearchResult {
                         r#type: f.r#type,
                         path: f.path,
                         indices: f.indices,
                     })
-                    .collect()
+                    .collect();
+                (files, list_file.truncated)
             })
             .map_err(anyhow::Error::from)?;
-        Ok(files)
+        Ok((files, truncated))
     }
 
     async fn grep(
