@@ -31,11 +31,15 @@ prompt_template = "<|fim_prefix|>{prefix}<|fim_suffix|>{suffix}<|fim_middle|>" #
 
 ## Embeddings model
 
-llamafile provides embedding functionality through llama.cpp's API interface. Note that the endpoint URL should NOT include the `v1` suffix.
+llamafile provides embedding functionality via llama.cpp's API interface,
+but it utilizes the API interface defined prior to version b4356.
+Therefore, we should use the kind `llama.cpp/before_b4356_embedding`.
+
+Note that the endpoint URL should NOT include the `v1` suffix.
 
 ```toml title="~/.tabby/config.toml"
 [model.embedding.http]
-kind = "llama.cpp/embedding"
+kind = "llama.cpp/before_b4356_embedding"
 model_name = "your_model"
 api_endpoint = "http://localhost:8082"  # DO NOT append the `v1` suffix
 api_key = ""

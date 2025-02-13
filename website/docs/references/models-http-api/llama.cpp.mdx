@@ -1,3 +1,5 @@
+import Collapse from '@site/src/components/Collapse';
+
 # llama.cpp
 
 [llama.cpp](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md#api-endpoints) is a popular C++ library for serving gguf-based models. It provides a server implementation that supports completion, chat, and embedding functionalities through HTTP APIs.
@@ -27,8 +29,23 @@ prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt templat
 
 llama.cpp provides embedding functionality through its HTTP API.
 
+The llama.cpp embedding API interface and response format underwent some changes in version `b4356`.
+Therefore, we have provided two different kinds to accommodate the various versions of the llama.cpp embedding interface.
+
+You can refer to the configuration as follows:
+
 ```toml title="~/.tabby/config.toml"
 [model.embedding.http]
 kind = "llama.cpp/embedding"
 api_endpoint = "http://localhost:8888"
 ```
+
+<Collapse title="For the versions prior to b4356">
+
+```toml title="~/.tabby/config.toml"
+[model.embedding.http]
+kind = "llama.cpp/before_b4356_embedding"
+api_endpoint = "http://localhost:8888"
+```
+
+</Collapse>
