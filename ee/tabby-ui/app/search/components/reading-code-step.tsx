@@ -105,7 +105,7 @@ export function ReadingCodeStepper({
             {readingCode?.fileList && (
               <StepItem
                 key="fileList"
-                title="Reading directory structure"
+                title="Reading directories and files ..."
                 isLoading={isReadingFileList}
                 isLastItem={lastItem === 'fileList'}
               />
@@ -113,15 +113,14 @@ export function ReadingCodeStepper({
             {readingCode?.snippet && (
               <StepItem
                 key="snippet"
-                title="Search code snippets..."
+                title="Searching code snippets ..."
                 isLoading={isReadingCode}
                 defaultOpen={!isReadingCode}
                 isLastItem={lastItem === 'snippet'}
               >
                 {!!totalContextLength && (
                   <>
-                    <div className="my-2">Reading</div>
-                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs font-semibold">
                       {clientCodeContexts?.map((item, index) => {
                         return (
                           <CodeContextItem
