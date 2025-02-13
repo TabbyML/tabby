@@ -5,7 +5,7 @@ mod third_party;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use cached::{Cached, CachedAsync, TimedCache};
+use cached::{CachedAsync, TimedCache};
 use futures::StreamExt;
 use juniper::ID;
 use prompt_tools::pipeline_related_questions_with_repo_dirs;
@@ -47,7 +47,9 @@ pub fn create(
         config: Config::load()
             .map(|config| config.repositories)
             .unwrap_or_default(),
-        related_questions_cache: Mutex::new(TimedCache::with_lifespan(RELATED_QUESTIONS_CACHE_LIFESPAN)),
+        related_questions_cache: Mutex::new(TimedCache::with_lifespan(
+            RELATED_QUESTIONS_CACHE_LIFESPAN,
+        )),
     })
 }
 
