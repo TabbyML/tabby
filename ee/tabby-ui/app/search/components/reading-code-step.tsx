@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useContext, useMemo, useState } from 'react'
+import { ReactNode, useContext, useEffect, useMemo, useState } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import { isNil } from 'lodash-es'
 
@@ -23,9 +23,9 @@ import { SourceIcon } from '@/components/source-icon'
 
 import { SearchContext } from './search-context'
 
-// FIXME for readingCode, should be transform after persisted
 interface ReadingCodeStepperProps {
   isReadingCode: boolean | undefined
+  isReadingFileList: boolean | undefined
   readingCode: ThreadAssistantMessageReadingCode | undefined
   codeSourceId: Maybe<string>
   className?: string
@@ -39,15 +39,14 @@ interface ReadingCodeStepperProps {
 
 export function ReadingCodeStepper({
   isReadingCode,
+  isReadingFileList,
   readingCode,
   codeSourceId,
   serverCodeContexts,
   clientCodeContexts,
-  onContextClick,
-  className
+  onContextClick
 }: ReadingCodeStepperProps) {
   const { contextInfo } = useContext(SearchContext)
-  const [codeSnippetExpand, setCodeSnippetExpand] = useState(true)
   const totalContextLength =
     (clientCodeContexts?.length || 0) + serverCodeContexts.length
   const targetRepo = useMemo(() => {
@@ -61,7 +60,7 @@ export function ReadingCodeStepper({
 
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
-      <AccordionItem value="readingCode" className="mb-4 border-0">
+      <AccordionItem value="readingCode" className="mb-6 border-0">
         <AccordionTrigger className="w-full py-2 pr-2">
           <div className="flex flex-1 items-center justify-between pr-2">
             <div className="flex flex-1 items-center gap-2">
@@ -91,37 +90,42 @@ export function ReadingCodeStepper({
             {readingCode?.fileList && (
               <StepItem
                 title="Reading directory structure"
-                isLoading={isReadingCode}
+                isLoading={isReadingFileList}
+                isLastItem={!readingCode.snippet}
               />
             )}
             {readingCode?.snippet && (
               <StepItem
                 title="Search code snippets..."
                 isLoading={isReadingCode}
-                open={codeSnippetExpand}
-                onOpenChange={setCodeSnippetExpand}
+                defaultOpen={!isReadingCode}
+                isLastItem
               >
-                <div className="my-2">Reading</div>
-                <div className="flex flex-wrap gap-4 text-xs font-semibold">
-                  {clientCodeContexts?.map((item, index) => {
-                    return (
-                      <CodeContextItem
-                        key={`client-${index}`}
-                        context={item}
-                        onContextClick={ctx => onContextClick?.(ctx, true)}
-                      />
-                    )
-                  })}
-                  {serverCodeContexts?.map((item, index) => {
-                    return (
-                      <CodeContextItem
-                        key={`server-${index}`}
-                        context={item}
-                        onContextClick={ctx => onContextClick?.(ctx, true)}
-                      />
-                    )
-                  })}
-                </div>
+                {!!totalContextLength && (
+                  <>
+                    <div className="my-2">Reading</div>
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                      {clientCodeContexts?.map((item, index) => {
+                        return (
+                          <CodeContextItem
+                            key={`client-${index}`}
+                            context={item}
+                            onContextClick={ctx => onContextClick?.(ctx, true)}
+                          />
+                        )
+                      })}
+                      {serverCodeContexts?.map((item, index) => {
+                        return (
+                          <CodeContextItem
+                            key={`server-${index}`}
+                            context={item}
+                            onContextClick={ctx => onContextClick?.(ctx, true)}
+                          />
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
               </StepItem>
             )}
           </div>
@@ -131,30 +135,43 @@ export function ReadingCodeStepper({
   )
 }
 
-// with icon & line
 function StepItem({
   isLoading,
   children,
   title,
-  open,
-  onOpenChange
+  defaultOpen,
+  isLastItem
 }: {
   isLoading: boolean | undefined
   children?: ReactNode
   title: string
-  open?: boolean
-  onOpenChange?: (v: boolean) => void
+  defaultOpen?: boolean
+  isLastItem?: boolean
 }) {
+  const itemName = 'item'
+  const [open, setOpen] = useState(!!defaultOpen)
+  const hasChildren = !!children
+
+  useEffect(() => {
+    if (hasChildren && !open) {
+      setTimeout(() => {
+        setOpen(true)
+      }, 0)
+    }
+  }, [hasChildren])
+
   return (
     <div className="relative">
       <Accordion
         type="single"
-        defaultValue={open ? 'default' : undefined}
-        collapsible={!!children}
+        value={open ? itemName : ''}
+        collapsible={hasChildren}
         className="z-10"
-        onValueChange={v => onOpenChange?.(!!v)}
+        onValueChange={v => {
+          setOpen(v === itemName)
+        }}
       >
-        <AccordionItem value="default" className="border-0">
+        <AccordionItem value={itemName} className="border-0">
           {/* vertical separator */}
           <div className="absolute left-3 top-5 block h-full w-0.5 shrink-0 rounded-full bg-muted group-data-[disabled]:bg-muted group-data-[state=completed]:bg-primary group-data-[disabled]:opacity-50"></div>
           <AccordionTrigger
@@ -201,7 +218,7 @@ function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
   const fileName = useMemo(() => {
     return resolveFileNameForDisplay(context.filepath)
   }, [context.filepath])
-  // console.log(context.range)
+
   const rangeText = useMemo(() => {
     if (!context.range) return undefined
 

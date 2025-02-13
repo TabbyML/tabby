@@ -214,15 +214,17 @@ export interface AnswerStream {
   attachmentsCode?: ThreadAssistantMessageAttachmentCodeHits
   attachmentsDoc?: ThreadAssistantMessageAttachmentDocHits
   readingCode?: ThreadAssistantMessageReadingCode
-  isReadingCode: boolean
   content: string
+  isReadingCode: boolean
+  isReadingFileList: boolean
   completed: boolean
 }
 
 const defaultAnswerStream = (): AnswerStream => ({
   content: '',
   completed: false,
-  isReadingCode: false
+  isReadingCode: false,
+  isReadingFileList: false
 })
 
 export interface ThreadRun {
@@ -292,10 +294,14 @@ export function useThreadRun({
         break
       case 'ThreadAssistantMessageReadingCode':
         x.isReadingCode = true
+        x.isReadingFileList = true
         x.readingCode = {
           fileList: data.fileList,
           snippet: data.snippet
         }
+        break
+      case 'ThreadAssistantMessageAttachmentsCodeFileList':
+        x.isReadingFileList = false
         break
       case 'ThreadAssistantMessageAttachmentsCode':
         x.isReadingCode = false
@@ -305,9 +311,8 @@ export function useThreadRun({
         x.attachmentsDoc = data.hits
         break
       case 'ThreadAssistantMessageContentDelta':
-        if (x.isReadingCode === true) {
-          x.isReadingCode = false
-        }
+        x.isReadingCode = false
+        x.isReadingFileList = false
         x.content += data.delta
         break
       case 'ThreadAssistantMessageCompleted':
@@ -325,6 +330,12 @@ export function useThreadRun({
     unsubscribeFn.current?.()
     unsubscribeFn.current = undefined
     setIsLoading(false)
+    setAnswerStream(p => ({
+      ...p,
+      isReadingCode: false,
+      isReadingFileList: false,
+      completed: true
+    }))
 
     if (!silent && threadId) {
       onAssistantMessageCompleted?.(answerStream)

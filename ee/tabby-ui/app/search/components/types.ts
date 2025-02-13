@@ -21,6 +21,7 @@ export type ConversationMessage = Omit<
   }
   readingCode?: ThreadAssistantMessageReadingCode
   isReadingCode?: boolean
+  isReadingFileList?: boolean
 }
 export type ConversationPair = {
   question: ConversationMessage | null

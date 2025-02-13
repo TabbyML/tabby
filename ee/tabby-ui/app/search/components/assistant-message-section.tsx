@@ -268,9 +268,11 @@ export function AssistantMessageSection({
 
   const showFileListStep =
     !!message.readingCode?.fileList ||
-    !!message.attachment?.codeFileList?.length
+    !!message.attachment?.codeFileList?.fileList?.length
   const showCodeSnippetsStep =
     message.readingCode?.snippet || !!messageAttachmentCodeLen
+
+  const showReadingCodeStep = showFileListStep || showCodeSnippetsStep
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
@@ -339,11 +341,11 @@ export function AssistantMessageSection({
           )}
         </div>
 
-        {/* attachment clientCode & code */}
-        {(message.isReadingCode || messageAttachmentCodeLen > 0) && (
+        {showReadingCodeStep && (
           <ReadingCodeStepper
             clientCodeContexts={clientCodeContexts}
             serverCodeContexts={serverCodeContexts}
+            isReadingFileList={message.isReadingFileList}
             isReadingCode={message.isReadingCode}
             onContextClick={onCodeContextClick}
             codeSourceId={message.codeSourceId}
