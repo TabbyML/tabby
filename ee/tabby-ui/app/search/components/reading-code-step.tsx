@@ -13,7 +13,7 @@ import {
   AccordionItem,
   AccordionTrigger
 } from '@/components/ui/accordion'
-import { IconCheck2, IconCode, IconSpinner } from '@/components/ui/icons'
+import { IconCheckFull, IconCode, IconSpinner } from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
@@ -173,17 +173,19 @@ function StepItem({
       >
         <AccordionItem value={itemName} className="border-0">
           {/* vertical separator */}
-          <div className="absolute left-3 top-5 block h-full w-0.5 shrink-0 rounded-full bg-muted group-data-[disabled]:bg-muted group-data-[state=completed]:bg-primary group-data-[disabled]:opacity-50"></div>
+          {(!isLastItem || (open && hasChildren)) && (
+            <div className="absolute left-3 top-5 block h-full w-0.5 shrink-0 rounded-full bg-muted group-data-[disabled]:bg-muted group-data-[state=completed]:bg-primary group-data-[disabled]:opacity-50"></div>
+          )}
           <AccordionTrigger
-            className="group w-full gap-2 rounded-lg px-2 py-1 !no-underline hover:bg-muted/70"
+            className="group w-full gap-2 rounded-lg py-1 pl-1.5 pr-2 !no-underline hover:bg-muted/70"
             showChevron={!!children}
           >
             <div className="flex flex-1 items-center gap-4">
-              <div className="bg-background group-hover:bg-muted/70">
+              <div className="relative z-10 shrink-0 bg-background group-hover:bg-muted/70">
                 {isLoading ? (
-                  <IconSpinner className="h-3 w-3" />
+                  <IconSpinner className="h-4 w-4" />
                 ) : (
-                  <IconCheck2 className="h-3 w-3 rounded-full bg-foreground/70 text-background" />
+                  <IconCheckFull className="h-4 w-4" />
                 )}
               </div>
               <span>{title}</span>
