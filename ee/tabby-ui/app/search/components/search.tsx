@@ -764,6 +764,7 @@ export function Search() {
             <Header
               threadIdFromURL={threadIdFromURL}
               streamingDone={!isLoading}
+              threadId={threadId}
             />
             <LoadingWrapper
               loading={!isReady}
