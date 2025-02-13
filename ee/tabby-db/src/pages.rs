@@ -21,7 +21,8 @@ pub struct PageSectionDAO {
     pub page_id: i64,
 
     pub title: String,
-    pub content: String,
+    pub content: Option<String>,
+    pub position: i64,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -50,7 +51,7 @@ impl DbConn {
 
     pub async fn append_page_content(&self, page_id: i64, content: &str) -> Result<()> {
         query!(
-            "UPDATE pages SET content = content || ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE pages SET content = COALESCE(content, '') || ?, updated_at = DATETIME('now') WHERE id = ?",
             content,
             page_id
         )
@@ -144,6 +145,7 @@ impl DbConn {
                 "page_id",
                 "title",
                 "content",
+                "position",
                 "created_at" as "created_at: DateTime<Utc>",
                 "updated_at" as "updated_at: DateTime<Utc>"
             ],
@@ -165,6 +167,7 @@ impl DbConn {
                 id,
                 page_id,
                 title,
+                position,
                 content,
                 created_at as "created_at: DateTime<Utc>",
                 updated_at  as "updated_at: DateTime<Utc>"
@@ -178,21 +181,32 @@ impl DbConn {
         Ok(section)
     }
 
-    pub async fn create_page_section(&self, page_id: i64, title: &str) -> Result<i64> {
+    // create_page_section creates a new section in the specified page with the given title,
+    // returning the id and position of the newly created section.
+    pub async fn create_page_section(&self, page_id: i64, title: &str) -> Result<(i64, i64)> {
         let res = query!(
-            "INSERT INTO page_sections(page_id, title) VALUES (?, ?)",
+            r#"
+            WITH max_pos AS (
+                SELECT COALESCE(MAX(position) + 1, 0) as next_pos
+                FROM page_sections
+                WHERE page_id = ?1
+            )
+            INSERT INTO page_sections(page_id, title, position)
+            SELECT ?1, ?2, (SELECT next_pos FROM max_pos)
+            RETURNING id, position
+            "#,
             page_id,
-            title,
+            title
         )
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await?;
 
-        Ok(res.last_insert_rowid())
+        Ok((res.id, res.position))
     }
 
     pub async fn append_page_section_content(&self, id: i64, content: &str) -> Result<()> {
         query!(
-            "UPDATE page_sections SET content = content || ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE page_sections SET content = COALESCE(content, '') || ?, updated_at = DATETIME('now') WHERE id = ?",
             content,
             id
         )
@@ -207,6 +221,50 @@ impl DbConn {
             .execute(&self.pool)
             .await?;
 
+        Ok(())
+    }
+
+    pub async fn move_page_section(&self, page_id: i64, id: i64, up: bool) -> Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        let current_position = query!("SELECT position FROM page_sections WHERE id = ?", id)
+            .fetch_one(&mut *tx)
+            .await?
+            .position;
+        let new_position = if up {
+            current_position - 1
+        } else {
+            current_position + 1
+        };
+
+        let swap_section_id = query!(
+            "SELECT id FROM page_sections WHERE page_id = ? AND position = ?",
+            page_id,
+            new_position
+        )
+        .fetch_one(&mut *tx)
+        .await?
+        .id;
+
+        query!("UPDATE page_sections SET position = ? WHERE id = ?", -1, id)
+            .execute(&mut *tx)
+            .await?;
+        query!(
+            "UPDATE page_sections SET position = ? WHERE id = ?",
+            current_position,
+            swap_section_id
+        )
+        .execute(&mut *tx)
+        .await?;
+        query!(
+            "UPDATE page_sections SET position = ? WHERE id = ?",
+            new_position,
+            id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
         Ok(())
     }
 }

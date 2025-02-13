@@ -362,3 +362,17 @@ export function getCommentPrefix(languageId: string) {
   }
   return "";
 }
+
+export function truncateFileContent(content: string, maxLength: number): string {
+  if (content.length <= maxLength) {
+    return content;
+  }
+
+  content = content.slice(0, maxLength);
+  const lastNewLine = content.lastIndexOf("\n");
+  if (lastNewLine > 0) {
+    content = content.slice(0, lastNewLine + 1);
+  }
+
+  return content;
+}

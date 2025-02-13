@@ -125,8 +125,20 @@ export const listJobs = graphql(/* GraphQL */ `
 `)
 
 export const listSecuredUsers = graphql(/* GraphQL */ `
-  query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
-    users(after: $after, before: $before, first: $first, last: $last) {
+  query ListUsers(
+    $ids: [ID!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    users(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
       edges {
         node {
           id
@@ -445,6 +457,9 @@ export const listThreadMessages = graphql(/* GraphQL */ `
                 merged
               }
             }
+            codeFileList {
+              fileList
+            }
           }
         }
         cursor
@@ -576,6 +591,7 @@ export const listPageSections = graphql(/* GraphQL */ `
           pageId
           title
           content
+          position
         }
         cursor
       }

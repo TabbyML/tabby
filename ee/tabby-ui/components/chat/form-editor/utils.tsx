@@ -1,10 +1,12 @@
 // utils.ts
 import { JSONContent } from '@tiptap/core'
-import { Filepath } from 'tabby-chat-panel/index'
+import { SquareFunction } from 'lucide-react'
+import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import { PLACEHOLDER_FILE_REGEX } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
 import { convertFilepath, nanoid, resolveFileNameForDisplay } from '@/lib/utils'
+import { IconFile } from '@/components/ui/icons'
 
 import { FileItem, SourceItem } from './types'
 
@@ -17,7 +19,8 @@ export function fileItemToSourceItem(info: FileItem): SourceItem {
     fileItem: info,
     name: resolveFileNameForDisplay(filepathString), // Extract the last segment of the path as the name
     filepath: filepathString,
-    category: 'file'
+    category: 'file',
+    icon: <IconFile />
   }
   try {
     return {
@@ -29,6 +32,18 @@ export function fileItemToSourceItem(info: FileItem): SourceItem {
       id: nanoid(),
       ...source
     }
+  }
+}
+
+export function symbolItemToSourceItem(info: ListSymbolItem): SourceItem {
+  const filepath = convertFilepath(info.filepath).filepath
+  return {
+    category: 'symbol',
+    id: info.label,
+    name: info.label,
+    filepath: filepath,
+    fileItem: info,
+    icon: <SquareFunction className="h-4 w-4" />
   }
 }
 
@@ -125,5 +140,17 @@ export function isSameEntireFileContextFromMention(
     fileContext1.git_url === fileContext2.git_url &&
     !fileContext1.range &&
     !fileContext2.range
+  )
+}
+
+export const isSameFileContext = (a: FileContext, b: FileContext) => {
+  const sameBasicInfo = a.filepath === b.filepath && a.git_url === b.git_url
+
+  if (!a.range && !b.range) return sameBasicInfo
+
+  return (
+    sameBasicInfo &&
+    a.range?.start === b.range?.start &&
+    a.range?.end === b.range?.end
   )
 }

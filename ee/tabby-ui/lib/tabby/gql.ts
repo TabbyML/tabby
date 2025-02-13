@@ -23,6 +23,7 @@ import {
   GitRepositoriesQueryVariables,
   ListIntegrationsQueryVariables,
   ListInvitationsQueryVariables,
+  ListPageSectionsQueryVariables,
   ListThreadsQueryVariables,
   NotificationsQueryVariables,
   SourceIdAccessPoliciesQueryVariables,
@@ -33,6 +34,7 @@ import { refreshTokenMutation } from './auth'
 import {
   listIntegrations,
   listInvitations,
+  listPageSections,
   listRepositories,
   listSourceIdAccessPolicies,
   listThreads,
@@ -454,6 +456,31 @@ const client = new Client({
                             return item
                           }
                         })
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          deletePageSection(result, args, cache) {
+            if (result.deletePageSection) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'pageSections')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listPageSections,
+                      variables:
+                        field.arguments as ListPageSectionsQueryVariables
+                    },
+                    data => {
+                      if (data?.pageSections) {
+                        data.pageSections.edges =
+                          data.pageSections.edges.filter(
+                            e => e.node.id !== args.id
+                          )
                       }
                       return data
                     }

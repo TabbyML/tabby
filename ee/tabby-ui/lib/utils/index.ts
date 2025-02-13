@@ -196,16 +196,22 @@ export function getPromptForChatCommand(command: ChatCommand) {
 }
 
 export const convertFilepath = (filepath: Filepath) => {
-  if (filepath.kind === 'uri') {
+  if (filepath.kind === 'git') {
     return {
-      filepath: filepath.uri,
+      filepath: filepath.filepath,
       git_url: ''
     }
   }
-
+  if (filepath.kind === 'workspace') {
+    return {
+      filepath: filepath.filepath,
+      baseDir: filepath.baseDir,
+      git_url: ''
+    }
+  }
   return {
-    filepath: filepath.filepath,
-    git_url: filepath.gitUrl
+    filepath: filepath.uri,
+    git_url: ''
   }
 }
 
@@ -244,11 +250,21 @@ export function getFilepathFromContext(context: FileContext): Filepath {
       filepath: context.filepath,
       gitUrl: context.git_url
     }
-  } else {
+  }
+  if (
+    context.baseDir &&
+    context.baseDir.length > 1 &&
+    !context.filepath.includes(':')
+  ) {
     return {
-      kind: 'uri',
-      uri: context.filepath
+      kind: 'workspace',
+      filepath: context.filepath,
+      baseDir: context.baseDir
     }
+  }
+  return {
+    kind: 'uri',
+    uri: context.filepath
   }
 }
 

@@ -55,6 +55,18 @@ export function localUriToChatPanelFilepath(uri: Uri, gitProvider: GitProvider):
     }
   }
 
+  if (workspaceFolder) {
+    const baseDir = workspaceFolder.uri.toString(true);
+    const relativeFilePath = path.relative(baseDir, uriFilePath);
+    if (!relativeFilePath.startsWith("..")) {
+      return {
+        kind: "workspace",
+        filepath: relativeFilePath,
+        baseDir: baseDir,
+      };
+    }
+  }
+
   return {
     kind: "uri",
     uri: uriFilePath,
@@ -67,11 +79,16 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
     try {
       result = Uri.parse(filepath.uri, true);
     } catch (e) {
-      // FIXME(@icycodes): this is a hack for uri is relative filepaths in workspaces
-      const workspaceRoot = workspace.workspaceFolders?.[0];
-      if (workspaceRoot) {
-        result = Uri.joinPath(workspaceRoot.uri, filepath.uri);
+      // nothing
+    }
+  } else if (filepath.kind === "workspace") {
+    try {
+      const workspaceFolder = workspace.getWorkspaceFolder(Uri.parse(filepath.baseDir, true));
+      if (workspaceFolder) {
+        result = Uri.joinPath(workspaceFolder.uri, filepath.filepath);
       }
+    } catch (e) {
+      // do nothing
     }
   } else if (filepath.kind === "git") {
     const localGitRoot = gitProvider.findLocalRootUriByRemoteUrl(filepath.gitUrl);
@@ -121,6 +138,13 @@ export function chatPanelLineRangeToVSCodeRange(lineRange: LineRange): VSCodeRan
   return new VSCodeRange(Math.max(0, lineRange.start - 1), 0, lineRange.end, 0);
 }
 
+export function vscodeRangeToChatPanelLineRange(range: VSCodeRange): LineRange {
+  return {
+    start: range.start.line + 1,
+    end: range.end.line + 1,
+  };
+}
+
 export function chatPanelLocationToVSCodeRange(location: Location | undefined): VSCodeRange | null {
   if (!location) {
     return null;
@@ -146,11 +170,6 @@ export function localUriToListFileItem(uri: Uri, gitProvider: GitProvider): List
   return {
     filepath: localUriToChatPanelFilepath(uri, gitProvider),
   };
-}
-
-export function escapeGlobPattern(query: string): string {
-  // escape special glob characters: * ? [ ] { } ( ) ! @
-  return query.replace(/[*?[\]{}()!@]/g, "\\$&");
 }
 
 // Notebook cell uri conversion

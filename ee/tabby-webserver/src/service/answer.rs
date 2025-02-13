@@ -118,7 +118,7 @@ impl AnswerService {
                     if need_codebase_context.file_list {
                         // List at most 300 files in the repository.
                         match self.repository.list_files(&policy, &repository.kind, &repository.id, None, Some(300)).await {
-                            Ok(files) => {
+                            Ok((files, _is_clipped)) => {
                                 let file_list: Vec<_> = files.into_iter().map(|x| x.path).collect();
                                 attachment.code_file_list = Some(MessageAttachmentCodeFileList {
                                     file_list: file_list.clone(),

@@ -21,6 +21,15 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
                 .as_deref()
                 .expect("api_endpoint is required"),
             config.api_key.clone(),
+            false,
+        ),
+        "llama.cpp/before_b4356_embedding" => LlamaCppEngine::create(
+            config
+                .api_endpoint
+                .as_deref()
+                .expect("api_endpoint is required"),
+            config.api_key.clone(),
+            true,
         ),
         "openai/embedding" => OpenAIEmbeddingEngine::create(
             config

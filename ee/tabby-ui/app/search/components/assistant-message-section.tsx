@@ -69,7 +69,6 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { ChatContext } from '@/components/chat/chat'
-import { CodeReferences } from '@/components/chat/code-references'
 import { CopyButton } from '@/components/copy-button'
 import {
   ErrorMessageBlock,
@@ -80,6 +79,7 @@ import { SiteFavicon } from '@/components/site-favicon'
 import { SourceIcon } from '@/components/source-icon'
 import { UserAvatar } from '@/components/user-avatar'
 
+import { ReadingCodeStepper } from './reading-code-step'
 import { SOURCE_CARD_STYLE } from './search'
 import { SearchContext } from './search-context'
 import { ConversationMessage } from './types'
@@ -266,6 +266,14 @@ export function AssistantMessageSection({
     }
   }
 
+  const showFileListStep =
+    !!message.readingCode?.fileList ||
+    !!message.attachment?.codeFileList?.fileList?.length
+  const showCodeSnippetsStep =
+    message.readingCode?.snippet || !!messageAttachmentCodeLen
+
+  const showReadingCodeStep = showFileListStep || showCodeSnippetsStep
+
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
       {/* document search hits */}
@@ -333,30 +341,18 @@ export function AssistantMessageSection({
           )}
         </div>
 
-        {/* attachment clientCode & code */}
-        {(message.isReadingCode || messageAttachmentCodeLen > 0) && (
-          <CodeReferences
-            clientContexts={clientCodeContexts}
-            contexts={serverCodeContexts}
-            className="mt-1 text-sm"
+        {showReadingCodeStep && (
+          <ReadingCodeStepper
+            clientCodeContexts={clientCodeContexts}
+            serverCodeContexts={serverCodeContexts}
+            isReadingFileList={message.isReadingFileList}
+            isReadingCode={message.isReadingCode}
             onContextClick={onCodeContextClick}
-            enableTooltip={enableDeveloperMode}
-            showExternalLink={false}
-            showClientCodeIcon
-            onTooltipClick={() => {
-              setConversationIdForDev(message.id)
-              setDevPanelOpen(true)
+            codeSourceId={message.codeSourceId}
+            readingCode={{
+              fileList: showFileListStep,
+              snippet: showCodeSnippetsStep
             }}
-            highlightIndex={relevantCodeHighlightIndex}
-            supportsOpenInEditor={false}
-            title={
-              <RelevantCodeTitle
-                isReadingCode={message.isReadingCode}
-                readingCode={message.readingCode}
-                filesCount={messageAttachmentCodeLen}
-                codeSourceId={message.codeSourceId}
-              />
-            }
           />
         )}
 

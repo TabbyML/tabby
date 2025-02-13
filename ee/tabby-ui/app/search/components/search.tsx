@@ -429,11 +429,16 @@ export function Search() {
       }
     }
 
+    // FIXME(jueliang) process FileList
+
     currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
 
     // update assiatant message status
     if ('isReadingCode' in answer) {
       currentAssistantMessage.isReadingCode = answer.isReadingCode
+    }
+    if ('isReadingFileList' in answer) {
+      currentAssistantMessage.isReadingFileList = answer.isReadingFileList
     }
 
     // update expose steps
@@ -764,6 +769,7 @@ export function Search() {
             <Header
               threadIdFromURL={threadIdFromURL}
               streamingDone={!isLoading}
+              threadId={threadId}
             />
             <LoadingWrapper
               loading={!isReady}

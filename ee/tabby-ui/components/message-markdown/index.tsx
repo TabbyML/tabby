@@ -13,6 +13,7 @@ import {
   cn,
   convertFilepath,
   encodeMentionPlaceHolder,
+  getFilepathFromContext,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import {
@@ -24,9 +25,11 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
+import { SquareFunctionIcon } from 'lucide-react'
 import {
   FileLocation,
   Filepath,
+  ListSymbolItem,
   LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel/index'
@@ -34,7 +37,8 @@ import {
 import {
   MARKDOWN_CITATION_REGEX,
   MARKDOWN_FILE_REGEX,
-  MARKDOWN_SOURCE_REGEX
+  MARKDOWN_SOURCE_REGEX,
+  MARKDOWN_SYMBOL_REGEX
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
@@ -179,6 +183,18 @@ export function MessageMarkdown({
       } catch (e) {}
     })
 
+    processMatches(
+      MARKDOWN_SYMBOL_REGEX,
+      SymbolTag,
+      (match: RegExpExecArray) => {
+        const fullMatch = match[1]
+        return {
+          encodedSymbol: fullMatch,
+          openInEditor
+        }
+      }
+    )
+
     addTextNode(text.slice(lastIndex))
 
     return elements
@@ -191,26 +207,8 @@ export function MessageMarkdown({
     setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
     const hints: LookupSymbolHint[] = []
     if (activeSelection && activeSelection?.range) {
-      // FIXME(@icycodes): this is intended to convert the filepath to Filepath type
-      // We should remove this after FileContext.filepath use type Filepath instead of string
-      let filepath: Filepath
-      if (
-        activeSelection.git_url.length > 1 &&
-        !activeSelection.filepath.includes(':')
-      ) {
-        filepath = {
-          kind: 'git',
-          filepath: activeSelection.filepath,
-          gitUrl: activeSelection.git_url
-        }
-      } else {
-        filepath = {
-          kind: 'uri',
-          uri: activeSelection.filepath
-        }
-      }
       hints.push({
-        filepath,
+        filepath: getFilepathFromContext(activeSelection),
         location: {
           start: activeSelection.range.start,
           end: activeSelection.range.end
@@ -446,6 +444,52 @@ function FileTag({
       <span className={cn('whitespace-normal font-medium')}>
         {resolveFileNameForDisplay(filepathString)}
       </span>
+    </span>
+  )
+}
+
+function SymbolTag({
+  encodedSymbol,
+  openInEditor,
+  className
+}: {
+  encodedSymbol: string | undefined
+  className?: string
+  openInEditor?: MessageMarkdownProps['openInEditor']
+}) {
+  const symbol = useMemo(() => {
+    if (!encodedSymbol) return null
+    try {
+      const decodedSymbol = decodeURIComponent(encodedSymbol)
+      return JSON.parse(decodedSymbol) as ListSymbolItem
+    } catch (e) {
+      return null
+    }
+  }, [encodedSymbol])
+
+  const handleClick = () => {
+    if (!openInEditor || !symbol) return
+    openInEditor({
+      filepath: symbol.filepath,
+      location: symbol.range
+    })
+  }
+
+  if (!symbol?.label) return null
+
+  return (
+    <span
+      className={cn(
+        'symbol space-x-1 whitespace-nowrap border bg-muted py-0.5 align-middle leading-5',
+        className,
+        {
+          'hover:bg-muted/50 cursor-pointer': !!openInEditor
+        }
+      )}
+      onClick={handleClick}
+    >
+      <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
+      <span className="font-medium">{symbol.label}</span>
     </span>
   )
 }

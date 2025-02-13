@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use juniper::{GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
+use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion, ID};
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -37,6 +37,7 @@ pub struct Section {
     pub page_id: ID,
     pub title: String,
     pub content: String,
+    pub position: i32,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -58,10 +59,10 @@ impl NodeType for Section {
     }
 }
 
-#[derive(GraphQLInputObject)]
-pub struct AddPageSectionInput {
-    pub page_id: ID,
-    pub title: String,
+#[derive(GraphQLEnum)]
+pub enum MoveSectionDirection {
+    Up,
+    Down,
 }
 
 #[derive(GraphQLObject)]
@@ -80,6 +81,7 @@ pub struct PageSectionsCreated {
 pub struct PageSection {
     pub id: ID,
     pub title: String,
+    pub position: i32,
 }
 
 #[derive(GraphQLObject)]

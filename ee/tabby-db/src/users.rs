@@ -128,10 +128,17 @@ impl DbConn {
 
     pub async fn list_users_with_filter(
         &self,
+        ids: Option<Vec<i32>>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<UserDAO>> {
+        let condition = ids.map(|ids| {
+            let ids: Vec<String> = ids.iter().map(i32::to_string).collect();
+            let ids = ids.join(", ");
+            format!("id in ({ids})")
+        });
+
         let users = query_paged_as!(
             UserDAO,
             "users",
@@ -148,7 +155,8 @@ impl DbConn {
             ],
             limit,
             skip_id,
-            backwards
+            backwards,
+            condition
         )
         .fetch_all(&self.pool)
         .await?;
@@ -402,7 +410,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(None, None, false)
+                conn.list_users_with_filter(None, None, None, false)
                     .await
                     .unwrap()
             )
@@ -410,7 +418,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(Some(2), None, false)
+                conn.list_users_with_filter(None, Some(2), None, false)
                     .await
                     .unwrap()
             )
@@ -418,7 +426,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(None, Some(1), false)
+                conn.list_users_with_filter(None, None, Some(1), false)
                     .await
                     .unwrap()
             )
@@ -426,7 +434,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(Some(2), Some(1), false)
+                conn.list_users_with_filter(None, Some(2), Some(1), false)
                     .await
                     .unwrap()
             )
@@ -434,12 +442,8 @@ mod tests {
         // backwards
         assert_eq!(
             empty,
-            to_ids(conn.list_users_with_filter(None, None, true).await.unwrap())
-        );
-        assert_eq!(
-            empty,
             to_ids(
-                conn.list_users_with_filter(Some(2), None, true)
+                conn.list_users_with_filter(None, None, None, true)
                     .await
                     .unwrap()
             )
@@ -447,7 +451,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(None, Some(1), true)
+                conn.list_users_with_filter(None, Some(2), None, true)
                     .await
                     .unwrap()
             )
@@ -455,7 +459,15 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(Some(1), Some(1), true)
+                conn.list_users_with_filter(None, None, Some(1), true)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(None, Some(1), Some(1), true)
                     .await
                     .unwrap()
             )
@@ -476,7 +488,7 @@ mod tests {
         assert_eq!(
             vec![id1],
             to_ids(
-                conn.list_users_with_filter(None, None, false)
+                conn.list_users_with_filter(None, None, None, false)
                     .await
                     .unwrap()
             )
@@ -484,7 +496,7 @@ mod tests {
         assert_eq!(
             vec![id1],
             to_ids(
-                conn.list_users_with_filter(Some(2), None, false)
+                conn.list_users_with_filter(None, Some(2), None, false)
                     .await
                     .unwrap()
             )
@@ -492,7 +504,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(None, Some(1), false)
+                conn.list_users_with_filter(None, None, Some(1), false)
                     .await
                     .unwrap()
             )
@@ -500,7 +512,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(Some(2), Some(1), false)
+                conn.list_users_with_filter(None, Some(2), Some(1), false)
                     .await
                     .unwrap()
             )
@@ -508,12 +520,16 @@ mod tests {
         // backwards
         assert_eq!(
             vec![id1],
-            to_ids(conn.list_users_with_filter(None, None, true).await.unwrap())
+            to_ids(
+                conn.list_users_with_filter(None, None, None, true)
+                    .await
+                    .unwrap()
+            )
         );
         assert_eq!(
             vec![id1],
             to_ids(
-                conn.list_users_with_filter(Some(2), None, true)
+                conn.list_users_with_filter(None, Some(2), None, true)
                     .await
                     .unwrap()
             )
@@ -521,7 +537,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(None, Some(1), true)
+                conn.list_users_with_filter(None, None, Some(1), true)
                     .await
                     .unwrap()
             )
@@ -529,7 +545,7 @@ mod tests {
         assert_eq!(
             empty,
             to_ids(
-                conn.list_users_with_filter(Some(1), Some(1), true)
+                conn.list_users_with_filter(None, Some(1), Some(1), true)
                     .await
                     .unwrap()
             )
@@ -577,7 +593,7 @@ mod tests {
         assert_eq!(
             vec![id1, id2, id3, id4, id5],
             to_ids(
-                conn.list_users_with_filter(None, None, false)
+                conn.list_users_with_filter(None, None, None, false)
                     .await
                     .unwrap()
             )
@@ -585,7 +601,7 @@ mod tests {
         assert_eq!(
             vec![id1, id2],
             to_ids(
-                conn.list_users_with_filter(Some(2), None, false)
+                conn.list_users_with_filter(None, Some(2), None, false)
                     .await
                     .unwrap()
             )
@@ -593,7 +609,7 @@ mod tests {
         assert_eq!(
             vec![id3, id4, id5],
             to_ids(
-                conn.list_users_with_filter(None, Some(2), false)
+                conn.list_users_with_filter(None, None, Some(2), false)
                     .await
                     .unwrap()
             )
@@ -601,7 +617,7 @@ mod tests {
         assert_eq!(
             vec![id3, id4],
             to_ids(
-                conn.list_users_with_filter(Some(2), Some(2), false)
+                conn.list_users_with_filter(None, Some(2), Some(2), false)
                     .await
                     .unwrap()
             )
@@ -609,12 +625,16 @@ mod tests {
         // backwards
         assert_eq!(
             vec![id1, id2, id3, id4, id5],
-            to_ids(conn.list_users_with_filter(None, None, true).await.unwrap())
+            to_ids(
+                conn.list_users_with_filter(None, None, None, true)
+                    .await
+                    .unwrap()
+            )
         );
         assert_eq!(
             vec![id4, id5],
             to_ids(
-                conn.list_users_with_filter(Some(2), None, true)
+                conn.list_users_with_filter(None, Some(2), None, true)
                     .await
                     .unwrap()
             )
@@ -622,7 +642,7 @@ mod tests {
         assert_eq!(
             vec![id1, id2, id3],
             to_ids(
-                conn.list_users_with_filter(None, Some(4), true)
+                conn.list_users_with_filter(None, None, Some(4), true)
                     .await
                     .unwrap()
             )
@@ -630,7 +650,7 @@ mod tests {
         assert_eq!(
             vec![id2, id3],
             to_ids(
-                conn.list_users_with_filter(Some(2), Some(4), true)
+                conn.list_users_with_filter(None, Some(2), Some(4), true)
                     .await
                     .unwrap()
             )

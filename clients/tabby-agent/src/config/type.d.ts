@@ -78,6 +78,10 @@ export type ConfigData = {
     edit: {
       documentMaxChars: number;
       commandMaxChars: number;
+      fileContext: {
+        maxFiles: number;
+        maxCharsPerFile: number;
+      };
       responseDocumentTag: string[];
       responseCommentTag: string[] | undefined;
       promptTemplate: {
