@@ -286,10 +286,13 @@ pub async fn generate_page_sections(
         .join("\n");
     let context = context_info_helper.rewrite_tag(&content);
     pipeline_page_sections(chat.clone(), &context, &content)
-        .await.map(|titles| titles
+        .await
+        .map(|titles| {
+            titles
                 .iter()
                 .map(|x| trim_title(x).to_owned())
-                .collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        })
 }
 
 pub async fn generate_page_section_content(
