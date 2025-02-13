@@ -171,10 +171,10 @@ function StepItem({
           setOpen(v === itemName)
         }}
       >
-        <AccordionItem value={itemName} className="border-0 relative">
+        <AccordionItem value={itemName} className="relative border-0">
           {/* vertical separator */}
           {(!isLastItem || (open && hasChildren)) && (
-            <div className="absolute left-3 top-5 block h-full w-0.5 shrink-0 rounded-full bg-muted translate-x-px"></div>
+            <div className="absolute left-3 top-5 block h-full w-0.5 shrink-0 translate-x-px rounded-full bg-muted"></div>
           )}
           <AccordionTrigger
             className="group w-full gap-2 rounded-lg py-1 pl-1.5 pr-2 !no-underline hover:bg-muted/70"
@@ -192,7 +192,7 @@ function StepItem({
             </div>
           </AccordionTrigger>
           {!!children && (
-            <AccordionContent className="pb-0 pl-9">
+            <AccordionContent className="pb-0 pl-10">
               {children}
             </AccordionContent>
           )}
