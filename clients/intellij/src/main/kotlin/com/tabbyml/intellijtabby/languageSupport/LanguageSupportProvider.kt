@@ -3,6 +3,7 @@ package com.tabbyml.intellijtabby.languageSupport
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import java.util.concurrent.CompletableFuture
 
 interface LanguageSupportProvider {
   data class FilePosition(
@@ -36,8 +37,8 @@ interface LanguageSupportProvider {
    * If no tokens are found, return an empty list.
    * If the provider does not support the given document, return null.
    */
-  fun provideSemanticTokensRange(project: Project, fileRange: FileRange): List<SemanticToken>? {
-    return null
+  fun provideSemanticTokensRange(project: Project, fileRange: FileRange): CompletableFuture<List<SemanticToken>?> {
+    return CompletableFuture.completedFuture(null)
   }
 
   /**
@@ -45,7 +46,7 @@ interface LanguageSupportProvider {
    * If no declaration is found, return an empty list.
    * If the provider does not support the given document, return null.
    */
-  fun provideDeclaration(project: Project, filePosition: FilePosition): List<FileRange>? {
-    return null
+  fun provideDeclaration(project: Project, filePosition: FilePosition): CompletableFuture<List<FileRange>?> {
+    return CompletableFuture.completedFuture(null)
   }
 }
