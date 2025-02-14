@@ -312,7 +312,7 @@ export function AssistantMessageSection({
         </div>
 
         {(showReadingCodeStep || showReadingDocStep) && (
-          <div className="mb-6">
+          <div className="mb-6 space-y-1.5">
             {showReadingCodeStep && (
               <ReadingCodeStepper
                 clientCodeContexts={clientCodeContexts}
