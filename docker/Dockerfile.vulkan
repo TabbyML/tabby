@@ -51,7 +51,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
     cargo build --no-default-features --features vulkan,prod --release --package tabby \
         --target `uname -m`-unknown-linux-${LIBC} && \
-    mkdir /opt/tabby/tmp/`uname -m`-unknown-linux-${LIBC} && \
+    mkdir -p /opt/tabby/tmp/`uname -m`-unknown-linux-${LIBC} && \
     cp -a target/release /opt/tabby/tmp/ && \
     if [ -d target/`uname -m`-unknown-linux-${LIBC}/release ]; then \
         cp -a target/`uname -m`-unknown-linux-${LIBC}/release /opt/tabby/tmp/`uname -m`-unknown-linux-${LIBC}/ ; \
