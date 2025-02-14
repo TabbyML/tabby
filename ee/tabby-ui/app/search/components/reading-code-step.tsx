@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext, useMemo } from 'react'
+import { ReactNode, useContext, useMemo } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import { isNil } from 'lodash-es'
 
@@ -9,7 +9,7 @@ import {
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
-import { isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
+import { cn, isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -21,7 +21,13 @@ import {
   HoverCardContent,
   HoverCardTrigger
 } from '@/components/ui/hover-card'
-import { IconCode } from '@/components/ui/icons'
+import {
+  IconCheckCircled,
+  IconCircleDot,
+  IconCode,
+  IconGitMerge,
+  IconGitPullRequest
+} from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
@@ -30,8 +36,8 @@ import {
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SourceIcon } from '@/components/source-icon'
 
-import { SearchContext } from './search-context'
 import { StepItem } from './intermediate-step'
+import { SearchContext } from './search-context'
 
 interface ReadingCodeStepperProps {
   isReadingCode: boolean | undefined
@@ -65,7 +71,9 @@ export function ReadingCodeStepper({
 }: ReadingCodeStepperProps) {
   const { contextInfo } = useContext(SearchContext)
   const totalContextLength =
-    (clientCodeContexts?.length || 0) + serverCodeContexts.length + (webResources?.length || 0)
+    (clientCodeContexts?.length || 0) +
+    serverCodeContexts.length +
+    (webResources?.length || 0)
   const targetRepo = useMemo(() => {
     if (!codeSourceId) return undefined
 
@@ -146,6 +154,7 @@ export function ReadingCodeStepper({
                           <CodeContextItem
                             key={`client-${index}`}
                             context={item}
+                            clickable={false}
                             onContextClick={ctx => onContextClick?.(ctx, true)}
                           />
                         )
@@ -178,12 +187,7 @@ export function ReadingCodeStepper({
                           <div key={`${x.link}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
                               <HoverCardTrigger>
-                                <div
-                                  className="cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
-                                  onClick={() => window.open(x.link)}
-                                >
-                                  {`#${x.link.split('/').pop()}`}
-                                </div>
+                                <CodebaseDocView doc={x} />
                               </HoverCardTrigger>
                               <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
                                 <DocDetailView relevantDocument={x} />
@@ -207,10 +211,15 @@ export function ReadingCodeStepper({
 interface CodeContextItemProps {
   context: RelevantCodeContext
   onContextClick?: (context: RelevantCodeContext) => void
+  clickable?: boolean
 }
 
-// todo clickable highlighted, dev mode tooltip
-function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
+// todo dev mode tooltip
+function CodeContextItem({
+  context,
+  clickable,
+  onContextClick
+}: CodeContextItemProps) {
   const isMultiLine =
     context.range &&
     !isNil(context.range?.start) &&
@@ -240,8 +249,17 @@ function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
     <Tooltip delayDuration={100}>
       <TooltipTrigger asChild>
         <div
-          className="cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5"
-          onClick={e => onContextClick?.(context)}
+          className={cn(
+            'cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5',
+            {
+              'cursor-pointer': clickable
+            }
+          )}
+          onClick={e => {
+            if (clickable) {
+              onContextClick?.(context)
+            }
+          }}
         >
           <span>{fileName}</span>
           {rangeText ? (
@@ -261,5 +279,39 @@ function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
         </div>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+// Issue or PR
+function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
+  const docName = `#${doc.link.split('/').pop()}`
+  const isIssue = doc.__typename === 'MessageAttachmentIssueDoc'
+  const isPR = doc.__typename === 'MessageAttachmentPullDoc'
+
+  let icon: ReactNode = null
+  if (isIssue) {
+    icon = doc.closed ? (
+      <IconCheckCircled className="h-3 w-3" />
+    ) : (
+      <IconCircleDot className="h-3 w-3" />
+    )
+  }
+
+  if (isPR) {
+    icon = doc.merged ? (
+      <IconGitMerge className="h-3 w-3" />
+    ) : (
+      <IconGitPullRequest className="h-3 w-3" />
+    )
+  }
+
+  return (
+    <div
+      className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold"
+      onClick={() => window.open(doc.link)}
+    >
+      {icon}
+      <span>{docName}</span>
+    </div>
   )
 }

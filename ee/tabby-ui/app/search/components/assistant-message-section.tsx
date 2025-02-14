@@ -78,10 +78,10 @@ import { SiteFavicon } from '@/components/site-favicon'
 import { UserAvatar } from '@/components/user-avatar'
 
 import { ReadingCodeStepper } from './reading-code-step'
+import { ReadingDocStepper } from './reading-doc-step'
 import { SOURCE_CARD_STYLE } from './search'
 import { SearchContext } from './search-context'
 import { ConversationMessage } from './types'
-import { ReadingDocStepper } from './reading-doc-step'
 
 export function AssistantMessageSection({
   className,
@@ -221,13 +221,18 @@ export function AssistantMessageSection({
     (messageAttachmentClientCode?.length || 0) +
     (message.attachment?.code?.length || 0)
 
-
   const issuesAndPRs = useMemo(() => {
-    return messageAttachmentDocs?.filter(x => x.__typename === 'MessageAttachmentIssueDoc' || x.__typename === 'MessageAttachmentPullDoc')
+    return messageAttachmentDocs?.filter(
+      x =>
+        x.__typename === 'MessageAttachmentIssueDoc' ||
+        x.__typename === 'MessageAttachmentPullDoc'
+    )
   }, [messageAttachmentDocs])
 
   const webDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(x => x.__typename === 'MessageAttachmentWebDoc')
+    return messageAttachmentDocs?.filter(
+      x => x.__typename === 'MessageAttachmentWebDoc'
+    )
   }, [messageAttachmentDocs])
 
   const onCodeContextClick = (ctx: Context) => {
@@ -307,7 +312,7 @@ export function AssistantMessageSection({
         </div>
 
         {(showReadingCodeStep || showReadingDocStep) && (
-          <div className='mb-6'>
+          <div className="mb-6">
             {showReadingCodeStep && (
               <ReadingCodeStepper
                 clientCodeContexts={clientCodeContexts}

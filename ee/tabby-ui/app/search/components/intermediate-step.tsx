@@ -1,6 +1,12 @@
-import { ReactNode, useEffect, useState } from "react"
-import { Accordion, AccordionItem, AccordionContent, AccordionTrigger } from "@/components/ui/accordion"
-import { IconCheckFull, IconSpinner } from "@/components/ui/icons"
+import { ReactNode, useEffect, useState } from 'react'
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from '@/components/ui/accordion'
+import { IconCheckFull, IconSpinner } from '@/components/ui/icons'
 
 export function StepItem({
   isLoading,

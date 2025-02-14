@@ -2,10 +2,7 @@
 
 import { Maybe } from 'graphql/jsutils/Maybe'
 
-import {
-  ContextSource,
-  ContextSourceKind,
-} from '@/lib/gql/generates/graphql'
+import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
 import {
   Accordion,
@@ -18,13 +15,15 @@ import {
   HoverCardContent,
   HoverCardTrigger
 } from '@/components/ui/hover-card'
-import { IconBlocks, IconEmojiBook, IconEmojiGlobe } from '@/components/ui/icons'
-
-
+import {
+  IconBlocks,
+  IconEmojiBook,
+  IconEmojiGlobe
+} from '@/components/ui/icons'
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
+import { SiteFavicon } from '@/components/site-favicon'
 
 import { StepItem } from './intermediate-step'
-import { SiteFavicon } from '@/components/site-favicon'
 
 interface ReadingDocStepperProps {
   isReadingDocs: boolean | undefined
@@ -37,7 +36,7 @@ interface ReadingDocStepperProps {
 export function ReadingDocStepper({
   isReadingDocs,
   webResources,
-  docQueryResources,
+  docQueryResources
 }: ReadingDocStepperProps) {
   const resultLen = webResources?.length
 
@@ -48,19 +47,26 @@ export function ReadingDocStepper({
           <div className="flex flex-1 items-center justify-between pr-2">
             <div className="flex flex-1 items-center gap-2">
               <IconBlocks className="mr-2 h-5 w-5 shrink-0" />
-              <span className='shrink-0'>Look into</span>
-              <div className='flex flex-1 flex-nowrap gap-2 truncate !no-underline'>
+              <span className="shrink-0">Look into</span>
+              <div className="flex flex-1 flex-nowrap gap-2 truncate !no-underline">
                 {docQueryResources?.map(x => {
                   return (
-                    <div className='flex items-center gap-0.5 rounded-lg border px-1'>
-                      {x.sourceKind === ContextSourceKind.Web ? <IconEmojiGlobe /> : <IconEmojiBook />}
+                    <div
+                      className="flex items-center gap-0.5 rounded-lg border px-1"
+                      key={x.sourceId}
+                    >
+                      {x.sourceKind === ContextSourceKind.Web ? (
+                        <IconEmojiGlobe />
+                      ) : (
+                        <IconEmojiBook />
+                      )}
                       {x.sourceName}
                     </div>
                   )
                 })}
               </div>
             </div>
-            <div className='shrink-0'>
+            <div className="shrink-0">
               {resultLen ? (
                 <div className="text-sm text-muted-foreground">
                   {resultLen} sources
@@ -110,7 +116,6 @@ export function ReadingDocStepper({
 }
 
 function DocItem({ doc }: { doc: AttachmentDocItem }) {
-
   if (doc.__typename !== 'MessageAttachmentWebDoc') return null
 
   const sourceUrl = doc ? new URL(doc.link) : null
