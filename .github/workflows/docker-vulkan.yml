@@ -7,6 +7,10 @@ on:
         description: 'Push to Docker Hub'
         required: false
         type: boolean
+      platforms:
+        description: 'Target platforms, default "linux/amd64,linux/arm64"'
+        required: true
+        default: 'linux/amd64,linux/arm64'
   push:
     tags:
       - "v*"
@@ -117,7 +121,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           file: docker/Dockerfile.${{ matrix.device-type }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ github.event.inputs.platforms }}
           push: true
           context: .
           tags: ${{ steps.meta.outputs.tags }}
