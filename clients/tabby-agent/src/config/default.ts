@@ -6,6 +6,9 @@ import editCommandReplacePrompt from "../chat/prompts/edit-command-replace.md";
 import editCommandInsertPrompt from "../chat/prompts/edit-command-insert.md";
 import generateSmartApplyPrompt from "../chat/prompts/generate-smart-apply.md";
 import provideSmartApplyLineRangePrompt from "../chat/prompts/provide-smart-apply-line-range.md";
+import includeFileContextList from "../chat/prompts/include-file-context-list.md";
+import includeFileContextItem from "../chat/prompts/include-file-context-item.md";
+
 export const defaultConfigData: ConfigData = {
   server: {
     endpoint: "http://localhost:8080",
@@ -66,11 +69,14 @@ export const defaultConfigData: ConfigData = {
   },
   chat: {
     edit: {
+      // FIXME(@icycodes): use one config for max length of final prompt length,
+      // instead of documentMaxChars, commandMaxChars, fileContext.maxFiles and fileContext.maxCharsPerFile
       documentMaxChars: 3000,
       commandMaxChars: 200,
       fileContext: {
-        maxFiles: 20,
+        maxFiles: 5,
         maxCharsPerFile: 3000,
+        promptTemplate: [includeFileContextList, includeFileContextItem],
       },
       responseDocumentTag: ["<GENERATEDCODE>", "</GENERATEDCODE>"],
       responseCommentTag: undefined,
