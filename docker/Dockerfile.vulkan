@@ -1,5 +1,7 @@
 ARG UBUNTU_VERSION=22.04
 ARG LIBC=gnu
+# If alpine
+# ARG LIBC=musl
 
 # Target the VULKAN build image
 ARG BASE_VULKAN_DEV_CONTAINER=ubuntu:${UBUNTU_VERSION}
@@ -8,10 +10,15 @@ ARG BASE_VULKAN_RUN_CONTAINER=ubuntu:${UBUNTU_VERSION}
 
 FROM ${BASE_VULKAN_DEV_CONTAINER} AS build
 
+ARG LIBC
+
 # Rust toolchain version
 ARG RUST_TOOLCHAIN=stable
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+RUN [ -n "`uname -m`" ] && [ -n "${LIBC}" ] && echo cargo target `uname -m`-unknown-linux-${LIBC}
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
