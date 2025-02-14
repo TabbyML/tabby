@@ -1,4 +1,4 @@
-ARG UBUNTU_VERSION=22.04
+ARG UBUNTU_VERSION=24.04
 ARG LIBC=gnu
 # If alpine
 # ARG LIBC=musl
@@ -26,6 +26,7 @@ RUN apt-get update && \
         pkg-config \
         libssl-dev \
         libvulkan-dev \
+        glslc \
         protobuf-compiler \
         git \
         cmake \
