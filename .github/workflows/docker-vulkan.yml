@@ -2,6 +2,11 @@ name: Create and publish docker image (Vulkan)
 
 on:
   workflow_dispatch:
+    inputs:
+      dockerhub:
+        description: 'Push to Docker Hub'
+        required: false
+        type: boolean
   push:
     tags:
       - "v*"
@@ -74,6 +79,7 @@ jobs:
 
       - name: Log into Docker Hub
         uses: docker/login-action@v3
+        if: inputs.dockerhub
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -122,6 +128,7 @@ jobs:
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
+        if: inputs.dockerhub
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
