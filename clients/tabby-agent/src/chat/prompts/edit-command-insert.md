@@ -5,7 +5,7 @@ You should not use other XML tags in response unless they are parts of the gener
 You must only reply the generated code to insert, do not repeat the current code in response.
 You should not provide any additional comments in response.
 You should ensure the indentation of generated code matches the given document.
-
+{{fileContext}}
 The user is editing a file located at: {{filepath}}.
 
 The current file content is provided enclosed in <USERDOCUMENT></USERDOCUMENT> XML tags.
