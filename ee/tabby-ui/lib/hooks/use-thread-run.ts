@@ -226,7 +226,7 @@ const defaultAnswerStream = (): AnswerStream => ({
   completed: false,
   isReadingCode: false,
   isReadingFileList: false,
-  isReadingDocs: false
+  isReadingDocs: true
 })
 
 export interface ThreadRun {

@@ -81,6 +81,7 @@ import { ReadingCodeStepper } from './reading-code-step'
 import { SOURCE_CARD_STYLE } from './search'
 import { SearchContext } from './search-context'
 import { ConversationMessage } from './types'
+import { ReadingDocStepper } from './reading-doc-step'
 
 export function AssistantMessageSection({
   className,
@@ -134,10 +135,6 @@ export function AssistantMessageSection({
   }, [contextInfo?.sources, userMessage?.content])
 
   const [isEditing, setIsEditing] = useState(false)
-  const [showMoreSource, setShowMoreSource] = useState(false)
-  const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
-    number | undefined
-  >(undefined)
   const getCopyContent = (answer: ConversationMessage) => {
     if (isEmpty(answer?.attachment?.doc) && isEmpty(answer?.attachment?.code)) {
       return answer.content
@@ -224,26 +221,19 @@ export function AssistantMessageSection({
     (messageAttachmentClientCode?.length || 0) +
     (message.attachment?.code?.length || 0)
 
-  const totalHeightInRem = messageAttachmentDocs?.length
-    ? Math.ceil(messageAttachmentDocs.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(messageAttachmentDocs.length / 4) +
-      0.5
-    : 0
+
+  const issuesAndPRs = useMemo(() => {
+    return messageAttachmentDocs?.filter(x => x.__typename === 'MessageAttachmentIssueDoc' || x.__typename === 'MessageAttachmentPullDoc')
+  }, [messageAttachmentDocs])
+
+  const webDocs = useMemo(() => {
+    return messageAttachmentDocs?.filter(x => x.__typename === 'MessageAttachmentWebDoc')
+  }, [messageAttachmentDocs])
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
     const url = buildCodeBrowserUrlForContext(window.location.origin, ctx)
     window.open(url, '_blank')
-  }
-
-  const onCodeCitationMouseEnter = (index: number) => {
-    setRelevantCodeHighlightIndex(
-      index - 1 - (message?.attachment?.doc?.length || 0)
-    )
-  }
-
-  const onCodeCitationMouseLeave = (index: number) => {
-    setRelevantCodeHighlightIndex(undefined)
   }
 
   const openCodeBrowserTab = (code: MessageAttachmentCode) => {
@@ -288,52 +278,11 @@ export function AssistantMessageSection({
   const showCodeSnippetsStep =
     message.readingCode?.snippet || !!messageAttachmentCodeLen
 
-  const showReadingCodeStep = showFileListStep || showCodeSnippetsStep
+  const showReadingCodeStep = !!message.codeSourceId
+  const showReadingDocStep = !!docSources?.length
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
-      {/* document search hits */}
-      {/* {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
-        <div>
-          <div className="mb-1 flex items-center gap-x-2">
-            <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
-            <p className="text-sm font-bold leading-normal">Sources</p>
-          </div>
-          <div
-            className="gap-sm -mx-2 grid grid-cols-3 gap-2 overflow-y-hidden px-2 pt-2 md:grid-cols-4"
-            style={{
-              transition: 'height 0.25s ease-out',
-              height: showMoreSource
-                ? `${totalHeightInRem}rem`
-                : `${SOURCE_CARD_STYLE.compress + 0.5}rem`
-            }}
-          >
-            {messageAttachmentDocs.map((source, index) => (
-              <SourceCard
-                key={source.link + index}
-                conversationId={message.id}
-                source={source}
-                showMore={showMoreSource}
-                showDevTooltip={enableDeveloperMode}
-              />
-            ))}
-          </div>
-          <Button
-            variant="ghost"
-            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
-            onClick={() => setShowMoreSource(!showMoreSource)}
-          >
-            <IconChevronRight
-              className={cn({
-                '-rotate-90': showMoreSource,
-                'rotate-90': !showMoreSource
-              })}
-            />
-            <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
-          </Button>
-        </div>
-      )} */}
-
       {/* Answer content */}
       <div>
         <div className="mb-1 flex h-8 items-center gap-x-1.5">
@@ -357,24 +306,35 @@ export function AssistantMessageSection({
           )}
         </div>
 
-        {showReadingCodeStep && (
-          <ReadingCodeStepper
-            clientCodeContexts={clientCodeContexts}
-            serverCodeContexts={serverCodeContexts}
-            isReadingFileList={message.isReadingFileList}
-            isReadingCode={message.isReadingCode}
-            isReadingDocs={message.isReadingDocs}
-            codeSourceId={message.codeSourceId}
-            docQuery
-            // todo refine
-            docQueryResources={docSources}
-            webResources={message?.attachment?.doc}
-            readingCode={{
-              fileList: showFileListStep,
-              snippet: showCodeSnippetsStep
-            }}
-            onContextClick={onCodeContextClick}
-          />
+        {(showReadingCodeStep || showReadingDocStep) && (
+          <div className='mb-6'>
+            {showReadingCodeStep && (
+              <ReadingCodeStepper
+                clientCodeContexts={clientCodeContexts}
+                serverCodeContexts={serverCodeContexts}
+                isReadingFileList={message.isReadingFileList}
+                isReadingCode={message.isReadingCode}
+                isReadingDocs={message.isReadingDocs}
+                codeSourceId={message.codeSourceId}
+                docQuery
+                docQueryResources={docSources}
+                webResources={issuesAndPRs}
+                readingCode={{
+                  fileList: showFileListStep,
+                  snippet: showCodeSnippetsStep
+                }}
+                onContextClick={onCodeContextClick}
+              />
+            )}
+            {showReadingDocStep && (
+              <ReadingDocStepper
+                docQueryResources={docSources}
+                // todo when to show it ?
+                isReadingDocs={message.isReadingDocs}
+                webResources={webDocs}
+              />
+            )}
+          </div>
         )}
 
         {isLoading && !message.content && (
@@ -394,8 +354,6 @@ export function AssistantMessageSection({
               attachmentClientCode={messageAttachmentClientCode}
               attachmentCode={message.attachment?.code}
               onCodeCitationClick={onCodeCitationClick}
-              onCodeCitationMouseEnter={onCodeCitationMouseEnter}
-              onCodeCitationMouseLeave={onCodeCitationMouseLeave}
               contextInfo={contextInfo}
               fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
