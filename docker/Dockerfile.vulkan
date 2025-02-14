@@ -1,4 +1,5 @@
 ARG UBUNTU_VERSION=22.04
+ARG LIBC=gnu
 
 # Target the VULKAN build image
 ARG BASE_VULKAN_DEV_CONTAINER=ubuntu:${UBUNTU_VERSION}
@@ -39,9 +40,10 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --no-default-features --features vulkan,prod --release --package tabby && \
-    cp target/release/llama-server /opt/tabby/bin/ && \
-    cp target/release/tabby /opt/tabby/bin/
+    cargo build --no-default-features --features vulkan,prod --release --package tabby \
+        --target `uname -m`-unknown-linux-${LIBC} && \
+    cp target/`uname -m`-unknown-linux-${LIBC}/llama-server /opt/tabby/bin/ && \
+    cp target/`uname -m`-unknown-linux-${LIBC}/tabby /opt/tabby/bin/
 
 # For compatibility with the legacy cpu build.
 RUN cp /opt/tabby/bin/tabby /opt/tabby/bin/tabby-cpu
