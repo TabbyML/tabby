@@ -2,12 +2,10 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
-    OAuthCredentialDAO, PageDAO, PageSectionDAO, ServerSettingDAO, ThreadDAO,
-    AttachmentClientCode, AttachmentCode,
-    AttachmentCodeFileList, AttachmentDoc,
-    AttachmentIssueDoc, AttachmentPullDoc, AttachmentWebDoc,
-    UserEventDAO,
+    AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentDoc,
+    AttachmentIssueDoc, AttachmentPullDoc, AttachmentWebDoc, EmailSettingDAO, IntegrationDAO,
+    InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO, OAuthCredentialDAO, PageDAO,
+    PageSectionDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
 };
 
 use crate::{
@@ -313,36 +311,30 @@ pub fn from_thread_message_attachment_document(
 impl From<&thread::MessageAttachmentDoc> for AttachmentDoc {
     fn from(val: &thread::MessageAttachmentDoc) -> Self {
         match val {
-            thread::MessageAttachmentDoc::Web(val) => {
-                AttachmentDoc::Web(AttachmentWebDoc {
-                    title: val.title.clone(),
-                    link: val.link.clone(),
-                    content: val.content.clone(),
-                })
-            }
-            thread::MessageAttachmentDoc::Issue(val) => {
-                AttachmentDoc::Issue(AttachmentIssueDoc {
-                    title: val.title.clone(),
-                    link: val.link.clone(),
-                    author_user_id: val.author.as_ref().map(|x| match x {
-                        UserValue::UserSecured(user) => user.id.to_string(),
-                    }),
-                    body: val.body.clone(),
-                    closed: val.closed,
-                })
-            }
-            thread::MessageAttachmentDoc::Pull(val) => {
-                AttachmentDoc::Pull(AttachmentPullDoc {
-                    title: val.title.clone(),
-                    link: val.link.clone(),
-                    author_user_id: val.author.as_ref().map(|x| match x {
-                        UserValue::UserSecured(user) => user.id.to_string(),
-                    }),
-                    body: val.body.clone(),
-                    diff: val.patch.clone(),
-                    merged: val.merged,
-                })
-            }
+            thread::MessageAttachmentDoc::Web(val) => AttachmentDoc::Web(AttachmentWebDoc {
+                title: val.title.clone(),
+                link: val.link.clone(),
+                content: val.content.clone(),
+            }),
+            thread::MessageAttachmentDoc::Issue(val) => AttachmentDoc::Issue(AttachmentIssueDoc {
+                title: val.title.clone(),
+                link: val.link.clone(),
+                author_user_id: val.author.as_ref().map(|x| match x {
+                    UserValue::UserSecured(user) => user.id.to_string(),
+                }),
+                body: val.body.clone(),
+                closed: val.closed,
+            }),
+            thread::MessageAttachmentDoc::Pull(val) => AttachmentDoc::Pull(AttachmentPullDoc {
+                title: val.title.clone(),
+                link: val.link.clone(),
+                author_user_id: val.author.as_ref().map(|x| match x {
+                    UserValue::UserSecured(user) => user.id.to_string(),
+                }),
+                body: val.body.clone(),
+                diff: val.patch.clone(),
+                merged: val.merged,
+            }),
         }
     }
 }

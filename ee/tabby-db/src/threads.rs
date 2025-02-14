@@ -3,7 +3,12 @@ use chrono::{DateTime, Duration, Utc};
 use sqlx::{query, query_as, types::Json, FromRow};
 use tabby_db_macros::query_paged_as;
 
-use crate::{attachment::{Attachment, AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentDoc}, AsSqliteDateTimeString, DbConn};
+use crate::{
+    attachment::{
+        Attachment, AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentDoc,
+    },
+    AsSqliteDateTimeString, DbConn,
+};
 
 #[derive(FromRow)]
 pub struct ThreadDAO {
