@@ -1,4 +1,5 @@
 pub mod code;
+pub mod commit;
 pub mod structured_doc;
 
 use std::borrow::Cow;
@@ -82,6 +83,7 @@ pub const FIELD_ATTRIBUTES: &str = "attributes";
 pub mod corpus {
     pub const CODE: &str = "code";
     pub const STRUCTURED_DOC: &str = "structured_doc";
+    pub const COMMIT_HISTORY: &str = "commit_history";
 }
 
 impl IndexSchema {

@@ -10,6 +10,7 @@ mod testutils;
 
 use indexer::{IndexAttributeBuilder, Indexer};
 
+mod commit;
 mod structured_doc;
 
 #[cfg(test)]
