@@ -217,6 +217,7 @@ export interface AnswerStream {
   content: string
   isReadingCode: boolean
   isReadingFileList: boolean
+  isReadingDocs: boolean
   completed: boolean
 }
 
@@ -224,7 +225,8 @@ const defaultAnswerStream = (): AnswerStream => ({
   content: '',
   completed: false,
   isReadingCode: false,
-  isReadingFileList: false
+  isReadingFileList: false,
+  isReadingDocs: true
 })
 
 export interface ThreadRun {
@@ -295,6 +297,7 @@ export function useThreadRun({
       case 'ThreadAssistantMessageReadingCode':
         x.isReadingCode = true
         x.isReadingFileList = true
+        x.isReadingDocs = true
         x.readingCode = {
           fileList: data.fileList,
           snippet: data.snippet
@@ -309,10 +312,12 @@ export function useThreadRun({
         break
       case 'ThreadAssistantMessageAttachmentsDoc':
         x.attachmentsDoc = data.hits
+        x.isReadingDocs = false
         break
       case 'ThreadAssistantMessageContentDelta':
         x.isReadingCode = false
         x.isReadingFileList = false
+        x.isReadingDocs = false
         x.content += data.delta
         break
       case 'ThreadAssistantMessageCompleted':
@@ -334,6 +339,7 @@ export function useThreadRun({
       ...p,
       isReadingCode: false,
       isReadingFileList: false,
+      isReadingDocs: false,
       completed: true
     }))
 

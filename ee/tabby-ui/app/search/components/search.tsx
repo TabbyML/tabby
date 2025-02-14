@@ -440,6 +440,9 @@ export function Search() {
     if ('isReadingFileList' in answer) {
       currentAssistantMessage.isReadingFileList = answer.isReadingFileList
     }
+    if ('isReadingDocs' in answer) {
+      currentAssistantMessage.isReadingDocs = answer.isReadingDocs
+    }
 
     // update expose steps
     currentAssistantMessage.readingCode = answer?.readingCode
@@ -802,6 +805,7 @@ export function Search() {
                                 key={pair.answer.id}
                                 className="pb-8 pt-2"
                                 message={pair.answer}
+                                userMessage={pair.question}
                                 clientCode={
                                   pair.question?.attachment?.clientCode
                                 }

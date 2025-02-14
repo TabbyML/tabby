@@ -1,36 +1,56 @@
 'use client'
 
-import { ReactNode, useContext, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useContext, useMemo } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import { isNil } from 'lodash-es'
 
-import { ThreadAssistantMessageReadingCode } from '@/lib/gql/generates/graphql'
-import { RelevantCodeContext } from '@/lib/types'
-import { isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
+import {
+  ContextSource,
+  ThreadAssistantMessageReadingCode
+} from '@/lib/gql/generates/graphql'
+import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
+import { cn, isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger
 } from '@/components/ui/accordion'
-import { IconCheckFull, IconCode, IconSpinner } from '@/components/ui/icons'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card'
+import {
+  IconCheckCircled,
+  IconCircleDot,
+  IconCode,
+  IconGitMerge,
+  IconGitPullRequest
+} from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SourceIcon } from '@/components/source-icon'
 
+import { StepItem } from './intermediate-step'
 import { SearchContext } from './search-context'
 
 interface ReadingCodeStepperProps {
   isReadingCode: boolean | undefined
   isReadingFileList: boolean | undefined
+  isReadingDocs: boolean | undefined
   readingCode: ThreadAssistantMessageReadingCode | undefined
   codeSourceId: Maybe<string>
+  docQuery?: boolean
   className?: string
   serverCodeContexts: RelevantCodeContext[]
   clientCodeContexts: RelevantCodeContext[]
+  webResources?: Maybe<AttachmentDocItem[]> | undefined
+  docQueryResources: Omit<ContextSource, 'id'>[] | undefined
   onContextClick?: (
     context: RelevantCodeContext,
     isInWorkspace?: boolean
@@ -40,15 +60,20 @@ interface ReadingCodeStepperProps {
 export function ReadingCodeStepper({
   isReadingCode,
   isReadingFileList,
+  isReadingDocs,
   readingCode,
   codeSourceId,
   serverCodeContexts,
   clientCodeContexts,
+  webResources,
+  docQuery,
   onContextClick
 }: ReadingCodeStepperProps) {
-  const { contextInfo } = useContext(SearchContext)
+  const { contextInfo, enableDeveloperMode } = useContext(SearchContext)
   const totalContextLength =
-    (clientCodeContexts?.length || 0) + serverCodeContexts.length
+    (clientCodeContexts?.length || 0) +
+    serverCodeContexts.length +
+    (webResources?.length || 0)
   const targetRepo = useMemo(() => {
     if (!codeSourceId) return undefined
 
@@ -59,12 +84,15 @@ export function ReadingCodeStepper({
   }, [codeSourceId, contextInfo])
 
   const steps = useMemo(() => {
-    let result: Array<'fileList' | 'snippet'> = []
+    let result: Array<'fileList' | 'snippet' | 'docs'> = []
     if (readingCode?.fileList) {
       result.push('fileList')
     }
     if (readingCode?.snippet) {
       result.push('snippet')
+    }
+    if (docQuery) {
+      result.push('docs')
     }
     return result
   }, [readingCode?.fileList, readingCode?.snippet])
@@ -75,11 +103,11 @@ export function ReadingCodeStepper({
 
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
-      <AccordionItem value="readingCode" className="mb-6 border-0">
+      <AccordionItem value="readingCode" className="border-0">
         <AccordionTrigger className="w-full py-2 pr-2">
           <div className="flex flex-1 items-center justify-between pr-2">
             <div className="flex flex-1 items-center gap-2">
-              <IconCode className="mx-1 h-5 w-5 shrink-0" />
+              <IconCode className="mr-2 h-5 w-5 shrink-0" />
               <span>Look into</span>
               {!!targetRepo && (
                 <div className="inline-flex cursor-pointer items-center gap-0.5 font-medium">
@@ -119,14 +147,16 @@ export function ReadingCodeStepper({
                 isLastItem={lastItem === 'snippet'}
               >
                 {!!totalContextLength && (
-                  <>
-                    <div className="mt-1 flex flex-wrap gap-2 text-xs font-semibold">
+                  <div className="mb-3 mt-2">
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
                       {clientCodeContexts?.map((item, index) => {
                         return (
                           <CodeContextItem
                             key={`client-${index}`}
                             context={item}
+                            clickable={false}
                             onContextClick={ctx => onContextClick?.(ctx, true)}
+                            enableDeveloperMode={enableDeveloperMode}
                           />
                         )
                       })}
@@ -136,11 +166,43 @@ export function ReadingCodeStepper({
                             key={`server-${index}`}
                             context={item}
                             onContextClick={ctx => onContextClick?.(ctx, true)}
+                            enableDeveloperMode={enableDeveloperMode}
                           />
                         )
                       })}
                     </div>
-                  </>
+                  </div>
+                )}
+              </StepItem>
+            )}
+            {docQuery && (
+              <StepItem
+                title="Search for relevant Issues/PRs ..."
+                isLastItem={lastItem === 'docs'}
+                isLoading={isReadingDocs}
+              >
+                {!!webResources?.length && (
+                  <div className="mb-3 mt-2 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {webResources?.map((x, index) => {
+                        return (
+                          <div key={`${x.link}_${index}`}>
+                            <HoverCard openDelay={100} closeDelay={100}>
+                              <HoverCardTrigger>
+                                <CodebaseDocView doc={x} />
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+                                <DocDetailView
+                                  enableDeveloperMode={enableDeveloperMode}
+                                  relevantDocument={x}
+                                />
+                              </HoverCardContent>
+                            </HoverCard>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 )}
               </StepItem>
             )}
@@ -151,80 +213,19 @@ export function ReadingCodeStepper({
   )
 }
 
-function StepItem({
-  isLoading,
-  children,
-  title,
-  defaultOpen,
-  isLastItem
-}: {
-  isLoading: boolean | undefined
-  children?: ReactNode
-  title: string
-  defaultOpen?: boolean
-  isLastItem?: boolean
-}) {
-  const itemName = 'item'
-  const [open, setOpen] = useState(!!defaultOpen)
-  const hasChildren = !!children
-
-  useEffect(() => {
-    if (hasChildren && !open) {
-      setTimeout(() => {
-        setOpen(true)
-      }, 0)
-    }
-  }, [hasChildren])
-
-  return (
-    <div>
-      <Accordion
-        type="single"
-        value={open ? itemName : ''}
-        collapsible={hasChildren}
-        className="z-10"
-        onValueChange={v => {
-          setOpen(v === itemName)
-        }}
-      >
-        <AccordionItem value={itemName} className="relative border-0">
-          {/* vertical separator */}
-          {(!isLastItem || (open && hasChildren)) && (
-            <div className="absolute left-3 top-5 block h-full w-0.5 shrink-0 translate-x-px rounded-full bg-muted"></div>
-          )}
-          <AccordionTrigger
-            className="group w-full gap-2 rounded-lg py-1 pl-1.5 pr-2 !no-underline hover:bg-muted/70"
-            showChevron={!!children}
-          >
-            <div className="flex flex-1 items-center gap-4">
-              <div className="relative z-10 shrink-0 bg-background group-hover:bg-muted/70">
-                {isLoading ? (
-                  <IconSpinner className="h-4 w-4" />
-                ) : (
-                  <IconCheckFull className="h-4 w-4" />
-                )}
-              </div>
-              <span>{title}</span>
-            </div>
-          </AccordionTrigger>
-          {!!children && (
-            <AccordionContent className="pb-0 pl-10">
-              {children}
-            </AccordionContent>
-          )}
-        </AccordionItem>
-      </Accordion>
-    </div>
-  )
-}
-
 interface CodeContextItemProps {
   context: RelevantCodeContext
   onContextClick?: (context: RelevantCodeContext) => void
+  clickable?: boolean
+  enableDeveloperMode?: boolean
 }
 
-// todo clickable highlighted, dev mode tooltip
-function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
+function CodeContextItem({
+  context,
+  clickable,
+  onContextClick,
+  enableDeveloperMode
+}: CodeContextItemProps) {
   const isMultiLine =
     context.range &&
     !isNil(context.range?.start) &&
@@ -250,12 +251,23 @@ function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
     return text
   }, [context.range])
 
+  const scores = context?.extra?.scores
+
   return (
     <Tooltip delayDuration={100}>
       <TooltipTrigger asChild>
         <div
-          className="cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5"
-          onClick={e => onContextClick?.(context)}
+          className={cn(
+            'cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5',
+            {
+              'cursor-pointer': clickable
+            }
+          )}
+          onClick={e => {
+            if (clickable) {
+              onContextClick?.(context)
+            }
+          }}
         >
           <span>{fileName}</span>
           {rangeText ? (
@@ -265,7 +277,7 @@ function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
           ) : null}
         </div>
       </TooltipTrigger>
-      <TooltipContent align="start">
+      <TooltipContent align="start" sideOffset={8}>
         <div className="whitespace-nowrap">
           <span>{fileName}</span>
           {rangeText ? (
@@ -273,7 +285,60 @@ function CodeContextItem({ context, onContextClick }: CodeContextItemProps) {
           ) : null}
           <span className="ml-2 text-xs text-muted-foreground">{path}</span>
         </div>
+        {enableDeveloperMode && context?.extra?.scores && (
+          <div className="mt-4">
+            <div className="mb-1 font-semibold">Scores</div>
+            <div className="space-y-1">
+              <div className="flex">
+                <span className="w-20">rrf:</span>
+                {scores?.rrf ?? '-'}
+              </div>
+              <div className="flex">
+                <span className="w-20">bm25:</span>
+                {scores?.bm25 ?? '-'}
+              </div>
+              <div className="flex">
+                <span className="w-20">embedding:</span>
+                {scores?.embedding ?? '-'}
+              </div>
+            </div>
+          </div>
+        )}
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+// Issue or PR
+function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
+  const docName = `#${doc.link.split('/').pop()}`
+  const isIssue = doc.__typename === 'MessageAttachmentIssueDoc'
+  const isPR = doc.__typename === 'MessageAttachmentPullDoc'
+
+  let icon: ReactNode = null
+  if (isIssue) {
+    icon = doc.closed ? (
+      <IconCheckCircled className="h-3 w-3" />
+    ) : (
+      <IconCircleDot className="h-3 w-3" />
+    )
+  }
+
+  if (isPR) {
+    icon = doc.merged ? (
+      <IconGitMerge className="h-3 w-3" />
+    ) : (
+      <IconGitPullRequest className="h-3 w-3" />
+    )
+  }
+
+  return (
+    <div
+      className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold"
+      onClick={() => window.open(doc.link)}
+    >
+      {icon}
+      <span>{docName}</span>
+    </div>
   )
 }
