@@ -53,7 +53,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
         --target `uname -m`-unknown-linux-${LIBC} && \
     mkdir /opt/tabby/tmp/`uname -m`-unknown-linux-${LIBC} && \
     cp -a target/release /opt/tabby/tmp/ && \
-    cp -a target/`uname -m`-unknown-linux-${LIBC}/release /opt/tabby/tmp/`uname -m`-unknown-linux-${LIBC}/
+    if [ -d target/`uname -m`-unknown-linux-${LIBC}/release ]; then \
+        cp -a target/`uname -m`-unknown-linux-${LIBC}/release /opt/tabby/tmp/`uname -m`-unknown-linux-${LIBC}/ ; \
+    fi || true
 
 RUN sh -c 'find /opt/tabby/tmp; true' && \
     cp /opt/tabby/tmp/release/llama-server /opt/tabby/bin/ && \
