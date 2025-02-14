@@ -297,6 +297,9 @@ export function MessageMarkdown({
                 {children}
               </CodeElement>
             )
+          },
+          hr() {
+            return null
           }
         }}
       >
