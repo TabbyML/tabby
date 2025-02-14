@@ -49,17 +49,9 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --no-default-features --features vulkan,prod --release --package tabby \
-        --target `uname -m`-unknown-linux-${LIBC} && \
-    mkdir -p /opt/tabby/tmp/`uname -m`-unknown-linux-${LIBC} && \
-    cp -a target/release /opt/tabby/tmp/ && \
-    if [ -d target/`uname -m`-unknown-linux-${LIBC}/release ]; then \
-        cp -a target/`uname -m`-unknown-linux-${LIBC}/release /opt/tabby/tmp/`uname -m`-unknown-linux-${LIBC}/ ; \
-    fi || true
-
-RUN sh -c 'find /opt/tabby/tmp; true' && \
-    cp /opt/tabby/tmp/release/llama-server /opt/tabby/bin/ && \
-    cp /opt/tabby/tmp/release/tabby /opt/tabby/bin/
+    cargo build --no-default-features --features vulkan,prod --release --package tabby && \
+    cp target/release/llama-server /opt/tabby/bin/ && \
+    cp target/release/tabby /opt/tabby/bin/
 
 # For compatibility with the legacy cpu build.
 RUN cp /opt/tabby/bin/tabby /opt/tabby/bin/tabby-cpu
