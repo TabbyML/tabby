@@ -1,6 +1,12 @@
-use std::{env::var, net::TcpListener, process::Stdio, time::Duration};
+use std::{
+    collections::VecDeque, env::var, net::TcpListener, process::Stdio, sync::Arc, time::Duration,
+};
 
-use tokio::{io::AsyncBufReadExt, task::JoinHandle};
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    sync::Mutex,
+    task::JoinHandle,
+};
 use tracing::{debug, warn};
 use which::which;
 
@@ -48,7 +54,6 @@ impl LlamaCppSupervisor {
                     .arg(port.to_string())
                     .arg("-np")
                     .arg(parallelism.to_string())
-                    .arg("--log-disable")
                     .arg("--ctx-size")
                     .arg(context_size.to_string())
                     .kill_on_drop(true)
@@ -96,9 +101,10 @@ impl LlamaCppSupervisor {
 
                 if status_code != 0 {
                     warn!(
-                        "llama-server <{}> exited with status code {}, args: `{}`",
+                        "llama-server <{}> exited with status code {}, args: {}\n",
                         name, status_code, command_args
                     );
+
                     let mut stderr = process
                         .stderr
                         .take()
@@ -106,11 +112,30 @@ impl LlamaCppSupervisor {
                         .map(|reader| reader.lines())
                         .expect("Failed to read stderr");
 
+                    let mut error_lines = VecDeque::with_capacity(100);
                     while let Ok(Some(line)) = stderr.next_line().await {
-                        warn!("<{}>: {}", name, line);
+                        if !line.contains("GET /health") {
+                            if error_lines.len() >= 100 {
+                                error_lines.pop_front();
+                            }
+                            error_lines.push_back(line);
+                        }
                     }
 
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    let error_message = error_lines.into_iter().fold(
+                        String::from("Recent llama-cpp errors:\n"),
+                        |mut acc, line| {
+                            acc.push_str(&format!("{}\n", line));
+                            acc
+                        },
+                    );
+
+                    eprintln!("{}", error_message);
+                    eprintln!(
+                        "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.",
+                        name
+                    );
+                    std::process::exit(1);
                 }
             }
         });
