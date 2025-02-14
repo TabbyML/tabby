@@ -58,6 +58,7 @@ RUN cp /opt/tabby/bin/tabby /opt/tabby/bin/tabby-cpu
 
 FROM ${BASE_VULKAN_RUN_CONTAINER} AS runtime
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git   \
