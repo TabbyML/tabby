@@ -543,8 +543,6 @@ function RelevantCodeBadge({
       range: getRangeFromAttachmentCode(relevantCode),
       filepath: relevantCode.filepath || '',
       content: relevantCode.content,
-      // git_url: clientCodeGitUrl
-      // todo get clientCodeGitUrl
       git_url: ''
     }
   }, [relevantCode])
@@ -594,14 +592,16 @@ function RelevantCodeBadge({
       </HoverCardTrigger>
       <HoverCardContent className="w-auto bg-background text-sm text-foreground dark:border-muted-foreground/60 lg:w-96">
         <div
-          className="cursor-pointer whitespace-nowrap hover:opacity-70"
+          className="cursor-pointer space-y-2 whitespace-nowrap hover:opacity-70"
           onClick={() => onCodeCitationClick?.(relevantCode)}
         >
           <span>{fileName}</span>
           {rangeText ? (
             <span className="text-muted-foreground">:{rangeText}</span>
           ) : null}
-          <div className="mt-2 text-xs text-muted-foreground">{path}</div>
+          {!!path && (
+            <div className="text-xs text-muted-foreground">{path}</div>
+          )}
         </div>
       </HoverCardContent>
     </HoverCard>

@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify'
 import he from 'he'
+import { isNil } from 'lodash-es'
 import { marked } from 'marked'
 
 import { Maybe } from '@/lib/gql/generates/graphql'
@@ -17,9 +18,11 @@ import {
 import { UserAvatar } from '../user-avatar'
 
 export function DocDetailView({
-  relevantDocument
+  relevantDocument,
+  enableDeveloperMode
 }: {
   relevantDocument: AttachmentDocItem
+  enableDeveloperMode?: boolean
 }) {
   const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
   const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
@@ -28,6 +31,7 @@ export function DocDetailView({
     relevantDocument.__typename === 'MessageAttachmentWebDoc'
       ? undefined
       : relevantDocument.author
+  const score = relevantDocument?.extra?.score
 
   return (
     <div className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0">
@@ -56,6 +60,9 @@ export function DocDetailView({
         <p className="m-0 line-clamp-4 leading-none">
           {normalizedText(getContent(relevantDocument))}
         </p>
+        {!!enableDeveloperMode && !isNil(score) && (
+          <p className="mt-4">Score: {score}</p>
+        )}
       </div>
     </div>
   )

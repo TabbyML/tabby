@@ -1,5 +1,6 @@
 'use client'
 
+import { useContext } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
@@ -24,6 +25,7 @@ import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
 
 import { StepItem } from './intermediate-step'
+import { SearchContext } from './search-context'
 
 interface ReadingDocStepperProps {
   isReadingDocs: boolean | undefined
@@ -39,6 +41,7 @@ export function ReadingDocStepper({
   docQueryResources
 }: ReadingDocStepperProps) {
   const resultLen = webResources?.length
+  const { enableDeveloperMode } = useContext(SearchContext)
 
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
@@ -48,17 +51,23 @@ export function ReadingDocStepper({
             <div className="flex flex-1 items-center gap-2">
               <IconBlocks className="mr-2 h-5 w-5 shrink-0" />
               <span className="shrink-0">Look into</span>
-              <div className="flex flex-1 flex-nowrap gap-2 truncate !no-underline">
+              <div className="flex flex-1 flex-nowrap gap-2 truncate">
                 {docQueryResources?.map(x => {
                   return (
                     <div
-                      className="flex items-center gap-0.5 rounded-lg border px-1"
+                      className="flex items-center gap-1 rounded-lg border px-2 py-0 font-medium no-underline"
                       key={x.sourceId}
                     >
                       {x.sourceKind === ContextSourceKind.Web ? (
-                        <IconEmojiGlobe />
+                        <IconEmojiGlobe
+                          className="h-3 w-3 shrink-0"
+                          emojiClassName="text-sm"
+                        />
                       ) : (
-                        <IconEmojiBook />
+                        <IconEmojiBook
+                          className="h-3 w-3 shrink-0"
+                          emojiClassName="text-sm"
+                        />
                       )}
                       {x.sourceName}
                     </div>
@@ -98,7 +107,10 @@ export function ReadingDocStepper({
                               </div>
                             </HoverCardTrigger>
                             <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-                              <DocDetailView relevantDocument={x} />
+                              <DocDetailView
+                                enableDeveloperMode={enableDeveloperMode}
+                                relevantDocument={x}
+                              />
                             </HoverCardContent>
                           </HoverCard>
                         </div>

@@ -69,7 +69,7 @@ export function ReadingCodeStepper({
   docQuery,
   onContextClick
 }: ReadingCodeStepperProps) {
-  const { contextInfo } = useContext(SearchContext)
+  const { contextInfo, enableDeveloperMode } = useContext(SearchContext)
   const totalContextLength =
     (clientCodeContexts?.length || 0) +
     serverCodeContexts.length +
@@ -156,6 +156,7 @@ export function ReadingCodeStepper({
                             context={item}
                             clickable={false}
                             onContextClick={ctx => onContextClick?.(ctx, true)}
+                            enableDeveloperMode={enableDeveloperMode}
                           />
                         )
                       })}
@@ -165,6 +166,7 @@ export function ReadingCodeStepper({
                             key={`server-${index}`}
                             context={item}
                             onContextClick={ctx => onContextClick?.(ctx, true)}
+                            enableDeveloperMode={enableDeveloperMode}
                           />
                         )
                       })}
@@ -190,7 +192,10 @@ export function ReadingCodeStepper({
                                 <CodebaseDocView doc={x} />
                               </HoverCardTrigger>
                               <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-                                <DocDetailView relevantDocument={x} />
+                                <DocDetailView
+                                  enableDeveloperMode={enableDeveloperMode}
+                                  relevantDocument={x}
+                                />
                               </HoverCardContent>
                             </HoverCard>
                           </div>
@@ -212,13 +217,14 @@ interface CodeContextItemProps {
   context: RelevantCodeContext
   onContextClick?: (context: RelevantCodeContext) => void
   clickable?: boolean
+  enableDeveloperMode?: boolean
 }
 
-// todo dev mode tooltip
 function CodeContextItem({
   context,
   clickable,
-  onContextClick
+  onContextClick,
+  enableDeveloperMode
 }: CodeContextItemProps) {
   const isMultiLine =
     context.range &&
@@ -245,6 +251,8 @@ function CodeContextItem({
     return text
   }, [context.range])
 
+  const scores = context?.extra?.scores
+
   return (
     <Tooltip delayDuration={100}>
       <TooltipTrigger asChild>
@@ -269,7 +277,7 @@ function CodeContextItem({
           ) : null}
         </div>
       </TooltipTrigger>
-      <TooltipContent align="start">
+      <TooltipContent align="start" sideOffset={8}>
         <div className="whitespace-nowrap">
           <span>{fileName}</span>
           {rangeText ? (
@@ -277,6 +285,25 @@ function CodeContextItem({
           ) : null}
           <span className="ml-2 text-xs text-muted-foreground">{path}</span>
         </div>
+        {enableDeveloperMode && context?.extra?.scores && (
+          <div className="mt-4">
+            <div className="mb-1 font-semibold">Scores</div>
+            <div className="space-y-1">
+              <div className="flex">
+                <span className="w-20">rrf:</span>
+                {scores?.rrf ?? '-'}
+              </div>
+              <div className="flex">
+                <span className="w-20">bm25:</span>
+                {scores?.bm25 ?? '-'}
+              </div>
+              <div className="flex">
+                <span className="w-20">embedding:</span>
+                {scores?.embedding ?? '-'}
+              </div>
+            </div>
+          </div>
+        )}
       </TooltipContent>
     </Tooltip>
   )

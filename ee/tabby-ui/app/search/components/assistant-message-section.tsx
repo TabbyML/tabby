@@ -334,7 +334,6 @@ export function AssistantMessageSection({
             {showReadingDocStep && (
               <ReadingDocStepper
                 docQueryResources={docSources}
-                // todo when to show it ?
                 isReadingDocs={message.isReadingDocs}
                 webResources={webDocs}
               />
