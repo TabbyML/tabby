@@ -1,6 +1,6 @@
 pub mod fields {
     // === Doc level fields ===
-    pub const GIT_URL: &str = "chunk_git_url";
+    pub const GIT_URL: &str = "git_url";
     pub const SHA: &str = "sha";
     pub const MESSAGE: &str = "message";
     pub const AUTHOR_EMAIL: &str = "author_email";

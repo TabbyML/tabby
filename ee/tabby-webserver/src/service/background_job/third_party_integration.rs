@@ -21,6 +21,7 @@ use tracing::debug;
 
 use super::{helper::Job, BackgroundJobEvent};
 
+mod commits;
 mod error;
 mod issues;
 mod pulls;
@@ -106,12 +107,25 @@ impl SchedulerGithubGitlabJob {
             "Pulling source code for repository {}",
             repository.display_name
         );
+        let code_repository = &CodeRepository::new(&authenticated_url, &repository.source_id());
         let mut code = CodeIndexer::default();
-        code.refresh(
-            embedding.clone(),
-            &CodeRepository::new(&authenticated_url, &repository.source_id()),
-        )
-        .await?;
+        code.refresh(embedding.clone(), code_repository).await?;
+
+        logkit::info!(
+            "Indexing recent commits for repository {}",
+            repository.display_name
+        );
+
+        if let Err(err) = self
+            .sync_commit_history(code_repository, embedding.clone())
+            .await
+        {
+            integration_service
+                .update_integration_sync_status(&integration.id, Some(err.to_string()))
+                .await?;
+            logkit::error!("Failed to sync commit history: {}", err);
+            return Err(err);
+        };
 
         logkit::info!(
             "Indexing documents for repository {}",
@@ -130,6 +144,14 @@ impl SchedulerGithubGitlabJob {
             .await?;
 
         Ok(())
+    }
+
+    async fn sync_commit_history(
+        &self,
+        repository: &CodeRepository,
+        embedding: Arc<dyn Embedding>,
+    ) -> tabby_schema::Result<()> {
+        commits::refresh(embedding.clone(), repository).await
     }
 
     async fn sync_pulls(

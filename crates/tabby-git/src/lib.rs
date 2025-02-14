@@ -1,3 +1,4 @@
+mod commit;
 mod file_search;
 mod serve_git;
 
@@ -10,6 +11,8 @@ use axum::{
 };
 use file_search::GitFileSearch;
 use futures::Stream;
+
+pub use commit::{stream_commits, Commit};
 pub use grep::{GrepFile, GrepLine, GrepSubMatch, GrepTextOrBase64};
 
 pub async fn search_files(

@@ -1,9 +1,4 @@
-use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use futures::stream::{BoxStream, StreamExt};
-use serde_json::json;
-
-use tabby_common::index::commit::fields;
+use chrono::{DateTime, TimeZone, Utc};
 
 use crate::indexer::{IndexId, ToIndexId};
 
@@ -15,7 +10,7 @@ pub struct CommitHistory {
     pub message: String,
     pub author_email: String,
     pub author_at: DateTime<Utc>,
-    pub committer: String,
+    pub committer_email: String,
     pub commit_at: DateTime<Utc>,
 
     pub diff: Option<String>,

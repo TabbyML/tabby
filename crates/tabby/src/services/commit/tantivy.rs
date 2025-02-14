@@ -31,7 +31,7 @@ impl CommitHistorySearch for CommitHistorySearchImpl {
         content: &str,
         params: &CommitHistorySearchParams,
     ) -> Result<CommitHistorySearchResponse> {
-        //FIXME(kweizh)
+        //TODO(kweizh)
         Err(SearchError::NotReady)
     }
 }
