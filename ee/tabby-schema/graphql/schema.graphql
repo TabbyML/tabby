@@ -973,6 +973,7 @@ type Thread {
 }
 
 type ThreadAssistantMessageAttachmentsCode {
+  codeSourceId: String!
   hits: [MessageCodeSearchHit!]!
 }
 
