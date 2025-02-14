@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_db::{DbConn, ThreadMessageAttachmentDoc, ThreadMessageDAO};
+use tabby_db::{AttachmentDoc, DbConn, ThreadMessageDAO};
 use tabby_schema::{
     auth::AuthenticationService,
     bail, from_thread_message_attachment_document,
@@ -81,14 +81,14 @@ impl ThreadServiceImpl {
 
     async fn to_message_attachment_docs(
         &self,
-        thread_docs: Vec<ThreadMessageAttachmentDoc>,
+        thread_docs: Vec<AttachmentDoc>,
     ) -> Vec<MessageAttachmentDoc> {
         let mut output = vec![];
         output.reserve(thread_docs.len());
         for thread_doc in thread_docs {
             let id = match &thread_doc {
-                ThreadMessageAttachmentDoc::Issue(issue) => issue.author_user_id.as_deref(),
-                ThreadMessageAttachmentDoc::Pull(pull) => pull.author_user_id.as_deref(),
+                AttachmentDoc::Issue(issue) => issue.author_user_id.as_deref(),
+                AttachmentDoc::Pull(pull) => pull.author_user_id.as_deref(),
                 _ => None,
             };
             let user = if let Some(auth) = self.auth.as_ref() {
