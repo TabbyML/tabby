@@ -221,8 +221,7 @@ export function MessageMarkdown({
         }
       })
     }
-    attachmentClientCode?.forEach(item => {
-      const code = item as AttachmentCodeItem
+    attachmentClientCode?.forEach((code: any) => {
       hints.push({
         filepath: code.gitUrl
           ? {

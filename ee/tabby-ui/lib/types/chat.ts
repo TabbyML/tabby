@@ -134,9 +134,6 @@ export type AttachmentCodeItem =
   ArrayElementType<ThreadAssistantMessageAttachmentCodeHits>['code'] & {
     isClient?: boolean
     extra?: { scores?: MessageCodeSearchHit['scores'] }
-    startLine: number | undefined
-    endLine: number | undefined
-    baseDir?: string
   }
 
 // for rendering, including score

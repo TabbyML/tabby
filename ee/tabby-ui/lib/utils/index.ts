@@ -205,11 +205,13 @@ export const convertFilepath = (filepath: Filepath) => {
   if (filepath.kind === 'workspace') {
     return {
       filepath: filepath.filepath,
-      baseDir: filepath.baseDir
+      baseDir: filepath.baseDir,
+      git_url: ''
     }
   }
   return {
-    filepath: filepath.uri
+    filepath: filepath.uri,
+    git_url: ''
   }
 }
 
