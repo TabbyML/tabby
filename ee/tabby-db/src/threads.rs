@@ -191,13 +191,27 @@ impl DbConn {
     pub async fn update_thread_message_code_attachments(
         &self,
         message_id: i64,
-        code_source_id: &str,
         code_attachments: &[AttachmentCode],
     ) -> Result<()> {
         let code_attachments = Json(code_attachments);
         query!(
-            "UPDATE thread_messages SET attachment = JSON_SET(attachment, '$.code', JSON(?)), code_source_id = ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE thread_messages SET attachment = JSON_SET(attachment, '$.code', JSON(?)), updated_at = DATETIME('now') WHERE id = ?",
             code_attachments,
+            message_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_thread_message_code_source_id(
+        &self,
+        message_id: i64,
+        code_source_id: &str,
+    ) -> Result<()> {
+        query!(
+            "UPDATE thread_messages SET code_source_id = ?, updated_at = DATETIME('now') WHERE id = ?",
             code_source_id,
             message_id
         )

@@ -6,12 +6,14 @@ use juniper::ID;
 use tabby_db::{AttachmentDoc, DbConn, ThreadMessageDAO};
 use tabby_schema::{
     auth::AuthenticationService,
-    bail, from_thread_message_attachment_document,
+    bail,
+    context::ContextService,
+    from_thread_message_attachment_document,
     policy::AccessPolicy,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, MessageAttachment, MessageAttachmentDoc,
-        MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream,
-        ThreadService, UpdateMessageInput,
+        self, CodeQueryInput, CreateMessageInput, CreateThreadInput, MessageAttachment,
+        MessageAttachmentDoc, MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput,
+        ThreadRunStream, ThreadService, UpdateMessageInput,
     },
     AsID, AsRowid, DbEnum, Result,
 };
@@ -22,6 +24,7 @@ struct ThreadServiceImpl {
     db: DbConn,
     auth: Option<Arc<dyn AuthenticationService>>,
     answer: Option<Arc<AnswerService>>,
+    context: Arc<dyn ContextService>,
 }
 
 impl ThreadServiceImpl {
@@ -108,6 +111,25 @@ impl ThreadServiceImpl {
         }
         output
     }
+
+    async fn get_source_id(&self, policy: &AccessPolicy, input: &CodeQueryInput) -> Option<String> {
+        let helper = self.context.read(Some(policy)).await.ok()?.helper();
+
+        if let Some(source_id) = &input.source_id {
+            if helper.can_access_source_id(source_id) {
+                Some(source_id.clone())
+            } else {
+                None
+            }
+        } else if let Some(git_url) = &input.git_url {
+            helper
+                .allowed_code_repository()
+                .closest_match(git_url)
+                .map(|s| s.to_string())
+        } else {
+            None
+        }
+    }
 }
 
 #[async_trait]
@@ -187,6 +209,14 @@ impl ThreadService for ThreadServiceImpl {
             )
             .await?;
 
+        if let Some(code_query) = &options.code_query {
+            if let Some(source_id) = self.get_source_id(policy, code_query).await {
+                self.db
+                    .update_thread_message_code_source_id(assistant_message_id, &source_id)
+                    .await?;
+            }
+        }
+
         let s = answer
             .answer(policy, &messages, options, attachment_input)
             .await?;
@@ -223,7 +253,6 @@ impl ThreadService for ThreadServiceImpl {
                             .collect::<Vec<_>>();
                         db.update_thread_message_code_attachments(
                             assistant_message_id,
-                            &x.code_source_id,
                             &code,
                         ).await?;
                     }
@@ -356,8 +385,14 @@ pub fn create(
     db: DbConn,
     answer: Option<Arc<AnswerService>>,
     auth: Option<Arc<dyn AuthenticationService>>,
+    context: Arc<dyn ContextService>,
 ) -> impl ThreadService {
-    ThreadServiceImpl { db, answer, auth }
+    ThreadServiceImpl {
+        db,
+        answer,
+        auth,
+        context,
+    }
 }
 
 #[cfg(test)]
@@ -390,7 +425,8 @@ mod tests {
     async fn test_create_thread() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = create_user(&db).await.as_id();
-        let service = create(db, None, None);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let service = create(db, None, None, context);
 
         let input = CreateThreadInput {
             user_message: CreateMessageInput {
@@ -406,7 +442,8 @@ mod tests {
     async fn test_append_messages() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = create_user(&db).await.as_id();
-        let service = create(db, None, None);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let service = create(db, None, None, context);
 
         let thread_id = service
             .create(
@@ -452,7 +489,8 @@ mod tests {
     async fn test_delete_thread_message_pair() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = create_user(&db).await.as_id();
-        let service = create(db.clone(), None, None);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let service = create(db.clone(), None, None, context);
 
         let thread_id = service
             .create(
@@ -541,7 +579,8 @@ mod tests {
     async fn test_get_thread() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = create_user(&db).await.as_id();
-        let service = create(db, None, None);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let service = create(db, None, None, context);
 
         let input = CreateThreadInput {
             user_message: CreateMessageInput {
@@ -565,7 +604,8 @@ mod tests {
     async fn test_delete_thread() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = create_user(&db).await.as_id();
-        let service = create(db.clone(), None, None);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let service = create(db.clone(), None, None, context);
 
         let input = CreateThreadInput {
             user_message: CreateMessageInput {
@@ -592,7 +632,8 @@ mod tests {
     async fn test_set_persisted() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = create_user(&db).await.as_id();
-        let service = create(db.clone(), None, None);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let service = create(db.clone(), None, None, context);
 
         let input = CreateThreadInput {
             user_message: CreateMessageInput {
@@ -647,7 +688,7 @@ mod tests {
             serper,
             repo,
         ));
-        let service = create(db.clone(), Some(answer_service), None);
+        let service = create(db.clone(), Some(answer_service), None, context);
 
         let input = CreateThreadInput {
             user_message: CreateMessageInput {
@@ -672,7 +713,8 @@ mod tests {
     async fn test_list_threads() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = create_user(&db).await.as_id();
-        let service = create(db, None, None);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let service = create(db, None, None, context);
 
         for i in 0..3 {
             let input = CreateThreadInput {
