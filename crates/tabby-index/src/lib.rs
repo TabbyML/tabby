@@ -10,6 +10,7 @@ mod testutils;
 
 use indexer::{IndexAttributeBuilder, Indexer};
 
+mod commit;
 mod structured_doc;
 
 #[cfg(test)]
@@ -21,6 +22,7 @@ pub mod public {
     use super::*;
     pub use super::{
         code::CodeIndexer,
+        commit::{indexer::CommitHistoryIndexer, types::CommitHistory, CommitHistoryBuilder},
         structured_doc::public::{
             StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
             StructuredDocPullDocumentFields, StructuredDocState, StructuredDocWebFields,

@@ -46,6 +46,7 @@ impl ThreadServiceImpl {
                 let client_code = attachment.0.client_code;
                 let doc = attachment.0.doc;
                 let code_file_list = attachment.0.code_file_list;
+                let commits = attachment.0.commits;
                 MessageAttachment {
                     code: code
                         .map(|x| x.into_iter().map(|i| i.into()).collect())
@@ -58,6 +59,9 @@ impl ThreadServiceImpl {
                     } else {
                         vec![]
                     },
+                    commit: commits
+                        .map(|x| x.into_iter().map(|i| i.into()).collect())
+                        .unwrap_or_default(),
                     code_file_list: code_file_list.map(|x| x.into()),
                 }
             } else {

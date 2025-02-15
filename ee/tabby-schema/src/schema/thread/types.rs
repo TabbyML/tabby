@@ -3,6 +3,7 @@ use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
+    commit::{CommitHistoryDocument, CommitHistorySearchHit, CommitHistorySearchScores},
     structured_doc::DocSearchDocument,
 };
 use validator::Validate;
@@ -71,6 +72,74 @@ pub struct MessageAttachment {
 
     /// File list retrieved from the server side codebase is used for generating this message.
     pub code_file_list: Option<MessageAttachmentCodeFileList>,
+
+    /// Code snippets retrieved from the server side codebase.
+    pub commit: Vec<MessageAttachmentCommit>,
+}
+
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct MessageAttachmentCommit {
+    pub git_url: String,
+    pub sha: String,
+    pub message: String,
+    //TODO(kweizh): should we add branches for commit here?
+    // pub branches: Vec<String>,
+    pub author: Option<UserValue>,
+    pub author_at: DateTime<Utc>,
+    pub committer: Option<UserValue>,
+    pub commit_at: DateTime<Utc>,
+
+    pub diff: Option<String>,
+}
+
+//TODO(kweizh)
+impl From<CommitHistoryDocument> for MessageAttachmentCommit {
+    fn from(commit: CommitHistoryDocument) -> Self {
+        Self {
+            git_url: commit.git_url,
+            sha: commit.sha,
+            message: commit.message,
+            author: None,
+            author_at: commit.author_at,
+            committer: None,
+            commit_at: commit.author_at,
+            diff: commit.diff,
+        }
+    }
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentCommitScores {
+    pub rrf: f64,
+    pub bm25: f64,
+    pub embedding: f64,
+}
+
+impl From<CommitHistorySearchScores> for MessageAttachmentCommitScores {
+    fn from(hit: CommitHistorySearchScores) -> Self {
+        Self {
+            rrf: hit.rrf as f64,
+            bm25: hit.bm25 as f64,
+            embedding: hit.embedding as f64,
+        }
+    }
+}
+
+#[derive(GraphQLObject)]
+#[graphql(context = Context)]
+pub struct MessageCommitHistorySearchHit {
+    pub commit: MessageAttachmentCommit,
+    pub scores: MessageAttachmentCommitScores,
+}
+
+impl From<CommitHistorySearchHit> for MessageCommitHistorySearchHit {
+    fn from(hit: CommitHistorySearchHit) -> Self {
+        Self {
+            commit: hit.commit.into(),
+            scores: hit.scores.into(),
+        }
+    }
 }
 
 #[derive(GraphQLObject, Clone)]
@@ -273,7 +342,7 @@ pub struct ThreadAssistantMessageCreated {
 pub struct ThreadAssistantMessageReadingCode {
     pub snippet: bool,
     pub file_list: bool,
-    // pub commit_history: bool
+    pub commit_history: bool,
 }
 
 #[derive(GraphQLObject)]
@@ -292,6 +361,12 @@ pub struct ThreadAssistantMessageAttachmentsCode {
 #[graphql(context = Context)]
 pub struct ThreadAssistantMessageAttachmentsDoc {
     pub hits: Vec<MessageDocSearchHit>,
+}
+
+#[derive(GraphQLObject)]
+#[graphql(context = Context)]
+pub struct ThreadAssistantMessageAttachmentsCommit {
+    pub hits: Vec<MessageCommitHistorySearchHit>,
 }
 
 #[derive(GraphQLObject)]
@@ -318,6 +393,7 @@ pub enum ThreadRunItem {
     ThreadAssistantMessageAttachmentsCodeFileList(ThreadAssistantMessageAttachmentsCodeFileList),
     ThreadAssistantMessageAttachmentsCode(ThreadAssistantMessageAttachmentsCode),
     ThreadAssistantMessageAttachmentsDoc(ThreadAssistantMessageAttachmentsDoc),
+    ThreadAssistantMessageAttachmentsCommit(ThreadAssistantMessageAttachmentsCommit),
     ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta),
     ThreadAssistantMessageCompleted(ThreadAssistantMessageCompleted),
 }

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -6,6 +7,18 @@ pub struct Attachment {
     pub client_code: Option<Vec<AttachmentClientCode>>,
     pub doc: Option<Vec<AttachmentDoc>>,
     pub code_file_list: Option<AttachmentCodeFileList>,
+    pub commits: Option<Vec<AttachmentCommit>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AttachmentCommit {
+    pub git_url: String,
+    pub sha: String,
+    pub message: String,
+    pub author_email: String,
+    pub author_at: DateTime<Utc>,
+    pub committer_email: String,
+    pub commit_at: DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize)]

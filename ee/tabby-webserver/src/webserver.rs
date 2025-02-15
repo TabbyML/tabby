@@ -4,6 +4,7 @@ use axum::Router;
 use tabby_common::{
     api::{
         code::CodeSearch,
+        commit::CommitHistorySearch,
         event::{ComposedLogger, EventLogger},
         structured_doc::DocSearch,
     },
@@ -66,6 +67,7 @@ impl Webserver {
         completion: Option<Arc<dyn CompletionStream>>,
         docsearch: Arc<dyn DocSearch>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
+        commit: Arc<dyn CommitHistorySearch>,
     ) -> (Router, Router) {
         let serper: Option<Box<dyn DocSearch>> =
             if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
@@ -114,6 +116,7 @@ impl Webserver {
                 chat.clone(),
                 code.clone(),
                 docsearch.clone(),
+                commit.clone(),
                 context.clone(),
                 serper,
                 repository.clone(),

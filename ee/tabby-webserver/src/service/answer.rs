@@ -27,7 +27,9 @@ use tabby_common::{
             CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
             CodeSearchScores,
         },
+        commit::{CommitHistorySearch, CommitHistorySearchHit, CommitHistorySearchParams},
         structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
+        SearchError,
     },
     config::AnswerConfig,
 };
@@ -41,9 +43,9 @@ use tabby_schema::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
         MessageAttachmentCodeFileList, MessageAttachmentCodeInput, MessageAttachmentDoc,
         MessageAttachmentInput, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
-        ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
-        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
-        ThreadRunOptionsInput,
+        ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsCommit,
+        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
+        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -56,6 +58,7 @@ pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
+    commit: Arc<dyn CommitHistorySearch>,
     context: Arc<dyn ContextService>,
     serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
@@ -68,6 +71,7 @@ impl AnswerService {
         chat: Arc<dyn ChatCompletionStream>,
         code: Arc<dyn CodeSearch>,
         doc: Arc<dyn DocSearch>,
+        commit: Arc<dyn CommitHistorySearch>,
         context: Arc<dyn ContextService>,
         serper: Option<Box<dyn DocSearch>>,
         repository: Arc<dyn RepositoryService>,
@@ -78,6 +82,7 @@ impl AnswerService {
             chat,
             code,
             doc,
+            commit,
             context,
             serper,
             repository,
@@ -146,11 +151,28 @@ impl AnswerService {
                         if !hits.is_empty() {
                             let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                             yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                                ThreadAssistantMessageAttachmentsCode { code_source_id: repository.source_id, hits }
+                                ThreadAssistantMessageAttachmentsCode { code_source_id: repository.source_id.clone(), hits }
                             ));
                         }
                     }
 
+                    if need_codebase_context.commit_history {
+                        let params = CommitHistorySearchParams::default();
+                        let hits = self.collect_commit_history(
+                            &repository,
+                            &context_info_helper,
+                            code_query,
+                            &params,
+                        ).await;
+                        attachment.commit = hits.iter().map(|x| x.commit.clone().into()).collect::<Vec<_>>();
+
+                        if !hits.is_empty() {
+                            let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                            yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCommit(
+                                ThreadAssistantMessageAttachmentsCommit { hits }
+                            ));
+                        }
+                    }
                 };
             };
 
@@ -367,6 +389,39 @@ impl AnswerService {
         hits
     }
 
+    async fn collect_commit_history(
+        &self,
+        repository: &Repository,
+        helper: &ContextInfoHelper,
+        code_query: &CodeQueryInput,
+        params: &CommitHistorySearchParams,
+    ) -> Vec<CommitHistorySearchHit> {
+        if let Some(source_id) = &code_query.source_id {
+            if !helper.can_access_source_id(source_id) {
+                return vec![];
+            }
+        }
+
+        // Rewrite [[source:${id}]] tags to the actual source name for doc search.
+        let content = helper.rewrite_tag(&code_query.content);
+
+        match self
+            .commit
+            .search(&repository.source_id, &content, params)
+            .await
+        {
+            Ok(commits) => commits.hits,
+            Err(err) => {
+                if let SearchError::NotReady = err {
+                    debug!("Commit search is not ready yet");
+                } else {
+                    warn!("Failed to search commit: {:?}", err);
+                };
+                vec![]
+            }
+        }
+    }
+
     async fn generate_relevant_questions(
         &self,
         attachment: &MessageAttachment,
@@ -404,11 +459,14 @@ pub fn create(
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
+    commit: Arc<dyn CommitHistorySearch>,
     context: Arc<dyn ContextService>,
     serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
 ) -> AnswerService {
-    AnswerService::new(config, auth, chat, code, doc, context, serper, repository)
+    AnswerService::new(
+        config, auth, chat, code, doc, commit, context, serper, repository,
+    )
 }
 
 fn convert_messages_to_chat_completion_request(
@@ -806,6 +864,7 @@ mod tests {
                 content: "from flask import Flask\n\napp = Flask(__name__)\n\n@app.route('/')\ndef hello():\n    return 'Hello, World!'".to_owned(),
                 start_line: Some(1),
             }],
+            commit: vec![],
             client_code: vec![],
             code_file_list: None,
         };
@@ -841,6 +900,7 @@ mod tests {
                 content: "print('Hello, server!')".to_owned(),
                 start_line: Some(1),
             }],
+            commit: vec![],
             client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
                 filepath: Some("client.py".to_owned()),
                 content: "print('Hello, client!')".to_owned(),

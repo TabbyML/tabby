@@ -20,6 +20,7 @@ tokio.workspace = true
 tracing.workspace = true
 ignore.workspace = true
 grep = "0.3.1"
+chrono.workspace = true
 
 [dev-dependencies]
 assert_matches.workspace = true

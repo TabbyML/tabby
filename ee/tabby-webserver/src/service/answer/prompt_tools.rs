@@ -37,9 +37,10 @@ pub async fn pipeline_decide_need_codebase_context(
     question: &str,
 ) -> Result<ThreadAssistantMessageReadingCode> {
     let prompt = format!(
-        r#"You are a helpful assistant that helps the user to decide the types of context needed to answer the question. Currently, the following two kinds of context are supported:
+        r#"You are a helpful assistant that helps the user to decide the types of context needed to answer the question. Currently, the following three kinds of context are supported:
 SNIPPET: Snippets searched from codebase given the question.
 FILE_LIST: File list of the codebase.
+COMMIT: Commit history of the codebase.
 
 Your answer shall only contains raw string of context type, separated by comma.
 
@@ -48,6 +49,9 @@ Here's a few examples:
 "Which file contains http api definitions" -> SNIPPET,FILE_LIST
 "How many python files is in the codebase?" -> FILE_LIST
 "Which file contains main function?" -> SNIPPET
+"Which file changed recently?" -> COMMIT
+"When was the last commit?" -> COMMIT
+"What is the most recent update to the embedding API?" -> COMMIT,SNIPPET
 
 Here's the original question:
 {question}
@@ -58,6 +62,7 @@ Here's the original question:
     let context = ThreadAssistantMessageReadingCode {
         snippet: detect_content(&content, "snippet"),
         file_list: detect_content(&content, "file_list"),
+        commit_history: detect_content(&content, "commit"),
     };
     debug!("decide_need_codebase_context: {:?} {:?}", content, context);
     Ok(context)

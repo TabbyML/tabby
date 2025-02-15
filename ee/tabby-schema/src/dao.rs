@@ -5,7 +5,7 @@ use tabby_db::{
     AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentDoc,
     AttachmentIssueDoc, AttachmentPullDoc, AttachmentWebDoc, EmailSettingDAO, IntegrationDAO,
     InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO, OAuthCredentialDAO, PageDAO,
-    PageSectionDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
+    PageSectionDAO, ServerSettingDAO, ThreadDAO, UserEventDAO, AttachmentCommit,
 };
 
 use crate::{
@@ -216,6 +216,22 @@ impl From<NotificationDAO> for Notification {
             read: value.read,
             created_at: value.created_at,
             updated_at: value.updated_at,
+        }
+    }
+}
+
+//TODO(kweizh)
+impl From<AttachmentCommit> for thread::MessageAttachmentCommit {
+    fn from(value: AttachmentCommit) -> Self {
+        Self {
+            git_url: value.git_url,
+            sha: value.sha,
+            message: value.message,
+            author: None,
+            author_at: value.author_at,
+            committer: None,
+            commit_at: value.commit_at,
+            diff: None,
         }
     }
 }
