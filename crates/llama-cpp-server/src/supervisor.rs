@@ -101,7 +101,7 @@ impl LlamaCppSupervisor {
 
                 if status_code != 0 {
                     warn!(
-                        "llama-server <{}> exited with status code {}, args: {}\n",
+                        "llama-server <{}> exited with status code {}, args: {}",
                         name, status_code, command_args
                     );
 
