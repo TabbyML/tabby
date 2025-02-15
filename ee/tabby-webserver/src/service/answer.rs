@@ -146,7 +146,7 @@ impl AnswerService {
                         if !hits.is_empty() {
                             let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                             yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                                ThreadAssistantMessageAttachmentsCode { code_source_id: repository.source_id, hits }
+                                ThreadAssistantMessageAttachmentsCode { hits }
                             ));
                         }
                     }

@@ -355,7 +355,8 @@ mod tests {
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
         });
-        let thread = Arc::new(thread::create(db.clone(), None, None));
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let thread = Arc::new(thread::create(db.clone(), None, None, context.clone()));
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let service = create(db, chat, thread, context);
 

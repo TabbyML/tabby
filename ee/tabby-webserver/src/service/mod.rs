@@ -125,6 +125,7 @@ impl ServerContext {
             db_conn.clone(),
             answer.clone(),
             Some(auth.clone()),
+            context.clone(),
         ));
         let page = chat.as_ref().map(|chat| {
             Arc::new(page::create(
