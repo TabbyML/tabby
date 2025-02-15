@@ -1609,18 +1609,26 @@ function Emoji({
   )
 }
 
-function IconEmojiBook({ className, ...props }: React.ComponentProps<'span'>) {
+function IconEmojiBook({
+  className,
+  emojiClassName,
+  ...props
+}: React.ComponentProps<'span'> & { emojiClassName?: string }) {
   return (
     <span className={cn('h-4 w-4 pt-0.5', className)} {...props}>
-      <Emoji emoji="📚" />
+      <Emoji emoji="📚" className={emojiClassName} />
     </span>
   )
 }
 
-function IconEmojiGlobe({ className, ...props }: React.ComponentProps<'span'>) {
+function IconEmojiGlobe({
+  className,
+  emojiClassName,
+  ...props
+}: React.ComponentProps<'span'> & { emojiClassName?: string }) {
   return (
     <span className={cn('h-4 w-4', className)} {...props}>
-      <Emoji emoji="🌐" />
+      <Emoji emoji="🌐" className={emojiClassName} />
     </span>
   )
 }

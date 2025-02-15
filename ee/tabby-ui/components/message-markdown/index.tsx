@@ -8,12 +8,18 @@ import {
   Maybe,
   MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentCodeItem, AttachmentDocItem, FileContext } from '@/lib/types'
+import {
+  AttachmentCodeItem,
+  AttachmentDocItem,
+  FileContext,
+  RelevantCodeContext
+} from '@/lib/types'
 import {
   cn,
   convertFilepath,
   encodeMentionPlaceHolder,
   getFilepathFromContext,
+  getRangeFromAttachmentCode,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import {
@@ -291,6 +297,9 @@ export function MessageMarkdown({
                 {children}
               </CodeElement>
             )
+          },
+          hr() {
+            return null
           }
         }}
       >
@@ -531,20 +540,73 @@ function RelevantCodeBadge({
     onCodeCitationMouseLeave
   } = useContext(MessageMarkdownContext)
 
+  const context: RelevantCodeContext = useMemo(() => {
+    return {
+      kind: 'file',
+      range: getRangeFromAttachmentCode(relevantCode),
+      filepath: relevantCode.filepath || '',
+      content: relevantCode.content,
+      git_url: ''
+    }
+  }, [relevantCode])
+
+  const isMultiLine =
+    context.range &&
+    !isNil(context.range?.start) &&
+    !isNil(context.range?.end) &&
+    context.range.start < context.range.end
+  const pathSegments = context.filepath.split('/')
+  const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+
+  const fileName = useMemo(() => {
+    return resolveFileNameForDisplay(context.filepath)
+  }, [context.filepath])
+
+  const rangeText = useMemo(() => {
+    if (!context.range) return undefined
+
+    let text = ''
+    if (context.range.start) {
+      text = String(context.range.start)
+    }
+    if (isMultiLine) {
+      text += `-${context.range.end}`
+    }
+    return text
+  }, [context.range])
+
   return (
-    <span
-      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
-      onClick={() => {
-        onCodeCitationClick?.(relevantCode)
-      }}
-      onMouseEnter={() => {
-        onCodeCitationMouseEnter?.(citationIndex)
-      }}
-      onMouseLeave={() => {
-        onCodeCitationMouseLeave?.(citationIndex)
-      }}
-    >
-      {citationIndex}
-    </span>
+    <HoverCard openDelay={100} closeDelay={100}>
+      <HoverCardTrigger>
+        <span
+          className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
+          onClick={() => {
+            onCodeCitationClick?.(relevantCode)
+          }}
+          onMouseEnter={() => {
+            onCodeCitationMouseEnter?.(citationIndex)
+          }}
+          onMouseLeave={() => {
+            onCodeCitationMouseLeave?.(citationIndex)
+          }}
+        >
+          {citationIndex}
+        </span>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-auto bg-background text-sm text-foreground dark:border-muted-foreground/60 lg:w-96">
+        <div
+          className="cursor-pointer space-y-2 whitespace-nowrap hover:opacity-70"
+          onClick={() => onCodeCitationClick?.(relevantCode)}
+        >
+          <span>{fileName}</span>
+          {rangeText ? (
+            <span className="text-muted-foreground">:{rangeText}</span>
+          ) : null}
+          {!!path && (
+            <div className="text-xs text-muted-foreground">{path}</div>
+          )}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   )
 }
