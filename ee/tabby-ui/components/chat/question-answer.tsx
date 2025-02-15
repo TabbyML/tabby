@@ -297,31 +297,31 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   const attachmentDocsLen = 0
 
-  const attachmentClientCode: Array<
-    Omit<AttachmentCodeItem, '__typename' | 'startLine'> & {
-      startLine: number | undefined
-    }
-  > = useMemo(() => {
-    const formatedAttachmentClientCode =
-      clientCode?.map(o => ({
-        content: o.content,
-        filepath: o.filepath,
-        gitUrl: o.git_url,
-        startLine: o.range ? o.range.start : undefined,
-        language: filename2prism(o.filepath ?? '')[0],
-        isClient: true
-      })) ?? []
-    return formatedAttachmentClientCode
-  }, [clientCode])
+  const attachmentClientCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
+    useMemo(() => {
+      const formatedAttachmentClientCode =
+        clientCode?.map(o => ({
+          content: o.content,
+          filepath: o.filepath,
+          gitUrl: o.git_url,
+          startLine: o.range ? o.range.start : undefined,
+          endLine: o.range ? o.range.end : undefined,
+          language: filename2prism(o.filepath ?? '')[0],
+          isClient: true,
+          baseDir: o.baseDir
+        })) ?? []
+      return formatedAttachmentClientCode
+    }, [clientCode])
 
   const attachmentCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
     useMemo(() => {
-      const formatedServerAttachmentCode =
+      const formatedServerAttachmentCode: AttachmentCodeItem[] =
         serverCode?.map(o => ({
           content: o.content,
           filepath: o.filepath,
           gitUrl: o.git_url,
           startLine: o.range?.start,
+          endLine: o.range?.end,
           language: filename2prism(o.filepath ?? '')[0],
           isClient: false
         })) ?? []

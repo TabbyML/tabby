@@ -221,6 +221,28 @@ export function MessageMarkdown({
         }
       })
     }
+    attachmentClientCode?.forEach(item => {
+      const code = item as AttachmentCodeItem
+      hints.push({
+        filepath: code.gitUrl
+          ? {
+              kind: 'git',
+              gitUrl: code.gitUrl,
+              filepath: code.filepath
+            }
+          : code.baseDir
+          ? {
+              kind: 'workspace',
+              filepath: code.filepath,
+              baseDir: code.baseDir
+            }
+          : {
+              kind: 'uri',
+              uri: code.filepath
+            }
+      })
+    })
+
     const symbolInfo = await onLookupSymbol(keyword, hints)
     setSymbolLocationMap(map => new Map(map.set(keyword, symbolInfo)))
   }
