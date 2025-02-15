@@ -212,15 +212,7 @@ export function MessageMarkdown({
 
     setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
     const hints: LookupSymbolHint[] = []
-    if (activeSelection && activeSelection?.range) {
-      hints.push({
-        filepath: getFilepathFromContext(activeSelection),
-        location: {
-          start: activeSelection.range.start,
-          end: activeSelection.range.end
-        }
-      })
-    }
+
     attachmentClientCode?.forEach(item => {
       const code = item as AttachmentCodeItem & {
         startLine: number | undefined
