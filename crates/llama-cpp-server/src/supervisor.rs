@@ -135,7 +135,24 @@ impl LlamaCppSupervisor {
                         "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.",
                         name
                     );
-                    std::process::exit(1);
+
+                    match status_code {
+                        0 => (),
+                        1 => {
+                            eprintln!(
+                                "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.",
+                                name
+                            );
+                            std::process::exit(1);
+                        }
+                        _ => {
+                            warn!(
+                                "llama-server <{}> exited with status code {}, retrying...",
+                                name, status_code
+                            );
+                        }
+                    }
+                    tokio::time::sleep(Duration::from_secs(1)).await;
                 }
             }
         });
