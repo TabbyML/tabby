@@ -221,7 +221,14 @@ export function MessageMarkdown({
         }
       })
     }
-    attachmentClientCode?.forEach((code: any) => {
+    attachmentClientCode?.forEach(item => {
+      const code = item as AttachmentCodeItem & {
+        startLine: number | undefined
+        endLine: number | undefined
+        range?: { start: number; end: number }
+        baseDir?: string
+      }
+
       hints.push({
         filepath: code.gitUrl
           ? {
