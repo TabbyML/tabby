@@ -138,9 +138,12 @@ impl LlamaCppSupervisor {
 
                     match status_code {
                         0 => (),
-                        1 => {
+                        1 | -1 => {
+                            if let Some(solution) = analyze_error_message(&error_message) {
+                                eprintln!("{}", solution);
+                            }
                             eprintln!(
-                                "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.",
+                                "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs and suggested solutions for details.",
                                 name
                             );
                             std::process::exit(1);
@@ -185,6 +188,23 @@ impl LlamaCppSupervisor {
             }
         }
     }
+}
+
+fn analyze_error_message(error_message: &str) -> Option<String> {
+    if error_message.contains("cudaMalloc") {
+        return Some(String::from(
+            "CUDA memory allocation error detected:\n\
+             1. Try using a smaller Model\n\
+             2. Try to reduce GPU memory usage\n",
+        ));
+    }
+    if error_message.contains("Illegal instruction") {
+        return Some(String::from(
+            "Illegal instruction detected: Current binary requires AVX2 instruction set.\n\
+             Solution: Compile llama.cpp with appropriate CPU instruction set flags for your hardware."
+        ));
+    }
+    None
 }
 
 fn find_binary_name() -> Option<String> {
