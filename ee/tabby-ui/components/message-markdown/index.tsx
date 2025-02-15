@@ -239,7 +239,14 @@ export function MessageMarkdown({
           : {
               kind: 'uri',
               uri: code.filepath
-            }
+            },
+        location:
+          code.startLine && code.endLine
+            ? {
+                start: code.startLine,
+                end: code.endLine
+              }
+            : undefined
       })
     })
 
