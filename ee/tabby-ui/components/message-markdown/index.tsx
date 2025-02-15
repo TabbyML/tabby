@@ -18,7 +18,6 @@ import {
   cn,
   convertFilepath,
   encodeMentionPlaceHolder,
-  getFilepathFromContext,
   getRangeFromAttachmentCode,
   resolveFileNameForDisplay
 } from '@/lib/utils'
