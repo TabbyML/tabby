@@ -1,0 +1,149 @@
+name: Create and publish docker image (Vulkan)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dockerhub:
+        description: 'Push to Docker Hub'
+        required: false
+        type: boolean
+      platforms:
+        description: 'Target platforms, default "linux/amd64,linux/arm64"'
+        required: true
+        default: 'linux/amd64,linux/arm64'
+  push:
+    tags:
+      - "v*"
+      - "!*-dev.*"
+      - "!vscode@*"
+      - '!vim@*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
+
+env:
+  RUST_TOOLCHAIN: 1.82.0
+
+jobs:
+  release-docker-vulkan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+
+    strategy:
+      matrix:
+        device-type: [vulkan]
+        include:
+          - device-type: vulkan
+            image-suffix: "-vulkan"
+
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: true
+
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          swap-storage: true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Workaround: https://github.com/docker/build-push-action/issues/461
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      - name: Log into GitHub Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log into Docker Hub
+        uses: docker/login-action@v3
+        if: inputs.dockerhub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate image name
+        env:
+          IMAGE_SUFFIX: ${{ matrix.image-suffix }}
+        run: |
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}${IMAGE_SUFFIX}" >>${GITHUB_ENV}
+
+      - uses: int128/docker-build-cache-config-action@v1
+        id: cache
+        with:
+          image: ghcr.io/${{ env.IMAGE_NAME }}/cache
+
+      - name: Docker images
+        uses: actions/github-script@v7
+        id: set-images
+        with:
+          result-encoding: string
+          script: |
+            const images = ["ghcr.io/${{ env.IMAGE_NAME }}"];
+            if (${{ inputs.dockerhub }}) {
+              images.push("${{ env.IMAGE_NAME }}");
+            }
+            return images.join('\n');
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # list of Docker images to use as base name for tags
+          images: ${{ steps.set-images.outputs.result }}
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=raw,value={{branch}}-{{sha}},enable=${{ startsWith(github.ref, 'refs/heads') }}
+            type=schedule,pattern=nightly
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=semver,pattern={{version}}
+
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          file: docker/Dockerfile.${{ matrix.device-type }}
+          platforms: ${{ github.event.inputs.platforms }}
+          push: true
+          context: .
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: ${{ steps.cache.outputs.cache-from }}
+          cache-to: ${{ steps.cache.outputs.cache-to }}
+          build-args: RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        if: inputs.dockerhub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: tabbyml/tabby
