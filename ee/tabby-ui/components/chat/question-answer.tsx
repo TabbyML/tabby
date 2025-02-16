@@ -301,7 +301,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     Omit<AttachmentCodeItem, '__typename' | 'startLine'> & {
       startLine: number | undefined
       endLine: number | undefined
-      range?: { start: number; end: number }
       baseDir?: string
     }
   > = useMemo(() => {
