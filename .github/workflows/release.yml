@@ -34,6 +34,7 @@ jobs:
           - x86_64-manylinux_2_28
           - x86_64-manylinux_2_28-cuda123
           - x86_64-manylinux_2_28-vulkan
+          - aarch64-manylinux_2_28-vulkan
           - x86_64-windows-msvc
           - x86_64-windows-msvc-vulkan
           # - x86_64-windows-msvc-cuda117
@@ -57,6 +58,12 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux_2_28-vulkan
             container: quay.io/pypa/manylinux_2_28_x86_64
+            build_args: --features binary,vulkan
+            vulkan_sdk: '1.3.239.0'
+          - os: buildjet-4vcpu-ubuntu-2204
+            target: aarch64-unknown-linux-gnu
+            binary: aarch64-manylinux_2_28-vulkan
+            container: quay.io/pypa/manylinux_2_28_aarch64
             build_args: --features binary,vulkan
             vulkan_sdk: '1.3.239.0'
           - os: windows-latest
@@ -165,6 +172,7 @@ jobs:
         binary:
           - aarch64-apple-darwin
           - x86_64-manylinux_2_28
+          - aarch64-manylinux_2_28
           - x86_64-windows-msvc
         include:
           - os: macos-latest
@@ -175,6 +183,11 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux_2_28
             container: quay.io/pypa/manylinux_2_28_x86_64
+            build_args: --no-default-features --features static-ssl,prod
+          - os: buildjet-2vcpu-ubuntu-2204
+            target: aarch64-unknown-linux-gnu
+            binary: aarch64-manylinux_2_28
+            container: quay.io/pypa/manylinux_2_28_aarch64
             build_args: --no-default-features --features static-ssl,prod
           - os: windows-latest
             target: x86_64-pc-windows-msvc
