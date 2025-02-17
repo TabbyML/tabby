@@ -140,7 +140,13 @@ impl LlamaCppSupervisor {
                         0 => (),
                         1 | -1 => {
                             if let Some(solution) = analyze_error_message(&error_message) {
-                                eprintln!("{}", solution);
+                                let solution_lines: Vec<_> = solution.split('\n').collect();
+                                let msg = tabby_common::terminal::InfoMessage::new(
+                                    "ERROR",
+                                    tabby_common::terminal::HeaderFormat::BoldRed,
+                                    &solution_lines,
+                                );
+                                msg.print();
                             }
                             eprintln!(
                                 "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs and suggested solutions for details.",
@@ -198,12 +204,19 @@ fn analyze_error_message(error_message: &str) -> Option<String> {
              2. Try to reduce GPU memory usage\n",
         ));
     }
-    if error_message.contains("Illegal instruction") {
-        return Some(String::from(
-            "Illegal instruction detected: Current binary requires AVX2 instruction set.\n\
-             Solution: Compile llama.cpp with appropriate CPU instruction set flags for your hardware."
-        ));
+
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        if error_message.contains("Illegal instruction")
+            && !std::arch::is_x86_feature_detected!("avx2")
+        {
+            return Some(String::from(
+                "Illegal instruction detected: Your CPU does not support AVX2 instruction set.\n\
+                 Suggestion: Download a compatible binary from https://github.com/ggml-org/llama.cpp/releases"
+            ));
+        }
     }
+
     None
 }
 
