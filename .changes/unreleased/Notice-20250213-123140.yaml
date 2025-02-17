@@ -1,3 +1,0 @@
-kind: Notice
-body: The default parallelism has been increased from 1 to 4, which might increase VRAM usage. Consider adjusting it to suit your use case.
-time: 2025-02-13T12:31:40.988864+08:00
