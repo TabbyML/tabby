@@ -28,7 +28,7 @@ The **chat_template** field is optional. When it is present, it is assumed that 
 
 ### ggml/
 
-This directory contains binary files used by the [llama.cpp](https://github.com/ggerganov/llama.cpp) inference engine.
+This directory contains binary files used by the [llama.cpp](https://github.com/ggml-org/llama.cpp) inference engine.
 Tabby utilizes GGML for inference on `cpu`, `cuda` and `metal` devices.
 
 Tabby saves GGUF model files in the format `model-{index}-of-{count}.gguf`, following the llama.cpp naming convention.

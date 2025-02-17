@@ -13,7 +13,7 @@ if [ -z "${ACCESS_TOKEN}" ]; then
 fi
 
 prepare_llama_cpp() {
-  git clone https://github.com/ggerganov/llama.cpp.git
+  git clone https://github.com/ggml-org/llama.cpp.git
   pushd llama.cpp
 
   git checkout 6961c4bd0b5176e10ab03b35394f1e9eab761792
