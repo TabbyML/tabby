@@ -257,9 +257,13 @@ function CodeContextItem({
     <Tooltip delayDuration={100}>
       <TooltipTrigger asChild>
         <div
-          className={cn('whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5', {
-            'cursor-pointer': clickable
-          })}
+          className={cn(
+            'whitespace-nowrap rounded-md bg-secondary px-1.5 py-0.5',
+            {
+              'cursor-pointer hover:bg-muted hover:text-foreground/80':
+                clickable
+            }
+          )}
           onClick={e => {
             if (clickable) {
               onContextClick?.(context)
