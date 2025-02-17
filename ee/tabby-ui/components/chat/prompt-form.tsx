@@ -84,7 +84,7 @@ function PromptFormRenderer(
         Paragraph,
         Text,
         Placeholder.configure({
-          placeholder: 'typing...'
+          placeholder: 'Typing to ask anything... (@ to add context)'
         }),
         CustomKeyboardShortcuts(handleSubmit),
         PromptFormMentionExtension.configure({
