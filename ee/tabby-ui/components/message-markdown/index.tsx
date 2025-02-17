@@ -368,7 +368,7 @@ function CitationTag({
   citationSource
 }: any) {
   return (
-    <div className="inline">
+    <span>
       {showcitation && (
         <>
           {citationType === 'doc' ? (
@@ -384,7 +384,7 @@ function CitationTag({
           ) : null}
         </>
       )}
-    </div>
+    </span>
   )
 }
 

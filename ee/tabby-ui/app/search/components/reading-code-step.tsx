@@ -222,7 +222,7 @@ interface CodeContextItemProps {
 
 function CodeContextItem({
   context,
-  clickable,
+  clickable = true,
   onContextClick,
   enableDeveloperMode
 }: CodeContextItemProps) {
@@ -257,12 +257,9 @@ function CodeContextItem({
     <Tooltip delayDuration={100}>
       <TooltipTrigger asChild>
         <div
-          className={cn(
-            'cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5',
-            {
-              'cursor-pointer': clickable
-            }
-          )}
+          className={cn('whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5', {
+            'cursor-pointer': clickable
+          })}
           onClick={e => {
             if (clickable) {
               onContextClick?.(context)
