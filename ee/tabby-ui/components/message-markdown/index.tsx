@@ -213,13 +213,8 @@ export function MessageMarkdown({
     const hints: LookupSymbolHint[] = []
 
     attachmentClientCode?.forEach(item => {
-      const code = item as Omit<
-        AttachmentCodeItem,
-        '__typename' | 'startLine'
-      > & {
-        startLine: number | undefined
-        baseDir?: string
-      }
+      const code = item as AttachmentCodeItem
+
       hints.push({
         filepath: code.gitUrl
           ? {
@@ -237,13 +232,7 @@ export function MessageMarkdown({
               kind: 'uri',
               uri: code.filepath
             },
-        location:
-          code.startLine && code.content
-            ? {
-                start: code.startLine,
-                end: code.startLine + code.content.split('\n').length - 1
-              }
-            : undefined
+        location: getRangeFromAttachmentCode(code)
       })
     })
 
