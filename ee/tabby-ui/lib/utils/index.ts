@@ -199,7 +199,7 @@ export const convertFilepath = (filepath: Filepath) => {
   if (filepath.kind === 'git') {
     return {
       filepath: filepath.filepath,
-      git_url: ''
+      git_url: filepath.gitUrl
     }
   }
   if (filepath.kind === 'workspace') {
