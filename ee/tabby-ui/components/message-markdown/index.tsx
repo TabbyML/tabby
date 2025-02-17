@@ -226,7 +226,7 @@ export function MessageMarkdown({
           ? {
               kind: 'workspace',
               filepath: code.filepath,
-              baseDir: code.baseDir ?? ''
+              baseDir: code.baseDir
             }
           : {
               kind: 'uri',
