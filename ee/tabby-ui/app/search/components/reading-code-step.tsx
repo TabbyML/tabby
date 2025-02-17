@@ -258,10 +258,9 @@ function CodeContextItem({
       <TooltipTrigger asChild>
         <div
           className={cn(
-            'whitespace-nowrap rounded-md bg-secondary px-1.5 py-0.5',
+            'group whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5',
             {
-              'cursor-pointer hover:bg-muted hover:text-foreground/80':
-                clickable
+              'cursor-pointer hover:text-foreground': clickable
             }
           )}
           onClick={e => {
@@ -272,7 +271,7 @@ function CodeContextItem({
         >
           <span>{fileName}</span>
           {rangeText ? (
-            <span className="font-normal text-muted-foreground">
+            <span className="font-normal text-muted-foreground group-hover:text-foreground">
               :{rangeText}
             </span>
           ) : null}
@@ -335,7 +334,7 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
 
   return (
     <div
-      className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold"
+      className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold hover:text-foreground"
       onClick={() => window.open(doc.link)}
     >
       {icon}
