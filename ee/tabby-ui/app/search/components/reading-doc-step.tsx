@@ -100,7 +100,7 @@ export function ReadingDocStepper({
                           <HoverCard openDelay={100} closeDelay={100}>
                             <HoverCardTrigger>
                               <div
-                                className="cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
+                                className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
                                 onClick={() => window.open(x.link)}
                               >
                                 <DocItem doc={x} />
@@ -133,7 +133,7 @@ function DocItem({ doc }: { doc: AttachmentDocItem }) {
   const sourceUrl = doc ? new URL(doc.link) : null
 
   return (
-    <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
+    <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground group-hover:text-foreground">
       <SiteFavicon
         hostname={sourceUrl!.hostname}
         className="m-0 mr-1 leading-none"
