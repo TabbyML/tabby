@@ -213,13 +213,9 @@ export function MessageMarkdown({
     const hints: LookupSymbolHint[] = []
 
     attachmentClientCode?.forEach(item => {
-      const code = item as AttachmentCodeItem & {
-        startLine: number | undefined
-        endLine: number | undefined
-        range?: { start: number; end: number }
-        baseDir?: string
-      }
+      const code = item as AttachmentCodeItem
 
+      // FIXME(Sma1lboy): using getFilepathFromContext after refactor FileContext
       hints.push({
         filepath: code.gitUrl
           ? {
@@ -237,13 +233,7 @@ export function MessageMarkdown({
               kind: 'uri',
               uri: code.filepath
             },
-        location:
-          code.startLine && code.endLine
-            ? {
-                start: code.startLine,
-                end: code.endLine
-              }
-            : undefined
+        location: getRangeFromAttachmentCode(code)
       })
     })
 
