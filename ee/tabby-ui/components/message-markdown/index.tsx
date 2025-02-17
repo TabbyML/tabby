@@ -215,6 +215,7 @@ export function MessageMarkdown({
     attachmentClientCode?.forEach(item => {
       const code = item as AttachmentCodeItem
 
+      // FIXME(Sma1lboy): using getFilepathFromContext after refactor FileContext
       hints.push({
         filepath: code.gitUrl
           ? {
