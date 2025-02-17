@@ -300,6 +300,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   const attachmentClientCode: Array<
     Omit<AttachmentCodeItem, '__typename' | 'startLine'> & {
       startLine: number | undefined
+      baseDir?: string
     }
   > = useMemo(() => {
     const formatedAttachmentClientCode =
@@ -307,6 +308,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         content: o.content,
         filepath: o.filepath,
         gitUrl: o.git_url,
+        baseDir: o.baseDir,
         startLine: o.range ? o.range.start : undefined,
         language: filename2prism(o.filepath ?? '')[0],
         isClient: true
