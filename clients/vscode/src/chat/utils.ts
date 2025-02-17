@@ -79,7 +79,10 @@ export function chatPanelFilepathToLocalUri(filepath: Filepath, gitProvider: Git
     try {
       result = Uri.parse(filepath.uri, true);
     } catch (e) {
-      // nothing
+      const workspaceRoot = workspace.workspaceFolders?.[0];
+      if (workspaceRoot) {
+        result = Uri.joinPath(workspaceRoot.uri, filepath.uri);
+      }
     }
   } else if (filepath.kind === "workspace") {
     try {

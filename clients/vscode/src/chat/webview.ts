@@ -311,21 +311,8 @@ export class ChatWebview {
             this.logger.debug("No filepath in the hint:", hint);
             continue;
           }
-          let uri: Uri | undefined;
-          if (hint.filepath.kind === "git") {
-            const localGitRoot = this.gitProvider.findLocalRootUriByRemoteUrl(hint.filepath.gitUrl);
-            if (localGitRoot) {
-              uri = Uri.joinPath(localGitRoot, hint.filepath.filepath);
-            }
-          } else {
-            if (!workspace.workspaceFolders || !workspace.workspaceFolders[0]) {
-              continue;
-            }
-            uri = Uri.joinPath(
-              workspace.workspaceFolders[0].uri,
-              "uri" in hint.filepath ? hint.filepath.uri : hint.filepath.filepath,
-            );
-          }
+          const uri = chatPanelFilepathToLocalUri(hint.filepath, this.gitProvider);
+
           if (!uri) {
             continue;
           }
