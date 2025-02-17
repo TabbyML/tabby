@@ -92,35 +92,27 @@ impl LlamaCppSupervisor {
                     )
                 });
 
-                let status_code = process
-                    .wait()
-                    .await
-                    .ok()
-                    .and_then(|s| s.code())
-                    .unwrap_or(-1);
+                let mut stderr = BufReader::new(process.stderr.take().expect("Failed to get stderr")).lines();
+                let mut error_lines = VecDeque::with_capacity(100);
+
+                let wait_handle = process.wait();
+
+                while let Ok(Some(line)) = stderr.next_line().await {
+                    if !line.contains("GET /health") {
+                        if error_lines.len() >= 100 {
+                            error_lines.pop_front();
+                        }
+                        error_lines.push_back(line);
+                    }
+                }
+
+                let status_code = wait_handle.await.ok().and_then(|s| s.code()).unwrap_or(-1);
 
                 if status_code != 0 {
                     warn!(
                         "llama-server <{}> exited with status code {}, args: `{}`",
                         name, status_code, command_args
                     );
-
-                    let mut stderr = process
-                        .stderr
-                        .take()
-                        .map(tokio::io::BufReader::new)
-                        .map(|reader| reader.lines())
-                        .expect("Failed to read stderr");
-
-                    let mut error_lines = VecDeque::with_capacity(100);
-                    while let Ok(Some(line)) = stderr.next_line().await {
-                        if !line.contains("GET /health") {
-                            if error_lines.len() >= 100 {
-                                error_lines.pop_front();
-                            }
-                            error_lines.push_back(line);
-                        }
-                    }
 
                     let error_message = error_lines.into_iter().fold(
                         String::from("Recent llama-cpp errors:\n"),
@@ -130,15 +122,10 @@ impl LlamaCppSupervisor {
                         },
                     );
 
-                    eprintln!("{}", error_message);
-                    eprintln!(
-                        "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs for details.",
-                        name
-                    );
-
                     match status_code {
                         0 => (),
                         1 | -1 => {
+                            eprintln!("{}", error_message);
                             if let Some(solution) = analyze_error_message(&error_message) {
                                 let solution_lines: Vec<_> = solution.split('\n').collect();
                                 let msg = tabby_common::terminal::InfoMessage::new(
