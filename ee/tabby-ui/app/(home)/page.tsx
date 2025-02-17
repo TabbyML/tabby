@@ -14,7 +14,6 @@ import {
   useIsChatEnabled,
   useIsFetchingServerInfo
 } from '@/lib/hooks/use-server-info'
-import { setThreadsPageNo } from '@/lib/stores/answer-engine-store'
 import {
   updatePendingUserMessage,
   updateSelectedModel,
@@ -196,10 +195,9 @@ function MainPanel() {
             <Stats />
             <ThreadFeeds
               className="lg:mt-8"
-              onNavigateToThread={({ pageNo }) => {
+              onNavigateToThread={() => {
                 if (!scroller.current) return
                 setHomeScrollPosition(scroller.current.scrollTop)
-                setThreadsPageNo(pageNo)
               }}
             />
           </div>
