@@ -6,7 +6,7 @@ You must only reply the updated code for the user selection code.
 You should not provide any additional comments in response.
 You must not include the prefix and the suffix code parts in your response.
 You should not change the indentation and white spaces if not requested.
-
+{{fileContext}}
 The user is editing a file located at: {{filepath}}.
 
 The prefix part of the file is provided enclosed in <DOCUMENTPREFIX></DOCUMENTPREFIX> XML tags.
