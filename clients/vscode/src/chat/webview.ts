@@ -312,10 +312,10 @@ export class ChatWebview {
             continue;
           }
           const uri = chatPanelFilepathToLocalUri(hint.filepath, this.gitProvider);
-
           if (!uri) {
             continue;
           }
+
           let document: TextDocument;
           try {
             document = await workspace.openTextDocument(uri);
