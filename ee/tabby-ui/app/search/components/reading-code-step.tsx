@@ -271,7 +271,11 @@ function CodeContextItem({
         >
           <span>{fileName}</span>
           {rangeText ? (
-            <span className="font-normal text-muted-foreground group-hover:text-foreground">
+            <span
+              className={cn('font-normal text-muted-foreground', {
+                'group-hover:text-foreground': clickable
+              })}
+            >
               :{rangeText}
             </span>
           ) : null}
