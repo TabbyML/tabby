@@ -92,7 +92,8 @@ impl LlamaCppSupervisor {
                     )
                 });
 
-                let mut stderr = BufReader::new(process.stderr.take().expect("Failed to get stderr")).lines();
+                let mut stderr =
+                    BufReader::new(process.stderr.take().expect("Failed to get stderr")).lines();
                 let mut error_lines = VecDeque::with_capacity(100);
 
                 let wait_handle = process.wait();
