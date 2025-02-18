@@ -463,7 +463,7 @@ mod tests {
 
         // No threads are ephemeral
         let threads = db
-            .list_threads(None, Some(true), None, None, false)
+            .list_threads(None, None, Some(true), None, None, false)
             .await
             .unwrap();
         assert_eq!(threads.len(), 0);
