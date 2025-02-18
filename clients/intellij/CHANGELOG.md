@@ -1,3 +1,18 @@
+## 1.10.1
+
+### Fixes & Improvements
+
+- Reduced the use of read locks to prevent UI freezing issues when collecting declaration code snippets for code completion.
+
+## 1.10.0
+
+### Features
+
+- **Chat**:
+  - Added support to explicitly select a configured Git repository as the context for chat conversations.
+  - Added support to use the active editor selection as the context for chat conversations.
+  - **Note**: Requires updating the Tabby server to version 0.23.0 or later.
+
 ## 1.9.1
 
 ### Fixes & Improvements
