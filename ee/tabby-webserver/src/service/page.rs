@@ -2,6 +2,8 @@ mod prompt_tools;
 
 use std::sync::Arc;
 
+use anyhow::anyhow;
+use async_stream::stream;
 use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
 use juniper::ID;
@@ -13,9 +15,10 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     context::ContextService,
     page::{
-        MoveSectionDirection, Page, PageCompleted, PageContentCompleted, PageContentDelta,
-        PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
-        PageSectionContentDelta, PageSectionsCreated, PageService, Section, ThreadToPageRunStream,
+        CreatePageSectionRunInput, MoveSectionDirection, Page, PageCompleted, PageContentCompleted,
+        PageContentDelta, PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
+        PageSectionContentDelta, PageSectionsCreated, PageService, Section, SectionRunItem,
+        SectionRunStream, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
     thread::{Message, ThreadService},
@@ -76,14 +79,14 @@ impl PageService for PageServiceImpl {
         let context = self.context.clone();
         let author_id = author_id.clone();
 
-        let s = async_stream::stream! {
+        let s = stream! {
             yield Ok(PageRunItem::PageCreated(PageCreated {
                 id: page_id.clone(),
                 author_id: author_id.clone(),
                 title,
             }));
 
-            let sections = generate_page_sections(chat.clone(), context.clone(), &policy, &messages).await?;
+            let sections = generate_page_sections(3, chat.clone(), context.clone(), &policy, &messages).await?;
             let mut page_sections = Vec::new();
             for section_title in sections {
                 let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
@@ -131,6 +134,72 @@ impl PageService for PageServiceImpl {
 
             yield Ok(PageRunItem::PageCompleted(PageCompleted {
                 id: page_id,
+            }));
+        };
+
+        Ok(s.boxed())
+    }
+
+    async fn append_section(
+        &self,
+        policy: &AccessPolicy,
+        input: &CreatePageSectionRunInput,
+    ) -> Result<SectionRunStream> {
+        let current_sections = self
+            .list_sections(&input.page_id, None, None, None, None)
+            .await?;
+
+        let chat = self.chat.clone();
+        let context = self.context.clone();
+        let db = self.db.clone();
+        let policy = policy.clone();
+        let page_id = input.page_id.as_rowid()?;
+
+        let s = stream! {
+            let title = generate_page_sections(
+                1,
+                chat.clone(),
+                context.clone(),
+                &policy,
+                &vec![],
+            )
+            .await?
+            .first()
+            .ok_or_else(|| CoreError::Other(anyhow!("failed to generate section title")))?
+            .to_owned();
+
+            let (section_id, position) = db
+            .create_page_section(page_id, &title)
+            .await?;
+            yield Ok(SectionRunItem::PageSectionCreated (PageSection {
+                id: section_id.as_id(),
+                title: title.clone(),
+                position: position as i32,
+            }));
+
+            let content_stream = generate_page_section_content(
+                chat.clone(),
+                context.clone(),
+                &policy,
+                &vec![],
+                &current_sections.iter().map(|x| x.title.clone()).collect(),
+                &title,
+            )
+            .await?;
+            for await delta in content_stream {
+                let delta = delta?;
+                db
+                    .append_page_section_content(section_id, &delta)
+                    .await
+                    .unwrap();
+                yield Ok(SectionRunItem::PageSectionContentDelta(PageSectionContentDelta{
+                    id: section_id.as_id(),
+                    delta
+                }));
+            }
+
+            yield Ok(SectionRunItem::PageSectionContentCompleted(PageSectionContentCompleted {
+                id: section_id.as_id(),
             }));
         };
 
@@ -272,6 +341,7 @@ async fn generate_page_content(
 }
 
 pub async fn generate_page_sections(
+    count: usize,
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
@@ -279,13 +349,15 @@ pub async fn generate_page_sections(
 ) -> anyhow::Result<Vec<String>> {
     let context_info = context.read(Some(policy)).await?;
     let context_info_helper = context_info.helper();
+
     let content = messages
         .iter()
         .map(|x| x.content.clone())
         .collect::<Vec<_>>()
         .join("\n");
     let context = context_info_helper.rewrite_tag(&content);
-    pipeline_page_sections(chat.clone(), &context, &content)
+
+    pipeline_page_sections(chat.clone(), &context, &content, count)
         .await
         .map(|titles| {
             titles

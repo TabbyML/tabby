@@ -63,11 +63,12 @@ pub async fn pipeline_page_sections(
     chat: Arc<dyn ChatCompletionStream>,
     context: &str,
     conversation: &str,
+    count: usize,
 ) -> Result<Vec<String>> {
     let prompt = format!(
         r#"
 You are a helpful assistant that helps the user to write documents,
-I require your expertise in distilling the essence of a conversation into exactly three distinct section titles.
+I require your expertise in distilling the essence of a conversation into exactly {count} distinct section titles.
 Each title should succinctly reflect a major theme or topic from the dialogue,
 and they must not exceed 50 words in length.
 
@@ -75,6 +76,8 @@ Please format the titles as bullet points using `-`, with each title on a separa
 
 The language of the titles should be consistent with that of the original conversation.
 No additional information is needed beyond the section titles themselves.
+
+Please remember to generate exactly {count} section titles.
 
 Here are the contexts of the conversation:
 

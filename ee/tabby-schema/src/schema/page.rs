@@ -7,6 +7,7 @@ pub use types::*;
 use crate::{policy::AccessPolicy, schema::Result, thread::Message};
 
 pub type ThreadToPageRunStream = BoxStream<'static, Result<PageRunItem>>;
+pub type SectionRunStream = BoxStream<'static, Result<SectionRunItem>>;
 
 #[async_trait]
 pub trait PageService: Send + Sync {
@@ -50,5 +51,10 @@ pub trait PageService: Send + Sync {
         id: &ID,
         direction: MoveSectionDirection,
     ) -> Result<()>;
+    async fn append_section(
+        &self,
+        policy: &AccessPolicy,
+        input: &CreatePageSectionRunInput,
+    ) -> Result<SectionRunStream>;
     async fn delete_section(&self, id: &ID) -> Result<()>;
 }
