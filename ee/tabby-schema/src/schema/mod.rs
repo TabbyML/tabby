@@ -666,7 +666,15 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .thread()
-                    .list(ids.as_deref(), None, is_ephemeral, after, before, first, last)
+                    .list(
+                        ids.as_deref(),
+                        None,
+                        is_ephemeral,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
                     .await
             },
         )
@@ -690,7 +698,15 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .thread()
-                    .list(None, Some(&user.id), is_ephemeral, after, before, first, last)
+                    .list(
+                        None,
+                        Some(&user.id),
+                        is_ephemeral,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
                     .await
             },
         )
