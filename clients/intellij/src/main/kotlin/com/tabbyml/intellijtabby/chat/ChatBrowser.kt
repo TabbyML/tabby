@@ -384,18 +384,22 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private fun reloadContentInternal(statusInfo: StatusInfo?, force: Boolean = false) {
     if (statusInfo == null) {
+      currentConfig = null
       showContent("Initializing...")
     } else {
       when (statusInfo.status) {
         StatusInfo.Status.CONNECTING -> {
+          currentConfig = null
           showContent("Connecting to Tabby server...")
         }
 
         StatusInfo.Status.UNAUTHORIZED -> {
+          currentConfig = null
           showContent("Authorization required, please set your token in settings.")
         }
 
         StatusInfo.Status.DISCONNECTED -> {
+          currentConfig = null
           showContent("Cannot connect to Tabby server, please check your settings.")
         }
 
@@ -403,10 +407,12 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
           val health = statusInfo.serverHealth
           val error = checkServerHealth(health)
           if (error != null) {
+            currentConfig = null
             showContent(error)
           } else {
             val config = combinedState.state.agentConfig?.server
             if (config == null) {
+              currentConfig = null
               showContent("Initializing...")
             } else if (force || currentConfig != config) {
               showContent("Loading chat panel...")
