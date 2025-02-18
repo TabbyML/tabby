@@ -5,7 +5,7 @@ import com.tabbyml.intellijtabby.chat.ChatBrowser
 
 class AddSelectionToChat : ChatAction(object : ChatActionHandler {
   override fun doExecute(editor: Editor, chatBrowser: ChatBrowser) {
-    chatBrowser.addActiveEditorAsContext(true)
+    chatBrowser.addActiveEditorAsContext(ChatBrowser.RangeStrategy.SELECTION)
   }
 
   override fun isEnabled(editor: Editor, chatBrowser: ChatBrowser?): Boolean {

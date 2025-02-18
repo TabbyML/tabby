@@ -5,6 +5,6 @@ import com.tabbyml.intellijtabby.chat.ChatBrowser
 
 class AddFileToChat : ChatAction(object : ChatActionHandler {
   override fun doExecute(editor: Editor, chatBrowser: ChatBrowser) {
-    chatBrowser.addActiveEditorAsContext(false)
+    chatBrowser.addActiveEditorAsContext(ChatBrowser.RangeStrategy.FILE)
   }
 })
