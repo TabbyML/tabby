@@ -159,10 +159,6 @@ export function AllThreadFeeds() {
         >
           {hasThreads && (
             <>
-              {/* <div className="mb-2.5 w-full text-lg font-semibold">
-                Recent Activities
-              </div>
-              <Separator className="mb-4 w-full" /> */}
               <div className="relative flex flex-col gap-3 text-sm">
                 {threads.map(t => {
                   return (

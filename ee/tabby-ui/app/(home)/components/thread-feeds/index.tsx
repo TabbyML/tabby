@@ -9,7 +9,6 @@ import {
 import { contextInfoQuery } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { IconSpinner } from '@/components/ui/icons'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import LoadingWrapper from '@/components/loading-wrapper'
 
@@ -67,23 +66,30 @@ export function ThreadFeeds({
           >
             {/* todo hasThreads ? */}
             <>
-              <div className="mb-2.5 w-full text-lg font-semibold">
+              {/* <div className="mb-2.5 w-full text-lg font-semibold">
                 Recent Activities
               </div>
-              <Separator className="mb-4 w-full" />
-              {/* tabs */}
+              <Separator className="mb-4 w-full" /> */}
               <Tabs
                 value={threadsTab}
                 onValueChange={v => setThreadsTab(v as 'all' | 'mine')}
               >
-                <TabsList className="mb-2 h-9">
-                  <TabsTrigger value="all" className="w-16 py-1">
-                    All
-                  </TabsTrigger>
-                  <TabsTrigger value="mine" className="w-16 py-1">
-                    Mine
-                  </TabsTrigger>
-                </TabsList>
+                <div className="flex items-center justify-between pb-3">
+                  <TabsList className="w-full justify-start border-b bg-transparent p-0">
+                    <TabsTrigger
+                      value="all"
+                      className="rounded-none border-b-2 border-b-transparent bg-transparent px-3 py-2 text-base font-medium shadow-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    >
+                      Recent Activities
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="mine"
+                      className="rounded-none border-b-2 border-b-transparent bg-transparent px-3 py-2 text-base font-medium shadow-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    >
+                      My Activities
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
                 <TabsContent value="all">
                   <AllThreadFeeds />
                 </TabsContent>
