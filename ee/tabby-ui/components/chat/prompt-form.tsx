@@ -9,6 +9,7 @@ import Mention from '@tiptap/extension-mention'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
+import TextStyle from '@tiptap/extension-text-style'
 import {
   Editor,
   EditorContent,
@@ -17,6 +18,7 @@ import {
   ReactRenderer,
   useEditor
 } from '@tiptap/react'
+import TextSize from 'tiptap-extension-font-size'
 
 import './prompt-form.css'
 
@@ -83,6 +85,10 @@ function PromptFormRenderer(
         Document,
         Paragraph,
         Text,
+        TextStyle,
+        TextSize.configure({
+          types: ['textStyle']
+        }),
         Placeholder.configure({
           placeholder: 'Typing to ask anything... (@ to add context)'
         }),
@@ -186,6 +192,9 @@ function PromptFormRenderer(
       },
       onUpdate(props) {
         onUpdate?.(props)
+      },
+      onCreate: ({ editor }) => {
+        editor.chain().focus().setFontSize('10px').run()
       }
     },
     [listFileInWorkspace]
