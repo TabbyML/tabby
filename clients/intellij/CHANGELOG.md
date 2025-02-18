@@ -1,3 +1,9 @@
+## 1.10.1
+
+### Fixes & Improvements
+
+- Reduced the use of read locks to prevent UI freezing issues when collecting declaration code snippets for code completion.
+
 ## 1.10.0
 
 ### Features
