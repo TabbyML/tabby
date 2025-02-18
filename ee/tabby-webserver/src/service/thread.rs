@@ -336,7 +336,14 @@ impl ThreadService for ThreadServiceImpl {
         let user_id = user_id.map(|id| id.as_rowid()).transpose()?;
         let threads = self
             .db
-            .list_threads(ids.as_deref(), user_id, is_ephemeral, limit, skip_id, backwards)
+            .list_threads(
+                ids.as_deref(),
+                user_id,
+                is_ephemeral,
+                limit,
+                skip_id,
+                backwards,
+            )
             .await?;
 
         Ok(threads.into_iter().map(Into::into).collect())
@@ -729,26 +736,26 @@ mod tests {
         }
 
         let threads = service
-            .list(None, None, None, None, None, None)
+            .list(None, None, None, None, None, None, None)
             .await
             .unwrap();
         assert_eq!(threads.len(), 3);
 
         let first_two = service
-            .list(None, None, None, None, Some(2), None)
+            .list(None, None, None, None, None, Some(2), None)
             .await
             .unwrap();
         assert_eq!(first_two.len(), 2);
 
         let last_two = service
-            .list(None, None, None, None, None, Some(2))
+            .list(None, None, None, None, None, None, Some(2))
             .await
             .unwrap();
         assert_eq!(last_two.len(), 2);
         assert_ne!(first_two[0].id, last_two[0].id);
 
         let ephemeral_threads = service
-            .list(None, Some(true), None, None, None, None)
+            .list(None, None, Some(true), None, None, None, None)
             .await
             .unwrap();
         assert_eq!(ephemeral_threads.len(), 3);
@@ -756,7 +763,7 @@ mod tests {
         service.set_persisted(&threads[0].id).await.unwrap();
 
         let persisted_threads = service
-            .list(None, Some(false), None, None, None, None)
+            .list(None, None, Some(false), None, None, None, None)
             .await
             .unwrap();
         assert_eq!(persisted_threads.len(), 1);
@@ -764,6 +771,7 @@ mod tests {
         let specific_threads = service
             .list(
                 Some(&[threads[0].id.clone(), threads[1].id.clone()]),
+                None,
                 None,
                 None,
                 None,
