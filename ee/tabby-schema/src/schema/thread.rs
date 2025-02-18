@@ -30,6 +30,7 @@ pub trait ThreadService: Send + Sync {
     async fn list(
         &self,
         ids: Option<&[ID]>,
+        user_id: Option<&ID>,
         is_ephemeral: Option<bool>,
         after: Option<String>,
         before: Option<String>,

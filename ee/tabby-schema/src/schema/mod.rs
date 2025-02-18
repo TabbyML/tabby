@@ -666,7 +666,31 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .thread()
-                    .list(ids.as_deref(), is_ephemeral, after, before, first, last)
+                    .list(ids.as_deref(), None, is_ephemeral, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn my_threads(
+        ctx: &Context,
+        is_ephemeral: Option<bool>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<thread::Thread>> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .thread()
+                    .list(None, Some(&user.id), is_ephemeral, after, before, first, last)
                     .await
             },
         )
