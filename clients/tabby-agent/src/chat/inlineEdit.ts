@@ -23,6 +23,7 @@ import {
 } from "../protocol";
 import cryptoRandomString from "crypto-random-string";
 import { isEmptyRange } from "../utils/range";
+import { isBlank, formatPlaceholders } from "../utils/string";
 import { readResponseStream, Edit, applyWorkspaceEdit, truncateFileContent } from "./utils";
 import { initMutexAbortController, mutexAbortController, resetMutexAbortController } from "./global";
 import { readFile } from "fs-extra";
@@ -156,11 +157,11 @@ export class ChatEditProvider implements Feature {
         message: "Chat feature not available",
       } as ChatFeatureNotAvailableError;
     }
-    const config = this.configurations.getMergedConfig();
+    const config = this.configurations.getMergedConfig().chat.edit;
 
     // FIXME(@icycodes): the command too long check is temporarily disabled,
     //    as we pass the diagnostics context as the command for now
-    // if (params.command.length > config.chat.edit.commandMaxChars) {
+    // if (params.command.length > config.commandMaxChars) {
     //   throw { name: "ChatEditCommandTooLongError", message: "Command too long" } as ChatEditCommandTooLongError;
     // }
 
@@ -170,7 +171,7 @@ export class ChatEditProvider implements Feature {
       end: document.offsetAt(params.location.range.end),
     };
     const selectedDocumentText = documentText.substring(selection.start, selection.end);
-    if (selection.end - selection.start > config.chat.edit.documentMaxChars) {
+    if (selection.end - selection.start > config.documentMaxChars) {
       throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
     }
 
@@ -187,17 +188,17 @@ export class ChatEditProvider implements Feature {
     let insertMode: boolean = isEmptyRange(params.location.range);
     const presetCommand = /^\/\w+\b/g.exec(params.command)?.[0];
     if (presetCommand) {
-      insertMode = config.chat.edit.presetCommands[presetCommand]?.kind === "insert";
+      insertMode = config.presetCommands[presetCommand]?.kind === "insert";
     }
 
     let promptTemplate: string;
     let userCommand: string;
-    const presetConfig = presetCommand && config.chat.edit.presetCommands[presetCommand];
+    const presetConfig = presetCommand && config.presetCommands[presetCommand];
     if (presetConfig) {
       promptTemplate = presetConfig.promptTemplate;
       userCommand = params.command.substring(presetCommand.length);
     } else {
-      promptTemplate = insertMode ? config.chat.edit.promptTemplate.insert : config.chat.edit.promptTemplate.replace;
+      promptTemplate = insertMode ? config.promptTemplate.insert : config.promptTemplate.replace;
       userCommand = params.command;
     }
 
@@ -205,8 +206,8 @@ export class ChatEditProvider implements Feature {
     const documentSelection = documentText.substring(selection.start, selection.end);
     let documentPrefix = documentText.substring(0, selection.start);
     let documentSuffix = documentText.substring(selection.end);
-    if (documentText.length > config.chat.edit.documentMaxChars) {
-      const charsRemain = config.chat.edit.documentMaxChars - documentSelection.length;
+    if (documentText.length > config.documentMaxChars) {
+      const charsRemain = config.documentMaxChars - documentSelection.length;
       if (documentPrefix.length < charsRemain / 2) {
         documentSuffix = documentSuffix.substring(0, charsRemain - documentPrefix.length);
       } else if (documentSuffix.length < charsRemain / 2) {
@@ -217,53 +218,49 @@ export class ChatEditProvider implements Feature {
       }
     }
 
-    const fileContext =
+    const [fileContextListTemplate, fileContextItemTemplate] = config.fileContext.promptTemplate;
+    const fileContextItems =
       (
         await Promise.all(
-          (params.context ?? []).slice(0, config.chat.edit.fileContext.maxFiles).map(async (item) => {
+          (params.context ?? []).slice(0, config.fileContext.maxFiles).map(async (item) => {
             const content = await this.fetchFileContent(item.uri, item.range, token);
-            if (!content) {
+            if (!content || isBlank(content)) {
               return undefined;
             }
-            const fileContent = truncateFileContent(content, config.chat.edit.fileContext.maxCharsPerFile);
-            return `File "${item.uri}" referer to "@${item.referer}" in command, content:\n ${fileContent} \n`;
+            const fileContent = truncateFileContent(content, config.fileContext.maxCharsPerFile);
+            return formatPlaceholders(fileContextItemTemplate, {
+              filepath: item.uri,
+              referrer: item.referrer,
+              content: fileContent,
+            });
           }),
         )
       )
         .filter((item): item is string => item !== undefined)
         .join("\n") ?? "";
 
-    this.logger.debug(`fileContext: ${fileContext}`);
+    const fileContext = !isBlank(fileContextItems)
+      ? formatPlaceholders(fileContextListTemplate, {
+          fileList: fileContextItems,
+        })
+      : "";
 
     const messages: { role: "user"; content: string }[] = [
       {
         role: "user",
-        content: promptTemplate.replace(
-          /{{filepath}}|{{documentPrefix}}|{{document}}|{{documentSuffix}}|{{command}}|{{languageId}}/g,
-          (pattern: string) => {
-            switch (pattern) {
-              case "{{filepath}}":
-                return params.location.uri;
-              case "{{documentPrefix}}":
-                return documentPrefix;
-              case "{{document}}":
-                return documentSelection;
-              case "{{documentSuffix}}":
-                return documentSuffix;
-              case "{{command}}":
-                return userCommand;
-              case "{{languageId}}":
-                return document.languageId;
-              case "{{fileContext}}":
-                return fileContext;
-              default:
-                return "";
-            }
-          },
-        ),
+        content: formatPlaceholders(promptTemplate, {
+          filepath: params.location.uri,
+          documentPrefix: documentPrefix,
+          document: documentSelection,
+          documentSuffix: documentSuffix,
+          command: userCommand,
+          languageId: document.languageId,
+          fileContext: fileContext,
+        }),
       },
     ];
     this.logger.debug(`messages: ${JSON.stringify(messages)}`);
+
     const readableStream = await this.tabbyApiClient.fetchChatStream(
       {
         messages,
@@ -299,8 +296,8 @@ export class ChatEditProvider implements Feature {
         this.currentEdit = undefined;
         resetMutexAbortController();
       },
-      config.chat.edit.responseDocumentTag,
-      config.chat.edit.responseCommentTag,
+      config.responseDocumentTag,
+      config.responseCommentTag,
     );
     return editId;
   }

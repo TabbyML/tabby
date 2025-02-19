@@ -5,7 +5,7 @@ You should not use other XML tags in response unless they are parts of the gener
 You must only reply the updated code for the user selection code.
 You should not provide any additional comments in response.
 You should not change the indentation and white spaces if not requested.
-
+{{fileContext}}
 The user is editing a file located at: {{filepath}}.
 
 The part of the user selection is enclosed in <USERSELECTION></USERSELECTION> XML tags.

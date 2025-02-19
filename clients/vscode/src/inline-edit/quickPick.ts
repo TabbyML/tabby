@@ -133,9 +133,9 @@ export class UserCommandQuickpick {
     recentlyCommandToAdd.forEach((command) => {
       if (command.context) {
         command.context.forEach((context) => {
-          if (!this.fileContextLabelToUriMap.has(context.referer)) {
+          if (!this.fileContextLabelToUriMap.has(context.referrer)) {
             // this context maybe outdated
-            this.fileContextLabelToUriMap.set(context.referer, context.uri);
+            this.fileContextLabelToUriMap.set(context.referrer, context.uri);
           }
         });
       }
@@ -235,7 +235,7 @@ export class UserCommandQuickpick {
           if (this.fileContextLabelToUriMap.has(item)) {
             return {
               uri: this.fileContextLabelToUriMap.get(item) as string,
-              referer: item,
+              referrer: item,
             };
           }
           return;
