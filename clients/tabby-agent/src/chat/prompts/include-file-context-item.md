@@ -1,2 +1,3 @@
 title="{{filepath}}"
-{{content}}
+referrer="{{referrer}}"
+<CONTEXTDOCUMENT>{{content}}</CONTEXTDOCUMENT>

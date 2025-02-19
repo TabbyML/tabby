@@ -230,6 +230,7 @@ export class ChatEditProvider implements Feature {
             const fileContent = truncateFileContent(content, config.fileContext.maxCharsPerFile);
             return formatPlaceholders(fileContextItemTemplate, {
               filepath: item.uri,
+              referrer: item.referrer,
               content: fileContent,
             });
           }),
@@ -238,9 +239,11 @@ export class ChatEditProvider implements Feature {
         .filter((item): item is string => item !== undefined)
         .join("\n") ?? "";
 
-    const fileContext = formatPlaceholders(fileContextListTemplate, {
-      fileList: fileContextItems,
-    });
+    const fileContext = !isBlank(fileContextItems)
+      ? formatPlaceholders(fileContextListTemplate, {
+          fileList: fileContextItems,
+        })
+      : "";
 
     const messages: { role: "user"; content: string }[] = [
       {

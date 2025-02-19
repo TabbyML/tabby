@@ -456,7 +456,7 @@ export interface ChatEditFileContext {
   /**
    * The symbol in the user command that refer to this file context.
    */
-  referer: string;
+  referrer: string;
 
   /**
    * The uri of the file.
