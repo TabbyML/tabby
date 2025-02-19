@@ -161,7 +161,7 @@ impl LlamaCppSupervisor {
                             );
                         }
                     }
-                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
             }
         });
