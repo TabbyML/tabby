@@ -4,7 +4,6 @@ use std::{
 
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
-    sync::Mutex,
     task::JoinHandle,
 };
 use tracing::{debug, warn};
@@ -35,6 +34,8 @@ impl LlamaCppSupervisor {
 
         let model_path = model_path.to_owned();
         let port = get_available_port();
+        let mut first_retry = true;
+
         let handle = tokio::spawn(async move {
             loop {
                 let server_binary = std::env::current_exe()
@@ -148,6 +149,12 @@ impl LlamaCppSupervisor {
                             std::process::exit(1);
                         }
                         _ => {
+                            if first_retry {
+                                for line in &error_lines {
+                                    eprintln!("{}", line);
+                                }
+                                first_retry = false;
+                            }
                             warn!(
                                 "llama-server <{}> exited with status code {}, retrying...",
                                 name, status_code
