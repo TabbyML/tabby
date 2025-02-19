@@ -74,13 +74,11 @@ impl WebCrawlerJob {
 
         // if no LLMS file was found, use the regular crawl_pipeline.
         let mut num_docs = 0;
-        let mut indexed_ids = Vec::new();
         let url_prefix = self.url_prefix.as_ref().unwrap_or(&self.url);
         let mut pipeline = Box::pin(crawl_pipeline(&self.url, url_prefix).await?);
 
-        // Index each crawled document normally.
         while let Some(doc) = pipeline.next().await {
-            logkit::info!("Indexing {}", doc.url);
+            logkit::info!("Fetching {}", doc.url);
 
             let source_doc = StructuredDoc {
                 source_id: self.source_id.clone(),
@@ -91,13 +89,11 @@ impl WebCrawlerJob {
                 }),
             };
 
-            let doc_id = source_doc.id().to_string();
-            indexed_ids.push(doc_id.clone());
             num_docs += 1;
 
             if indexer
                 .presync(&StructuredDocState {
-                    id: doc_id,
+                    id: source_doc.id().to_string(),
                     updated_at: Utc::now(),
                     deleted: false,
                 })
@@ -106,7 +102,6 @@ impl WebCrawlerJob {
                 indexer.sync(source_doc).await;
             }
         }
-
         logkit::info!("Crawled {} documents from '{}'", num_docs, self.url);
         indexer.commit();
         Ok(())
