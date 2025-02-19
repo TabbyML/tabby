@@ -28,6 +28,24 @@ impl AccessPolicy {
         }
     }
 
+    /// check_read_thread verifies whether the user has permission to read a thread.
+    /// If the user is an admin, they have access to read any thread.
+    /// If the user is not an admin, they are limited to reading threads they own or those shared by others,
+    /// where is_ephemeral being false indicates that the thread is shared.
+    pub fn check_read_thread(&self, author_id: &ID, is_ephemeral: bool) -> Result<()> {
+        if self.is_admin {
+            return Ok(());
+        }
+
+        if is_ephemeral && self.user_id != *author_id {
+            Err(CoreError::Forbidden(
+                "You are unable to view a thread that you do not own unless it has been shared.",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn check_delete_thread(&self, user_id: &ID) -> Result<()> {
         if self.user_id != *user_id {
             return Err(CoreError::Forbidden(

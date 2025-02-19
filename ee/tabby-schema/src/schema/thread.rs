@@ -30,8 +30,18 @@ pub trait ThreadService: Send + Sync {
     async fn list(
         &self,
         ids: Option<&[ID]>,
-        user_id: Option<&ID>,
         is_ephemeral: Option<bool>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<Thread>>;
+
+    /// List my threads
+    async fn my(
+        &self,
+        user_id: &ID,
+        is_admin: bool,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,

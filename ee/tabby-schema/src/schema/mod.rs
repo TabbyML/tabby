@@ -657,8 +657,9 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<thread::Thread>> {
-        check_user(ctx).await?;
-        relay::query_async(
+        let user = check_user(ctx).await?;
+
+        let threads = relay::query_async(
             after,
             before,
             first,
@@ -666,30 +667,29 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .thread()
-                    .list(
-                        ids.as_deref(),
-                        None,
-                        is_ephemeral,
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
+                    .list(ids.as_deref(), is_ephemeral, after, before, first, last)
                     .await
             },
         )
-        .await
+        .await?;
+
+        for thread in threads.edges.iter() {
+            let thread = &thread.node;
+            user.policy
+                .check_read_thread(&thread.user_id, thread.is_ephemeral)?;
+        }
+
+        Ok(threads)
     }
 
     async fn my_threads(
         ctx: &Context,
-        is_ephemeral: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<thread::Thread>> {
-        let user = check_user_allow_auth_token(ctx).await?;
+        let user = check_user(ctx).await?;
         relay::query_async(
             after,
             before,
@@ -698,15 +698,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .thread()
-                    .list(
-                        None,
-                        Some(&user.id),
-                        is_ephemeral,
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
+                    .my(&user.id, user.is_admin, after, before, first, last)
                     .await
             },
         )

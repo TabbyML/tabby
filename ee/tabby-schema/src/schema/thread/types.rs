@@ -229,6 +229,12 @@ pub struct MessageDocSearchHit {
 pub struct Thread {
     pub id: ID,
     pub user_id: ID,
+
+    /// is_ephemeral is required to perform the access control check.
+    /// It does not need to be exposed to the client.
+    #[graphql(skip)]
+    pub is_ephemeral: bool,
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

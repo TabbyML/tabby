@@ -147,7 +147,7 @@ impl ThreadService for ThreadServiceImpl {
 
     async fn get(&self, id: &ID) -> Result<Option<thread::Thread>> {
         Ok(self
-            .list(Some(&[id.clone()]), None, None, None, None, None, None)
+            .list(Some(&[id.clone()]), None, None, None, None, None)
             .await?
             .into_iter()
             .next())
@@ -316,10 +316,28 @@ impl ThreadService for ThreadServiceImpl {
         Ok(())
     }
 
+    async fn my(
+        &self,
+        user_id: &ID,
+        is_admin: bool,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<thread::Thread>> {
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+
+        let threads = self
+            .db
+            .list_threads_permitted(user_id.as_rowid()?, is_admin, limit, skip_id, backwards)
+            .await?;
+
+        Ok(threads.into_iter().map(Into::into).collect())
+    }
+
     async fn list(
         &self,
         ids: Option<&[ID]>,
-        user_id: Option<&ID>,
         is_ephemeral: Option<bool>,
         after: Option<String>,
         before: Option<String>,
@@ -333,17 +351,10 @@ impl ThreadService for ThreadServiceImpl {
                 .filter_map(|x| x.as_rowid().ok())
                 .collect::<Vec<_>>()
         });
-        let user_id = user_id.map(|id| id.as_rowid()).transpose()?;
+
         let threads = self
             .db
-            .list_threads(
-                ids.as_deref(),
-                user_id,
-                is_ephemeral,
-                limit,
-                skip_id,
-                backwards,
-            )
+            .list_threads(ids.as_deref(), is_ephemeral, limit, skip_id, backwards)
             .await?;
 
         Ok(threads.into_iter().map(Into::into).collect())
@@ -736,26 +747,26 @@ mod tests {
         }
 
         let threads = service
-            .list(None, None, None, None, None, None, None)
+            .list(None, None, None, None, None, None)
             .await
             .unwrap();
         assert_eq!(threads.len(), 3);
 
         let first_two = service
-            .list(None, None, None, None, None, Some(2), None)
+            .list(None, None, None, None, Some(2), None)
             .await
             .unwrap();
         assert_eq!(first_two.len(), 2);
 
         let last_two = service
-            .list(None, None, None, None, None, None, Some(2))
+            .list(None, None, None, None, None, Some(2))
             .await
             .unwrap();
         assert_eq!(last_two.len(), 2);
         assert_ne!(first_two[0].id, last_two[0].id);
 
         let ephemeral_threads = service
-            .list(None, None, Some(true), None, None, None, None)
+            .list(None, Some(true), None, None, None, None)
             .await
             .unwrap();
         assert_eq!(ephemeral_threads.len(), 3);
@@ -763,7 +774,7 @@ mod tests {
         service.set_persisted(&threads[0].id).await.unwrap();
 
         let persisted_threads = service
-            .list(None, None, Some(false), None, None, None, None)
+            .list(None, Some(false), None, None, None, None)
             .await
             .unwrap();
         assert_eq!(persisted_threads.len(), 1);
@@ -771,7 +782,6 @@ mod tests {
         let specific_threads = service
             .list(
                 Some(&[threads[0].id.clone(), threads[1].id.clone()]),
-                None,
                 None,
                 None,
                 None,

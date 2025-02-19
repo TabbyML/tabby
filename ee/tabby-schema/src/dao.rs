@@ -344,6 +344,7 @@ impl From<ThreadDAO> for thread::Thread {
         Self {
             id: value.id.as_id(),
             user_id: value.user_id.as_id(),
+            is_ephemeral: value.is_ephemeral,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
