@@ -1,11 +1,13 @@
 package com.tabbyml.tabby4eclipse.lsp;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LSPEclipseUtils;
+import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.DeclarationParams;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
@@ -25,8 +27,19 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.ReadFileParams;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ReadFileResult;
 import com.tabbyml.tabby4eclipse.lsp.protocol.SemanticTokensRangeResult;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusInfo;
+import com.tabbyml.tabby4eclipse.preferences.PreferencesService;
 
 public class LanguageClientImpl extends org.eclipse.lsp4e.LanguageClientImpl {
+	@Override
+	public CompletableFuture<List<Object>> configuration(ConfigurationParams configurationParams) {
+
+		return CompletableFuture.completedFuture(new ArrayList<>() {
+			{
+				add(PreferencesService.getInstance().buildClientProvidedConfig());
+			}
+		});
+	}
+
 	@JsonNotification("tabby/status/didChange")
 	void statusDidChange(StatusInfo params) {
 		StatusInfoHolder.getInstance().setStatusInfo(params);
