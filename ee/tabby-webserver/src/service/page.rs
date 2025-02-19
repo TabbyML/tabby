@@ -86,7 +86,7 @@ impl PageService for PageServiceImpl {
                 title,
             }));
 
-            let sections = generate_page_sections(3, chat.clone(), context.clone(), &policy, &messages).await?;
+            let sections = generate_page_sections(3, chat.clone(), context.clone(), &policy, &vec![], &messages).await?;
             let mut page_sections = Vec::new();
             for section_title in sections {
                 let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
@@ -161,6 +161,7 @@ impl PageService for PageServiceImpl {
                 chat.clone(),
                 context.clone(),
                 &policy,
+                &current_sections,
                 &vec![],
             )
             .await?
@@ -345,26 +346,47 @@ pub async fn generate_page_sections(
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
+    existed_sections: &Vec<Section>,
     messages: &Vec<Message>,
 ) -> anyhow::Result<Vec<String>> {
     let context_info = context.read(Some(policy)).await?;
     let context_info_helper = context_info.helper();
 
-    let content = messages
-        .iter()
-        .map(|x| x.content.clone())
-        .collect::<Vec<_>>()
-        .join("\n");
-    let context = context_info_helper.rewrite_tag(&content);
+    let conversation = if messages.is_empty() {
+        None
+    } else {
+        let content = messages
+            .iter()
+            .map(|x| x.content.clone())
+            .collect::<Vec<_>>()
+            .join("\n");
+        Some(context_info_helper.rewrite_tag(&content))
+    };
 
-    pipeline_page_sections(chat.clone(), &context, &content, count)
-        .await
-        .map(|titles| {
-            titles
-                .iter()
-                .map(|x| trim_title(x).to_owned())
-                .collect::<Vec<_>>()
-        })
+    let sections = if existed_sections.is_empty() {
+        None
+    } else {
+        let sections = existed_sections
+            .iter()
+            .map(|x| format!("## {}\n\n{}", x.title, x.content))
+            .collect::<Vec<_>>()
+            .join("\n");
+        Some(sections)
+    };
+
+    pipeline_page_sections(
+        chat.clone(),
+        sections.as_deref(),
+        conversation.as_deref(),
+        count,
+    )
+    .await
+    .map(|titles| {
+        titles
+            .iter()
+            .map(|x| trim_title(x).to_owned())
+            .collect::<Vec<_>>()
+    })
 }
 
 pub async fn generate_page_section_content(

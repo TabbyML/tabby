@@ -61,11 +61,11 @@ Here is the conversation:
 
 pub async fn pipeline_page_sections(
     chat: Arc<dyn ChatCompletionStream>,
-    context: &str,
-    conversation: &str,
+    sections: Option<&str>,
+    conversation: Option<&str>,
     count: usize,
 ) -> Result<Vec<String>> {
-    let prompt = format!(
+    let mut prompt = format!(
         r#"
 You are a helpful assistant that helps the user to write documents,
 I require your expertise in distilling the essence of a conversation into exactly {count} distinct section titles.
@@ -78,16 +78,30 @@ The language of the titles should be consistent with that of the original conver
 No additional information is needed beyond the section titles themselves.
 
 Please remember to generate exactly {count} section titles.
+"#
+    );
 
-Here are the contexts of the conversation:
-
-{context}
-
+    if let Some(conversation) = conversation {
+        prompt.push_str(&format!(
+            r#"
 Here is the conversation:
 
 {conversation}
-"#
-    );
+"#,
+            conversation = conversation
+        ));
+    }
+
+    if let Some(sections) = sections {
+        prompt.push_str(&format!(
+            r#"
+All the Section Titles and contents:
+
+{sections}
+"#,
+            sections = sections
+        ));
+    }
 
     let content = request_llm(chat, &prompt).await?;
     Ok(transform_line_items(&content))
