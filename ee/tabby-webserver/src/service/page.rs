@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
 use juniper::ID;
 use prompt_tools::{
-    pipeline_page_sections, pipeline_page_title, prompt_page_content, prompt_page_section_content,
+    system_prompt_page_content, system_prompt_page_section_content, system_prompt_page_title,
 };
 use tabby_db::DbConn;
 use tabby_inference::ChatCompletionStream;
@@ -21,12 +21,15 @@ use tabby_schema::{
         SectionRunStream, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
-    thread::{Message, ThreadService},
+    thread::{Message, MessageAttachment, Role as ThreadRole, ThreadService},
     AsID, AsRowid, CoreError, Result,
 };
 
 use super::graphql_pagination_to_filter;
-use crate::service::utils::prompt::request_llm_stream;
+use crate::service::utils::{
+    convert_messages_to_chat_completion_request,
+    prompt::{request_llm_stream, request_llm_with_message, transform_line_items},
+};
 
 struct PageServiceImpl {
     db: DbConn,
@@ -114,10 +117,16 @@ impl PageService for PageServiceImpl {
                 id: page_id.clone(),
             }));
 
-            let section_titles = page_sections.iter().map(|x| x.title.clone()).collect();
             for section in page_sections {
                 let section_id = section.id.clone();
-                let content_stream = generate_page_section_content(chat.clone(), context.clone(), &policy, &messages, &section_titles, &section.title).await?;
+
+                let existed_sections = db
+                    .list_page_sections(page_id.as_rowid()?, None, None, false)
+                    .await?
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
+                let content_stream = generate_page_section_content(chat.clone(), context.clone(), &policy, &messages, &existed_sections, &section.title).await?;
                 for await delta in content_stream {
                     let delta = delta?;
                     db.append_page_section_content(section_id.clone().as_rowid()?, &delta).await?;
@@ -170,8 +179,8 @@ impl PageService for PageServiceImpl {
             .to_owned();
 
             let (section_id, position) = db
-            .create_page_section(page_id, &title)
-            .await?;
+                .create_page_section(page_id, &title)
+                .await?;
             yield Ok(SectionRunItem::PageSectionCreated (PageSection {
                 id: section_id.as_id(),
                 title: title.clone(),
@@ -183,7 +192,7 @@ impl PageService for PageServiceImpl {
                 context.clone(),
                 &policy,
                 &vec![],
-                &current_sections.iter().map(|x| x.title.clone()).collect(),
+                &current_sections,
                 &title,
             )
             .await?;
@@ -205,29 +214,6 @@ impl PageService for PageServiceImpl {
         };
 
         Ok(s.boxed())
-    }
-
-    async fn generate_page_title(
-        &self,
-        policy: &AccessPolicy,
-        page_id: ID,
-        messages: &Vec<Message>,
-    ) -> Result<String> {
-        let context_info = self.context.read(Some(policy)).await?;
-        let context_info_helper = context_info.helper();
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-        let context = context_info_helper.rewrite_tag(&content);
-        let title = pipeline_page_title(self.chat.clone(), &context, &content).await?;
-        let title = trim_title(title.as_ref());
-
-        self.db
-            .update_page_title(page_id.as_rowid()?, title)
-            .await?;
-        Ok(title.to_owned())
     }
 
     async fn delete(&self, id: &ID) -> Result<()> {
@@ -316,6 +302,47 @@ impl PageService for PageServiceImpl {
     }
 }
 
+impl PageServiceImpl {
+    async fn generate_page_title(
+        &self,
+        policy: &AccessPolicy,
+        page_id: ID,
+        messages: &Vec<Message>,
+    ) -> Result<String> {
+        let generate_title_message = Message {
+            content: "Please help me to generate a page title for the above conversation"
+                .to_string(),
+            id: ID::new("0"),
+            thread_id: ID::new("0"),
+            code_source_id: None,
+            role: ThreadRole::User,
+            attachment: MessageAttachment::default(),
+            updated_at: chrono::Utc::now(),
+            created_at: chrono::Utc::now(),
+        };
+        let mut messages = messages.clone();
+        messages.push(generate_title_message);
+
+        let helper = self.context.read(Some(policy)).await?.helper();
+        let messages = convert_messages_to_chat_completion_request(
+            &system_prompt_page_title(),
+            &helper,
+            &messages,
+            &MessageAttachment::default(),
+            None,
+        )?;
+
+        let title = request_llm_with_message(self.chat.clone(), messages).await?;
+
+        let title = trim_title(title.as_ref());
+
+        self.db
+            .update_page_title(page_id.as_rowid()?, title)
+            .await?;
+        Ok(title.to_owned())
+    }
+}
+
 fn trim_title(title: &str) -> &str {
     title.trim_matches(&['"', '#', ' ', '-'][..])
 }
@@ -326,19 +353,29 @@ async fn generate_page_content(
     policy: &AccessPolicy,
     messages: &Vec<Message>,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
-    let context_info = context.read(Some(policy)).await?;
-    let context_info_helper = context_info.helper();
+    let generate_title_message = Message {
+        content: "Please help me to generate a page summary for the above conversation".to_string(),
+        id: ID::new("0"),
+        thread_id: ID::new("0"),
+        code_source_id: None,
+        role: ThreadRole::User,
+        attachment: MessageAttachment::default(),
+        updated_at: chrono::Utc::now(),
+        created_at: chrono::Utc::now(),
+    };
+    let mut messages = messages.clone();
+    messages.push(generate_title_message);
 
-    let content = messages
-        .iter()
-        .map(|x| x.content.clone())
-        .collect::<Vec<_>>()
-        .join("\n");
+    let helper = context.read(Some(policy)).await?.helper();
+    let messages = convert_messages_to_chat_completion_request(
+        &system_prompt_page_content(),
+        &helper,
+        &messages,
+        &MessageAttachment::default(),
+        None,
+    )?;
 
-    let context = context_info_helper.rewrite_tag(&content);
-
-    let prompt = prompt_page_content(&context, &content);
-    Ok(request_llm_stream(chat, &prompt).await)
+    Ok(request_llm_stream(chat.clone(), messages).await)
 }
 
 pub async fn generate_page_sections(
@@ -346,47 +383,58 @@ pub async fn generate_page_sections(
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
-    existed_sections: &Vec<Section>,
+    sections: &Vec<Section>,
     messages: &Vec<Message>,
 ) -> anyhow::Result<Vec<String>> {
-    let context_info = context.read(Some(policy)).await?;
-    let context_info_helper = context_info.helper();
-
-    let conversation = if messages.is_empty() {
-        None
+    let prompt = if sections.is_empty() {
+        "".to_string()
     } else {
-        let content = messages
-            .iter()
-            .map(|x| x.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
-        Some(context_info_helper.rewrite_tag(&content))
-    };
-
-    let sections = if existed_sections.is_empty() {
-        None
-    } else {
-        let sections = existed_sections
+        let sections = sections
             .iter()
             .map(|x| format!("## {}\n\n{}", x.title, x.content))
             .collect::<Vec<_>>()
             .join("\n");
-        Some(sections)
-    };
+        format!(
+            r#"
+There are some of the section titles and contents that have been generated:
 
-    pipeline_page_sections(
-        chat.clone(),
-        sections.as_deref(),
-        conversation.as_deref(),
-        count,
-    )
-    .await
-    .map(|titles| {
-        titles
-            .iter()
-            .map(|x| trim_title(x).to_owned())
-            .collect::<Vec<_>>()
-    })
+{sections}
+"#,
+        )
+    };
+    let generate_section_title_message = Message {
+        content: format!(
+            r#"{prompt}
+
+Please help me to generate {count} page titles for the above conversation
+            "#
+        )
+        .to_string(),
+        id: ID::new("0"),
+        thread_id: ID::new("0"),
+        code_source_id: None,
+        role: ThreadRole::User,
+        attachment: MessageAttachment::default(),
+        updated_at: chrono::Utc::now(),
+        created_at: chrono::Utc::now(),
+    };
+    let mut messages = messages.clone();
+    messages.push(generate_section_title_message);
+
+    let helper = context.read(Some(policy)).await?.helper();
+    let messages = convert_messages_to_chat_completion_request(
+        &system_prompt_page_title(),
+        &helper,
+        &messages,
+        &MessageAttachment::default(),
+        None,
+    )?;
+
+    let titles = request_llm_with_message(chat.clone(), messages).await?;
+    Ok(transform_line_items(&titles)
+        .into_iter()
+        .map(|x| trim_title(&x).to_owned())
+        .collect())
 }
 
 pub async fn generate_page_section_content(
@@ -394,30 +442,57 @@ pub async fn generate_page_section_content(
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
     messages: &Vec<Message>,
-    sections: &Vec<String>,
+    sections: &Vec<Section>,
     current_section: &str,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
-    let context_info = context.read(Some(policy)).await?;
-    let context_info_helper = context_info.helper();
+    let prompt = if sections.is_empty() {
+        "".to_string()
+    } else {
+        let sections = sections
+            .iter()
+            .map(|x| format!("## {}\n\n{}", x.title, x.content))
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!(
+            r#"
+There are some of the section titles and contents that have been generated:
 
-    let content = messages
-        .iter()
-        .map(|x| x.content.clone())
-        .collect::<Vec<_>>()
-        .join("\n");
+{sections}
+"#,
+        )
+    };
+    let generate_section_message = Message {
+        content: format!(
+            r#"{prompt}
 
-    let context = context_info_helper.rewrite_tag(&content);
+The current section title is: {current_section}
 
-    let sections = sections
-        .iter()
-        .map(|s| format!("- {}", s))
-        .collect::<Vec<_>>()
-        .join("\n");
+Please help me to generate this page section content using the above conversation as context,
+Please make sure not to include the section title in the content.
+            "#
+        )
+        .to_string(),
+        id: ID::new("0"),
+        thread_id: ID::new("0"),
+        code_source_id: None,
+        role: ThreadRole::User,
+        attachment: MessageAttachment::default(),
+        updated_at: chrono::Utc::now(),
+        created_at: chrono::Utc::now(),
+    };
+    let mut messages = messages.clone();
+    messages.push(generate_section_message);
 
-    let current = current_section.to_owned();
+    let helper = context.read(Some(policy)).await?.helper();
+    let messages = convert_messages_to_chat_completion_request(
+        &system_prompt_page_section_content(),
+        &helper,
+        &messages,
+        &MessageAttachment::default(),
+        None,
+    )?;
 
-    let prompt = prompt_page_section_content(&context, &content, &sections, &current);
-    Ok(request_llm_stream(chat.clone(), &prompt).await)
+    Ok(request_llm_stream(chat.clone(), messages).await)
 }
 
 #[cfg(test)]
