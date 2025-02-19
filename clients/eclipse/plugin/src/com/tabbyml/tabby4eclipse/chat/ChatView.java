@@ -39,6 +39,7 @@ import com.tabbyml.tabby4eclipse.DebouncedRunnable;
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.StringUtils;
 import com.tabbyml.tabby4eclipse.Utils;
+import com.tabbyml.tabby4eclipse.chat.ChatViewUtils.RangeStrategy;
 import com.tabbyml.tabby4eclipse.editor.EditorUtils;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.ServerConfigHolder;
@@ -124,7 +125,7 @@ public class ChatView extends ViewPart {
 			try {
 				chatPanelClientInvoke("updateActiveSelection", new ArrayList<>() {
 					{
-						add(ChatViewUtils.getSelectedTextAsEditorFileContext());
+						add(ChatViewUtils.getActiveEditorFileContext());
 					}
 				});
 			} catch (Exception e) {
@@ -186,7 +187,7 @@ public class ChatView extends ViewPart {
 	public void addSelectedTextAsContext() {
 		chatPanelClientInvoke("addRelevantContext", new ArrayList<>() {
 			{
-				add(ChatViewUtils.getSelectedTextAsEditorFileContext());
+				add(ChatViewUtils.getActiveEditorFileContext(RangeStrategy.SELECTION));
 			}
 		});
 	}
@@ -194,7 +195,7 @@ public class ChatView extends ViewPart {
 	public void addActiveEditorAsContext() {
 		chatPanelClientInvoke("addRelevantContext", new ArrayList<>() {
 			{
-				add(ChatViewUtils.getActiveEditorAsEditorFileContext());
+				add(ChatViewUtils.getActiveEditorFileContext(RangeStrategy.FILE));
 			}
 		});
 	}
@@ -434,7 +435,7 @@ public class ChatView extends ViewPart {
 			@Override
 			public Object function(Object[] arguments) {
 				logger.debug("tabbyChatPanelGetActiveEditorSelection");
-				EditorFileContext context = ChatViewUtils.getSelectedTextAsEditorFileContext();
+				EditorFileContext context = ChatViewUtils.getActiveEditorFileContext();
 				Object result = serializeResult(context);
 				logger.debug("tabbyChatPanelGetActiveEditorSelection result: " + result);
 				return result;
@@ -491,20 +492,25 @@ public class ChatView extends ViewPart {
 
 	private void reloadContentForStatus(String status, boolean force) {
 		if (status.equals(StatusInfo.Status.DISCONNECTED)) {
+			currentConfig = null;
 			updateContentToMessage("Cannot connect to Tabby server, please check your settings.");
 		} else if (status.equals(StatusInfo.Status.CONNECTING)) {
+			currentConfig = null;
 			updateContentToMessage("Connecting to Tabby server...");
 		} else if (status.equals(StatusInfo.Status.UNAUTHORIZED)) {
+			currentConfig = null;
 			updateContentToMessage("Authorization required, please set your token in settings.");
 		} else {
 			Map<String, Object> serverHealth = statusInfoHolder.getStatusInfo().getServerHealth();
 			String error = ChatViewUtils.checkServerHealth(serverHealth);
 			if (error != null) {
+				currentConfig = null;
 				updateContentToMessage(error);
 			} else {
 				// Load main
 				Config.ServerConfig config = serverConfigHolder.getConfig().getServer();
 				if (config == null) {
+					currentConfig = null;
 					updateContentToMessage("Initializing...");
 				} else if (force || currentConfig == null || currentConfig.getEndpoint() != config.getEndpoint()
 						|| currentConfig.getToken() != config.getToken()) {
