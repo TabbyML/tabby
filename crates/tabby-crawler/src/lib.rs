@@ -7,6 +7,7 @@ use futures::{Stream, StreamExt};
 use readable_readability::Readability;
 use tokio::io::AsyncBufReadExt;
 use tracing::{debug, warn};
+use types::CrawledMetadata;
 use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
@@ -146,6 +147,63 @@ pub async fn crawl_pipeline(
     Ok(crawl_url(start_url, prefix_url)
         .await?
         .filter_map(move |data| async move { to_document(data) }))
+}
+
+/// Attempts to fetch `llms-full.txt` or `llms.txt` from the given base URL.
+/// If `llms-full.txt` is available, it returns that document; otherwise, it falls back to `llms.txt`.
+/// Returns a `CrawledDocument` if successful.
+pub async fn crawler_llms(start_url: &str) -> anyhow::Result<CrawledDocument> {
+    // Remove trailing slash from the base URL if present.
+    let base_url = start_url.trim_end_matches('/');
+
+    // Construct the URL for llms-full.txt.
+    let llms_full_url = format!("{}/llms-full.txt", base_url);
+    // Try fetching llms-full.txt first.
+    match reqwest::get(&llms_full_url).await {
+        Ok(resp) if resp.status().is_success() => {
+            let body = resp.text().await?;
+            debug!("Successfully fetched llms-full.txt: {}", llms_full_url);
+            return Ok(CrawledDocument::new(
+                llms_full_url,
+                body,
+                CrawledMetadata {
+                    title: start_url.to_owned().into(),
+                    description: start_url.to_owned().into(),
+                },
+            ));
+        }
+        Ok(resp) => {
+            warn!(
+                "Failed to fetch llms-full.txt, status code: {}. Trying llms.txt...",
+                resp.status()
+            );
+        }
+        Err(err) => {
+            warn!("Error fetching llms-full.txt: {}. Trying llms.txt...", err);
+        }
+    }
+
+    // If llms-full.txt is not available, construct the URL for llms.txt.
+    let llms_url = format!("{}/llms.txt", base_url);
+    let resp = reqwest::get(&llms_url).await?;
+    if resp.status().is_success() {
+        let body = resp.text().await?;
+        debug!("Successfully fetched llms.txt: {}", llms_url);
+        return Ok(CrawledDocument::new(
+            llms_url,
+            body,
+            CrawledMetadata {
+                title: start_url.to_owned().into(),
+                description: start_url.to_owned().into(),
+            },
+        ));
+    }
+
+    // If neither file is accessible, return an error.
+    anyhow::bail!(
+        "Unable to fetch either llms-full.txt or llms.txt from {}",
+        base_url
+    );
 }
 
 #[cfg(test)]

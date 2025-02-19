@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use chrono::Utc;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use tabby_crawler::crawl_pipeline;
+use tabby_crawler::{crawl_pipeline, crawler_llms};
 use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocState,
     StructuredDocWebFields,
@@ -37,13 +37,51 @@ impl WebCrawlerJob {
     pub async fn run_impl(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         logkit::info!("Starting doc index pipeline for {}", self.url);
         let embedding = embedding.clone();
-        let mut num_docs = 0;
         let indexer = StructuredDocIndexer::new(embedding.clone());
 
+        // attempt to fetch the LLMS file using crawler_llms.
+        match crawler_llms(&self.url).await {
+            Ok(doc) => {
+                logkit::info!("Fetched LLMS file successfully, indexing only this document.");
+                let source_doc = StructuredDoc {
+                    source_id: self.source_id.clone(),
+                    fields: StructuredDocFields::Web(StructuredDocWebFields {
+                        title: doc.metadata.title.unwrap_or_default(),
+                        link: doc.url,
+                        body: doc.markdown,
+                    }),
+                };
+                if indexer
+                    .presync(&StructuredDocState {
+                        id: source_doc.id().to_string(),
+                        updated_at: Utc::now(),
+                        deleted: false,
+                    })
+                    .await
+                {
+                    indexer.sync(source_doc).await;
+                }
+                indexer.commit();
+                return Ok(());
+            }
+            Err(err) => {
+                logkit::info!(
+                    "No LLMS file found, continuing with normal indexing. Error: {:?}",
+                    err
+                );
+            }
+        }
+
+        // if no LLMS file was found, use the regular crawl_pipeline.
+        let mut num_docs = 0;
+        let mut indexed_ids = Vec::new();
         let url_prefix = self.url_prefix.as_ref().unwrap_or(&self.url);
         let mut pipeline = Box::pin(crawl_pipeline(&self.url, url_prefix).await?);
+
+        // Index each crawled document normally.
         while let Some(doc) = pipeline.next().await {
-            logkit::info!("Fetching {}", doc.url);
+            logkit::info!("Indexing {}", doc.url);
+
             let source_doc = StructuredDoc {
                 source_id: self.source_id.clone(),
                 fields: StructuredDocFields::Web(StructuredDocWebFields {
@@ -53,11 +91,13 @@ impl WebCrawlerJob {
                 }),
             };
 
+            let doc_id = source_doc.id().to_string();
+            indexed_ids.push(doc_id.clone());
             num_docs += 1;
 
             if indexer
                 .presync(&StructuredDocState {
-                    id: source_doc.id().to_string(),
+                    id: doc_id,
                     updated_at: Utc::now(),
                     deleted: false,
                 })
@@ -66,10 +106,12 @@ impl WebCrawlerJob {
                 indexer.sync(source_doc).await;
             }
         }
+
         logkit::info!("Crawled {} documents from '{}'", num_docs, self.url);
         indexer.commit();
         Ok(())
     }
+
     pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         let url = self.url.clone();
         if tokio::time::timeout(
