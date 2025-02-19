@@ -224,6 +224,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         val filepathInWorkspace = filepath as FilepathInWorkspace
         filepathInWorkspace.baseDir.let {
           project.findVirtualFile(it.appendUrlPathSegments(filepathInWorkspace.filepath))
+        } ?: project.guessProjectDir()?.url?.let {
+          project.findVirtualFile(it.appendUrlPathSegments(filepathInWorkspace.filepath))
         }
       }
 
