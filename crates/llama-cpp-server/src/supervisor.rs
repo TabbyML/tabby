@@ -92,8 +92,13 @@ impl LlamaCppSupervisor {
                     )
                 });
 
-                let mut stderr =
-                    BufReader::new(process.stderr.take().expect("Failed to get stderr")).lines();
+                let mut stderr = BufReader::new(
+                    process
+                        .stderr
+                        .take()
+                        .expect("Failed to get llama.cpp stderr"),
+                )
+                .lines();
                 let mut error_lines = VecDeque::with_capacity(100);
 
                 let wait_handle = process.wait();
@@ -115,26 +120,26 @@ impl LlamaCppSupervisor {
                         name, status_code, command_args
                     );
 
-                    let error_message = error_lines.into_iter().fold(
-                        String::from("Recent llama-cpp errors:\n"),
-                        |mut acc, line| {
-                            acc.push_str(&format!("{}\n", line));
-                            acc
-                        },
+                    eprintln!(
+                        "{}\n",
+                        tabby_common::terminal::HeaderFormat::BoldRed
+                            .format("Recent llama-cpp errors:")
                     );
-
                     match status_code {
                         0 => (),
                         1 | -1 => {
-                            eprintln!("{}", error_message);
-                            if let Some(solution) = analyze_error_message(&error_message) {
-                                let solution_lines: Vec<_> = solution.split('\n').collect();
-                                let msg = tabby_common::terminal::InfoMessage::new(
-                                    "ERROR",
-                                    tabby_common::terminal::HeaderFormat::BoldRed,
-                                    &solution_lines,
-                                );
-                                msg.print();
+                            for line in error_lines {
+                                eprintln!("{}", line);
+                                if let Some(solution) = analyze_error_message(&line) {
+                                    let solution_lines: Vec<_> = solution.split('\n').collect();
+                                    let msg = tabby_common::terminal::InfoMessage::new(
+                                        "ERROR",
+                                        tabby_common::terminal::HeaderFormat::BoldRed,
+                                        &solution_lines,
+                                    );
+                                    msg.print();
+                                    break;
+                                }
                             }
                             eprintln!(
                                 "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs and suggested solutions for details.",
