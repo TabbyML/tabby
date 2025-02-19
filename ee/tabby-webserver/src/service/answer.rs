@@ -526,7 +526,10 @@ mod tests {
         },
         *,
     };
-    use crate::service::{access_policy::testutils::make_policy, auth};
+    use crate::{
+        service::{access_policy::testutils::make_policy, auth},
+        utils::build_user_prompt,
+    };
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
@@ -623,8 +626,7 @@ mod tests {
         };
         let user_attachment_input = None;
 
-        let prompt =
-            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
+        let prompt = build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
 
         println!("{}", prompt.as_str());
         assert!(prompt.contains(user_input));
