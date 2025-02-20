@@ -26,6 +26,7 @@ import com.intellij.openapi.progress.util.BackgroundTaskUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.JBColor
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
@@ -173,21 +174,86 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     }
   }
 
-  fun addActiveEditorAsContext(useSelectedText: Boolean) {
+  // default: use selection if available, otherwise use the whole file
+  // selection: use selection if available, otherwise return null
+  // file: use the whole file
+  enum class RangeStrategy {
+    DEFAULT, SELECTION, FILE
+  }
+
+  fun addActiveEditorAsContext(rangeStrategy: RangeStrategy = RangeStrategy.DEFAULT) {
     BackgroundTaskUtil.executeOnPooledThread(this) {
-      val context = getActiveEditorFileContext(useSelectedText) ?: return@executeOnPooledThread
+      val context = getActiveEditorFileContext(rangeStrategy) ?: return@executeOnPooledThread
       chatPanelAddRelevantContext(context)
     }
   }
 
-  private fun getActiveEditorFileContext(useSelectedText: Boolean = true): EditorFileContext? {
+  private fun virtualFileToFilepath(virtualFile: VirtualFile): Filepath {
+    val uri = virtualFile.url
+
+    val workspaceDir = project.guessProjectDir()?.url
+    val gitRepo = gitProvider.getRepository(uri)
+    val gitUrl = gitRepo?.let { getDefaultRemoteUrl(it) }
+
+    return if (gitUrl != null && uri.startsWith(gitRepo.root)) {
+      val relativePath = uri.substringAfter(gitRepo.root).trimStart(File.separatorChar)
+      FilepathInGitRepository(
+        filepath = relativePath,
+        gitUrl = gitUrl,
+      )
+    } else if (workspaceDir != null && uri.startsWith(workspaceDir)) {
+      FilepathInWorkspace(
+        filepath = uri.substringAfter(workspaceDir).trimStart(File.separatorChar),
+        baseDir = workspaceDir,
+      )
+    } else {
+      FilepathUri(uri = uri)
+    }
+  }
+
+  private fun findVirtualFile(filepath: Filepath): VirtualFile? {
+    return when (filepath.kind) {
+      Filepath.Kind.URI -> {
+        val filepathUri = filepath as FilepathUri
+        project.findVirtualFile(filepathUri.uri) ?: project.guessProjectDir()?.url?.let {
+          project.findVirtualFile(it.appendUrlPathSegments(filepathUri.uri))
+        }
+      }
+
+      Filepath.Kind.WORKSPACE -> {
+        val filepathInWorkspace = filepath as FilepathInWorkspace
+        filepathInWorkspace.baseDir.let {
+          project.findVirtualFile(it.appendUrlPathSegments(filepathInWorkspace.filepath))
+        } ?: project.guessProjectDir()?.url?.let {
+          project.findVirtualFile(it.appendUrlPathSegments(filepathInWorkspace.filepath))
+        }
+      }
+
+      Filepath.Kind.GIT -> {
+        val filepathInGit = filepath as FilepathInGitRepository
+        gitRemoteUrlToLocalRoot[filepathInGit.gitUrl]?.let {
+          project.findVirtualFile(it.appendUrlPathSegments(filepathInGit.filepath))
+        } ?: project.guessProjectDir()?.url?.let {
+          project.findVirtualFile(it.appendUrlPathSegments(filepathInGit.filepath))
+        }
+      }
+
+      else -> {
+        null
+      }
+    }
+  }
+
+  private fun getActiveEditorFileContext(rangeStrategy: RangeStrategy = RangeStrategy.DEFAULT): EditorFileContext? {
     val editor = fileEditorManager.selectedTextEditor ?: return null
-    val uri = editor.virtualFile?.url ?: return null
+    val virtualFile = editor.virtualFile ?: return null
 
     val context = runReadAction {
       val document = editor.document
+      val selectionModel = editor.selectionModel
+      val useSelectedText = rangeStrategy == RangeStrategy.SELECTION
+          || (rangeStrategy == RangeStrategy.DEFAULT && selectionModel.hasSelection())
       if (useSelectedText) {
-        val selectionModel = editor.selectionModel
         val text = selectionModel.selectedText.takeUnless { it.isNullOrBlank() } ?: return@runReadAction null
         Pair(
           text,
@@ -205,19 +271,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       }
     } ?: return null
 
-    val gitRepo = gitProvider.getRepository(uri)
-    val gitUrl = gitRepo?.let { getDefaultRemoteUrl(it) }
-
-    val filepath = if (gitUrl != null && uri.startsWith(gitRepo.root)) {
-      val relativePath = uri.substringAfter(gitRepo.root).trimStart(File.separatorChar)
-      FilepathInGitRepository(
-        filepath = relativePath,
-        gitUrl = gitUrl,
-      )
-    } else {
-      FilepathUri(uri = uri)
-    }
-
+    val filepath = virtualFileToFilepath(virtualFile)
     val editorFileContext = EditorFileContext(
       filepath = filepath,
       range = context.second,
@@ -230,24 +284,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private fun openInEditor(fileLocation: FileLocation): Boolean {
     val filepath = fileLocation.filepath
-    val virtualFile = when (filepath.kind) {
-      Filepath.Kind.URI -> {
-        val filepathUri = filepath as FilepathUri
-        project.findVirtualFile(filepathUri.uri)
-      }
-
-      Filepath.Kind.GIT -> {
-        val filepathInGit = filepath as FilepathInGitRepository
-        val gitLocalRoot = gitRemoteUrlToLocalRoot[filepathInGit.gitUrl]
-        gitLocalRoot?.let {
-          project.findVirtualFile(it.appendUrlPathSegments(filepathInGit.filepath))
-        }
-      }
-
-      else -> {
-        null
-      }
-    } ?: return false
+    val virtualFile = findVirtualFile(filepath) ?: return false
 
     val position = when (val location = fileLocation.location) {
       is Number -> {
@@ -349,18 +386,22 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private fun reloadContentInternal(statusInfo: StatusInfo?, force: Boolean = false) {
     if (statusInfo == null) {
+      currentConfig = null
       showContent("Initializing...")
     } else {
       when (statusInfo.status) {
         StatusInfo.Status.CONNECTING -> {
+          currentConfig = null
           showContent("Connecting to Tabby server...")
         }
 
         StatusInfo.Status.UNAUTHORIZED -> {
+          currentConfig = null
           showContent("Authorization required, please set your token in settings.")
         }
 
         StatusInfo.Status.DISCONNECTED -> {
+          currentConfig = null
           showContent("Cannot connect to Tabby server, please check your settings.")
         }
 
@@ -368,10 +409,12 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
           val health = statusInfo.serverHealth
           val error = checkServerHealth(health)
           if (error != null) {
+            currentConfig = null
             showContent(error)
           } else {
             val config = combinedState.state.agentConfig?.server
             if (config == null) {
+              currentConfig = null
               showContent("Initializing...")
             } else if (force || currentConfig != config) {
               showContent("Loading chat panel...")
@@ -786,8 +829,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       return URLBuilder(this).appendPathSegments(path).toString()
     }
 
-    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.5.0"
-    private const val TABBY_SERVER_VERSION_RANGE = ">=0.18.0"
+    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.7.0"
+    private const val TABBY_SERVER_VERSION_RANGE = ">=0.25.0"
 
     private fun loadTabbyThreadsScript(): String {
       val script =

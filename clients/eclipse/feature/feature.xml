@@ -2,7 +2,7 @@
 <feature
       id="com.tabbyml.features.tabby4eclipse"
       label="Tabby"
-      version="0.0.2.32"
+      version="0.0.2.34"
       provider-name="com.tabbyml">
 
    <description url="http://www.example.com/description">
@@ -19,6 +19,6 @@
 
    <plugin
          id="com.tabbyml.tabby4eclipse"
-         version="0.0.2.32"/>
+         version="0.0.2.34"/>
 
 </feature>

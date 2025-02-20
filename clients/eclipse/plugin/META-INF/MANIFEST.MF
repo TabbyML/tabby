@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Tabby Plugin for Eclipse
 Bundle-SymbolicName: com.tabbyml.tabby4eclipse;singleton:=true
-Bundle-Version: 0.0.2.32
+Bundle-Version: 0.0.2.34
 Bundle-Activator: com.tabbyml.tabby4eclipse.Activator
 Bundle-Vendor: com.tabbyml
 Require-Bundle: org.eclipse.ui,

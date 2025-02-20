@@ -242,37 +242,42 @@ export class CodeLensProvider implements Feature {
       }
     }
 
-    const { originRanges, modifiedRanges } = codeDiff(
-      originLines,
-      originCodeLenses.map((item) => item.range),
-      modifiedLines,
-      modifiedCodeLenses.map((item) => item.range),
-    );
-    const deletionDecorations = originRanges.map((range) => {
-      return {
-        range,
-        data: {
-          type: codeLensType,
-          text: "deleted" as const,
-        },
-      };
-    });
+    // if origin and modified lines are not empty, compute the char diffs.
+    // otherwise, it is just an insertion or deletion, skipping char diffs.
+    if (originLines.length > 0 && modifiedLines.length > 0) {
+      const { originRanges, modifiedRanges } = codeDiff(
+        originLines,
+        originCodeLenses.map((item) => item.range),
+        modifiedLines,
+        modifiedCodeLenses.map((item) => item.range),
+      );
+      const deletionDecorations = originRanges.map((range) => {
+        return {
+          range,
+          data: {
+            type: codeLensType,
+            text: "deleted" as const,
+          },
+        };
+      });
 
-    const insertionDecorations = modifiedRanges.map((range) => {
-      return {
-        range,
-        data: {
-          type: codeLensType,
-          text: "inserted" as const,
-        },
-      };
-    });
+      const insertionDecorations = modifiedRanges.map((range) => {
+        return {
+          range,
+          data: {
+            type: codeLensType,
+            text: "inserted" as const,
+          },
+        };
+      });
 
-    if (resultProgress) {
-      resultProgress.report([...deletionDecorations, ...insertionDecorations]);
-    } else {
-      codeLenses.push(...deletionDecorations, ...insertionDecorations);
+      if (resultProgress) {
+        resultProgress.report([...deletionDecorations, ...insertionDecorations]);
+      } else {
+        codeLenses.push(...deletionDecorations, ...insertionDecorations);
+      }
     }
+
     logger.debug(`codeLenses: ${JSON.stringify(codeLenses)}`);
 
     workDoneProgress?.done();

@@ -91,8 +91,8 @@ export function Header({
   }
 
   const onConvertToPage = () => {
-    if (!threadIdFromURL) return
-    updatePendingThreadId(threadIdFromURL)
+    if (!threadId) return
+    updatePendingThreadId(threadId)
     router.push('/pages')
   }
 

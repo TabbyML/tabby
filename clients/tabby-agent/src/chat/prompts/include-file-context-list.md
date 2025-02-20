@@ -1,0 +1,2 @@
+Here is the list of files available for reference. Each file has a full path as the "title", a short form used as the "referrer" in the user command, and the content enclosed in <CONTEXTDOCUMENT></CONTEXTDOCUMENT> XML tags.
+{{fileList}}

@@ -7,6 +7,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.openapi.wm.ToolWindowManager
 import com.tabbyml.intellijtabby.actionPromoter.HasPriority
+import com.tabbyml.intellijtabby.chat.ChatBrowser
 import com.tabbyml.intellijtabby.chat.ChatBrowserFactory
 import com.tabbyml.intellijtabby.widgets.ChatToolWindowFactory
 
@@ -27,7 +28,7 @@ class ToggleChatToolWindow : AnAction(), HasPriority {
       toolWindow.show {
         toolWindow.activate {
           if (editor != null && chatBrowser != null && editor.selectionModel.let { it.hasSelection() && !it.selectedText.isNullOrBlank() }) {
-            chatBrowser.addActiveEditorAsContext(true)
+            chatBrowser.addActiveEditorAsContext(ChatBrowser.RangeStrategy.SELECTION)
           }
         }
       }

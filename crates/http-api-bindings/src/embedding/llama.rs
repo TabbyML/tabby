@@ -15,7 +15,7 @@ pub struct LlamaCppEngine {
     // Llama.cpp has updated the endpoint from `/embedding` to `/embeddings`,
     // and wrapped both the response and embedding in an array from b4357.
     //
-    // Ref: https://github.com/ggerganov/llama.cpp/pull/10861
+    // Ref: https://github.com/ggml-org/llama.cpp/pull/10861
     before_b4356: bool,
 
     client: reqwest::Client,
@@ -70,7 +70,7 @@ impl Embedding for LlamaCppEngine {
         //
         // This serves as a temporary solution to attempt the request up to three times.
         //
-        // Track issue: https://github.com/ggerganov/llama.cpp/issues/11411
+        // Track issue: https://github.com/ggml-org/llama.cpp/issues/11411
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(3);
         let response = RetryIf::spawn(
             strategy,

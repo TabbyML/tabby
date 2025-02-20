@@ -13,6 +13,7 @@ public abstract class Filepath {
 
 	public static class Kind {
 		public static final String GIT = "git";
+		public static final String WORKSPACE = "workspace";
 		public static final String URI = "uri";
 	}
 }

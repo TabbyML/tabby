@@ -289,3 +289,24 @@ export async function parseChatResponse(readableStream: Readable): Promise<strin
   }
   return output;
 }
+
+/**
+ * Format placeholders in the template string.
+ * Example:
+ * ```
+ *   formatPlaceholders("Hello {{name}}", { name: "World" })
+ * ```
+ * @param template a string with placeholders in the form {{key}}
+ * @param replacements a map of replacements for the placeholders
+ * @returns a string with the placeholders replaced
+ */
+export function formatPlaceholders(template: string, replacements: Record<string, string>): string {
+  const patterns = Object.keys(replacements)
+    .map((key) => "{{" + key + "}}")
+    .join("|");
+  const regexp = new RegExp(patterns, "g");
+  return template.replace(regexp, (pattern: string) => {
+    const key = pattern.slice(2, -2);
+    return replacements[key] ?? "";
+  });
+}
