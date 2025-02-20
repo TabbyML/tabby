@@ -1,3 +1,4 @@
+mod llms_txt_parser;
 mod types;
 
 use std::process::Stdio;
@@ -166,66 +167,12 @@ pub async fn crawler_llms(start_url: &str) -> anyhow::Result<Vec<CrawledDocument
     debug!("Successfully fetched llms-full.txt: {}", llms_full_url);
 
     // Split the fetched markdown content into sections.
-    let docs = split_llms_content(&body, start_url);
+    let docs = llms_txt_parser::split_llms_content(&body, start_url);
     if docs.is_empty() {
         anyhow::bail!("No sections found in llms-full.txt from {}", base_url);
     }
 
     Ok(docs)
-}
-
-fn split_llms_content(content: &str, base_url: &str) -> Vec<CrawledDocument> {
-    let mut docs = Vec::new();
-    let mut current_title: Option<String> = None;
-    let mut current_url: Option<String> = None;
-    let mut current_body = String::new();
-
-    // Process the content line by line.
-    for line in content.lines() {
-        // Check if the line starts with a heading-1 marker.
-        if line.starts_with("# ") {
-            // If we already have a section in progress, finalize it.
-            if let Some(title) = current_title.take() {
-                // Use the URL from the section if available; otherwise, fallback to base_url.
-                let url = current_url.take().unwrap_or_else(|| base_url.to_owned());
-                let metadata = CrawledMetadata {
-                    title: title.into(),
-                    description: url.clone().into(),
-                };
-                docs.push(CrawledDocument::new(
-                    url,
-                    current_body.trim().to_owned(),
-                    metadata,
-                ));
-                current_body = String::new();
-            }
-            current_title = Some(line[2..].trim().to_owned());
-            current_url = None;
-        } else if line.starts_with("URL:") || line.starts_with("Source:") {
-            let prefix_len = if line.starts_with("URL:") { 4 } else { 7 };
-            let url_str = line[prefix_len..].trim();
-            current_url = Some(url_str.to_owned());
-        } else {
-            current_body.push_str(line);
-            current_body.push('\n');
-        }
-    }
-
-    // Finalize the last section if any.
-    if let Some(title) = current_title {
-        let url = current_url.unwrap_or_else(|| base_url.to_owned());
-        let metadata = CrawledMetadata {
-            title: title.into(),
-            description: url.clone().into(),
-        };
-        docs.push(CrawledDocument::new(
-            url,
-            current_body.trim().to_owned(),
-            metadata,
-        ));
-    }
-
-    docs
 }
 
 #[cfg(test)]
