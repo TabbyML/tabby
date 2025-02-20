@@ -37,11 +37,10 @@ pub trait ThreadService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<Thread>>;
 
-    /// List my threads
-    async fn my(
+    /// List threads owned by a user
+    async fn list_owned(
         &self,
         user_id: &ID,
-        is_admin: bool,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,

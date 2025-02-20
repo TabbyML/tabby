@@ -56,6 +56,7 @@ impl DbConn {
     pub async fn list_threads(
         &self,
         ids: Option<&[i64]>,
+        user_id: Option<i64>,
         is_ephemeral: Option<bool>,
         limit: Option<usize>,
         skip_id: Option<i32>,
@@ -69,6 +70,10 @@ impl DbConn {
             conditions.push(format!("id in ({ids})"));
         }
 
+        if let Some(user_id) = user_id {
+            conditions.push(format!("user_id = {user_id}"));
+        }
+
         if let Some(is_ephemeral) = is_ephemeral {
             if is_ephemeral {
                 conditions.push("is_ephemeral".to_string());
@@ -78,46 +83,6 @@ impl DbConn {
         }
 
         let condition = (!conditions.is_empty()).then_some(conditions.join(" AND "));
-        let threads = query_paged_as!(
-            ThreadDAO,
-            "threads",
-            [
-                "id",
-                "user_id",
-                "is_ephemeral",
-                "relevant_questions" as "relevant_questions: Json<Vec<String>>",
-                "created_at" as "created_at: DateTime<Utc>",
-                "updated_at" as "updated_at: DateTime<Utc>"
-            ],
-            limit,
-            skip_id,
-            backwards,
-            condition
-        )
-        .fetch_all(&self.pool)
-        .await?;
-
-        Ok(threads)
-    }
-
-    // list all threads that are shared by other users or that the user owns
-    pub async fn list_threads_permitted(
-        &self,
-        user_id: i64,
-        is_admin: bool,
-        limit: Option<usize>,
-        skip_id: Option<i32>,
-        backwards: bool,
-    ) -> Result<Vec<ThreadDAO>> {
-        let condition = if is_admin {
-            None
-        } else {
-            Some(
-                format!("user_id = {user_id} OR (user_id != {user_id} AND is_ephemeral)")
-                    .to_string(),
-            )
-        };
-
         let threads = query_paged_as!(
             ThreadDAO,
             "threads",

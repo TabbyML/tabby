@@ -316,10 +316,9 @@ impl ThreadService for ThreadServiceImpl {
         Ok(())
     }
 
-    async fn my(
+    async fn list_owned(
         &self,
         user_id: &ID,
-        is_admin: bool,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -329,7 +328,14 @@ impl ThreadService for ThreadServiceImpl {
 
         let threads = self
             .db
-            .list_threads_permitted(user_id.as_rowid()?, is_admin, limit, skip_id, backwards)
+            .list_threads(
+                None,
+                Some(user_id.as_rowid()?),
+                None,
+                limit,
+                skip_id,
+                backwards,
+            )
             .await?;
 
         Ok(threads.into_iter().map(Into::into).collect())
@@ -354,7 +360,14 @@ impl ThreadService for ThreadServiceImpl {
 
         let threads = self
             .db
-            .list_threads(ids.as_deref(), is_ephemeral, limit, skip_id, backwards)
+            .list_threads(
+                ids.as_deref(),
+                None,
+                is_ephemeral,
+                limit,
+                skip_id,
+                backwards,
+            )
             .await?;
 
         Ok(threads.into_iter().map(Into::into).collect())
