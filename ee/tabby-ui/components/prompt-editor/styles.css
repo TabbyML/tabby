@@ -1,12 +1,3 @@
-.tiptap:first-child {
-  @apply mt-0;
-}
-
-.tiptap p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  @apply text-muted-foreground cursor-text h-0 float-left;
-}
-
 .node-mention {
   @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-md pb-0.5 pt-0;
 }

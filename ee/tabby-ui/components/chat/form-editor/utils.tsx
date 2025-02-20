@@ -8,7 +8,7 @@ import { FileContext } from '@/lib/types'
 import { convertFilepath, nanoid, resolveFileNameForDisplay } from '@/lib/utils'
 import { IconFile } from '@/components/ui/icons'
 
-import { FileItem, SourceItem } from './types'
+import { FileItem, SourceItem } from '../types'
 
 /**
  * Converts a FileItem to a SourceItem for use in the mention dropdown list.

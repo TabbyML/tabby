@@ -37,20 +37,16 @@ import {
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
 import { MyAvatar } from '../user-avatar'
-import { ChatContext } from './chat'
+import { ChatContext } from './chat-context'
 import { CodeReferences } from './code-references'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
-  chatMaxWidthClass: string
 }
-function QuestionAnswerList({
-  messages,
-  chatMaxWidthClass
-}: QuestionAnswerListProps) {
+function QuestionAnswerList({ messages }: QuestionAnswerListProps) {
   const { isLoading } = React.useContext(ChatContext)
   return (
-    <div className={`relative mx-auto px-4 ${chatMaxWidthClass}`}>
+    <div className="relative">
       {messages?.map((message, index) => {
         const isLastItem = index === messages.length - 1
         return (
@@ -61,7 +57,7 @@ function QuestionAnswerList({
               message={message}
               isLastItem={isLastItem}
             />
-            {!isLastItem && <Separator className="my-4 md:my-8" />}
+            {!isLastItem && <Separator className="my-4" />}
           </React.Fragment>
         )
       })}
@@ -92,7 +88,7 @@ function QuestionAnswerItem({
       <UserMessageCard message={user} />
       {!!assistant && (
         <>
-          <Separator className="my-4 md:my-8" />
+          <Separator className="my-4" />
           <AssistantMessageCard
             message={assistant}
             userMessage={user}
@@ -134,49 +130,42 @@ function UserMessageCard(props: { message: UserMessage }) {
   }
   return (
     <div
-      className={cn(
-        'group relative mb-4 flex flex-col items-start gap-y-2 md:-ml-4 md:flex-row'
-      )}
+      className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
       {...props}
     >
       <div
         className={cn(
           'flex min-h-[2rem] w-full items-center justify-between md:w-auto',
           {
-            'hidden md:flex': !data?.me.name
+            hidden: !data?.me.name
           }
         )}
       >
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <MyAvatar
-              className="h-6 w-6 md:h-8 md:w-8"
+              className="h-8 w-8"
               fallback={
-                <div className="flex h-6 w-6 items-center justify-center md:h-8 md:w-8">
-                  <IconUser className="h-6 w-6" />
+                <div className="flex h-8 w-8 items-center justify-center">
+                  <IconUser className="h-8 w-8" />
                 </div>
               }
             />
           </div>
-          <p className="block text-xs font-bold md:hidden">{data?.me.name}</p>
+          <p className="block text-sm font-bold">{data?.me.name}</p>
         </div>
 
-        <div className="block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
-          <UserMessageCardActions {...props} />
-        </div>
+        <UserMessageCardActions {...props} />
       </div>
 
       <div className="group relative flex w-full justify-between gap-x-2">
-        <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
+        <div className="flex-1 space-y-2 overflow-hidden px-1">
           <MessageMarkdown
             message={message.message}
             canWrapLongLines
             supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             openInEditor={openInEditor}
           />
-          <div className="hidden md:block">
-            <UserMessageCardActions {...props} />
-          </div>
 
           {selectCode && message.selectContext && (
             <div
@@ -199,11 +188,11 @@ function UserMessageCard(props: { message: UserMessage }) {
             </div>
           )}
         </div>
-        {!data?.me.name && (
+        {/* {!data?.me.name && (
           <div className="editor-bg absolute right-0 top-0 -mt-0.5 block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
             <UserMessageCardActions {...props} />
           </div>
-        )}
+        )} */}
       </div>
     </div>
   )
@@ -213,7 +202,7 @@ function UserMessageCardActions(props: { message: UserMessage }) {
   const { message } = props
   const { handleMessageAction, isLoading } = React.useContext(ChatContext)
   return (
-    <ChatMessageActionsWrapper>
+    <ChatMessageActionsWrapper className="opacity-0 group-hover:opacity-100">
       {!isLoading && (
         <Button
           variant="ghost"
@@ -367,30 +356,26 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   return (
     <div
-      className={cn(
-        'group relative mb-4 flex flex-col items-start gap-y-2 md:-ml-4 md:flex-row'
-      )}
+      className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
       {...rest}
     >
       <div className="flex min-h-[2rem] w-full items-center justify-between md:w-auto">
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
-            <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
+            <IconTabby className="h-8 w-8" />
           </div>
-          <p className="block text-xs font-bold md:hidden">Tabby</p>
+          <p className="block text-sm font-bold">Tabby</p>
         </div>
 
-        <div className="block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
-          <AssistantMessageCardActions
-            message={message}
-            userMessageId={userMessageId}
-            enableRegenerating={enableRegenerating}
-            attachmentCode={attachmentCode}
-          />
-        </div>
+        <AssistantMessageCardActions
+          message={message}
+          userMessageId={userMessageId}
+          enableRegenerating={enableRegenerating}
+          attachmentCode={attachmentCode}
+        />
       </div>
 
-      <div className="w-full flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
+      <div className="w-full flex-1 space-y-2 overflow-hidden px-1">
         <CodeReferences
           contexts={serverCode}
           clientContexts={clientCode}
@@ -399,7 +384,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           supportsOpenInEditor={!!openInEditor}
           showClientCodeIcon={!isInEditor}
           highlightIndex={relevantCodeHighlightIndex}
-          triggerClassname="md:pt-0"
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
@@ -423,14 +407,14 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
         )}
-        <div className="hidden md:block">
+        {/* <div className="hidden md:block">
           <AssistantMessageCardActions
             message={message}
             userMessageId={userMessageId}
             enableRegenerating={enableRegenerating}
             attachmentCode={attachmentCode}
           />
-        </div>
+        </div> */}
       </div>
     </div>
   )
@@ -491,7 +475,7 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
 
 function MessagePendingIndicator() {
   return (
-    <div className="space-y-2 py-2 md:px-1 md:py-0">
+    <div className="space-y-2 py-2">
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-3 w-full" />
     </div>
@@ -516,7 +500,7 @@ function ChatMessageActionsWrapper({
   return (
     <div
       className={cn(
-        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-[4rem] md:-top-2 md:opacity-0',
+        'flex items-center justify-end transition-opacity',
         className
       )}
       {...props}

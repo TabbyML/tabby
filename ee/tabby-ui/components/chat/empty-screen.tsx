@@ -14,17 +14,15 @@ const exampleMessages = [
 
 export function EmptyScreen({
   setInput,
-  chatMaxWidthClass,
   welcomeMessage
 }: {
   setInput: (v: string) => void
-  chatMaxWidthClass: string
   welcomeMessage?: string
 }) {
   const welcomeMsg = welcomeMessage || 'Welcome'
   return (
-    <div className={`mx-auto px-4 ${chatMaxWidthClass}`}>
-      <div className="rounded-lg border bg-background p-8">
+    <div className="mx-auto px-2">
+      <div className="p-2">
         <h1 className="mb-2 text-lg font-semibold">{welcomeMsg}</h1>
         <p className="leading-normal text-muted-foreground">
           You can start a conversation here or try the following examples:

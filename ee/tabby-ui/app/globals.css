@@ -107,3 +107,14 @@
 .unread-notification::before {
   @apply content-[''] float-left w-2 h-2 mr-1.5 mt-2 rounded-full bg-red-400;
 }
+
+/* Tiptap editor */
+.tiptap:first-child {
+  @apply mt-0;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  @apply text-muted-foreground cursor-text h-0 float-left;
+}
+/* Tiptap editor */

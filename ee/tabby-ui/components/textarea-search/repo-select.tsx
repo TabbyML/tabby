@@ -106,11 +106,11 @@ export function RepoSelect({
         >
           <Command>
             <CommandInput
-              placeholder="Search codebase..."
+              placeholder="Select repository..."
               onValueChange={onSearchChange}
             />
             <CommandList className="max-h-[30vh]" ref={commandListRef}>
-              <CommandEmpty>No context found</CommandEmpty>
+              <CommandEmpty>No repository found</CommandEmpty>
               <CommandGroup>
                 {repos?.map(repo => {
                   const isSelected = repo.sourceId === value

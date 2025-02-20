@@ -1,11 +1,26 @@
-import { ReactNode } from 'react'
-import { Content, Editor, EditorEvents } from '@tiptap/react'
-import { ListFileItem, ListSymbolItem } from 'tabby-chat-panel/index'
+import type { HTMLAttributes, ReactNode } from 'react'
+import type { Content, Editor, EditorEvents } from '@tiptap/react'
+import type {
+  ChatCommand,
+  EditorContext,
+  ListFileItem,
+  ListSymbolItem
+} from 'tabby-chat-panel'
+
+export interface ChatRef {
+  executeCommand: (command: ChatCommand) => Promise<void>
+  stop: () => void
+  isLoading: boolean
+  addRelevantContext: (context: EditorContext) => void
+  focus: () => void
+  updateActiveSelection: (context: EditorContext | null) => void
+}
 
 /**
  * PromptProps defines the props for the PromptForm component.
  */
-export interface PromptProps {
+export interface PromptProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit'> {
   /**
    * A callback function that handles form submission.
    * Returns a Promise for handling async operations.

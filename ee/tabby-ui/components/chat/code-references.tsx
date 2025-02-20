@@ -84,7 +84,10 @@ export const CodeReferences = forwardRef<
       >
         <AccordionItem value="references" className="my-0 border-0">
           <AccordionTrigger
-            className={cn('my-0 py-2 font-semibold', triggerClassname)}
+            className={cn(
+              'my-0 py-2 font-semibold outline-none focus-visible:ring-1 focus-visible:ring-ring',
+              triggerClassname
+            )}
           >
             {title ? (
               title

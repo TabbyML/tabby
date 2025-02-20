@@ -23,13 +23,13 @@ import { useServer } from 'tabby-chat-panel/react'
 import { nanoid } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
-import { Chat, ChatRef } from '@/components/chat/chat'
+import { Chat } from '@/components/chat/chat'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
 import { saveFetcherOptions } from '@/lib/tabby/token-management'
-import { PromptFormRef } from '@/components/chat/form-editor/types'
+import { ChatRef, PromptFormRef } from '@/components/chat/types'
 
 const convertToHSLColor = (style: string) => {
   return Color(style)
@@ -397,7 +397,6 @@ export default function ChatPage() {
         ref={chatRef}
         chatInputRef={chatInputRef}
         onLoaded={onChatLoaded}
-        maxWidth={client === 'vscode' ? '5xl' : undefined}
         onCopyContent={isInEditor && server?.onCopy}
         onApplyInEditor={
           isInEditor &&
