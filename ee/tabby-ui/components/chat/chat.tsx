@@ -714,7 +714,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>
-          <div className={`w-full max-w-5xl px-[16px]`}>
+          <div className={`mx-auto w-full max-w-5xl px-[16px]`}>
             {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
             {initialized && (
               <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>

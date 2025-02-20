@@ -39,7 +39,7 @@ export function EmptyScreen({
   const threads = data?.threads?.edges
 
   return (
-    <div>
+    <div className="mx-auto max-w-5xl">
       <div>
         <h1 className="mb-2 text-xl font-semibold">{welcomeMsg}</h1>
         <p className="leading-normal text-muted-foreground">
@@ -65,16 +65,18 @@ export function EmptyScreen({
         <div className="mb-2 flex items-center gap-2">
           <span className="text-lg font-semibold">Recent Activities</span>
         </div>
-        {threads?.map(x => {
-          return (
-            <ThreadItem
-              key={x.node.id}
-              data={x}
-              // todo fetch sources
-              sources={undefined}
-            />
-          )
-        })}
+        <div className="space-y-4">
+          {threads?.map(x => {
+            return (
+              <ThreadItem
+                key={x.node.id}
+                data={x}
+                // todo fetch sources
+                sources={undefined}
+              />
+            )
+          })}
+        </div>
         <div className="text-center">
           <Button size="sm" variant="ghost" onClick={e => setShowHistory(true)}>
             View all history
