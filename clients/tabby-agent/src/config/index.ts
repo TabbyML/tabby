@@ -181,8 +181,8 @@ export class Configurations extends EventEmitter implements Feature {
   }
 
   async refreshClientProvidedConfig(): Promise<boolean> {
-    if (this.clientCapabilities?.workspace?.configuration) {
-      const config = await this.lspConnection?.workspace.getConfiguration();
+    if (this.lspConnection && this.clientCapabilities?.workspace?.configuration) {
+      const config = await this.lspConnection.workspace.getConfiguration();
       this.updateClientProvidedConfig(config);
       return true;
     }
