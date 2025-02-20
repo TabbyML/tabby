@@ -41,7 +41,7 @@ export function EmptyScreen({
   return (
     <div>
       <div>
-        <h1 className="mb-2 text-lg font-semibold">{welcomeMsg}</h1>
+        <h1 className="mb-2 text-xl font-semibold">{welcomeMsg}</h1>
         <p className="leading-normal text-muted-foreground">
           You can start a conversation here or try the following examples:
         </p>
