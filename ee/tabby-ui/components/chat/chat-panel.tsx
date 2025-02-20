@@ -282,9 +282,9 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
           <div
             id="chat-panel-container"
             // FIXME(jueliang):bg: --vscode-input-background?
-            className="rounded-md border bg-background px-4 py-3 outline-none transition-shadow duration-300 focus-within:ring-1 focus-within:!ring-ring hover:ring-1 hover:ring-ring/60 focus-visible:ring-offset-2"
+            className="rounded-md border bg-background px-4 pb-1.5 pt-3 outline-none transition-shadow duration-300 focus-within:ring-1 focus-within:!ring-ring hover:ring-1 hover:ring-ring/60 focus-visible:ring-offset-2"
           >
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               <RepoSelect
                 id="repo-select"
                 value={selectedRepoId}

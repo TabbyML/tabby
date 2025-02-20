@@ -55,7 +55,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       listSymbols
     } = useContext(ChatContext)
 
-    const { selectedModel, models, isFetchingModels } = useSelectedModel()
+    const { selectedModel, models } = useSelectedModel()
 
     const doSubmit = useLatest(async () => {
       if (isLoading || !editor) return
@@ -327,7 +327,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         {/* Editor */}
         <div className="relative flex items-start gap-1.5">
           <div
-            className="max-h-32 flex-1 overflow-y-auto py-4"
+            className="max-h-32 flex-1 overflow-y-auto py-3"
             onClick={() => {
               if (editor && !editor.isFocused) {
                 editor?.commands.focus()
@@ -356,6 +356,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
               models={models}
               value={selectedModel}
               onChange={handleSelectModel}
+              triggerClassName="gap-1 py-1 h-auto"
             />
           </div>
           {/* Submit Button */}

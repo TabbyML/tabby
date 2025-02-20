@@ -1,4 +1,4 @@
-import React, { RefObject } from 'react'
+import React, { Dispatch, RefObject, SetStateAction } from 'react'
 import { Content, EditorEvents } from '@tiptap/core'
 import {
   compact,
@@ -98,6 +98,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   ) => Promise<ListFileItem[]>
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
+  setShowHistory: Dispatch<SetStateAction<boolean>>
 }
 
 /**
@@ -138,7 +139,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       storeSessionState,
       listFileInWorkspace,
       readFileContent,
-      listSymbols
+      listSymbols,
+      setShowHistory,
+      ...props
     },
     ref
   ) => {
@@ -710,7 +713,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           listSymbols
         }}
       >
-        <div className="flex justify-center overflow-x-hidden">
+        <div className="flex justify-center overflow-x-hidden" {...props}>
           <div className={`w-full max-w-5xl px-[16px]`}>
             {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
             {initialized && (
@@ -718,10 +721,13 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
                 {qaPairs?.length ? (
                   <QuestionAnswerList messages={qaPairs} />
                 ) : (
-                  <EmptyScreen
-                    setInput={setInput}
-                    welcomeMessage={welcomeMessage}
-                  />
+                  <>
+                    <EmptyScreen
+                      setInput={setInput}
+                      welcomeMessage={welcomeMessage}
+                      setShowHistory={setShowHistory}
+                    />
+                  </>
                 )}
                 <ChatScrollAnchor trackVisibility={isLoading} />
               </div>

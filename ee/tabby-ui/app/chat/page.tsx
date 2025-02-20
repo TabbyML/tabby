@@ -31,6 +31,8 @@ import './page.css'
 import { saveFetcherOptions } from '@/lib/tabby/token-management'
 import { ChatRef, PromptFormRef } from '@/components/chat/types'
 
+import { HistoryView } from './components/history-view'
+
 const convertToHSLColor = (style: string) => {
   return Color(style)
     .hsl()
@@ -52,6 +54,8 @@ export default function ChatPage() {
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
     null
   )
+  const [showHistory, setShowHistory] = useState(false)
+  // todo: persist?
   const [activeChatId, setActiveChatId] = useState('')
   const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
@@ -391,12 +395,21 @@ export default function ChatPage() {
 
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+      {showHistory && (
+        <HistoryView
+          onClose={() => setShowHistory(false)}
+          // todo set active chatId
+          onNavigate={() => {}}
+        />
+      )}
       <Chat
+        style={{ display: showHistory ? 'none' : 'block' }}
         chatId={activeChatId}
         key={activeChatId}
         ref={chatRef}
         chatInputRef={chatInputRef}
         onLoaded={onChatLoaded}
+        setShowHistory={setShowHistory}
         onCopyContent={isInEditor && server?.onCopy}
         onApplyInEditor={
           isInEditor &&

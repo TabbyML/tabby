@@ -1,4 +1,5 @@
 import { uniq } from 'lodash-es'
+import moment from 'moment'
 import type { Filepath } from 'tabby-chat-panel'
 
 import {
@@ -71,31 +72,6 @@ export const getThreadRunContextsFromMentions = (
     docSourceIds: uniq(docSourceIds),
     codeSourceIds: uniq(codeSourceIds)
   }
-}
-
-export function getTitleFromMessages(
-  sources: ContextSource[],
-  content: string,
-  options?: { maxLength?: number }
-) {
-  const firstLine = content.split('\n')[0] ?? ''
-  const cleanedLine = firstLine
-    .replace(MARKDOWN_SOURCE_REGEX, value => {
-      const sourceId = value.slice(9, -2)
-      const source = sources.find(s => s.sourceId === sourceId)
-      return source?.sourceName ?? ''
-    })
-    .replace(MARKDOWN_FILE_REGEX, value => {
-      const filepath = value.slice(7, -2)
-      return resolveFileNameForDisplay(filepath)
-    })
-    .trim()
-
-  let title = cleanedLine
-  if (options?.maxLength) {
-    title = title.slice(0, options?.maxLength)
-  }
-  return title
 }
 
 export function checkSourcesAvailability(
@@ -238,4 +214,45 @@ export function encodeMentionPlaceHolder(value: string): string {
   }
 
   return newValue
+}
+
+export function formatThreadTime(time: string, prefix: string) {
+  const targetTime = moment(time)
+
+  if (targetTime.isBefore(moment().subtract(1, 'year'))) {
+    const timeText = targetTime.format('MMM D, YYYY')
+    return `${prefix} on ${timeText}`
+  }
+
+  if (targetTime.isBefore(moment().subtract(1, 'month'))) {
+    const timeText = targetTime.format('MMM D')
+    return `${prefix} on ${timeText}`
+  }
+
+  return `${prefix} ${targetTime.fromNow()}`
+}
+
+export function getTitleFromMessages(
+  sources: ContextSource[],
+  content: string,
+  options?: { maxLength?: number }
+) {
+  const firstLine = content.split('\n')[0] ?? ''
+  const cleanedLine = firstLine
+    .replace(MARKDOWN_SOURCE_REGEX, value => {
+      const sourceId = value.slice(9, -2)
+      const source = sources.find(s => s.sourceId === sourceId)
+      return source?.sourceName ?? ''
+    })
+    .replace(MARKDOWN_FILE_REGEX, value => {
+      const filepath = value.slice(7, -2)
+      return resolveFileNameForDisplay(filepath)
+    })
+    .trim()
+
+  let title = cleanedLine
+  if (options?.maxLength) {
+    title = title.slice(0, options?.maxLength)
+  }
+  return title
 }

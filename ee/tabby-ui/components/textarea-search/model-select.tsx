@@ -1,3 +1,5 @@
+'use client'
+
 import { Maybe } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import {
@@ -18,13 +20,15 @@ interface ModelSelectProps {
   value: string | undefined
   onChange: (v: string) => void
   isInitializing?: boolean
+  triggerClassName?: string
 }
 
 export function ModelSelect({
   models,
   value,
   onChange,
-  isInitializing
+  isInitializing,
+  triggerClassName
 }: ModelSelectProps) {
   const onSelectModel = (v: string) => {
     onChange(v)
@@ -44,7 +48,10 @@ export function ModelSelect({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="gap-2 px-1.5 py-1 text-foreground/90"
+              className={cn(
+                'gap-2 px-1.5 py-1 text-foreground/90',
+                triggerClassName
+              )}
             >
               <IconBox />
               {value}
