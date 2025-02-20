@@ -27,6 +27,7 @@ Significant changes have been implemented in this release; please consider adjus
 * Bump llama.cpp version to b4651. ([#3798](https://github.com/TabbyML/tabby/pull/3798))
 * Automatically retry embedding when the service occasionally fails due to issues with llama.cpp. ([#3805](https://github.com/TabbyML/tabby/pull/3805))
 * Enhance the user interface experience for Answer Engine. ([#3845](https://github.com/TabbyML/tabby/pull/3845)) ([#3794](https://github.com/TabbyML/tabby/pull/3794))
+* Resolve the deserialization issue related to `finish_reason` in chat response from LiteLLM Proxy Server.([#3882](https://github.com/TabbyML/tabby/pull/3882))
 
 ## v0.24.0 (2025-01-23)
 
