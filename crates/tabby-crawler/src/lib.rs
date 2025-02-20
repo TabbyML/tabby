@@ -149,61 +149,83 @@ pub async fn crawl_pipeline(
         .filter_map(move |data| async move { to_document(data) }))
 }
 
-/// Attempts to fetch `llms-full.txt` or `llms.txt` from the given base URL.
-/// If `llms-full.txt` is available, it returns that document; otherwise, it falls back to `llms.txt`.
-/// Returns a `CrawledDocument` if successful.
-pub async fn crawler_llms(start_url: &str) -> anyhow::Result<CrawledDocument> {
+/// Attempts to fetch `llms-full.txt` from the given base URL,
+/// then splits its markdown content into multiple sections based on H1 headings.
+/// Each section becomes a separate `CrawledDocument`.
+/// Returns a vector of `CrawledDocument`s if successful.
+pub async fn crawler_llms(start_url: &str) -> anyhow::Result<Vec<CrawledDocument>> {
     // Remove trailing slash from the base URL if present.
     let base_url = start_url.trim_end_matches('/');
 
-    // Construct the URL for llms-full.txt.
     let llms_full_url = format!("{}/llms-full.txt", base_url);
-    // Try fetching llms-full.txt first.
-    match reqwest::get(&llms_full_url).await {
-        Ok(resp) if resp.status().is_success() => {
-            let body = resp.text().await?;
-            debug!("Successfully fetched llms-full.txt: {}", llms_full_url);
-            return Ok(CrawledDocument::new(
-                llms_full_url,
-                body,
-                CrawledMetadata {
-                    title: start_url.to_owned().into(),
-                    description: start_url.to_owned().into(),
-                },
-            ));
-        }
-        Ok(resp) => {
-            warn!(
-                "Failed to fetch llms-full.txt, status code: {}. Trying llms.txt...",
-                resp.status()
-            );
-        }
-        Err(err) => {
-            warn!("Error fetching llms-full.txt: {}. Trying llms.txt...", err);
+    let resp = reqwest::get(&llms_full_url).await?;
+    if !resp.status().is_success() {
+        anyhow::bail!("Unable to fetch llms-full.txt from {}", base_url);
+    }
+    let body = resp.text().await?;
+    debug!("Successfully fetched llms-full.txt: {}", llms_full_url);
+
+    // Split the fetched markdown content into sections.
+    let docs = split_llms_content(&body, start_url);
+    if docs.is_empty() {
+        anyhow::bail!("No sections found in llms-full.txt from {}", base_url);
+    }
+
+    Ok(docs)
+}
+
+fn split_llms_content(content: &str, base_url: &str) -> Vec<CrawledDocument> {
+    let mut docs = Vec::new();
+    let mut current_title: Option<String> = None;
+    let mut current_url: Option<String> = None;
+    let mut current_body = String::new();
+
+    // Process the content line by line.
+    for line in content.lines() {
+        // Check if the line starts with a heading-1 marker.
+        if line.starts_with("# ") {
+            // If we already have a section in progress, finalize it.
+            if let Some(title) = current_title.take() {
+                // Use the URL from the section if available; otherwise, fallback to base_url.
+                let url = current_url.take().unwrap_or_else(|| base_url.to_owned());
+                let metadata = CrawledMetadata {
+                    title: title.into(),
+                    description: url.clone().into(),
+                };
+                docs.push(CrawledDocument::new(
+                    url,
+                    current_body.trim().to_owned(),
+                    metadata,
+                ));
+                current_body = String::new();
+            }
+            current_title = Some(line[2..].trim().to_owned());
+            current_url = None;
+        } else if line.starts_with("URL:") || line.starts_with("Source:") {
+            let prefix_len = if line.starts_with("URL:") { 4 } else { 7 };
+            let url_str = line[prefix_len..].trim();
+            current_url = Some(url_str.to_owned());
+        } else {
+            current_body.push_str(line);
+            current_body.push('\n');
         }
     }
 
-    // If llms-full.txt is not available, construct the URL for llms.txt.
-    let llms_url = format!("{}/llms.txt", base_url);
-    let resp = reqwest::get(&llms_url).await?;
-    if resp.status().is_success() {
-        let body = resp.text().await?;
-        debug!("Successfully fetched llms.txt: {}", llms_url);
-        return Ok(CrawledDocument::new(
-            llms_url,
-            body,
-            CrawledMetadata {
-                title: start_url.to_owned().into(),
-                description: start_url.to_owned().into(),
-            },
+    // Finalize the last section if any.
+    if let Some(title) = current_title {
+        let url = current_url.unwrap_or_else(|| base_url.to_owned());
+        let metadata = CrawledMetadata {
+            title: title.into(),
+            description: url.clone().into(),
+        };
+        docs.push(CrawledDocument::new(
+            url,
+            current_body.trim().to_owned(),
+            metadata,
         ));
     }
 
-    // If neither file is accessible, return an error.
-    anyhow::bail!(
-        "Unable to fetch either llms-full.txt or llms.txt from {}",
-        base_url
-    );
+    docs
 }
 
 #[cfg(test)]
