@@ -208,4 +208,34 @@ mod tests {
         assert_eq!(doc.url, "https://example.com");
         assert_eq!(doc.markdown, "Hello, World!");
     }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_crawler_llms_success_developers_cloudflare_with_url() {
+        let base_url = "https://developers.cloudflare.com";
+        let result = crawler_llms(base_url).await;
+        assert!(result.is_ok(), "Expected success from {}", base_url);
+        let docs = result.unwrap();
+        assert!(
+            !docs.is_empty(),
+            "Expected at least one section from llms-full.txt at {}",
+            base_url
+        );
+        println!("Fetched {} documents from {}", docs.len(), base_url);
+    }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_crawler_llms_success_docs_perplexity_with_source() {
+        let base_url = "https://docs.perplexity.ai";
+        let result = crawler_llms(base_url).await;
+        assert!(result.is_ok(), "Expected success from {}", base_url);
+        let docs = result.unwrap();
+        assert!(
+            !docs.is_empty(),
+            "Expected at least one section from llms-full.txt at {}",
+            base_url
+        );
+        println!("Fetched {} documents from {}", docs.len(), base_url);
+    }
 }
