@@ -61,6 +61,7 @@ impl WebCrawlerJob {
                 {
                     indexer.sync(source_doc).await;
                 }
+                logkit::info!("Crawled llms.txt documents from '{}'", self.url);
                 indexer.commit();
                 return Ok(());
             }
@@ -76,10 +77,8 @@ impl WebCrawlerJob {
         let mut num_docs = 0;
         let url_prefix = self.url_prefix.as_ref().unwrap_or(&self.url);
         let mut pipeline = Box::pin(crawl_pipeline(&self.url, url_prefix).await?);
-
         while let Some(doc) = pipeline.next().await {
             logkit::info!("Fetching {}", doc.url);
-
             let source_doc = StructuredDoc {
                 source_id: self.source_id.clone(),
                 fields: StructuredDocFields::Web(StructuredDocWebFields {
