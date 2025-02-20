@@ -216,7 +216,7 @@ impl MessageAttachmentDoc {
         }
     }
 
-    pub fn get_content(&self) -> &str {
+    pub fn content(&self) -> &str {
         match self {
             MessageAttachmentDoc::Web(web) => &web.content,
             MessageAttachmentDoc::Issue(issue) => &issue.body,

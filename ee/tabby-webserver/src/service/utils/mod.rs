@@ -16,17 +16,15 @@ use tabby_schema::{
 };
 
 pub fn convert_messages_to_chat_completion_request(
-    system_prompt: &str,
+    system_prompt: Option<&str>,
     helper: &ContextInfoHelper,
     messages: &[Message],
-    attachment: &MessageAttachment,
-    user_attachment_input: Option<&MessageAttachmentInput>,
 ) -> Result<Vec<ChatCompletionRequestMessage>> {
     let mut output = vec![];
     output.reserve(messages.len() + 1);
 
     // System message
-    if !system_prompt.is_empty() {
+    if let Some(system_prompt) = system_prompt {
         output.push(ChatCompletionRequestMessage::System(
             ChatCompletionRequestSystemMessage {
                 content: ChatCompletionRequestSystemMessageContent::Text(system_prompt.to_owned()),
@@ -35,8 +33,7 @@ pub fn convert_messages_to_chat_completion_request(
         ));
     }
 
-    for i in 0..messages.len() - 1 {
-        let x = &messages[i];
+    for (i, x) in messages.iter().enumerate() {
         let role = match x.role {
             ThreadRole::Assistant => Role::Assistant,
             ThreadRole::User => Role::User,
@@ -72,22 +69,21 @@ pub fn convert_messages_to_chat_completion_request(
         output.push(message);
     }
 
-    let user_prompt = build_user_prompt(
-        &messages[messages.len() - 1].content,
-        attachment,
-        user_attachment_input,
-    );
-
-    output.push(ChatCompletionRequestMessage::User(
-        ChatCompletionRequestUserMessage {
-            content: ChatCompletionRequestUserMessageContent::Text(
-                helper.rewrite_tag(&user_prompt),
-            ),
-            ..Default::default()
-        },
-    ));
-
     Ok(output)
+}
+
+pub fn convert_user_message_to_chat_completion_request(
+    helper: &ContextInfoHelper,
+    query: &str,
+    attachment: &MessageAttachment,
+    user_attachment_input: Option<&MessageAttachmentInput>,
+) -> ChatCompletionRequestMessage {
+    let user_prompt = build_user_prompt(query, attachment, user_attachment_input);
+
+    ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+        content: ChatCompletionRequestUserMessageContent::Text(helper.rewrite_tag(&user_prompt)),
+        ..Default::default()
+    })
 }
 
 fn user_attachment_input_from_user_message_attachment(
@@ -136,7 +132,7 @@ pub fn build_user_prompt(
         let snippets: Vec<String> = assistant_attachment
             .doc
             .iter()
-            .map(|doc| format!("```\n{}\n```", doc.get_content()))
+            .map(|doc| format!("```\n{}\n```", doc.content()))
             .chain(
                 user_attachment_input
                     .map(|x| &x.code)

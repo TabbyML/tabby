@@ -39,7 +39,9 @@ use tabby_schema::{
 };
 use tracing::{debug, error, warn};
 
-use crate::service::utils::convert_messages_to_chat_completion_request;
+use crate::service::utils::{
+    convert_messages_to_chat_completion_request, convert_user_message_to_chat_completion_request,
+};
 
 pub struct AnswerService {
     config: AnswerConfig,
@@ -82,7 +84,13 @@ impl AnswerService {
         options: &ThreadRunOptionsInput,
         user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
     ) -> tabby_schema::Result<BoxStream<'a, tabby_schema::Result<ThreadRunItem>>> {
-        let messages = messages.to_vec();
+        let (last_message, messages) = match messages.split_last() {
+            Some((last_message, messages)) => (last_message.clone(), messages.to_vec()),
+            None => {
+                return Err(anyhow!("No message found in the request").into());
+            }
+        };
+
         let options = options.clone();
         let user_attachment_input = user_attachment_input.cloned();
         let policy = policy.clone();
@@ -91,20 +99,12 @@ impl AnswerService {
             let context_info = self.context.read(Some(&policy)).await?;
             let context_info_helper = context_info.helper();
 
-            let query = match messages.last() {
-                Some(query) => query,
-                None => {
-                    yield Err(anyhow!("No query found in the request").into());
-                    return;
-                }
-            };
-
             let mut attachment = MessageAttachment::default();
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
                 if let Some(repository) = self.find_repository(&context_info_helper, code_query, policy.clone()).await {
-                    let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &query.content).await?;
+                    let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &last_message.content).await?;
                     yield Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(need_codebase_context.clone()));
                     if need_codebase_context.file_list {
                         // List at most 300 files in the repository.
@@ -176,7 +176,7 @@ impl AnswerService {
             // 3. Generate relevant questions.
             if options.generate_relevant_questions {
                 // Rewrite [[source:${id}]] tags to the actual source name for generate relevant questions.
-                let content = context_info_helper.rewrite_tag(&query.content);
+                let content = context_info_helper.rewrite_tag(&last_message.content);
                 match self
                     .generate_relevant_questions(&attachment, &content)
                     .await{
@@ -193,13 +193,18 @@ impl AnswerService {
 
             // 4. Prepare requesting LLM
             let request = {
-                let chat_messages = convert_messages_to_chat_completion_request(
-                    &self.config.system_prompt,
+                let mut chat_messages = convert_messages_to_chat_completion_request(
+                    Some(&self.config.system_prompt),
                     &context_info_helper,
                     &messages,
+                )?;
+                let user_message = convert_user_message_to_chat_completion_request(
+                    &context_info_helper,
+                    &last_message.content,
                     &attachment,
                     user_attachment_input.as_ref(),
-                )?;
+                );
+                chat_messages.push(user_message);
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -386,7 +391,7 @@ impl AnswerService {
                 attachment
                     .doc
                     .iter()
-                    .map(|doc| format!("```\n{}\n```", doc.get_content())),
+                    .map(|doc| format!("```\n{}\n```", doc.content())),
             )
             .collect();
 
@@ -673,8 +678,8 @@ mod tests {
                 tabby_schema::thread::Role::Assistant,
                 Some(attachment),
             ),
-            make_message(3, "How are you?", tabby_schema::thread::Role::User, None),
         ];
+        let last_message = make_message(3, "How are you?", tabby_schema::thread::Role::User, None);
 
         let user_attachment_input = tabby_schema::thread::MessageAttachmentInput {
             code: vec![tabby_schema::thread::MessageAttachmentCodeInput {
@@ -697,14 +702,19 @@ mod tests {
         let rewriter = context_info.helper();
 
         let config = make_answer_config();
-        let output = super::convert_messages_to_chat_completion_request(
-            &config.system_prompt,
+        let mut output = super::convert_messages_to_chat_completion_request(
+            Some(&config.system_prompt),
             &rewriter,
             &messages,
-            &tabby_schema::thread::MessageAttachment::default(),
-            Some(&user_attachment_input),
         )
         .unwrap();
+        let user_message = convert_user_message_to_chat_completion_request(
+            &rewriter,
+            &last_message.content,
+            &tabby_schema::thread::MessageAttachment::default(),
+            Some(&user_attachment_input),
+        );
+        output.push(user_message);
 
         insta::assert_yaml_snapshot!(output);
     }

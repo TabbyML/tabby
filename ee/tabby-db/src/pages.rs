@@ -129,6 +129,21 @@ impl DbConn {
         Ok(page)
     }
 
+    pub async fn get_page_title(&self, id: i64) -> Result<String> {
+        Ok(query!(
+            r#"SELECT
+            title
+            FROM pages
+            WHERE id = ?"#,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("Page not found"))?
+        .title
+        .ok_or_else(|| anyhow::anyhow!("Title not found"))?)
+    }
+
     pub async fn list_page_sections(
         &self,
         page_id: i64,
