@@ -2,7 +2,6 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery } from 'urql'
 
-import { graphql } from '@/lib/gql/generates'
 import {
   resetThreadsPageNo,
   setThreadsPageNo,
@@ -24,44 +23,9 @@ import LoadingWrapper from '@/components/loading-wrapper'
 
 import { ThreadItem } from './thread-item'
 import { ThreadFeedsContext } from './threads-context'
+import { listThreads } from '@/lib/tabby/query'
 
 const PAGE_SIZE = 25
-
-const listThreads = graphql(/* GraphQL */ `
-  query ListThreads(
-    $ids: [ID!]
-    $isEphemeral: Boolean
-    $after: String
-    $before: String
-    $first: Int
-    $last: Int
-  ) {
-    threads(
-      ids: $ids
-      isEphemeral: $isEphemeral
-      after: $after
-      before: $before
-      first: $first
-      last: $last
-    ) {
-      edges {
-        node {
-          id
-          userId
-          createdAt
-          updatedAt
-        }
-        cursor
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`)
 
 export function AllThreadFeeds() {
   const { fetchingUsers, onNavigateToThread } = useContext(ThreadFeedsContext)
@@ -72,8 +36,7 @@ export function AllThreadFeeds() {
     query: listThreads,
     variables: {
       last: PAGE_SIZE,
-      before: beforeCursor,
-      isEphemeral: false
+      before: beforeCursor
     }
   })
 

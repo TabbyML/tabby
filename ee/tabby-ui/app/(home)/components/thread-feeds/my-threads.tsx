@@ -27,18 +27,14 @@ import { ThreadFeedsContext } from './threads-context'
 
 const PAGE_SIZE = 25
 
-const listThreads = graphql(/* GraphQL */ `
-  query ListThreads(
-    $ids: [ID!]
-    $isEphemeral: Boolean
+const listMyThreads = graphql(/* GraphQL */ `
+  query ListMyThreads(
     $after: String
     $before: String
     $first: Int
     $last: Int
   ) {
-    threads(
-      ids: $ids
-      isEphemeral: $isEphemeral
+    myThreads(
       after: $after
       before: $before
       first: $first
@@ -69,7 +65,7 @@ export function MyThreadFeeds() {
   const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
   const [page, setPage] = useState(storedPageNo)
   const [{ data, fetching }] = useQuery({
-    query: listThreads,
+    query: listMyThreads,
     variables: {
       last: PAGE_SIZE,
       before: beforeCursor,
@@ -77,8 +73,8 @@ export function MyThreadFeeds() {
     }
   })
 
-  const pageInfo = data?.threads.pageInfo
-  const threadCount = data?.threads?.edges?.length
+  const pageInfo = data?.myThreads.pageInfo
+  const threadCount = data?.myThreads?.edges?.length
   const pageCount = Math.ceil((threadCount || 0) / PAGE_SIZE)
   const showPagination =
     pageCount > 1 || (pageCount === 1 && pageInfo?.hasPreviousPage)
@@ -86,7 +82,7 @@ export function MyThreadFeeds() {
 
   // threads for current page
   const threads = useMemo(() => {
-    const _threads = data?.threads?.edges
+    const _threads = data?.myThreads?.edges
     if (!_threads?.length) return []
 
     if (fetching && page >= 2) {
@@ -102,18 +98,18 @@ export function MyThreadFeeds() {
       .slice()
       .reverse()
       .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  }, [data?.threads?.edges, page, fetching])
+  }, [data?.myThreads?.edges, page, fetching])
 
   const loadMore = () => {
     const startCursor = pageInfo?.startCursor
     if (
       startCursor &&
-      data?.threads.edges.length &&
-      data.threads.edges.findIndex(o => o.cursor === startCursor) > -1
+      data?.myThreads.edges.length &&
+      data.myThreads.edges.findIndex(o => o.cursor === startCursor) > -1
     ) {
       setBeforeCursor(startCursor)
     } else {
-      setBeforeCursor(data?.threads.edges[0]?.cursor)
+      setBeforeCursor(data?.myThreads.edges[0]?.cursor)
     }
   }
 
@@ -133,7 +129,7 @@ export function MyThreadFeeds() {
     resetMyThreadsPageNo()
   }, [])
 
-  const hasThreads = !!data?.threads?.edges?.length
+  const hasThreads = !!data?.myThreads?.edges?.length
 
   return (
     <div className={cn('w-full')}>
