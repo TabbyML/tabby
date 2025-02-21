@@ -281,33 +281,35 @@ function CodeContextItem({
           ) : null}
         </div>
       </TooltipTrigger>
-      <TooltipContent align="start" sideOffset={8}>
-        <div className="whitespace-nowrap">
-          <span>{fileName}</span>
-          {rangeText ? (
-            <span className="text-muted-foreground">:{rangeText}</span>
-          ) : null}
-          <span className="ml-2 text-xs text-muted-foreground">{path}</span>
-        </div>
-        {enableDeveloperMode && context?.extra?.scores && (
-          <div className="mt-4">
-            <div className="mb-1 font-semibold">Scores</div>
-            <div className="space-y-1">
-              <div className="flex">
-                <span className="w-20">rrf:</span>
-                {scores?.rrf ?? '-'}
-              </div>
-              <div className="flex">
-                <span className="w-20">bm25:</span>
-                {scores?.bm25 ?? '-'}
-              </div>
-              <div className="flex">
-                <span className="w-20">embedding:</span>
-                {scores?.embedding ?? '-'}
+      <TooltipContent align="start" sideOffset={8} className="max-w-[24rem]">
+        <div className="space-y-2">
+          <div className="whitespace-nowrap font-medium">
+            <span>{fileName}</span>
+            {rangeText ? (
+              <span className="text-muted-foreground">:{rangeText}</span>
+            ) : null}
+          </div>
+          <div className="break-all text-xs text-muted-foreground">{path}</div>
+          {enableDeveloperMode && context?.extra?.scores && (
+            <div className="mt-4">
+              <div className="mb-1 font-semibold">Scores</div>
+              <div className="space-y-1">
+                <div className="flex">
+                  <span className="w-20">rrf:</span>
+                  {scores?.rrf ?? '-'}
+                </div>
+                <div className="flex">
+                  <span className="w-20">bm25:</span>
+                  {scores?.bm25 ?? '-'}
+                </div>
+                <div className="flex">
+                  <span className="w-20">embedding:</span>
+                  {scores?.embedding ?? '-'}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </TooltipContent>
     </Tooltip>
   )
