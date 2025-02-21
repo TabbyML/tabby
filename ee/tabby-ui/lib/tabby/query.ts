@@ -376,6 +376,7 @@ export const listThreads = graphql(/* GraphQL */ `
         node {
           id
           userId
+          isEphemeral
           createdAt
           updatedAt
         }

@@ -39,6 +39,7 @@ const listMyThreads = graphql(/* GraphQL */ `
         node {
           id
           userId
+          isEphemeral
           createdAt
           updatedAt
         }
