@@ -56,11 +56,10 @@ export const CodeReferences = forwardRef<
     },
     ref
   ) => {
-    const totalContextLength = (clientContexts?.length || 0) + contexts.length
-    const isMultipleReferences = totalContextLength > 1
     const serverCtxLen = contexts?.length ?? 0
     const clientCtxLen = clientContexts?.length ?? 0
     const ctxLen = serverCtxLen + clientCtxLen
+    const isMultipleReferences = ctxLen > 1
     const [accordionValue, setAccordionValue] = useState<string | undefined>(
       ctxLen <= 5 ? 'references' : undefined
     )
@@ -71,6 +70,8 @@ export const CodeReferences = forwardRef<
         setAccordionValue(undefined)
       }
     }, [ctxLen])
+
+    if (!ctxLen) return null
 
     return (
       <Accordion
@@ -88,7 +89,7 @@ export const CodeReferences = forwardRef<
             {title ? (
               title
             ) : (
-              <span className="mr-2">{`Read ${totalContextLength} file${
+              <span className="mr-2">{`Read ${ctxLen} file${
                 isMultipleReferences ? 's' : ''
               }`}</span>
             )}
