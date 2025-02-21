@@ -7,6 +7,7 @@ import {
   setThreadsPageNo,
   useAnswerEngineStore
 } from '@/lib/stores/answer-engine-store'
+import { listThreads } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { getPaginationItem } from '@/lib/utils/pagination'
 import { IconSpinner } from '@/components/ui/icons'
@@ -23,7 +24,6 @@ import LoadingWrapper from '@/components/loading-wrapper'
 
 import { ThreadItem } from './thread-item'
 import { ThreadFeedsContext } from './threads-context'
-import { listThreads } from '@/lib/tabby/query'
 
 const PAGE_SIZE = 25
 
@@ -36,7 +36,8 @@ export function AllThreadFeeds() {
     query: listThreads,
     variables: {
       last: PAGE_SIZE,
-      before: beforeCursor
+      before: beforeCursor,
+      isEphemeral: false
     }
   })
 
@@ -114,13 +115,13 @@ export function AllThreadFeeds() {
         <LoadingWrapper
           loading={fetching || fetchingUsers}
           fallback={
-            <div className="flex justify-center">
+            <div className="my-12 flex justify-center">
               <IconSpinner className="h-8 w-8" />
             </div>
           }
           delay={600}
         >
-          {hasThreads && (
+          {hasThreads ? (
             <>
               <div className="relative flex flex-col gap-3 text-sm">
                 {threads.map(t => {
@@ -199,6 +200,10 @@ export function AllThreadFeeds() {
                 )}
               </div>
             </>
+          ) : (
+            <div className="my-12 text-center text-lg font-medium text-muted-foreground">
+              No data
+            </div>
           )}
         </LoadingWrapper>
       </motion.div>

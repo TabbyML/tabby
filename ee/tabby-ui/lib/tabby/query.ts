@@ -358,6 +358,7 @@ export const listSourceIdAccessPolicies = graphql(/* GraphQL */ `
 export const listThreads = graphql(/* GraphQL */ `
   query ListThreads(
     $ids: [ID!]
+    $isEphemeral: Boolean
     $after: String
     $before: String
     $first: Int
@@ -365,6 +366,7 @@ export const listThreads = graphql(/* GraphQL */ `
   ) {
     threads(
       ids: $ids
+      isEphemeral: $isEphemeral
       after: $after
       before: $before
       first: $first

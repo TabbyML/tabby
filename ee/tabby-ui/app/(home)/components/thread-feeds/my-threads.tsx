@@ -34,12 +34,7 @@ const listMyThreads = graphql(/* GraphQL */ `
     $first: Int
     $last: Int
   ) {
-    myThreads(
-      after: $after
-      before: $before
-      first: $first
-      last: $last
-    ) {
+    myThreads(after: $after, before: $before, first: $first, last: $last) {
       edges {
         node {
           id
@@ -61,7 +56,7 @@ const listMyThreads = graphql(/* GraphQL */ `
 
 export function MyThreadFeeds() {
   const { fetchingUsers, onNavigateToThread } = useContext(ThreadFeedsContext)
-  const storedPageNo = useAnswerEngineStore(state => state.threadsPageNo)
+  const storedPageNo = useAnswerEngineStore(state => state.myThreadsPageNo)
   const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
   const [page, setPage] = useState(storedPageNo)
   const [{ data, fetching }] = useQuery({
@@ -130,6 +125,7 @@ export function MyThreadFeeds() {
   }, [])
 
   const hasThreads = !!data?.myThreads?.edges?.length
+  // const hasThreads = false
 
   return (
     <div className={cn('w-full')}>
@@ -147,13 +143,13 @@ export function MyThreadFeeds() {
         <LoadingWrapper
           loading={fetching || fetchingUsers}
           fallback={
-            <div className="flex justify-center">
+            <div className="my-12 flex justify-center">
               <IconSpinner className="h-8 w-8" />
             </div>
           }
           delay={600}
         >
-          {hasThreads && (
+          {hasThreads ? (
             <>
               <div className="relative flex flex-col gap-3 text-sm">
                 {threads.map(t => {
@@ -232,6 +228,10 @@ export function MyThreadFeeds() {
                 )}
               </div>
             </>
+          ) : (
+            <div className="my-12 text-center text-lg font-medium text-muted-foreground">
+              No data
+            </div>
           )}
         </LoadingWrapper>
       </motion.div>
