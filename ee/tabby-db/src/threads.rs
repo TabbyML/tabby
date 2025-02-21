@@ -14,6 +14,7 @@ use crate::{
 pub struct ThreadDAO {
     pub id: i64,
     pub user_id: i64,
+    pub is_ephemeral: bool,
     pub relevant_questions: Option<Json<Vec<String>>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -55,6 +56,7 @@ impl DbConn {
     pub async fn list_threads(
         &self,
         ids: Option<&[i64]>,
+        user_id: Option<i64>,
         is_ephemeral: Option<bool>,
         limit: Option<usize>,
         skip_id: Option<i32>,
@@ -66,6 +68,10 @@ impl DbConn {
             let ids: Vec<String> = ids.iter().map(i64::to_string).collect();
             let ids = ids.join(", ");
             conditions.push(format!("id in ({ids})"));
+        }
+
+        if let Some(user_id) = user_id {
+            conditions.push(format!("user_id = {user_id}"));
         }
 
         if let Some(is_ephemeral) = is_ephemeral {
@@ -83,6 +89,7 @@ impl DbConn {
             [
                 "id",
                 "user_id",
+                "is_ephemeral",
                 "relevant_questions" as "relevant_questions: Json<Vec<String>>",
                 "created_at" as "created_at: DateTime<Utc>",
                 "updated_at" as "updated_at: DateTime<Utc>"
@@ -450,7 +457,7 @@ mod tests {
 
         // The remaining thread should be the non-ephemeral thread
         let threads = db
-            .list_threads(None, None, None, None, false)
+            .list_threads(None, None, None, None, None, false)
             .await
             .unwrap();
         assert_eq!(threads.len(), 1);
@@ -458,7 +465,7 @@ mod tests {
 
         // No threads are ephemeral
         let threads = db
-            .list_threads(None, Some(true), None, None, false)
+            .list_threads(None, None, Some(true), None, None, false)
             .await
             .unwrap();
         assert_eq!(threads.len(), 0);

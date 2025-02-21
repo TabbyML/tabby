@@ -229,6 +229,9 @@ pub struct MessageDocSearchHit {
 pub struct Thread {
     pub id: ID,
     pub user_id: ID,
+
+    pub is_ephemeral: bool,
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

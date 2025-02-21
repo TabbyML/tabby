@@ -316,6 +316,31 @@ impl ThreadService for ThreadServiceImpl {
         Ok(())
     }
 
+    async fn list_owned(
+        &self,
+        user_id: &ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<thread::Thread>> {
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+
+        let threads = self
+            .db
+            .list_threads(
+                None,
+                Some(user_id.as_rowid()?),
+                None,
+                limit,
+                skip_id,
+                backwards,
+            )
+            .await?;
+
+        Ok(threads.into_iter().map(Into::into).collect())
+    }
+
     async fn list(
         &self,
         ids: Option<&[ID]>,
@@ -332,9 +357,17 @@ impl ThreadService for ThreadServiceImpl {
                 .filter_map(|x| x.as_rowid().ok())
                 .collect::<Vec<_>>()
         });
+
         let threads = self
             .db
-            .list_threads(ids.as_deref(), is_ephemeral, limit, skip_id, backwards)
+            .list_threads(
+                ids.as_deref(),
+                None,
+                is_ephemeral,
+                limit,
+                skip_id,
+                backwards,
+            )
             .await?;
 
         Ok(threads.into_iter().map(Into::into).collect())

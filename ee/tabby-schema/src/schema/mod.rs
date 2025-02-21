@@ -657,8 +657,9 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<thread::Thread>> {
-        check_user(ctx).await?;
-        relay::query_async(
+        let user = check_user_allow_auth_token(ctx).await?;
+
+        let threads = relay::query_async(
             after,
             before,
             first,
@@ -667,6 +668,37 @@ impl Query {
                 ctx.locator
                     .thread()
                     .list(ids.as_deref(), is_ephemeral, after, before, first, last)
+                    .await
+            },
+        )
+        .await?;
+
+        for thread in threads.edges.iter() {
+            let thread = &thread.node;
+            user.policy
+                .check_read_thread(&thread.user_id, thread.is_ephemeral)?;
+        }
+
+        Ok(threads)
+    }
+
+    async fn my_threads(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<thread::Thread>> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .thread()
+                    .list_owned(&user.id, after, before, first, last)
                     .await
             },
         )
@@ -684,7 +716,16 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<thread::Message>> {
-        check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
+
+        let thread = ctx
+            .locator
+            .thread()
+            .get(&thread_id)
+            .await?
+            .ok_or_else(|| CoreError::NotFound("thread not found"))?;
+        user.policy
+            .check_read_thread(&thread.user_id, thread.is_ephemeral)?;
 
         relay::query_async(
             after,
