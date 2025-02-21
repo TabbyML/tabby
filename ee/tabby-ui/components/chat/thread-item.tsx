@@ -13,12 +13,14 @@ interface ThreadItemProps {
   data: ListThreadsQuery['threads']['edges'][0]
   sources: ContextSource[] | undefined
   fetchingSources?: boolean
+  onNavigate: (threadId: string) => void
 }
 
 export function ThreadItem({
   data,
   sources,
-  fetchingSources
+  fetchingSources,
+  onNavigate
 }: ThreadItemProps) {
   const threadId = data.node.id
 
@@ -32,15 +34,10 @@ export function ThreadItem({
 
   const threadMessages = threadMessagesData?.threadMessages?.edges
 
-  const onNavigateToThread = () => {
-    // todo toggle view mode
-    // set active chatid
-  }
-
   return (
     <div
-      onClick={onNavigateToThread}
-      className="transform-bg group flex-1 overflow-hidden rounded-lg bg-background/70 px-3 py-2 hover:bg-accent"
+      onClick={e => onNavigate(data.node.id)}
+      className="cursor-pointer transform-bg group flex-1 overflow-hidden rounded-md bg-background/60 px-4 py-3 hover:bg-accent/60"
     >
       <div className="mb-1.5 flex items-center gap-2">
         <LoadingWrapper
@@ -52,7 +49,7 @@ export function ThreadItem({
           }
         >
           <ThreadTitleWithMentions
-            className="break-anywhere truncate text-lg font-medium"
+            className="break-anywhere truncate text-base font-medium text-foreground/90"
             sources={sources}
             message={replaceAtMentionPlaceHolderWithAt(
               threadMessages?.[0]?.['node']['content'] ?? ''

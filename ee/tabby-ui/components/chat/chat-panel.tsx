@@ -53,7 +53,6 @@ export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
   onUpdate: (p: EditorEvents['update']) => void
   reload: () => void
   chatInputRef: RefObject<PromptFormRef>
-  // models?:
 }
 
 export interface ChatPanelRef {
@@ -297,7 +296,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                   id="active-selection-badge"
                   variant="outline"
                   className={cn(
-                    'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md pr-0 text-sm font-semibold',
+                    'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md pr-0 text-sm font-semibold border-input-border',
                     {
                       'border-dashed !text-muted-foreground italic line-through':
                         !enableActiveSelection

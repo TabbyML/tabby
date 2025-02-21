@@ -56,7 +56,7 @@ export default function ChatPage() {
   )
   const [showHistory, setShowHistory] = useState(false)
   // todo: persist?
-  const [activeChatId, setActiveChatId] = useState('')
+  const [threadId, setThreadId] = useState('')
   const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
     EditorContext[]
@@ -111,7 +111,7 @@ export default function ChatPage() {
         saveFetcherOptions(request.fetcherOptions)
       }
 
-      setActiveChatId(nanoid())
+      setThreadId(nanoid())
       setFetcherOptions(request.fetcherOptions)
       useMacOSKeyboardEventHandler.current =
         request.useMacOSKeyboardEventHandler
@@ -404,8 +404,8 @@ export default function ChatPage() {
       )}
       <Chat
         style={{ display: showHistory ? 'none' : 'block' }}
-        chatId={activeChatId}
-        key={activeChatId}
+        threadId={threadId}
+        setThreadId={setThreadId}
         ref={chatRef}
         chatInputRef={chatInputRef}
         onLoaded={onChatLoaded}

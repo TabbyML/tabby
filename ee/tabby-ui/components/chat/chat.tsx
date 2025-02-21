@@ -1,4 +1,4 @@
-import React, { Dispatch, RefObject, SetStateAction } from 'react'
+import React, { Dispatch, RefObject, SetStateAction, useState } from 'react'
 import { Content, EditorEvents } from '@tiptap/core'
 import {
   compact,
@@ -29,6 +29,7 @@ import {
   CodeQueryInput,
   CreateMessageInput,
   InputMaybe,
+  ListThreadMessagesQuery,
   MessageAttachmentCodeInput,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
@@ -38,7 +39,7 @@ import { useSelectedModel } from '@/lib/hooks/use-models'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { repositorySourceListQuery } from '@/lib/tabby/query'
+import { listThreadMessages, repositorySourceListQuery } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
@@ -67,7 +68,8 @@ import { QuestionAnswerList } from './question-answer'
 import { ChatRef, PromptFormRef } from './types'
 
 interface ChatProps extends React.ComponentProps<'div'> {
-  chatId: string
+  threadId: string
+  setThreadId: Dispatch<SetStateAction<string>>
   api?: string
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
@@ -79,8 +81,8 @@ interface ChatProps extends React.ComponentProps<'div'> {
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
   onApplyInEditor?:
-    | ((content: string) => void)
-    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
+  | ((content: string) => void)
+  | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onLookupSymbol?: (
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
@@ -117,7 +119,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
   (
     {
       className,
-      chatId,
+      threadId,
+      setThreadId,
       initialMessages,
       onLoaded,
       onThreadUpdates,
@@ -147,8 +150,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
   ) => {
     const [isDataSetup, setIsDataSetup] = React.useState(false)
     const [initialized, setInitialized] = React.useState(false)
-    const [threadId, setThreadId] = React.useState<string | undefined>()
     const isOnLoadExecuted = React.useRef(false)
+    const [messages, setMessages] = useState<ListThreadMessagesQuery['threadMessages']['edges']>()
     const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
     const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
     const [activeSelection, setActiveSelection] =
@@ -158,6 +161,48 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const [selectedRepoId, setSelectedRepoId] = React.useState<
       string | undefined
     >()
+
+    const [afterCursor, setAfterCursor] = React.useState<string | undefined>()
+    // fetch messages
+    // const [
+    //   {
+    //     data: threadMessages,
+    //     error: threadMessagesError,
+    //     fetching: fetchingMessages,
+    //     stale: threadMessagesStale
+    //   }
+    // ] = useQuery({
+    //   query: listThreadMessages,
+    //   variables: {
+    //     threadId: threadId as string,
+    //     first: 25,
+    //     after: afterCursor
+    //   },
+    //   // FIXME
+    //   // pause: !threadId || isReady
+    //   pause: !threadId
+    // })
+
+    // React.useEffect(() => {
+    //   if (threadMessagesStale) return
+
+    //   if (threadMessages?.threadMessages?.edges?.length) {
+    //     const messages = threadMessages.threadMessages.edges
+    //       .map(o => o.node)
+    //       .slice()
+    //     setMessages(prev => uniqBy([...prev, ...messages], 'id'))
+    //   }
+
+    //   if (threadMessages?.threadMessages) {
+    //     const hasNextPage = threadMessages?.threadMessages?.pageInfo?.hasNextPage
+    //     const endCursor = threadMessages?.threadMessages.pageInfo.endCursor
+    //     if (hasNextPage && endCursor) {
+    //       setAfterCursor(endCursor)
+    //     } else {
+    //       setIsReady(true)
+    //     }
+    //   }
+    // }, [threadMessages])
 
     React.useEffect(() => {
       if (isDataSetup) {
@@ -317,7 +362,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const onClearMessages = () => {
       stop(true)
       setQaPairs([])
-      setThreadId(undefined)
+      // todo
+      // setThreadId(undefined)
       storeSessionState?.({
         qaPairs: [],
         threadId: undefined
@@ -460,10 +506,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       const content = userMessage.message
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
-            content,
-            sourceId: selectedRepoId,
-            filepath: attachmentCode?.[0]?.filepath
-          }
+          content,
+          sourceId: selectedRepoId,
+          filepath: attachmentCode?.[0]?.filepath
+        }
         : null
 
       return [
@@ -492,9 +538,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           const language = userMessage?.selectContext?.filepath
             ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
             : ''
-          selectCodeSnippet = `\n${'```'}${language}\n${
-            selectCodeContextContent ?? ''
-          }\n${'```'}\n`
+          selectCodeSnippet = `\n${'```'}${language}\n${selectCodeContextContent ?? ''
+            }\n${'```'}\n`
         }
 
         const newUserMessage: UserMessage = {
@@ -617,6 +662,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         if (persistedState?.threadId) {
           setThreadId(persistedState.threadId)
         }
+        // todo remove this?
         if (persistedState?.qaPairs) {
           setQaPairs(persistedState.qaPairs)
         }
@@ -739,7 +785,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
                 'fixed inset-x-0 bottom-0 mb-4',
                 promptFormClassname
               )}
-              id={chatId}
               stop={onStop}
               reload={onReload}
               input={input}

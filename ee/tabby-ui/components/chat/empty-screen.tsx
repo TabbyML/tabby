@@ -36,12 +36,17 @@ export function EmptyScreen({
     }
   })
 
-  const threads = data?.threads?.edges
+  const threads = data?.threads?.edges?.slice(0, 5)
+
+  const onNavigateToThread = () => {
+    // 
+    setShowHistory(false)
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
       <div>
-        <h1 className="mb-2 text-xl font-semibold">{welcomeMsg}</h1>
+        <h1 className="mb-2 text-2xl font-semibold">{welcomeMsg}</h1>
         <p className="leading-normal text-muted-foreground">
           You can start a conversation here or try the following examples:
         </p>
@@ -62,7 +67,7 @@ export function EmptyScreen({
       {/* todo conditions */}
       {/* {!!threads?.length && ( */}
       <div className="mt-10">
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <span className="text-lg font-semibold">Recent Activities</span>
         </div>
         <div className="space-y-4">
@@ -71,14 +76,19 @@ export function EmptyScreen({
               <ThreadItem
                 key={x.node.id}
                 data={x}
-                // todo fetch sources
+                onNavigate={onNavigateToThread}
                 sources={undefined}
               />
             )
           })}
         </div>
         <div className="text-center">
-          <Button size="sm" variant="ghost" onClick={e => setShowHistory(true)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={e => setShowHistory(true)}
+            className='text-foreground/70 mt-4'
+          >
             View all history
           </Button>
         </div>

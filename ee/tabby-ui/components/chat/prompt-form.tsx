@@ -344,7 +344,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <div className="-ml-1.5 flex items-center gap-2">
+          <div className="flex items-center gap-2 -ml-1.5">
             <Button
               variant="ghost"
               className="h-auto shrink-0 gap-2 p-1.5 text-foreground/90"

@@ -14,6 +14,7 @@ html {
 
   --border: var(--vscode-widget-border);
   --input: var(--vscode-input-background);
+  --input-border: var(--vscode-input-border);
 
   --primary: var(--vscode-minimap-infoHighlight);
   --primary-foreground: var(--vscode-button-foreground);
