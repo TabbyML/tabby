@@ -657,7 +657,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<thread::Thread>> {
-        let user = check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
 
         let threads = relay::query_async(
             after,
@@ -716,7 +716,16 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<thread::Message>> {
-        check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
+
+        let thread = ctx
+            .locator
+            .thread()
+            .get(&thread_id)
+            .await?
+            .ok_or_else(|| CoreError::NotFound("thread not found"))?;
+        user.policy
+            .check_read_thread(&thread.user_id, thread.is_ephemeral)?;
 
         relay::query_async(
             after,

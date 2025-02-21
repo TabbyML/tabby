@@ -969,6 +969,7 @@ type Subscription {
 type Thread {
   id: ID!
   userId: ID!
+  isEphemeral: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
