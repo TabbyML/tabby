@@ -651,12 +651,13 @@ impl Query {
     async fn threads(
         ctx: &Context,
         ids: Option<Vec<ID>>,
+        is_ephemeral: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<thread::Thread>> {
-        check_user(ctx).await?;
+        let user = check_user(ctx).await?;
 
         let threads = relay::query_async(
             after,
@@ -666,11 +667,17 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .thread()
-                    .list(ids.as_deref(), Some(false), after, before, first, last)
+                    .list(ids.as_deref(), is_ephemeral, after, before, first, last)
                     .await
             },
         )
         .await?;
+
+        for thread in threads.edges.iter() {
+            let thread = &thread.node;
+            user.policy
+                .check_read_thread(&thread.user_id, thread.is_ephemeral)?;
+        }
 
         Ok(threads)
     }
