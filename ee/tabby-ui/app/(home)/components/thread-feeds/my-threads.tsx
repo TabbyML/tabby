@@ -63,8 +63,7 @@ export function MyThreadFeeds() {
     query: listMyThreads,
     variables: {
       last: PAGE_SIZE,
-      before: beforeCursor,
-      isEphemeral: false
+      before: beforeCursor
     }
   })
 
