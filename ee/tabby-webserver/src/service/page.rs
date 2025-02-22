@@ -334,7 +334,7 @@ impl PageServiceImpl {
         messages: &Vec<Message>,
     ) -> Result<String> {
         let helper = self.context.read(Some(policy)).await?.helper();
-        let mut messages = convert_messages_to_chat_completion_request(None, &helper, &messages)?;
+        let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
 
         let user_message = convert_user_message_to_chat_completion_request(
             &helper,
@@ -366,7 +366,7 @@ async fn generate_page_content(
     messages: &Vec<Message>,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
     let helper = context.read(Some(policy)).await?.helper();
-    let mut messages = convert_messages_to_chat_completion_request(None, &helper, &messages)?;
+    let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
 
     let user_message = convert_user_message_to_chat_completion_request(
         &helper,
@@ -390,7 +390,7 @@ pub async fn generate_page_sections(
     messages: &Vec<Message>,
 ) -> anyhow::Result<Vec<String>> {
     let helper = context.read(Some(policy)).await?.helper();
-    let mut messages = convert_messages_to_chat_completion_request(None, &helper, &messages)?;
+    let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
 
     let sections = sections
         .iter()
@@ -429,7 +429,7 @@ pub async fn generate_page_section_content(
     current_section: &str,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
     let helper = context.read(Some(policy)).await?.helper();
-    let mut messages = convert_messages_to_chat_completion_request(None, &helper, &messages)?;
+    let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
 
     let page = format!(
         r#"
