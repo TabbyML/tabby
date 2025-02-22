@@ -29,7 +29,7 @@ export function EmptyScreen({
         <p className="leading-normal text-muted-foreground">
           You can start a conversation here or try the following examples:
         </p>
-        <div className="mt-4 flex flex-col items-start space-y-2">
+        <div className="my-4 flex flex-col items-start space-y-2">
           {exampleMessages.map((message, index) => (
             <Button
               key={index}
@@ -42,6 +42,9 @@ export function EmptyScreen({
             </Button>
           ))}
         </div>
+        <p className="text-muted-foreground">
+          Using @ to specifically relate context you want
+        </p>
       </div>
     </div>
   )
