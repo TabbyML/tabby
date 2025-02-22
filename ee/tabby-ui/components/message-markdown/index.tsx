@@ -595,7 +595,7 @@ function RelevantCodeBadge({
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger>
         <span
-          className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
+          className="relative -top-2 mx-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
           onClick={() => {
             onCodeCitationClick?.(relevantCode)
           }}
@@ -609,17 +609,24 @@ function RelevantCodeBadge({
           {citationIndex}
         </span>
       </HoverCardTrigger>
-      <HoverCardContent className="w-auto bg-background text-sm text-foreground dark:border-muted-foreground/60 lg:w-96">
+      <HoverCardContent
+        className="max-w-[90vw] overflow-x-hidden bg-background py-2 text-sm text-foreground dark:border-muted-foreground/60 md:py-4 lg:w-96"
+        collisionPadding={8}
+      >
         <div
-          className="cursor-pointer space-y-2 whitespace-nowrap hover:opacity-70"
+          className="cursor-pointer space-y-2 hover:opacity-70"
           onClick={() => onCodeCitationClick?.(relevantCode)}
         >
-          <span>{fileName}</span>
-          {rangeText ? (
-            <span className="text-muted-foreground">:{rangeText}</span>
-          ) : null}
+          <div className="truncate whitespace-nowrap font-medium">
+            <span>{fileName}</span>
+            {rangeText ? (
+              <span className="text-muted-foreground">:{rangeText}</span>
+            ) : null}
+          </div>
           {!!path && (
-            <div className="text-xs text-muted-foreground">{path}</div>
+            <div className="break-all text-xs text-muted-foreground">
+              {path}
+            </div>
           )}
         </div>
       </HoverCardContent>
