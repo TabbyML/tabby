@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion, ID};
+use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -57,6 +57,12 @@ impl NodeType for Section {
     fn edge_type_name() -> &'static str {
         "SectionEdge"
     }
+}
+
+#[derive(GraphQLInputObject)]
+pub struct CreatePageSectionRunInput {
+    pub page_id: ID,
+    pub title: String,
 }
 
 #[derive(GraphQLEnum)]
@@ -128,4 +134,14 @@ pub enum PageRunItem {
     PageSectionContentCompleted(PageSectionContentCompleted),
 
     PageCompleted(PageCompleted),
+}
+
+/// Schema of page convert stream.
+#[derive(GraphQLUnion)]
+#[graphql(context = Context)]
+pub enum SectionRunItem {
+    PageSectionCreated(PageSection),
+
+    PageSectionContentDelta(PageSectionContentDelta),
+    PageSectionContentCompleted(PageSectionContentCompleted),
 }

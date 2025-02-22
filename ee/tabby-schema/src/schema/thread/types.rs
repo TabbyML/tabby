@@ -215,6 +215,14 @@ impl MessageAttachmentDoc {
             }),
         }
     }
+
+    pub fn content(&self) -> &str {
+        match self {
+            MessageAttachmentDoc::Web(web) => &web.content,
+            MessageAttachmentDoc::Issue(issue) => &issue.body,
+            MessageAttachmentDoc::Pull(pull) => &pull.body,
+        }
+    }
 }
 
 #[derive(GraphQLObject)]

@@ -9,15 +9,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use async_openai_alt::{
-    error::OpenAIError,
-    types::{
-        ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
-        ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
-        ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
-        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs, Role,
-    },
-};
+use async_openai_alt::{error::OpenAIError, types::CreateChatCompletionRequestArgs};
 use async_stream::stream;
 use futures::stream::BoxStream;
 use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
@@ -38,17 +30,18 @@ use tabby_schema::{
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
     thread::{
-        self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentCodeFileList, MessageAttachmentCodeInput, MessageAttachmentDoc,
-        MessageAttachmentInput, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
-        ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
-        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
-        ThreadRunOptionsInput,
+        CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
+        MessageAttachmentCodeFileList, MessageAttachmentDoc, MessageDocSearchHit,
+        ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsCodeFileList,
+        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
+        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
 
-use crate::bail;
+use crate::service::utils::{
+    convert_messages_to_chat_completion_request, convert_user_message_to_chat_completion_request,
+};
 
 pub struct AnswerService {
     config: AnswerConfig,
@@ -91,7 +84,13 @@ impl AnswerService {
         options: &ThreadRunOptionsInput,
         user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
     ) -> tabby_schema::Result<BoxStream<'a, tabby_schema::Result<ThreadRunItem>>> {
-        let messages = messages.to_vec();
+        let (last_message, messages) = match messages.split_last() {
+            Some((last_message, messages)) => (last_message.clone(), messages.to_vec()),
+            None => {
+                return Err(anyhow!("No message found in the request").into());
+            }
+        };
+
         let options = options.clone();
         let user_attachment_input = user_attachment_input.cloned();
         let policy = policy.clone();
@@ -100,20 +99,12 @@ impl AnswerService {
             let context_info = self.context.read(Some(&policy)).await?;
             let context_info_helper = context_info.helper();
 
-            let query = match messages.last() {
-                Some(query) => query,
-                None => {
-                    yield Err(anyhow!("No query found in the request").into());
-                    return;
-                }
-            };
-
             let mut attachment = MessageAttachment::default();
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
                 if let Some(repository) = self.find_repository(&context_info_helper, code_query, policy.clone()).await {
-                    let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &query.content).await?;
+                    let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &last_message.content).await?;
                     yield Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(need_codebase_context.clone()));
                     if need_codebase_context.file_list {
                         // List at most 300 files in the repository.
@@ -185,7 +176,7 @@ impl AnswerService {
             // 3. Generate relevant questions.
             if options.generate_relevant_questions {
                 // Rewrite [[source:${id}]] tags to the actual source name for generate relevant questions.
-                let content = context_info_helper.rewrite_tag(&query.content);
+                let content = context_info_helper.rewrite_tag(&last_message.content);
                 match self
                     .generate_relevant_questions(&attachment, &content)
                     .await{
@@ -202,7 +193,18 @@ impl AnswerService {
 
             // 4. Prepare requesting LLM
             let request = {
-                let chat_messages = convert_messages_to_chat_completion_request(&self.config, &context_info_helper, &messages, &attachment, user_attachment_input.as_ref())?;
+                let mut chat_messages = convert_messages_to_chat_completion_request(
+                    Some(&self.config.system_prompt),
+                    &context_info_helper,
+                    &messages,
+                )?;
+                let user_message = convert_user_message_to_chat_completion_request(
+                    &context_info_helper,
+                    &last_message.content,
+                    &attachment,
+                    user_attachment_input.as_ref(),
+                );
+                chat_messages.push(user_message);
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -389,7 +391,7 @@ impl AnswerService {
                 attachment
                     .doc
                     .iter()
-                    .map(|doc| format!("```\n{}\n```", get_content(doc))),
+                    .map(|doc| format!("```\n{}\n```", doc.content())),
             )
             .collect();
 
@@ -409,169 +411,6 @@ pub fn create(
     repository: Arc<dyn RepositoryService>,
 ) -> AnswerService {
     AnswerService::new(config, auth, chat, code, doc, context, serper, repository)
-}
-
-fn convert_messages_to_chat_completion_request(
-    config: &AnswerConfig,
-    helper: &ContextInfoHelper,
-    messages: &[tabby_schema::thread::Message],
-    attachment: &tabby_schema::thread::MessageAttachment,
-    user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
-) -> anyhow::Result<Vec<ChatCompletionRequestMessage>> {
-    let mut output = vec![];
-    output.reserve(messages.len() + 1);
-
-    // System message
-    if !config.system_prompt.is_empty() {
-        output.push(ChatCompletionRequestMessage::System(
-            ChatCompletionRequestSystemMessage {
-                content: ChatCompletionRequestSystemMessageContent::Text(
-                    config.system_prompt.clone(),
-                ),
-                name: None,
-            },
-        ));
-    }
-
-    for i in 0..messages.len() - 1 {
-        let x = &messages[i];
-        let role = match x.role {
-            thread::Role::Assistant => Role::Assistant,
-            thread::Role::User => Role::User,
-        };
-
-        let message: ChatCompletionRequestMessage = if role == Role::User {
-            if i % 2 != 0 {
-                bail!("User message must be followed by assistant message");
-            }
-
-            let y = &messages[i + 1];
-
-            let user_attachment_input =
-                user_attachment_input_from_user_message_attachment(&x.attachment);
-
-            let content =
-                build_user_prompt(&x.content, &y.attachment, Some(&user_attachment_input));
-            ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
-                content: ChatCompletionRequestUserMessageContent::Text(
-                    helper.rewrite_tag(&content),
-                ),
-                ..Default::default()
-            })
-        } else {
-            ChatCompletionRequestMessage::Assistant(ChatCompletionRequestAssistantMessage {
-                content: Some(ChatCompletionRequestAssistantMessageContent::Text(
-                    x.content.clone(),
-                )),
-                ..Default::default()
-            })
-        };
-
-        output.push(message);
-    }
-
-    let user_prompt = build_user_prompt(
-        &messages[messages.len() - 1].content,
-        attachment,
-        user_attachment_input,
-    );
-
-    output.push(ChatCompletionRequestMessage::User(
-        ChatCompletionRequestUserMessage {
-            content: ChatCompletionRequestUserMessageContent::Text(
-                helper.rewrite_tag(&user_prompt),
-            ),
-            ..Default::default()
-        },
-    ));
-
-    Ok(output)
-}
-
-fn build_user_prompt(
-    user_input: &str,
-    assistant_attachment: &tabby_schema::thread::MessageAttachment,
-    user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
-) -> String {
-    // If the user message has no code attachment and the assistant message has no code attachment or doc attachment, return the user message directly.
-    if user_attachment_input
-        .map(|x| x.code.is_empty())
-        .unwrap_or(true)
-        && assistant_attachment.code.is_empty()
-        && assistant_attachment.doc.is_empty()
-        && assistant_attachment.code_file_list.is_none()
-    {
-        return user_input.to_owned();
-    }
-
-    let maybe_file_list_context = assistant_attachment
-        .code_file_list
-        .as_ref()
-        .filter(|x| !x.file_list.is_empty())
-        .map(|x| {
-            format!(
-                "Here is the list of files in the workspace available for reference:\n\n{}\n\n",
-                x.file_list.join("\n")
-            )
-        })
-        .unwrap_or_default();
-
-    let maybe_file_snippet_context = {
-        let snippets: Vec<String> = assistant_attachment
-            .doc
-            .iter()
-            .map(|doc| format!("```\n{}\n```", get_content(doc)))
-            .chain(
-                user_attachment_input
-                    .map(|x| &x.code)
-                    .unwrap_or(&vec![])
-                    .iter()
-                    .map(|snippet| {
-                        if let Some(filepath) = &snippet.filepath {
-                            format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
-                        } else {
-                            format!("```\n{}\n```", snippet.content)
-                        }
-                    }),
-            )
-            .chain(assistant_attachment.code.iter().map(|snippet| {
-                format!(
-                    "```{} title=\"{}\"\n{}\n```",
-                    snippet.language, snippet.filepath, snippet.content
-                )
-            }))
-            .collect();
-
-        let citations: Vec<String> = snippets
-            .iter()
-            .enumerate()
-            .map(|(i, snippet)| format!("[[citation:{}]]\n{}", i + 1, *snippet))
-            .collect();
-
-        if !citations.is_empty() {
-            format!(
-                "Here are the set of contexts:\n\n{}",
-                citations.join("\n\n")
-            )
-        } else {
-            String::default()
-        }
-    };
-
-    format!(
-        r#"You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
-
-Your answer must be correct, accurate and written by an expert using an unbiased and professional tone. Please limit to 1024 tokens. Do not give any information that is not related to the question, and do not repeat. Say "information is missing on" followed by the related topic, if the given context do not provide sufficient information.
-
-Please cite the contexts with the reference numbers, in the format [[citation:x]]. If a sentence comes from multiple contexts, please list all applicable citations, like [[citation:3]][[citation:5]]. Other than code and specific names and citations, your answer must be written in the same language as the question.
-
-{maybe_file_list_context}{maybe_file_snippet_context}
-
-Remember, don't blindly repeat the contexts verbatim. When possible, give code snippet to demonstrate the answer. And here is the user question:
-
-{user_input}
-"#
-    )
 }
 
 /// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 300, and there are multiple hits (number of hits > 1), include the entire file.
@@ -658,28 +497,6 @@ fn count_lines(path: &Path) -> std::io::Result<usize> {
     Ok(count)
 }
 
-fn get_content(doc: &MessageAttachmentDoc) -> &str {
-    match doc {
-        MessageAttachmentDoc::Web(web) => &web.content,
-        MessageAttachmentDoc::Issue(issue) => &issue.body,
-        MessageAttachmentDoc::Pull(pull) => &pull.body,
-    }
-}
-
-fn user_attachment_input_from_user_message_attachment(
-    attachment: &MessageAttachment,
-) -> MessageAttachmentInput {
-    let user_attachment_code_input: Vec<MessageAttachmentCodeInput> = attachment
-        .client_code
-        .iter()
-        .map(Clone::clone)
-        .map(Into::into)
-        .collect();
-    MessageAttachmentInput {
-        code: user_attachment_code_input,
-    }
-}
-
 #[cfg(test)]
 pub mod testutils;
 
@@ -714,7 +531,10 @@ mod tests {
         },
         *,
     };
-    use crate::service::{access_policy::testutils::make_policy, auth};
+    use crate::{
+        service::{access_policy::testutils::make_policy, auth},
+        utils::build_user_prompt,
+    };
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
@@ -811,8 +631,7 @@ mod tests {
         };
         let user_attachment_input = None;
 
-        let prompt =
-            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
+        let prompt = build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
 
         println!("{}", prompt.as_str());
         assert!(prompt.contains(user_input));
@@ -859,8 +678,8 @@ mod tests {
                 tabby_schema::thread::Role::Assistant,
                 Some(attachment),
             ),
-            make_message(3, "How are you?", tabby_schema::thread::Role::User, None),
         ];
+        let last_message = make_message(3, "How are you?", tabby_schema::thread::Role::User, None);
 
         let user_attachment_input = tabby_schema::thread::MessageAttachmentInput {
             code: vec![tabby_schema::thread::MessageAttachmentCodeInput {
@@ -883,14 +702,19 @@ mod tests {
         let rewriter = context_info.helper();
 
         let config = make_answer_config();
-        let output = super::convert_messages_to_chat_completion_request(
-            &config,
+        let mut output = super::convert_messages_to_chat_completion_request(
+            Some(&config.system_prompt),
             &rewriter,
             &messages,
-            &tabby_schema::thread::MessageAttachment::default(),
-            Some(&user_attachment_input),
         )
         .unwrap();
+        let user_message = convert_user_message_to_chat_completion_request(
+            &rewriter,
+            &last_message.content,
+            &tabby_schema::thread::MessageAttachment::default(),
+            Some(&user_attachment_input),
+        );
+        output.push(user_message);
 
         insta::assert_yaml_snapshot!(output);
     }
