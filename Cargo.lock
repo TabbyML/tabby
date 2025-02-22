@@ -5391,6 +5391,7 @@ dependencies = [
  "logkit",
  "readable-readability",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "tokio",

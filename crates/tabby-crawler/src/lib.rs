@@ -1,3 +1,4 @@
+mod llms_txt_parser;
 mod types;
 
 use std::process::Stdio;
@@ -148,6 +149,31 @@ pub async fn crawl_pipeline(
         .filter_map(move |data| async move { to_document(data) }))
 }
 
+/// Attempts to fetch `llms-full.txt` from the given base URL,
+/// then splits its markdown content into multiple sections based on H1 headings.
+/// Each section becomes a separate `CrawledDocument`.
+/// Returns a vector of `CrawledDocument`s if successful.
+pub async fn crawler_llms(start_url: &str) -> anyhow::Result<Vec<CrawledDocument>> {
+    // Remove trailing slash from the base URL if present.
+    let base_url = start_url.trim_end_matches('/');
+
+    let llms_full_url = format!("{}/llms-full.txt", base_url);
+    let resp = reqwest::get(&llms_full_url).await?;
+    if !resp.status().is_success() {
+        anyhow::bail!("Unable to fetch llms-full.txt from {}", base_url);
+    }
+    let body = resp.text().await?;
+    debug!("Successfully fetched llms-full.txt: {}", llms_full_url);
+
+    // Split the fetched markdown content into sections.
+    let docs = llms_txt_parser::split_llms_content(&body, start_url);
+    if docs.is_empty() {
+        anyhow::bail!("No sections found in llms-full.txt from {}", base_url);
+    }
+
+    Ok(docs)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -181,5 +207,35 @@ mod tests {
         let doc = to_document(data).unwrap();
         assert_eq!(doc.url, "https://example.com");
         assert_eq!(doc.markdown, "Hello, World!");
+    }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_crawler_llms_success_developers_cloudflare_with_url() {
+        let base_url = "https://developers.cloudflare.com";
+        let result = crawler_llms(base_url).await;
+        assert!(result.is_ok(), "Expected success from {}", base_url);
+        let docs = result.unwrap();
+        assert!(
+            !docs.is_empty(),
+            "Expected at least one section from llms-full.txt at {}",
+            base_url
+        );
+        println!("Fetched {} documents from {}", docs.len(), base_url);
+    }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_crawler_llms_success_docs_perplexity_with_source() {
+        let base_url = "https://docs.perplexity.ai";
+        let result = crawler_llms(base_url).await;
+        assert!(result.is_ok(), "Expected success from {}", base_url);
+        let docs = result.unwrap();
+        assert!(
+            !docs.is_empty(),
+            "Expected at least one section from llms-full.txt at {}",
+            base_url
+        );
+        println!("Fetched {} documents from {}", docs.len(), base_url);
     }
 }
