@@ -17,7 +17,7 @@ use tabby_schema::{
     },
     AsID, AsRowid, DbEnum, Result,
 };
-use tracing::{debug, error};
+use tracing::debug;
 
 use self::fetch::RepositoryInfo;
 use super::to_repository;
