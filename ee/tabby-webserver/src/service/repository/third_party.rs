@@ -8,6 +8,7 @@ use strum::IntoEnumIterator;
 use tabby_common::config::{CodeRepository, RepositoryConfig};
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
+    bail,
     integration::{Integration, IntegrationKind, IntegrationService},
     job::{JobInfo, JobService},
     repository::{
@@ -167,15 +168,15 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         .await
         {
             Ok(repos) => repos,
-            Err(e) => {
+            Err(err) => {
                 self.integration
-                    .update_integration_sync_status(&provider.id, Some(e.to_string()))
+                    .update_integration_sync_status(&provider.id, Some(err.to_string()))
                     .await?;
-                error!(
-                    "Failed to fetch repositories from integration: {}",
-                    provider.display_name
+                bail!(
+                    "Failed to fetch repositories from integration: {}, error: {}",
+                    provider.display_name,
+                    err
                 );
-                return Err(e.into());
             }
         };
 
