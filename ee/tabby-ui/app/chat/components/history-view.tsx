@@ -43,7 +43,9 @@ export function HistoryView({ onClose, onNavigate }: HistoryViewProps) {
 
   const onNavigateToThread = (threadId: string) => {
     onNavigate(threadId)
-    onClose()
+    setTimeout(() => {
+      onClose()
+    }, 100)
   }
 
   const deleteThread = useMutation(deleteThreadMutation)
