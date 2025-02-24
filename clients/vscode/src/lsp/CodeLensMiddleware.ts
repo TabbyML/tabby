@@ -12,6 +12,8 @@ import {
 import { CodeLensMiddleware as VscodeLspCodeLensMiddleware, ProvideCodeLensesSignature } from "vscode-languageclient";
 import { CodeLens as TabbyCodeLens } from "tabby-agent";
 import { findTextEditor } from "./vscodeWindowUtils";
+import { isBrowser } from "../env";
+import { getPackageCommandBinding, VSCodeKeyBindingManager } from "../keybindings";
 
 type CodeLens = VscodeCodeLens & TabbyCodeLens;
 
@@ -102,6 +104,8 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     if (!codeLens.data || codeLens.data.type !== "previewChanges") {
       return codeLens;
     }
+    this.addShortcut(codeLens);
+
     const decorationRange = new Range(
       codeLens.range.start.line,
       codeLens.range.start.character,
@@ -148,6 +152,28 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     ranges.push(range);
     editor.setDecorations(decorationType, ranges);
   }
+  private addShortcut(codeLens: CodeLens) {
+    const action = codeLens.command?.arguments?.[0]?.action;
+    if (!action) return;
+
+    let commandId: string;
+    if (action === "accept") {
+      commandId = "tabby.chat.edit.accept";
+    } else if (action === "discard") {
+      commandId = "tabby.chat.edit.discard";
+    } else {
+      return;
+    }
+    const binding =
+      VSCodeKeyBindingManager.getInstance().getCommandBinding(commandId) || getPackageCommandBinding(commandId);
+
+    const formattedShortcut = binding ? formatShortcut(binding) : "";
+    const shortcutText = isBrowser ? "" : formattedShortcut ? ` (${formattedShortcut})` : "";
+
+    if (!codeLens.command) return;
+
+    codeLens.command.title += shortcutText;
+  }
 
   private removeDecorations(editor: TextEditor) {
     if (this.decorationMap.has(editor)) {
@@ -166,3 +192,24 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     editorsToRemove.forEach((editor) => this.decorationMap.delete(editor));
   }
 }
+
+const formatShortcut = (shortcut: string): string => {
+  return shortcut
+    .split("+")
+    .map((key) => {
+      const capitalizedKey = key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+      switch (key.toLowerCase()) {
+        case "cmd":
+          return "⌘";
+        case "ctrl":
+          return "Ctrl";
+        case "alt":
+          return "Alt";
+        case "shift":
+          return "Shift";
+        default:
+          return capitalizedKey;
+      }
+    })
+    .join("+");
+};
