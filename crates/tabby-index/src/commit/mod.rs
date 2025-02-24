@@ -63,42 +63,40 @@ impl CommitHistoryBuilder {
 
 #[async_trait]
 impl IndexAttributeBuilder<CommitHistory> for CommitHistoryBuilder {
-    async fn build_attributes(&self, document: &CommitHistory) -> serde_json::Value {
+    async fn build_attributes(&self, commit: &CommitHistory) -> serde_json::Value {
         json!({
-            fields::GIT_URL: document.git_url,
-            fields::SHA: document.sha,
-            fields::MESSAGE: document.message,
-            fields::AUTHOR_EMAIL: document.author_email,
-            fields::AUTHOR_AT: document.author_at,
-            fields::COMMITTER: document.committer_email,
-            fields::COMMIT_AT: document.commit_at,
+            fields::GIT_URL: commit.git_url,
+            fields::SHA: commit.sha,
+            fields::MESSAGE: commit.message,
+            fields::AUTHOR_EMAIL: commit.author_email,
+            fields::AUTHOR_AT: commit.author_at,
+            fields::COMMITTER: commit.committer_email,
+            fields::COMMIT_AT: commit.commit_at,
         })
     }
 
     async fn build_chunk_attributes<'a>(
         &self,
-        document: &'a CommitHistory,
+        commit: &'a CommitHistory,
     ) -> BoxStream<'a, JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         let embedding = self.embedding.clone();
-        let diff = document.diff.clone();
+        let diffs = commit.diff.clone();
 
         let s = stream! {
-            if let Some(diff) = diff {
-                for (file, diff) in parse_diff(diff.as_ref()) {
-                    let attributes = json!({
-                        fields::CHUNK_FILEPATH: file,
-                        fields::CHUNK_DIFF: diff,
-                    });
+            for diff in diffs.iter() {
+                let attributes = json!({
+                    fields::CHUNK_FILEPATH: diff.path,
+                    fields::CHUNK_DIFF: diff.content,
+                });
 
-                    let rewritten_body = format!("```{}\n{}\n```", file, diff);
-                    let embedding = embedding.clone();
-                    yield tokio::spawn(async move {
-                        match build_binarize_embedding_tokens(embedding.clone(), &rewritten_body).await {
-                            Ok(tokens) => Ok((tokens, attributes)),
-                            Err(err) => Err(err),
-                        }
-                    });
-                }
+                let rewritten_body = format!("```{}\n{}\n```", diff.path, diff.content);
+                let embedding = embedding.clone();
+                yield tokio::spawn(async move {
+                    match build_binarize_embedding_tokens(embedding.clone(), &rewritten_body).await {
+                        Ok(tokens) => Ok((tokens, attributes)),
+                        Err(err) => Err(err),
+                    }
+                });
             }
         };
 

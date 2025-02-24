@@ -2,6 +2,7 @@ use chrono::{DateTime, TimeZone, Utc};
 
 use crate::indexer::{IndexId, ToIndexId};
 
+#[derive(Debug)]
 pub struct CommitHistory {
     pub source_id: String,
 
@@ -13,7 +14,13 @@ pub struct CommitHistory {
     pub committer_email: String,
     pub commit_at: DateTime<Utc>,
 
-    pub diff: Option<String>,
+    pub diff: Vec<CommitDiff>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CommitDiff {
+    pub path: String,
+    pub content: String,
 }
 
 impl ToIndexId for CommitHistory {

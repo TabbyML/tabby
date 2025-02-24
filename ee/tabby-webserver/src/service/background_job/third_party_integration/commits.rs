@@ -4,12 +4,20 @@ use futures::StreamExt;
 use lettre::transport::smtp::response::Code;
 use tabby_common::config::CodeRepository;
 use tabby_git::stream_commits;
-use tabby_index::public::{CommitHistory, CommitHistoryIndexer};
+use tabby_index::public::{CommitDiff, CommitHistory, CommitHistoryIndexer};
 use tabby_inference::Embedding;
 use tabby_schema::Result;
 use tracing::warn;
 
 fn to_commit_history<'a>(commit: &tabby_git::Commit, repo: &CodeRepository) -> CommitHistory {
+    let diff = commit
+        .diff
+        .iter()
+        .map(|diff| CommitDiff {
+            path: diff.path.clone(),
+            content: diff.content.clone(),
+        })
+        .collect();
     CommitHistory {
         source_id: repo.source_id.clone(),
 
@@ -21,7 +29,7 @@ fn to_commit_history<'a>(commit: &tabby_git::Commit, repo: &CodeRepository) -> C
         committer_email: commit.committer_email.clone(),
         commit_at: commit.commit_at,
 
-        diff: None,
+        diff,
     }
 }
 
@@ -52,6 +60,7 @@ pub async fn indexing(indexer: CommitHistoryIndexer, repository: &CodeRepository
         match commit_result {
             Ok(commit) => {
                 let commit = to_commit_history(&commit, repository);
+                println!("{:?}", commit);
                 if !indexer.sync(commit).await {
                     // We synchronize commits based on their date stamps,
                     // sync returns false if the commit has already been indexed, indicating that no update is necessary.

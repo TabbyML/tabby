@@ -22,7 +22,11 @@ pub mod public {
     use super::*;
     pub use super::{
         code::CodeIndexer,
-        commit::{indexer::CommitHistoryIndexer, types::CommitHistory, CommitHistoryBuilder},
+        commit::{
+            indexer::CommitHistoryIndexer,
+            types::{CommitDiff, CommitHistory},
+            CommitHistoryBuilder,
+        },
         structured_doc::public::{
             StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
             StructuredDocPullDocumentFields, StructuredDocState, StructuredDocWebFields,
