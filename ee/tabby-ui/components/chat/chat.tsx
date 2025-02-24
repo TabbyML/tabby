@@ -51,6 +51,7 @@ import {
   FileContext,
   MessageActionType,
   QuestionAnswerPair,
+  SessionState,
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
@@ -109,18 +110,6 @@ interface ChatProps extends React.ComponentProps<'div'> {
   setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-/**
- * The state used to restore the chat panel, should be json serializable.
- * Save this state to client so that the chat panel can be restored across webview reloading.
- */
-export interface SessionState {
-  threadId?: string | undefined
-  qaPairs?: QuestionAnswerPair[] | undefined
-  input?: Content | undefined
-  relevantContext?: Context[] | undefined
-  selectedRepoId?: string | undefined
-}
-
 export const Chat = React.forwardRef<ChatRef, ChatProps>(
   (
     {
@@ -154,7 +143,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     },
     ref
   ) => {
-    const [threadId, setThreadId] = React.useState('')
+    const [threadId, setThreadId] = React.useState<string | undefined>()
     const [isDataSetup, setIsDataSetup] = React.useState(false)
     const [initialized, setInitialized] = React.useState(false)
     const isOnLoadExecuted = React.useRef(false)
@@ -162,7 +151,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
     const [activeSelection, setActiveSelection] =
       React.useState<Context | null>(null)
-
     // sourceId
     const [selectedRepoId, setSelectedRepoId] = React.useState<
       string | undefined
@@ -394,7 +382,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const onClearMessages = () => {
       stop(true)
       setQaPairs([])
-      onThreadIdChange('')
+      setThreadId(undefined)
+      onThreadIdChange(undefined)
       storeSessionState?.({
         qaPairs: [],
         threadId: undefined
@@ -428,9 +417,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       // update threadId
       if (answer.threadId && !threadId) {
         setThreadId(answer.threadId)
-        storeSessionState?.({
-          threadId: answer.threadId
-        })
       }
 
       setQaPairs(prev => {
@@ -694,7 +680,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         if (persistedState?.threadId) {
           setThreadId(persistedState.threadId)
         }
-        // todo remove this?
         if (persistedState?.qaPairs) {
           setQaPairs(persistedState.qaPairs)
         }
@@ -746,6 +731,12 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         setInitialized(true)
       }
     }, [isDataSetup])
+
+    React.useEffect(() => {
+      storeSessionState?.({
+        threadId
+      })
+    }, [threadId])
 
     React.useImperativeHandle(
       ref,

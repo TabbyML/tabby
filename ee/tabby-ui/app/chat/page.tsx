@@ -20,7 +20,6 @@ import {
 } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
-import { nanoid } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
 import { Chat } from '@/components/chat/chat'
@@ -110,7 +109,6 @@ export default function ChatPage() {
         saveFetcherOptions(request.fetcherOptions)
       }
 
-      setThreadId(nanoid())
       setFetcherOptions(request.fetcherOptions)
       useMacOSKeyboardEventHandler.current =
         request.useMacOSKeyboardEventHandler

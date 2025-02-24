@@ -30,7 +30,7 @@ export function EmptyScreen({
   onSelectThread: (threadId: string) => void
 }) {
   const welcomeMsg = welcomeMessage || 'Welcome'
-  const [{ data, fetching }] = useQuery({
+  const [{ data }] = useQuery({
     query: listMyThreads,
     variables: {
       last: 5

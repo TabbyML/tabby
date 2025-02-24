@@ -41,7 +41,7 @@ export function ThreadItem({
   return (
     <div
       onClick={e => onNavigate(data.node.id)}
-      className="transform-bg group flex-1 cursor-pointer overflow-hidden rounded-md bg-background/60 px-4 py-3 hover:bg-accent/60"
+      className="transform-bg group flex-1 cursor-pointer overflow-hidden rounded-md bg-background/70 px-4 py-3 hover:bg-accent/60"
     >
       <div className="flex flex-none justify-between gap-2">
         <div className="flex-1">
