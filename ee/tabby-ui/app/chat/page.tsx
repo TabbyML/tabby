@@ -55,8 +55,7 @@ export default function ChatPage() {
     null
   )
   const [showHistory, setShowHistory] = useState(false)
-  // todo: persist?
-  const [threadId, setThreadId] = useState('')
+  const [threadId, setThreadId] = useState<string | undefined>()
   const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
     EditorContext[]
@@ -398,8 +397,7 @@ export default function ChatPage() {
       {showHistory && (
         <HistoryView
           onClose={() => setShowHistory(false)}
-          // todo set active chatId
-          onNavigate={() => {}}
+          onNavigate={(id: string) => setThreadId(id)}
         />
       )}
       <Chat

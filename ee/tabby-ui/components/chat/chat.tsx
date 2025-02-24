@@ -1,4 +1,4 @@
-import React, { Dispatch, RefObject, SetStateAction, useState } from 'react'
+import React from 'react'
 import { Content, EditorEvents } from '@tiptap/core'
 import {
   compact,
@@ -31,6 +31,7 @@ import {
   InputMaybe,
   ListThreadMessagesQuery,
   MessageAttachmentCodeInput,
+  Role,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -39,7 +40,10 @@ import { useSelectedModel } from '@/lib/hooks/use-models'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { listThreadMessages, repositorySourceListQuery } from '@/lib/tabby/query'
+import {
+  listThreadMessages,
+  repositorySourceListQuery
+} from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
@@ -59,6 +63,8 @@ import {
   nanoid
 } from '@/lib/utils'
 
+import LoadingWrapper from '../loading-wrapper'
+import { Skeleton } from '../ui/skeleton'
 import { ChatContext } from './chat-context'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
@@ -68,8 +74,8 @@ import { QuestionAnswerList } from './question-answer'
 import { ChatRef, PromptFormRef } from './types'
 
 interface ChatProps extends React.ComponentProps<'div'> {
-  threadId: string
-  setThreadId: Dispatch<SetStateAction<string>>
+  threadId: string | undefined
+  setThreadId: React.Dispatch<React.SetStateAction<string | undefined>>
   api?: string
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
@@ -81,15 +87,15 @@ interface ChatProps extends React.ComponentProps<'div'> {
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
   onApplyInEditor?:
-  | ((content: string) => void)
-  | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onLookupSymbol?: (
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
   ) => Promise<SymbolInfo | undefined>
   openInEditor: (target: FileLocation) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
-  chatInputRef: RefObject<PromptFormRef>
+  chatInputRef: React.RefObject<PromptFormRef>
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
   getActiveEditorSelection?: () => Promise<EditorFileContext | null>
@@ -100,7 +106,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   ) => Promise<ListFileItem[]>
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
-  setShowHistory: Dispatch<SetStateAction<boolean>>
+  setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 /**
@@ -119,8 +125,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
   (
     {
       className,
-      threadId,
-      setThreadId,
+      threadId: propsThreadId,
+      setThreadId: onThreadIdChange,
       initialMessages,
       onLoaded,
       onThreadUpdates,
@@ -148,10 +154,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     },
     ref
   ) => {
+    const [threadId, setThreadId] = React.useState('')
     const [isDataSetup, setIsDataSetup] = React.useState(false)
     const [initialized, setInitialized] = React.useState(false)
     const isOnLoadExecuted = React.useRef(false)
-    const [messages, setMessages] = useState<ListThreadMessagesQuery['threadMessages']['edges']>()
     const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
     const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
     const [activeSelection, setActiveSelection] =
@@ -162,47 +168,73 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       string | undefined
     >()
 
-    const [afterCursor, setAfterCursor] = React.useState<string | undefined>()
+    React.useEffect(() => {
+      if (propsThreadId) {
+        setThreadId(propsThreadId)
+        setQaPairs([])
+      }
+    }, [propsThreadId])
+
     // fetch messages
-    // const [
-    //   {
-    //     data: threadMessages,
-    //     error: threadMessagesError,
-    //     fetching: fetchingMessages,
-    //     stale: threadMessagesStale
-    //   }
-    // ] = useQuery({
-    //   query: listThreadMessages,
-    //   variables: {
-    //     threadId: threadId as string,
-    //     first: 25,
-    //     after: afterCursor
-    //   },
-    //   // FIXME
-    //   // pause: !threadId || isReady
-    //   pause: !threadId
-    // })
+    const [
+      {
+        data: threadMessages,
+        error: threadMessagesError,
+        fetching: fetchingMessages,
+        stale: threadMessagesStale
+      }
+    ] = useQuery({
+      query: listThreadMessages,
+      variables: {
+        threadId: propsThreadId as string
+      },
+      pause: !propsThreadId
+    })
 
-    // React.useEffect(() => {
-    //   if (threadMessagesStale) return
+    React.useEffect(() => {
+      const formatQaPairs = (
+        messages: ListThreadMessagesQuery['threadMessages']['edges']
+      ) => {
+        const pairs: QuestionAnswerPair[] = []
+        let currentPair: Partial<QuestionAnswerPair> = {}
+        messages.forEach(x => {
+          const message = x.node
+          if (message.role === Role.User) {
+            currentPair.user = {
+              id: message.id,
+              message: message.content,
+              relevantContext: message.attachment.clientCode?.map(x => {
+                return {
+                  kind: 'file',
+                  content: x.content,
+                  filepath: x.filepath ?? '',
+                  startLine: x.startLine,
+                  git_url: ''
+                }
+              })
+            }
+          } else if (x.node.role === Role.Assistant) {
+            if (!currentPair.assistant) {
+              currentPair.assistant = {
+                id: message.id,
+                message: message.content,
+                relevant_code: message.attachment.code
+              }
 
-    //   if (threadMessages?.threadMessages?.edges?.length) {
-    //     const messages = threadMessages.threadMessages.edges
-    //       .map(o => o.node)
-    //       .slice()
-    //     setMessages(prev => uniqBy([...prev, ...messages], 'id'))
-    //   }
+              if (!!currentPair.user && !!currentPair.assistant) {
+                pairs.push(currentPair as QuestionAnswerPair)
+              }
+            }
+          }
+        })
+        return pairs
+      }
 
-    //   if (threadMessages?.threadMessages) {
-    //     const hasNextPage = threadMessages?.threadMessages?.pageInfo?.hasNextPage
-    //     const endCursor = threadMessages?.threadMessages.pageInfo.endCursor
-    //     if (hasNextPage && endCursor) {
-    //       setAfterCursor(endCursor)
-    //     } else {
-    //       setIsReady(true)
-    //     }
-    //   }
-    // }, [threadMessages])
+      // todo erro handling
+      if (threadMessages?.threadMessages?.edges?.length && propsThreadId) {
+        setQaPairs(formatQaPairs(threadMessages.threadMessages.edges))
+      }
+    }, [threadMessages])
 
     React.useEffect(() => {
       if (isDataSetup) {
@@ -362,8 +394,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const onClearMessages = () => {
       stop(true)
       setQaPairs([])
-      // todo
-      // setThreadId(undefined)
+      onThreadIdChange('')
       storeSessionState?.({
         qaPairs: [],
         threadId: undefined
@@ -506,10 +537,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       const content = userMessage.message
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
-          content,
-          sourceId: selectedRepoId,
-          filepath: attachmentCode?.[0]?.filepath
-        }
+            content,
+            sourceId: selectedRepoId,
+            filepath: attachmentCode?.[0]?.filepath
+          }
         : null
 
       return [
@@ -538,8 +569,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           const language = userMessage?.selectContext?.filepath
             ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
             : ''
-          selectCodeSnippet = `\n${'```'}${language}\n${selectCodeContextContent ?? ''
-            }\n${'```'}\n`
+          selectCodeSnippet = `\n${'```'}${language}\n${
+            selectCodeContextContent ?? ''
+          }\n${'```'}\n`
         }
 
         const newUserMessage: UserMessage = {
@@ -764,17 +796,25 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
             {initialized && (
               <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
-                {qaPairs?.length ? (
-                  <QuestionAnswerList messages={qaPairs} />
-                ) : (
-                  <>
-                    <EmptyScreen
-                      setInput={setInput}
-                      welcomeMessage={welcomeMessage}
-                      setShowHistory={setShowHistory}
-                    />
-                  </>
-                )}
+                <LoadingWrapper
+                  loading={fetchingMessages}
+                  triggerOnce={false}
+                  fallback={<Skeleton />}
+                  delay={200}
+                >
+                  {qaPairs?.length ? (
+                    <QuestionAnswerList messages={qaPairs} />
+                  ) : (
+                    <>
+                      <EmptyScreen
+                        setInput={setInput}
+                        welcomeMessage={welcomeMessage}
+                        setShowHistory={setShowHistory}
+                        onSelectThread={onThreadIdChange}
+                      />
+                    </>
+                  )}
+                </LoadingWrapper>
                 <ChatScrollAnchor trackVisibility={isLoading} />
               </div>
             )}

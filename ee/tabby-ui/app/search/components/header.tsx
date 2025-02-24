@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { useEnablePage } from '@/lib/experiment-flags'
-import { graphql } from '@/lib/gql/generates'
 import { updatePendingThreadId } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
+import { deleteThreadMutation } from '@/lib/tabby/query'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,12 +35,6 @@ import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
 import { SearchContext } from './search-context'
-
-const deleteThreadMutation = graphql(/* GraphQL */ `
-  mutation DeleteThread($id: ID!) {
-    deleteThread(id: $id)
-  }
-`)
 
 type HeaderProps = {
   threadIdFromURL?: string

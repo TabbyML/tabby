@@ -296,7 +296,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                   id="active-selection-badge"
                   variant="outline"
                   className={cn(
-                    'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md pr-0 text-sm font-semibold border-input-border',
+                    'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md border-input-border pr-0 text-sm font-semibold',
                     {
                       'border-dashed !text-muted-foreground italic line-through':
                         !enableActiveSelection

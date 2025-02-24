@@ -392,6 +392,34 @@ export const listThreads = graphql(/* GraphQL */ `
   }
 `)
 
+export const listMyThreads = graphql(/* GraphQL */ `
+  query ListMyThreads(
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    myThreads(after: $after, before: $before, first: $first, last: $last) {
+      edges {
+        node {
+          id
+          userId
+          isEphemeral
+          createdAt
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
 export const listThreadMessages = graphql(/* GraphQL */ `
   query ListThreadMessages(
     $threadId: ID!
@@ -478,6 +506,12 @@ export const listThreadMessages = graphql(/* GraphQL */ `
 export const setThreadPersistedMutation = graphql(/* GraphQL */ `
   mutation SetThreadPersisted($threadId: ID!) {
     setThreadPersisted(threadId: $threadId)
+  }
+`)
+
+export const deleteThreadMutation = graphql(/* GraphQL */ `
+  mutation DeleteThread($id: ID!) {
+    deleteThread(id: $id)
   }
 `)
 

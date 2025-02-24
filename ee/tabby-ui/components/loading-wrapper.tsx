@@ -11,9 +11,11 @@ interface LoadingWrapperProps {
   children?: React.ReactNode
   fallback?: React.ReactNode
   delay?: number
+  triggerOnce?: boolean
 }
 
 export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
+  triggerOnce = true,
   loading,
   fallback,
   delay,
@@ -23,7 +25,9 @@ export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   const [debouncedLoaded] = useDebounceValue(loaded, delay ?? 200)
 
   React.useEffect(() => {
-    if (!loading && !loaded) {
+    if (!triggerOnce) {
+      setLoaded(!loading)
+    } else if (!loading && !loaded) {
       setLoaded(true)
     }
   }, [loading])

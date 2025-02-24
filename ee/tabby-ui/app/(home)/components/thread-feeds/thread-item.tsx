@@ -1,19 +1,17 @@
 import { useContext, useMemo } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import moment from 'moment'
 import { useQuery } from 'urql'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
-import { MARKDOWN_SOURCE_REGEX } from '@/lib/constants/regex'
-import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
+import { ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { listThreadMessages } from '@/lib/tabby/query'
-import { cn, getTitleFromMessages } from '@/lib/utils'
+import { formatThreadTime, getTitleFromMessages } from '@/lib/utils'
 import { IconFiles } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { replaceAtMentionPlaceHolderWithAt } from '@/components/chat/form-editor/utils'
 import LoadingWrapper from '@/components/loading-wrapper'
-import { Mention } from '@/components/mention-tag'
+import { ThreadTitleWithMentions } from '@/components/mention-tag'
 import { UserAvatar } from '@/components/user-avatar'
 
 import { ThreadFeedsContext } from './threads-context'
@@ -86,65 +84,11 @@ export function ThreadItem({ data, onNavigateToThread }: ThreadItemProps) {
             <div className="text-sm">{user?.name || user?.email}</div>
             <span className="text-muted-foreground">{'·'}</span>
             <div className="whitespace-nowrap text-xs text-muted-foreground">
-              {formatCreatedAt(data.node.createdAt, 'Asked')}
+              {formatThreadTime(data.node.createdAt, 'Asked')}
             </div>
           </div>
         </div>
       </div>
     </Link>
   )
-}
-
-function ThreadTitleWithMentions({
-  message,
-  sources,
-  className
-}: {
-  sources: ContextSource[] | undefined
-  message: string | undefined
-  className?: string
-}) {
-  const contentWithTags = useMemo(() => {
-    if (!message) return null
-
-    const firstLine = message.split('\n')[0] ?? ''
-    return firstLine.split(MARKDOWN_SOURCE_REGEX).map((part, index) => {
-      if (index % 2 === 1) {
-        const sourceId = part
-        const source = sources?.find(s => s.sourceId === sourceId)
-        if (source) {
-          return (
-            <Mention
-              key={index}
-              id={source.sourceId}
-              kind={source.sourceKind}
-              label={source.sourceName}
-              className="rounded-md border border-[#b3ada0] border-opacity-30 bg-[#e8e1d3] py-[1px] text-sm dark:bg-[#333333]"
-            />
-          )
-        } else {
-          return null
-        }
-      }
-      return part
-    })
-  }, [sources, message])
-
-  return <div className={cn(className)}>{contentWithTags}</div>
-}
-
-function formatCreatedAt(time: string, prefix: string) {
-  const targetTime = moment(time)
-
-  if (targetTime.isBefore(moment().subtract(1, 'year'))) {
-    const timeText = targetTime.format('MMM D, YYYY')
-    return `${prefix} on ${timeText}`
-  }
-
-  if (targetTime.isBefore(moment().subtract(1, 'month'))) {
-    const timeText = targetTime.format('MMM D')
-    return `${prefix} on ${timeText}`
-  }
-
-  return `${prefix} ${targetTime.fromNow()}`
 }

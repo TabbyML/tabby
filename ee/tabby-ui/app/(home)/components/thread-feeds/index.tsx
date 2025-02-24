@@ -64,12 +64,7 @@ export function ThreadFeeds({
             }
             delay={600}
           >
-            {/* todo hasThreads ? */}
             <>
-              {/* <div className="mb-2.5 w-full text-lg font-semibold">
-                Recent Activities
-              </div>
-              <Separator className="mb-4 w-full" /> */}
               <Tabs
                 value={threadsTab}
                 onValueChange={v => setThreadsTab(v as 'all' | 'mine')}

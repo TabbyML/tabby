@@ -1,7 +1,7 @@
-import { Dispatch, SetStateAction } from 'react'
+import { Dispatch, SetStateAction, useMemo } from 'react'
 import { useQuery } from 'urql'
 
-import { listThreads } from '@/lib/tabby/query'
+import { listMyThreads } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { IconArrowRight } from '@/components/ui/icons'
 
@@ -21,25 +21,28 @@ const exampleMessages = [
 export function EmptyScreen({
   setInput,
   welcomeMessage,
-  setShowHistory
+  setShowHistory,
+  onSelectThread
 }: {
   setInput: (v: string) => void
   welcomeMessage?: string
   setShowHistory: Dispatch<SetStateAction<boolean>>
+  onSelectThread: (threadId: string) => void
 }) {
   const welcomeMsg = welcomeMessage || 'Welcome'
   const [{ data, fetching }] = useQuery({
-    // todo  -> myThreads
-    query: listThreads,
+    query: listMyThreads,
     variables: {
       last: 5
     }
   })
 
-  const threads = data?.threads?.edges?.slice(0, 5)
+  const threads = useMemo(() => {
+    return data?.myThreads?.edges?.slice(0, 5).reverse()
+  }, [data?.myThreads?.edges])
 
-  const onNavigateToThread = () => {
-    // 
+  const onNavigateToThread = (threadId: string) => {
+    onSelectThread(threadId)
     setShowHistory(false)
   }
 
@@ -87,7 +90,7 @@ export function EmptyScreen({
             size="sm"
             variant="ghost"
             onClick={e => setShowHistory(true)}
-            className='text-foreground/70 mt-4'
+            className="mt-4 text-foreground/70"
           >
             View all history
           </Button>
