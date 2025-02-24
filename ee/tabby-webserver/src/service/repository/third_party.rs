@@ -173,7 +173,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                     .update_integration_sync_status(&provider.id, Some(err.to_string()))
                     .await?;
                 bail!(
-                    "Failed to fetch repositories from integration: {}, error: {}",
+                    "Failed to retrieve repositories from the specified integration: {}. An error occurred: {}. Please verify your context provider settings to resolve the issue.",
                     provider.display_name,
                     err
                 );
