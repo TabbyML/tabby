@@ -370,7 +370,8 @@ export function Search() {
       threadIdFromURL,
       threadIdFromStreaming: threadId,
       streamingDone: !isLoading,
-      updateThreadURL
+      updateThreadURL,
+      isEphemeral: threadData?.threads.edges[0]?.node?.isEphemeral
     }
   )
 
@@ -1032,13 +1033,15 @@ interface UseShareThreadOptions {
   threadIdFromStreaming?: string | null
   streamingDone?: boolean
   updateThreadURL?: (threadId: string) => string
+  isEphemeral?: boolean
 }
 
 function useShareThread({
   threadIdFromURL,
   threadIdFromStreaming,
   streamingDone,
-  updateThreadURL
+  updateThreadURL,
+  isEphemeral
 }: UseShareThreadOptions) {
   const { isCopied, copyToClipboard } = useCopyToClipboard({
     timeout: 2000
@@ -1051,7 +1054,7 @@ function useShareThread({
   })
 
   const shouldSetThreadPersisted =
-    !threadIdFromURL &&
+    (!threadIdFromURL || isEphemeral === true) &&
     streamingDone &&
     threadIdFromStreaming &&
     updateThreadURL

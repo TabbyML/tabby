@@ -145,7 +145,8 @@ const client = new Client({
           gitRepositories: relayPagination(),
           webCrawlerUrls: relayPagination(),
           integrations: relayPagination(),
-          threads: relayPagination()
+          threads: relayPagination(),
+          myThreads: relayPagination()
         }
       },
       updates: {
