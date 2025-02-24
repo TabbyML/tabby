@@ -48,6 +48,7 @@ Here's a few examples:
 "Which file contains http api definitions" -> SNIPPET,FILE_LIST
 "How many python files is in the codebase?" -> FILE_LIST
 "Which file contains main function?" -> SNIPPET
+"What does this repository do?" -> FILE_LIST
 
 Here's the original question:
 {question}
