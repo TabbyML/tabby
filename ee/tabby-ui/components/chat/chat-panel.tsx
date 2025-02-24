@@ -280,7 +280,6 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
           </div>
           <div
             id="chat-panel-container"
-            // FIXME(jueliang):bg: --vscode-input-background?
             className="rounded-md border bg-background px-4 pb-1.5 pt-3 outline-none transition-shadow duration-300 focus-within:ring-1 focus-within:!ring-ring hover:ring-1 hover:ring-ring/60 focus-visible:ring-offset-2"
           >
             <div className="flex flex-wrap gap-1.5">
@@ -296,7 +295,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                   id="active-selection-badge"
                   variant="outline"
                   className={cn(
-                    'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md border-input-border pr-0 text-sm font-semibold',
+                    'inline-flex h-7 flex-nowrap items-center gap-1.5 overflow-hidden rounded-md border pr-0 text-sm font-semibold',
                     {
                       'border-dashed !text-muted-foreground italic line-through':
                         !enableActiveSelection
