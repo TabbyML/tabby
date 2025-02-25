@@ -73,7 +73,7 @@ pub struct MessageAttachment {
     /// File list retrieved from the server side codebase is used for generating this message.
     pub code_file_list: Option<MessageAttachmentCodeFileList>,
 
-    /// Code snippets retrieved from the server side codebase.
+    /// Commit history retrieved from the server side codebase.
     pub commit: Vec<MessageAttachmentCommit>,
 }
 
