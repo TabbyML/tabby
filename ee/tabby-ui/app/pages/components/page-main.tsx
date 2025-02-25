@@ -12,6 +12,7 @@ import { useQuery } from 'urql'
 import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import {
+  CreatePageSectionRunSubscription,
   CreateThreadToPageRunSubscription,
   MoveSectionDirection
 } from '@/lib/gql/generates/graphql'
@@ -29,7 +30,7 @@ import {
   listSecuredUsers
 } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, nanoid } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconClock, IconFileSearch } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -43,6 +44,7 @@ import { UserAvatar } from '@/components/user-avatar'
 import { PageItem, SectionItem } from '../types'
 import { Header } from './header'
 import { Navbar } from './nav-bar'
+import { NewSectionForm } from './new-section-form'
 import { PageContext } from './page-context'
 import { SectionContent } from './section-content'
 import { SectionTitle } from './section-title'
@@ -89,6 +91,26 @@ const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
   }
 `)
 
+// const createPageSectionRun(input: CreatePageSectionRunInput!): SectionRunItem!
+const createPageSectionRunSubscription = graphql(/* GraphQL */ `
+  subscription createPageSectionRun($input: CreatePageSectionRunInput!) {
+    createPageSectionRun(input: $input) {
+      __typename
+      ... on PageSection {
+        id
+        title
+        position
+      }
+      ... on PageSectionContentDelta {
+        delta
+      }
+      ... on PageSectionContentCompleted {
+        id
+      }
+    }
+  }
+`)
+
 const deletePageSectionMutation = graphql(/* GraphQL */ `
   mutation DeletePageSection($sectionId: ID!) {
     deletePageSection(sectionId: $sectionId)
@@ -122,6 +144,7 @@ export function Page() {
   const [currentSectionId, setCurrentSectionId] = useState<string | undefined>(
     undefined
   )
+  const [pageCompleted, setPageCompleted] = useState(true)
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [isShowDemoBanner] = useShowDemoBanner()
   const initializing = useRef(false)
@@ -140,6 +163,14 @@ export function Page() {
   }, [activePathname])
 
   const unsubscribeFn = useRef<(() => void) | undefined>()
+  const stop = useLatest(() => {
+    unsubscribeFn.current?.()
+    unsubscribeFn.current = undefined
+    setIsLoading(false)
+    setPendingSectionIds(new Set())
+    setCurrentSectionId(undefined)
+    setPageCompleted(true)
+  })
 
   const processPageStream = (
     data: CreateThreadToPageRunSubscription['createThreadToPageRun']
@@ -157,7 +188,6 @@ export function Page() {
         }
         setPage(nextPage)
         setPageId(data.id)
-        // todo remove this
         updatePageURL(nextPage)
         break
       case 'PageContentDelta': {
@@ -221,6 +251,95 @@ export function Page() {
     }
   }
 
+  const processNewSectionStream = (
+    data: CreatePageSectionRunSubscription['createPageSectionRun']
+  ) => {
+    switch (data.__typename) {
+      case 'PageSection': {
+        const { id, title, position } = data
+        setCurrentSectionId(id)
+        setPendingSectionIds(new Set([id]))
+        setSections(prev => {
+          if (!prev) return prev
+          const _sections = prev.slice(0, -1)
+          return [
+            ..._sections,
+            { id, title, position, content: '', pageId: pageId as string }
+          ]
+        })
+        break
+      }
+      case 'PageSectionContentDelta': {
+        const { delta } = data
+        setSections(prev => {
+          if (!prev) return prev
+          const len = prev.length
+          return prev.map((x, index) => {
+            if (index === len - 1) {
+              return {
+                ...x,
+                content: x.content + delta
+              }
+            }
+            return x
+          })
+        })
+        break
+      }
+      case 'PageSectionContentCompleted': {
+        stop.current()
+        break
+      }
+    }
+  }
+
+  const appendNewSection = async (title: string) => {
+    if (!pageId) return
+
+    const tempSectionId = nanoid()
+    setIsLoading(true)
+    setError(undefined)
+    setSections(prev => {
+      const lastPosition = prev?.[prev.length - 1]?.position || 0
+      const newSection: SectionItem = {
+        id: tempSectionId,
+        title,
+        pageId,
+        content: '',
+        position: lastPosition + 1
+      }
+
+      if (!prev) return [newSection]
+      return [...prev, newSection]
+    })
+    setPendingSectionIds(new Set([tempSectionId]))
+    setCurrentSectionId(tempSectionId)
+
+    const { unsubscribe } = client
+      .subscription(createPageSectionRunSubscription, {
+        input: {
+          pageId,
+          title
+        }
+      })
+      .subscribe(res => {
+        if (res?.error) {
+          setIsLoading(false)
+          setError(res.error)
+          unsubscribe()
+          return
+        }
+
+        const value = res?.data?.createPageSectionRun
+        if (!value) {
+          return
+        }
+        processNewSectionStream(value)
+      })
+
+    unsubscribeFn.current = unsubscribe
+  }
+
   const convertThreadToPage = (threadId: string) => {
     const { unsubscribe } = client
       .subscription(createThreadToPageRunSubscription, {
@@ -244,17 +363,6 @@ export function Page() {
 
     return unsubscribe
   }
-
-  const stop = useLatest(() => {
-    unsubscribeFn.current?.()
-    unsubscribeFn.current = undefined
-    setIsLoading(false)
-    setPendingSectionIds(new Set())
-    setCurrentSectionId(undefined)
-    // if (page) {
-    //   updatePageURL(page)
-    // }
-  })
 
   const deletePageSection = useMutation(deletePageSectionMutation)
   const movePageSectionPosition = useMutation(movePageSectionPositionMutation)
@@ -389,7 +497,7 @@ export function Page() {
       if (pendingThreadId) {
         setIsLoading(true)
         setError(undefined)
-
+        setPageCompleted(false)
         // trigger convert
         unsubscribeFn.current = convertThreadToPage(pendingThreadId)
         updatePendingThreadId(undefined)
@@ -607,7 +715,12 @@ export function Page() {
                           <motion.div
                             layout={!isLoading && mode === 'edit'}
                             key={`section_${section.id}`}
-                            exit={{ opacity: 0 }}
+                            // exit={{ opacity: 0 }}
+                            exit={
+                              isLoading
+                                ? { opacity: 0, transition: { duration: 0 } }
+                                : { opacity: 0, transition: { duration: 0.5 } }
+                            }
                           >
                             <SectionTitle
                               className="section-title pt-8"
@@ -623,6 +736,15 @@ export function Page() {
                         )
                       })}
                     </AnimatePresence>
+
+                    {/* append section */}
+                    {isPageOwner && mode === 'edit' && pageCompleted && (
+                      <NewSectionForm
+                        onSubmit={appendNewSection}
+                        disabled={!pageId || isLoading}
+                        className="mt-10"
+                      />
+                    )}
                   </LoadingWrapper>
                 </div>
                 <div className="relative col-span-1">
