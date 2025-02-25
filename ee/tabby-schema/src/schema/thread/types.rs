@@ -3,7 +3,7 @@ use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
-    commit::{CommitHistoryDocument, CommitHistorySearchHit, CommitHistorySearchScores},
+    commit::{CommitHistoryDocument, CommitHistorySearchHit},
     structured_doc::DocSearchDocument,
 };
 use validator::Validate;
@@ -83,17 +83,16 @@ pub struct MessageAttachmentCommit {
     pub git_url: String,
     pub sha: String,
     pub message: String,
-    //TODO(kweizh): should we add branches for commit here?
-    // pub branches: Vec<String>,
     pub author: Option<UserValue>,
     pub author_at: DateTime<Utc>,
     pub committer: Option<UserValue>,
     pub commit_at: DateTime<Utc>,
 
     pub diff: Option<String>,
+    pub changed_file: Option<String>,
 }
 
-//TODO(kweizh)
+//TODO(kweizh) Add author and committer to CommitHistoryDocument
 impl From<CommitHistoryDocument> for MessageAttachmentCommit {
     fn from(commit: CommitHistoryDocument) -> Self {
         Self {
@@ -105,23 +104,7 @@ impl From<CommitHistoryDocument> for MessageAttachmentCommit {
             committer: None,
             commit_at: commit.author_at,
             diff: commit.diff,
-        }
-    }
-}
-
-#[derive(GraphQLObject, Clone)]
-pub struct MessageAttachmentCommitScores {
-    pub rrf: f64,
-    pub bm25: f64,
-    pub embedding: f64,
-}
-
-impl From<CommitHistorySearchScores> for MessageAttachmentCommitScores {
-    fn from(hit: CommitHistorySearchScores) -> Self {
-        Self {
-            rrf: hit.rrf as f64,
-            bm25: hit.bm25 as f64,
-            embedding: hit.embedding as f64,
+            changed_file: commit.changed_file,
         }
     }
 }
@@ -130,14 +113,14 @@ impl From<CommitHistorySearchScores> for MessageAttachmentCommitScores {
 #[graphql(context = Context)]
 pub struct MessageCommitHistorySearchHit {
     pub commit: MessageAttachmentCommit,
-    pub scores: MessageAttachmentCommitScores,
+    pub score: f64,
 }
 
 impl From<CommitHistorySearchHit> for MessageCommitHistorySearchHit {
     fn from(hit: CommitHistorySearchHit) -> Self {
         Self {
             commit: hit.commit.into(),
-            scores: hit.scores.into(),
+            score: hit.score as f64,
         }
     }
 }

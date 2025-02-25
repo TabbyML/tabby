@@ -8,6 +8,7 @@ use tabby_schema::{
     auth::AuthenticationService,
     bail,
     context::ContextService,
+    from_attachment_commit_history,
     from_thread_message_attachment_document,
     policy::AccessPolicy,
     thread::{
@@ -49,7 +50,30 @@ impl ThreadServiceImpl {
                 let client_code = attachment.0.client_code;
                 let doc = attachment.0.doc;
                 let code_file_list = attachment.0.code_file_list;
-                let commits = attachment.0.commits;
+                let commits = {
+                    if let Some(commits) = attachment.0.commits {
+                        let mut result: Vec<_> = vec![];
+                        for c in commits {
+                            let (author, committer) = if let Some(auth) = self.auth.as_ref() {
+                                (
+                                    auth.get_user_by_email(&c.author_email).await.ok(),
+                                    auth.get_user_by_email(&c.committer_email).await.ok(),
+                                )
+                            } else {
+                                (None, None)
+                            };
+                            result.push(from_attachment_commit_history(
+                                c,
+                                author.map(|x| x.into()),
+                                committer.map(|x| x.into()),
+                            ))
+                        }
+                        result
+                    } else {
+                        vec![]
+                    }
+                };
+
                 MessageAttachment {
                     code: code
                         .map(|x| x.into_iter().map(|i| i.into()).collect())
@@ -62,10 +86,8 @@ impl ThreadServiceImpl {
                     } else {
                         vec![]
                     },
-                    commit: commits
-                        .map(|x| x.into_iter().map(|i| i.into()).collect())
-                        .unwrap_or_default(),
                     code_file_list: code_file_list.map(|x| x.into()),
+                    commit: commits,
                 }
             } else {
                 Default::default()

@@ -2,10 +2,10 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentDoc,
+    AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentCommit, AttachmentDoc,
     AttachmentIssueDoc, AttachmentPullDoc, AttachmentWebDoc, EmailSettingDAO, IntegrationDAO,
     InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO, OAuthCredentialDAO, PageDAO,
-    PageSectionDAO, ServerSettingDAO, ThreadDAO, UserEventDAO, AttachmentCommit,
+    PageSectionDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
 };
 
 use crate::{
@@ -220,19 +220,21 @@ impl From<NotificationDAO> for Notification {
     }
 }
 
-//TODO(kweizh)
-impl From<AttachmentCommit> for thread::MessageAttachmentCommit {
-    fn from(value: AttachmentCommit) -> Self {
-        Self {
-            git_url: value.git_url,
-            sha: value.sha,
-            message: value.message,
-            author: None,
-            author_at: value.author_at,
-            committer: None,
-            commit_at: value.commit_at,
-            diff: None,
-        }
+pub fn from_attachment_commit_history(
+    value: AttachmentCommit,
+    author: Option<UserValue>,
+    committer: Option<UserValue>,
+) -> thread::MessageAttachmentCommit {
+    thread::MessageAttachmentCommit {
+        git_url: value.git_url,
+        sha: value.sha,
+        message: value.message,
+        author,
+        author_at: value.author_at,
+        committer,
+        commit_at: value.commit_at,
+        diff: value.diff,
+        changed_file: value.changed_file,
     }
 }
 

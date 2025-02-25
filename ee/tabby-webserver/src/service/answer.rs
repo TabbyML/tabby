@@ -19,6 +19,7 @@ use async_openai_alt::{
     },
 };
 use async_stream::stream;
+use chrono::SecondsFormat;
 use futures::stream::BoxStream;
 use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
 use tabby_common::{
@@ -27,7 +28,7 @@ use tabby_common::{
             CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
             CodeSearchScores,
         },
-        commit::{CommitHistorySearch, CommitHistorySearchHit, CommitHistorySearchParams},
+        commit::{CommitHistorySearch, CommitHistorySearchHit},
         structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
         SearchError,
     },
@@ -35,8 +36,9 @@ use tabby_common::{
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
-    auth::AuthenticationService,
+    auth::{AuthenticationService, UserSecured},
     context::{ContextInfoHelper, ContextService},
+    interface::UserValueEnum,
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
     thread::{
@@ -157,12 +159,11 @@ impl AnswerService {
                     }
 
                     if need_codebase_context.commit_history {
-                        let params = CommitHistorySearchParams::default();
                         let hits = self.collect_commit_history(
                             &repository,
                             &context_info_helper,
                             code_query,
-                            &params,
+                            5,
                         ).await;
                         attachment.commit = hits.iter().map(|x| x.commit.clone().into()).collect::<Vec<_>>();
 
@@ -394,7 +395,7 @@ impl AnswerService {
         repository: &Repository,
         helper: &ContextInfoHelper,
         code_query: &CodeQueryInput,
-        params: &CommitHistorySearchParams,
+        limit: usize,
     ) -> Vec<CommitHistorySearchHit> {
         if let Some(source_id) = &code_query.source_id {
             if !helper.can_access_source_id(source_id) {
@@ -407,7 +408,7 @@ impl AnswerService {
 
         match self
             .commit
-            .search(&repository.source_id, &content, params)
+            .search(&repository.source_id, &content, limit)
             .await
         {
             Ok(commits) => commits.hits,
@@ -557,10 +558,52 @@ fn build_user_prompt(
         .unwrap_or(true)
         && assistant_attachment.code.is_empty()
         && assistant_attachment.doc.is_empty()
+        && assistant_attachment.commit.is_empty()
         && assistant_attachment.code_file_list.is_none()
     {
         return user_input.to_owned();
     }
+
+    let maybe_commit_context = {
+        let commits: Vec<String> = assistant_attachment
+            .commit
+            .iter()
+            .map(|commit| {
+                let mut prompt = String::new();
+                if let Some(author) = &commit.author {
+                    let UserValueEnum::UserSecured(UserSecured { name, email, .. }) = author;
+                    prompt.push_str(&format!("Author: {} <{}>\n", name, email));
+                }
+                prompt += &format!(
+                    "Author At: {}\n",
+                    commit.author_at.to_rfc3339_opts(SecondsFormat::Secs, true)
+                );
+
+                if let Some(committer) = &commit.committer {
+                    let UserValueEnum::UserSecured(UserSecured { name, email, .. }) = committer;
+                    prompt.push_str(&format!("Committer: {} <{}>\n", name, email));
+                }
+                prompt += &format!(
+                    "Commit At: {}\n",
+                    commit.commit_at.to_rfc3339_opts(SecondsFormat::Secs, true)
+                );
+
+                prompt += &format!("Message: {}\n", commit.message);
+
+                if let Some(changed_file) = &commit.changed_file {
+                    prompt += &format!("Changed File: {}\n", changed_file);
+                }
+                if let Some(diff) = &commit.diff {
+                    prompt += &format!("Diff: {}\n", diff);
+                }
+                prompt
+            })
+            .collect();
+        format!(
+            "Here is the list of commits history in the workspace available for reference:\n\n{}\n\n",
+            commits.join("\n")
+        )
+    };
 
     let maybe_file_list_context = assistant_attachment
         .code_file_list
@@ -623,7 +666,7 @@ Your answer must be correct, accurate and written by an expert using an unbiased
 
 Please cite the contexts with the reference numbers, in the format [[citation:x]]. If a sentence comes from multiple contexts, please list all applicable citations, like [[citation:3]][[citation:5]]. Other than code and specific names and citations, your answer must be written in the same language as the question.
 
-{maybe_file_list_context}{maybe_file_snippet_context}
+{maybe_file_list_context}{maybe_commit_context}{maybe_file_snippet_context}
 
 Remember, don't blindly repeat the contexts verbatim. When possible, give code snippet to demonstrate the answer. And here is the user question:
 

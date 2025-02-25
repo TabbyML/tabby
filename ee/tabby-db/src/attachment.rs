@@ -19,6 +19,9 @@ pub struct AttachmentCommit {
     pub author_at: DateTime<Utc>,
     pub committer_email: String,
     pub commit_at: DateTime<Utc>,
+
+    pub diff: Option<String>,
+    pub changed_file: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
