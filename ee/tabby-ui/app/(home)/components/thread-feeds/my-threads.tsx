@@ -2,12 +2,12 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery } from 'urql'
 
-import { graphql } from '@/lib/gql/generates'
 import {
   resetMyThreadsPageNo,
   setMyThreadsPageNo,
   useAnswerEngineStore
 } from '@/lib/stores/answer-engine-store'
+import { listMyThreads } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { getPaginationItem } from '@/lib/utils/pagination'
 import { IconSpinner } from '@/components/ui/icons'
@@ -26,34 +26,6 @@ import { ThreadItem } from './thread-item'
 import { ThreadFeedsContext } from './threads-context'
 
 const PAGE_SIZE = 25
-
-const listMyThreads = graphql(/* GraphQL */ `
-  query ListMyThreads(
-    $after: String
-    $before: String
-    $first: Int
-    $last: Int
-  ) {
-    myThreads(after: $after, before: $before, first: $first, last: $last) {
-      edges {
-        node {
-          id
-          userId
-          isEphemeral
-          createdAt
-          updatedAt
-        }
-        cursor
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`)
 
 export function MyThreadFeeds() {
   const { fetchingUsers, onNavigateToThread } = useContext(ThreadFeedsContext)

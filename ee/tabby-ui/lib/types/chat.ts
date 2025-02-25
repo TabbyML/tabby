@@ -1,3 +1,4 @@
+import { Content } from '@tiptap/core'
 import type { components } from 'tabby-openapi'
 
 import {
@@ -147,4 +148,16 @@ export type MentionAttributes = {
   id: string
   label: string
   kind: ContextSourceKind
+}
+
+/**
+ * The state used to restore the chat panel, should be json serializable.
+ * Save this state to client so that the chat panel can be restored across webview reloading.
+ */
+export interface SessionState {
+  threadId?: string | undefined
+  qaPairs?: QuestionAnswerPair[] | undefined
+  input?: Content | undefined
+  relevantContext?: Context[] | undefined
+  selectedRepoId?: string | undefined
 }

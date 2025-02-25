@@ -20,16 +20,17 @@ import {
 } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
-import { nanoid } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
-import { Chat, ChatRef } from '@/components/chat/chat'
+import { Chat } from '@/components/chat/chat'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
 import { saveFetcherOptions } from '@/lib/tabby/token-management'
-import { PromptFormRef } from '@/components/chat/form-editor/types'
+import { ChatRef, PromptFormRef } from '@/components/chat/types'
+
+import { HistoryView } from './components/history-view'
 
 const convertToHSLColor = (style: string) => {
   return Color(style)
@@ -52,7 +53,8 @@ export default function ChatPage() {
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
     null
   )
-  const [activeChatId, setActiveChatId] = useState('')
+  const [showHistory, setShowHistory] = useState(false)
+  const [threadId, setThreadId] = useState<string | undefined>()
   const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
     EditorContext[]
@@ -107,7 +109,6 @@ export default function ChatPage() {
         saveFetcherOptions(request.fetcherOptions)
       }
 
-      setActiveChatId(nanoid())
       setFetcherOptions(request.fetcherOptions)
       useMacOSKeyboardEventHandler.current =
         request.useMacOSKeyboardEventHandler
@@ -391,13 +392,20 @@ export default function ChatPage() {
 
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+      {showHistory && (
+        <HistoryView
+          onClose={() => setShowHistory(false)}
+          onNavigate={(id: string) => setThreadId(id)}
+        />
+      )}
       <Chat
-        chatId={activeChatId}
-        key={activeChatId}
+        style={{ display: showHistory ? 'none' : 'block' }}
+        threadId={threadId}
+        setThreadId={setThreadId}
         ref={chatRef}
         chatInputRef={chatInputRef}
         onLoaded={onChatLoaded}
-        maxWidth={client === 'vscode' ? '5xl' : undefined}
+        setShowHistory={setShowHistory}
         onCopyContent={isInEditor && server?.onCopy}
         onApplyInEditor={
           isInEditor &&

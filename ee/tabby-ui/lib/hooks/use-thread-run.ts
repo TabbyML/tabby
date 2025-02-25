@@ -443,7 +443,6 @@ export function useThreadRun({
     setIsLoading(true)
     setError(undefined)
     setAnswerStream(defaultAnswerStream())
-
     if (threadId) {
       unsubscribeFn.current = createThreadRun(userMessage, options)
     } else {

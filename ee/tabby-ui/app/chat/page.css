@@ -13,7 +13,8 @@ html {
   --foreground: var(--vscode-editor-foreground);
 
   --border: var(--vscode-widget-border);
-  --input: var(--vscode-input-border);
+  --input: var(--vscode-input-background);
+  --input-border: var(--vscode-input-border);
 
   --primary: var(--vscode-minimap-infoHighlight);
   --primary-foreground: var(--vscode-button-foreground);
@@ -22,7 +23,9 @@ html {
   --popover-foreground: var(--vscode-editorSuggestWidget-foreground);
 
   --accent: var(--vscode-editorSuggestWidget-selectedBackground);
-  --accent-foreground: var(--vscode-editorSuggestWidget-selectedForeground)
+  --accent-foreground: var(--vscode-editorSuggestWidget-selectedForeground);
+
+  --ring: var(--vscode-focusBorder);
 }
 
 .client-vscode .editor-bg {

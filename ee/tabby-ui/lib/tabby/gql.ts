@@ -23,6 +23,7 @@ import {
   GitRepositoriesQueryVariables,
   ListIntegrationsQueryVariables,
   ListInvitationsQueryVariables,
+  ListMyThreadsQueryVariables,
   ListPageSectionsQueryVariables,
   ListThreadsQueryVariables,
   NotificationsQueryVariables,
@@ -34,6 +35,7 @@ import { refreshTokenMutation } from './auth'
 import {
   listIntegrations,
   listInvitations,
+  listMyThreads,
   listPageSections,
   listRepositories,
   listSourceIdAccessPolicies,
@@ -401,6 +403,26 @@ const client = new Client({
                     data => {
                       if (data?.threads) {
                         data.threads.edges = data.threads.edges.filter(
+                          e => e.node.id !== args.id
+                        )
+                      }
+                      return data
+                    }
+                  )
+                })
+
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'myThreads')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listMyThreads,
+                      variables: field.arguments as ListMyThreadsQueryVariables
+                    },
+                    data => {
+                      if (data?.myThreads) {
+                        data.myThreads.edges = data.myThreads.edges.filter(
                           e => e.node.id !== args.id
                         )
                       }

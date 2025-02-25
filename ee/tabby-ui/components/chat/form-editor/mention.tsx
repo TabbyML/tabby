@@ -22,12 +22,12 @@ import {
   ListSymbolsParams
 } from 'tabby-chat-panel/index'
 
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { cn, convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons'
 
-import { useDebounceValue } from '../../../lib/hooks/use-debounce'
 import { emitter } from '../event-emitter'
-import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from './types'
+import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from '../types'
 import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
 
 /**
