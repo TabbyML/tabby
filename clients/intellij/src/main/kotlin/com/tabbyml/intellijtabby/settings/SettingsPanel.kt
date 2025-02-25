@@ -106,7 +106,7 @@ class SettingsPanel(private val project: Project) {
         """
       <html>
       A http or https URL of Tabby server endpoint.<br/>
-      If leave empty, server endpoint config in <i>~/.tabby-client/agent/config.toml</i> will be used.<br/>
+      If left empty, the server endpoint config in <i>~/.tabby-client/agent/config.toml</i> will be used.<br/>
       Default to <i>http://localhost:8080</i>.
       </html>
       """.trimIndent()

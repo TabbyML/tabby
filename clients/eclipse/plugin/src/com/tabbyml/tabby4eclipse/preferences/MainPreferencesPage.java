@@ -63,7 +63,7 @@ public class MainPreferencesPage extends FieldEditorPreferencePage implements IW
 
 		Label tip = new Label(grid, SWT.WRAP);
 		tip.setText(
-				"Note: If leave empty, server endpoint config in `~/.tabby-client/agent/config.toml` will be used.");
+				"Note: If left empty, the server endpoint config in `~/.tabby-client/agent/config.toml` will be used.");
 		GridDataFactory.fillDefaults().indent(10, 2).span(2, 1).applyTo(tip);
 	}
 
