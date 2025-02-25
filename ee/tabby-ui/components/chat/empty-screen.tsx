@@ -38,7 +38,7 @@ export function EmptyScreen({
   })
 
   const threads = useMemo(() => {
-    return data?.myThreads?.edges?.slice(0, 5).reverse()
+    return data?.myThreads?.edges?.slice(-5).reverse()
   }, [data?.myThreads?.edges])
 
   const onNavigateToThread = (threadId: string) => {
