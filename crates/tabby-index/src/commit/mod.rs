@@ -1,28 +1,20 @@
 pub mod indexer;
 pub mod types;
 
-use std::{pin::pin, sync::Arc, vec};
+use std::{sync::Arc, vec};
 
 use anyhow::{bail, Result};
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt};
-use git2::{Repository, Sort};
+use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_common::{
-    config::CodeRepository,
-    index::{commit::fields, corpus},
-};
+use tabby_common::index::{commit::fields, corpus};
 use tabby_inference::Embedding;
-use tokio::{sync::oneshot, task::JoinHandle};
-use tracing::warn;
+use tokio::task::JoinHandle;
 use tracing::{info_span, Instrument};
 use types::CommitHistory;
 
-use crate::{
-    indexer::{Indexer, TantivyDocBuilder},
-    IndexAttributeBuilder,
-};
+use crate::IndexAttributeBuilder;
 
 pub struct CommitHistoryBuilder {
     embedding: Arc<dyn Embedding>,
@@ -31,33 +23,6 @@ pub struct CommitHistoryBuilder {
 impl CommitHistoryBuilder {
     pub fn new(embedding: Arc<dyn Embedding>) -> Self {
         Self { embedding }
-    }
-
-    pub async fn garbage_collection(&self) {
-        let index = Indexer::new(corpus::COMMIT_HISTORY);
-        stream! {
-            let mut num_to_keep = 0;
-            let mut num_to_delete = 0;
-
-            // for await id in index.iter_ids() {
-            //     let Some(source_file_id) = SourceCode::source_file_id_from_id(&id) else {
-            //         warn!("Failed to extract source file id from index id: {id}");
-            //         num_to_delete += 1;
-            //         index.delete(&id);
-            //         continue;
-            //     };
-
-            //     if CodeIntelligence::check_source_file_id_matched(source_file_id) {
-            //         num_to_keep += 1;
-            //     } else {
-            //         num_to_delete += 1;
-            //         index.delete(&id);
-            //     }
-            // }
-
-            logkit::info!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
-            index.commit();
-        }.collect::<()>().await;
     }
 }
 
@@ -104,11 +69,6 @@ impl IndexAttributeBuilder<CommitHistory> for CommitHistoryBuilder {
     }
 }
 
-//TODO(kweizh): parse diff
-fn parse_diff(_diff: &str) -> Vec<(String, String)> {
-    vec![("file".to_string(), "diff".to_string())]
-}
-
 async fn build_binarize_embedding_tokens(
     embedding: Arc<dyn Embedding>,
     body: &str,
@@ -127,7 +87,6 @@ async fn build_binarize_embedding_tokens(
         }
     };
 
-    //TODO(kweizh): tokenize commit diff?
     let mut tokens = vec![];
     for token in tabby_common::index::binarize_embedding(embedding.iter()) {
         tokens.push(token);

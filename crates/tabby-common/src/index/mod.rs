@@ -280,6 +280,27 @@ impl IndexSchema {
         ])
     }
 
+    /// Build a query the documents have specific attribute field and value.
+    pub fn doc_with_attribute_field(&self, corpus: &str, field: &str, value: &str) -> impl Query {
+        let mut term = Term::from_field_json_path(self.field_attributes, field, false);
+        term.append_type_and_str(value);
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // The attributes.field must have the value
+            (
+                Occur::Must,
+                Box::new(TermQuery::new(term, IndexRecordOption::Basic)),
+            ),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ])
+    }
+
     pub fn corpus_query(&self, corpus: &str) -> Box<dyn Query> {
         Box::new(TermQuery::new(
             Term::from_field_text(self.field_corpus, corpus),

@@ -1,10 +1,11 @@
 use std::{pin::pin, sync::Arc};
 
 use futures::StreamExt;
-use lettre::transport::smtp::response::Code;
 use tabby_common::config::CodeRepository;
 use tabby_git::stream_commits;
-use tabby_index::public::{CommitDiff, CommitHistory, CommitHistoryIndexer};
+use tabby_index::public::{
+    commit_garbage_collection, CommitDiff, CommitHistory, CommitHistoryIndexer,
+};
 use tabby_inference::Embedding;
 use tabby_schema::Result;
 use tracing::warn;
@@ -21,7 +22,7 @@ fn to_commit_history<'a>(commit: &tabby_git::Commit, repo: &CodeRepository) -> C
     CommitHistory {
         source_id: repo.source_id.clone(),
 
-        git_url: repo.git_url.clone(),
+        git_url: repo.canonical_git_url().clone(),
         sha: commit.id.clone(),
         message: commit.message.clone(),
         author_email: commit.author_email.clone(),
@@ -44,7 +45,7 @@ pub async fn refresh(embedding: Arc<dyn Embedding>, repository: &CodeRepository)
     indexing(indexer, repository).await;
 
     // clear the index older/more than 100 commits
-    // indexer.garbage_collection().await;
+    commit_garbage_collection(&repository.canonical_git_url()).await;
 
     Ok(())
 }
@@ -60,7 +61,6 @@ pub async fn indexing(indexer: CommitHistoryIndexer, repository: &CodeRepository
         match commit_result {
             Ok(commit) => {
                 let commit = to_commit_history(&commit, repository);
-                println!("{:?}", commit);
                 if !indexer.sync(commit).await {
                     // We synchronize commits based on their date stamps,
                     // sync returns false if the commit has already been indexed, indicating that no update is necessary.
@@ -69,7 +69,7 @@ pub async fn indexing(indexer: CommitHistoryIndexer, repository: &CodeRepository
                     break;
                 }
                 count += 1;
-                if count % 100 == 0 {
+                if count % 10 == 0 {
                     logkit::info!("{} commits seen, {} commits updated", count, num_updated);
                 }
                 num_updated += 1;

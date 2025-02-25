@@ -23,7 +23,7 @@ pub mod public {
     pub use super::{
         code::CodeIndexer,
         commit::{
-            indexer::CommitHistoryIndexer,
+            indexer::{garbage_collection as commit_garbage_collection, CommitHistoryIndexer},
             types::{CommitDiff, CommitHistory},
             CommitHistoryBuilder,
         },
