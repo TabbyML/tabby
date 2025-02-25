@@ -91,7 +91,6 @@ const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
   }
 `)
 
-// const createPageSectionRun(input: CreatePageSectionRunInput!): SectionRunItem!
 const createPageSectionRunSubscription = graphql(/* GraphQL */ `
   subscription createPageSectionRun($input: CreatePageSectionRunInput!) {
     createPageSectionRun(input: $input) {
@@ -715,7 +714,6 @@ export function Page() {
                           <motion.div
                             layout={!isLoading && mode === 'edit'}
                             key={`section_${section.id}`}
-                            // exit={{ opacity: 0 }}
                             exit={
                               isLoading
                                 ? { opacity: 0, transition: { duration: 0 } }
