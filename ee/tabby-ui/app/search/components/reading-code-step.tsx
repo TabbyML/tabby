@@ -8,7 +8,7 @@ import {
   ContextSource,
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
+import { AttachmentCommitItem, AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
 import { cn, isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
 import {
   Accordion,
@@ -25,6 +25,7 @@ import {
   IconCheckCircled,
   IconCircleDot,
   IconCode,
+  IconGitCommit,
   IconGitMerge,
   IconGitPullRequest
 } from '@/components/ui/icons'
@@ -41,6 +42,7 @@ import { SearchContext } from './search-context'
 
 interface ReadingCodeStepperProps {
   isReadingCode: boolean | undefined
+  isReadingCommit: boolean | undefined
   isReadingFileList: boolean | undefined
   isReadingDocs: boolean | undefined
   readingCode: ThreadAssistantMessageReadingCode | undefined
@@ -49,6 +51,7 @@ interface ReadingCodeStepperProps {
   className?: string
   serverCodeContexts: RelevantCodeContext[]
   clientCodeContexts: RelevantCodeContext[]
+  commitHistory: Maybe<AttachmentCommitItem[]> | undefined
   webResources?: Maybe<AttachmentDocItem[]> | undefined
   docQueryResources: Omit<ContextSource, 'id'>[] | undefined
   onContextClick?: (
@@ -59,12 +62,14 @@ interface ReadingCodeStepperProps {
 
 export function ReadingCodeStepper({
   isReadingCode,
+  isReadingCommit,
   isReadingFileList,
   isReadingDocs,
   readingCode,
   codeSourceId,
   serverCodeContexts,
   clientCodeContexts,
+  commitHistory,
   webResources,
   docQuery,
   onContextClick
@@ -84,7 +89,10 @@ export function ReadingCodeStepper({
   }, [codeSourceId, contextInfo])
 
   const steps = useMemo(() => {
-    let result: Array<'fileList' | 'snippet' | 'docs'> = []
+    let result: Array<'fileList' | 'snippet' | 'docs' | 'commit'> = []
+    if (readingCode?.commitHistory) {
+      result.push('commit')
+    }
     if (readingCode?.fileList) {
       result.push('fileList')
     }
@@ -95,7 +103,7 @@ export function ReadingCodeStepper({
       result.push('docs')
     }
     return result
-  }, [readingCode?.fileList, readingCode?.snippet])
+  }, [readingCode?.commitHistory, readingCode?.fileList, readingCode?.snippet])
 
   const lastItem = useMemo(() => {
     return steps.slice().pop()
@@ -167,6 +175,30 @@ export function ReadingCodeStepper({
                             context={item}
                             onContextClick={ctx => onContextClick?.(ctx, true)}
                             enableDeveloperMode={enableDeveloperMode}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </StepItem>
+            )}
+            {readingCode?.commitHistory && (
+              <StepItem
+                key="commitHistory"
+                title="Search for relevant commit history ..."
+                isLoading={isReadingCommit}
+                defaultOpen={!isReadingCommit}
+                isLastItem={lastItem === 'commit'}
+              >
+                {!!commitHistory?.length && (
+                  <div className="mb-3 mt-2">
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                      {commitHistory?.map((item, index) => {
+                        return (
+                          <CommitHistoryView
+                            key={`${item.sha}-${index}`}
+                            commit={item}
                           />
                         )
                       })}
@@ -312,6 +344,25 @@ function CodeContextItem({
         </div>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+// Commit History
+function CommitHistoryView({ commit }: { commit: AttachmentCommitItem }) {
+  const sha = `${commit.sha.slice(0, 7)}`
+  const message = `${commit.message}`
+  const changedFile = `${commit.changedFile}`
+
+  let icon: ReactNode = <IconGitCommit className="h-3 w-3" />
+
+  return (
+    <div
+      className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold hover:text-foreground"
+      onClick={() => window.open(commit.gitUrl)}
+    >
+      {icon}
+      <span>{sha}</span>
+    </div>
   )
 }
 

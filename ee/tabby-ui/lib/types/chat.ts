@@ -6,7 +6,8 @@ import {
   CreateThreadRunSubscription,
   MessageAttachmentCode,
   MessageCodeSearchHit,
-  MessageDocSearchHit
+  MessageDocSearchHit,
+  MessageCommitHistorySearchHit
 } from '../gql/generates/graphql'
 import { ArrayElementType } from './common'
 
@@ -129,6 +130,10 @@ export type ThreadAssistantMessageAttachmentDocHits = ExtractHitsByType<
   CreateThreadRunSubscription['createThreadRun'],
   'ThreadAssistantMessageAttachmentsDoc'
 >
+export type ThreadAssistantMessageAttachmentCommitHits = ExtractHitsByType<
+  CreateThreadRunSubscription['createThreadRun'],
+  'ThreadAssistantMessageAttachmentsCommit'
+>
 
 // for rendering, including scores
 export type AttachmentCodeItem =
@@ -136,6 +141,11 @@ export type AttachmentCodeItem =
     isClient?: boolean
     extra?: { scores?: MessageCodeSearchHit['scores'] }
     baseDir?: string
+  }
+
+export type AttachmentCommitItem =
+  ArrayElementType<ThreadAssistantMessageAttachmentCommitHits>['commit'] & {
+    extra?: { score?: MessageCommitHistorySearchHit['score'] }
   }
 
 // for rendering, including score

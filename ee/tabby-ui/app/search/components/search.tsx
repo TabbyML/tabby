@@ -411,7 +411,8 @@ export function Search() {
             extra: {
               scores: hit.scores
             }
-          })) || null
+          })) || null,
+        commit: currentAssistantMessage.attachment?.commit || null
       }
     }
 
@@ -426,7 +427,24 @@ export function Search() {
               score: hit.score
             }
           })) || null,
-        code: currentAssistantMessage.attachment?.code || null
+        code: currentAssistantMessage.attachment?.code || null,
+        commit: currentAssistantMessage.attachment?.commit || null
+      }
+    }
+
+    // get and format scores from streaming answer
+    if (!currentAssistantMessage.attachment?.commit && !!answer.attachmentsCommit) {
+      currentAssistantMessage.attachment = {
+        clientCode: null,
+        doc: currentAssistantMessage.attachment?.doc|| null,
+        code: currentAssistantMessage.attachment?.code || null,
+        commit:
+          answer.attachmentsCommit.map(hit => ({
+          ...hit.commit,
+          extra: {
+            score: hit.score
+          }
+        })) || null,
       }
     }
 
@@ -594,6 +612,7 @@ export function Search() {
       codeSourceId,
       attachment: {
         code: null,
+        commit: null,
         doc: null,
         clientCode: null
       },

@@ -220,6 +220,9 @@ export function AssistantMessageSection({
   const messageAttachmentCodeLen =
     (messageAttachmentClientCode?.length || 0) +
     (message.attachment?.code?.length || 0)
+  const messageAttachmentCommit = message?.attachment?.commit
+  const messageAttachmentCommitLen =
+    (message.attachment?.commit?.length || 0)
 
   const issuesAndPRs = useMemo(() => {
     return messageAttachmentDocs?.filter(
@@ -282,6 +285,8 @@ export function AssistantMessageSection({
     !!message.attachment?.codeFileList?.fileList?.length
   const showCodeSnippetsStep =
     message.readingCode?.snippet || !!messageAttachmentCodeLen
+    const showCommitHistoryStep =
+    message.readingCode?.commitHistory || !!messageAttachmentCommitLen
 
   const showReadingCodeStep = !!message.codeSourceId
   const showReadingDocStep = !!docSources?.length
@@ -317,8 +322,10 @@ export function AssistantMessageSection({
               <ReadingCodeStepper
                 clientCodeContexts={clientCodeContexts}
                 serverCodeContexts={serverCodeContexts}
+                commitHistory={messageAttachmentCommit}
                 isReadingFileList={message.isReadingFileList}
                 isReadingCode={message.isReadingCode}
+                isReadingCommit={message.isReadingCommit}
                 isReadingDocs={message.isReadingDocs}
                 codeSourceId={message.codeSourceId}
                 docQuery
@@ -326,7 +333,8 @@ export function AssistantMessageSection({
                 webResources={issuesAndPRs}
                 readingCode={{
                   fileList: showFileListStep,
-                  snippet: showCodeSnippetsStep
+                  snippet: showCodeSnippetsStep,
+                  commitHistory: showCommitHistoryStep
                 }}
                 onContextClick={onCodeContextClick}
               />

@@ -489,6 +489,25 @@ export const listThreadMessages = graphql(/* GraphQL */ `
             codeFileList {
               fileList
             }
+            commit {
+              gitUrl
+              sha
+              message
+              author {
+                id
+                email
+                name
+              }
+              authorAt
+              committer {
+                id
+                email
+                name
+              }
+              commitAt
+              diff
+              changedFile
+            }
           }
         }
         cursor

@@ -12,6 +12,7 @@ import { client, useMutation } from '../tabby/gql'
 import {
   ExtendedCombinedError,
   ThreadAssistantMessageAttachmentCodeHits,
+  ThreadAssistantMessageAttachmentCommitHits,
   ThreadAssistantMessageAttachmentDocHits
 } from '../types'
 import { useLatest } from './use-latest'
@@ -38,6 +39,7 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageReadingCode {
         snippet
         fileList
+        commitHistory
       }
       ... on ThreadRelevantQuestions {
         questions
@@ -60,6 +62,30 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
             bm25
             embedding
           }
+        }
+      }
+      ... on ThreadAssistantMessageAttachmentsCommit {
+        hits {
+          commit {
+            gitUrl
+            sha
+            message
+            author {
+              id
+              email
+              name
+            }
+            authorAt
+            committer {
+              id
+              email
+              name
+            }
+            commitAt
+            diff
+            changedFile
+          }
+          score
         }
       }
       ... on ThreadAssistantMessageAttachmentsDoc {
@@ -123,6 +149,7 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageReadingCode {
         snippet
         fileList
+        commitHistory
       }
       ... on ThreadRelevantQuestions {
         questions
@@ -145,6 +172,30 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
             bm25
             embedding
           }
+        }
+      }
+      ... on ThreadAssistantMessageAttachmentsCommit {
+        hits {
+          commit {
+            gitUrl
+            sha
+            message
+            author {
+              id
+              email
+              name
+            }
+            authorAt
+            committer {
+              id
+              email
+              name
+            }
+            commitAt
+            diff
+            changedFile
+          }
+          score
         }
       }
       ... on ThreadAssistantMessageAttachmentsDoc {
@@ -213,9 +264,11 @@ export interface AnswerStream {
   relevantQuestions?: Array<string>
   attachmentsCode?: ThreadAssistantMessageAttachmentCodeHits
   attachmentsDoc?: ThreadAssistantMessageAttachmentDocHits
+  attachmentsCommit?: ThreadAssistantMessageAttachmentCommitHits
   readingCode?: ThreadAssistantMessageReadingCode
   content: string
   isReadingCode: boolean
+  isReadingCommit: boolean
   isReadingFileList: boolean
   isReadingDocs: boolean
   completed: boolean
@@ -225,6 +278,7 @@ const defaultAnswerStream = (): AnswerStream => ({
   content: '',
   completed: false,
   isReadingCode: false,
+  isReadingCommit: false,
   isReadingFileList: false,
   isReadingDocs: true
 })
@@ -296,11 +350,13 @@ export function useThreadRun({
         break
       case 'ThreadAssistantMessageReadingCode':
         x.isReadingCode = true
+        x.isReadingCommit = true
         x.isReadingFileList = true
         x.isReadingDocs = true
         x.readingCode = {
           fileList: data.fileList,
-          snippet: data.snippet
+          snippet: data.snippet,
+          commitHistory: data.commitHistory
         }
         break
       case 'ThreadAssistantMessageAttachmentsCodeFileList':
@@ -309,6 +365,10 @@ export function useThreadRun({
       case 'ThreadAssistantMessageAttachmentsCode':
         x.isReadingCode = false
         x.attachmentsCode = data.hits
+        break
+      case 'ThreadAssistantMessageAttachmentsCommit':
+        x.isReadingCommit = false
+        x.attachmentsCommit = data.hits
         break
       case 'ThreadAssistantMessageAttachmentsDoc':
         x.attachmentsDoc = data.hits

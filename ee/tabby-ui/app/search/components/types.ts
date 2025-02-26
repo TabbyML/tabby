@@ -4,7 +4,7 @@ import {
   MessageAttachmentClientCode,
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
+import { AttachmentCodeItem, AttachmentDocItem, AttachmentCommitItem } from '@/lib/types'
 
 export type ConversationMessage = Omit<
   Message,
@@ -16,11 +16,13 @@ export type ConversationMessage = Omit<
   attachment?: {
     clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
     code: Maybe<Array<AttachmentCodeItem>> | undefined
+    commit: Maybe<Array<AttachmentCommitItem>> | undefined
     doc: Maybe<Array<AttachmentDocItem>> | undefined
     codeFileList?: Maybe<{ fileList: string[] }>
   }
   readingCode?: ThreadAssistantMessageReadingCode
   isReadingCode?: boolean
+  isReadingCommit?: boolean
   isReadingFileList?: boolean
   isReadingDocs?: boolean
 }
