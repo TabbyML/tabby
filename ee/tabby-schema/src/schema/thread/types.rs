@@ -3,7 +3,7 @@ use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
-    commit::{CommitHistoryDocument, CommitHistorySearchHit},
+    commit::CommitHistoryDocument,
     structured_doc::DocSearchDocument,
 };
 use validator::Validate;

@@ -47,7 +47,7 @@ fn commit_from_git2(repo: &git2::Repository, commit: &git2::Commit) -> Commit {
             .single()
             .unwrap_or_default(),
 
-        diff: get_diff_of_commit(repo, &commit).unwrap_or_default(),
+        diff: get_diff_of_commit(repo, commit).unwrap_or_default(),
     }
 }
 

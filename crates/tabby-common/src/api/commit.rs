@@ -1,5 +1,3 @@
-use crate::index::{commit::fields, IndexSchema};
-
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use tantivy::{
@@ -8,6 +6,7 @@ use tantivy::{
 };
 
 use super::Result;
+use crate::index::{commit::fields, IndexSchema};
 
 #[async_trait]
 pub trait CommitHistorySearch: Send + Sync {
@@ -120,8 +119,8 @@ fn get_json_option_field<'a>(
     )
 }
 
-fn get_json_date_field<'a>(
-    doc: &'a TantivyDocument,
+fn get_json_date_field(
+    doc: &TantivyDocument,
     field: schema::Field,
     name: &str,
 ) -> Option<TantivyDateTime> {
