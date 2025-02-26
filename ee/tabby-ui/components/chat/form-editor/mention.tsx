@@ -23,7 +23,7 @@ import {
 } from 'tabby-chat-panel/index'
 
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
-import { cn, convertFilepath, resolveFileNameForDisplay } from '@/lib/utils'
+import { cn, convertFromFilepath, resolveFileNameForDisplay } from '@/lib/utils'
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons'
 
 import { emitter } from '../event-emitter'
@@ -287,7 +287,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
       const label =
         item.category === 'file'
           ? resolveFileNameForDisplay(
-              convertFilepath(item.fileItem.filepath).filepath || ''
+              convertFromFilepath(item.fileItem.filepath).filepath || ''
             )
           : item.name
 
