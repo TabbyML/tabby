@@ -684,7 +684,7 @@ export function Page() {
             <ScrollArea className="h-full w-full" ref={contentContainerRef}>
               <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
                 {isNew && !page ? (
-                  <div className="col-span-4 mt-8 rounded-lg border py-2 pl-1 pr-3">
+                  <div className="col-span-4 mt-8 rounded-lg border py-2 pl-1 pr-3 ring-2 ring-transparent focus-within:ring-ring focus-visible:ring-ring">
                     <NewPageForm
                       onSubmit={async title => {
                         const now = new Date().toISOString()
