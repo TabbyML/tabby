@@ -92,19 +92,22 @@ pub struct MessageAttachmentCommit {
     pub changed_file: Option<String>,
 }
 
-//TODO(kweizh) Add author and committer to CommitHistoryDocument
-impl From<CommitHistoryDocument> for MessageAttachmentCommit {
-    fn from(commit: CommitHistoryDocument) -> Self {
+impl MessageAttachmentCommit {
+    pub fn from_commit_history_document(
+        commit: &CommitHistoryDocument,
+        author: Option<UserValue>,
+        committer: Option<UserValue>,
+    ) -> Self {
         Self {
-            git_url: commit.git_url,
-            sha: commit.sha,
-            message: commit.message,
-            author: None,
+            git_url: commit.git_url.clone(),
+            sha: commit.sha.clone(),
+            message: commit.message.clone(),
+            author,
             author_at: commit.author_at,
-            committer: None,
+            committer,
             commit_at: commit.author_at,
-            diff: commit.diff,
-            changed_file: commit.changed_file,
+            diff: commit.diff.clone(),
+            changed_file: commit.changed_file.clone(),
         }
     }
 }
@@ -114,15 +117,6 @@ impl From<CommitHistoryDocument> for MessageAttachmentCommit {
 pub struct MessageCommitHistorySearchHit {
     pub commit: MessageAttachmentCommit,
     pub score: f64,
-}
-
-impl From<CommitHistorySearchHit> for MessageCommitHistorySearchHit {
-    fn from(hit: CommitHistorySearchHit) -> Self {
-        Self {
-            commit: hit.commit.into(),
-            score: hit.score as f64,
-        }
-    }
 }
 
 #[derive(GraphQLObject, Clone)]

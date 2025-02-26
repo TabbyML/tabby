@@ -28,7 +28,7 @@ use tabby_common::{
             CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
             CodeSearchScores,
         },
-        commit::{CommitHistorySearch, CommitHistorySearchHit},
+        commit::{CommitHistoryDocument, CommitHistorySearch, CommitHistorySearchHit},
         structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
         SearchError,
     },
@@ -43,8 +43,9 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentCodeFileList, MessageAttachmentCodeInput, MessageAttachmentDoc,
-        MessageAttachmentInput, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
+        MessageAttachmentCodeFileList, MessageAttachmentCodeInput, MessageAttachmentCommit,
+        MessageAttachmentDoc, MessageAttachmentInput, MessageCommitHistorySearchHit,
+        MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsCommit,
         ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
         ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
@@ -165,10 +166,23 @@ impl AnswerService {
                             code_query,
                             5,
                         ).await;
-                        attachment.commit = hits.iter().map(|x| x.commit.clone().into()).collect::<Vec<_>>();
-
+                        attachment.commit = futures::future::join_all(hits.iter().map(|x| {
+                            let commit = x.commit.clone();
+                            let auth = self.auth.clone();
+                            async move {
+                                Self::new_message_attachment_commit(auth, &commit).await
+                            }
+                        })).await;
                         if !hits.is_empty() {
-                            let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                            let hits = futures::future::join_all(hits.into_iter().map(|x|  {
+                                let commit = x.commit.clone();
+                                let auth = self.auth.clone();
+                                async move {
+                                MessageCommitHistorySearchHit {
+                                    score: x.score as f64,
+                                    commit: Self::new_message_attachment_commit(auth, &commit).await,
+                                }
+                            }})).await;
                             yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCommit(
                                 ThreadAssistantMessageAttachmentsCommit { hits }
                             ));
@@ -285,6 +299,23 @@ impl AnswerService {
             None
         };
         MessageAttachmentDoc::from_doc_search_document(doc, user)
+    }
+
+    async fn new_message_attachment_commit(
+        auth: Arc<dyn AuthenticationService>,
+        commit: &CommitHistoryDocument,
+    ) -> MessageAttachmentCommit {
+        let author = auth
+            .get_user_by_email(&commit.author_email)
+            .await
+            .ok()
+            .map(|x| x.into());
+        let committer = auth
+            .get_user_by_email(&commit.committer)
+            .await
+            .ok()
+            .map(|x| x.into());
+        MessageAttachmentCommit::from_commit_history_document(commit, author, committer)
     }
 
     async fn find_repository(
