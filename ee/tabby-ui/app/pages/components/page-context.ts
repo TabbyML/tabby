@@ -16,6 +16,8 @@ type PageContextValue = {
     sectionId: string,
     direction: MoveSectionDirection
   ) => Promise<void>
+  pageIdFromURL: string | undefined
+  isNew: boolean
 }
 
 export const PageContext = createContext<PageContextValue>(
