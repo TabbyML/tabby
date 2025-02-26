@@ -8,12 +8,12 @@ pub struct UserRateLimiter {
     rate_limiters: Mutex<TimedCache<String, ratelimit::Ratelimiter>>,
 }
 
-static USER_REQUEST_LIMIT_PER_MINUTE: u64 = 60;
+static USER_REQUEST_LIMIT_PER_MINUTE: u64 = 120;
 
 impl Default for UserRateLimiter {
     fn default() -> Self {
         Self {
-            // User rate limiter is hardcoded to 30 requests per minute, thus the timespan is 60 seconds.
+            // User rate limiter is hardcoded to 120 requests per minute, thus the timespan is 60 seconds.
             rate_limiters: Mutex::new(TimedCache::with_lifespan(60)),
         }
     }
