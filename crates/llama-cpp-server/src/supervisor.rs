@@ -1,6 +1,11 @@
-use std::{env::var, net::TcpListener, process::Stdio, time::Duration};
+use std::{
+    collections::VecDeque, env::var, net::TcpListener, process::Stdio, sync::Arc, time::Duration,
+};
 
-use tokio::{io::AsyncBufReadExt, task::JoinHandle};
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    task::JoinHandle,
+};
 use tracing::{debug, warn};
 use which::which;
 
@@ -29,6 +34,8 @@ impl LlamaCppSupervisor {
 
         let model_path = model_path.to_owned();
         let port = get_available_port();
+        let mut first_retry = true;
+
         let handle = tokio::spawn(async move {
             loop {
                 let server_binary = std::env::current_exe()
@@ -48,7 +55,6 @@ impl LlamaCppSupervisor {
                     .arg(port.to_string())
                     .arg("-np")
                     .arg(parallelism.to_string())
-                    .arg("--log-disable")
                     .arg("--ctx-size")
                     .arg(context_size.to_string())
                     .kill_on_drop(true)
@@ -87,29 +93,74 @@ impl LlamaCppSupervisor {
                     )
                 });
 
-                let status_code = process
-                    .wait()
-                    .await
-                    .ok()
-                    .and_then(|s| s.code())
-                    .unwrap_or(-1);
+                let mut stderr = BufReader::new(
+                    process
+                        .stderr
+                        .take()
+                        .expect("Failed to get llama.cpp stderr"),
+                )
+                .lines();
+                let mut error_lines = VecDeque::with_capacity(100);
+
+                let wait_handle = process.wait();
+
+                while let Ok(Some(line)) = stderr.next_line().await {
+                    if !line.contains("GET /health") {
+                        if error_lines.len() >= 100 {
+                            error_lines.pop_front();
+                        }
+                        error_lines.push_back(line);
+                    }
+                }
+
+                let status_code = wait_handle.await.ok().and_then(|s| s.code()).unwrap_or(-1);
 
                 if status_code != 0 {
                     warn!(
                         "llama-server <{}> exited with status code {}, args: `{}`",
                         name, status_code, command_args
                     );
-                    let mut stderr = process
-                        .stderr
-                        .take()
-                        .map(tokio::io::BufReader::new)
-                        .map(|reader| reader.lines())
-                        .expect("Failed to read stderr");
 
-                    while let Ok(Some(line)) = stderr.next_line().await {
-                        warn!("<{}>: {}", name, line);
+                    eprintln!(
+                        "{}\n",
+                        tabby_common::terminal::HeaderFormat::BoldRed
+                            .format("Recent llama-cpp errors:")
+                    );
+                    match status_code {
+                        0 => (),
+                        1 | -1 => {
+                            for line in error_lines {
+                                eprintln!("{}", line);
+                                if let Some(solution) = analyze_error_message(&line) {
+                                    let solution_lines: Vec<_> = solution.split('\n').collect();
+                                    let msg = tabby_common::terminal::InfoMessage::new(
+                                        "ERROR",
+                                        tabby_common::terminal::HeaderFormat::BoldRed,
+                                        &solution_lines,
+                                    );
+                                    msg.print();
+                                    break;
+                                }
+                            }
+                            eprintln!(
+                                "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs and suggested solutions for details.",
+                                name
+                            );
+                            std::process::exit(1);
+                        }
+                        _ => {
+                            if first_retry {
+                                for line in &error_lines {
+                                    eprintln!("{}", line);
+                                }
+                                first_retry = false;
+                            }
+                            warn!(
+                                "llama-server <{}> exited with status code {}, retrying...",
+                                name, status_code
+                            );
+                        }
                     }
-
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
             }
@@ -143,6 +194,30 @@ impl LlamaCppSupervisor {
             }
         }
     }
+}
+
+fn analyze_error_message(error_message: &str) -> Option<String> {
+    if error_message.contains("cudaMalloc") {
+        return Some(String::from(
+            "CUDA memory allocation error detected:\n\
+             1. Try using a smaller Model\n\
+             2. Try to reduce GPU memory usage\n",
+        ));
+    }
+
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        if error_message.contains("Illegal instruction")
+            && !std::arch::is_x86_feature_detected!("avx2")
+        {
+            return Some(String::from(
+                "Illegal instruction detected: Your CPU does not support AVX2 instruction set.\n\
+                 Suggestion: Download a compatible binary from https://github.com/ggml-org/llama.cpp/releases"
+            ));
+        }
+    }
+
+    None
 }
 
 fn find_binary_name() -> Option<String> {
