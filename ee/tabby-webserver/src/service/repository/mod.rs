@@ -234,8 +234,7 @@ impl RepositoryService for RepositoryServiceImpl {
                         indices: f.indices,
                     })
                     .collect()
-            })
-            .map_err(anyhow::Error::from)?;
+            })?;
 
         Ok(matching)
     }
@@ -262,8 +261,7 @@ impl RepositoryService for RepositoryServiceImpl {
                     })
                     .collect();
                 (files, list_file.truncated)
-            })
-            .map_err(anyhow::Error::from)?;
+            })?;
         Ok((files, truncated))
     }
 
