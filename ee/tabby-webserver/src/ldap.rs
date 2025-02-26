@@ -86,7 +86,7 @@ impl LdapClient for LdapClientImpl {
         let searched = client
             .search(
                 &self.base_dn,
-                Scope::OneLevel,
+                Scope::Subtree,
                 &self.user_filter.replace("%s", user),
                 attrs,
             )
