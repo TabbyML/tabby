@@ -64,7 +64,8 @@ export const getLanguageDisplayName = (
     csharp: 'C#',
     cpp: 'C++',
     javascript: 'JavaScript',
-    typescript: 'TypeScript'
+    typescript: 'TypeScript',
+    php: 'PHP'
   }
   return mapping[displayName.toLocaleLowerCase()] || displayName
 }

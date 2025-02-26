@@ -58,6 +58,7 @@ pub enum Language {
     C,
     Cpp,
     Solidity,
+    PHP,
     Other,
 }
 
@@ -92,6 +93,7 @@ impl Language {
             Language::C => vec!["c"],
             Language::Cpp => vec!["cpp", "c++"],
             Language::Solidity => vec!["solidity"],
+            Language::PHP => vec!["php"],
             Language::Other => vec!["other"],
         }
     }

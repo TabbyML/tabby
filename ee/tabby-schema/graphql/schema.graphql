@@ -65,6 +65,7 @@ enum Language {
   C
   CPP
   SOLIDITY
+  PHP
   OTHER
 }
 
