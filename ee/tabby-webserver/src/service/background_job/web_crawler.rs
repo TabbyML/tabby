@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use anyhow::anyhow;
 use chrono::Utc;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -9,6 +10,7 @@ use tabby_index::public::{
     StructuredDocWebFields,
 };
 use tabby_inference::Embedding;
+use tabby_schema::CoreError;
 
 use super::helper::Job;
 
@@ -115,20 +117,23 @@ impl WebCrawlerJob {
 
     pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         let url = self.url.clone();
-        if tokio::time::timeout(
+        tokio::time::timeout(
             Duration::from_secs(CRAWLER_TIMEOUT_SECS),
             self.run_impl(embedding),
         )
         .await
-        .is_err()
-        {
+        .map_err(|_| {
             logkit::warn!(
                 "Crawled for url: {} timeout after {} seconds",
                 url,
-                CRAWLER_TIMEOUT_SECS
+                CRAWLER_TIMEOUT_SECS,
             );
-        }
-        Ok(())
+            CoreError::Other(anyhow!(
+                "Crawled for url: {} timeout after {} seconds",
+                url,
+                CRAWLER_TIMEOUT_SECS
+            ))
+        })?
     }
 }
 
