@@ -26,10 +26,10 @@ export function NewPageForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
-  const { isSubmitting } = form.formState
+  const title = form.watch('title')
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    const error = await onSubmit(values.title)
+    const error = await onSubmit(values.title.trim())
 
     if (error) {
       makeFormErrorHandler(form)(error)
@@ -48,7 +48,7 @@ export function NewPageForm({
                 <FormControl>
                   <Input
                     autoFocus
-                    className="h-auto w-full border-none text-3xl font-bold shadow-none outline-none focus-visible:ring-0"
+                    className="h-auto w-full border-none text-3xl font-semibold shadow-none outline-none focus-visible:ring-0"
                     placeholder="What is your page about?"
                     {...field}
                   />
@@ -57,7 +57,11 @@ export function NewPageForm({
               </FormItem>
             )}
           />
-          <Button className="h-auto w-auto">
+          <Button
+            className="h-auto w-auto px-2"
+            type="submit"
+            disabled={!title}
+          >
             <IconArrowRight />
           </Button>
         </div>
