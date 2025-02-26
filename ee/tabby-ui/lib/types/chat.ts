@@ -6,8 +6,8 @@ import {
   CreateThreadRunSubscription,
   MessageAttachmentCode,
   MessageCodeSearchHit,
-  MessageDocSearchHit,
-  MessageCommitHistorySearchHit
+  MessageCommitHistorySearchHit,
+  MessageDocSearchHit
 } from '../gql/generates/graphql'
 import { ArrayElementType } from './common'
 

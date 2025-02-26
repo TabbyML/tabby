@@ -433,18 +433,21 @@ export function Search() {
     }
 
     // get and format scores from streaming answer
-    if (!currentAssistantMessage.attachment?.commit && !!answer.attachmentsCommit) {
+    if (
+      !currentAssistantMessage.attachment?.commit &&
+      !!answer.attachmentsCommit
+    ) {
       currentAssistantMessage.attachment = {
         clientCode: null,
-        doc: currentAssistantMessage.attachment?.doc|| null,
+        doc: currentAssistantMessage.attachment?.doc || null,
         code: currentAssistantMessage.attachment?.code || null,
         commit:
           answer.attachmentsCommit.map(hit => ({
-          ...hit.commit,
-          extra: {
-            score: hit.score
-          }
-        })) || null,
+            ...hit.commit,
+            extra: {
+              score: hit.score
+            }
+          })) || null
       }
     }
 

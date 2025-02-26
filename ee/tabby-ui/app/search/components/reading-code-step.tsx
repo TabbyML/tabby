@@ -8,7 +8,11 @@ import {
   ContextSource,
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentCommitItem, AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
+import {
+  AttachmentCommitItem,
+  AttachmentDocItem,
+  RelevantCodeContext
+} from '@/lib/types'
 import { cn, isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
 import {
   Accordion,

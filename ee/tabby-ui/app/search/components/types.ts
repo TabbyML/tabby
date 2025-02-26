@@ -4,7 +4,11 @@ import {
   MessageAttachmentClientCode,
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentCodeItem, AttachmentDocItem, AttachmentCommitItem } from '@/lib/types'
+import {
+  AttachmentCodeItem,
+  AttachmentCommitItem,
+  AttachmentDocItem
+} from '@/lib/types'
 
 export type ConversationMessage = Omit<
   Message,

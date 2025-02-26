@@ -221,8 +221,7 @@ export function AssistantMessageSection({
     (messageAttachmentClientCode?.length || 0) +
     (message.attachment?.code?.length || 0)
   const messageAttachmentCommit = message?.attachment?.commit
-  const messageAttachmentCommitLen =
-    (message.attachment?.commit?.length || 0)
+  const messageAttachmentCommitLen = message.attachment?.commit?.length || 0
 
   const issuesAndPRs = useMemo(() => {
     return messageAttachmentDocs?.filter(
@@ -285,7 +284,7 @@ export function AssistantMessageSection({
     !!message.attachment?.codeFileList?.fileList?.length
   const showCodeSnippetsStep =
     message.readingCode?.snippet || !!messageAttachmentCodeLen
-    const showCommitHistoryStep =
+  const showCommitHistoryStep =
     message.readingCode?.commitHistory || !!messageAttachmentCommitLen
 
   const showReadingCodeStep = !!message.codeSourceId
