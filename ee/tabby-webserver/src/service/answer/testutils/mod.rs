@@ -15,10 +15,12 @@ use tabby_common::api::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
         CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
     },
+    commit::{CommitHistorySearch, CommitHistorySearchResponse},
     structured_doc::{
         DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse,
         DocSearchWebDocument,
     },
+    Result as ApiResult, SearchError,
 };
 use tabby_db::DbConn;
 use tabby_inference::ChatCompletionStream;
@@ -221,6 +223,19 @@ impl CodeSearch for FakeCodeSearchFail {
         _params: CodeSearchParams,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
         Err(CodeSearchError::Other(anyhow::anyhow!("error")))
+    }
+}
+
+pub struct FakeCommitSearchFail;
+#[async_trait]
+impl CommitHistorySearch for FakeCommitSearchFail {
+    async fn search(
+        &self,
+        _source_id: &str,
+        _q: &str,
+        _limit: usize,
+    ) -> ApiResult<CommitHistorySearchResponse> {
+        Err(SearchError::Other(anyhow::anyhow!("error")))
     }
 }
 

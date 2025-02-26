@@ -841,8 +841,8 @@ mod tests {
 
     use super::{
         testutils::{
-            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
-            FakeDocSearch,
+            make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+            FakeCommitSearchFail, FakeContextService, FakeDocSearch,
         },
         *,
     };
@@ -1064,14 +1064,24 @@ mod tests {
             return_error: false,
         });
         let code = Arc::new(FakeCodeSearch);
+        let commit = Arc::new(FakeCommitSearchFail);
         let doc = Arc::new(FakeDocSearch);
         let context = Arc::new(FakeContextService);
         let config = make_answer_config();
         let db = DbConn::new_in_memory().await.unwrap();
         let repo_service = make_repository_service(db.clone()).await.unwrap();
 
-        let service =
-            AnswerService::new(&config, auth, chat, code, doc, context, None, repo_service);
+        let service = AnswerService::new(
+            &config,
+            auth,
+            chat,
+            code,
+            doc,
+            commit,
+            context,
+            None,
+            repo_service,
+        );
 
         // Test Case 1: Basic code collection
         let input = make_code_query_input(Some(&test_repo.source_id), Some(&test_repo.git_url));
@@ -1122,6 +1132,7 @@ mod tests {
         });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let commit = Arc::new(FakeCommitSearchFail);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
@@ -1134,6 +1145,7 @@ mod tests {
             chat.clone(),
             code.clone(),
             doc.clone(),
+            commit.clone(),
             context.clone(),
             serper,
             repo,
@@ -1161,6 +1173,7 @@ mod tests {
                 start_line: Some(1),
             }],
             code_file_list: None,
+            commit: vec![],
         };
 
         let question = "What is the purpose of this code?";
@@ -1185,6 +1198,7 @@ mod tests {
             Arc::new(FakeChatCompletionStream { return_error: true });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let commit = Arc::new(FakeCommitSearchFail);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
@@ -1197,6 +1211,7 @@ mod tests {
             chat.clone(),
             code.clone(),
             doc.clone(),
+            commit.clone(),
             context.clone(),
             serper,
             repo,
@@ -1224,6 +1239,7 @@ mod tests {
                 start_line: Some(1),
             }],
             code_file_list: None,
+            commit: vec![],
         };
 
         let question = "What is the purpose of this code?";
@@ -1243,6 +1259,7 @@ mod tests {
         });
         let code = Arc::new(FakeCodeSearch);
         let doc = Arc::new(FakeDocSearch);
+        let commit = Arc::new(FakeCommitSearchFail);
         let context = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
@@ -1255,6 +1272,7 @@ mod tests {
             chat.clone(),
             code.clone(),
             doc.clone(),
+            commit.clone(),
             context.clone(),
             serper,
             repo,
@@ -1329,6 +1347,7 @@ mod tests {
         });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let commit = Arc::new(FakeCommitSearchFail);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
 
@@ -1340,7 +1359,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
         let service = Arc::new(AnswerService::new(
-            &config, auth, chat, code, doc, context, serper, repo,
+            &config, auth, chat, code, doc, commit, context, serper, repo,
         ));
 
         let db = DbConn::new_in_memory().await.unwrap();
@@ -1433,6 +1452,7 @@ mod tests {
         });
         let code = Arc::new(FakeCodeSearch);
         let doc = Arc::new(FakeDocSearch);
+        let commit = Arc::new(FakeCommitSearchFail);
         let context = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
@@ -1443,6 +1463,7 @@ mod tests {
             chat,
             code,
             doc,
+            commit,
             context,
             serper,
             repo_service,

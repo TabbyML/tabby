@@ -8,8 +8,7 @@ use tabby_schema::{
     auth::AuthenticationService,
     bail,
     context::ContextService,
-    from_attachment_commit_history,
-    from_thread_message_attachment_document,
+    from_attachment_commit_history, from_thread_message_attachment_document,
     policy::AccessPolicy,
     thread::{
         self, CodeQueryInput, CreateMessageInput, CreateThreadInput, MessageAttachment,
@@ -474,8 +473,8 @@ mod tests {
     use super::*;
     use crate::{
         answer::testutils::{
-            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
-            FakeDocSearch,
+            make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+            FakeCommitSearchFail, FakeContextService, FakeDocSearch,
         },
         service::auth,
     };
@@ -733,6 +732,7 @@ mod tests {
         });
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let commit = Arc::new(FakeCommitSearchFail);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
@@ -743,6 +743,7 @@ mod tests {
             chat.clone(),
             code.clone(),
             doc.clone(),
+            commit.clone(),
             context.clone(),
             serper,
             repo,
