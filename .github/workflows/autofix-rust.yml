@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
-  
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }}
+
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
 
@@ -49,7 +49,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: cargo-machete
+          args: --version 0.7.0 cargo-machete
 
       - name: Cargo registry cache
         uses: actions/cache@v3
