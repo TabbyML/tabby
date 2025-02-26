@@ -234,8 +234,7 @@ impl RepositoryService for RepositoryServiceImpl {
                         indices: f.indices,
                     })
                     .collect()
-            })
-            .map_err(anyhow::Error::from)?;
+            })?;
 
         Ok(matching)
     }
@@ -249,21 +248,21 @@ impl RepositoryService for RepositoryServiceImpl {
         top_n: Option<usize>,
     ) -> Result<(Vec<FileEntrySearchResult>, bool)> {
         let dir = self.resolve_repository(policy, kind, id).await?.dir;
-        let (files, truncated) = tabby_git::list_files(&dir, rev, top_n)
-            .await
-            .map(|list_file| {
-                let files = list_file
-                    .files
-                    .into_iter()
-                    .map(|f| FileEntrySearchResult {
-                        r#type: f.r#type,
-                        path: f.path,
-                        indices: f.indices,
-                    })
-                    .collect();
-                (files, list_file.truncated)
-            })
-            .map_err(anyhow::Error::from)?;
+        let (files, truncated) =
+            tabby_git::list_files(&dir, rev, top_n)
+                .await
+                .map(|list_file| {
+                    let files = list_file
+                        .files
+                        .into_iter()
+                        .map(|f| FileEntrySearchResult {
+                            r#type: f.r#type,
+                            path: f.path,
+                            indices: f.indices,
+                        })
+                        .collect();
+                    (files, list_file.truncated)
+                })?;
         Ok((files, truncated))
     }
 
