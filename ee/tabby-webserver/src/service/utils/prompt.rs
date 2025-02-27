@@ -13,21 +13,14 @@ use futures::stream::BoxStream;
 use tabby_inference::ChatCompletionStream;
 use tracing::{error, warn};
 
-/// Sends a prompt to the provided ChatCompletionStream and returns the generated response as a String using a stream.
+/// Sends a prompt to the provided ChatCompletionStream and returns the generated response as a String.
 pub async fn request_llm_stream(
     chat: Arc<dyn ChatCompletionStream>,
-    prompt: &str,
+    messages: Vec<ChatCompletionRequestMessage>,
 ) -> BoxStream<'static, tabby_schema::Result<String>> {
-    let prompt = prompt.to_owned();
-
     Box::pin(stream! {
         let request = CreateChatCompletionRequestArgs::default()
-            .messages(vec![ChatCompletionRequestMessage::User(
-                ChatCompletionRequestUserMessageArgs::default()
-                    .content(prompt)
-                    .build()
-                    .expect("Failed to create ChatCompletionRequestUserMessage"),
-            )])
+            .messages(messages)
             .build().map_err(|e| anyhow!("Failed to build chat completion request: {:?}", e))?;
 
         let s = match chat.chat_stream(request).await {
@@ -70,6 +63,25 @@ pub async fn request_llm(chat: Arc<dyn ChatCompletionStream>, prompt: &str) -> R
                 .build()
                 .expect("Failed to create ChatCompletionRequestUserMessage"),
         )])
+        .build()?;
+
+    let s = chat.chat(request).await?;
+    let content = s.choices[0]
+        .message
+        .content
+        .as_deref()
+        .ok_or_else(|| anyhow!("Failed to get content from chat completion"))?;
+
+    Ok(content.into())
+}
+
+/// Sends a prompt to the provided ChatCompletionStream and returns the generated response as a String.
+pub async fn request_llm_with_message(
+    chat: Arc<dyn ChatCompletionStream>,
+    messages: Vec<ChatCompletionRequestMessage>,
+) -> Result<String> {
+    let request = CreateChatCompletionRequestArgs::default()
+        .messages(messages)
         .build()?;
 
     let s = chat.chat(request).await?;

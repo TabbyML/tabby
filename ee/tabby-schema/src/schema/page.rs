@@ -4,9 +4,10 @@ use futures::stream::BoxStream;
 use juniper::ID;
 pub use types::*;
 
-use crate::{policy::AccessPolicy, schema::Result, thread::Message};
+use crate::{policy::AccessPolicy, schema::Result};
 
 pub type ThreadToPageRunStream = BoxStream<'static, Result<PageRunItem>>;
+pub type SectionRunStream = BoxStream<'static, Result<SectionRunItem>>;
 
 #[async_trait]
 pub trait PageService: Send + Sync {
@@ -16,13 +17,6 @@ pub trait PageService: Send + Sync {
         author_id: &ID,
         thread_id: &ID,
     ) -> Result<ThreadToPageRunStream>;
-
-    async fn generate_page_title(
-        &self,
-        policy: &AccessPolicy,
-        page_id: ID,
-        messages: &Vec<Message>,
-    ) -> Result<String>;
 
     async fn list(
         &self,
@@ -50,5 +44,10 @@ pub trait PageService: Send + Sync {
         id: &ID,
         direction: MoveSectionDirection,
     ) -> Result<()>;
+    async fn append_section(
+        &self,
+        policy: &AccessPolicy,
+        input: &CreatePageSectionRunInput,
+    ) -> Result<SectionRunStream>;
     async fn delete_section(&self, id: &ID) -> Result<()>;
 }

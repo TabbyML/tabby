@@ -151,6 +151,11 @@ input CreateMessageInput {
   attachments: MessageAttachmentInput
 }
 
+input CreatePageSectionRunInput {
+  pageId: ID!
+  title: String!
+}
+
 input CreateThreadAndRunInput {
   thread: CreateThreadInput!
   options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false, modelName: null}
@@ -965,6 +970,7 @@ type Subscription {
     - a few sections based on the thread messages.
   """
   createThreadToPageRun(threadId: ID!): PageRunItem!
+  createPageSectionRun(input: CreatePageSectionRunInput!): SectionRunItem!
 }
 
 type Thread {
@@ -1098,6 +1104,9 @@ union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc
 
 "Schema of page convert stream."
 union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
+
+"Schema of page convert stream."
+union SectionRunItem = PageSection | PageSectionContentDelta | PageSectionContentCompleted
 
 """
   Schema of thread run stream.

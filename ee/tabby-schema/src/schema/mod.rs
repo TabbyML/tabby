@@ -45,7 +45,7 @@ use juniper::{
 };
 use ldap3::result::LdapError;
 use notification::NotificationService;
-use page::ThreadToPageRunStream;
+use page::{CreatePageSectionRunInput, SectionRunStream, ThreadToPageRunStream};
 use repository::RepositoryGrepOutput;
 use strum::IntoEnumIterator;
 use tabby_common::{
@@ -1704,6 +1704,24 @@ impl Subscription {
         page_service
             .convert_thread_to_page(&user.policy, &user.id, &thread_id)
             .await
+    }
+
+    async fn create_page_section_run(
+        ctx: &Context,
+        input: CreatePageSectionRunInput,
+    ) -> Result<SectionRunStream> {
+        let user = check_user(ctx).await?;
+
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+
+        let page = page_service.get(&input.page_id).await?;
+        user.policy.check_update_page(&page.author_id)?;
+
+        page_service.append_section(&user.policy, &input).await
     }
 }
 
