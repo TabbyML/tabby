@@ -379,7 +379,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       stop()
     }
 
-    const onClearMessages = () => {
+    const switchToNewChat = () => {
       stop(true)
       setQaPairs([])
       setThreadId(undefined)
@@ -388,6 +388,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         qaPairs: [],
         threadId: undefined
       })
+    }
+
+    const onClearMessages = () => {
+      switchToNewChat()
     }
 
     const handleMessageAction = (
@@ -747,7 +751,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           isLoading,
           addRelevantContext,
           focus: () => chatPanelRef.current?.focus(),
-          updateActiveSelection
+          updateActiveSelection,
+          newChat: switchToNewChat
         }
       },
       []

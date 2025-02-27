@@ -14,6 +14,7 @@ export interface ChatRef {
   addRelevantContext: (context: EditorContext) => void
   focus: () => void
   updateActiveSelection: (context: EditorContext | null) => void
+  newChat: () => void
 }
 
 /**
