@@ -41,10 +41,10 @@ export function ThreadItem({
   return (
     <div
       onClick={e => onNavigate(data.node.id)}
-      className="transform-bg group flex-1 cursor-pointer overflow-hidden rounded-md bg-background/70 px-4 py-3 hover:bg-accent/60"
+      className="group cursor-pointer overflow-hidden rounded-md bg-background/70 px-4 py-3 transition-colors hover:bg-accent/60"
     >
-      <div className="flex flex-none justify-between gap-2">
-        <div className="flex-1">
+      <div className="flex flex-nowrap justify-between gap-2 overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           <LoadingWrapper
             loading={fetching || fetchingSources}
             fallback={
@@ -54,19 +54,15 @@ export function ThreadItem({
             }
           >
             <ThreadTitleWithMentions
-              className="break-anywhere flex-1 truncate text-base font-medium text-foreground/90"
+              className="break-anywhere truncate text-base font-medium text-foreground/90"
               sources={sources}
               message={replaceAtMentionPlaceHolderWithAt(
                 threadMessages?.[0]?.['node']['content'] ?? ''
               )}
             />
           </LoadingWrapper>
-          <div className="flex items-center gap-2">
-            <div className="flex items-baseline gap-0.5">
-              <div className="whitespace-nowrap text-xs text-muted-foreground">
-                {formatThreadTime(data.node.createdAt, 'Asked')}
-              </div>
-            </div>
+          <div className="mt-1 truncate whitespace-nowrap text-xs text-muted-foreground">
+            {formatThreadTime(data.node.createdAt, 'Asked')}
           </div>
         </div>
         {!!onDeleteThread && (
