@@ -25,6 +25,7 @@ import {
   IconCheckCircled,
   IconCircleDot,
   IconCode,
+  IconGitCommit,
   IconGitMerge,
   IconGitPullRequest
 } from '@/components/ui/icons'
@@ -50,6 +51,7 @@ interface ReadingCodeStepperProps {
   serverCodeContexts: RelevantCodeContext[]
   clientCodeContexts: RelevantCodeContext[]
   webResources?: Maybe<AttachmentDocItem[]> | undefined
+  commitResources?: Maybe<AttachmentDocItem[]> | undefined
   docQueryResources: Omit<ContextSource, 'id'>[] | undefined
   onContextClick?: (
     context: RelevantCodeContext,
@@ -66,6 +68,7 @@ export function ReadingCodeStepper({
   serverCodeContexts,
   clientCodeContexts,
   webResources,
+  commitResources,
   docQuery,
   onContextClick
 }: ReadingCodeStepperProps) {
@@ -84,7 +87,7 @@ export function ReadingCodeStepper({
   }, [codeSourceId, contextInfo])
 
   const steps = useMemo(() => {
-    let result: Array<'fileList' | 'snippet' | 'docs'> = []
+    let result: Array<'fileList' | 'snippet' | 'docs' | 'commits' > = []
     if (readingCode?.fileList) {
       result.push('fileList')
     }
@@ -93,6 +96,9 @@ export function ReadingCodeStepper({
     }
     if (docQuery) {
       result.push('docs')
+    }
+    if (commitResources?.length) {
+      result.push('commits')
     }
     return result
   }, [readingCode?.fileList, readingCode?.snippet])
@@ -197,6 +203,31 @@ export function ReadingCodeStepper({
                                   relevantDocument={x}
                                 />
                               </HoverCardContent>
+                            </HoverCard>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </StepItem>
+            )}
+            {commitResources?.length && (
+              <StepItem
+                title="Search for relevant Commits ..."
+                isLastItem={lastItem === 'commits'}
+                isLoading={isReadingDocs}
+              >
+                {!!commitResources?.length && (
+                  <div className="mb-3 mt-2 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {commitResources?.map((x, index) => {
+                        return (
+                          <div key={`${x.sha}_${index}`}>
+                            <HoverCard openDelay={100} closeDelay={100}>
+                              <HoverCardTrigger>
+                                <CommitDocView commit={x} />
+                              </HoverCardTrigger>
                             </HoverCard>
                           </div>
                         )
@@ -345,6 +376,29 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
     >
       {icon}
       <span>{docName}</span>
+    </div>
+  )
+}
+
+// Commits
+function CommitDocView({ commit }: { commit: AttachmentDocItem }) {
+  if (commit.__typename !== 'MessageAttachmentCommitDoc') {
+    return null
+  }
+
+  const sha = `${commit.sha.slice(0, 7)}`
+  const message = `${commit.message}`
+  const changedFile = `${commit.changedFile}`
+
+  let icon: ReactNode = <IconGitCommit className="h-3 w-3" />
+
+  return (
+    <div
+      className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold hover:text-foreground"
+      onClick={() => window.open(`${commit.gitUrl}/blob/${commit.sha}/${commit.changedFile}`)}
+    >
+      {icon}
+      <span>{sha}</span>
     </div>
   )
 }

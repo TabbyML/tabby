@@ -229,6 +229,13 @@ export function AssistantMessageSection({
     )
   }, [messageAttachmentDocs])
 
+  const commitDocs = useMemo(() => {
+    return messageAttachmentDocs?.filter(
+      x =>
+        x.__typename === 'MessageAttachmentCommitDoc'
+    )
+  }, [messageAttachmentDocs])
+
   const webDocs = useMemo(() => {
     return messageAttachmentDocs?.filter(
       x => x.__typename === 'MessageAttachmentWebDoc'
@@ -324,6 +331,7 @@ export function AssistantMessageSection({
                 docQuery
                 docQueryResources={docSources}
                 webResources={issuesAndPRs}
+                commitResources={commitDocs}
                 readingCode={{
                   fileList: showFileListStep,
                   snippet: showCodeSnippetsStep

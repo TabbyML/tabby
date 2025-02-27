@@ -23,6 +23,7 @@ import {
   FileSearch2,
   FileText,
   Filter,
+  GitCommitHorizontal,
   GitFork,
   GitMerge,
   GitPullRequest,
@@ -1727,6 +1728,13 @@ function IconCircleDot({
   return <CircleDot className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconGitCommit({
+  className,
+  ...props
+}: React.ComponentProps<typeof GitCommitHorizontal>) {
+  return <GitCommitHorizontal className={cn('h-4 w-4', className)} {...props} />
+}
+
 function IconGitPullRequest({
   className,
   ...props
@@ -1894,6 +1902,7 @@ export {
   IconEye,
   IconEyeOff,
   IconCircleDot,
+  IconGitCommit,
   IconGitPullRequest,
   IconGitMerge,
   IconSquareChevronRight,
