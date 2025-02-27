@@ -231,6 +231,13 @@ export interface GitRepository {
 export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
 
 /**
+ * Actions that can be performed on the chat webview
+ * - 'history': Click to view chat history
+ * - 'new-chat': Click to start a new chat
+ */
+export type ChatAction = 'history' | 'new-chat'
+
+/**
  * Represents a file reference for retrieving file content.
  * If `range` is not provided, the entire file is considered.
  */
@@ -301,6 +308,12 @@ export interface ServerApi {
   addRelevantContext: (context: EditorContext) => void
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: EditorContext | null) => void
+  /**
+   * Executes a specified action on the chat webview.
+   * This function is likely used to modify the navigation or state of the chat webview.
+   * @param action The action to be performed on the chat webview.
+   */
+  performChatAction: (action: ChatAction) => void
 }
 
 export interface ClientApiMethods {
