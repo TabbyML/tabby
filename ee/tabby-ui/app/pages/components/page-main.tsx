@@ -155,6 +155,7 @@ export function Page() {
   const [page, setPage] = useState<PageItem | undefined>()
   const [sections, setSections] = useState<Array<SectionItem>>()
   const [isLoading, setIsLoading] = useState(false)
+  // todo error handling
   const [error, setError] = useState<ExtendedCombinedError | undefined>()
   const [submitting, setSubmitting] = useState(false)
   const [isGeneratingPageTitle, setIsGeneratingPageTitle] = useState(false)
@@ -677,6 +678,7 @@ export function Page() {
         <LoadingWrapper
           loading={!isNew && (!isReady || !page)}
           fallback={<PageSkeleton />}
+          delay={0}
         >
           <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
             <ScrollArea className="h-full w-full" ref={contentContainerRef}>
