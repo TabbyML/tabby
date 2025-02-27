@@ -1,6 +1,6 @@
-use std::{sync::Arc, vec};
+use std::sync::Arc;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use async_stream::stream;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};

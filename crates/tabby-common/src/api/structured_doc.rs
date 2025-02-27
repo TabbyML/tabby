@@ -353,6 +353,5 @@ fn get_json_date_field(
     get_json_option_field(doc, field, name)
         .and_then(|field| field.as_datetime())
         .map(|x| x.into_timestamp_secs())
-        .map(|x| Utc.timestamp_opt(x, 0).single())
-        .flatten()
+        .and_then(|x| Utc.timestamp_opt(x, 0).single())
 }

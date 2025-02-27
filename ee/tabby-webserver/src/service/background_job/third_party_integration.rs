@@ -8,7 +8,7 @@ use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
 use pulls::{get_github_pull_doc, list_github_pull_states};
 use serde::{Deserialize, Serialize};
-use tabby_common::{config::CodeRepository, index::structured_doc::fields::commit};
+use tabby_common::config::CodeRepository;
 use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer, StructuredDocState};
 use tabby_inference::Embedding;
 use tabby_schema::{

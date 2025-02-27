@@ -185,7 +185,7 @@ impl IndexSchema {
         ];
 
         queries.extend(
-            kvs.into_iter()
+            kvs.iter()
                 .map(|(field, value)| {
                     let mut term = Term::from_field_json_path(self.field_attributes, field, false);
                     term.append_type_and_str(value);

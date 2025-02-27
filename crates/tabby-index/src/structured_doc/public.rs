@@ -4,9 +4,7 @@ use anyhow::Result;
 use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
-use tabby_common::index::{
-    code::fields, corpus, structured_doc::fields as StructuredDocIndexFields,
-};
+use tabby_common::index::{corpus, structured_doc::fields as StructuredDocIndexFields};
 use tabby_inference::Embedding;
 
 pub use super::types::{
