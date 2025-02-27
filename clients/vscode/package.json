@@ -254,7 +254,6 @@
         {
           "command": "tabby.chat.createPanel",
           "when": "view == tabby.chatView",
-          "icon": "$(add)",
           "group": "0_new"
         }
       ]
