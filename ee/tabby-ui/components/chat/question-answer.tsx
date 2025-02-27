@@ -268,7 +268,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         range: getRangeFromAttachmentCode(code),
         filepath: code.filepath,
         content: code.content,
-        git_url: code.gitUrl,
+        gitUrl: code.gitUrl,
         commit: code.commit ?? undefined
       })) ?? []
     )
@@ -287,36 +287,36 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   const attachmentDocsLen = 0
 
   const attachmentClientCode: Array<
-    Omit<AttachmentCodeItem, '__typename' | 'startLine'> & {
-      startLine: number | undefined
-      baseDir?: string
+    Omit<AttachmentCodeItem, '__typename' | 'startLine' | 'gitUrl'> & {
+      startLine?: number | undefined
+      gitUrl?: string | undefined
     }
   > = useMemo(() => {
-    const formatedAttachmentClientCode =
+    const formattedAttachmentClientCode =
       clientCode?.map(o => ({
         content: o.content,
         filepath: o.filepath,
-        gitUrl: o.git_url,
+        gitUrl: o.gitUrl,
         baseDir: o.baseDir,
         startLine: o.range ? o.range.start : undefined,
         language: filename2prism(o.filepath ?? '')[0],
         isClient: true
       })) ?? []
-    return formatedAttachmentClientCode
+    return formattedAttachmentClientCode
   }, [clientCode])
 
   const attachmentCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
     useMemo(() => {
-      const formatedServerAttachmentCode =
+      const formattedServerAttachmentCode =
         serverCode?.map(o => ({
           content: o.content,
           filepath: o.filepath,
-          gitUrl: o.git_url,
+          gitUrl: o.gitUrl ?? '',
           startLine: o.range?.start,
           language: filename2prism(o.filepath ?? '')[0],
           isClient: false
         })) ?? []
-      return compact([...formatedServerAttachmentCode])
+      return compact([...formattedServerAttachmentCode])
     }, [serverCode])
 
   const onCodeCitationMouseEnter = (index: number) => {
@@ -345,7 +345,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   const onCodeCitationClick = (code: AttachmentCodeItem) => {
     const ctx: Context = {
-      git_url: code.gitUrl,
+      gitUrl: code.gitUrl,
       content: code.content,
       filepath: code.filepath,
       kind: 'file',

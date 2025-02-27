@@ -12,23 +12,38 @@ import { ArrayElementType } from './common'
 
 export interface FileContext {
   kind: 'file'
+
   /**
-   * filepath can be:
-   * - uri, file://path/to/file.txt or untitled://Untitled-1
-   * - relative path, path/to/file.txt, in this case, `baseDir` or `git_uri` is required
+   * The path to the file.
+   *
+   * This can be:
+   * - A URI, e.g., `file:///path/to/file.txt` or `untitled://Untitled-1`
+   * - A relative path, e.g., `path/to/file.txt`. In this case, either `baseDir` or `gitUrl` is required.
    */
   filepath: string
+
   /**
-   * Uri to the base dir, provided when filepath is relative path and git_url is not available.
+   * The client local URI to the base directory.
+   *
+   * This is provided when the file is contained in a local workspace that does not have a `gitUrl` available.
+   * Example: `file:///path/to/file.txt`
    */
   baseDir?: string
+
   /**
    * The range of the selected content in the file.
    * If the range is not provided, the whole file is considered.
    */
   range?: { start: number; end: number }
   content: string
-  git_url: string
+
+  /**
+   * The URL of the git repository.
+   *
+   * This is provided when the file is contained in a git repository.
+   * Example: `https://github.com/TabbyML/tabby`
+   */
+  gitUrl?: string
   commit?: string
 }
 

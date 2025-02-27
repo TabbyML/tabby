@@ -195,23 +195,29 @@ export function getPromptForChatCommand(command: ChatCommand) {
   }
 }
 
-export const convertFilepath = (filepath: Filepath) => {
+interface FilepathConvertible {
+  filepath: string
+  baseDir?: string | undefined
+  gitUrl?: string | undefined
+  commit?: string | undefined
+}
+
+export function convertFromFilepath(filepath: Filepath): FilepathConvertible {
   if (filepath.kind === 'git') {
     return {
       filepath: filepath.filepath,
-      git_url: filepath.gitUrl
+      gitUrl: filepath.gitUrl,
+      commit: filepath.revision
     }
   }
   if (filepath.kind === 'workspace') {
     return {
       filepath: filepath.filepath,
-      baseDir: filepath.baseDir,
-      git_url: ''
+      baseDir: filepath.baseDir
     }
   }
   return {
-    filepath: filepath.uri,
-    git_url: ''
+    filepath: filepath.uri
   }
 }
 
@@ -239,23 +245,20 @@ export function convertEditorContext(
     kind: 'file',
     content: editorContext.content,
     range: convertRange(editorContext.range),
-    ...convertFilepath(editorContext.filepath)
+    ...convertFromFilepath(editorContext.filepath)
   }
 }
 
-export function getFilepathFromContext(context: FileContext): Filepath {
-  if (context.git_url.length > 1 && !context.filepath.includes(':')) {
+export function convertToFilepath(context: FilepathConvertible): Filepath {
+  if (context.gitUrl && !context.filepath.includes(':')) {
     return {
       kind: 'git',
       filepath: context.filepath,
-      gitUrl: context.git_url
+      gitUrl: context.gitUrl,
+      revision: context.commit
     }
   }
-  if (
-    context.baseDir &&
-    context.baseDir.length > 1 &&
-    !context.filepath.includes(':')
-  ) {
+  if (context.baseDir && !context.filepath.includes(':')) {
     return {
       kind: 'workspace',
       filepath: context.filepath,
@@ -270,7 +273,7 @@ export function getFilepathFromContext(context: FileContext): Filepath {
 
 export function getFileLocationFromContext(context: FileContext): FileLocation {
   return {
-    filepath: getFilepathFromContext(context),
+    filepath: convertToFilepath(context),
     location: context.range
   }
 }
@@ -284,7 +287,9 @@ export function buildCodeBrowserUrlForContext(
 
   const searchParams = new URLSearchParams()
   searchParams.append('redirect_filepath', context.filepath)
-  searchParams.append('redirect_git_url', context.git_url)
+  if (context.gitUrl) {
+    searchParams.append('redirect_git_url', context.gitUrl)
+  }
   if (context.commit) {
     searchParams.append('redirect_rev', context.commit)
   }

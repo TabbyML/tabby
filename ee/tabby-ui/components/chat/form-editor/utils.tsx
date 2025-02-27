@@ -5,7 +5,11 @@ import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import { PLACEHOLDER_FILE_REGEX } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
-import { convertFilepath, nanoid, resolveFileNameForDisplay } from '@/lib/utils'
+import {
+  convertFromFilepath,
+  nanoid,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import { IconFile } from '@/components/ui/icons'
 
 import { FileItem, SourceItem } from '../types'
@@ -14,7 +18,7 @@ import { FileItem, SourceItem } from '../types'
  * Converts a FileItem to a SourceItem for use in the mention dropdown list.
  */
 export function fileItemToSourceItem(info: FileItem): SourceItem {
-  const filepathString = convertFilepath(info.filepath).filepath
+  const filepathString = convertFromFilepath(info.filepath).filepath
   const source: Omit<SourceItem, 'id'> = {
     fileItem: info,
     name: resolveFileNameForDisplay(filepathString), // Extract the last segment of the path as the name
@@ -36,7 +40,7 @@ export function fileItemToSourceItem(info: FileItem): SourceItem {
 }
 
 export function symbolItemToSourceItem(info: ListSymbolItem): SourceItem {
-  const filepath = convertFilepath(info.filepath).filepath
+  const filepath = convertFromFilepath(info.filepath).filepath
   return {
     category: 'symbol',
     id: info.label,
@@ -137,14 +141,18 @@ export function isSameEntireFileContextFromMention(
 ) {
   return (
     fileContext1.filepath === fileContext2.filepath &&
-    fileContext1.git_url === fileContext2.git_url &&
+    fileContext1.baseDir === fileContext2.baseDir &&
+    fileContext1.gitUrl === fileContext2.gitUrl &&
     !fileContext1.range &&
     !fileContext2.range
   )
 }
 
 export const isSameFileContext = (a: FileContext, b: FileContext) => {
-  const sameBasicInfo = a.filepath === b.filepath && a.git_url === b.git_url
+  const sameBasicInfo =
+    a.filepath === b.filepath &&
+    a.baseDir === b.baseDir &&
+    a.gitUrl === b.gitUrl
 
   if (!a.range && !b.range) return sameBasicInfo
 

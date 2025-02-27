@@ -16,7 +16,8 @@ import {
 } from '@/lib/types'
 import {
   cn,
-  convertFilepath,
+  convertFromFilepath,
+  convertToFilepath,
   encodeMentionPlaceHolder,
   getRangeFromAttachmentCode,
   resolveFileNameForDisplay
@@ -214,25 +215,13 @@ export function MessageMarkdown({
 
     attachmentClientCode?.forEach(item => {
       const code = item as AttachmentCodeItem
-
-      // FIXME(Sma1lboy): using getFilepathFromContext after refactor FileContext
       hints.push({
-        filepath: code.gitUrl
-          ? {
-              kind: 'git',
-              gitUrl: code.gitUrl,
-              filepath: code.filepath
-            }
-          : code.baseDir
-          ? {
-              kind: 'workspace',
-              filepath: code.filepath,
-              baseDir: code.baseDir
-            }
-          : {
-              kind: 'uri',
-              uri: code.filepath
-            },
+        filepath: convertToFilepath({
+          filepath: code.filepath,
+          baseDir: code.baseDir,
+          gitUrl: code.gitUrl,
+          commit: code.commit ?? undefined
+        }),
         location: getRangeFromAttachmentCode(code)
       })
     })
@@ -444,7 +433,7 @@ function FileTag({
   const filepathString = useMemo(() => {
     if (!filepath) return undefined
 
-    return convertFilepath(filepath).filepath
+    return convertFromFilepath(filepath).filepath
   }, [filepath])
 
   const handleClick = () => {
