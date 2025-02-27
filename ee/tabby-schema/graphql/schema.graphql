@@ -578,6 +578,18 @@ type MessageAttachmentCodeScores {
   embedding: Float!
 }
 
+type MessageAttachmentCommitDoc {
+  gitUrl: String!
+  sha: String!
+  message: String!
+  author: User
+  authorAt: DateTime!
+  committer: User
+  commitAt: DateTime!
+  diff: String
+  changedFile: String
+}
+
 type MessageAttachmentIssueDoc {
   title: String!
   link: String!
@@ -1100,7 +1112,7 @@ type WebContextSource implements ContextSourceId & ContextSource {
   sourceName: String!
 }
 
-union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc
+union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc | MessageAttachmentCommitDoc
 
 "Schema of page convert stream."
 union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
