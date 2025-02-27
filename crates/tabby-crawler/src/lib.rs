@@ -3,6 +3,7 @@ mod types;
 
 use std::process::Stdio;
 
+use anyhow::anyhow;
 use async_stream::stream;
 use futures::{Stream, StreamExt};
 use readable_readability::Readability;
@@ -45,7 +46,9 @@ async fn crawl_url(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    let mut child = command.spawn()?;
+    let mut child = command
+        .spawn()
+        .map_err(|e| anyhow!("Failed to run katana: {}", e))?;
 
     let stdout = child.stdout.take().expect("Failed to acquire stdout");
     let mut stdout = tokio::io::BufReader::new(stdout).lines();
