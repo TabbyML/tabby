@@ -45,8 +45,8 @@ import { UserAvatar } from '@/components/user-avatar'
 import { PageItem, SectionItem } from '../types'
 import { Header } from './header'
 import { Navbar } from './nav-bar'
-import { NewSectionForm } from './new-section-form'
 import { NewPageForm } from './new-page-form'
+import { NewSectionForm } from './new-section-form'
 import { PageContext } from './page-context'
 import { SectionContent } from './section-content'
 import { SectionTitle } from './section-title'
@@ -627,7 +627,7 @@ export function Page() {
   }, [pagesData, fetchingPage, pageError, isReady, pageIdFromURL])
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections ||
-    pageSectionData?.pageSections?.pageInfo?.hasNextPage,
+      pageSectionData?.pageSections?.pageInfo?.hasNextPage,
     200
   )
 
