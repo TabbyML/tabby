@@ -184,6 +184,7 @@ export function ReadingCodeStepper({
             )}
             {commitResources?.length && (
               <StepItem
+                key='commits'
                 title="Search for relevant Commits ..."
                 isLastItem={lastItem === 'commits'}
                 isLoading={isReadingDocs}
@@ -209,6 +210,7 @@ export function ReadingCodeStepper({
             )}
             {docQuery && (
               <StepItem
+                key='docs'
                 title="Search for relevant Issues/PRs ..."
                 isLastItem={lastItem === 'docs'}
                 isLoading={isReadingDocs}
