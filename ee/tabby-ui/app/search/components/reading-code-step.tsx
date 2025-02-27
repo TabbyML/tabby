@@ -102,7 +102,7 @@ export function ReadingCodeStepper({
       result.push('docs')
     }
     return result
-  }, [readingCode?.fileList, readingCode?.snippet])
+  }, [readingCode?.fileList, readingCode?.snippet, commitResources, docQuery])
 
   const lastItem = useMemo(() => {
     return steps.slice().pop()
