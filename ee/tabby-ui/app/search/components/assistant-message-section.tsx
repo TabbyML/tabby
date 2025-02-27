@@ -148,7 +148,12 @@ export function AssistantMessageSection({
       .trim()
     const docCitations =
       answer.attachment?.doc
-        ?.map((doc, idx) => `[${idx + 1}] ${doc.link}`)
+        ?.map((doc, idx) => {
+          if (doc.__typename === 'MessageAttachmentCommitDoc') {
+            return `[${idx + 1}] ${doc.gitUrl}/blob/${doc.sha}/${doc.changedFile}`
+          } else {
+            return `[${idx + 1}] ${doc.link}`}
+          })
         .join('\n') ?? ''
     const docCitationLen = answer.attachment?.doc?.length ?? 0
     const codeCitations =
@@ -230,8 +235,10 @@ export function AssistantMessageSection({
   }, [messageAttachmentDocs])
 
   const commitDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(
-      x => x.__typename === 'MessageAttachmentCommitDoc'
+    return messageAttachmentDocs?.filter((
+      x
+    ): x is Extract<AttachmentDocItem, { __typename: 'MessageAttachmentCommitDoc' }> =>
+      x.__typename === 'MessageAttachmentCommitDoc'
     )
   }, [messageAttachmentDocs])
 
@@ -487,6 +494,10 @@ function SourceCard({
     setDevPanelOpen(true)
   }
 
+  const link = source.__typename === 'MessageAttachmentCommitDoc'
+    ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
+    : source.link
+
   return (
     <HoverCard openDelay={100} closeDelay={100}>
       <Tooltip
@@ -504,7 +515,7 @@ function SourceCard({
                   : `${SOURCE_CARD_STYLE.compress}rem`,
                 transition: 'all 0.25s ease-out'
               }}
-              onClick={() => window.open(source.link)}
+              onClick={() => window.open(link)}
             >
               <SourceCardContent source={source} showMore={showMore} />
             </div>
@@ -532,8 +543,6 @@ function SourceCardContent({
   source: AttachmentDocItem
   showMore: boolean
 }) {
-  const { hostname } = new URL(source.link)
-
   const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
   const isPR = source.__typename === 'MessageAttachmentPullDoc'
   const author =
@@ -541,11 +550,18 @@ function SourceCardContent({
 
   const showAvatar = (isIssue || isPR) && !!author
 
+  const link = source.__typename === 'MessageAttachmentCommitDoc'
+  ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
+  : source.link
+  const { hostname } = new URL(link)
+
+  const title = source.__typename === 'MessageAttachmentCommitDoc' ? source.sha.slice(0, 7) : source.title
+
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">
       <div className="flex flex-col gap-y-0.5">
         <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-          {source.title}
+          {title}
         </p>
 
         {showAvatar && (

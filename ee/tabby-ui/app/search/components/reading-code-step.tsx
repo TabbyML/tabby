@@ -51,7 +51,8 @@ interface ReadingCodeStepperProps {
   serverCodeContexts: RelevantCodeContext[]
   clientCodeContexts: RelevantCodeContext[]
   webResources?: Maybe<AttachmentDocItem[]> | undefined
-  commitResources?: Maybe<AttachmentDocItem[]> | undefined
+  commitResources?: Maybe<Array<Extract<AttachmentDocItem,
+   { __typename: 'MessageAttachmentCommitDoc' }>>> | undefined
   docQueryResources: Omit<ContextSource, 'id'>[] | undefined
   onContextClick?: (
     context: RelevantCodeContext,
@@ -94,11 +95,11 @@ export function ReadingCodeStepper({
     if (readingCode?.snippet) {
       result.push('snippet')
     }
-    if (docQuery) {
-      result.push('docs')
-    }
     if (commitResources?.length) {
       result.push('commits')
+    }
+    if (docQuery) {
+      result.push('docs')
     }
     return result
   }, [readingCode?.fileList, readingCode?.snippet])
@@ -181,37 +182,6 @@ export function ReadingCodeStepper({
                 )}
               </StepItem>
             )}
-            {docQuery && (
-              <StepItem
-                title="Search for relevant Issues/PRs ..."
-                isLastItem={lastItem === 'docs'}
-                isLoading={isReadingDocs}
-              >
-                {!!webResources?.length && (
-                  <div className="mb-3 mt-2 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      {webResources?.map((x, index) => {
-                        return (
-                          <div key={`${x.link}_${index}`}>
-                            <HoverCard openDelay={100} closeDelay={100}>
-                              <HoverCardTrigger>
-                                <CodebaseDocView doc={x} />
-                              </HoverCardTrigger>
-                              <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-                                <DocDetailView
-                                  enableDeveloperMode={enableDeveloperMode}
-                                  relevantDocument={x}
-                                />
-                              </HoverCardContent>
-                            </HoverCard>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </StepItem>
-            )}
             {commitResources?.length && (
               <StepItem
                 title="Search for relevant Commits ..."
@@ -226,8 +196,42 @@ export function ReadingCodeStepper({
                           <div key={`${x.sha}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
                               <HoverCardTrigger>
-                                <CommitDocView commit={x} />
+                                <CodebaseDocView doc={x} />
                               </HoverCardTrigger>
+                            </HoverCard>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </StepItem>
+            )}
+            {docQuery && (
+              <StepItem
+                title="Search for relevant Issues/PRs ..."
+                isLastItem={lastItem === 'docs'}
+                isLoading={isReadingDocs}
+              >
+                {!!webResources?.length && (
+                  <div className="mb-3 mt-2 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {webResources?.map((x, index) => {
+                        const link = x.__typename === 'MessageAttachmentCommitDoc'
+                          ? `${x.gitUrl}/blob/${x.sha}/${x.changedFile}`
+                          : x.link
+                        return (
+                          <div key={`${link}_${index}`}>
+                            <HoverCard openDelay={100} closeDelay={100}>
+                              <HoverCardTrigger>
+                                <CodebaseDocView doc={x} />
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+                                <DocDetailView
+                                  enableDeveloperMode={enableDeveloperMode}
+                                  relevantDocument={x}
+                                />
+                              </HoverCardContent>
                             </HoverCard>
                           </div>
                         )
@@ -348,9 +352,12 @@ function CodeContextItem({
 
 // Issue or PR
 function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
-  const docName = `#${doc.link.split('/').pop()}`
   const isIssue = doc.__typename === 'MessageAttachmentIssueDoc'
   const isPR = doc.__typename === 'MessageAttachmentPullDoc'
+  const isCommit = doc.__typename === 'MessageAttachmentCommitDoc'
+
+  const docName = isCommit ? `${doc.sha.slice(0, 7)}` : `#${doc.link.split('/').pop()}`
+  const link = isCommit ? `${doc.gitUrl}/blob/${doc.sha}/${doc.changedFile}` : doc.link
 
   let icon: ReactNode = null
   if (isIssue) {
@@ -360,7 +367,6 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
       <IconCircleDot className="h-3 w-3" />
     )
   }
-
   if (isPR) {
     icon = doc.merged ? (
       <IconGitMerge className="h-3 w-3" />
@@ -368,39 +374,17 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
       <IconGitPullRequest className="h-3 w-3" />
     )
   }
+  if (isCommit) {
+    icon = <IconGitCommit className="h-3 w-3" />
+  }
 
   return (
     <div
       className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold hover:text-foreground"
-      onClick={() => window.open(doc.link)}
+      onClick={() => window.open(link)}
     >
       {icon}
       <span>{docName}</span>
-    </div>
-  )
-}
-
-// Commits
-function CommitDocView({ commit }: { commit: AttachmentDocItem }) {
-  if (commit.__typename !== 'MessageAttachmentCommitDoc') {
-    return null
-  }
-
-  const sha = `${commit.sha.slice(0, 7)}`
-  const message = `${commit.message}`
-  const changedFile = `${commit.changedFile}`
-
-  let icon: ReactNode = <IconGitCommit className="h-3 w-3" />
-
-  return (
-    <div
-      className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold hover:text-foreground"
-      onClick={() =>
-        window.open(`${commit.gitUrl}/blob/${commit.sha}/${commit.changedFile}`)
-      }
-    >
-      {icon}
-      <span>{sha}</span>
     </div>
   )
 }
