@@ -39,9 +39,10 @@ import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import {
   updatePendingUserMessage,
   updateSelectedModel,
-  updateSelectedRepoSourceId
-} from '@/lib/stores/chat-actions'
-import { useChatStore } from '@/lib/stores/chat-store'
+  updateSelectedRepoSourceId,
+  useChatStore
+} from '@/lib/stores/chat-store'
+import { updatePendingThread } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
@@ -730,6 +731,17 @@ export function Search() {
     return pairs
   }, [messages])
 
+  const onConvertToPage = () => {
+    if (!threadId) return
+    const content = messages?.[0].content
+    const title = getTitleFromMessages(sources ?? [], content)
+    updatePendingThread({
+      threadId,
+      title
+    })
+    router.push('/pages')
+  }
+
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
@@ -774,6 +786,7 @@ export function Search() {
               threadIdFromURL={threadIdFromURL}
               streamingDone={!isLoading}
               threadId={threadId}
+              onConvertToPage={onConvertToPage}
             />
             <LoadingWrapper
               loading={!isReady}
