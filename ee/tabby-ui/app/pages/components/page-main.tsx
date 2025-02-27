@@ -21,7 +21,7 @@ import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
-import { updatePendingThreadId, usePageStore } from '@/lib/stores/page-store'
+import { clearPendingThread, usePageStore } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { client, useMutation } from '@/lib/tabby/gql'
 import {
@@ -132,6 +132,7 @@ export function Page() {
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const pendingThreadId = usePageStore(state => state.pendingThreadId)
+  const pendingThreadTitle = usePageStore(state => state.pendingThreadTitle)
   const [mode, setMode] = useState<'edit' | 'view'>(
     pendingThreadId ? 'edit' : 'view'
   )
@@ -178,24 +179,41 @@ export function Page() {
     setPageCompleted(true)
   })
 
-  const processPageStream = (
+  // `/pages` -> `/pages/{slug}-{pageId}`
+  const updatePageURL = (page: { id: string; title: string }) => {
+    if (!page) return
+    const { title, id } = page
+    const firstLine = (title || '').split('\n')[0] ?? ''
+    const _title = firstLine.slice(0, SLUG_TITLE_MAX_LENGTH)
+    const slug = slugify(_title)
+    const slugWithPageId = compact([slug, id]).join('-')
+
+    const path = updateUrlComponents({
+      pathname: `/pages/${slugWithPageId}`,
+      replace: true
+    })
+
+    return location.origin + path
+  }
+
+  const processThreadToPageStream = (
     data: CreateThreadToPageRunSubscription['createThreadToPageRun']
   ) => {
     switch (data.__typename) {
-      // todo maybe setPage after trigger request
       case 'PageCreated':
-        const now = new Date().toISOString()
-        const nextPage: PageItem = {
-          id: data.id,
-          authorId: data.authorId,
-          title: data.title,
-          content: '',
-          updatedAt: now,
-          createdAt: now
-        }
-        setPage(nextPage)
+        setPage(prev => {
+          if (!prev) return prev
+
+          return {
+            ...prev,
+            id: data.id,
+            title: data.title,
+            authorId: data.authorId
+          }
+        })
         setPageId(data.id)
-        updatePageURL(nextPage)
+        setIsGeneratingPageTitle(false)
+        updatePageURL(data)
         break
       case 'PageContentDelta': {
         setPage(prev => {
@@ -257,7 +275,7 @@ export function Page() {
     }
   }
 
-  const processNewSectionStream = (
+  const processAppendSectionStream = (
     data: CreatePageSectionRunSubscription['createPageSectionRun']
   ) => {
     switch (data.__typename) {
@@ -340,13 +358,27 @@ export function Page() {
         if (!value) {
           return
         }
-        processNewSectionStream(value)
+        processAppendSectionStream(value)
       })
 
     unsubscribeFn.current = unsubscribe
   }
 
-  const convertThreadToPage = (threadId: string) => {
+  const convertThreadToPage = (threadId: string, threadTitle: string) => {
+    const now = new Date().toISOString()
+    const tempId = nanoid()
+    const nextPage: PageItem = {
+      id: tempId,
+      authorId: '',
+      title: threadTitle,
+      content: '',
+      updatedAt: now,
+      createdAt: now
+    }
+    setPage(nextPage)
+    setPageId(tempId)
+    setIsGeneratingPageTitle(true)
+
     const { unsubscribe } = client
       .subscription(createThreadToPageRunSubscription, {
         threadId
@@ -364,7 +396,7 @@ export function Page() {
           return
         }
 
-        processPageStream(value)
+        processThreadToPageStream(value)
       })
 
     return unsubscribe
@@ -468,23 +500,6 @@ export function Page() {
     }
   }, [pageSectionsError])
 
-  // `/pages` -> `/pages/{slug}-{pageId}`
-  const updatePageURL = (page: PageItem) => {
-    if (!page) return
-    const { title, id } = page
-    const firstLine = (title || '').split('\n')[0] ?? ''
-    const _title = firstLine.slice(0, SLUG_TITLE_MAX_LENGTH)
-    const slug = slugify(_title)
-    const slugWithPageId = compact([slug, id]).join('-')
-
-    const path = updateUrlComponents({
-      pathname: `/pages/${slugWithPageId}`,
-      replace: true
-    })
-
-    return location.origin + path
-  }
-
   // for synchronizing the active pathname
   useEffect(() => {
     setActivePathname(pathname)
@@ -505,8 +520,11 @@ export function Page() {
         setError(undefined)
         setPageCompleted(false)
         // trigger convert
-        unsubscribeFn.current = convertThreadToPage(pendingThreadId)
-        updatePendingThreadId(undefined)
+        unsubscribeFn.current = convertThreadToPage(
+          pendingThreadId,
+          pendingThreadTitle ?? ''
+        )
+        clearPendingThread()
         return
       }
 
@@ -636,26 +654,6 @@ export function Page() {
       </div>
     )
   }
-
-  // {isNew && !page ? (
-  //     <div className='mt-8'>
-  //     <NewPageForm
-  //       onSubmit={async (title) => {
-  //         const now = new Date().toISOString()
-  //         const nextPage: PageItem = {
-  //           title,
-  //           id: nanoid(),
-  //           authorId: '',
-  //           content: '',
-  //           updatedAt: now,
-  //           createdAt: now
-  //         }
-  //         setPage(nextPage)
-  //         setPageId(nextPage.id)
-  //       }}
-  //     />
-  //   </div>
-  // )
 
   return (
     <PageContext.Provider
