@@ -87,7 +87,7 @@ export function ReadingCodeStepper({
   }, [codeSourceId, contextInfo])
 
   const steps = useMemo(() => {
-    let result: Array<'fileList' | 'snippet' | 'docs' | 'commits' > = []
+    let result: Array<'fileList' | 'snippet' | 'docs' | 'commits'> = []
     if (readingCode?.fileList) {
       result.push('fileList')
     }
@@ -395,7 +395,9 @@ function CommitDocView({ commit }: { commit: AttachmentDocItem }) {
   return (
     <div
       className="flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold hover:text-foreground"
-      onClick={() => window.open(`${commit.gitUrl}/blob/${commit.sha}/${commit.changedFile}`)}
+      onClick={() =>
+        window.open(`${commit.gitUrl}/blob/${commit.sha}/${commit.changedFile}`)
+      }
     >
       {icon}
       <span>{sha}</span>

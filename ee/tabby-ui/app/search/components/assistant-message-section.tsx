@@ -231,8 +231,7 @@ export function AssistantMessageSection({
 
   const commitDocs = useMemo(() => {
     return messageAttachmentDocs?.filter(
-      x =>
-        x.__typename === 'MessageAttachmentCommitDoc'
+      x => x.__typename === 'MessageAttachmentCommitDoc'
     )
   }, [messageAttachmentDocs])
 
