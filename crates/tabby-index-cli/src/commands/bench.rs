@@ -27,7 +27,8 @@ pub struct BenchArgs {
 }
 
 pub fn run_bench_cli(index_path: &Path, args: &BenchArgs) -> Result<(), String> {
-    run_bench(index_path, &args.queries, args.num_repeat)}
+    run_bench(index_path, &args.queries, args.num_repeat)
+}
 
 fn extract_search_fields(schema: &Schema) -> Vec<Field> {
     schema
