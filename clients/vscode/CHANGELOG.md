@@ -1,3 +1,25 @@
+## 1.22.0
+
+### Features
+
+- **Chat**: 
+  - Requires a server version of 0.25.0 or later.
+  - You can now use `@` to add a selected symbol (functions, variables, etc.) as context for the chat conversation when typing in the chat panel.
+- **Inline Edit**:
+  - You can now use `@` to add a selected file as context for the inline edit.
+  - The edit preview now shows color decoration for character diffs.
+
+### Fixes & Improvements
+  
+- Optimized the display of file paths in the chat panel.
+- Fixed a bug causing incorrect indentation when the code uses tab indentation.
+
+## 1.20.1
+
+### Fixes & Improvements
+
+- **Chat**: Optimized file search performance when using `@` to add file context.
+
 ## 1.20.0
 
 ### Features
