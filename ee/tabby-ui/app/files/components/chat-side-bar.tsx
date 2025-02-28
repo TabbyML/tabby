@@ -2,9 +2,11 @@ import React, { useState } from 'react'
 import { find } from 'lodash-es'
 import type {
   ChatCommand,
+  ChatView,
   EditorFileContext,
   FileLocation,
-  GitRepository
+  GitRepository,
+  ServerApi
 } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
@@ -15,7 +17,7 @@ import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { cn, formatLineHashForLocation } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { IconClose } from '@/components/ui/icons'
+import { IconClose, IconHistory, IconPlus } from '@/components/ui/icons'
 
 import { emitter } from '../lib/event-emitter'
 import { getActiveSelection } from '../lib/selection-extension'
@@ -198,6 +200,12 @@ function ChatSideBarRenderer({
     return editorFileContext
   })
 
+  const navigate = useLatest((view: ChatView) => {
+    client?.navigate(view)
+  })
+
+  const onNavigate = navigate.current
+
   React.useEffect(() => {
     if (client && data && isLoaded) {
       client.init({
@@ -220,7 +228,7 @@ function ChatSideBarRenderer({
 
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
-      <Header />
+      <Header onNavigate={onNavigate} initialized={!!client} />
       <iframe
         src={`/chat`}
         className="w-full flex-1 border-0"
@@ -231,11 +239,31 @@ function ChatSideBarRenderer({
   )
 }
 
-function Header() {
+interface HeaderProps {
+  onNavigate: ServerApi['navigate']
+  initialized: boolean
+}
+function Header({ onNavigate, initialized }: HeaderProps) {
   const { setChatSideBarVisible } = React.useContext(SourceCodeBrowserContext)
 
   return (
     <div className="sticky top-0 flex items-center justify-end px-2 py-1">
+      <Button
+        size="icon"
+        variant="ghost"
+        disabled={!initialized}
+        onClick={e => onNavigate('new-chat')}
+      >
+        <IconPlus />
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        disabled={!initialized}
+        onClick={e => onNavigate('history')}
+      >
+        <IconHistory />
+      </Button>
       <Button
         size="icon"
         variant="ghost"
