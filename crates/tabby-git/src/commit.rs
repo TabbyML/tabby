@@ -161,6 +161,12 @@ fn get_diff_of_commit(repo: &git2::Repository, commit: &git2::Commit) -> Result<
         None,
         Some(&mut |_delta, _hunk, line| {
             if let Some(last) = result.borrow_mut().last_mut() {
+                let prefix = match line.origin() {
+                    '+' => "+",
+                    '-' => "-",
+                    _ => " ",
+                };
+                last.content.push_str(prefix);
                 last.content
                     .push_str(&String::from_utf8_lossy(line.content()));
             }

@@ -62,7 +62,16 @@ impl BuildStructuredDoc for CommitDocument {
                     commit::CHUNK_DIFF: diff.content,
                 });
 
-                let rewritten_body = format!("```{}\n{}\n```", diff.path, diff.content);
+                let rewritten_body = format!(r#"Commit Message:
+```
+{}
+```
+Changed file: {}
+Changed Content:
+```
+{}
+```
+"#, self.message, diff.path, diff.content);
                 let embedding = embedding.clone();
                 yield tokio::spawn(async move {
                     match build_tokens(embedding.clone(), &rewritten_body).await {
