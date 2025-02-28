@@ -15,6 +15,7 @@ use crate::{
     notification::{Notification, NotificationRecipient},
     page,
     repository::RepositoryKind,
+    retrieval,
     schema::{
         auth::{self, LdapCredential, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
@@ -26,7 +27,7 @@ use crate::{
         user_event::{EventKind, UserEvent},
         CoreError,
     },
-    thread,
+    thread::{self},
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -393,6 +394,19 @@ impl From<PageSectionDAO> for page::Section {
             content: value.content.unwrap_or_default(),
             created_at: value.created_at,
             updated_at: value.updated_at,
+        }
+    }
+}
+
+impl From<&retrieval::AttachmentCode> for AttachmentCode {
+    fn from(value: &retrieval::AttachmentCode) -> Self {
+        Self {
+            git_url: value.git_url.clone(),
+            commit: value.commit.clone(),
+            filepath: value.filepath.clone(),
+            language: value.language.clone(),
+            content: value.content.clone(),
+            start_line: value.start_line.map(|x| x as usize),
         }
     }
 }

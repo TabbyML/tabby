@@ -18,7 +18,7 @@ use tabby_schema::{
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
     thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput},
-    Result,
+    CoreError, Result,
 };
 use tracing::{debug, error, warn};
 
@@ -42,6 +42,24 @@ impl RetrievalService {
             serper,
             repository,
         }
+    }
+
+    pub async fn collect_file_list_by_source_id(
+        &self,
+        policy: &AccessPolicy,
+        source_id: &str,
+        rev: Option<&str>,
+        limit: Option<usize>,
+    ) -> Result<(Vec<String>, bool)> {
+        let repo = self
+            .repository
+            .repository_list(Some(policy))
+            .await?
+            .into_iter()
+            .find(|x| x.source_id == source_id)
+            .ok_or_else(|| CoreError::NotFound("Repository not found"))?;
+
+        self.collect_file_list(policy, &repo, rev, limit).await
     }
 
     pub async fn collect_file_list(
@@ -68,6 +86,28 @@ impl RetrievalService {
                 Err(e)
             }
         }
+    }
+
+    pub async fn collect_relevant_code_by_source_id(
+        &self,
+        policy: &AccessPolicy,
+        source_id: &str,
+        helper: &ContextInfoHelper,
+        input: &CodeQueryInput,
+        params: &CodeSearchParams,
+        override_params: Option<&CodeSearchParamsOverrideInput>,
+    ) -> Result<Vec<CodeSearchHit>> {
+        let repo = self
+            .repository
+            .repository_list(Some(policy))
+            .await?
+            .into_iter()
+            .find(|x| x.source_id == source_id)
+            .ok_or_else(|| CoreError::NotFound("Repository not found"))?;
+
+        Ok(self
+            .collect_relevant_code(&repo, helper, input, params, override_params)
+            .await)
     }
 
     pub async fn collect_relevant_code(
@@ -145,6 +185,32 @@ impl RetrievalService {
         }
 
         hits
+    }
+
+    pub async fn find_repository(
+        &self,
+        helper: &ContextInfoHelper,
+        policy: &AccessPolicy,
+        input: &CodeQueryInput,
+    ) -> Option<Repository> {
+        let source_id = {
+            if let Some(source_id) = &input.source_id {
+                if helper.can_access_source_id(source_id) {
+                    Some(source_id.as_str())
+                } else {
+                    None
+                }
+            } else if let Some(git_url) = &input.git_url {
+                helper.allowed_code_repository().closest_match(git_url)
+            } else {
+                None
+            }
+        }?;
+
+        match self.repository.repository_list(Some(policy)).await {
+            Ok(repos) => repos.into_iter().find(|x| x.source_id == source_id),
+            Err(_) => None,
+        }
     }
 }
 

@@ -153,6 +153,7 @@ input CreateMessageInput {
 
 input CreatePageRunInput {
   titlePrompt: String!
+  codeQuery: CodeQueryInput = null
 }
 
 input CreatePageSectionRunInput {
@@ -344,6 +345,36 @@ interface User {
   [2]: https://docs.rs/chrono/latest/chrono/struct.DateTime.html
 """
 scalar DateTime
+
+type AttachmentCode {
+  gitUrl: String!
+  commit: String
+  filepath: String!
+  language: String!
+  content: String!
+  "When start line is `None`, it represents the entire file."
+  startLine: Int
+}
+
+type AttachmentCodeFileList {
+  fileList: [String!]!
+  truncated: Boolean!
+}
+
+type AttachmentCodeHit {
+  code: AttachmentCode!
+  scores: AttachmentCodeScores!
+}
+
+type AttachmentCodeHits {
+  hits: [AttachmentCodeHit!]!
+}
+
+type AttachmentCodeScores {
+  rrf: Float!
+  bm25: Float!
+  embedding: Float!
+}
 
 type AuthProvider {
   kind: AuthProviderKind!
@@ -785,8 +816,9 @@ type PageInfo {
 
 type PageSection {
   id: ID!
-  title: String!
   position: Int!
+  title: String!
+  attachments: SectionAttachment!
 }
 
 type PageSectionContentCompleted {
@@ -962,6 +994,11 @@ type Section {
   updatedAt: DateTime!
 }
 
+type SectionAttachment {
+  code: [AttachmentCode!]!
+  codeFileList: AttachmentCodeFileList
+}
+
 type SectionConnection {
   edges: [SectionEdge!]!
   pageInfo: PageInfo!
@@ -1135,10 +1172,10 @@ type WebContextSource implements ContextSourceId & ContextSource {
 union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc | MessageAttachmentCommitDoc
 
 "Schema of page convert stream."
-union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
+union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | AttachmentCodeFileList | AttachmentCodeHits | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
 
 "Schema of page convert stream."
-union SectionRunItem = PageSection | PageSectionContentDelta | PageSectionContentCompleted
+union SectionRunItem = PageSection | AttachmentCodeFileList | AttachmentCodeHits | PageSectionContentDelta | PageSectionContentCompleted
 
 """
   Schema of thread run stream.
