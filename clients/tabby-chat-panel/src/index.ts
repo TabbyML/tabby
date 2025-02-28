@@ -447,6 +447,7 @@ export async function createServer(api: ServerApi): Promise<ClientApi> {
       addRelevantContext: api.addRelevantContext,
       updateTheme: api.updateTheme,
       updateActiveSelection: api.updateActiveSelection,
+      navigator: api.navigate,
     },
   })
   const clientMethods = await thread._requestMethods() as (keyof ClientApi)[]
