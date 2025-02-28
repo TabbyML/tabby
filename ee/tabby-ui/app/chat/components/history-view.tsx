@@ -57,7 +57,7 @@ export function HistoryView({ onClose, onNavigate }: HistoryViewProps) {
   return (
     <div className="fixed inset-0 z-10 overflow-hidden px-[16px] pt-4 md:pt-10">
       <div className="mx-auto h-full max-w-5xl overflow-y-auto pb-8">
-        <div className="editor-bg sticky top-0 flex items-center justify-between">
+        <div className="editor-bg sticky top-0 flex items-center justify-between pb-3">
           <span className="text-lg font-semibold">History</span>
           <Button size="sm" onClick={onClose}>
             Done
