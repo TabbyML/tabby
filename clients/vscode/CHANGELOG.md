@@ -2,7 +2,7 @@
 
 ### Features
 
-- **Chat**: 
+- **Chat**:
   - Requires a server version of 0.25.0 or later.
   - You can now use `@` to add a selected symbol (functions, variables, etc.) as context for the chat conversation when typing in the chat panel.
 - **Inline Edit**:
@@ -10,7 +10,7 @@
   - The edit preview now shows color decoration for character diffs.
 
 ### Fixes & Improvements
-  
+
 - Optimized the display of file paths in the chat panel.
 - Fixed a bug causing incorrect indentation when the code uses tab indentation.
 
