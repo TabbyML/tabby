@@ -191,14 +191,18 @@ function SourceCard({
   if (isCommit) {
     return (
       <div className="flex items-start gap-2">
-      {isEditMode && <Checkbox className="mt-2" />}
-      <div
-        className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60"
-        onClick={() => window.open(`${source.gitUrl}/blob/${source.sha}/${source.changedFile}`)}
-      >
-        <CommitSourceCard source={source} />
+        {isEditMode && <Checkbox className="mt-2" />}
+        <div
+          className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60"
+          onClick={() =>
+            window.open(
+              `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
+            )
+          }
+        >
+          <CommitSourceCard source={source} />
+        </div>
       </div>
-    </div>
     )
   }
 

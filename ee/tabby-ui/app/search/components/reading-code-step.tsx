@@ -51,8 +51,16 @@ interface ReadingCodeStepperProps {
   serverCodeContexts: RelevantCodeContext[]
   clientCodeContexts: RelevantCodeContext[]
   webResources?: Maybe<AttachmentDocItem[]> | undefined
-  commitResources?: Maybe<Array<Extract<AttachmentDocItem,
-   { __typename: 'MessageAttachmentCommitDoc' }>>> | undefined
+  commitResources?:
+    | Maybe<
+        Array<
+          Extract<
+            AttachmentDocItem,
+            { __typename: 'MessageAttachmentCommitDoc' }
+          >
+        >
+      >
+    | undefined
   docQueryResources: Omit<ContextSource, 'id'>[] | undefined
   onContextClick?: (
     context: RelevantCodeContext,
@@ -184,7 +192,7 @@ export function ReadingCodeStepper({
             )}
             {commitResources?.length && (
               <StepItem
-                key='commits'
+                key="commits"
                 title="Search for relevant Commits ..."
                 isLastItem={lastItem === 'commits'}
                 isLoading={isReadingDocs}
@@ -210,7 +218,7 @@ export function ReadingCodeStepper({
             )}
             {docQuery && (
               <StepItem
-                key='docs'
+                key="docs"
                 title="Search for relevant Issues/PRs ..."
                 isLastItem={lastItem === 'docs'}
                 isLoading={isReadingDocs}
@@ -219,9 +227,10 @@ export function ReadingCodeStepper({
                   <div className="mb-3 mt-2 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {webResources?.map((x, index) => {
-                        const link = x.__typename === 'MessageAttachmentCommitDoc'
-                          ? `${x.gitUrl}/blob/${x.sha}/${x.changedFile}`
-                          : x.link
+                        const link =
+                          x.__typename === 'MessageAttachmentCommitDoc'
+                            ? `${x.gitUrl}/blob/${x.sha}/${x.changedFile}`
+                            : x.link
                         return (
                           <div key={`${link}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
@@ -358,8 +367,12 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
   const isPR = doc.__typename === 'MessageAttachmentPullDoc'
   const isCommit = doc.__typename === 'MessageAttachmentCommitDoc'
 
-  const docName = isCommit ? `${doc.sha.slice(0, 7)}` : `#${doc.link.split('/').pop()}`
-  const link = isCommit ? `${doc.gitUrl}/blob/${doc.sha}/${doc.changedFile}` : doc.link
+  const docName = isCommit
+    ? `${doc.sha.slice(0, 7)}`
+    : `#${doc.link.split('/').pop()}`
+  const link = isCommit
+    ? `${doc.gitUrl}/blob/${doc.sha}/${doc.changedFile}`
+    : doc.link
 
   let icon: ReactNode = null
   if (isIssue) {

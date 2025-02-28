@@ -24,12 +24,14 @@ export function DocDetailView({
   relevantDocument: AttachmentDocItem
   enableDeveloperMode?: boolean
 }) {
-  const link = relevantDocument.__typename === 'MessageAttachmentCommitDoc'
-  ? `${relevantDocument.gitUrl}/blob/${relevantDocument.sha}/${relevantDocument.changedFile}`
-  : relevantDocument.link
-  const title = relevantDocument.__typename === 'MessageAttachmentCommitDoc'
-  ? relevantDocument.sha.slice(0, 7)
-  : relevantDocument.title
+  const link =
+    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
+      ? `${relevantDocument.gitUrl}/blob/${relevantDocument.sha}/${relevantDocument.changedFile}`
+      : relevantDocument.link
+  const title =
+    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
+      ? relevantDocument.sha.slice(0, 7)
+      : relevantDocument.title
   const sourceUrl = relevantDocument ? new URL(link) : null
   const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
   const isPR = relevantDocument?.__typename === 'MessageAttachmentPullDoc'

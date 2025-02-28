@@ -515,9 +515,10 @@ function RelevantDocumentBadge({
   relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
-  const link = relevantDocument.__typename === 'MessageAttachmentCommitDoc'
-  ? `${relevantDocument.gitUrl}/blob/${relevantDocument.sha}/${relevantDocument.changedFile}`
-  : relevantDocument.link
+  const link =
+    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
+      ? `${relevantDocument.gitUrl}/blob/${relevantDocument.sha}/${relevantDocument.changedFile}`
+      : relevantDocument.link
   return (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger>

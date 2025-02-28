@@ -150,10 +150,13 @@ export function AssistantMessageSection({
       answer.attachment?.doc
         ?.map((doc, idx) => {
           if (doc.__typename === 'MessageAttachmentCommitDoc') {
-            return `[${idx + 1}] ${doc.gitUrl}/blob/${doc.sha}/${doc.changedFile}`
+            return `[${idx + 1}] ${doc.gitUrl}/blob/${doc.sha}/${
+              doc.changedFile
+            }`
           } else {
-            return `[${idx + 1}] ${doc.link}`}
-          })
+            return `[${idx + 1}] ${doc.link}`
+          }
+        })
         .join('\n') ?? ''
     const docCitationLen = answer.attachment?.doc?.length ?? 0
     const codeCitations =
@@ -235,10 +238,13 @@ export function AssistantMessageSection({
   }, [messageAttachmentDocs])
 
   const commitDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter((
-      x
-    ): x is Extract<AttachmentDocItem, { __typename: 'MessageAttachmentCommitDoc' }> =>
-      x.__typename === 'MessageAttachmentCommitDoc'
+    return messageAttachmentDocs?.filter(
+      (
+        x
+      ): x is Extract<
+        AttachmentDocItem,
+        { __typename: 'MessageAttachmentCommitDoc' }
+      > => x.__typename === 'MessageAttachmentCommitDoc'
     )
   }, [messageAttachmentDocs])
 
@@ -494,9 +500,10 @@ function SourceCard({
     setDevPanelOpen(true)
   }
 
-  const link = source.__typename === 'MessageAttachmentCommitDoc'
-    ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
-    : source.link
+  const link =
+    source.__typename === 'MessageAttachmentCommitDoc'
+      ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
+      : source.link
 
   return (
     <HoverCard openDelay={100} closeDelay={100}>
@@ -550,12 +557,16 @@ function SourceCardContent({
 
   const showAvatar = (isIssue || isPR) && !!author
 
-  const link = source.__typename === 'MessageAttachmentCommitDoc'
-  ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
-  : source.link
+  const link =
+    source.__typename === 'MessageAttachmentCommitDoc'
+      ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
+      : source.link
   const { hostname } = new URL(link)
 
-  const title = source.__typename === 'MessageAttachmentCommitDoc' ? source.sha.slice(0, 7) : source.title
+  const title =
+    source.__typename === 'MessageAttachmentCommitDoc'
+      ? source.sha.slice(0, 7)
+      : source.title
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">
