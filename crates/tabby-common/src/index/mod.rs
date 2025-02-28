@@ -172,6 +172,34 @@ impl IndexSchema {
         ])
     }
 
+    /// Build a query the documents have specific attribute field and value.
+    pub fn doc_with_attribute_field(&self, corpus: &str, kvs: &Vec<(&str, &str)>) -> impl Query {
+        let mut queries = vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ];
+
+        queries.extend(
+            kvs.iter()
+                .map(|(field, value)| {
+                    let mut term = Term::from_field_json_path(self.field_attributes, field, false);
+                    term.append_type_and_str(value);
+                    (
+                        Occur::Must,
+                        Box::new(TermQuery::new(term, IndexRecordOption::Basic)) as Box<dyn Query>,
+                    )
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        BooleanQuery::new(queries)
+    }
+
     /// Build a query to find the document with the given `doc_id`, include chunks.
     pub fn doc_query_with_chunks(&self, corpus: &str, doc_id: &str) -> impl Query {
         let doc_id_query = TermQuery::new(

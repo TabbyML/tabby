@@ -5447,6 +5447,7 @@ dependencies = [
  "assert_matches",
  "async-stream",
  "axum",
+ "chrono",
  "futures",
  "git2",
  "grep",

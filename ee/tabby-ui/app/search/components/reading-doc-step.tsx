@@ -95,13 +95,17 @@ export function ReadingDocStepper({
                 <div className="mb-3 mt-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {webResources.map((x, index) => {
+                      const link =
+                        x.__typename === 'MessageAttachmentCommitDoc'
+                          ? `${x.gitUrl}/blob/${x.sha}/${x.changedFile}`
+                          : x.link
                       return (
-                        <div key={`${x.link}_${index}`}>
+                        <div key={`${link}_${index}`}>
                           <HoverCard openDelay={100} closeDelay={100}>
                             <HoverCardTrigger>
                               <div
                                 className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
-                                onClick={() => window.open(x.link)}
+                                onClick={() => window.open(link)}
                               >
                                 <DocItem doc={x} />
                               </div>

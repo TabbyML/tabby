@@ -24,7 +24,15 @@ export function DocDetailView({
   relevantDocument: AttachmentDocItem
   enableDeveloperMode?: boolean
 }) {
-  const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
+  const link =
+    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
+      ? `${relevantDocument.gitUrl}/blob/${relevantDocument.sha}/${relevantDocument.changedFile}`
+      : relevantDocument.link
+  const title =
+    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
+      ? relevantDocument.sha.slice(0, 7)
+      : relevantDocument.title
+  const sourceUrl = relevantDocument ? new URL(link) : null
   const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
   const isPR = relevantDocument?.__typename === 'MessageAttachmentPullDoc'
   const author =
@@ -45,9 +53,9 @@ export function DocDetailView({
         </div>
         <p
           className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-          onClick={() => window.open(relevantDocument.link)}
+          onClick={() => window.open(link)}
         >
-          {relevantDocument.title}
+          {title}
         </p>
         <div className="mb-2 w-auto">
           {isIssue && (

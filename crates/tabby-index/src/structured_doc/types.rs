@@ -1,3 +1,4 @@
+pub mod commit;
 pub mod issue;
 pub mod pull;
 pub mod web;
@@ -18,20 +19,27 @@ pub struct StructuredDoc {
     pub fields: StructuredDocFields,
 }
 
+pub const KIND_WEB: &str = "web";
+pub const KIND_ISSUE: &str = "issue";
+pub const KIND_PULL: &str = "pull";
+pub const KIND_COMMIT: &str = "commit";
+
 impl StructuredDoc {
     pub fn id(&self) -> &str {
         match &self.fields {
             StructuredDocFields::Web(web) => &web.link,
             StructuredDocFields::Issue(issue) => &issue.link,
             StructuredDocFields::Pull(pull) => &pull.link,
+            StructuredDocFields::Commit(commit) => &commit.sha,
         }
     }
 
     pub fn kind(&self) -> &'static str {
         match &self.fields {
-            StructuredDocFields::Web(_) => "web",
-            StructuredDocFields::Issue(_) => "issue",
-            StructuredDocFields::Pull(_) => "pull",
+            StructuredDocFields::Web(_) => KIND_WEB,
+            StructuredDocFields::Issue(_) => KIND_ISSUE,
+            StructuredDocFields::Pull(_) => KIND_PULL,
+            StructuredDocFields::Commit(_) => KIND_COMMIT,
         }
     }
 }
@@ -60,6 +68,7 @@ pub enum StructuredDocFields {
     Web(web::WebDocument),
     Issue(issue::IssueDocument),
     Pull(pull::PullDocument),
+    Commit(commit::CommitDocument),
 }
 
 #[async_trait]
@@ -69,6 +78,7 @@ impl BuildStructuredDoc for StructuredDoc {
             StructuredDocFields::Web(doc) => doc.should_skip(),
             StructuredDocFields::Issue(doc) => doc.should_skip(),
             StructuredDocFields::Pull(doc) => doc.should_skip(),
+            StructuredDocFields::Commit(doc) => doc.should_skip(),
         }
     }
 
@@ -77,6 +87,7 @@ impl BuildStructuredDoc for StructuredDoc {
             StructuredDocFields::Web(doc) => doc.build_attributes().await,
             StructuredDocFields::Issue(doc) => doc.build_attributes().await,
             StructuredDocFields::Pull(doc) => doc.build_attributes().await,
+            StructuredDocFields::Commit(doc) => doc.build_attributes().await,
         }
     }
 
@@ -88,6 +99,7 @@ impl BuildStructuredDoc for StructuredDoc {
             StructuredDocFields::Web(doc) => doc.build_chunk_attributes(embedding).await,
             StructuredDocFields::Issue(doc) => doc.build_chunk_attributes(embedding).await,
             StructuredDocFields::Pull(doc) => doc.build_chunk_attributes(embedding).await,
+            StructuredDocFields::Commit(doc) => doc.build_chunk_attributes(embedding).await,
         }
     }
 }

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, SecondsFormat, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
@@ -8,7 +8,12 @@ use tabby_common::api::{
 use validator::Validate;
 
 use super::MessageAttachmentCodeInput;
-use crate::{interface::UserValue, juniper::relay::NodeType, Context};
+use crate::{
+    auth::UserSecured,
+    interface::{UserValue, UserValueEnum},
+    juniper::relay::NodeType,
+    Context,
+};
 
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
 pub enum Role {
@@ -158,6 +163,7 @@ pub enum MessageAttachmentDoc {
     Web(MessageAttachmentWebDoc),
     Issue(MessageAttachmentIssueDoc),
     Pull(MessageAttachmentPullDoc),
+    Commit(MessageAttachmentCommitDoc),
 }
 
 #[derive(GraphQLObject, Clone)]
@@ -188,8 +194,27 @@ pub struct MessageAttachmentPullDoc {
     pub merged: bool,
 }
 
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct MessageAttachmentCommitDoc {
+    pub git_url: String,
+    pub sha: String,
+    pub message: String,
+    pub author: Option<UserValue>,
+    pub author_at: DateTime<Utc>,
+    pub committer: Option<UserValue>,
+    pub commit_at: DateTime<Utc>,
+
+    pub diff: Option<String>,
+    pub changed_file: Option<String>,
+}
+
 impl MessageAttachmentDoc {
-    pub fn from_doc_search_document(doc: DocSearchDocument, author: Option<UserValue>) -> Self {
+    pub fn from_doc_search_document(
+        doc: DocSearchDocument,
+        author: Option<UserValue>,
+        committer: Option<UserValue>,
+    ) -> Self {
         match doc {
             DocSearchDocument::Web(web) => MessageAttachmentDoc::Web(MessageAttachmentWebDoc {
                 title: web.title,
@@ -213,14 +238,57 @@ impl MessageAttachmentDoc {
                 patch: pull.diff,
                 merged: pull.merged,
             }),
+            DocSearchDocument::Commit(commit) => {
+                MessageAttachmentDoc::Commit(MessageAttachmentCommitDoc {
+                    git_url: commit.git_url,
+                    sha: commit.sha,
+                    message: commit.message,
+                    author,
+                    author_at: commit.author_at,
+                    committer,
+                    commit_at: commit.commit_at,
+                    diff: commit.diff,
+                    changed_file: commit.changed_file,
+                })
+            }
         }
     }
 
-    pub fn content(&self) -> &str {
+    pub fn content(&self) -> String {
         match self {
-            MessageAttachmentDoc::Web(web) => &web.content,
-            MessageAttachmentDoc::Issue(issue) => &issue.body,
-            MessageAttachmentDoc::Pull(pull) => &pull.body,
+            MessageAttachmentDoc::Web(web) => web.content.to_string(),
+            MessageAttachmentDoc::Issue(issue) => issue.body.to_string(),
+            MessageAttachmentDoc::Pull(pull) => pull.body.to_string(),
+            MessageAttachmentDoc::Commit(commit) => {
+                let mut prompt = String::new();
+                if let Some(author) = &commit.author {
+                    let UserValueEnum::UserSecured(UserSecured { name, email, .. }) = author;
+                    prompt.push_str(&format!("Author: {} <{}>\n", name, email));
+                }
+                prompt += &format!(
+                    "Author At: {}\n",
+                    commit.author_at.to_rfc3339_opts(SecondsFormat::Secs, true)
+                );
+
+                if let Some(committer) = &commit.committer {
+                    let UserValueEnum::UserSecured(UserSecured { name, email, .. }) = committer;
+                    prompt.push_str(&format!("Committer: {} <{}>\n", name, email));
+                }
+                prompt += &format!(
+                    "Commit At: {}\n",
+                    commit.commit_at.to_rfc3339_opts(SecondsFormat::Secs, true)
+                );
+
+                prompt += &format!("Message: {}\n", commit.message);
+
+                if let Some(changed_file) = &commit.changed_file {
+                    prompt += &format!("Changed File: {}\n", changed_file);
+                }
+                if let Some(diff) = &commit.diff {
+                    prompt += &format!("Diff: {}\n", diff);
+                }
+                prompt
+            }
         }
     }
 }
@@ -284,7 +352,6 @@ pub struct ThreadAssistantMessageCreated {
 pub struct ThreadAssistantMessageReadingCode {
     pub snippet: bool,
     pub file_list: bool,
-    // pub commit_history: bool
 }
 
 #[derive(GraphQLObject)]

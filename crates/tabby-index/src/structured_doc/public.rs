@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::Result;
 use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
@@ -7,9 +8,11 @@ use tabby_common::index::{corpus, structured_doc::fields as StructuredDocIndexFi
 use tabby_inference::Embedding;
 
 pub use super::types::{
+    commit::{CommitDiff as StructuredDocCommitDiff, CommitDocument as StructuredDocCommitFields},
     issue::IssueDocument as StructuredDocIssueFields,
     pull::PullDocument as StructuredDocPullDocumentFields,
-    web::WebDocument as StructuredDocWebFields, StructuredDoc, StructuredDocFields,
+    web::WebDocument as StructuredDocWebFields,
+    StructuredDoc, StructuredDocFields, KIND_COMMIT,
 };
 use super::{create_structured_doc_builder, types::BuildStructuredDoc};
 use crate::{indexer::TantivyDocBuilder, Indexer};
@@ -92,6 +95,35 @@ impl StructuredDocIndexer {
         } else {
             false
         }
+    }
+
+    pub async fn count_doc_by_attribute(
+        &self,
+        kind: &str,
+        field: &str,
+        value: &str,
+    ) -> Result<usize> {
+        let attributes = vec![(StructuredDocIndexFields::KIND, kind), (field, value)];
+        self.indexer.count_doc_by_attribute(&attributes).await
+    }
+
+    pub async fn get_newest_ids_by_attribute(
+        &self,
+        kind: &str,
+        field: &str,
+        value: &str,
+        count: usize,
+        offset: usize,
+        order_by: &str,
+    ) -> Result<Vec<String>> {
+        self.indexer
+            .get_newest_ids_by_attribute(
+                &vec![(StructuredDocIndexFields::KIND, kind), (field, value)],
+                count,
+                offset,
+                order_by,
+            )
+            .await
     }
 
     pub fn commit(self) {
