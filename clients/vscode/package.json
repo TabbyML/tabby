@@ -144,12 +144,14 @@
         "command": "tabby.chat.navigate.newChat",
         "title": "New Chat",
         "icon": "$(add)",
+        "enablement": "tabby.chatSidePanelStatus === 'ready'",
         "category": "Tabby"
       },
       {
         "command": "tabby.chat.navigate.history",
         "title": "Chat History",
         "icon": "$(history)",
+        "enablement": "tabby.chatSidePanelStatus === 'ready'",
         "category": "Tabby"
       }
     ],
