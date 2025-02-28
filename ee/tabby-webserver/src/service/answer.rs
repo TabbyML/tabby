@@ -11,11 +11,11 @@ use tabby_common::{api::structured_doc::DocSearchDocument, config::AnswerConfig}
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     auth::AuthenticationService,
-    context::{ContextInfoHelper, ContextService},
+    context::ContextService,
     policy::AccessPolicy,
-    repository::{Repository, RepositoryService},
+    repository::RepositoryService,
     thread::{
-        CodeQueryInput, MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
+        MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
         MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
         ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
@@ -85,7 +85,7 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                if let Some(repository) = self.find_repository(&context_info_helper, code_query, policy.clone()).await {
+                if let Some(repository) = self.retrieval.find_repository(&context_info_helper, &policy, code_query).await {
                     let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &last_message.content).await?;
                     yield Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(need_codebase_context.clone()));
                     if need_codebase_context.file_list {
@@ -249,32 +249,6 @@ impl AnswerService {
         };
 
         MessageAttachmentDoc::from_doc_search_document(doc, user)
-    }
-
-    async fn find_repository(
-        &self,
-        helper: &ContextInfoHelper,
-        input: &CodeQueryInput,
-        policy: AccessPolicy,
-    ) -> Option<Repository> {
-        let source_id = {
-            if let Some(source_id) = &input.source_id {
-                if helper.can_access_source_id(source_id) {
-                    Some(source_id.as_str())
-                } else {
-                    None
-                }
-            } else if let Some(git_url) = &input.git_url {
-                helper.allowed_code_repository().closest_match(git_url)
-            } else {
-                None
-            }
-        }?;
-
-        match self.repository.repository_list(Some(&policy)).await {
-            Ok(repos) => repos.into_iter().find(|x| x.source_id == source_id),
-            Err(_) => None,
-        }
     }
 
     async fn generate_relevant_questions(
