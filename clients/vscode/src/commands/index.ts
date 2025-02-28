@@ -221,7 +221,7 @@ export class Commands {
       // When invoked from code-action/quick-fix, it contains the error message provided by the IDE
       ensureHasEditorSelection(async () => {
         await commands.executeCommand("tabby.chatView.focus");
-        this.chatSidePanelProvider.executeCommand("explain");
+        this.chatSidePanelProvider.chatWebview.executeCommand("explain");
       });
     },
     "chat.addRelevantContext": async () => {
@@ -229,7 +229,7 @@ export class Commands {
         await commands.executeCommand("tabby.chatView.focus");
         const fileContext = await getEditorContext(editor, this.gitProvider, "selection");
         if (fileContext) {
-          this.chatSidePanelProvider.addRelevantContext(fileContext);
+          this.chatSidePanelProvider.chatWebview.addRelevantContext(fileContext);
         }
       });
     },
@@ -239,7 +239,7 @@ export class Commands {
         await commands.executeCommand("tabby.chatView.focus");
         const fileContext = await getEditorContext(editor, this.gitProvider, "file");
         if (fileContext) {
-          this.chatSidePanelProvider.addRelevantContext(fileContext);
+          this.chatSidePanelProvider.chatWebview.addRelevantContext(fileContext);
         }
       } else {
         window.showInformationMessage("No active editor.");
@@ -248,23 +248,29 @@ export class Commands {
     "chat.fixCodeBlock": async () => {
       ensureHasEditorSelection(async () => {
         await commands.executeCommand("tabby.chatView.focus");
-        this.chatSidePanelProvider.executeCommand("fix");
+        this.chatSidePanelProvider.chatWebview.executeCommand("fix");
       });
     },
     "chat.generateCodeBlockDoc": async () => {
       ensureHasEditorSelection(async () => {
         await commands.executeCommand("tabby.chatView.focus");
-        this.chatSidePanelProvider.executeCommand("generate-docs");
+        this.chatSidePanelProvider.chatWebview.executeCommand("generate-docs");
       });
     },
     "chat.generateCodeBlockTest": async () => {
       ensureHasEditorSelection(async () => {
         await commands.executeCommand("tabby.chatView.focus");
-        this.chatSidePanelProvider.executeCommand("generate-tests");
+        this.chatSidePanelProvider.chatWebview.executeCommand("generate-tests");
       });
     },
     "chat.createPanel": async () => {
       await createChatPanel(this.context, this.client, this.gitProvider);
+    },
+    "chat.navigate.newChat": async () => {
+      this.chatSidePanelProvider.chatWebview.navigate("new-chat");
+    },
+    "chat.navigate.history": async () => {
+      this.chatSidePanelProvider.chatWebview.navigate("history");
     },
     "chat.edit.start": async (
       fileUri?: string | undefined,

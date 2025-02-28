@@ -1,3 +1,4 @@
+import EventEmitter from "events";
 import {
   commands,
   env,
@@ -22,6 +23,7 @@ import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import type {
   ServerApi,
   ChatCommand,
+  ChatView,
   EditorContext,
   OnLoadedParams,
   LookupSymbolHint,
@@ -61,7 +63,7 @@ import { wrapCancelableFunction } from "../cancelableFunction";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
 
-export class ChatWebview {
+export class ChatWebview extends EventEmitter {
   private readonly logger = getLogger("ChatWebView");
   private disposables: Disposable[] = [];
   private webview: Webview | undefined = undefined;
@@ -95,7 +97,9 @@ export class ChatWebview {
     private readonly context: ExtensionContext,
     private readonly lspClient: LspClient,
     private readonly gitProvider: GitProvider,
-  ) {}
+  ) {
+    super();
+  }
 
   async init(webview: Webview) {
     webview.options = {
@@ -214,6 +218,13 @@ export class ChatWebview {
     }
   }
 
+  async navigate(view: ChatView) {
+    if (this.client && this.chatPanelLoaded) {
+      this.logger.info(`Navigate: ${view}`);
+      this.client.navigate(view);
+    }
+  }
+
   private createChatPanelApiClient(): ServerApi | undefined {
     const webview = this.webview;
     if (!webview) {
@@ -266,6 +277,7 @@ export class ChatWebview {
         }
 
         this.chatPanelLoaded = true;
+        this.emit("didChangedStatus", "ready");
 
         // 1. Send pending actions
         // 2. Call the client's init method
@@ -757,6 +769,7 @@ export class ChatWebview {
       return;
     }
     this.chatPanelLoaded = false;
+    this.emit("didChangedStatus", "loading");
     this.reloadCount += 1;
     webview.html = mainHtml
       .replace(/{{RELOAD_COUNT}}/g, this.reloadCount.toString())
@@ -771,6 +784,7 @@ export class ChatWebview {
       return;
     }
     this.chatPanelLoaded = false;
+    this.emit("didChangedStatus", "error");
     this.reloadCount += 1;
     webview.html = errorHtml
       .replace(/{{RELOAD_COUNT}}/g, this.reloadCount.toString())

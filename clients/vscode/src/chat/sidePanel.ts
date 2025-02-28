@@ -1,5 +1,4 @@
 import { ExtensionContext, WebviewViewProvider, WebviewView } from "vscode";
-import type { ChatCommand, EditorContext } from "tabby-chat-panel";
 import { ChatWebview } from "./webview";
 import type { ContextVariables } from "../ContextVariables";
 import type { Client } from "../lsp/client";
@@ -15,6 +14,10 @@ export class ChatSidePanelProvider implements WebviewViewProvider {
     private readonly gitProvider: GitProvider,
   ) {
     this.chatWebview = new ChatWebview(this.context, this.client, this.gitProvider);
+    this.contextVariables.chatSidePanelStatus = undefined;
+    this.chatWebview.on("didChangedStatus", (status: "loading" | "error" | "ready") => {
+      this.contextVariables.chatSidePanelStatus = status;
+    });
   }
 
   async resolveWebviewView(webviewView: WebviewView) {
@@ -28,13 +31,5 @@ export class ChatSidePanelProvider implements WebviewViewProvider {
     webviewView.onDidDispose(() => {
       this.chatWebview.dispose();
     });
-  }
-
-  executeCommand(command: ChatCommand) {
-    this.chatWebview.executeCommand(command);
-  }
-
-  addRelevantContext(context: EditorContext) {
-    this.chatWebview.addRelevantContext(context);
   }
 }

@@ -61,6 +61,10 @@ export class ContextVariables {
     commands.executeCommand("setContext", "tabby.status", value);
   }
 
+  set chatSidePanelStatus(value: "loading" | "ready" | "error" | undefined) {
+    commands.executeCommand("setContext", "tabby.chatSidePanelStatus", value);
+  }
+
   // FIXME(@icycodes): context variables should not have getters
 
   get chatEnabled(): boolean {

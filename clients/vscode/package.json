@@ -139,6 +139,20 @@
         "command": "tabby.chat.createPanel",
         "title": "Open Chat in Editor",
         "category": "Tabby"
+      },
+      {
+        "command": "tabby.chat.navigate.newChat",
+        "title": "New Chat",
+        "icon": "$(add)",
+        "enablement": "tabby.chatSidePanelStatus === 'ready'",
+        "category": "Tabby"
+      },
+      {
+        "command": "tabby.chat.navigate.history",
+        "title": "Chat History",
+        "icon": "$(history)",
+        "enablement": "tabby.chatSidePanelStatus === 'ready'",
+        "category": "Tabby"
       }
     ],
     "submenus": [
@@ -230,8 +244,19 @@
       ],
       "view/title": [
         {
+          "command": "tabby.chat.navigate.newChat",
+          "when": "view == tabby.chatView",
+          "group": "navigation@0"
+        },
+        {
+          "command": "tabby.chat.navigate.history",
+          "when": "view == tabby.chatView",
+          "group": "navigation@1"
+        },
+        {
           "command": "tabby.chat.createPanel",
-          "when": "view == tabby.chatView"
+          "when": "view == tabby.chatView",
+          "group": "0_new"
         }
       ]
     },
