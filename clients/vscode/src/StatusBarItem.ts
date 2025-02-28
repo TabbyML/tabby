@@ -11,6 +11,7 @@ const iconLoading = "$(loading~spin)";
 const iconDisconnected = "$(debug-disconnect)";
 const iconUnauthorized = "$(key)";
 const iconWarning = "$(warning)";
+const iconCodeModelNotFound = "$(close)";
 const colorNormal = new ThemeColor("statusBar.foreground");
 const colorWarning = new ThemeColor("statusBarItem.warningForeground");
 const backgroundColorNormal = new ThemeColor("statusBar.background");
@@ -51,6 +52,8 @@ export class StatusBarItem {
       }
       case LanguageClientState.Running: {
         const statusInfo = this.client.status.current;
+        const codeModel = statusInfo?.serverHealth?.["model"];
+
         switch (statusInfo?.status) {
           case "connecting": {
             this.setColorNormal();
@@ -71,16 +74,21 @@ export class StatusBarItem {
             break;
           }
           case "ready":
-          case "readyForAutoTrigger": {
-            if (this.checkIfVSCodeInlineCompletionEnabled()) {
+          case "readyForAutoTrigger":
+          case "readyForManualTrigger": {
+            // TODO(Sma1lboy): implement this status in tabby-agent in the future when need to generalize to other IDEs
+            if (!codeModel) {
+              this.setColorNormal();
+              this.setIcon(iconCodeModelNotFound);
+              this.setTooltip(statusInfo?.tooltip);
+              break;
+            }
+            if (statusInfo.status == "readyForAutoTrigger" && this.checkIfVSCodeInlineCompletionEnabled()) {
               this.setColorNormal();
               this.setIcon(iconAutomatic);
               this.setTooltip(statusInfo.tooltip);
             }
-            break;
-          }
-          case "readyForManualTrigger": {
-            if (this.checkIfVSCodeInlineCompletionEnabled()) {
+            if (statusInfo.status == "readyForManualTrigger" && this.checkIfVSCodeInlineCompletionEnabled()) {
               this.setColorNormal();
               this.setIcon(iconManual);
               this.setTooltip(statusInfo.tooltip);
