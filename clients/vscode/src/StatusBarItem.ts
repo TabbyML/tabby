@@ -80,7 +80,7 @@ export class StatusBarItem {
             if (!codeModel) {
               this.setColorNormal();
               this.setIcon(iconCodeModelNotFound);
-              this.setTooltip(statusInfo?.tooltip);
+              this.setTooltip("Tabby: Code Completion Model Unavailable");
               break;
             }
             if (statusInfo.status == "readyForAutoTrigger" && this.checkIfVSCodeInlineCompletionEnabled()) {
