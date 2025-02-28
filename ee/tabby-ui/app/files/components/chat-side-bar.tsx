@@ -201,11 +201,7 @@ function ChatSideBarRenderer({
   })
 
   const navigate = useLatest((view: ChatView) => {
-    if (client) {
-      // FIXME
-      // @ts-ignore
-      client.navigator(view)
-    }
+    client?.navigate(view)
   })
 
   const onNavigate = navigate.current
@@ -232,7 +228,7 @@ function ChatSideBarRenderer({
 
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
-      <Header onNavigate={onNavigate} />
+      <Header onNavigate={onNavigate} initialized={!!client} />
       <iframe
         src={`/chat`}
         className="w-full flex-1 border-0"
@@ -245,8 +241,9 @@ function ChatSideBarRenderer({
 
 interface HeaderProps {
   onNavigate: ServerApi['navigate']
+  initialized: boolean
 }
-function Header({ onNavigate }: HeaderProps) {
+function Header({ onNavigate, initialized }: HeaderProps) {
   const { setChatSideBarVisible } = React.useContext(SourceCodeBrowserContext)
 
   return (
@@ -254,6 +251,7 @@ function Header({ onNavigate }: HeaderProps) {
       <Button
         size="icon"
         variant="ghost"
+        disabled={!initialized}
         onClick={e => onNavigate('new-chat')}
       >
         <IconPlus />
@@ -261,6 +259,7 @@ function Header({ onNavigate }: HeaderProps) {
       <Button
         size="icon"
         variant="ghost"
+        disabled={!initialized}
         onClick={e => onNavigate('history')}
       >
         <IconHistory />
