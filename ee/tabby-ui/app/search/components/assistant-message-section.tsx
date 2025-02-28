@@ -552,21 +552,18 @@ function SourceCardContent({
 }) {
   const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
   const isPR = source.__typename === 'MessageAttachmentPullDoc'
+  const isCommit = source.__typename === 'MessageAttachmentCommitDoc'
   const author =
     source.__typename === 'MessageAttachmentWebDoc' ? undefined : source.author
 
   const showAvatar = (isIssue || isPR) && !!author
 
-  const link =
-    source.__typename === 'MessageAttachmentCommitDoc'
-      ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
-      : source.link
+  const link = isCommit
+    ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
+    : source.link
   const { hostname } = new URL(link)
 
-  const title =
-    source.__typename === 'MessageAttachmentCommitDoc'
-      ? source.sha.slice(0, 7)
-      : source.title
+  const title = isCommit ? source.sha.slice(0, 7) : source.title
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">

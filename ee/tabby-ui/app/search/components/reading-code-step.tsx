@@ -85,7 +85,8 @@ export function ReadingCodeStepper({
   const totalContextLength =
     (clientCodeContexts?.length || 0) +
     serverCodeContexts.length +
-    (webResources?.length || 0)
+    (webResources?.length || 0) +
+    (commitResources?.length || 0)
   const targetRepo = useMemo(() => {
     if (!codeSourceId) return undefined
 
@@ -190,7 +191,7 @@ export function ReadingCodeStepper({
                 )}
               </StepItem>
             )}
-            {commitResources?.length && (
+            {!!commitResources?.length && (
               <StepItem
                 key="commits"
                 title="Search for relevant Commits ..."
@@ -207,6 +208,12 @@ export function ReadingCodeStepper({
                               <HoverCardTrigger>
                                 <CodebaseDocView doc={x} />
                               </HoverCardTrigger>
+                              <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+                                <DocDetailView
+                                  enableDeveloperMode={enableDeveloperMode}
+                                  relevantDocument={x}
+                                />
+                              </HoverCardContent>
                             </HoverCard>
                           </div>
                         )
@@ -361,7 +368,7 @@ function CodeContextItem({
   )
 }
 
-// Issue or PR
+// Issue, PR, Commit
 function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
   const isIssue = doc.__typename === 'MessageAttachmentIssueDoc'
   const isPR = doc.__typename === 'MessageAttachmentPullDoc'
