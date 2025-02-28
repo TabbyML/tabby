@@ -231,6 +231,11 @@ export interface GitRepository {
 export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
 
 /**
+ * Views that can be navigate to on the chat webview
+ */
+export type ChatView = 'history' | 'new-chat'
+
+/**
  * Represents a file reference for retrieving file content.
  * If `range` is not provided, the entire file is considered.
  */
@@ -301,6 +306,7 @@ export interface ServerApi {
   addRelevantContext: (context: EditorContext) => void
   updateTheme: (style: string, themeClass: string) => void
   updateActiveSelection: (context: EditorContext | null) => void
+  navigate: (view: ChatView) => void
 }
 
 export interface ClientApiMethods {
@@ -441,6 +447,7 @@ export async function createServer(api: ServerApi): Promise<ClientApi> {
       addRelevantContext: api.addRelevantContext,
       updateTheme: api.updateTheme,
       updateActiveSelection: api.updateActiveSelection,
+      navigator: api.navigate,
     },
   })
   const clientMethods = await thread._requestMethods() as (keyof ClientApi)[]

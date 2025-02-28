@@ -10,6 +10,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import {
+  ChatView,
   TABBY_CHAT_PANEL_API_VERSION,
   type ChatCommand,
   type EditorContext,
@@ -100,6 +101,20 @@ export default function ChatPage() {
     }
   }
 
+  const navigate = (view: ChatView) => {
+    switch (view) {
+      case 'history':
+        setShowHistory(true)
+        break
+      case 'new-chat':
+        chatRef.current?.newChat()
+        setShowHistory(false)
+        break
+      default:
+        break
+    }
+  }
+
   const server = useServer({
     init: (request: InitRequest) => {
       if (chatRef.current) return
@@ -122,9 +137,7 @@ export default function ChatPage() {
     cleanError: () => {
       setErrorMessage(null)
     },
-    addRelevantContext: (context: EditorContext) => {
-      return addRelevantContext(context)
-    },
+    addRelevantContext,
     updateTheme: (style, themeClass) => {
       const styleWithHslValue = style
         .split(';')
@@ -145,9 +158,8 @@ export default function ChatPage() {
       document.documentElement.className =
         themeClass + ` client client-${client}`
     },
-    updateActiveSelection: (context: EditorContext | null) => {
-      return updateActiveSelection(context)
-    }
+    updateActiveSelection,
+    navigate
   })
 
   useEffect(() => {
