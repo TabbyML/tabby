@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { useEnablePage } from '@/lib/experiment-flags'
-import { updatePendingThreadId } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { deleteThreadMutation } from '@/lib/tabby/query'
@@ -40,12 +39,14 @@ type HeaderProps = {
   threadIdFromURL?: string
   streamingDone?: boolean
   threadId?: string
+  onConvertToPage?: () => void
 }
 
 export function Header({
   threadIdFromURL,
   streamingDone,
-  threadId
+  threadId,
+  onConvertToPage
 }: HeaderProps) {
   const router = useRouter()
   const { isThreadOwner } = useContext(SearchContext)
@@ -82,12 +83,6 @@ export function Header({
       clearHomeScrollPosition()
     }
     router.push('/')
-  }
-
-  const onConvertToPage = () => {
-    if (!threadId) return
-    updatePendingThreadId(threadId)
-    router.push('/pages')
   }
 
   return (
@@ -147,7 +142,11 @@ export function Header({
           </AlertDialog>
         )}
         {!!enablePage.value && streamingDone && isThreadOwner && threadId && (
-          <Button variant="ghost" onClick={onConvertToPage} className="gap-1">
+          <Button
+            variant="ghost"
+            onClick={e => onConvertToPage?.()}
+            className="gap-1"
+          >
             Convert to page
           </Button>
         )}

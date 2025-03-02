@@ -21,7 +21,7 @@ import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
-import { updatePendingThreadId, usePageStore } from '@/lib/stores/page-store'
+import { clearPendingThread, usePageStore } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { client, useMutation } from '@/lib/tabby/gql'
 import {
@@ -34,6 +34,7 @@ import { cn, nanoid } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconClock, IconFileSearch } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -44,6 +45,7 @@ import { UserAvatar } from '@/components/user-avatar'
 import { PageItem, SectionItem } from '../types'
 import { Header } from './header'
 import { Navbar } from './nav-bar'
+import { NewPageForm } from './new-page-form'
 import { NewSectionForm } from './new-section-form'
 import { PageContext } from './page-context'
 import { SectionContent } from './section-content'
@@ -130,6 +132,7 @@ export function Page() {
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const pendingThreadId = usePageStore(state => state.pendingThreadId)
+  const pendingThreadTitle = usePageStore(state => state.pendingThreadTitle)
   const [mode, setMode] = useState<'edit' | 'view'>(
     pendingThreadId ? 'edit' : 'view'
   )
@@ -152,13 +155,19 @@ export function Page() {
   const [page, setPage] = useState<PageItem | undefined>()
   const [sections, setSections] = useState<Array<SectionItem>>()
   const [isLoading, setIsLoading] = useState(false)
+  // todo error handling
   const [error, setError] = useState<ExtendedCombinedError | undefined>()
   const [submitting, setSubmitting] = useState(false)
+  const [isGeneratingPageTitle, setIsGeneratingPageTitle] = useState(false)
   const pageIdFromURL = useMemo(() => {
     const regex = /^\/pages\/(.*)/
     if (!activePathname) return undefined
+    const id = activePathname.match(regex)?.[1]?.split('-').pop()
+    return id === 'new' ? undefined : id
+  }, [activePathname])
 
-    return activePathname.match(regex)?.[1]?.split('-').pop()
+  const isNew = useMemo(() => {
+    return activePathname === '/pages/new'
   }, [activePathname])
 
   const unsubscribeFn = useRef<(() => void) | undefined>()
@@ -171,23 +180,41 @@ export function Page() {
     setPageCompleted(true)
   })
 
-  const processPageStream = (
+  // `/pages` -> `/pages/{slug}-{pageId}`
+  const updatePageURL = (page: { id: string; title: string }) => {
+    if (!page) return
+    const { title, id } = page
+    const firstLine = (title || '').split('\n')[0] ?? ''
+    const _title = firstLine.slice(0, SLUG_TITLE_MAX_LENGTH)
+    const slug = slugify(_title)
+    const slugWithPageId = compact([slug, id]).join('-')
+
+    const path = updateUrlComponents({
+      pathname: `/pages/${slugWithPageId}`,
+      replace: true
+    })
+
+    return location.origin + path
+  }
+
+  const processThreadToPageStream = (
     data: CreateThreadToPageRunSubscription['createThreadToPageRun']
   ) => {
     switch (data.__typename) {
       case 'PageCreated':
-        const now = new Date().toISOString()
-        const nextPage: PageItem = {
-          id: data.id,
-          authorId: data.authorId,
-          title: data.title,
-          content: '',
-          updatedAt: now,
-          createdAt: now
-        }
-        setPage(nextPage)
+        setPage(prev => {
+          if (!prev) return prev
+
+          return {
+            ...prev,
+            id: data.id,
+            title: data.title,
+            authorId: data.authorId
+          }
+        })
         setPageId(data.id)
-        updatePageURL(nextPage)
+        setIsGeneratingPageTitle(false)
+        updatePageURL(data)
         break
       case 'PageContentDelta': {
         setPage(prev => {
@@ -199,7 +226,6 @@ export function Page() {
         })
         break
       }
-
       case 'PageContentCompleted': {
         break
       }
@@ -250,7 +276,7 @@ export function Page() {
     }
   }
 
-  const processNewSectionStream = (
+  const processAppendSectionStream = (
     data: CreatePageSectionRunSubscription['createPageSectionRun']
   ) => {
     switch (data.__typename) {
@@ -333,13 +359,27 @@ export function Page() {
         if (!value) {
           return
         }
-        processNewSectionStream(value)
+        processAppendSectionStream(value)
       })
 
     unsubscribeFn.current = unsubscribe
   }
 
-  const convertThreadToPage = (threadId: string) => {
+  const convertThreadToPage = (threadId: string, threadTitle: string) => {
+    const now = new Date().toISOString()
+    const tempId = nanoid()
+    const nextPage: PageItem = {
+      id: tempId,
+      authorId: '',
+      title: threadTitle,
+      content: '',
+      updatedAt: now,
+      createdAt: now
+    }
+    setPage(nextPage)
+    setPageId(tempId)
+    setIsGeneratingPageTitle(true)
+
     const { unsubscribe } = client
       .subscription(createThreadToPageRunSubscription, {
         threadId
@@ -357,7 +397,7 @@ export function Page() {
           return
         }
 
-        processPageStream(value)
+        processThreadToPageStream(value)
       })
 
     return unsubscribe
@@ -461,23 +501,6 @@ export function Page() {
     }
   }, [pageSectionsError])
 
-  // `/pages` -> `/pages/{slug}-{pageId}`
-  const updatePageURL = (page: PageItem) => {
-    if (!page) return
-    const { title, id } = page
-    const firstLine = (title || '').split('\n')[0] ?? ''
-    const _title = firstLine.slice(0, SLUG_TITLE_MAX_LENGTH)
-    const slug = slugify(_title)
-    const slugWithPageId = compact([slug, id]).join('-')
-
-    const path = updateUrlComponents({
-      pathname: `/pages/${slugWithPageId}`,
-      replace: true
-    })
-
-    return location.origin + path
-  }
-
   // for synchronizing the active pathname
   useEffect(() => {
     setActivePathname(pathname)
@@ -498,12 +521,19 @@ export function Page() {
         setError(undefined)
         setPageCompleted(false)
         // trigger convert
-        unsubscribeFn.current = convertThreadToPage(pendingThreadId)
-        updatePendingThreadId(undefined)
+        unsubscribeFn.current = convertThreadToPage(
+          pendingThreadId,
+          pendingThreadTitle ?? ''
+        )
+        clearPendingThread()
         return
       }
 
-      if (!pageId) {
+      if (isNew) {
+        setMode('edit')
+      }
+
+      if (!pageId && !isNew) {
         router.replace('/')
       }
     }
@@ -637,31 +667,65 @@ export function Page() {
         pendingSectionIds,
         setPendingSectionIds,
         currentSectionId,
+        pageIdFromURL,
+        isNew,
         onDeleteSection,
         onMoveSectionPosition
       }}
     >
       <div style={style}>
         <Header pageIdFromURL={pageIdFromURL} streamingDone={!isLoading} />
-        <LoadingWrapper loading={!isReady || !page} fallback={<PageSkeleton />}>
+        <LoadingWrapper
+          loading={!isNew && (!isReady || !page)}
+          fallback={<PageSkeleton />}
+          delay={0}
+        >
           <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
             <ScrollArea className="h-full w-full" ref={contentContainerRef}>
               <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
-                <div className="relative col-span-3">
-                  {/* page title */}
-                  <div className="mb-2 mt-8">
-                    <LoadingWrapper
-                      loading={!page}
-                      fallback={<SectionTitleSkeleton />}
-                    >
-                      <h1 className="text-4xl font-semibold">{page?.title}</h1>
-                    </LoadingWrapper>
-                    <div className="my-4 flex gap-4 text-sm text-muted-foreground">
-                      <LoadingWrapper
-                        loading={fetchingAuthor || !page?.authorId}
-                      >
-                        {!!page && (
-                          <>
+                {isNew && !page ? (
+                  <div className="col-span-4 mt-8 rounded-lg border py-2 pl-1 pr-3 ring-2 ring-transparent focus-within:ring-ring focus-visible:ring-ring">
+                    <NewPageForm
+                      onSubmit={async title => {
+                        const now = new Date().toISOString()
+                        const nextPage: PageItem = {
+                          title,
+                          id: nanoid(),
+                          authorId: '',
+                          content: '',
+                          updatedAt: now,
+                          createdAt: now
+                        }
+                        setPage(nextPage)
+                        setPageId(nextPage.id)
+                        setIsGeneratingPageTitle(true)
+                        setIsLoading(true)
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative col-span-3">
+                      {/* page title */}
+                      <div className="mb-2 mt-8">
+                        <LoadingWrapper
+                          loading={!page}
+                          fallback={<SectionTitleSkeleton />}
+                        >
+                          <h1
+                            className={cn('text-4xl font-semibold', {
+                              'animate-pulse text-muted-foreground':
+                                isGeneratingPageTitle
+                            })}
+                          >
+                            {page?.title}
+                          </h1>
+                        </LoadingWrapper>
+                        <div className="my-4 flex gap-4 text-sm text-muted-foreground">
+                          <LoadingWrapper
+                            loading={fetchingAuthor || !page?.authorId}
+                            fallback={<Skeleton />}
+                          >
                             <div className="flex items-center gap-1">
                               <UserAvatar user={author} className="h-6 w-6" />
                               <div>{author?.name}</div>
@@ -670,84 +734,78 @@ export function Page() {
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-0.5">
                                 <IconClock />
-                                <span>{formatTime(page.createdAt)}</span>
+                                <span>{formatTime(page?.createdAt)}</span>
                               </div>
                             </div>
-                          </>
+                          </LoadingWrapper>
+                        </div>
+                      </div>
+
+                      {/* page content */}
+                      <LoadingWrapper
+                        loading={!page || (isLoading && !page?.content)}
+                        fallback={<SectionContentSkeleton />}
+                      >
+                        <MessageMarkdown
+                          message={page?.content ?? ''}
+                          supportsOnApplyInEditorV2={false}
+                        />
+                      </LoadingWrapper>
+
+                      {/* sections */}
+                      <LoadingWrapper
+                        loading={!page || (isLoading && !sections?.length)}
+                        fallback={
+                          <div className="my-8 w-full">
+                            <SectionsSkeleton />
+                          </div>
+                        }
+                      >
+                        <AnimatePresence
+                          key={`${isLoading}-${mode}`}
+                          initial={false}
+                        >
+                          {sections?.map((section, index) => {
+                            const isSectionGenerating =
+                              isLoading && section.id === currentSectionId
+                            const enableMoveUp = index !== 0
+                            const enableMoveDown = index < sections.length - 1
+
+                            return (
+                              <motion.div
+                                layout={!isLoading && mode === 'edit'}
+                                key={`section_${section.id}`}
+                                exit={{ opacity: 0 }}
+                              >
+                                <SectionTitle
+                                  className="section-title pt-8"
+                                  section={section}
+                                />
+                                <SectionContent
+                                  section={section}
+                                  isGenerating={isSectionGenerating}
+                                  enableMoveUp={enableMoveUp}
+                                  enableMoveDown={enableMoveDown}
+                                />
+                              </motion.div>
+                            )
+                          })}
+                        </AnimatePresence>
+                        {/* append section */}
+                        {isPageOwner && mode === 'edit' && pageCompleted && (
+                          <NewSectionForm
+                            onSubmit={appendNewSection}
+                            disabled={!pageId || isLoading}
+                            className="mt-10"
+                          />
                         )}
                       </LoadingWrapper>
                     </div>
-                  </div>
-
-                  {/* page content */}
-                  <LoadingWrapper
-                    // FIXME
-                    loading={!page || (isLoading && !page?.content)}
-                    fallback={<SectionContentSkeleton />}
-                  >
-                    <MessageMarkdown
-                      message={page?.content ?? ''}
-                      supportsOnApplyInEditorV2={false}
-                    />
-                  </LoadingWrapper>
-
-                  {/* sections */}
-                  <LoadingWrapper
-                    loading={!page || (isLoading && !sections?.length)}
-                    fallback={
-                      <div className="my-8 w-full">
-                        <SectionsSkeleton />
-                      </div>
-                    }
-                  >
-                    <AnimatePresence
-                      key={`${isLoading}-${mode}`}
-                      initial={false}
-                    >
-                      {sections?.map((section, index) => {
-                        const isSectionGenerating =
-                          isLoading && section.id === currentSectionId
-                        const enableMoveUp = index !== 0
-                        const enableMoveDown = index < sections.length - 1
-
-                        return (
-                          <motion.div
-                            layout={!isLoading && mode === 'edit'}
-                            key={`section_${section.id}`}
-                            exit={
-                              isLoading
-                                ? { opacity: 0, transition: { duration: 0 } }
-                                : { opacity: 0, transition: { duration: 0.5 } }
-                            }
-                          >
-                            <SectionTitle
-                              className="section-title pt-8"
-                              section={section}
-                            />
-                            <SectionContent
-                              section={section}
-                              isGenerating={isSectionGenerating}
-                              enableMoveUp={enableMoveUp}
-                              enableMoveDown={enableMoveDown}
-                            />
-                          </motion.div>
-                        )
-                      })}
-                    </AnimatePresence>
-
-                    {/* append section */}
-                    {isPageOwner && mode === 'edit' && pageCompleted && (
-                      <NewSectionForm
-                        onSubmit={appendNewSection}
-                        disabled={!pageId || isLoading}
-                        className="mt-10"
-                      />
-                    )}
-                  </LoadingWrapper>
-                </div>
-                <div className="relative col-span-1">
-                  <Navbar sections={sections} />
-                </div>
+                    <div className="relative col-span-1">
+                      <Navbar sections={sections} />
+                    </div>
+                  </>
+                )}
               </div>
             </ScrollArea>
 

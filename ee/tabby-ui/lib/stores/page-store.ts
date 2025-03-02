@@ -1,35 +1,43 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-
-const excludeFromState: string[] = []
 
 export interface PageState {
   pendingThreadId: string | undefined
+  pendingThreadTitle: string | undefined
 }
 
 const initialState: PageState = {
-  pendingThreadId: undefined
+  pendingThreadId: undefined,
+  pendingThreadTitle: undefined
 }
 
-export const usePageStore = create<PageState>()(
-  persist(
-    () => ({
-      ...initialState
-    }),
-    {
-      name: 'tabby-page-storage',
-      partialize: state =>
-        Object.fromEntries(
-          Object.entries(state).filter(
-            ([key]) => !excludeFromState.includes(key)
-          )
-        )
-    }
-  )
-)
+export const usePageStore = create<PageState>()(() => ({ ...initialState }))
 
 const set = usePageStore.setState
 
 export const updatePendingThreadId = (threadId: string | undefined) => {
   set(() => ({ pendingThreadId: threadId }))
+}
+
+export const updatePendingThreadTitle = (title: string | undefined) => {
+  set(() => ({ pendingThreadTitle: title }))
+}
+
+export const updatePendingThread = ({
+  threadId,
+  title
+}: {
+  threadId: string
+  title: string
+}) => {
+  set(() => ({
+    pendingThreadId: threadId,
+    pendingThreadTitle: title
+  }))
+}
+
+export const clearPendingThread = () => {
+  set(() => ({
+    pendingThreadId: undefined,
+    pendingThreadTitle: undefined
+  }))
 }
