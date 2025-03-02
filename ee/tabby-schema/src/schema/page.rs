@@ -1,12 +1,15 @@
+mod input;
 mod types;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
+pub use input::*;
 use juniper::ID;
 pub use types::*;
 
 use crate::{policy::AccessPolicy, schema::Result};
 
 pub type ThreadToPageRunStream = BoxStream<'static, Result<PageRunItem>>;
+pub type PageRunStream = BoxStream<'static, Result<PageRunItem>>;
 pub type SectionRunStream = BoxStream<'static, Result<SectionRunItem>>;
 
 #[async_trait]
@@ -17,6 +20,13 @@ pub trait PageService: Send + Sync {
         author_id: &ID,
         thread_id: &ID,
     ) -> Result<ThreadToPageRunStream>;
+
+    async fn create_run(
+        &self,
+        policy: &AccessPolicy,
+        author_id: &ID,
+        input: &CreatePageRunInput,
+    ) -> Result<PageRunStream>;
 
     async fn list(
         &self,

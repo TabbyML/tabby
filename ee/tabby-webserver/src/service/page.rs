@@ -15,10 +15,10 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     context::ContextService,
     page::{
-        CreatePageSectionRunInput, MoveSectionDirection, Page, PageCompleted, PageContentCompleted,
-        PageContentDelta, PageCreated, PageRunItem, PageSection, PageSectionContentCompleted,
-        PageSectionContentDelta, PageSectionsCreated, PageService, Section, SectionRunItem,
-        SectionRunStream, ThreadToPageRunStream,
+        CreatePageRunInput, CreatePageSectionRunInput, MoveSectionDirection, Page, PageCompleted,
+        PageContentCompleted, PageContentDelta, PageCreated, PageRunItem, PageRunStream,
+        PageSection, PageSectionContentCompleted, PageSectionContentDelta, PageSectionsCreated,
+        PageService, Section, SectionRunItem, SectionRunStream, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
     thread::{Message, MessageAttachment, ThreadService},
@@ -65,105 +65,23 @@ impl PageService for PageServiceImpl {
             .get(thread_id)
             .await?
             .ok_or_else(|| CoreError::NotFound("Thread not found"))?;
-        let page_id = self.db.create_page(author_id.as_rowid()?).await?.as_id();
 
         let messages = self
             .thread
             .list_thread_messages(thread_id, None, None, None, None)
             .await?;
 
-        let title = self
-            .generate_page_title(policy, page_id.clone(), &messages)
-            .await?;
+        self.page_run(policy, author_id, None, &messages).await
+    }
 
-        let db = self.db.clone();
-        let policy = policy.clone();
-        let chat = self.chat.clone();
-        let context = self.context.clone();
-        let author_id = author_id.clone();
-
-        let s = stream! {
-            yield Ok(PageRunItem::PageCreated(PageCreated {
-                id: page_id.clone(),
-                author_id: author_id.clone(),
-                title: title.clone(),
-            }));
-
-            let sections = generate_page_sections(
-                3,
-                chat.clone(),
-                context.clone(),
-                &policy,
-                "",
-                &title,
-                &vec![],
-                &messages,
-            ).await?;
-            let mut page_sections = Vec::new();
-            for section_title in sections {
-                let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
-                page_sections.push(PageSection {
-                    id: section.0.as_id(),
-                    title: section_title.to_owned(),
-                    position: section.1 as i32,
-                });
-            }
-
-            yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
-                sections: page_sections.clone(),
-            }));
-
-            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &title, &messages).await?;
-            for await delta in content_stream {
-                let delta = delta?;
-                db.append_page_content(page_id.as_rowid()?, &delta).await?;
-                yield Ok(PageRunItem::PageContentDelta(PageContentDelta{
-                    delta
-                }));
-            }
-
-            yield Ok(PageRunItem::PageContentCompleted(PageContentCompleted {
-                id: page_id.clone(),
-            }));
-
-            for section in page_sections {
-                let section_id = section.id.clone();
-
-                let existed_sections = db
-                    .list_page_sections(page_id.as_rowid()?, None, None, false)
-                    .await?
-                    .into_iter()
-                    .map(Into::into)
-                    .collect();
-                let content_stream = generate_page_section_content(
-                    chat.clone(),
-                    context.clone(),
-                    &policy,
-                    &messages,
-                    &title,
-                    &existed_sections,
-                    &section.title,
-                ).await?;
-                for await delta in content_stream {
-                    let delta = delta?;
-                    db.append_page_section_content(section_id.clone().as_rowid()?, &delta).await?;
-                    yield Ok(PageRunItem::PageSectionContentDelta(PageSectionContentDelta {
-                        id: section_id.clone(),
-                        delta
-                    }));
-                }
-
-                yield Ok(PageRunItem::PageSectionContentCompleted(PageSectionContentCompleted {
-                    id: section_id,
-                }));
-            }
-
-            yield Ok(PageRunItem::PageCompleted(PageCompleted {
-                id: page_id,
-            }));
-        };
-
-        Ok(s.boxed())
+    async fn create_run(
+        &self,
+        policy: &AccessPolicy,
+        author_id: &ID,
+        input: &CreatePageRunInput,
+    ) -> Result<PageRunStream> {
+        self.page_run(policy, author_id, Some(&input.title), &vec![])
+            .await
     }
 
     async fn append_section(
@@ -327,10 +245,115 @@ impl PageService for PageServiceImpl {
 }
 
 impl PageServiceImpl {
+    async fn page_run(
+        &self,
+        policy: &AccessPolicy,
+        author_id: &ID,
+        title: Option<&str>,
+        messages: &Vec<Message>,
+    ) -> Result<PageRunStream> {
+        let page_id = self.db.create_page(author_id.as_rowid()?).await?.as_id();
+        let messages = messages.to_vec();
+
+        let title = self
+            .generate_page_title(policy, page_id.clone(), title, &messages)
+            .await?;
+
+        let db = self.db.clone();
+        let policy = policy.clone();
+        let chat = self.chat.clone();
+        let context = self.context.clone();
+        let author_id = author_id.clone();
+
+        let s = stream! {
+            yield Ok(PageRunItem::PageCreated(PageCreated {
+                id: page_id.clone(),
+                author_id: author_id.clone(),
+                title: title.clone(),
+            }));
+
+            let sections = generate_page_sections(
+                3,
+                chat.clone(),
+                context.clone(),
+                &policy,
+                "",
+                &title,
+                &vec![],
+                &messages,
+            ).await?;
+            let mut page_sections = Vec::new();
+            for section_title in sections {
+                let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
+                page_sections.push(PageSection {
+                    id: section.0.as_id(),
+                    title: section_title.to_owned(),
+                    position: section.1 as i32,
+                });
+            }
+
+            yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
+                sections: page_sections.clone(),
+            }));
+
+            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &title, &messages).await?;
+            for await delta in content_stream {
+                let delta = delta?;
+                db.append_page_content(page_id.as_rowid()?, &delta).await?;
+                yield Ok(PageRunItem::PageContentDelta(PageContentDelta{
+                    delta
+                }));
+            }
+
+            yield Ok(PageRunItem::PageContentCompleted(PageContentCompleted {
+                id: page_id.clone(),
+            }));
+
+            for section in page_sections {
+                let section_id = section.id.clone();
+
+                let existed_sections = db
+                    .list_page_sections(page_id.as_rowid()?, None, None, false)
+                    .await?
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
+                let content_stream = generate_page_section_content(
+                    chat.clone(),
+                    context.clone(),
+                    &policy,
+                    &messages,
+                    &title,
+                    &existed_sections,
+                    &section.title,
+                ).await?;
+                for await delta in content_stream {
+                    let delta = delta?;
+                    db.append_page_section_content(section_id.clone().as_rowid()?, &delta).await?;
+                    yield Ok(PageRunItem::PageSectionContentDelta(PageSectionContentDelta {
+                        id: section_id.clone(),
+                        delta
+                    }));
+                }
+
+                yield Ok(PageRunItem::PageSectionContentCompleted(PageSectionContentCompleted {
+                    id: section_id,
+                }));
+            }
+
+            yield Ok(PageRunItem::PageCompleted(PageCompleted {
+                id: page_id,
+            }));
+        };
+
+        Ok(s.boxed())
+    }
+
     async fn generate_page_title(
         &self,
         policy: &AccessPolicy,
         page_id: ID,
+        title: Option<&str>,
         messages: &Vec<Message>,
     ) -> Result<String> {
         let helper = self.context.read(Some(policy)).await?.helper();
@@ -338,7 +361,7 @@ impl PageServiceImpl {
 
         let user_message = convert_user_message_to_chat_completion_request(
             &helper,
-            prompt_page_title(),
+            prompt_page_title(title).as_str(),
             &MessageAttachment::default(),
             None,
         );
