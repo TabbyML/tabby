@@ -15,6 +15,7 @@ use crate::{
     notification::{Notification, NotificationRecipient},
     page,
     repository::RepositoryKind,
+    retrieval,
     schema::{
         auth::{self, LdapCredential, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
@@ -220,7 +221,7 @@ impl From<NotificationDAO> for Notification {
     }
 }
 
-impl From<AttachmentCode> for thread::MessageAttachmentCode {
+impl From<AttachmentCode> for retrieval::AttachmentCode {
     fn from(value: AttachmentCode) -> Self {
         Self {
             git_url: value.git_url,
@@ -233,8 +234,8 @@ impl From<AttachmentCode> for thread::MessageAttachmentCode {
     }
 }
 
-impl From<&thread::MessageAttachmentCode> for AttachmentCode {
-    fn from(val: &thread::MessageAttachmentCode) -> Self {
+impl From<&retrieval::AttachmentCode> for AttachmentCode {
+    fn from(val: &retrieval::AttachmentCode) -> Self {
         AttachmentCode {
             git_url: val.git_url.clone(),
             commit: val.commit.clone(),
@@ -274,20 +275,36 @@ impl From<AttachmentCodeFileList> for thread::MessageAttachmentCodeFileList {
     }
 }
 
+impl From<AttachmentClientCode> for retrieval::AttachmentClientCode {
+    fn from(value: AttachmentClientCode) -> Self {
+        Self {
+            filepath: value.filepath,
+            content: value.content,
+            start_line: value.start_line.map(|x| x as i32),
+        }
+    }
+}
+
+impl From<AttachmentCodeFileList> for retrieval::AttachmentCodeFileList {
+    fn from(val: AttachmentCodeFileList) -> Self {
+        retrieval::AttachmentCodeFileList {
+            file_list: val.file_list,
+        }
+    }
+}
+
 pub fn from_thread_message_attachment_document(
     doc: AttachmentDoc,
     author: Option<UserValue>,
-) -> thread::MessageAttachmentDoc {
+) -> retrieval::AttachmentDoc {
     match doc {
-        AttachmentDoc::Web(web) => {
-            thread::MessageAttachmentDoc::Web(thread::MessageAttachmentWebDoc {
-                title: web.title,
-                link: web.link,
-                content: web.content,
-            })
-        }
+        AttachmentDoc::Web(web) => retrieval::AttachmentDoc::Web(retrieval::AttachmentWebDoc {
+            title: web.title,
+            link: web.link,
+            content: web.content,
+        }),
         AttachmentDoc::Issue(issue) => {
-            thread::MessageAttachmentDoc::Issue(thread::MessageAttachmentIssueDoc {
+            retrieval::AttachmentDoc::Issue(retrieval::AttachmentIssueDoc {
                 title: issue.title,
                 link: issue.link,
                 author,
@@ -295,28 +312,26 @@ pub fn from_thread_message_attachment_document(
                 closed: issue.closed,
             })
         }
-        AttachmentDoc::Pull(pull) => {
-            thread::MessageAttachmentDoc::Pull(thread::MessageAttachmentPullDoc {
-                title: pull.title,
-                link: pull.link,
-                author,
-                body: pull.body,
-                patch: pull.diff,
-                merged: pull.merged,
-            })
-        }
+        AttachmentDoc::Pull(pull) => retrieval::AttachmentDoc::Pull(retrieval::AttachmentPullDoc {
+            title: pull.title,
+            link: pull.link,
+            author,
+            body: pull.body,
+            patch: pull.diff,
+            merged: pull.merged,
+        }),
     }
 }
 
-impl From<&thread::MessageAttachmentDoc> for AttachmentDoc {
-    fn from(val: &thread::MessageAttachmentDoc) -> Self {
+impl From<&retrieval::AttachmentDoc> for AttachmentDoc {
+    fn from(val: &retrieval::AttachmentDoc) -> Self {
         match val {
-            thread::MessageAttachmentDoc::Web(val) => AttachmentDoc::Web(AttachmentWebDoc {
+            retrieval::AttachmentDoc::Web(val) => AttachmentDoc::Web(AttachmentWebDoc {
                 title: val.title.clone(),
                 link: val.link.clone(),
                 content: val.content.clone(),
             }),
-            thread::MessageAttachmentDoc::Issue(val) => AttachmentDoc::Issue(AttachmentIssueDoc {
+            retrieval::AttachmentDoc::Issue(val) => AttachmentDoc::Issue(AttachmentIssueDoc {
                 title: val.title.clone(),
                 link: val.link.clone(),
                 author_user_id: val.author.as_ref().map(|x| match x {
@@ -325,7 +340,7 @@ impl From<&thread::MessageAttachmentDoc> for AttachmentDoc {
                 body: val.body.clone(),
                 closed: val.closed,
             }),
-            thread::MessageAttachmentDoc::Pull(val) => AttachmentDoc::Pull(AttachmentPullDoc {
+            retrieval::AttachmentDoc::Pull(val) => AttachmentDoc::Pull(AttachmentPullDoc {
                 title: val.title.clone(),
                 link: val.link.clone(),
                 author_user_id: val.author.as_ref().map(|x| match x {

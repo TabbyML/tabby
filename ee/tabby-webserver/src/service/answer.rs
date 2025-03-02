@@ -1,10 +1,9 @@
 mod prompt_tools;
 
 use std::{
-    collections::HashMap,
     fs::File,
     io::{BufRead, BufReader, Read},
-    path::{Path, PathBuf},
+    path::Path,
     sync::Arc,
 };
 
@@ -15,11 +14,8 @@ use futures::stream::BoxStream;
 use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
 use tabby_common::{
     api::{
-        code::{
-            CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
-            CodeSearchScores,
-        },
-        structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
+        code::CodeSearch,
+        structured_doc::{DocSearch, DocSearchDocument},
     },
     config::AnswerConfig,
 };
@@ -29,28 +25,30 @@ use tabby_schema::{
     context::{ContextInfoHelper, ContextService},
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
+    retrieval::{Attachment, AttachmentCodeFileList, AttachmentDoc},
     thread::{
-        CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentCodeFileList, MessageAttachmentDoc, MessageDocSearchHit,
-        ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsCodeFileList,
-        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
-        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
+        CodeQueryInput, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
+        ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
+        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
+        ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
 
-use crate::service::utils::{
-    convert_messages_to_chat_completion_request, convert_user_message_to_chat_completion_request,
+use crate::service::{
+    retrieval::RetrievalService,
+    utils::{
+        convert_messages_to_chat_completion_request,
+        convert_user_message_to_chat_completion_request,
+    },
 };
 
 pub struct AnswerService {
     config: AnswerConfig,
     auth: Arc<dyn AuthenticationService>,
     chat: Arc<dyn ChatCompletionStream>,
-    code: Arc<dyn CodeSearch>,
-    doc: Arc<dyn DocSearch>,
+    retrieval: Arc<RetrievalService>,
     context: Arc<dyn ContextService>,
-    serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
 }
 
@@ -59,20 +57,16 @@ impl AnswerService {
         config: &AnswerConfig,
         auth: Arc<dyn AuthenticationService>,
         chat: Arc<dyn ChatCompletionStream>,
-        code: Arc<dyn CodeSearch>,
-        doc: Arc<dyn DocSearch>,
+        retrieval: Arc<RetrievalService>,
         context: Arc<dyn ContextService>,
-        serper: Option<Box<dyn DocSearch>>,
         repository: Arc<dyn RepositoryService>,
     ) -> Self {
         Self {
             config: config.clone(),
             auth,
             chat,
-            code,
-            doc,
+            retrieval,
             context,
-            serper,
             repository,
         }
     }
@@ -99,7 +93,7 @@ impl AnswerService {
             let context_info = self.context.read(Some(&policy)).await?;
             let context_info_helper = context_info.helper();
 
-            let mut attachment = MessageAttachment::default();
+            let mut attachment = Attachment::default();
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
@@ -108,14 +102,13 @@ impl AnswerService {
                     yield Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(need_codebase_context.clone()));
                     if need_codebase_context.file_list {
                         // List at most 300 files in the repository.
-                        match self.repository.list_files(&policy, &repository.kind, &repository.id, None, Some(300)).await {
-                            Ok((files, _is_clipped)) => {
-                                let file_list: Vec<_> = files.into_iter().map(|x| x.path).collect();
-                                attachment.code_file_list = Some(MessageAttachmentCodeFileList {
-                                    file_list: file_list.clone(),
+                        match self.retrieval.collect_file_list(&policy, &repository, Some(300)).await {
+                            Ok(files) => {
+                                attachment.code_file_list = Some(AttachmentCodeFileList {
+                                    file_list: files.file_list.clone(),
                                 });
                                 yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCodeFileList(ThreadAssistantMessageAttachmentsCodeFileList {
-                                    file_list,
+                                    file_list: files.file_list,
                                 }));
                             }
                             Err(e) => {
@@ -125,7 +118,7 @@ impl AnswerService {
                     }
 
                     if need_codebase_context.snippet {
-                        let hits = self.collect_relevant_code(
+                        let hits = self.retrieval.collect_relevant_code(
                             &repository,
                             &context_info_helper,
                             code_query,
@@ -147,7 +140,7 @@ impl AnswerService {
 
             // 2. Collect relevant docs if needed.
             if let Some(doc_query) = options.doc_query.as_ref() {
-                let hits = self.collect_relevant_docs(&context_info_helper, doc_query)
+                let hits = self.retrieval.collect_relevant_docs(&context_info_helper, doc_query)
                     .await;
                 attachment.doc = futures::future::join_all(hits.iter().map(|x| async {
                     Self::new_message_attachment_doc(self.auth.clone(), x.doc.clone()).await
@@ -252,7 +245,7 @@ impl AnswerService {
     async fn new_message_attachment_doc(
         auth: Arc<dyn AuthenticationService>,
         doc: DocSearchDocument,
-    ) -> MessageAttachmentDoc {
+    ) -> AttachmentDoc {
         let email = match &doc {
             DocSearchDocument::Issue(issue) => issue.author_email.as_deref(),
             DocSearchDocument::Pull(pull) => pull.author_email.as_deref(),
@@ -263,7 +256,7 @@ impl AnswerService {
         } else {
             None
         };
-        MessageAttachmentDoc::from_doc_search_document(doc, user)
+        AttachmentDoc::from_doc_search_document(doc, user)
     }
 
     async fn find_repository(
@@ -292,86 +285,9 @@ impl AnswerService {
         }
     }
 
-    async fn collect_relevant_code(
-        &self,
-        repository: &Repository,
-        helper: &ContextInfoHelper,
-        input: &CodeQueryInput,
-        params: &CodeSearchParams,
-        override_params: Option<&CodeSearchParamsOverrideInput>,
-    ) -> Vec<CodeSearchHit> {
-        let query = CodeSearchQuery::new(
-            input.filepath.clone(),
-            input.language.clone(),
-            helper.rewrite_tag(&input.content),
-            repository.source_id.clone(),
-        );
-
-        let mut params = params.clone();
-        if let Some(override_params) = override_params {
-            override_params.override_params(&mut params);
-        }
-
-        match self.code.search_in_language(query, params).await {
-            Ok(docs) => merge_code_snippets(repository, docs.hits).await,
-            Err(err) => {
-                if let CodeSearchError::NotReady = err {
-                    debug!("Code search is not ready yet");
-                } else {
-                    warn!("Failed to search code: {:?}", err);
-                }
-                vec![]
-            }
-        }
-    }
-
-    async fn collect_relevant_docs(
-        &self,
-        helper: &ContextInfoHelper,
-        doc_query: &DocQueryInput,
-    ) -> Vec<DocSearchHit> {
-        let mut source_ids = doc_query.source_ids.as_deref().unwrap_or_default().to_vec();
-
-        // Only keep source_ids that are valid.
-        source_ids.retain(|x| helper.can_access_source_id(x));
-
-        // Rewrite [[source:${id}]] tags to the actual source name for doc search.
-        let content = helper.rewrite_tag(&doc_query.content);
-
-        let mut hits = vec![];
-
-        // 1. Collect relevant docs from the tantivy doc search.
-        if !source_ids.is_empty() {
-            match self.doc.search(&source_ids, &content, 5).await {
-                Ok(docs) => hits.extend(docs.hits),
-                Err(err) => {
-                    if let DocSearchError::NotReady = err {
-                        debug!("Doc search is not ready yet");
-                    } else {
-                        warn!("Failed to search doc: {:?}", err);
-                    }
-                }
-            };
-        }
-
-        // 2. If serper is available, we also collect from serper
-        if doc_query.search_public {
-            if let Some(serper) = self.serper.as_ref() {
-                match serper.search(&[], &content, 5).await {
-                    Ok(docs) => hits.extend(docs.hits),
-                    Err(err) => {
-                        warn!("Failed to search serper: {:?}", err);
-                    }
-                };
-            }
-        }
-
-        hits
-    }
-
     async fn generate_relevant_questions(
         &self,
-        attachment: &MessageAttachment,
+        attachment: &Attachment,
         question: &str,
     ) -> anyhow::Result<Vec<String>> {
         if attachment.code.is_empty() && attachment.doc.is_empty() {
@@ -404,97 +320,11 @@ pub fn create(
     config: &AnswerConfig,
     auth: Arc<dyn AuthenticationService>,
     chat: Arc<dyn ChatCompletionStream>,
-    code: Arc<dyn CodeSearch>,
-    doc: Arc<dyn DocSearch>,
+    retrieval: Arc<RetrievalService>,
     context: Arc<dyn ContextService>,
-    serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
 ) -> AnswerService {
-    AnswerService::new(config, auth, chat, code, doc, context, serper, repository)
-}
-
-/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 300, and there are multiple hits (number of hits > 1), include the entire file.
-pub async fn merge_code_snippets(
-    repository: &Repository,
-    hits: Vec<CodeSearchHit>,
-) -> Vec<CodeSearchHit> {
-    // group hits by filepath
-    let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
-    for hit in hits.clone().into_iter() {
-        let key = format!("{}-{}", repository.source_id, hit.doc.filepath);
-        file_hits.entry(key).or_default().push(hit);
-    }
-
-    let mut result = Vec::with_capacity(file_hits.len());
-
-    for (_, file_hits) in file_hits {
-        // construct the full path to the file
-        let path: PathBuf = repository.dir.join(&file_hits[0].doc.filepath);
-
-        if file_hits.len() > 1 && count_lines(&path).is_ok_and(|x| x < 300) {
-            let file_content = read_file_content(&path);
-
-            if let Some(file_content) = file_content {
-                debug!(
-                    "The file {} is less than 300 lines, so the entire file content will be included",
-                    file_hits[0].doc.filepath
-                );
-                let mut insert_hit = file_hits[0].clone();
-                insert_hit.scores =
-                    file_hits
-                        .iter()
-                        .fold(CodeSearchScores::default(), |mut acc, hit| {
-                            acc.bm25 += hit.scores.bm25;
-                            acc.embedding += hit.scores.embedding;
-                            acc.rrf += hit.scores.rrf;
-                            acc
-                        });
-                // average the scores
-                let num_files = file_hits.len() as f32;
-                insert_hit.scores.bm25 /= num_files;
-                insert_hit.scores.embedding /= num_files;
-                insert_hit.scores.rrf /= num_files;
-                insert_hit.doc.body = file_content;
-
-                // When we use entire file content, mark start_line as None.
-                insert_hit.doc.start_line = None;
-                result.push(insert_hit);
-            }
-        } else {
-            result.extend(file_hits);
-        }
-    }
-
-    result.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
-    result
-}
-
-/// Read file content and return raw file content string.
-pub fn read_file_content(path: &Path) -> Option<String> {
-    let mut file = match File::open(path) {
-        Ok(file) => file,
-        Err(e) => {
-            warn!("Error opening file {}: {}", path.display(), e);
-            return None;
-        }
-    };
-    let mut content = String::new();
-    match file.read_to_string(&mut content) {
-        Ok(_) => Some(content),
-        Err(e) => {
-            warn!("Error reading file {}: {}", path.display(), e);
-            None
-        }
-    }
-}
-
-fn count_lines(path: &Path) -> std::io::Result<usize> {
-    let mut count = 0;
-    for line in BufReader::new(File::open(path)?).lines() {
-        line?;
-        count += 1;
-    }
-    Ok(count)
+    AnswerService::new(config, auth, chat, retrieval, context, repository)
 }
 
 #[cfg(test)]

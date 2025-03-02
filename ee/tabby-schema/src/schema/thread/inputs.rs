@@ -2,6 +2,7 @@ use juniper::{GraphQLInputObject, ID};
 use tabby_common::api::code::CodeSearchParams;
 use validator::{Validate, ValidationError};
 
+use crate::retrieval;
 #[derive(GraphQLInputObject, Validate)]
 pub struct CreateMessageInput {
     #[validate(length(
@@ -148,6 +149,16 @@ pub struct MessageAttachmentCodeInput {
     pub start_line: Option<i32>,
 
     pub content: String,
+}
+
+impl From<retrieval::AttachmentClientCode> for MessageAttachmentCodeInput {
+    fn from(value: retrieval::AttachmentClientCode) -> Self {
+        Self {
+            filepath: value.filepath,
+            content: value.content,
+            start_line: value.start_line.map(|x| x as i32),
+        }
+    }
 }
 
 #[cfg(test)]

@@ -10,10 +10,10 @@ use tabby_schema::{
     context::ContextService,
     from_thread_message_attachment_document,
     policy::AccessPolicy,
+    retrieval::{Attachment, AttachmentDoc as MessageAttachmentDoc},
     thread::{
-        self, CodeQueryInput, CreateMessageInput, CreateThreadInput, MessageAttachment,
-        MessageAttachmentDoc, MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput,
-        ThreadRunStream, ThreadService, UpdateMessageInput,
+        self, CodeQueryInput, CreateMessageInput, CreateThreadInput, MessageAttachmentInput,
+        ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream, ThreadService, UpdateMessageInput,
     },
     AsID, AsRowid, DbEnum, Result,
 };
@@ -49,7 +49,7 @@ impl ThreadServiceImpl {
                 let client_code = attachment.0.client_code;
                 let doc = attachment.0.doc;
                 let code_file_list = attachment.0.code_file_list;
-                MessageAttachment {
+                Attachment {
                     code: code
                         .map(|x| x.into_iter().map(|i| i.into()).collect())
                         .unwrap_or_default(),

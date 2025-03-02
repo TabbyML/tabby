@@ -21,7 +21,8 @@ use tabby_schema::{
         SectionRunStream, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
-    thread::{Message, MessageAttachment, ThreadService},
+    retrieval::Attachment,
+    thread::{Message, ThreadService},
     AsID, AsRowid, CoreError, Result,
 };
 
@@ -339,7 +340,7 @@ impl PageServiceImpl {
         let user_message = convert_user_message_to_chat_completion_request(
             &helper,
             prompt_page_title(),
-            &MessageAttachment::default(),
+            &Attachment::default(),
             None,
         );
         messages.push(user_message);
@@ -371,7 +372,7 @@ async fn generate_page_content(
     let user_message = convert_user_message_to_chat_completion_request(
         &helper,
         prompt_page_content(title).as_str(),
-        &MessageAttachment::default(),
+        &Attachment::default(),
         None,
     );
     messages.push(user_message);
@@ -407,7 +408,7 @@ pub async fn generate_page_sections(
     let user_message = convert_user_message_to_chat_completion_request(
         &helper,
         prompt_page_section_titles(count, &page, new_section).as_str(),
-        &MessageAttachment::default(),
+        &Attachment::default(),
         None,
     );
     messages.push(user_message);
@@ -447,7 +448,7 @@ pub async fn generate_page_section_content(
     let user_message = convert_user_message_to_chat_completion_request(
         &helper,
         prompt_page_section_content(&page, current_section).as_str(),
-        &MessageAttachment::default(),
+        &Attachment::default(),
         None,
     );
     messages.push(user_message);

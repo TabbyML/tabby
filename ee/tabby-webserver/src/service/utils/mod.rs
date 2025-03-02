@@ -9,10 +9,8 @@ use async_openai_alt::types::{
 };
 use tabby_schema::{
     context::ContextInfoHelper,
-    thread::{
-        Message, MessageAttachment, MessageAttachmentCodeInput, MessageAttachmentInput,
-        Role as ThreadRole,
-    },
+    retrieval::Attachment,
+    thread::{Message, MessageAttachmentCodeInput, MessageAttachmentInput, Role as ThreadRole},
 };
 
 pub fn convert_messages_to_chat_completion_request(
@@ -75,7 +73,7 @@ pub fn convert_messages_to_chat_completion_request(
 pub fn convert_user_message_to_chat_completion_request(
     helper: &ContextInfoHelper,
     query: &str,
-    attachment: &MessageAttachment,
+    attachment: &Attachment,
     user_attachment_input: Option<&MessageAttachmentInput>,
 ) -> ChatCompletionRequestMessage {
     let user_prompt = build_user_prompt(query, attachment, user_attachment_input);
@@ -87,7 +85,7 @@ pub fn convert_user_message_to_chat_completion_request(
 }
 
 fn user_attachment_input_from_user_message_attachment(
-    attachment: &MessageAttachment,
+    attachment: &Attachment,
 ) -> MessageAttachmentInput {
     let user_attachment_code_input: Vec<MessageAttachmentCodeInput> = attachment
         .client_code
@@ -102,7 +100,7 @@ fn user_attachment_input_from_user_message_attachment(
 
 pub fn build_user_prompt(
     user_input: &str,
-    assistant_attachment: &MessageAttachment,
+    assistant_attachment: &Attachment,
     user_attachment_input: Option<&MessageAttachmentInput>,
 ) -> String {
     // If the user message has no code attachment and the assistant message has no code attachment or doc attachment, return the user message directly.

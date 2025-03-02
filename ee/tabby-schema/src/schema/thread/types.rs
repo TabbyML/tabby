@@ -1,14 +1,15 @@
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
-use tabby_common::api::{
-    code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
-    structured_doc::DocSearchDocument,
-};
+use tabby_common::api::code::CodeSearchHit;
 use validator::Validate;
 
 use super::MessageAttachmentCodeInput;
-use crate::{interface::UserValue, juniper::relay::NodeType, Context};
+use crate::{
+    juniper::relay::NodeType,
+    retrieval::{Attachment, AttachmentCode, AttachmentCodeScores, AttachmentDoc},
+    Context,
+};
 
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
 pub enum Role {
@@ -25,7 +26,7 @@ pub struct Message {
     pub role: Role,
     pub content: String,
 
-    pub attachment: MessageAttachment,
+    pub attachment: Attachment,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -56,23 +57,6 @@ pub struct UpdateMessageInput {
     pub content: String,
 }
 
-#[derive(GraphQLObject, Clone, Default)]
-#[graphql(context = Context)]
-/// Represents an attachment to a message, which can include various types of content.
-pub struct MessageAttachment {
-    /// Code snippets retrieved from the client side.
-    pub client_code: Vec<MessageAttachmentClientCode>,
-
-    /// Code snippets retrieved from the server side codebase.
-    pub code: Vec<MessageAttachmentCode>,
-
-    /// Documents retrieved from various sources, all from the server side.
-    pub doc: Vec<MessageAttachmentDoc>,
-
-    /// File list retrieved from the server side codebase is used for generating this message.
-    pub code_file_list: Option<MessageAttachmentCodeFileList>,
-}
-
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentCodeFileList {
     pub file_list: Vec<String>,
@@ -95,52 +79,10 @@ impl From<MessageAttachmentClientCode> for MessageAttachmentCodeInput {
     }
 }
 
-#[derive(GraphQLObject, Clone)]
-pub struct MessageAttachmentCode {
-    pub git_url: String,
-    pub commit: Option<String>,
-    pub filepath: String,
-    pub language: String,
-    pub content: String,
-
-    /// When start line is `None`, it represents the entire file.
-    pub start_line: Option<i32>,
-}
-
-impl From<CodeSearchDocument> for MessageAttachmentCode {
-    fn from(doc: CodeSearchDocument) -> Self {
-        Self {
-            git_url: doc.git_url,
-            commit: doc.commit,
-            filepath: doc.filepath,
-            language: doc.language,
-            content: doc.body,
-            start_line: doc.start_line.map(|x| x as i32),
-        }
-    }
-}
-
-#[derive(GraphQLObject, Clone)]
-pub struct MessageAttachmentCodeScores {
-    pub rrf: f64,
-    pub bm25: f64,
-    pub embedding: f64,
-}
-
-impl From<CodeSearchScores> for MessageAttachmentCodeScores {
-    fn from(scores: CodeSearchScores) -> Self {
-        Self {
-            rrf: scores.rrf as f64,
-            bm25: scores.bm25 as f64,
-            embedding: scores.embedding as f64,
-        }
-    }
-}
-
 #[derive(GraphQLObject)]
 pub struct MessageCodeSearchHit {
-    pub code: MessageAttachmentCode,
-    pub scores: MessageAttachmentCodeScores,
+    pub code: AttachmentCode,
+    pub scores: AttachmentCodeScores,
 }
 
 impl From<CodeSearchHit> for MessageCodeSearchHit {
@@ -152,83 +94,10 @@ impl From<CodeSearchHit> for MessageCodeSearchHit {
     }
 }
 
-#[derive(GraphQLUnion, Clone)]
-#[graphql(context = Context)]
-pub enum MessageAttachmentDoc {
-    Web(MessageAttachmentWebDoc),
-    Issue(MessageAttachmentIssueDoc),
-    Pull(MessageAttachmentPullDoc),
-}
-
-#[derive(GraphQLObject, Clone)]
-pub struct MessageAttachmentWebDoc {
-    pub title: String,
-    pub link: String,
-    pub content: String,
-}
-
-#[derive(GraphQLObject, Clone)]
-#[graphql(context = Context)]
-pub struct MessageAttachmentIssueDoc {
-    pub title: String,
-    pub link: String,
-    pub author: Option<UserValue>,
-    pub body: String,
-    pub closed: bool,
-}
-
-#[derive(GraphQLObject, Clone)]
-#[graphql(context = Context)]
-pub struct MessageAttachmentPullDoc {
-    pub title: String,
-    pub link: String,
-    pub author: Option<UserValue>,
-    pub body: String,
-    pub patch: String,
-    pub merged: bool,
-}
-
-impl MessageAttachmentDoc {
-    pub fn from_doc_search_document(doc: DocSearchDocument, author: Option<UserValue>) -> Self {
-        match doc {
-            DocSearchDocument::Web(web) => MessageAttachmentDoc::Web(MessageAttachmentWebDoc {
-                title: web.title,
-                link: web.link,
-                content: web.snippet,
-            }),
-            DocSearchDocument::Issue(issue) => {
-                MessageAttachmentDoc::Issue(MessageAttachmentIssueDoc {
-                    title: issue.title,
-                    link: issue.link,
-                    author,
-                    body: issue.body,
-                    closed: issue.closed,
-                })
-            }
-            DocSearchDocument::Pull(pull) => MessageAttachmentDoc::Pull(MessageAttachmentPullDoc {
-                title: pull.title,
-                link: pull.link,
-                author,
-                body: pull.body,
-                patch: pull.diff,
-                merged: pull.merged,
-            }),
-        }
-    }
-
-    pub fn content(&self) -> &str {
-        match self {
-            MessageAttachmentDoc::Web(web) => &web.content,
-            MessageAttachmentDoc::Issue(issue) => &issue.body,
-            MessageAttachmentDoc::Pull(pull) => &pull.body,
-        }
-    }
-}
-
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct MessageDocSearchHit {
-    pub doc: MessageAttachmentDoc,
+    pub doc: AttachmentDoc,
     pub score: f64,
 }
 

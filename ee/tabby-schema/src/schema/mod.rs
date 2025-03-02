@@ -11,6 +11,7 @@ pub mod license;
 pub mod notification;
 pub mod page;
 pub mod repository;
+pub mod retrieval;
 pub mod setting;
 pub mod thread;
 pub mod user_event;
