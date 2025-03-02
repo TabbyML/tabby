@@ -1,10 +1,18 @@
-pub fn prompt_page_title() -> &'static str {
-    r#"
+pub fn prompt_page_title(title: Option<&str>) -> String {
+    let maybe_conversation = match title {
+        Some(title) => {
+            format!(r#"crafting a professional title, given the current input: {title}"#)
+        }
+        None => r#"summarizing a conversation
+and creating a succinct title that encapsulates its essence"#
+            .to_string(),
+    };
+    format!(
+        r#"
 You are a helpful assistant that helps the user to write documents,
-I am seeking your assistance in summarizing a conversation
-and creating a succinct title that encapsulates its essence.
+I am seeking your assistance in {maybe_conversation},
 The title should not exceed 50 words,
-and must be in the same language as the conversation provided.
+and must be in the same language as the context provided.
 
 To ensure the title accurately reflect the content,
 please consider the context and key points discussed during the above dialogue.
@@ -16,6 +24,7 @@ Please do not repeat the previous titles.
 
 Please help me to generate a page title for the above conversation.
 "#
+    )
 }
 
 pub fn prompt_page_content(title: &str) -> String {
