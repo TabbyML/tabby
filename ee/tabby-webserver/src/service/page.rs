@@ -66,12 +66,13 @@ impl PageService for PageServiceImpl {
             .await?
             .ok_or_else(|| CoreError::NotFound("Thread not found"))?;
 
-        let messages = self
+        let thread_messages = self
             .thread
             .list_thread_messages(thread_id, None, None, None, None)
             .await?;
 
-        self.page_run(policy, author_id, None, &messages).await
+        self.page_run(policy, author_id, None, Some(&thread_messages))
+            .await
     }
 
     async fn create_run(
@@ -80,7 +81,7 @@ impl PageService for PageServiceImpl {
         author_id: &ID,
         input: &CreatePageRunInput,
     ) -> Result<PageRunStream> {
-        self.page_run(policy, author_id, Some(&input.title), &vec![])
+        self.page_run(policy, author_id, Some(&input.title), None)
             .await
     }
 
@@ -250,7 +251,7 @@ impl PageServiceImpl {
         policy: &AccessPolicy,
         author_id: &ID,
         title_prompt: Option<&str>,
-        thread_messages: &[Message],
+        thread_messages: Option<&[Message]>,
     ) -> Result<PageRunStream> {
         let page_id = self.db.create_page(author_id.as_rowid()?).await?.as_id();
         let thread_messages = thread_messages.to_vec();
@@ -354,18 +355,23 @@ impl PageServiceImpl {
         policy: &AccessPolicy,
         page_id: &ID,
         title_prompt: Option<&str>,
-        thread_messages: &[Message],
+        thread_messages: Option<&[Message]>,
     ) -> Result<String> {
         let helper = self.context.read(Some(policy)).await?.helper();
-        let mut messages = convert_messages_to_chat_completion_request(None, &helper, thread_messages)?;
+        let mut messages = Vec::new();
+        if let Some(thread_messages) = thread_messages {
+            messages.extend(
+                convert_messages_to_chat_completion_request(None, &helper, thread_messages)?
+                    .into_iter(),
+            );
+        }
 
-        let user_message = convert_user_message_to_chat_completion_request(
+        messages.push(convert_user_message_to_chat_completion_request(
             &helper,
             prompt_page_title(title_prompt).as_str(),
             &MessageAttachment::default(),
             None,
-        );
-        messages.push(user_message);
+        ));
 
         let title = request_llm_with_message(self.chat.clone(), messages).await?;
         let title = trim_title(title.as_ref());
