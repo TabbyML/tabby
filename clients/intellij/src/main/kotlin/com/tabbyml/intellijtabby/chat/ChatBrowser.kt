@@ -347,7 +347,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     val bgActiveColor = calcComponentBgColor()
     val fgColor = editorColorsScheme.defaultForeground
     val borderColor = if (isDarkTheme) JBColor.DARK_GRAY.darker() else JBColor.LIGHT_GRAY
-    val input = bgActiveColor
+    val inputColor = bgActiveColor
     val inputBorderColor = borderColor
 
     val primaryColor = editorColorsScheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR).foregroundColor
@@ -358,7 +358,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     val accentColor = if (isDarkTheme) Color(4, 57, 94) else bgActiveColor.interpolate(bgActiveColor.darker(), 0.2)
     val accentFgColor = fgColor
 
-    val ring = primaryColor
+    val ringColor = primaryColor
 
     val font = editorColorsScheme.getFont(EditorFontType.PLAIN).fontName
     val fontSize = editorColorsScheme.editorFontSize
@@ -366,9 +366,9 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         String.format("--background: %s;", bgColor.toHsl()) +
         String.format("--foreground: %s;", fgColor.toHsl()) +
         String.format("--border: %s;", borderColor.toHsl()) +
-        String.format("--input: %s;", input.toHsl()) +
+        String.format("--input: %s;", inputColor.toHsl()) +
         String.format("--input-border: %s;", inputBorderColor.toHsl()) +
-        String.format("--ring: %s;", ring.toHsl()) +
+        String.format("--ring: %s;", ringColor.toHsl()) +
         String.format("--primary: %s;", primaryColor.toHsl()) +
         String.format("--primary-foreground: %s;", primaryFgColor.toHsl()) +
         String.format("--popover: %s;", popoverColor.toHsl()) +
