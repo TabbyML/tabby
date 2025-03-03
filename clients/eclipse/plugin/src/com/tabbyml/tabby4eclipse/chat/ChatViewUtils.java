@@ -38,7 +38,7 @@ public class ChatViewUtils {
 	private static final String ID = "com.tabbyml.tabby4eclipse.views.chat";
 
 	private static final String MIN_SERVER_VERSION = "0.25.0";
-	private static final String CHAT_PANEL_API_VERSION = "0.7.0";
+	private static final String CHAT_PANEL_API_VERSION = "0.8.0";
 	private static Logger logger = new Logger("ChatView");
 
 	private static final Gson gson = new Gson();
