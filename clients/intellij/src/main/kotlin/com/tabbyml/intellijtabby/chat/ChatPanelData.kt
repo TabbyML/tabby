@@ -63,6 +63,13 @@ sealed class ChatCommand {
   }
 }
 
+sealed class ChatView {
+  companion object {
+    const val NEW_CHAT = "new-chat"
+    const val HISTORY = "history"
+  }
+}
+
 data class FileLocation(
   val filepath: Filepath,
   // Int, LineRange, Position, or PositionRange

@@ -81,7 +81,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
   private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
 
   private var currentConfig: Config.ServerConfig? = null
-  private var isChatPanelLoaded = false
+  var isChatPanelLoaded = false
+    private set
   private val pendingScripts: MutableList<String> = mutableListOf()
 
   init {
@@ -147,6 +148,10 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         chatPanelUpdateTheme()
       }
     })
+  }
+
+  fun navigate(view: String) {
+    chatPanelNavigate(view)
   }
 
   fun explainSelectedText() {
@@ -341,7 +346,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     val bgColor = editorColorsScheme.defaultBackground
     val bgActiveColor = calcComponentBgColor()
     val fgColor = editorColorsScheme.defaultForeground
-    val borderColor = if (isDarkTheme) JBColor.DARK_GRAY else JBColor.LIGHT_GRAY
+    val borderColor = if (isDarkTheme) JBColor.DARK_GRAY.darker() else JBColor.LIGHT_GRAY
+    val inputColor = bgActiveColor
     val inputBorderColor = borderColor
 
     val primaryColor = editorColorsScheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR).foregroundColor
@@ -352,13 +358,17 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     val accentColor = if (isDarkTheme) Color(4, 57, 94) else bgActiveColor.interpolate(bgActiveColor.darker(), 0.2)
     val accentFgColor = fgColor
 
+    val ringColor = primaryColor
+
     val font = editorColorsScheme.getFont(EditorFontType.PLAIN).fontName
     val fontSize = editorColorsScheme.editorFontSize
     val css = String.format("background-color: hsl(%s);", bgActiveColor.toHsl()) +
         String.format("--background: %s;", bgColor.toHsl()) +
         String.format("--foreground: %s;", fgColor.toHsl()) +
         String.format("--border: %s;", borderColor.toHsl()) +
-        String.format("--input: %s;", inputBorderColor.toHsl()) +
+        String.format("--input: %s;", inputColor.toHsl()) +
+        String.format("--input-border: %s;", inputBorderColor.toHsl()) +
+        String.format("--ring: %s;", ringColor.toHsl()) +
         String.format("--primary: %s;", primaryColor.toHsl()) +
         String.format("--primary-foreground: %s;", primaryFgColor.toHsl()) +
         String.format("--popover: %s;", popoverColor.toHsl()) +
@@ -480,6 +490,12 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     val params = listOf(context)
     logger.debug("chatPanelUpdateActiveSelection: $params")
     jsChatPanelClientInvoke("updateActiveSelection", params)
+  }
+
+  private fun chatPanelNavigate(view: String) {
+    val params = listOf(view)
+    logger.debug("chatPanelNavigate: $params")
+    jsChatPanelClientInvoke("navigate", params)
   }
 
   // js handler functions to inject
@@ -829,7 +845,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       return URLBuilder(this).appendPathSegments(path).toString()
     }
 
-    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.7.0"
+    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.8.0"
     private const val TABBY_SERVER_VERSION_RANGE = ">=0.25.0"
 
     private fun loadTabbyThreadsScript(): String {
