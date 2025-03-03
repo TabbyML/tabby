@@ -1,6 +1,5 @@
 package com.tabbyml.intellijtabby.widgets
 
-import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -13,7 +12,6 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.ui.JBUI
 import com.tabbyml.intellijtabby.chat.ChatBrowserFactory
-import java.awt.BorderLayout
 import java.awt.GridBagLayout
 import javax.swing.JPanel
 
