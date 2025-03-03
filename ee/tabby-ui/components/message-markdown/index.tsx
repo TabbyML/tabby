@@ -515,12 +515,16 @@ function RelevantDocumentBadge({
   relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
+  const link =
+    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
+      ? `${relevantDocument.gitUrl}/blob/${relevantDocument.sha}/${relevantDocument.changedFile}`
+      : relevantDocument.link
   return (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger>
         <span
           className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
-          onClick={() => window.open(relevantDocument.link)}
+          onClick={() => window.open(link)}
         >
           {citationIndex}
         </span>

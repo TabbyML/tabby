@@ -253,17 +253,28 @@ impl AnswerService {
         auth: Arc<dyn AuthenticationService>,
         doc: DocSearchDocument,
     ) -> MessageAttachmentDoc {
-        let email = match &doc {
-            DocSearchDocument::Issue(issue) => issue.author_email.as_deref(),
-            DocSearchDocument::Pull(pull) => pull.author_email.as_deref(),
-            _ => None,
+        let (author, committer) = match &doc {
+            DocSearchDocument::Issue(issue) => (issue.author_email.as_deref(), None),
+            DocSearchDocument::Pull(pull) => (pull.author_email.as_deref(), None),
+            DocSearchDocument::Commit(commit) => (
+                Some(commit.author_email.as_str()),
+                Some(commit.committer_email.as_str()),
+            ),
+            _ => (None, None),
         };
-        let user = if let Some(email) = email {
+        let user = if let Some(email) = author {
             auth.get_user_by_email(email).await.ok().map(|x| x.into())
         } else {
             None
         };
-        MessageAttachmentDoc::from_doc_search_document(doc, user)
+
+        let committer = if let Some(email) = committer {
+            auth.get_user_by_email(email).await.ok().map(|x| x.into())
+        } else {
+            None
+        };
+
+        MessageAttachmentDoc::from_doc_search_document(doc, user, committer)
     }
 
     async fn find_repository(
@@ -606,6 +617,7 @@ mod tests {
             DocSearchDocument::Web(web_doc) => &web_doc.title,
             DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
             DocSearchDocument::Pull(pull_doc) => &pull_doc.title,
+            DocSearchDocument::Commit(commit_doc) => &commit_doc.message,
         }
     }
 

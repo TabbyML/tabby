@@ -1,13 +1,15 @@
+mod commit;
 mod file_search;
+mod grep;
 mod serve_git;
 
-mod grep;
 use std::path::Path;
 
 use axum::{
     body::Body,
     http::{Response, StatusCode},
 };
+pub use commit::{stream_commits, Commit};
 use file_search::GitFileSearch;
 use futures::Stream;
 pub use grep::{GrepFile, GrepLine, GrepSubMatch, GrepTextOrBase64};

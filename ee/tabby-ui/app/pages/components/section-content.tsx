@@ -172,6 +172,8 @@ function SourceCard({
     source.__typename === 'MessageAttachmentPullDoc' ||
     source.__typename === 'MessageAttachmentWebDoc'
 
+  const isCommit = source.__typename === 'MessageAttachmentCommitDoc'
+
   if (isDoc) {
     return (
       <div className="flex items-start gap-2">
@@ -181,6 +183,24 @@ function SourceCard({
           onClick={() => window.open(source.link)}
         >
           <DocSourceCard source={source} />
+        </div>
+      </div>
+    )
+  }
+
+  if (isCommit) {
+    return (
+      <div className="flex items-start gap-2">
+        {isEditMode && <Checkbox className="mt-2" />}
+        <div
+          className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60"
+          onClick={() =>
+            window.open(
+              `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
+            )
+          }
+        >
+          <CommitSourceCard source={source} />
         </div>
       </div>
     )
@@ -211,6 +231,10 @@ function SourceCard({
 }
 
 function DocSourceCard({ source }: { source: AttachmentDocItem }) {
+  if (source.__typename === 'MessageAttachmentCommitDoc') {
+    return null
+  }
+
   const { hostname } = new URL(source.link)
   const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
   const isPR = source.__typename === 'MessageAttachmentPullDoc'
@@ -274,6 +298,56 @@ function DocSourceCard({ source }: { source: AttachmentDocItem }) {
                 {source.merged ? 'Merged' : 'Open'}
               </>
             )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CommitSourceCard({ source }: { source: AttachmentDocItem }) {
+  const isCommit = source.__typename === 'MessageAttachmentCommitDoc'
+  if (!isCommit) {
+    return null
+  }
+
+  const hostname = source.gitUrl
+  const author = source.author
+  const showAvatar = !!author
+
+  return (
+    <div className="flex flex-1 flex-col justify-between gap-y-1">
+      <div className="flex flex-col gap-y-0.5">
+        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+          {source.sha.slice(0, 7)}: {source.message}
+        </p>
+
+        {showAvatar && (
+          <div className="flex items-center gap-1 overflow-x-hidden">
+            <UserAvatar user={author} className="h-3.5 w-3.5 shrink-0" />
+            <p className="truncate text-xs font-medium text-muted-foreground">
+              {author?.name}
+            </p>
+          </div>
+        )}
+        {!showAvatar && (
+          <p
+            className={cn(
+              ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+              !showAvatar ? 'line-clamp-2' : 'line-clamp-1'
+            )}
+          >
+            {normalizedText(getContent(source))}
+          </p>
+        )}
+      </div>
+      <div className="flex items-center text-xs text-muted-foreground">
+        <div className="flex w-full flex-1 items-center justify-between gap-1">
+          <div className="flex items-center">
+            <SiteFavicon hostname={hostname} />
+            <p className="ml-1 truncate">
+              {hostname.replace('www.', '').split('/')[0]}
+            </p>
           </div>
         </div>
       </div>
