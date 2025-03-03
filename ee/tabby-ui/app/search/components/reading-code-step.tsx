@@ -186,21 +186,23 @@ export function ReadingCodeStepper({
                         <span>{codeFileList.length} files or directories</span>
                       </div>
                     </SheetTrigger>
-                    <SheetContent className="flex w-[50vw] min-w-[300px] flex-col px-4">
+                    <SheetContent className="flex w-[50vw] min-w-[300px] flex-col gap-0 px-4 pb-0">
                       <SheetHeader className="border-b">
                         <SheetTitle>
                           {codeFileList.length} files or directories
                         </SheetTitle>
                         <SheetClose />
                       </SheetHeader>
-                      <CodebaseFileTree
-                        fileList={codeFileList}
-                        collapsedKeys={collapsedKeys}
-                        toggleCollapsedKey={toggleCollapsedKey}
-                        onSelectTreeNode={node =>
-                          toggleCollapsedKey(node.fullPath)
-                        }
-                      />
+                      <div className="flex-1 overflow-y-auto py-3">
+                        <CodebaseFileTree
+                          fileList={codeFileList}
+                          collapsedKeys={collapsedKeys}
+                          toggleCollapsedKey={toggleCollapsedKey}
+                          onSelectTreeNode={node =>
+                            toggleCollapsedKey(node.fullPath)
+                          }
+                        />
+                      </div>
                     </SheetContent>
                   </Sheet>
                 ) : null}

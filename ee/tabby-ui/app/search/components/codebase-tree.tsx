@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useMemo } from 'react'
+import { motion } from 'framer-motion'
 
 import { cn } from '@/lib/utils'
 import {
-  IconChevronDown,
   IconChevronRight,
   IconDirectoryExpandSolid,
   IconDirectorySolid,
@@ -36,7 +36,6 @@ type FileTreeContextValue = {
 type DirectoryTreeNodeProps = {
   node: TFileTreeNode
   level: number
-  root?: boolean
 }
 type FileTreeNodeProps = {
   node: TFileTreeNode
@@ -52,7 +51,6 @@ interface DirectoryTreeNodeViewProps
   level: number
 }
 
-// todo zustand?
 const FileTreeContext = React.createContext<FileTreeContextValue>(
   {} as FileTreeContextValue
 )
@@ -158,11 +156,7 @@ const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level }) => {
   )
 }
 
-const DirectoryNode: React.FC<DirectoryTreeNodeProps> = ({
-  node,
-  level,
-  root
-}) => {
+const DirectoryNode: React.FC<DirectoryTreeNodeProps> = ({ node, level }) => {
   const { collapsedKeys, toggleCollapsedKey, onSelectTreeNode } =
     React.useContext(FileTreeContext)
 
@@ -183,7 +177,11 @@ const DirectoryNode: React.FC<DirectoryTreeNodeProps> = ({
             e.stopPropagation()
           }}
         >
-          {collapsed ? <IconChevronRight /> : <IconChevronDown />}
+          <IconChevronRight
+            className={cn('transition-transform ease-out', {
+              'rotate-90': !collapsed
+            })}
+          />
         </div>
         <div className="shrink-0" style={{ color: 'rgb(84, 174, 255)' }}>
           {collapsed ? <IconDirectorySolid /> : <IconDirectoryExpandSolid />}
@@ -192,7 +190,15 @@ const DirectoryNode: React.FC<DirectoryTreeNodeProps> = ({
       </DirectoryTreeNodeView>
       <>
         {!collapsed && existingChildren ? (
-          <>
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            transition={{
+              duration: 0.1,
+              ease: 'easeOut'
+            }}
+            className="overflow-hidden"
+          >
             {node.children?.map(child => {
               const key = child.fullPath
               return child?.children?.length ? (
@@ -201,7 +207,7 @@ const DirectoryNode: React.FC<DirectoryTreeNodeProps> = ({
                 <FileTreeNode key={key} node={child} level={level + 1} />
               )
             })}
-          </>
+          </motion.div>
         ) : null}
       </>
     </>
