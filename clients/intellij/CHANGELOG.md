@@ -1,3 +1,15 @@
+## 1.11.0
+
+### Features
+
+- **Chat**:
+  - Requires connecting to a Tabby server version 0.25.0 or later.
+  - Now uses the active editor as context by default.
+
+### Fixes & Improvements
+
+- Optimized the display of file paths in the chat panel.
+
 ## 1.10.1
 
 ### Fixes & Improvements
