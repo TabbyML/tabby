@@ -1,30 +1,11 @@
 pub fn prompt_page_title(title: Option<&str>) -> String {
-    let maybe_conversation = match title {
-        Some(title) => {
-            format!(r#"crafting a professional title, given the current input: {title}"#)
-        }
-        None => r#"summarizing a conversation
-and creating a succinct title that encapsulates its essence"#
-            .to_string(),
+    let prompt = if let Some(title) = title {
+        format!(r#"Please help me to generate a page title for the input provided: {title}"#)
+    } else {
+        "Summarize the above conversation and create a succinct title that encapsulates its essence. Please only generate the title and nothing else. Do not include any additional text or context.".into()
     };
-    format!(
-        r#"
-You are a helpful assistant that helps the user to write documents,
-I am seeking your assistance in {maybe_conversation},
-The title should not exceed 50 words,
-and must be in the same language as the context provided.
 
-To ensure the title accurately reflect the content,
-please consider the context and key points discussed during the above dialogue.
-
-Please do not include any additional information beyond the title itself,
-and ensure no quotes or special characters or Title prefix are present in the title.
-
-Please do not repeat the previous titles.
-
-Please help me to generate a page title for the above conversation.
-"#
-    )
+    format!("{prompt}\nPlease only generate the title and nothing else. Do not include any additional text or context.")
 }
 
 pub fn prompt_page_content(title: &str) -> String {

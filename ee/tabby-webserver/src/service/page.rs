@@ -378,7 +378,9 @@ impl PageServiceImpl {
 }
 
 fn trim_title(title: &str) -> &str {
-    title.trim_matches(&['"', '#', ' ', '-'][..])
+    // take first line.
+    let title = title.lines().next().unwrap_or(title);
+    title.trim_matches(&['"', '#', ' ', '-'][..]).trim()
 }
 
 async fn generate_page_content(
