@@ -280,7 +280,7 @@ impl PageServiceImpl {
                 &policy,
                 None,
                 &page_title,
-                &vec![],
+                &[],
                 thread_messages.as_deref(),
             ).await?;
             let mut page_sections = Vec::new();
