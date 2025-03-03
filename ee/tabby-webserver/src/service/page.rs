@@ -3,6 +3,7 @@ mod prompt_tools;
 use std::sync::Arc;
 
 use anyhow::anyhow;
+use async_openai_alt::types::ChatCompletionRequestMessage;
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
@@ -113,7 +114,7 @@ impl PageService for PageServiceImpl {
                 &current_title,
                 &page_title,
                 &current_sections,
-                &vec![],
+                None,
             )
             .await?
             .first()
@@ -133,7 +134,7 @@ impl PageService for PageServiceImpl {
                 chat.clone(),
                 context.clone(),
                 &policy,
-                &vec![],
+                None,
                 &page_title,
                 &current_sections,
                 &title,
@@ -254,10 +255,10 @@ impl PageServiceImpl {
         thread_messages: Option<&[Message]>,
     ) -> Result<PageRunStream> {
         let page_id = self.db.create_page(author_id.as_rowid()?).await?.as_id();
-        let thread_messages = thread_messages.to_vec();
+        let thread_messages = thread_messages.map(ToOwned::to_owned);
 
         let title = self
-            .generate_page_title(policy, &page_id, title_prompt, &thread_messages)
+            .generate_page_title(policy, &page_id, title_prompt, thread_messages.as_deref())
             .await?;
 
         let db = self.db.clone();
@@ -281,7 +282,7 @@ impl PageServiceImpl {
                 "",
                 &title,
                 &vec![],
-                &thread_messages,
+                thread_messages.as_deref(),
             ).await?;
             let mut page_sections = Vec::new();
             for section_title in sections {
@@ -297,7 +298,7 @@ impl PageServiceImpl {
                 sections: page_sections.clone(),
             }));
 
-            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &title, &thread_messages).await?;
+            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &title, thread_messages.as_deref()).await?;
             for await delta in content_stream {
                 let delta = delta?;
                 db.append_page_content(page_id.as_rowid()?, &delta).await?;
@@ -323,7 +324,7 @@ impl PageServiceImpl {
                     chat.clone(),
                     context.clone(),
                     &policy,
-                    &thread_messages,
+                    thread_messages.as_deref(),
                     &title,
                     &existed_sections,
                     &section.title,
@@ -357,21 +358,13 @@ impl PageServiceImpl {
         title_prompt: Option<&str>,
         thread_messages: Option<&[Message]>,
     ) -> Result<String> {
-        let helper = self.context.read(Some(policy)).await?.helper();
-        let mut messages = Vec::new();
-        if let Some(thread_messages) = thread_messages {
-            messages.extend(
-                convert_messages_to_chat_completion_request(None, &helper, thread_messages)?
-                    .into_iter(),
-            );
-        }
-
-        messages.push(convert_user_message_to_chat_completion_request(
-            &helper,
+        let messages = build_chat_messages(
+            self.context.clone(),
+            policy,
+            thread_messages,
             prompt_page_title(title_prompt).as_str(),
-            &MessageAttachment::default(),
-            None,
-        ));
+        )
+        .await?;
 
         let title = request_llm_with_message(self.chat.clone(), messages).await?;
         let title = trim_title(title.as_ref());
@@ -389,23 +382,45 @@ fn trim_title(title: &str) -> &str {
     title.trim_matches(&['"', '#', ' ', '-'][..]).trim()
 }
 
+async fn build_chat_messages(
+    context: Arc<dyn ContextService>,
+    policy: &AccessPolicy,
+    thread_messages: Option<&[Message]>,
+    user_message: &str,
+) -> Result<Vec<ChatCompletionRequestMessage>> {
+    let helper = context.read(Some(policy)).await?.helper();
+    let mut messages = Vec::new();
+    if let Some(thread_messages) = thread_messages {
+        messages.extend(
+            convert_messages_to_chat_completion_request(None, &helper, thread_messages)?
+                .into_iter(),
+        );
+    }
+
+    messages.push(convert_user_message_to_chat_completion_request(
+        &helper,
+        user_message,
+        &MessageAttachment::default(),
+        None,
+    ));
+
+    Ok(messages)
+}
+
 async fn generate_page_content(
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
-    title: &str,
-    messages: &[Message],
+    title_prompt: &str,
+    thread_messages: Option<&[Message]>,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
-    let helper = context.read(Some(policy)).await?.helper();
-    let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
-
-    let user_message = convert_user_message_to_chat_completion_request(
-        &helper,
-        prompt_page_content(title).as_str(),
-        &MessageAttachment::default(),
-        None,
-    );
-    messages.push(user_message);
+    let messages = build_chat_messages(
+        context,
+        policy,
+        thread_messages,
+        prompt_page_content(title_prompt).as_str(),
+    )
+    .await?;
 
     Ok(request_llm_stream(chat.clone(), messages).await)
 }
@@ -418,18 +433,15 @@ pub async fn generate_page_sections(
     new_section: &str,
     title: &str,
     sections: &[Section],
-    messages: &[Message],
+    thread_messages: Option<&[Message]>,
 ) -> anyhow::Result<Vec<String>> {
-    let helper = context.read(Some(policy)).await?.helper();
-    let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
-
-    let user_message = convert_user_message_to_chat_completion_request(
-        &helper,
+    let messages = build_chat_messages(
+        context,
+        policy,
+        thread_messages,
         prompt_page_section_titles(count, title, sections, new_section).as_str(),
-        &MessageAttachment::default(),
-        None,
-    );
-    messages.push(user_message);
+    )
+    .await?;
 
     let titles = request_llm_with_message(chat.clone(), messages).await?;
     Ok(transform_line_items(&titles)
@@ -442,13 +454,19 @@ pub async fn generate_page_section_content(
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
-    messages: &[Message],
+    thread_messages: Option<&[Message]>,
     title: &str,
     sections: &[Section],
     current_section: &str,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
     let helper = context.read(Some(policy)).await?.helper();
-    let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
+    let mut messages = Vec::new();
+    if let Some(thread_messages) = thread_messages {
+        messages.extend(
+            convert_messages_to_chat_completion_request(None, &helper, thread_messages)?
+                .into_iter(),
+        );
+    }
 
     let page = format!(
         r#"
