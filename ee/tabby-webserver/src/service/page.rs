@@ -249,14 +249,14 @@ impl PageServiceImpl {
         &self,
         policy: &AccessPolicy,
         author_id: &ID,
-        title: Option<&str>,
-        messages: &[Message],
+        title_prompt: Option<&str>,
+        thread_messages: &[Message],
     ) -> Result<PageRunStream> {
         let page_id = self.db.create_page(author_id.as_rowid()?).await?.as_id();
-        let messages = messages.to_vec();
+        let thread_messages = thread_messages.to_vec();
 
         let title = self
-            .generate_page_title(policy, page_id.clone(), title, &messages)
+            .generate_page_title(policy, &page_id, title_prompt, &thread_messages)
             .await?;
 
         let db = self.db.clone();
@@ -280,7 +280,7 @@ impl PageServiceImpl {
                 "",
                 &title,
                 &vec![],
-                &messages,
+                &thread_messages,
             ).await?;
             let mut page_sections = Vec::new();
             for section_title in sections {
@@ -296,7 +296,7 @@ impl PageServiceImpl {
                 sections: page_sections.clone(),
             }));
 
-            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &title, &messages).await?;
+            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &title, &thread_messages).await?;
             for await delta in content_stream {
                 let delta = delta?;
                 db.append_page_content(page_id.as_rowid()?, &delta).await?;
@@ -322,7 +322,7 @@ impl PageServiceImpl {
                     chat.clone(),
                     context.clone(),
                     &policy,
-                    &messages,
+                    &thread_messages,
                     &title,
                     &existed_sections,
                     &section.title,
@@ -352,16 +352,16 @@ impl PageServiceImpl {
     async fn generate_page_title(
         &self,
         policy: &AccessPolicy,
-        page_id: ID,
-        title: Option<&str>,
-        messages: &[Message],
+        page_id: &ID,
+        title_prompt: Option<&str>,
+        thread_messages: &[Message],
     ) -> Result<String> {
         let helper = self.context.read(Some(policy)).await?.helper();
-        let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
+        let mut messages = convert_messages_to_chat_completion_request(None, &helper, thread_messages)?;
 
         let user_message = convert_user_message_to_chat_completion_request(
             &helper,
-            prompt_page_title(title).as_str(),
+            prompt_page_title(title_prompt).as_str(),
             &MessageAttachment::default(),
             None,
         );
