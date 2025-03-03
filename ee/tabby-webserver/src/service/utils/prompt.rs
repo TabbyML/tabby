@@ -84,6 +84,8 @@ pub async fn request_llm_with_message(
         .messages(messages)
         .build()?;
 
+    tracing::debug!("Sending request to LLM: {:?}", request);
+
     let s = chat.chat(request).await?;
     let content = s.choices[0]
         .message

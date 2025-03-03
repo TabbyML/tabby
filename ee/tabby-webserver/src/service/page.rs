@@ -250,7 +250,7 @@ impl PageServiceImpl {
         policy: &AccessPolicy,
         author_id: &ID,
         title: Option<&str>,
-        messages: &Vec<Message>,
+        messages: &[Message],
     ) -> Result<PageRunStream> {
         let page_id = self.db.create_page(author_id.as_rowid()?).await?.as_id();
         let messages = messages.to_vec();
@@ -312,7 +312,7 @@ impl PageServiceImpl {
             for section in page_sections {
                 let section_id = section.id.clone();
 
-                let existed_sections = db
+                let existed_sections: Vec<_> = db
                     .list_page_sections(page_id.as_rowid()?, None, None, false)
                     .await?
                     .into_iter()
@@ -354,7 +354,7 @@ impl PageServiceImpl {
         policy: &AccessPolicy,
         page_id: ID,
         title: Option<&str>,
-        messages: &Vec<Message>,
+        messages: &[Message],
     ) -> Result<String> {
         let helper = self.context.read(Some(policy)).await?.helper();
         let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
@@ -388,7 +388,7 @@ async fn generate_page_content(
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
     title: &str,
-    messages: &Vec<Message>,
+    messages: &[Message],
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
     let helper = context.read(Some(policy)).await?.helper();
     let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
@@ -411,27 +411,15 @@ pub async fn generate_page_sections(
     policy: &AccessPolicy,
     new_section: &str,
     title: &str,
-    sections: &Vec<Section>,
-    messages: &Vec<Message>,
+    sections: &[Section],
+    messages: &[Message],
 ) -> anyhow::Result<Vec<String>> {
     let helper = context.read(Some(policy)).await?.helper();
     let mut messages = convert_messages_to_chat_completion_request(None, &helper, messages)?;
 
-    let sections = sections
-        .iter()
-        .map(|x| format!("## {}\n\n{}", x.title, x.content))
-        .collect::<Vec<_>>()
-        .join("\n");
-    let page = format!(
-        r#"# {title}
-
-{sections}
-        "#,
-    );
-
     let user_message = convert_user_message_to_chat_completion_request(
         &helper,
-        prompt_page_section_titles(count, &page, new_section).as_str(),
+        prompt_page_section_titles(count, title, sections, new_section).as_str(),
         &MessageAttachment::default(),
         None,
     );
@@ -448,9 +436,9 @@ pub async fn generate_page_section_content(
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
-    messages: &Vec<Message>,
+    messages: &[Message],
     title: &str,
-    sections: &Vec<Section>,
+    sections: &[Section],
     current_section: &str,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
     let helper = context.read(Some(policy)).await?.helper();

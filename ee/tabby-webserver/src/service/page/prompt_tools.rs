@@ -1,3 +1,5 @@
+use tabby_schema::page::Section;
+
 pub fn prompt_page_title(title: Option<&str>) -> String {
     let prompt = if let Some(title) = title {
         format!(r#"Please help me to generate a page title for the input provided: {title}"#)
@@ -27,37 +29,39 @@ Please help me to generate a page title for the above conversation.
     )
 }
 
-pub fn prompt_page_section_titles(count: usize, page: &str, new_section: &str) -> String {
-    let new_section = if !new_section.is_empty() {
-        format!("The new section is about: {new_section}.")
+pub fn prompt_page_section_titles(
+    count: usize,
+    title: &str,
+    sections: &[Section],
+    new_section_prompt: &str,
+) -> String {
+    let page_prompt = {
+        let sections = sections
+            .iter()
+            .map(|x| format!("## {}\n\n{}", x.title, x.content))
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!(
+            r#"Here's some existing writings about the page.
+# {title}
+
+{sections}
+"#,
+        )
+    };
+
+    let new_section = if !new_section_prompt.is_empty() {
+        format!("The new section is about: {new_section_prompt}.")
     } else {
         "".to_string()
     };
 
     format!(
-        r#"
-You are a helpful assistant that helps the user to write documents,
-I am seeking your assistance in summarizing a conversation
-and creating a succinct title that encapsulates its essence.
-The title should not exceed 50 words,
-and must be in the same language as the conversation provided.
+        r#"{page_prompt}{new_section}
 
-To ensure the title accurately reflect the content,
-please consider the context and key points discussed during the above dialogue.
-
-Please do not include any additional information beyond the title itself,
-and ensure no quotes or special characters or Title prefix are present in the title.
-
-The current page title and content is:
-
-```markdown
-{page}
-```
-
-{new_section}
-
-Please help me to generate {count} section titles for the above conversation and context,
-please do not repeat the previous section titles.
+Please generate {count} section titles for the page based on above information.
+Please only generate the section title and nothing else. Do not include any additional text or context.
+Each section title should be on a new line.
 "#
     )
 }
