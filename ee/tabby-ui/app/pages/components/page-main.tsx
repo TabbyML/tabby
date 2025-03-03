@@ -112,6 +112,42 @@ const createPageSectionRunSubscription = graphql(/* GraphQL */ `
   }
 `)
 
+const createPageRunSubscription = graphql(/* GraphQL */ `
+  subscription createPageRun($input: CreatePageRunInput!) {
+    createPageRun(input: $input) {
+      __typename
+      ... on PageCreated {
+        id
+        authorId
+        title
+      }
+      ... on PageContentDelta {
+        delta
+      }
+      ... on PageContentCompleted {
+        id
+      }
+      ... on PageSectionsCreated {
+        sections {
+          id
+          title
+          position
+        }
+      }
+      ... on PageSectionContentDelta {
+        id
+        delta
+      }
+      ... on PageSectionContentCompleted {
+        id
+      }
+      ... on PageCompleted {
+        id
+      }
+    }
+  }
+`)
+
 const deletePageSectionMutation = graphql(/* GraphQL */ `
   mutation DeletePageSection($sectionId: ID!) {
     deletePageSection(sectionId: $sectionId)
@@ -155,7 +191,6 @@ export function Page() {
   const [page, setPage] = useState<PageItem | undefined>()
   const [sections, setSections] = useState<Array<SectionItem>>()
   const [isLoading, setIsLoading] = useState(false)
-  // todo error handling
   const [error, setError] = useState<ExtendedCombinedError | undefined>()
   const [submitting, setSubmitting] = useState(false)
   const [isGeneratingPageTitle, setIsGeneratingPageTitle] = useState(false)
@@ -197,7 +232,7 @@ export function Page() {
     return location.origin + path
   }
 
-  const processThreadToPageStream = (
+  const processPageRunItemStream = (
     data: CreateThreadToPageRunSubscription['createThreadToPageRun']
   ) => {
     switch (data.__typename) {
@@ -276,7 +311,7 @@ export function Page() {
     }
   }
 
-  const processAppendSectionStream = (
+  const processSectionRunStream = (
     data: CreatePageSectionRunSubscription['createPageSectionRun']
   ) => {
     switch (data.__typename) {
@@ -359,7 +394,7 @@ export function Page() {
         if (!value) {
           return
         }
-        processAppendSectionStream(value)
+        processSectionRunStream(value)
       })
 
     unsubscribeFn.current = unsubscribe
@@ -377,8 +412,11 @@ export function Page() {
       createdAt: now
     }
     setPage(nextPage)
+    setIsLoading(true)
     setPageId(tempId)
     setIsGeneratingPageTitle(true)
+    setError(undefined)
+    setPageCompleted(false)
 
     const { unsubscribe } = client
       .subscription(createThreadToPageRunSubscription, {
@@ -397,10 +435,52 @@ export function Page() {
           return
         }
 
-        processThreadToPageStream(value)
+        processPageRunItemStream(value)
       })
 
     return unsubscribe
+  }
+
+  const createPage = async (title: string) => {
+    const now = new Date().toISOString()
+    const tempId = nanoid()
+    const nextPage: PageItem = {
+      id: tempId,
+      authorId: '',
+      title,
+      content: '',
+      updatedAt: now,
+      createdAt: now
+    }
+    setPage(nextPage)
+    setPageId(tempId)
+    setIsLoading(true)
+    setIsGeneratingPageTitle(true)
+    setPageCompleted(false)
+
+    const { unsubscribe } = client
+      .subscription(createPageRunSubscription, {
+        input: {
+          title
+        }
+      })
+      .subscribe(res => {
+        if (res?.error) {
+          setIsLoading(false)
+          setError(res.error)
+          unsubscribe()
+          return
+        }
+
+        const value = res.data?.createPageRun
+        if (!value) {
+          return
+        }
+
+        processPageRunItemStream(value)
+      })
+
+    unsubscribeFn.current = unsubscribe
   }
 
   const deletePageSection = useMutation(deletePageSectionMutation)
@@ -517,9 +597,6 @@ export function Page() {
       initializing.current = true
 
       if (pendingThreadId) {
-        setIsLoading(true)
-        setError(undefined)
-        setPageCompleted(false)
         // trigger convert
         unsubscribeFn.current = convertThreadToPage(
           pendingThreadId,
@@ -542,6 +619,12 @@ export function Page() {
       init()
     }
   }, [isPathnameInitialized])
+
+  useEffect(() => {
+    return () => {
+      unsubscribeFn.current?.()
+    }
+  }, [])
 
   const onDeleteSection = async (sectionId: string) => {
     if (!pageIdFromURL || isLoading) return
@@ -626,6 +709,7 @@ export function Page() {
       return pageError || new Error(ERROR_CODE_NOT_FOUND)
     }
   }, [pagesData, fetchingPage, pageError, isReady, pageIdFromURL])
+
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections ||
       pageSectionData?.pageSections?.pageInfo?.hasNextPage,
@@ -636,11 +720,13 @@ export function Page() {
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
 
-  if (isReady && (formatedPageError || pageSectionsError)) {
+  if (isReady && (formatedPageError || pageSectionsError || error)) {
     return (
       <ErrorView
         error={
-          (formatedPageError || pageSectionsError) as ExtendedCombinedError
+          (formatedPageError ||
+            pageSectionsError ||
+            error) as ExtendedCombinedError
         }
         pageIdFromURL={pageIdFromURL}
       />
@@ -685,23 +771,7 @@ export function Page() {
               <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
                 {isNew && !page ? (
                   <div className="col-span-4 mt-8 rounded-lg border py-2 pl-1 pr-3 ring-2 ring-transparent focus-within:ring-ring focus-visible:ring-ring">
-                    <NewPageForm
-                      onSubmit={async title => {
-                        const now = new Date().toISOString()
-                        const nextPage: PageItem = {
-                          title,
-                          id: nanoid(),
-                          authorId: '',
-                          content: '',
-                          updatedAt: now,
-                          createdAt: now
-                        }
-                        setPage(nextPage)
-                        setPageId(nextPage.id)
-                        setIsGeneratingPageTitle(true)
-                        setIsLoading(true)
-                      }}
-                    />
+                    <NewPageForm onSubmit={createPage} />
                   </div>
                 ) : (
                   <>
@@ -778,7 +848,7 @@ export function Page() {
                                 exit={{ opacity: 0 }}
                               >
                                 <SectionTitle
-                                  className="section-title pt-8"
+                                  className="section-title pt-8 prose-p:leading-tight"
                                   section={section}
                                 />
                                 <SectionContent
