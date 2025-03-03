@@ -17,7 +17,9 @@ pub fn prompt_page_content(title: &str, page_section_titles: &[String]) -> Strin
 You're writing the intro section of a page named "{title}". It contains the following sub sections:
 {page_section_titles}.
 
-Please generate content of the intro tbased on above information. Do not include any additional text.
+Please generate the content for the introduction section based on the information provided above.
+Ensure the content is a single paragraph without any subtitles or nested sections.
+Do not include any additional text.
 "#
     )
 }
@@ -72,9 +74,9 @@ pub fn prompt_page_section_content(
         r#"{page_prompt}.
 The current new section title is: {new_section_title}
 
-Please generate content of the section based on above information.
+Please generate the content for the section based on the information provided above.
+Ensure the content is a single paragraph without any subtitles or nested sections.
 Do not include any additional text.
-Do not include the section title.
 "#,
     )
 }
