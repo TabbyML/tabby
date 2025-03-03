@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useContext, useMemo } from 'react'
+import { ReactNode, useContext, useMemo, useState } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import { isNil } from 'lodash-es'
 
@@ -27,8 +27,17 @@ import {
   IconCode,
   IconGitCommit,
   IconGitMerge,
-  IconGitPullRequest
+  IconGitPullRequest,
+  IconListTree
 } from '@/components/ui/icons'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from '@/components/ui/sheet'
 import {
   Tooltip,
   TooltipContent,
@@ -37,6 +46,7 @@ import {
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SourceIcon } from '@/components/source-icon'
 
+import { CodebaseFileTree } from './codebase-tree'
 import { StepItem } from './intermediate-step'
 import { SearchContext } from './search-context'
 
@@ -66,9 +76,11 @@ interface ReadingCodeStepperProps {
     context: RelevantCodeContext,
     isInWorkspace?: boolean
   ) => void
+  codeFileList?: string[]
 }
 
 export function ReadingCodeStepper({
+  docQuery,
   isReadingCode,
   isReadingFileList,
   isReadingDocs,
@@ -78,7 +90,7 @@ export function ReadingCodeStepper({
   clientCodeContexts,
   webResources,
   commitResources,
-  docQuery,
+  codeFileList,
   onContextClick
 }: ReadingCodeStepperProps) {
   const { contextInfo, enableDeveloperMode } = useContext(SearchContext)
@@ -112,6 +124,18 @@ export function ReadingCodeStepper({
     }
     return result
   }, [readingCode?.fileList, readingCode?.snippet, commitResources, docQuery])
+
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
+  const toggleExpandedKey = (key: string) => {
+    const expanded = expandedKeys.has(key)
+    const newSet = new Set(expandedKeys)
+    if (expanded) {
+      newSet.delete(key)
+    } else {
+      newSet.add(key)
+    }
+    setExpandedKeys(newSet)
+  }
 
   const lastItem = useMemo(() => {
     return steps.slice().pop()
@@ -152,7 +176,29 @@ export function ReadingCodeStepper({
                 title="Read codebase structure ..."
                 isLoading={isReadingFileList}
                 isLastItem={lastItem === 'fileList'}
-              />
+              >
+                {codeFileList?.length ? (
+                  <Sheet>
+                    <SheetTrigger>
+                      <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
+                        <IconListTree className="h-3 w-3" />
+                        <span>{codeFileList.length} files</span>
+                      </div>
+                    </SheetTrigger>
+                    <SheetContent className="flex w-[50vw] min-w-[300px] flex-col">
+                      <SheetHeader className="border-b">
+                        <SheetTitle>Sources</SheetTitle>
+                        <SheetClose />
+                      </SheetHeader>
+                      <CodebaseFileTree
+                        fileList={codeFileList}
+                        expandedKeys={expandedKeys}
+                        toggleExpandedKey={toggleExpandedKey}
+                      />
+                    </SheetContent>
+                  </Sheet>
+                ) : null}
+              </StepItem>
             )}
             {readingCode?.snippet && (
               <StepItem
