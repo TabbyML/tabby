@@ -25,16 +25,9 @@ class ChatToolWindowFactory : ToolWindowFactory, DumbAware {
       val chatBrowserFactory = project.service<ChatBrowserFactory>()
       val browser = chatBrowserFactory.createChatBrowser(toolWindow)
 
-      val actionManager = ActionManager.getInstance()
-      val actionGroup = actionManager.getAction("Tabby.ChatToolWindowToolbar") as ActionGroup
-      val toolbar = actionManager.createActionToolbar("ChatToolWindowToolbar", actionGroup, true)
-
-      val panel = JPanel(BorderLayout()).apply {
-        add(toolbar.component, BorderLayout.NORTH)
-        add(browser.component, BorderLayout.CENTER)
-      }
-      val content = ContentFactory.getInstance().createContent(panel, "", false)
+      val content = ContentFactory.getInstance().createContent(browser.component, "", false)
       toolWindow.contentManager.addContent(content)
+      toolWindow.setTitleActions(listOf(ActionManager.getInstance().getAction("Tabby.ChatToolWindowToolbar")))
     } catch (e: Exception) {
       logger.warn("Failed to create chat tool window", e)
 
