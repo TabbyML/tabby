@@ -91,7 +91,7 @@ impl PageService for PageServiceImpl {
         policy: &AccessPolicy,
         input: &CreatePageSectionRunInput,
     ) -> Result<SectionRunStream> {
-        let current_sections = self
+        let existing_page_sections = self
             .list_sections(&input.page_id, None, None, None, None)
             .await?;
 
@@ -100,20 +100,20 @@ impl PageService for PageServiceImpl {
         let db = self.db.clone();
         let policy = policy.clone();
         let page_id = input.page_id.as_rowid()?;
-        let current_title = input.title.clone();
+        let new_section_prompt = input.title.clone();
 
         let s = stream! {
             let page_title = db
                 .get_page_title(page_id)
                 .await?;
-            let title = generate_page_sections(
+            let new_section_title = generate_page_sections(
                 1,
                 chat.clone(),
                 context.clone(),
                 &policy,
-                &current_title,
+                &new_section_prompt,
                 &page_title,
-                &current_sections,
+                &existing_page_sections,
                 None,
             )
             .await?
@@ -122,11 +122,11 @@ impl PageService for PageServiceImpl {
             .to_owned();
 
             let (section_id, position) = db
-                .create_page_section(page_id, &title)
+                .create_page_section(page_id, &new_section_title)
                 .await?;
             yield Ok(SectionRunItem::PageSectionCreated (PageSection {
                 id: section_id.as_id(),
-                title: title.clone(),
+                title: new_section_title.clone(),
                 position: position as i32,
             }));
 
@@ -136,8 +136,8 @@ impl PageService for PageServiceImpl {
                 &policy,
                 None,
                 &page_title,
-                &current_sections,
-                &title,
+                &existing_page_sections,
+                &new_section_title,
             )
             .await?;
             for await delta in content_stream {
@@ -430,16 +430,16 @@ pub async fn generate_page_sections(
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
-    new_section: &str,
-    title: &str,
-    sections: &[Section],
+    new_section_prompt: &str,
+    page_title: &str,
+    page_sections: &[Section],
     thread_messages: Option<&[Message]>,
 ) -> anyhow::Result<Vec<String>> {
     let messages = build_chat_messages(
         context,
         policy,
         thread_messages,
-        prompt_page_section_titles(count, title, sections, new_section).as_str(),
+        prompt_page_section_titles(count, page_title, page_sections, new_section_prompt).as_str(),
     )
     .await?;
 
@@ -455,39 +455,17 @@ pub async fn generate_page_section_content(
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
     thread_messages: Option<&[Message]>,
-    title: &str,
-    sections: &[Section],
-    current_section: &str,
+    page_title: &str,
+    page_sections: &[Section],
+    new_section_title: &str,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
-    let helper = context.read(Some(policy)).await?.helper();
-    let mut messages = Vec::new();
-    if let Some(thread_messages) = thread_messages {
-        messages.extend(
-            convert_messages_to_chat_completion_request(None, &helper, thread_messages)?
-                .into_iter(),
-        );
-    }
-
-    let page = format!(
-        r#"
-## {}
-
-{}"#,
-        title,
-        sections
-            .iter()
-            .map(|x| format!("## {}\n\n{}", x.title, x.content))
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
-
-    let user_message = convert_user_message_to_chat_completion_request(
-        &helper,
-        prompt_page_section_content(&page, current_section).as_str(),
-        &MessageAttachment::default(),
-        None,
-    );
-    messages.push(user_message);
+    let messages = build_chat_messages(
+        context,
+        policy,
+        thread_messages,
+        prompt_page_section_content(page_title, page_sections, new_section_title).as_str(),
+    )
+    .await?;
 
     Ok(request_llm_stream(chat.clone(), messages).await)
 }
