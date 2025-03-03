@@ -379,7 +379,7 @@ export function Page() {
       .subscription(createPageSectionRunSubscription, {
         input: {
           pageId,
-          title
+          titlePrompt: title
         }
       })
       .subscribe(res => {
@@ -461,7 +461,7 @@ export function Page() {
     const { unsubscribe } = client
       .subscription(createPageRunSubscription, {
         input: {
-          title
+          titlePrompt: title
         }
       })
       .subscribe(res => {

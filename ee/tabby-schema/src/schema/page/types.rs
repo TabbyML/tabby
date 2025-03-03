@@ -60,9 +60,14 @@ impl NodeType for Section {
 }
 
 #[derive(GraphQLInputObject)]
+pub struct CreatePageRunInput {
+    pub title_prompt: String,
+}
+
+#[derive(GraphQLInputObject)]
 pub struct CreatePageSectionRunInput {
     pub page_id: ID,
-    pub title: String,
+    pub title_prompt: String,
 }
 
 #[derive(GraphQLEnum)]
