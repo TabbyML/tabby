@@ -152,12 +152,12 @@ input CreateMessageInput {
 }
 
 input CreatePageRunInput {
-  title: String!
+  titlePrompt: String!
 }
 
 input CreatePageSectionRunInput {
   pageId: ID!
-  title: String!
+  titlePrompt: String!
 }
 
 input CreateThreadAndRunInput {

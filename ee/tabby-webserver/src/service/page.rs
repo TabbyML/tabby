@@ -82,7 +82,7 @@ impl PageService for PageServiceImpl {
         author_id: &ID,
         input: &CreatePageRunInput,
     ) -> Result<PageRunStream> {
-        self.page_run(policy, author_id, Some(&input.title), None)
+        self.page_run(policy, author_id, Some(&input.title_prompt), None)
             .await
     }
 
@@ -100,7 +100,7 @@ impl PageService for PageServiceImpl {
         let db = self.db.clone();
         let policy = policy.clone();
         let page_id = input.page_id.as_rowid()?;
-        let new_section_prompt = input.title.clone();
+        let new_section_prompt = input.title_prompt.clone();
 
         let s = stream! {
             let page_title = db
