@@ -24,7 +24,7 @@ interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
   fileList: string[]
 }
 
-interface FileTreeProviderProps extends FileTreeProps { }
+interface FileTreeProviderProps extends FileTreeProps {}
 
 type FileTreeContextValue = {
   fileTreeData: TFileTreeNode[]
@@ -66,23 +66,23 @@ const FileTreeProvider: React.FC<
   toggleExpandedKey,
   fileList
 }) => {
-    const fileTreeData = useMemo(() => {
-      return sortFileTree(listToFileTree(fileList))
-    }, [fileList])
+  const fileTreeData = useMemo(() => {
+    return sortFileTree(listToFileTree(fileList))
+  }, [fileList])
 
-    return (
-      <FileTreeContext.Provider
-        value={{
-          onSelectTreeNode,
-          fileTreeData,
-          expandedKeys,
-          toggleExpandedKey
-        }}
-      >
-        {children}
-      </FileTreeContext.Provider>
-    )
-  }
+  return (
+    <FileTreeContext.Provider
+      value={{
+        onSelectTreeNode,
+        fileTreeData,
+        expandedKeys,
+        toggleExpandedKey
+      }}
+    >
+      {children}
+    </FileTreeContext.Provider>
+  )
+}
 
 const GridArea: React.FC<{ level: number }> = ({ level }) => {
   const items = React.useMemo(() => {
@@ -226,7 +226,6 @@ const FileTreeRenderer: React.FC = () => {
 }
 
 const CodebaseFileTree: React.FC<FileTreeProps> = ({ className, ...props }) => {
-
   return (
     <div className={cn('group/filetree', className)}>
       <FileTreeProvider {...props}>
