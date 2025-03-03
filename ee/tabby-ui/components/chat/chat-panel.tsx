@@ -10,8 +10,10 @@ import { toast } from 'sonner'
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useLatest } from '@/lib/hooks/use-latest'
-import { updateEnableActiveSelection } from '@/lib/stores/chat-actions'
-import { useChatStore } from '@/lib/stores/chat-store'
+import {
+  updateEnableActiveSelection,
+  useChatStore
+} from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
 import type { Context, FileContext } from '@/lib/types'
