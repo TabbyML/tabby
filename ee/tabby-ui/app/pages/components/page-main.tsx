@@ -846,7 +846,7 @@ export function Page() {
                                 layout={!isLoading && mode === 'edit'}
                                 key={`section_${section.id}`}
                                 exit={{ opacity: 0 }}
-                                className='space-y-2'
+                                className="space-y-2"
                               >
                                 <SectionTitle
                                   className="section-title pt-8 prose-p:leading-tight"
