@@ -19,8 +19,8 @@ type TFileTreeNode = {
 
 interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
   onSelectTreeNode?: (treeNode: TFileTreeNode) => void
-  expandedKeys: Set<string>
-  toggleExpandedKey: (key: string) => void
+  collapsedKeys: Set<string>
+  toggleCollapsedKey: (key: string) => void
   fileList: string[]
 }
 
@@ -29,8 +29,8 @@ interface FileTreeProviderProps extends FileTreeProps {}
 type FileTreeContextValue = {
   fileTreeData: TFileTreeNode[]
   onSelectTreeNode: FileTreeProps['onSelectTreeNode']
-  expandedKeys: Set<string>
-  toggleExpandedKey: (key: string) => void
+  collapsedKeys: Set<string>
+  toggleCollapsedKey: (key: string) => void
 }
 
 type DirectoryTreeNodeProps = {
@@ -62,8 +62,8 @@ const FileTreeProvider: React.FC<
 > = ({
   onSelectTreeNode,
   children,
-  expandedKeys,
-  toggleExpandedKey,
+  collapsedKeys,
+  toggleCollapsedKey,
   fileList
 }) => {
   const fileTreeData = useMemo(() => {
@@ -75,8 +75,8 @@ const FileTreeProvider: React.FC<
       value={{
         onSelectTreeNode,
         fileTreeData,
-        expandedKeys,
-        toggleExpandedKey
+        collapsedKeys,
+        toggleCollapsedKey
       }}
     >
       {children}
@@ -113,7 +113,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'relative flex h-8 items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'relative flex h-8 items-stretch rounded-sm pl-1.5 hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         className
       )}
       {...props}
@@ -136,7 +136,7 @@ const DirectoryTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'relative flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'relative flex cursor-pointer items-stretch rounded-sm pl-1.5 hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         className
       )}
       {...props}
@@ -163,11 +163,11 @@ const DirectoryNode: React.FC<DirectoryTreeNodeProps> = ({
   level,
   root
 }) => {
-  const { expandedKeys, toggleExpandedKey, onSelectTreeNode } =
+  const { collapsedKeys, toggleCollapsedKey, onSelectTreeNode } =
     React.useContext(FileTreeContext)
 
   const existingChildren = !!node?.children?.length
-  const expanded = expandedKeys.has(node.fullPath)
+  const collapsed = collapsedKeys.has(node.fullPath)
 
   const onSelectDirectory: React.MouseEventHandler<HTMLDivElement> = e => {
     onSelectTreeNode?.(node)
@@ -179,19 +179,19 @@ const DirectoryNode: React.FC<DirectoryTreeNodeProps> = ({
         <div
           className="flex h-8 shrink-0 items-center hover:bg-primary/10 hover:text-popover-foreground"
           onClick={e => {
-            toggleExpandedKey(node.fullPath)
+            toggleCollapsedKey(node.fullPath)
             e.stopPropagation()
           }}
         >
-          {expanded ? <IconChevronDown /> : <IconChevronRight />}
+          {collapsed ? <IconChevronRight /> : <IconChevronDown />}
         </div>
         <div className="shrink-0" style={{ color: 'rgb(84, 174, 255)' }}>
-          {expanded ? <IconDirectoryExpandSolid /> : <IconDirectorySolid />}
+          {collapsed ? <IconDirectorySolid /> : <IconDirectoryExpandSolid />}
         </div>
         <div className="truncate">{node?.name}</div>
       </DirectoryTreeNodeView>
       <>
-        {expanded && existingChildren ? (
+        {!collapsed && existingChildren ? (
           <>
             {node.children?.map(child => {
               const key = child.fullPath

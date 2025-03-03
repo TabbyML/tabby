@@ -25,6 +25,7 @@ import {
   IconCheckCircled,
   IconCircleDot,
   IconCode,
+  IconFileText,
   IconGitCommit,
   IconGitMerge,
   IconGitPullRequest,
@@ -125,16 +126,16 @@ export function ReadingCodeStepper({
     return result
   }, [readingCode?.fileList, readingCode?.snippet, commitResources, docQuery])
 
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
-  const toggleExpandedKey = (key: string) => {
-    const expanded = expandedKeys.has(key)
-    const newSet = new Set(expandedKeys)
-    if (expanded) {
+  const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set())
+  const toggleCollapsedKey = (key: string) => {
+    const collapsed = collapsedKeys.has(key)
+    const newSet = new Set(collapsedKeys)
+    if (collapsed) {
       newSet.delete(key)
     } else {
       newSet.add(key)
     }
-    setExpandedKeys(newSet)
+    setCollapsedKeys(newSet)
   }
 
   const lastItem = useMemo(() => {
@@ -182,18 +183,23 @@ export function ReadingCodeStepper({
                     <SheetTrigger>
                       <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
                         <IconListTree className="h-3 w-3" />
-                        <span>{codeFileList.length} files</span>
+                        <span>{codeFileList.length} files or directories</span>
                       </div>
                     </SheetTrigger>
-                    <SheetContent className="flex w-[50vw] min-w-[300px] flex-col">
+                    <SheetContent className="flex w-[50vw] min-w-[300px] flex-col px-4">
                       <SheetHeader className="border-b">
-                        <SheetTitle>Sources</SheetTitle>
+                        <SheetTitle>
+                          {codeFileList.length} files or directories
+                        </SheetTitle>
                         <SheetClose />
                       </SheetHeader>
                       <CodebaseFileTree
                         fileList={codeFileList}
-                        expandedKeys={expandedKeys}
-                        toggleExpandedKey={toggleExpandedKey}
+                        collapsedKeys={collapsedKeys}
+                        toggleCollapsedKey={toggleCollapsedKey}
+                        onSelectTreeNode={node =>
+                          toggleCollapsedKey(node.fullPath)
+                        }
                       />
                     </SheetContent>
                   </Sheet>
@@ -357,7 +363,7 @@ function CodeContextItem({
       <TooltipTrigger asChild>
         <div
           className={cn(
-            'group whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5',
+            'group flex flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5',
             {
               'cursor-pointer hover:text-foreground': clickable
             }
@@ -368,16 +374,19 @@ function CodeContextItem({
             }
           }}
         >
-          <span>{fileName}</span>
-          {rangeText ? (
-            <span
-              className={cn('font-normal text-muted-foreground', {
-                'group-hover:text-foreground': clickable
-              })}
-            >
-              :{rangeText}
-            </span>
-          ) : null}
+          <IconFileText className="h-3 w-3" />
+          <span>
+            <span>{fileName}</span>
+            {rangeText ? (
+              <span
+                className={cn('font-normal text-muted-foreground', {
+                  'group-hover:text-foreground': clickable
+                })}
+              >
+                :{rangeText}
+              </span>
+            ) : null}
+          </span>
         </div>
       </TooltipTrigger>
       <TooltipContent align="start" sideOffset={8} className="max-w-[24rem]">
@@ -388,7 +397,11 @@ function CodeContextItem({
               <span className="text-muted-foreground">:{rangeText}</span>
             ) : null}
           </div>
-          <div className="break-all text-xs text-muted-foreground">{path}</div>
+          {!!path && (
+            <div className="break-all text-xs text-muted-foreground">
+              {path}
+            </div>
+          )}
           {enableDeveloperMode && context?.extra?.scores && (
             <div className="mt-4">
               <div className="mb-1 font-semibold">Scores</div>
