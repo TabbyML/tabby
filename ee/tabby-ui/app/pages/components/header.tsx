@@ -118,7 +118,7 @@ export function Header({ pageIdFromURL, streamingDone }: HeaderProps) {
         </Button>
       </div>
       <div className="flex items-center gap-2">
-        {isPageOwner ? (
+        {isPageOwner && pageIdFromURL ? (
           <>
             {!isEditMode ? (
               <>

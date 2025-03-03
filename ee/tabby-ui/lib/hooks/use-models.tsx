@@ -7,8 +7,7 @@ import { useStore } from 'zustand'
 
 import fetcher from '@/lib/tabby/fetcher'
 
-import { updateSelectedModel } from '../stores/chat-actions'
-import { useChatStore } from '../stores/chat-store'
+import { updateSelectedModel, useChatStore } from '../stores/chat-store'
 
 export interface ModelInfo {
   completion: Maybe<Array<string>>

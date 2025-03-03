@@ -18,7 +18,7 @@ import {
   updatePendingUserMessage,
   updateSelectedModel,
   updateSelectedRepoSourceId
-} from '@/lib/stores/chat-actions'
+} from '@/lib/stores/chat-store'
 import {
   clearHomeScrollPosition,
   setHomeScrollPosition,
