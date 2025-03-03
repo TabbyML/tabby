@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useContext, useMemo } from 'react'
+import { ReactNode, useContext, useMemo, useState } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import { isNil } from 'lodash-es'
 
@@ -25,10 +25,20 @@ import {
   IconCheckCircled,
   IconCircleDot,
   IconCode,
+  IconFileText,
   IconGitCommit,
   IconGitMerge,
-  IconGitPullRequest
+  IconGitPullRequest,
+  IconListTree
 } from '@/components/ui/icons'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from '@/components/ui/sheet'
 import {
   Tooltip,
   TooltipContent,
@@ -37,6 +47,7 @@ import {
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SourceIcon } from '@/components/source-icon'
 
+import { CodebaseFileTree } from './codebase-tree'
 import { StepItem } from './intermediate-step'
 import { SearchContext } from './search-context'
 
@@ -66,9 +77,11 @@ interface ReadingCodeStepperProps {
     context: RelevantCodeContext,
     isInWorkspace?: boolean
   ) => void
+  codeFileList?: string[]
 }
 
 export function ReadingCodeStepper({
+  docQuery,
   isReadingCode,
   isReadingFileList,
   isReadingDocs,
@@ -78,7 +91,7 @@ export function ReadingCodeStepper({
   clientCodeContexts,
   webResources,
   commitResources,
-  docQuery,
+  codeFileList,
   onContextClick
 }: ReadingCodeStepperProps) {
   const { contextInfo, enableDeveloperMode } = useContext(SearchContext)
@@ -112,6 +125,18 @@ export function ReadingCodeStepper({
     }
     return result
   }, [readingCode?.fileList, readingCode?.snippet, commitResources, docQuery])
+
+  const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set())
+  const toggleCollapsedKey = (key: string) => {
+    const collapsed = collapsedKeys.has(key)
+    const newSet = new Set(collapsedKeys)
+    if (collapsed) {
+      newSet.delete(key)
+    } else {
+      newSet.add(key)
+    }
+    setCollapsedKeys(newSet)
+  }
 
   const lastItem = useMemo(() => {
     return steps.slice().pop()
@@ -152,7 +177,36 @@ export function ReadingCodeStepper({
                 title="Read codebase structure ..."
                 isLoading={isReadingFileList}
                 isLastItem={lastItem === 'fileList'}
-              />
+              >
+                {codeFileList?.length ? (
+                  <Sheet>
+                    <SheetTrigger>
+                      <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
+                        <IconListTree className="h-3 w-3" />
+                        <span>{codeFileList.length} files or directories</span>
+                      </div>
+                    </SheetTrigger>
+                    <SheetContent className="flex w-[50vw] min-w-[300px] flex-col gap-0 px-4 pb-0">
+                      <SheetHeader className="border-b">
+                        <SheetTitle>
+                          {codeFileList.length} files or directories
+                        </SheetTitle>
+                        <SheetClose />
+                      </SheetHeader>
+                      <div className="flex-1 overflow-y-auto py-3">
+                        <CodebaseFileTree
+                          fileList={codeFileList}
+                          collapsedKeys={collapsedKeys}
+                          toggleCollapsedKey={toggleCollapsedKey}
+                          onSelectTreeNode={node =>
+                            toggleCollapsedKey(node.fullPath)
+                          }
+                        />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                ) : null}
+              </StepItem>
             )}
             {readingCode?.snippet && (
               <StepItem
@@ -311,7 +365,7 @@ function CodeContextItem({
       <TooltipTrigger asChild>
         <div
           className={cn(
-            'group whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5',
+            'group flex flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5',
             {
               'cursor-pointer hover:text-foreground': clickable
             }
@@ -322,16 +376,19 @@ function CodeContextItem({
             }
           }}
         >
-          <span>{fileName}</span>
-          {rangeText ? (
-            <span
-              className={cn('font-normal text-muted-foreground', {
-                'group-hover:text-foreground': clickable
-              })}
-            >
-              :{rangeText}
-            </span>
-          ) : null}
+          <IconFileText className="h-3 w-3" />
+          <span>
+            <span>{fileName}</span>
+            {rangeText ? (
+              <span
+                className={cn('font-normal text-muted-foreground', {
+                  'group-hover:text-foreground': clickable
+                })}
+              >
+                :{rangeText}
+              </span>
+            ) : null}
+          </span>
         </div>
       </TooltipTrigger>
       <TooltipContent align="start" sideOffset={8} className="max-w-[24rem]">
@@ -342,7 +399,11 @@ function CodeContextItem({
               <span className="text-muted-foreground">:{rangeText}</span>
             ) : null}
           </div>
-          <div className="break-all text-xs text-muted-foreground">{path}</div>
+          {!!path && (
+            <div className="break-all text-xs text-muted-foreground">
+              {path}
+            </div>
+          )}
           {enableDeveloperMode && context?.extra?.scores && (
             <div className="mt-4">
               <div className="mb-1 font-semibold">Scores</div>

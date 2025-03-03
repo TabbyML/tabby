@@ -431,6 +431,20 @@ export function Search() {
       }
     }
 
+    if (
+      !currentAssistantMessage.attachment?.codeFileList &&
+      answer?.attachmentsFileList?.length
+    ) {
+      currentAssistantMessage.attachment = {
+        clientCode: null,
+        doc: currentAssistantMessage.attachment?.doc || null,
+        codeFileList: {
+          fileList: answer.attachmentsFileList
+        },
+        code: currentAssistantMessage.attachment?.code || null
+      }
+    }
+
     // FIXME(jueliang) process FileList
 
     currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions

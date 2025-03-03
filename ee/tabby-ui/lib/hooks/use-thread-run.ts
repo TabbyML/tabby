@@ -251,6 +251,7 @@ export interface AnswerStream {
   relevantQuestions?: Array<string>
   attachmentsCode?: ThreadAssistantMessageAttachmentCodeHits
   attachmentsDoc?: ThreadAssistantMessageAttachmentDocHits
+  attachmentsFileList?: string[]
   readingCode?: ThreadAssistantMessageReadingCode
   content: string
   isReadingCode: boolean
@@ -343,6 +344,7 @@ export function useThreadRun({
         break
       case 'ThreadAssistantMessageAttachmentsCodeFileList':
         x.isReadingFileList = false
+        x.attachmentsFileList = data.codeFileList
         break
       case 'ThreadAssistantMessageAttachmentsCode':
         x.isReadingCode = false
