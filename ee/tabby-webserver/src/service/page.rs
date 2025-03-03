@@ -257,7 +257,7 @@ impl PageServiceImpl {
         let page_id = self.db.create_page(author_id.as_rowid()?).await?.as_id();
         let thread_messages = thread_messages.map(ToOwned::to_owned);
 
-        let title = self
+        let page_title = self
             .generate_page_title(policy, &page_id, title_prompt, thread_messages.as_deref())
             .await?;
 
@@ -271,7 +271,7 @@ impl PageServiceImpl {
             yield Ok(PageRunItem::PageCreated(PageCreated {
                 id: page_id.clone(),
                 author_id: author_id.clone(),
-                title: title.clone(),
+                title: page_title.clone(),
             }));
 
             let sections = generate_page_sections(
@@ -280,7 +280,7 @@ impl PageServiceImpl {
                 context.clone(),
                 &policy,
                 "",
-                &title,
+                &page_title,
                 &vec![],
                 thread_messages.as_deref(),
             ).await?;
@@ -298,7 +298,8 @@ impl PageServiceImpl {
                 sections: page_sections.clone(),
             }));
 
-            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &title, thread_messages.as_deref()).await?;
+            let page_section_titles = page_sections.iter().map(|s| s.title.clone()).collect::<Vec<_>>();
+            let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &page_title, &page_section_titles, thread_messages.as_deref()).await?;
             for await delta in content_stream {
                 let delta = delta?;
                 db.append_page_content(page_id.as_rowid()?, &delta).await?;
@@ -325,7 +326,7 @@ impl PageServiceImpl {
                     context.clone(),
                     &policy,
                     thread_messages.as_deref(),
-                    &title,
+                    &page_title,
                     &existed_sections,
                     &section.title,
                 ).await?;
@@ -379,7 +380,7 @@ impl PageServiceImpl {
 fn trim_title(title: &str) -> &str {
     // take first line.
     let title = title.lines().next().unwrap_or(title);
-    title.trim_matches(&['"', '#', ' ', '-'][..]).trim()
+    title.trim_matches(&['"', '#', ' ', '-', '*'][..]).trim()
 }
 
 async fn build_chat_messages(
@@ -411,14 +412,15 @@ async fn generate_page_content(
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
-    title_prompt: &str,
+    page_title: &str,
+    page_section_titles: &[String],
     thread_messages: Option<&[Message]>,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
     let messages = build_chat_messages(
         context,
         policy,
         thread_messages,
-        prompt_page_content(title_prompt).as_str(),
+        prompt_page_content(page_title, page_section_titles).as_str(),
     )
     .await?;
 
