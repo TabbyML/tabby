@@ -171,11 +171,11 @@ const DirectoryNode: React.FC<DirectoryTreeNodeProps> = ({ node, level }) => {
     <>
       <DirectoryTreeNodeView level={level} onClick={onSelectDirectory}>
         <div
-          className="flex h-8 shrink-0 items-center hover:bg-primary/10 hover:text-popover-foreground"
-          onClick={e => {
-            toggleCollapsedKey(node.fullPath)
-            e.stopPropagation()
-          }}
+          className="flex h-8 shrink-0 items-center"
+          // onClick={e => {
+          //   toggleCollapsedKey(node.fullPath)
+          //   e.stopPropagation()
+          // }}
         >
           <IconChevronRight
             className={cn('transition-transform ease-out', {
@@ -233,7 +233,7 @@ const FileTreeRenderer: React.FC = () => {
 
 const CodebaseFileTree: React.FC<FileTreeProps> = ({ className, ...props }) => {
   return (
-    <div className={cn('group/filetree', className)}>
+    <div className={cn('group/filetree select-none', className)}>
       <FileTreeProvider {...props}>
         <FileTreeRenderer />
       </FileTreeProvider>
