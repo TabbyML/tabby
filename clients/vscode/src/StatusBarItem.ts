@@ -121,7 +121,6 @@ export class StatusBarItem {
    */
   private checkIfVSCodeInlineCompletionAvailable(status: StatusInfo) {
     const codeModel = status.serverHealth?.["model"];
-    getLogger().debug("Code Model: ", codeModel);
     if (!codeModel) {
       this.setColorNormal();
       this.setIcon(iconCodeModelNotFound);
