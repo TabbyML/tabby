@@ -281,9 +281,6 @@ export class TabbyApiClient extends EventEmitter {
 
       this.healthCheckMutexAbortController.abort(new MutexAbortError());
     }
-    if (background) {
-      return;
-    }
     const abortController = new AbortController();
     this.healthCheckMutexAbortController = abortController;
     this.updateIsConnecting(true);
