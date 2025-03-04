@@ -90,15 +90,14 @@ export class TabbyApiClient extends EventEmitter {
         await this.connect();
       }
     }, reconnectInterval);
-    setTimeout(() => {
-      const heartBeatInterval = 1000 * 60; // 1m
-      this.heartbeatTimer = setInterval(async () => {
-        if (this.status === "ready") {
-          this.logger.debug("Heartbeat...");
-          await this.healthCheck({ background: true });
-        }
-      }, heartBeatInterval);
-    }, 10000);
+
+    const heartBeatInterval = 1000 * 60; // 1m
+    this.heartbeatTimer = setInterval(async () => {
+      if (this.status === "ready") {
+        this.logger.debug("Heartbeat...");
+        await this.healthCheck({ background: true });
+      }
+    }, heartBeatInterval);
   }
 
   async shutdown() {
