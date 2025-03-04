@@ -79,6 +79,9 @@ export function NewPageForm({
                     autoFocus
                     className="h-auto w-full border-none text-3xl font-semibold shadow-none outline-none focus-visible:ring-0"
                     placeholder="What is your page about?"
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    autoCorrect="off"
                     ref={e => {
                       ref(e)
                       inputRef.current = e
