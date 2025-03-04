@@ -47,7 +47,6 @@ import {
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SourceIcon } from '@/components/source-icon'
 
-import { CodebaseFileTree } from './codebase-tree'
 import { StepItem } from './intermediate-step'
 import { SearchContext } from './search-context'
 
@@ -184,26 +183,19 @@ export function ReadingCodeStepper({
                     <SheetTrigger>
                       <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
                         <IconListTree className="h-3 w-3" />
-                        <span>{codeFileList.length} directories or files</span>
+                        <span>{codeFileList.length} items</span>
                       </div>
                     </SheetTrigger>
                     <SheetContent className="flex w-[50vw] min-w-[300px] flex-col gap-0 px-4 pb-0">
                       <SheetHeader className="border-b">
                         <SheetTitle>
-                          {codeFileList.length} directories or files
+                          {codeFileList.length} items 
                         </SheetTitle>
                         <SheetClose />
                       </SheetHeader>
-                      <div className="flex-1 overflow-y-auto py-3">
-                        <CodebaseFileTree
-                          fileList={codeFileList}
-                          collapsedKeys={collapsedKeys}
-                          toggleCollapsedKey={toggleCollapsedKey}
-                          onSelectTreeNode={node =>
-                            toggleCollapsedKey(node.fullPath)
-                          }
-                        />
-                      </div>
+                      <pre className="flex-1 overflow-auto py-3">
+                        {codeFileList.join("\n")}
+                      </pre>
                     </SheetContent>
                   </Sheet>
                 ) : null}
