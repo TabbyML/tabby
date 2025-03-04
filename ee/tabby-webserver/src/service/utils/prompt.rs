@@ -101,7 +101,7 @@ pub async fn request_llm_with_message(
 pub fn transform_line_items(content: &str) -> Vec<String> {
     content
         .lines()
-        .map(|x| trim_bullet(x))
+        .map(trim_bullet)
         .filter(|x| !x.is_empty())
         .map(|x| x.to_owned())
         .collect()
