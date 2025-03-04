@@ -188,13 +188,11 @@ export function ReadingCodeStepper({
                     </SheetTrigger>
                     <SheetContent className="flex w-[50vw] min-w-[300px] flex-col gap-0 px-4 pb-0">
                       <SheetHeader className="border-b">
-                        <SheetTitle>
-                          {codeFileList.length} items 
-                        </SheetTitle>
+                        <SheetTitle>{codeFileList.length} items</SheetTitle>
                         <SheetClose />
                       </SheetHeader>
                       <pre className="flex-1 overflow-auto py-3">
-                        {codeFileList.join("\n")}
+                        {codeFileList.join('\n')}
                       </pre>
                     </SheetContent>
                   </Sheet>
