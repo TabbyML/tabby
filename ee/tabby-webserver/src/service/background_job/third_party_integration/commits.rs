@@ -131,7 +131,7 @@ async fn garbage_collection(embedding: Arc<dyn Embedding>, repo: &str) {
     let num_deleted = old_commits.len();
 
     for commit in old_commits {
-        indexer.delete(&commit);
+        indexer.delete(&commit).await;
     }
 
     logkit::info!(
