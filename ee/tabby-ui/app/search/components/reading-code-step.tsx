@@ -99,7 +99,8 @@ export function ReadingCodeStepper({
     (clientCodeContexts?.length || 0) +
     serverCodeContexts.length +
     (webResources?.length || 0) +
-    (commitResources?.length || 0)
+    (commitResources?.length || 0) +
+    (codeFileList?.length ? 1 : 0)
   const targetRepo = useMemo(() => {
     if (!codeSourceId) return undefined
 
@@ -183,13 +184,13 @@ export function ReadingCodeStepper({
                     <SheetTrigger>
                       <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
                         <IconListTree className="h-3 w-3" />
-                        <span>{codeFileList.length} files or directories</span>
+                        <span>{codeFileList.length} directories or files</span>
                       </div>
                     </SheetTrigger>
                     <SheetContent className="flex w-[50vw] min-w-[300px] flex-col gap-0 px-4 pb-0">
                       <SheetHeader className="border-b">
                         <SheetTitle>
-                          {codeFileList.length} files or directories
+                          {codeFileList.length} directories or files
                         </SheetTitle>
                         <SheetClose />
                       </SheetHeader>
