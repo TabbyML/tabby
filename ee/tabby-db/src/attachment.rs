@@ -12,6 +12,9 @@ pub struct Attachment {
 #[derive(Serialize, Deserialize)]
 pub struct AttachmentCodeFileList {
     pub file_list: Vec<String>,
+
+    #[serde(default)]
+    pub truncated: bool,
 }
 
 #[derive(Serialize, Deserialize)]

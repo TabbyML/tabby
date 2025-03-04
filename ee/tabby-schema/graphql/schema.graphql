@@ -1004,6 +1004,7 @@ type ThreadAssistantMessageAttachmentsCode {
 
 type ThreadAssistantMessageAttachmentsCodeFileList {
   fileList: [String!]!
+  truncated: Boolean!
 }
 
 type ThreadAssistantMessageAttachmentsDoc {

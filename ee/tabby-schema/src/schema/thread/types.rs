@@ -357,6 +357,7 @@ pub struct ThreadAssistantMessageReadingCode {
 #[derive(GraphQLObject)]
 pub struct ThreadAssistantMessageAttachmentsCodeFileList {
     pub file_list: Vec<String>,
+    pub truncated: bool,
 }
 
 #[derive(GraphQLObject)]
