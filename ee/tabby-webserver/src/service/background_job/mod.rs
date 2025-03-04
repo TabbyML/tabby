@@ -1,3 +1,4 @@
+mod commit_index;
 mod daily;
 mod db;
 mod git;

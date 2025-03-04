@@ -19,9 +19,8 @@ use tabby_schema::{
 };
 use tracing::debug;
 
-use super::{helper::Job, BackgroundJobEvent};
+use super::{commit_index, helper::Job, BackgroundJobEvent};
 
-mod commits;
 mod error;
 mod issues;
 mod pulls;
@@ -149,7 +148,7 @@ impl SchedulerGithubGitlabJob {
         repository: &CodeRepository,
         embedding: Arc<dyn Embedding>,
     ) -> tabby_schema::Result<()> {
-        commits::refresh(embedding, repository).await
+        commit_index::refresh(embedding, repository).await
     }
 
     async fn sync_pulls(
