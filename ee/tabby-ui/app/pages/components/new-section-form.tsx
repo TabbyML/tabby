@@ -62,13 +62,15 @@ export function NewSectionForm({
               <FormItem className="flex-1">
                 <FormControl>
                   <Textarea
-                    autoFocus
                     draggable={false}
                     minRows={2}
                     maxRows={6}
                     className="w-full rounded-lg border-2 bg-background p-4 pr-12 text-xl outline-ring"
                     placeholder="What is the section about?"
                     onKeyDown={onKeyDown}
+                    autoCapitalize='off'
+                    autoComplete='off'
+                    autoCorrect='off'
                     {...field}
                   />
                 </FormControl>

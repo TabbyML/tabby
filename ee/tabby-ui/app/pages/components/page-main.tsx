@@ -849,7 +849,7 @@ export function Page() {
                                 className="space-y-2"
                               >
                                 <SectionTitle
-                                  className="section-title pt-8 prose-p:leading-tight"
+                                  className="pt-8 prose-p:leading-tight"
                                   section={section}
                                 />
                                 <SectionContent

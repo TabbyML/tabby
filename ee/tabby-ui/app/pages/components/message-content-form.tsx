@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
@@ -33,7 +32,6 @@ export function MessageContentForm({
     defaultValues: { content: message }
   })
   const { isSubmitting } = form.formState
-  const [draftMessage] = useState<string | undefined>(message)
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     const error = await onSubmit(values.content)
@@ -54,6 +52,9 @@ export function MessageContentForm({
               <FormControl>
                 <Textarea
                   autoFocus
+                  autoCapitalize='off'
+                  autoComplete='off'
+                  autoCorrect='off'
                   minRows={2}
                   maxRows={20}
                   className="w-full rounded-lg border bg-background p-4 outline-ring"
