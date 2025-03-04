@@ -10,6 +10,8 @@ use tabby_index::public::{
 use tabby_inference::Embedding;
 use tabby_schema::Result;
 
+const MAX_COMMIT_HISTORY_COUNT: usize = 100;
+
 fn to_commit_document<'a>(
     commit: &tabby_git::Commit,
     repo: &CodeRepository,
@@ -51,16 +53,40 @@ pub async fn refresh(embedding: Arc<dyn Embedding>, repository: &CodeRepository)
     Ok(())
 }
 
+struct StopGuard(Option<tokio::sync::oneshot::Sender<()>>);
+impl Drop for StopGuard {
+    fn drop(&mut self) {
+        if let Some(sender) = self.0.take() {
+            sender.send(()).ok();
+        }
+    }
+}
+
 async fn indexing(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
     let indexer = StructuredDocIndexer::new(embedding);
 
     let (commits, stop_tx) = stream_commits(repository.dir().to_string_lossy().to_string());
     let mut commits = pin!(commits);
+    // Will automatically send stop signal when it goes out of scope
+    let _stop_guard = StopGuard(Some(stop_tx));
 
     let mut count = 0;
     let mut num_updated = 0;
 
+    let existing_commit_count = indexer
+        .count_doc_by_attribute(
+            STRUCTURED_DOC_KIND_COMMIT,
+            commit::GIT_URL,
+            &repository.source_id,
+        )
+        .await
+        .unwrap_or(0);
+
     while let Some(commit_result) = commits.next().await {
+        if existing_commit_count + count >= MAX_COMMIT_HISTORY_COUNT * 2 {
+            break;
+        }
+
         match commit_result {
             Ok(commit) => {
                 let commit = StructuredDoc {
@@ -68,17 +94,14 @@ async fn indexing(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
                     fields: StructuredDocFields::Commit(to_commit_document(&commit, repository)),
                 };
                 if !indexer.sync(commit).await {
-                    // We synchronize commits based on their date stamps,
-                    // sync returns false if the commit has already been indexed, indicating that no update is necessary.
-                    // Halt the stream and break the loop
-                    stop_tx.send(()).ok();
                     break;
                 }
+
+                num_updated += 1;
                 count += 1;
                 if count % 50 == 0 {
                     logkit::info!("{} commits seen, {} commits updated", count, num_updated);
                 }
-                num_updated += 1;
             }
             Err(e) => {
                 logkit::warn!("Failed to process commit: {}", e);
