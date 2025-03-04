@@ -107,15 +107,20 @@ impl Webserver {
             setting.clone(),
         ));
 
+        let retrieval = Arc::new(crate::service::retrieval::create(
+            code.clone(),
+            docsearch.clone(),
+            serper,
+            repository.clone(),
+        ));
+
         let answer = chat.as_ref().map(|chat| {
             Arc::new(crate::service::answer::create(
                 &config.answer,
                 auth.clone(),
                 chat.clone(),
-                code.clone(),
-                docsearch.clone(),
+                retrieval,
                 context.clone(),
-                serper,
                 repository.clone(),
             ))
         });
