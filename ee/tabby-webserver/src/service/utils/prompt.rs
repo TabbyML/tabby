@@ -101,42 +101,34 @@ pub async fn request_llm_with_message(
 pub fn transform_line_items(content: &str) -> Vec<String> {
     content
         .lines()
-        .map(|x| x.trim_bullet())
+        .map(|x| trim_bullet(x))
         .filter(|x| !x.is_empty())
         .map(|x| x.to_owned())
         .collect()
 }
 
-pub trait TrimTitle {
-    fn trim_bullet(&self) -> &str;
-    fn trim_title(&self) -> &str;
+/// Trims leading and trailing bullet-like characters or digits from the provided string and returns the trimmed result.
+fn trim_bullet(s: &str) -> &str {
+    let s = s.trim();
+    if s.starts_with('-') || s.starts_with('+') || s.starts_with('*') {
+        return s.trim_matches(&['-', '+', '*', ' '][..]);
+    }
+
+    // Check for numbered list
+    if let Some(pos) = s.find(". ") {
+        let prefix = &s[..pos];
+        if prefix.chars().all(|c| c.is_numeric()) {
+            return trim_bullet(s[pos + 2..].trim_start());
+        }
+    }
+
+    s
 }
 
-impl TrimTitle for str {
-    /// Trims leading and trailing bullet-like characters or digits from the provided string and returns the trimmed result.
-    fn trim_bullet(&self) -> &str {
-        let s = self.trim();
-        if s.starts_with('-') || s.starts_with('+') || s.starts_with('*') {
-            return s.trim_matches(&['-', '+', '*', ' '][..]);
-        }
-
-        // Check for numbered list
-        if let Some(pos) = s.find(". ") {
-            let prefix = &s[..pos];
-            if prefix.chars().all(|c| c.is_numeric()) {
-                return s[pos + 2..].trim_start().trim_bullet();
-            }
-        }
-
-        s
-    }
-
-    fn trim_title(&self) -> &str {
-        let title = self.lines().next().unwrap_or(self).trim();
-        title
-            .trim_matches(&['"', '#', ' ', '-', '*'][..])
-            .trim_bullet()
-    }
+pub fn trim_title(title: &str) -> &str {
+    // take first line.
+    let title = title.lines().next().unwrap_or(title).trim();
+    trim_bullet(title.trim_matches(&['"', '#', ' ', '-', '*'][..]))
 }
 
 /// Checks if the `check` string is contained within `content` in a case-insensitive manner.
@@ -150,40 +142,40 @@ mod tests {
 
     #[test]
     fn test_trim_bullet() {
-        assert_eq!("- Hello".trim_bullet(), "Hello");
-        assert_eq!("* World".trim_bullet(), "World");
-        assert_eq!("1. Test".trim_bullet(), "Test");
+        assert_eq!(trim_bullet("- Hello"), "Hello");
+        assert_eq!(trim_bullet("* World"), "World");
+        assert_eq!(trim_bullet("1. Test"), "Test");
 
-        assert_eq!("- Hello -".trim_bullet(), "Hello");
-        assert_eq!("1. Test 1".trim_bullet(), "Test 1");
-        assert_eq!("12. Test 1".trim_bullet(), "Test 1");
-        assert_eq!("1. Test 1.".trim_bullet(), "Test 1.");
-        assert_eq!("1 Test ".trim_bullet(), "1 Test");
+        assert_eq!(trim_bullet("- Hello -"), "Hello");
+        assert_eq!(trim_bullet("1. Test 1"), "Test 1");
+        assert_eq!(trim_bullet("12. Test 1"), "Test 1");
+        assert_eq!(trim_bullet("1. Test 1."), "Test 1.");
+        assert_eq!(trim_bullet("1 Test "), "1 Test");
 
-        assert_eq!("--** Mixed".trim_bullet(), "Mixed");
+        assert_eq!(trim_bullet("--** Mixed"), "Mixed");
 
-        assert_eq!("  - Hello  ".trim_bullet(), "Hello");
+        assert_eq!(trim_bullet("  - Hello  "), "Hello");
 
-        assert_eq!("-".trim_bullet(), "");
-        assert_eq!("".trim_bullet(), "");
-        assert_eq!("   ".trim_bullet(), "");
+        assert_eq!(trim_bullet("-"), "");
+        assert_eq!(trim_bullet(""), "");
+        assert_eq!(trim_bullet("   "), "");
 
-        assert_eq!("Hello World".trim_bullet(), "Hello World");
+        assert_eq!(trim_bullet("Hello World"), "Hello World");
 
-        assert_eq!("1. *Bold* and -italic-".trim_bullet(), "Bold* and -italic");
-        assert_eq!("1. **Bold* and -italic-".trim_bullet(), "Bold* and -italic");
+        assert_eq!(trim_bullet("1. *Bold* and -italic-"), "Bold* and -italic");
+        assert_eq!(trim_bullet("1. **Bold* and -italic"), "Bold* and -italic");
     }
 
     #[test]
     fn test_trim_title() {
-        assert_eq!("# - Hello".trim_title(), "Hello");
-        assert_eq!("# * World".trim_title(), "World");
-        assert_eq!("# 1. Test".trim_title(), "Test");
+        assert_eq!(trim_title("# - Hello"), "Hello");
+        assert_eq!(trim_title("# * World"), "World");
+        assert_eq!(trim_title("# 1. Test"), "Test");
 
-        assert_eq!("## - Hello -".trim_title(), "Hello");
-        assert_eq!("  # 1. Test 1".trim_title(), "Test 1");
-        assert_eq!("12. Test 1".trim_title(), "Test 1");
-        assert_eq!(r#""1. Test 1.""#.trim_title(), "Test 1.");
-        assert_eq!("## **Test ".trim_title(), "Test");
+        assert_eq!(trim_title("## - Hello -"), "Hello");
+        assert_eq!(trim_title("  # 1. Test 1"), "Test 1");
+        assert_eq!(trim_title("12. Test 1"), "Test 1");
+        assert_eq!(trim_title(r#""1. Test 1.""#), "Test 1.");
+        assert_eq!(trim_title("## **Test "), "Test");
     }
 }
