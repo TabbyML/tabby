@@ -93,7 +93,7 @@ export class TabbyApiClient extends EventEmitter {
     setTimeout(() => {
       const heartBeatInterval = 1000 * 60; // 1m
       this.heartbeatTimer = setInterval(async () => {
-        if (this.status !== "noConnection" && this.status !== "unauthorized") {
+        if (this.status === "ready") {
           this.logger.debug("Heartbeat...");
           await this.healthCheck({ background: true });
         }
@@ -274,12 +274,16 @@ export class TabbyApiClient extends EventEmitter {
     },
   ): Promise<void> {
     const { signal, method, background } = options;
-    if (this.healthCheckMutexAbortController && !this.healthCheckMutexAbortController.signal.aborted && background) {
+    if (this.healthCheckMutexAbortController && !this.healthCheckMutexAbortController.signal.aborted) {
       // if background check true, and there is a running check, ignore background check
       if (background) {
         return;
       }
+
       this.healthCheckMutexAbortController.abort(new MutexAbortError());
+    }
+    if (background) {
+      return;
     }
     const abortController = new AbortController();
     this.healthCheckMutexAbortController = abortController;
