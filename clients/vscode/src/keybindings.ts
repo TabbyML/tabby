@@ -15,18 +15,18 @@ const isMac = isBrowser
   ? navigator.userAgent.toLowerCase().includes("mac")
   : process.platform.toLowerCase().includes("darwin");
 
-export class VSCodeKeyBindingManager {
+export class KeyBindingManager {
   // Singleton instance to manage keybindings.
-  private static instance: VSCodeKeyBindingManager | null = null;
+  private static instance: KeyBindingManager | null = null;
 
   /**
    * Returns the singleton instance.
    */
-  public static getInstance(): VSCodeKeyBindingManager {
-    if (!VSCodeKeyBindingManager.instance) {
-      VSCodeKeyBindingManager.instance = new VSCodeKeyBindingManager();
+  public static getInstance(): KeyBindingManager {
+    if (!KeyBindingManager.instance) {
+      KeyBindingManager.instance = new KeyBindingManager();
     }
-    return VSCodeKeyBindingManager.instance;
+    return KeyBindingManager.instance;
   }
 
   // Cached keybindings loaded during extension startup.
@@ -44,7 +44,7 @@ export class VSCodeKeyBindingManager {
   /**
    * Reads the keybindings file and returns the parsed keybindings.
    */
-  async readKeyBindings(): Promise<KeyBinding[] | null> {
+  private async readKeyBindings(): Promise<KeyBinding[] | null> {
     try {
       let rawData: string;
       if (isBrowser) {
@@ -66,7 +66,7 @@ export class VSCodeKeyBindingManager {
   /**
    * Reads keybindings.json from the workspace folder (for browser environments).
    */
-  async readWorkspaceKeybindings(): Promise<string> {
+  private async readWorkspaceKeybindings(): Promise<string> {
     const workspace = vscode.workspace.workspaceFolders?.[0];
     if (!workspace) {
       throw new Error("No workspace found");
@@ -79,7 +79,7 @@ export class VSCodeKeyBindingManager {
   /**
    * Parses the raw keybindings JSON data and filters out invalid entries.
    */
-  parseKeybindings(data: string): KeyBinding[] {
+  private parseKeybindings(data: string): KeyBinding[] {
     const cleanData = data
       .split("\n")
       .map((line) => line.trim())
@@ -102,13 +102,6 @@ export class VSCodeKeyBindingManager {
   }
 
   /**
-   * Checks if the specified command is rebound by verifying its presence in the cached keybindings.
-   */
-  isCommandRebound(command: string): boolean {
-    return this.keybindings ? this.keybindings.some((binding) => binding.command === command) : false;
-  }
-
-  /**
    * Retrieves the keybinding for a specified command from the cached keybindings.
    * Returns the key if found and not disabled; otherwise returns null.
    */
@@ -118,13 +111,6 @@ export class VSCodeKeyBindingManager {
     }
     const binding = this.keybindings.find((b) => b.command === command && !b.command.startsWith("-"));
     return binding?.key || null;
-  }
-
-  /**
-   * Checks if a command is disabled by verifying if a keybinding with a '-' prefix exists.
-   */
-  isKeyBindingDisabled(command: string): boolean {
-    return this.keybindings ? this.keybindings.some((b) => b.command === `-${command}`) : false;
   }
 }
 
@@ -144,3 +130,49 @@ export function getPackageCommandBinding(command: string): string {
     return "";
   }
 }
+
+export const formatShortcut = (shortcut: string): string => {
+  const isMacOS = !isBrowser && process.platform === "darwin";
+
+  const config = isMacOS
+    ? {
+        ctrlKey: "⌃",
+        shiftKey: "⇧",
+        altKey: "⌥",
+        metaKey: "⌘",
+        separator: "+",
+      }
+    : {
+        ctrlKey: "Ctrl",
+        shiftKey: "Shift",
+        altKey: "Alt",
+        metaKey: isBrowser ? "Windows" : process.platform === "win32" ? "Windows" : "Super",
+        separator: "+",
+      };
+
+  return shortcut
+    .split("+")
+    .map((key) => {
+      const lowerKey = key.toLowerCase();
+      switch (lowerKey) {
+        case "ctrl":
+        case "control":
+          return config.ctrlKey;
+        case "shift":
+          return config.shiftKey;
+        case "alt":
+        case "option":
+          return config.altKey;
+        case "cmd":
+        case "command":
+        case "meta":
+          return config.metaKey;
+        default:
+          if (lowerKey.length === 1) {
+            return lowerKey.toUpperCase();
+          }
+          return key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+      }
+    })
+    .join(config.separator);
+};

@@ -13,7 +13,7 @@ import { CodeLensMiddleware as VscodeLspCodeLensMiddleware, ProvideCodeLensesSig
 import { CodeLens as TabbyCodeLens } from "tabby-agent";
 import { findTextEditor } from "./vscodeWindowUtils";
 import { isBrowser } from "../env";
-import { getPackageCommandBinding, VSCodeKeyBindingManager } from "../keybindings";
+import { formatShortcut, getPackageCommandBinding, KeyBindingManager } from "../keybindings";
 
 type CodeLens = VscodeCodeLens & TabbyCodeLens;
 
@@ -104,7 +104,7 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     if (!codeLens.data || codeLens.data.type !== "previewChanges") {
       return codeLens;
     }
-    this.addShortcut(codeLens);
+    this.appendShortcutHint(codeLens);
 
     const decorationRange = new Range(
       codeLens.range.start.line,
@@ -152,7 +152,9 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     ranges.push(range);
     editor.setDecorations(decorationType, ranges);
   }
-  private addShortcut(codeLens: CodeLens) {
+  private appendShortcutHint(codeLens: CodeLens) {
+    if (!codeLens.command) return;
+
     const action = codeLens.command?.arguments?.[0]?.action;
     if (!action) return;
 
@@ -164,13 +166,10 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     } else {
       return;
     }
-    const binding =
-      VSCodeKeyBindingManager.getInstance().getCommandBinding(commandId) || getPackageCommandBinding(commandId);
+    const binding = KeyBindingManager.getInstance().getCommandBinding(commandId) || getPackageCommandBinding(commandId);
 
     const formattedShortcut = binding ? formatShortcut(binding) : "";
     const shortcutText = isBrowser ? "" : formattedShortcut ? ` (${formattedShortcut})` : "";
-
-    if (!codeLens.command) return;
 
     codeLens.command.title += shortcutText;
   }
@@ -192,24 +191,3 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     editorsToRemove.forEach((editor) => this.decorationMap.delete(editor));
   }
 }
-
-const formatShortcut = (shortcut: string): string => {
-  return shortcut
-    .split("+")
-    .map((key) => {
-      const capitalizedKey = key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
-      switch (key.toLowerCase()) {
-        case "cmd":
-          return "⌘";
-        case "ctrl":
-          return "Ctrl";
-        case "alt":
-          return "Alt";
-        case "shift":
-          return "Shift";
-        default:
-          return capitalizedKey;
-      }
-    })
-    .join("+");
-};

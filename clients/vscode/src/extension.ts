@@ -10,7 +10,7 @@ import { ChatSidePanelProvider } from "./chat/sidePanel";
 import { Commands } from "./commands";
 import { init as initFindFiles } from "./findFiles";
 import { CodeActions } from "./CodeActions";
-import { VSCodeKeyBindingManager } from "./keybindings";
+import { KeyBindingManager } from "./keybindings";
 
 const logger = getLogger();
 let clientRef: Client | undefined = undefined;
@@ -54,7 +54,7 @@ export async function activate(context: ExtensionContext) {
   commands.register();
 
   // init keybinding manager
-  VSCodeKeyBindingManager.getInstance().init();
+  KeyBindingManager.getInstance().init();
 
   // Register code actions
   /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
