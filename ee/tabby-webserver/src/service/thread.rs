@@ -257,7 +257,7 @@ impl ThreadService for ThreadServiceImpl {
                     }
 
                     Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCodeFileList(x)) => {
-                        db.update_thread_message_code_file_list_attachment(assistant_message_id, &x.file_list).await?;
+                        db.update_thread_message_code_file_list_attachment(assistant_message_id, &x.file_list, x.truncated).await?;
                     }
 
                     Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(x)) => {
