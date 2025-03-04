@@ -1,9 +1,11 @@
+import { useContext, useMemo, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import { ExtendedCombinedError } from '@/lib/types'
+import { isCodeSourceContext } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -14,22 +16,49 @@ import {
 } from '@/components/ui/form'
 import { IconArrowRight } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import { RepoSelect } from '@/components/textarea-search/repo-select'
+
+import { PageContext } from './page-context'
 
 export function NewPageForm({
   onSubmit
 }: {
-  onSubmit: (title: string) => Promise<ExtendedCombinedError | void>
+  onSubmit: (v: {
+    titlePrompt: string
+    codeSourceId: string | undefined
+  }) => Promise<ExtendedCombinedError | void>
 }) {
+  const { fetchingContextInfo, contextInfo } = useContext(PageContext)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const formSchema = z.object({
-    title: z.string().trim()
+    titlePrompt: z.string().trim()
   })
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
-  const title = form.watch('title')
+  const titlePrompt = form.watch('titlePrompt')
+
+  const [selectedRepoId, setSelectedRepoId] = useState<string | undefined>()
+  const repos = useMemo(() => {
+    return contextInfo?.sources.filter(x => isCodeSourceContext(x.sourceKind))
+  }, [contextInfo?.sources])
+
+  const focusInput = () => {
+    inputRef.current?.focus()
+  }
+
+  const handleSelectRepo = (id: string | undefined) => {
+    setSelectedRepoId(id)
+    setTimeout(() => {
+      focusInput()
+    }, 10)
+  }
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    const error = await onSubmit(values.title.trim())
+    const error = await onSubmit({
+      titlePrompt: values.titlePrompt.trim(),
+      codeSourceId: selectedRepoId
+    })
 
     if (error) {
       makeFormErrorHandler(form)(error)
@@ -42,15 +71,19 @@ export function NewPageForm({
         <div className="flex w-full items-center gap-2">
           <FormField
             control={form.control}
-            name="title"
-            render={({ field }) => (
+            name="titlePrompt"
+            render={({ field: { ref, ...rest } }) => (
               <FormItem className="flex-1">
                 <FormControl>
                   <Input
                     autoFocus
                     className="h-auto w-full border-none text-3xl font-semibold shadow-none outline-none focus-visible:ring-0"
                     placeholder="What is your page about?"
-                    {...field}
+                    ref={e => {
+                      ref(e)
+                      inputRef.current = e
+                    }}
+                    {...rest}
                   />
                 </FormControl>
                 <FormMessage />
@@ -60,10 +93,20 @@ export function NewPageForm({
           <Button
             className="h-auto w-auto px-2"
             type="submit"
-            disabled={!title}
+            disabled={!titlePrompt}
           >
             <IconArrowRight />
           </Button>
+        </div>
+        <div className="mt-4 pl-3" onClick={e => focusInput()}>
+          <RepoSelect
+            repos={repos}
+            isInitializing={fetchingContextInfo}
+            value={selectedRepoId}
+            onChange={handleSelectRepo}
+            placeholder="Select repository"
+            showChevron
+          />
         </div>
         <div className="my-2">
           <FormMessage />
