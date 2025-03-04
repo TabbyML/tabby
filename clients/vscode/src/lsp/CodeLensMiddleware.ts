@@ -13,7 +13,7 @@ import { CodeLensMiddleware as VscodeLspCodeLensMiddleware, ProvideCodeLensesSig
 import { CodeLens as TabbyCodeLens } from "tabby-agent";
 import { findTextEditor } from "./vscodeWindowUtils";
 import { isBrowser } from "../env";
-import { formatShortcut, getPackageCommandBinding, KeyBindingManager } from "../keybindings";
+import { formatShortcut, KeyBindingManager } from "../keybindings";
 
 type CodeLens = VscodeCodeLens & TabbyCodeLens;
 
@@ -166,7 +166,7 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     } else {
       return;
     }
-    const binding = KeyBindingManager.getInstance().getCommandBinding(commandId) || getPackageCommandBinding(commandId);
+    const binding = KeyBindingManager.getInstance().getKeybinding(commandId);
 
     const formattedShortcut = binding ? formatShortcut(binding) : "";
     const shortcutText = isBrowser ? "" : formattedShortcut ? ` (${formattedShortcut})` : "";

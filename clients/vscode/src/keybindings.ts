@@ -105,12 +105,22 @@ export class KeyBindingManager {
    * Retrieves the keybinding for a specified command from the cached keybindings.
    * Returns the key if found and not disabled; otherwise returns null.
    */
-  getCommandBinding(command: string): string | null {
+  getKeybinding(command: string): string | null {
     if (!this.keybindings) {
       return null;
     }
-    const binding = this.keybindings.find((b) => b.command === command && !b.command.startsWith("-"));
-    return binding?.key || null;
+
+    const disabledBinding = this.keybindings.find((b) => b.command === `-${command}`);
+    if (disabledBinding) {
+      return null;
+    }
+
+    const customBinding = this.keybindings.find((b) => b.command === command);
+    if (customBinding && customBinding.key) {
+      return customBinding.key;
+    }
+
+    return getPackageCommandBinding(command);
   }
 }
 
