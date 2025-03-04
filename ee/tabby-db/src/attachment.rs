@@ -14,7 +14,7 @@ pub struct AttachmentCodeFileList {
     pub file_list: Vec<String>,
 
     #[serde(default)]
-    pub truncated: bool
+    pub truncated: bool,
 }
 
 #[derive(Serialize, Deserialize)]
