@@ -50,16 +50,16 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        uses: mozilla-actions/sccache-action@v0.0.7
         with:
-          version: "v0.4.0"
+          version: "v0.10.0"
 
       - name: Cargo registry cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-
             cargo-${{ runner.os }}-
           path: |
             ~/.cargo/registry
@@ -97,16 +97,16 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        uses: mozilla-actions/sccache-action@v0.0.7
         with:
-          version: "v0.4.0"
+          version: "v0.10.0"
 
       - name: Cargo registry cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-
             cargo-${{ runner.os }}-
           path: |
             ~/.cargo/registry
