@@ -109,12 +109,9 @@ pub fn transform_line_items(content: &str) -> Vec<String> {
 
 /// Trims leading and trailing bullet-like characters or digits from the provided string and returns the trimmed result.
 fn trim_bullet(s: &str) -> &str {
-    let s = s.trim();
-    if s.starts_with('-') || s.starts_with('+') || s.starts_with('*') {
-        return s.trim_matches(&['-', '+', '*', ' '][..]);
-    }
+    let s = s.trim().trim_matches(&['-', '+', '*', ' ']).trim();
 
-    // Check for numbered list
+    // Check for numbered list, like "1. Hello", "12. Hello"
     if let Some(pos) = s.find(". ") {
         let prefix = &s[..pos];
         if prefix.chars().all(|c| c.is_numeric()) {
@@ -128,7 +125,7 @@ fn trim_bullet(s: &str) -> &str {
 pub fn trim_title(title: &str) -> &str {
     // take first line.
     let title = title.lines().next().unwrap_or(title).trim();
-    trim_bullet(title.trim_matches(&['"', '#', ' ', '-', '*'][..]))
+    trim_bullet(title.trim_matches(&['"', '#'][..]))
 }
 
 /// Checks if the `check` string is contained within `content` in a case-insensitive manner.
