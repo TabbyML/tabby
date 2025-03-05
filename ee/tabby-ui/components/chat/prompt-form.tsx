@@ -345,13 +345,15 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         </div>
         <div className="flex items-center justify-between">
           <div className="-ml-1.5 flex items-center gap-2">
-            <Button
-              variant="ghost"
-              className="h-auto shrink-0 gap-2 p-1.5 text-foreground/90"
-              onClick={e => onInsertMention('@')}
-            >
-              <IconAtSign />
-            </Button>
+            {!!listFileInWorkspace && (
+              <Button
+                variant="ghost"
+                className="h-auto shrink-0 gap-2 p-1.5 text-foreground/90"
+                onClick={e => onInsertMention('@')}
+              >
+                <IconAtSign />
+              </Button>
+            )}
             <ModelSelect
               models={models}
               value={selectedModel}
