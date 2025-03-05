@@ -63,15 +63,15 @@ interface ReadingCodeStepperProps {
   clientCodeContexts: RelevantCodeContext[]
   webResources?: Maybe<AttachmentDocItem[]> | undefined
   commitResources?:
-    | Maybe<
-        Array<
-          Extract<
-            AttachmentDocItem,
-            { __typename: 'MessageAttachmentCommitDoc' }
-          >
-        >
+  | Maybe<
+    Array<
+      Extract<
+        AttachmentDocItem,
+        { __typename: 'MessageAttachmentCommitDoc' }
       >
-    | undefined
+    >
+  >
+  | undefined
   docQueryResources: Omit<ContextSource, 'id'>[] | undefined
   onContextClick?: (
     context: RelevantCodeContext,
@@ -185,7 +185,6 @@ export function ReadingCodeStepper({
                         <IconListTree className="h-3 w-3" />
                         <span>
                           {codeFileList.fileList.length} items
-                          {!!codeFileList?.truncated && ', more available'}
                         </span>
                       </div>
                     </SheetTrigger>
@@ -199,9 +198,9 @@ export function ReadingCodeStepper({
                       <pre className="flex-1 overflow-auto py-3">
                         {codeFileList.fileList.join('\n')}
                       </pre>
-                      <SheetFooter className="!justify-start border-t py-3 font-medium">
-                        There are more items available, but truncated.
-                      </SheetFooter>
+                      {codeFileList.truncated && <SheetFooter className="!justify-start border-t py-3 font-medium">
+                        File list truncated. (Maximum number of items has been reached)
+                      </SheetFooter>}
                     </SheetContent>
                   </Sheet>
                 ) : null}
