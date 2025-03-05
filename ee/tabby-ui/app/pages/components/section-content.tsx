@@ -130,7 +130,7 @@ export function SectionContent({
                   <>
                     <Button
                       size="sm"
-                      variant="hover-destructive"
+                      variant="ghost"
                       className="h-auto gap-0.5 px-2 py-1 font-normal"
                       disabled={isLoading}
                       onClick={() => {

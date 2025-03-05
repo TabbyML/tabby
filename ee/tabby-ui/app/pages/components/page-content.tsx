@@ -41,7 +41,7 @@ export function PageContent({ page }: Props) {
         <div className="mt-3">
           <Button
             size="sm"
-            variant="hover-destructive"
+            variant="ghost"
             className="h-auto gap-0.5 px-2 py-1 font-normal"
             disabled={isLoading}
             onClick={() => {
