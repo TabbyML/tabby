@@ -109,7 +109,7 @@ pub fn transform_line_items(content: &str) -> Vec<String> {
 
 /// Trims leading and trailing bullet-like characters or digits from the provided string and returns the trimmed result.
 fn trim_bullet(s: &str) -> &str {
-    let s = s.trim().trim_matches(&['-', '+', '*', ' ']).trim();
+    let s = s.trim().trim_matches(['-', '+', '*', ' ']).trim();
 
     // Check for numbered list, like "1. Hello", "12. Hello"
     if let Some(pos) = s.find(". ") {
