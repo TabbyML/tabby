@@ -337,10 +337,8 @@ mod tests {
     use juniper::ID;
     use tabby_common::{
         api::{
-            code::{
-                CodeSearch, CodeSearchDocument, CodeSearchHit, CodeSearchParams, CodeSearchScores,
-            },
-            structured_doc::{DocSearch, DocSearchDocument},
+            code::{CodeSearch, CodeSearchParams},
+            structured_doc::DocSearch,
         },
         config::AnswerConfig,
     };
@@ -349,7 +347,7 @@ mod tests {
     use tabby_schema::{
         context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
         repository::{Repository, RepositoryKind},
-        thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment},
+        thread::{CodeQueryInput, MessageAttachment},
         web_documents::PresetWebDocument,
         AsID,
     };
@@ -400,20 +398,6 @@ mod tests {
         }
     }
 
-    pub fn make_context_info_helper() -> ContextInfoHelper {
-        ContextInfoHelper::new(&ContextInfo {
-            sources: vec![ContextSourceValue::Repository(Repository {
-                id: ID::from(TEST_SOURCE_ID.to_owned()),
-                source_id: TEST_SOURCE_ID.to_owned(),
-                name: "tabby".to_owned(),
-                kind: RepositoryKind::Github,
-                dir: PathBuf::from("tabby"),
-                git_url: TEST_GIT_URL.to_owned(),
-                refs: vec![],
-            })],
-        })
-    }
-
     pub fn make_message(
         id: i32,
         content: &str,
@@ -429,15 +413,6 @@ mod tests {
             attachment: attachment.unwrap_or_default(),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
-        }
-    }
-
-    fn get_title(doc: &DocSearchDocument) -> &str {
-        match doc {
-            DocSearchDocument::Web(web_doc) => &web_doc.title,
-            DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
-            DocSearchDocument::Pull(pull_doc) => &pull_doc.title,
-            DocSearchDocument::Commit(commit_doc) => &commit_doc.message,
         }
     }
 
@@ -552,91 +527,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_collect_relevant_code() {
-        // setup minimal test repository
-        let test_repo = Repository {
-            id: ID::from("1".to_owned()),
-            source_id: TEST_SOURCE_ID.to_owned(),
-            name: "test-repo".to_string(),
-            kind: RepositoryKind::Git,
-            dir: PathBuf::from("test-repo"),
-            git_url: TEST_GIT_URL.to_owned(),
-            refs: vec![],
-        };
-
-        let context_info = ContextInfo {
-            sources: vec![ContextSourceValue::Repository(test_repo)],
-        };
-
-        let test_repo = Repository {
-            id: ID::from("1".to_owned()),
-            source_id: TEST_SOURCE_ID.to_owned(),
-            name: "test-repo".to_string(),
-            kind: RepositoryKind::Git,
-            dir: PathBuf::from("test-repo"),
-            git_url: TEST_GIT_URL.to_owned(),
-            refs: vec![],
-        };
-
-        let context_info_helper = ContextInfoHelper::new(&context_info);
-
-        // Setup services
-        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
-        let chat = Arc::new(FakeChatCompletionStream {
-            return_error: false,
-        });
-        let code = Arc::new(FakeCodeSearch);
-        let doc = Arc::new(FakeDocSearch);
-        let context = Arc::new(FakeContextService);
-        let config = make_answer_config();
-        let db = DbConn::new_in_memory().await.unwrap();
-        let repo_service = make_repository_service(db.clone()).await.unwrap();
-
-        let retrieval = retrieval::create(code.clone(), doc.clone(), serper, repo);
-        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo_service);
-
-        // Test Case 1: Basic code collection
-        let input = make_code_query_input(Some(&test_repo.source_id), Some(&test_repo.git_url));
-        let code_hits = service
-            .collect_relevant_code(
-                &test_repo,
-                &context_info_helper,
-                &input,
-                &make_code_search_params(),
-                None,
-            )
-            .await;
-        assert!(!code_hits.is_empty(), "Should find code hits");
-        assert!(code_hits[0].scores.rrf > 0.0);
-
-        // Test Case 2: With params override
-        let override_params = CodeSearchParamsOverrideInput {
-            min_bm25_score: Some(0.1),
-            min_embedding_score: Some(0.1),
-            min_rrf_score: Some(0.1),
-            num_to_return: Some(10),
-            num_to_score: Some(20),
-        };
-        let code_hits_override = service
-            .collect_relevant_code(
-                &test_repo,
-                &context_info_helper,
-                &input,
-                &make_code_search_params(),
-                Some(&override_params),
-            )
-            .await;
-        assert!(
-            code_hits_override.len() >= code_hits.len(),
-            "Override params should return more hits"
-        );
-        assert!(
-            code_hits_override.iter().all(|hit| hit.scores.rrf >= 0.1),
-            "All hits should meet minimum score"
-        );
-    }
-
-    #[tokio::test]
     async fn test_generate_relevant_questions() {
         let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
@@ -650,8 +540,13 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
 
-        let retrieval = retrieval::create(code.clone(), doc.clone(), serper, repo);
-        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo_service);
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo.clone(),
+        ));
+        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo);
 
         let attachment = MessageAttachment {
             doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
@@ -705,8 +600,13 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
 
-        let retrieval = retrieval::create(code.clone(), doc.clone(), serper, repo);
-        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo_service);
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo.clone(),
+        ));
+        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo);
 
         let attachment = MessageAttachment {
             doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
@@ -742,79 +642,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_collect_relevant_docs() {
-        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
-        let chat = Arc::new(FakeChatCompletionStream {
-            return_error: false,
-        });
-        let code = Arc::new(FakeCodeSearch);
-        let doc = Arc::new(FakeDocSearch);
-        let context = Arc::new(FakeContextService);
-        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
-        let config = make_answer_config();
-        let db = DbConn::new_in_memory().await.unwrap();
-        let repo = make_repository_service(db).await.unwrap();
-
-        let retrieval = retrieval::create(code.clone(), doc.clone(), serper, repo);
-        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo_service);
-
-        let context_info_helper = make_context_info_helper();
-
-        // Test Case 1: Test with valid source ID and public search enabled
-        let doc_query_1 = DocQueryInput {
-            content: "Test query[[source:source-1]]".to_string(),
-            source_ids: Some(vec!["source-1".to_string()]),
-            search_public: true,
-        };
-
-        let hits_1 = service
-            .collect_relevant_docs(&context_info_helper, &doc_query_1)
-            .await;
-
-        assert_eq!(hits_1.len(), 10);
-        assert!(hits_1.iter().any(|hit| get_title(&hit.doc) == "Document 1"));
-
-        // Test Case 2: Test with invalid source ID
-        let doc_query_2 = DocQueryInput {
-            content: "Test query".to_string(),
-            source_ids: Some(vec!["invalid-source".to_string()]),
-            search_public: false,
-        };
-
-        let hits_2 = service
-            .collect_relevant_docs(&context_info_helper, &doc_query_2)
-            .await;
-
-        assert_eq!(hits_2.len(), 0);
-
-        // Test Case 3: Test with no source IDs but public search
-        let doc_query_3 = DocQueryInput {
-            content: "Test query".to_string(),
-            source_ids: None,
-            search_public: true,
-        };
-
-        let hits_3 = service
-            .collect_relevant_docs(&context_info_helper, &doc_query_3)
-            .await;
-
-        assert!(!hits_3.is_empty());
-
-        // Test Case 4: Test with empty source IDs and no public search
-        let doc_query_4 = DocQueryInput {
-            content: "Test query".to_string(),
-            source_ids: Some(vec![]),
-            search_public: false,
-        };
-
-        let hits_4 = service
-            .collect_relevant_docs(&context_info_helper, &doc_query_4)
-            .await;
-
-        assert_eq!(hits_4.len(), 0);
-    }
-
-    #[tokio::test]
     async fn test_answer() {
         use std::sync::Arc;
 
@@ -837,14 +664,14 @@ mod tests {
         };
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
-        let retrieval = retrieval::create(code.clone(), doc.clone(), serper, repo);
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo.clone(),
+        ));
         let service = Arc::new(AnswerService::new(
-            &config,
-            auth,
-            chat,
-            retrieval,
-            context,
-            repo_service,
+            &config, auth, chat, retrieval, context, repo,
         ));
 
         let db = DbConn::new_in_memory().await.unwrap();
@@ -941,7 +768,12 @@ mod tests {
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
 
-        let retrieval = retrieval::create(code.clone(), doc.clone(), serper, repo);
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo_service.clone(),
+        ));
         let service = AnswerService::new(&config, auth, chat, retrieval, context, repo_service);
 
         // Test repository lookup
@@ -956,68 +788,5 @@ mod tests {
         assert_eq!(found_repo.source_id, source_id, "Source ID should match");
         assert_eq!(found_repo.git_url, TEST_GIT_URL, "Git URL should match");
         assert_eq!(found_repo.kind, RepositoryKind::Git, "Kind should be Git");
-    }
-
-    #[tokio::test]
-    async fn test_merge_code_snippets() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let repo_service = make_repository_service(db.clone()).await.unwrap();
-
-        let git_url = "https://github.com/test/repo.git".to_string();
-        let _id = repo_service
-            .git()
-            .create("repo".to_string(), git_url.clone())
-            .await
-            .unwrap();
-
-        let policy = make_policy(db.clone()).await;
-        let repo = repo_service
-            .repository_list(Some(&policy))
-            .await
-            .unwrap()
-            .pop();
-
-        let hits = vec![
-            CodeSearchHit {
-                doc: CodeSearchDocument {
-                    file_id: "file1".to_string(),
-                    chunk_id: "chunk1".to_string(),
-                    body: "fn test1() {}\nfn test2() {}".to_string(),
-                    filepath: "test.rs".to_string(),
-                    git_url: "https://github.com/test/repo.git".to_string(),
-                    commit: Some("commit".to_string()),
-                    language: "rust".to_string(),
-                    start_line: Some(1),
-                },
-                scores: CodeSearchScores {
-                    bm25: 0.5,
-                    embedding: 0.7,
-                    rrf: 0.3,
-                },
-            },
-            CodeSearchHit {
-                doc: CodeSearchDocument {
-                    file_id: "file1".to_string(),
-                    chunk_id: "chunk2".to_string(),
-                    body: "fn test3() {}\nfn test4() {}".to_string(),
-                    filepath: "test.rs".to_string(),
-                    git_url: "https://github.com/test/repo.git".to_string(),
-                    commit: Some("commit".to_string()),
-                    language: "rust".to_string(),
-                    start_line: Some(3),
-                },
-                scores: CodeSearchScores {
-                    bm25: 0.6,
-                    embedding: 0.8,
-                    rrf: 0.4,
-                },
-            },
-        ];
-
-        let result = merge_code_snippets(&repo.unwrap(), hits).await;
-
-        assert_eq!(result.len(), 2);
-        assert_eq!(result[0].doc.commit, Some("commit".to_string()));
-        assert_eq!(result[1].doc.commit, Some("commit".to_string()));
     }
 }

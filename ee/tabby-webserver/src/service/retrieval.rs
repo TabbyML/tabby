@@ -53,7 +53,7 @@ impl RetrievalService {
     ) -> Result<(Vec<String>, bool)> {
         match self
             .repository
-            .list_files(&policy, &repository.kind, &repository.id, rev, limit)
+            .list_files(policy, &repository.kind, &repository.id, rev, limit)
             .await
         {
             Ok((files, truncated)) => {
@@ -249,36 +249,21 @@ mod tests {
     use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
-    use tabby_common::{
-        api::{
-            code::{
-                CodeSearch, CodeSearchDocument, CodeSearchHit, CodeSearchParams, CodeSearchScores,
-            },
-            structured_doc::{DocSearch, DocSearchDocument},
-        },
-        config::AnswerConfig,
-        index::structured_doc::fields::commit,
+    use tabby_common::api::{
+        code::{CodeSearchDocument, CodeSearchHit, CodeSearchParams, CodeSearchScores},
+        structured_doc::{DocSearch, DocSearchDocument},
     };
     use tabby_db::DbConn;
-    use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
-        context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
+        context::{ContextInfo, ContextInfoHelper, ContextSourceValue},
         repository::{Repository, RepositoryKind},
-        thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment},
-        web_documents::PresetWebDocument,
-        AsID,
+        thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput},
     };
 
-    use super::{
-        testutils::{
-            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
-            FakeDocSearch,
-        },
-        *,
-    };
-    use crate::{
-        service::{access_policy::testutils::make_policy, auth},
-        utils::build_user_prompt,
+    use super::*;
+    use crate::service::{
+        access_policy::testutils::make_policy,
+        answer::testutils::{make_repository_service, FakeCodeSearch, FakeDocSearch},
     };
 
     const TEST_SOURCE_ID: &str = "source-1";
@@ -320,31 +305,13 @@ mod tests {
         })
     }
 
-    pub fn make_message(
-        id: i32,
-        content: &str,
-        role: tabby_schema::thread::Role,
-        attachment: Option<tabby_schema::thread::MessageAttachment>,
-    ) -> tabby_schema::thread::Message {
-        tabby_schema::thread::Message {
-            id: id.as_id(),
-            thread_id: ID::new("0"),
-            code_source_id: None,
-            content: content.to_owned(),
-            role,
-            attachment: attachment.unwrap_or_default(),
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }
-    }
-
     fn get_title(doc: &DocSearchDocument) -> &str {
         match doc {
             DocSearchDocument::Web(web_doc) => &web_doc.title,
             DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
             DocSearchDocument::Pull(pull_doc) => &pull_doc.title,
             DocSearchDocument::Commit(commit_doc) => {
-                &commit_doc.message.lines().next().unwrap_or(&commit_doc.sha)
+                commit_doc.message.lines().next().unwrap_or(&commit_doc.sha)
             }
         }
     }
@@ -379,13 +346,8 @@ mod tests {
         let context_info_helper = ContextInfoHelper::new(&context_info);
 
         // Setup services
-        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
-        let chat = Arc::new(FakeChatCompletionStream {
-            return_error: false,
-        });
         let code = Arc::new(FakeCodeSearch);
         let doc = Arc::new(FakeDocSearch);
-        let context = Arc::new(FakeContextService);
         let db = DbConn::new_in_memory().await.unwrap();
         let repo_service = make_repository_service(db.clone()).await.unwrap();
 
@@ -434,13 +396,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_collect_relevant_docs() {
-        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
-        let chat = Arc::new(FakeChatCompletionStream {
-            return_error: false,
-        });
         let code = Arc::new(FakeCodeSearch);
         let doc = Arc::new(FakeDocSearch);
-        let context = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
@@ -501,135 +458,6 @@ mod tests {
             .await;
 
         assert_eq!(hits_4.len(), 0);
-    }
-
-    #[tokio::test]
-    async fn test_answer() {
-        use std::sync::Arc;
-
-        use futures::StreamExt;
-        use tabby_schema::{policy::AccessPolicy, thread::ThreadRunOptionsInput};
-
-        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
-        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
-            return_error: false,
-        });
-        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
-        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
-        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
-        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
-
-        let db = DbConn::new_in_memory().await.unwrap();
-        let repo = make_repository_service(db).await.unwrap();
-        let service = Arc::new(RetrievalService::new(code, doc, serper, repo));
-
-        let db = DbConn::new_in_memory().await.unwrap();
-        let policy = AccessPolicy::new(db, &1.as_id(), false);
-        let messages = vec![
-            make_message(1, "What is Rust?", tabby_schema::thread::Role::User, None),
-            make_message(
-                2,
-                "Rust is a systems programming language.",
-                tabby_schema::thread::Role::Assistant,
-                None,
-            ),
-            make_message(
-                3,
-                "Can you explain more about Rust's memory safety?",
-                tabby_schema::thread::Role::User,
-                None,
-            ),
-        ];
-        let options = ThreadRunOptionsInput {
-            model_name: None,
-            code_query: Some(make_code_query_input(
-                Some(TEST_SOURCE_ID),
-                Some(TEST_GIT_URL),
-            )),
-            doc_query: Some(tabby_schema::thread::DocQueryInput {
-                content: "Rust memory safety".to_string(),
-                source_ids: Some(vec![TEST_SOURCE_ID.to_string()]),
-                search_public: true,
-            }),
-            generate_relevant_questions: true,
-            debug_options: None,
-        };
-        let user_attachment_input = None;
-
-        let result = service
-            .answer(&policy, &messages, &options, user_attachment_input)
-            .await
-            .unwrap();
-
-        let collected_results: Vec<_> = result.collect().await;
-
-        assert_eq!(
-            collected_results.len(),
-            4,
-            "Expected 4 items in the result stream"
-        );
-    }
-
-    #[tokio::test]
-    async fn test_find_repository() {
-        // Setup test database
-        let db = DbConn::new_in_memory().await.unwrap();
-        let repo_service = make_repository_service(db.clone()).await.unwrap();
-
-        // Create test repository via git service
-        let repo_id = repo_service
-            .git()
-            .create("test-repo".to_string(), TEST_GIT_URL.to_string())
-            .await
-            .unwrap();
-        let source_id = format!("git:{}", repo_id);
-
-        println!("Created test repository with ID: {}", source_id);
-
-        // Setup test context with actual repository
-        let test_repo = Repository {
-            id: repo_id,
-            source_id: source_id.clone(),
-            name: "test-repo".to_string(),
-            kind: RepositoryKind::Git,
-            dir: PathBuf::from("test-repo"),
-            git_url: TEST_GIT_URL.to_string(),
-            refs: vec![],
-        };
-
-        let context_info = ContextInfo {
-            sources: vec![ContextSourceValue::Repository(test_repo)],
-        };
-        let context_info_helper = ContextInfoHelper::new(&context_info);
-
-        let policy = make_policy(db.clone()).await;
-
-        let repos = repo_service.repository_list(Some(&policy)).await.unwrap();
-        assert!(!repos.is_empty(), "Repository should exist");
-
-        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
-        let chat = Arc::new(FakeChatCompletionStream {
-            return_error: false,
-        });
-        let code = Arc::new(FakeCodeSearch);
-        let doc = Arc::new(FakeDocSearch);
-        let context = Arc::new(FakeContextService);
-        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
-
-        let service = RetrievalService::new(code, doc, serper, repo_service);
-
-        // Test repository lookup
-        let input = make_code_query_input(Some(&source_id), Some(TEST_GIT_URL));
-
-        let result = service
-            .find_repository(&context_info_helper, &input, policy)
-            .await;
-
-        assert!(result.is_some(), "Should find repository");
-        let found_repo = result.unwrap();
-        assert_eq!(found_repo.source_id, source_id, "Source ID should match");
-        assert_eq!(found_repo.git_url, TEST_GIT_URL, "Git URL should match");
-        assert_eq!(found_repo.kind, RepositoryKind::Git, "Kind should be Git");
     }
 
     #[tokio::test]
