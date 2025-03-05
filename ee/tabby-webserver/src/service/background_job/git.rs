@@ -9,7 +9,7 @@ use tabby_inference::Embedding;
 use tabby_schema::{job::JobService, repository::GitRepositoryService};
 use tracing::debug;
 
-use super::{commit_index, helper::Job, BackgroundJobEvent};
+use super::{helper::Job, index_commits, BackgroundJobEvent};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SchedulerGitJob {
@@ -36,7 +36,7 @@ impl SchedulerGitJob {
                 return Err(err.into());
             }
 
-            if let Err(err) = commit_index::refresh(embedding, &repository).await {
+            if let Err(err) = index_commits::refresh(embedding, &repository).await {
                 logkit::warn!("Failed to refresh commit index: {}", err);
                 return Err(err);
             }
