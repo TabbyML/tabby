@@ -446,8 +446,6 @@ export function Search() {
       }
     }
 
-    // FIXME(jueliang) process FileList
-
     currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
 
     // update assiatant message status
