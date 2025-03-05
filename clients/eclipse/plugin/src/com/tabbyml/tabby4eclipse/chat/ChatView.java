@@ -78,6 +78,7 @@ public class ChatView extends ViewPart {
 	private RGB bgActiveColor;
 	private RGB fgColor;
 	private RGB borderColor;
+	private RGB inputColor;
 	private RGB inputBorderColor;
 	private RGB primaryColor;
 	private RGB primaryFgColor;
@@ -85,6 +86,7 @@ public class ChatView extends ViewPart {
 	private RGB popoverFgColor;
 	private RGB accentColor;
 	private RGB accentFgColor;
+	private RGB ringColor;
 	private String font;
 	private int fontSize = 13;
 
@@ -251,6 +253,7 @@ public class ChatView extends ViewPart {
 		bgActiveColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_BG_END");
 		fgColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_TEXT_COLOR");
 		borderColor = isDark ? new RGB(64, 64, 64) : new RGB(192, 192, 192);
+		inputColor = bgActiveColor;
 		inputBorderColor = borderColor;
 
 		primaryColor = colorRegistry.getRGB("org.eclipse.ui.workbench.LINK_COLOR");
@@ -264,6 +267,7 @@ public class ChatView extends ViewPart {
 				: new RGB((int) (bgActiveColor.red * 0.8), (int) (bgActiveColor.green * 0.8),
 						(int) (bgActiveColor.blue * 0.8));
 		accentFgColor = fgColor;
+		ringColor = primaryColor;
 
 		FontRegistry fontRegistry = currentTheme.getFontRegistry();
 		FontData[] fontData = fontRegistry.getFontData("org.eclipse.jface.textfont");
@@ -287,8 +291,14 @@ public class ChatView extends ViewPart {
 		if (borderColor != null) {
 			css += String.format("--border: %s;", StringUtils.toHsl(borderColor));
 		}
+		if (inputColor != null) {
+			css += String.format("--input: %s;", StringUtils.toHsl(inputColor));
+		}
 		if (inputBorderColor != null) {
-			css += String.format("--input: %s;", StringUtils.toHsl(inputBorderColor));
+			css += String.format("--input-border: %s;", StringUtils.toHsl(inputBorderColor));
+		}
+		if (ringColor != null) {
+			css += String.format("--ring: %s;", StringUtils.toHsl(ringColor));
 		}
 		if (primaryColor != null) {
 			css += String.format("--primary: %s;", StringUtils.toHsl(primaryColor));
