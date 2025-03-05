@@ -12,6 +12,8 @@ import {
 import { CodeLensMiddleware as VscodeLspCodeLensMiddleware, ProvideCodeLensesSignature } from "vscode-languageclient";
 import { CodeLens as TabbyCodeLens } from "tabby-agent";
 import { findTextEditor } from "./vscodeWindowUtils";
+import { isBrowser } from "../env";
+import { formatShortcut, KeyBindingManager } from "../keybindings";
 
 type CodeLens = VscodeCodeLens & TabbyCodeLens;
 
@@ -102,6 +104,8 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     if (!codeLens.data || codeLens.data.type !== "previewChanges") {
       return codeLens;
     }
+    this.appendShortcutHint(codeLens);
+
     const decorationRange = new Range(
       codeLens.range.start.line,
       codeLens.range.start.character,
@@ -147,6 +151,27 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
     }
     ranges.push(range);
     editor.setDecorations(decorationType, ranges);
+  }
+  private appendShortcutHint(codeLens: CodeLens) {
+    if (!codeLens.command) return;
+
+    const action = codeLens.command?.arguments?.[0]?.action;
+    if (!action) return;
+
+    let commandId: string;
+    if (action === "accept") {
+      commandId = "tabby.chat.edit.accept";
+    } else if (action === "discard") {
+      commandId = "tabby.chat.edit.discard";
+    } else {
+      return;
+    }
+    const binding = KeyBindingManager.getInstance().getKeybinding(commandId);
+
+    const formattedShortcut = binding ? formatShortcut(binding) : "";
+    const shortcutText = isBrowser ? "" : formattedShortcut ? ` (${formattedShortcut})` : "";
+
+    codeLens.command.title += shortcutText;
   }
 
   private removeDecorations(editor: TextEditor) {
