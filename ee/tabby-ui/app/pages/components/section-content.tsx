@@ -35,9 +35,9 @@ import { SiteFavicon } from '@/components/site-favicon'
 import { UserAvatar } from '@/components/user-avatar'
 
 import { SectionItem } from '../types'
+import { MessageContentForm } from './message-content-form'
 import { PageContext } from './page-context'
 import { SectionContentSkeleton } from './skeleton'
-import { MessageContentForm } from './message-content-form'
 
 export function SectionContent({
   className,

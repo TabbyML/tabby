@@ -5,6 +5,7 @@ import * as z from 'zod'
 
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import { ExtendedCombinedError } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -15,15 +16,19 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 
-export function MessageContentForm({
-  message,
-  onCancel,
-  onSubmit
-}: {
+interface Props {
   message: string
   onCancel: () => void
   onSubmit: (newMessage: string) => Promise<ExtendedCombinedError | void>
-}) {
+  inputClassName?: string
+}
+
+export function MessageContentForm({
+  message,
+  onCancel,
+  onSubmit,
+  inputClassName
+}: Props) {
   const formSchema = z.object({
     content: z.string().trim()
   })
@@ -52,12 +57,15 @@ export function MessageContentForm({
               <FormControl>
                 <Textarea
                   autoFocus
-                  autoCapitalize='off'
-                  autoComplete='off'
-                  autoCorrect='off'
+                  autoCapitalize="off"
+                  autoComplete="off"
+                  autoCorrect="off"
                   minRows={2}
                   maxRows={20}
-                  className="w-full rounded-lg border bg-background p-4 outline-ring"
+                  className={cn(
+                    'w-full rounded-lg border bg-background p-4 outline-ring',
+                    inputClassName
+                  )}
                   {...field}
                 />
               </FormControl>
@@ -65,7 +73,7 @@ export function MessageContentForm({
             </FormItem>
           )}
         />
-        <div className="my-4 flex items-center justify-between gap-2 px-2">
+        <div className="mt-1 mb-3 flex items-center justify-between gap-2 px-2">
           <div>
             <FormMessage />
           </div>

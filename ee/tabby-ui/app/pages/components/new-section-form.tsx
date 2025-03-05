@@ -68,9 +68,9 @@ export function NewSectionForm({
                     className="w-full rounded-lg border-2 bg-background p-4 pr-12 text-xl outline-ring"
                     placeholder="What is the section about?"
                     onKeyDown={onKeyDown}
-                    autoCapitalize='off'
-                    autoComplete='off'
-                    autoCorrect='off'
+                    autoCapitalize="off"
+                    autoComplete="off"
+                    autoCorrect="off"
                     {...field}
                   />
                 </FormControl>
