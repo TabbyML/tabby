@@ -6,6 +6,7 @@ import { isNil } from 'lodash-es'
 
 import {
   ContextSource,
+  MessageAttachmentCodeFileList,
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
@@ -77,7 +78,7 @@ interface ReadingCodeStepperProps {
     context: RelevantCodeContext,
     isInWorkspace?: boolean
   ) => void
-  codeFileList?: Maybe<{ fileList: string[]; truncated?: boolean }>
+  codeFileList?: Maybe<MessageAttachmentCodeFileList>
 }
 
 export function ReadingCodeStepper({
