@@ -270,6 +270,7 @@ impl From<AttachmentCodeFileList> for thread::MessageAttachmentCodeFileList {
     fn from(value: AttachmentCodeFileList) -> Self {
         Self {
             file_list: value.file_list,
+            truncated: value.truncated,
         }
     }
 }

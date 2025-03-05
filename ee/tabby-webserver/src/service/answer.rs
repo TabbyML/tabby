@@ -94,6 +94,7 @@ impl AnswerService {
                             Ok((file_list, truncated)) => {
                                 attachment.code_file_list = Some(MessageAttachmentCodeFileList {
                                     file_list: file_list.clone(),
+                                    truncated,
                                 });
                                 yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCodeFileList(ThreadAssistantMessageAttachmentsCodeFileList {
                                     file_list,
@@ -474,6 +475,7 @@ mod tests {
             }],
             code_file_list: Some(MessageAttachmentCodeFileList {
                 file_list: vec!["client.py".to_owned(), "server.py".to_owned()],
+                truncated: false,
             }),
         };
 

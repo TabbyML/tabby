@@ -81,6 +81,7 @@ pub struct MessageAttachment {
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentCodeFileList {
     pub file_list: Vec<String>,
+    pub truncated: bool,
 }
 
 #[derive(GraphQLObject, Clone)]
