@@ -73,7 +73,7 @@ export function MessageContentForm({
             </FormItem>
           )}
         />
-        <div className="mt-1 mb-3 flex items-center justify-between gap-2 px-2">
+        <div className="mb-3 mt-1 flex items-center justify-between gap-2 px-2">
           <div>
             <FormMessage />
           </div>

@@ -47,7 +47,7 @@ export function SectionTitle({
         />
       ) : (
         <div
-          className={cn('font-semibold flex items-baseline gap-2')}
+          className={cn('flex items-baseline gap-2 font-semibold')}
           id={section.id}
           {...props}
         >

@@ -38,7 +38,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
-import { MessageMarkdown } from '@/components/message-markdown'
 import NotFoundPage from '@/components/not-found-page'
 import { UserAvatar } from '@/components/user-avatar'
 
@@ -47,6 +46,7 @@ import { Header } from './header'
 import { Navbar } from './nav-bar'
 import { NewPageForm } from './new-page-form'
 import { NewSectionForm } from './new-section-form'
+import { PageContent } from './page-content'
 import { PageContext } from './page-context'
 import { SectionContent } from './section-content'
 import { SectionTitle } from './section-title'
@@ -816,10 +816,7 @@ export function Page() {
                         loading={!page || (isLoading && !page?.content)}
                         fallback={<SectionContentSkeleton />}
                       >
-                        <MessageMarkdown
-                          message={page?.content ?? ''}
-                          supportsOnApplyInEditorV2={false}
-                        />
+                        <PageContent page={page} />
                       </LoadingWrapper>
 
                       {/* sections */}
