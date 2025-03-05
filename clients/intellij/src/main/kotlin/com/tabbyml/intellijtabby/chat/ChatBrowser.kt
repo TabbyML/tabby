@@ -822,7 +822,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       s *= 100
       l *= 100
 
-      return String.format("%.0f, %.0f%%, %.0f%%", h, s, l)
+      return String.format("%.0f %.0f%% %.0f%%", h, s, l)
     }
 
     // FIXME: extract this to git provider
