@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useContext, useMemo, useState } from 'react'
+import { ReactNode, useContext, useMemo } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import { isNil } from 'lodash-es'
 
@@ -125,18 +125,6 @@ export function ReadingCodeStepper({
     }
     return result
   }, [readingCode?.fileList, readingCode?.snippet, commitResources, docQuery])
-
-  const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set())
-  const toggleCollapsedKey = (key: string) => {
-    const collapsed = collapsedKeys.has(key)
-    const newSet = new Set(collapsedKeys)
-    if (collapsed) {
-      newSet.delete(key)
-    } else {
-      newSet.add(key)
-    }
-    setCollapsedKeys(newSet)
-  }
 
   const lastItem = useMemo(() => {
     return steps.slice().pop()
