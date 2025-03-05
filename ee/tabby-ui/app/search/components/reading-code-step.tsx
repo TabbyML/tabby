@@ -35,6 +35,7 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger
@@ -76,7 +77,7 @@ interface ReadingCodeStepperProps {
     context: RelevantCodeContext,
     isInWorkspace?: boolean
   ) => void
-  codeFileList?: string[]
+  codeFileList?: Maybe<{ fileList: string[]; truncated?: boolean }>
 }
 
 export function ReadingCodeStepper({
@@ -98,8 +99,7 @@ export function ReadingCodeStepper({
     (clientCodeContexts?.length || 0) +
     serverCodeContexts.length +
     (webResources?.length || 0) +
-    (commitResources?.length || 0) +
-    (codeFileList?.length ? 1 : 0)
+    (commitResources?.length || 0)
   const targetRepo = useMemo(() => {
     if (!codeSourceId) return undefined
 
@@ -178,22 +178,30 @@ export function ReadingCodeStepper({
                 isLoading={isReadingFileList}
                 isLastItem={lastItem === 'fileList'}
               >
-                {codeFileList?.length ? (
+                {codeFileList?.fileList?.length ? (
                   <Sheet>
                     <SheetTrigger>
                       <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
                         <IconListTree className="h-3 w-3" />
-                        <span>{codeFileList.length} items</span>
+                        <span>
+                          {codeFileList.fileList.length} items
+                          {!!codeFileList?.truncated && ', more available'}
+                        </span>
                       </div>
                     </SheetTrigger>
                     <SheetContent className="flex w-[50vw] min-w-[300px] flex-col gap-0 px-4 pb-0">
                       <SheetHeader className="border-b">
-                        <SheetTitle>{codeFileList.length} items</SheetTitle>
+                        <SheetTitle>
+                          {codeFileList.fileList.length} items
+                        </SheetTitle>
                         <SheetClose />
                       </SheetHeader>
                       <pre className="flex-1 overflow-auto py-3">
-                        {codeFileList.join('\n')}
+                        {codeFileList.fileList.join('\n')}
                       </pre>
+                      <SheetFooter className="!justify-start border-t py-3 font-medium">
+                        There are more items available, but truncated.
+                      </SheetFooter>
                     </SheetContent>
                   </Sheet>
                 ) : null}

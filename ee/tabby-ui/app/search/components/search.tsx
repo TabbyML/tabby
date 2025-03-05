@@ -433,13 +433,14 @@ export function Search() {
 
     if (
       !currentAssistantMessage.attachment?.codeFileList &&
-      answer?.attachmentsFileList?.length
+      answer?.attachmentsFileList?.codeFileList?.length
     ) {
       currentAssistantMessage.attachment = {
         clientCode: null,
         doc: currentAssistantMessage.attachment?.doc || null,
         codeFileList: {
-          fileList: answer.attachmentsFileList
+          fileList: answer.attachmentsFileList.codeFileList,
+          truncated: answer.attachmentsFileList.truncated
         },
         code: currentAssistantMessage.attachment?.code || null
       }

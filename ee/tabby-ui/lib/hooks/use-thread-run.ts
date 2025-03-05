@@ -44,6 +44,7 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       }
       ... on ThreadAssistantMessageAttachmentsCodeFileList {
         codeFileList: fileList
+        truncated
       }
       ... on ThreadAssistantMessageAttachmentsCode {
         hits {
@@ -148,6 +149,7 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       }
       ... on ThreadAssistantMessageAttachmentsCodeFileList {
         codeFileList: fileList
+        truncated
       }
       ... on ThreadAssistantMessageAttachmentsCode {
         hits {
@@ -251,7 +253,10 @@ export interface AnswerStream {
   relevantQuestions?: Array<string>
   attachmentsCode?: ThreadAssistantMessageAttachmentCodeHits
   attachmentsDoc?: ThreadAssistantMessageAttachmentDocHits
-  attachmentsFileList?: string[]
+  attachmentsFileList?: Extract<
+    CreateThreadRunSubscriptionResponse['createThreadRun'],
+    { __typename: 'ThreadAssistantMessageAttachmentsCodeFileList' }
+  >
   readingCode?: ThreadAssistantMessageReadingCode
   content: string
   isReadingCode: boolean
@@ -344,7 +349,7 @@ export function useThreadRun({
         break
       case 'ThreadAssistantMessageAttachmentsCodeFileList':
         x.isReadingFileList = false
-        x.attachmentsFileList = data.codeFileList
+        x.attachmentsFileList = data
         break
       case 'ThreadAssistantMessageAttachmentsCode':
         x.isReadingCode = false
