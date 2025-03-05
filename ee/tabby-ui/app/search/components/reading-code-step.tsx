@@ -63,15 +63,15 @@ interface ReadingCodeStepperProps {
   clientCodeContexts: RelevantCodeContext[]
   webResources?: Maybe<AttachmentDocItem[]> | undefined
   commitResources?:
-  | Maybe<
-    Array<
-      Extract<
-        AttachmentDocItem,
-        { __typename: 'MessageAttachmentCommitDoc' }
+    | Maybe<
+        Array<
+          Extract<
+            AttachmentDocItem,
+            { __typename: 'MessageAttachmentCommitDoc' }
+          >
+        >
       >
-    >
-  >
-  | undefined
+    | undefined
   docQueryResources: Omit<ContextSource, 'id'>[] | undefined
   onContextClick?: (
     context: RelevantCodeContext,
@@ -183,9 +183,7 @@ export function ReadingCodeStepper({
                     <SheetTrigger>
                       <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
                         <IconListTree className="h-3 w-3" />
-                        <span>
-                          {codeFileList.fileList.length} items
-                        </span>
+                        <span>{codeFileList.fileList.length} items</span>
                       </div>
                     </SheetTrigger>
                     <SheetContent className="flex w-[50vw] min-w-[300px] flex-col gap-0 px-4 pb-0">
@@ -198,9 +196,12 @@ export function ReadingCodeStepper({
                       <pre className="flex-1 overflow-auto py-3">
                         {codeFileList.fileList.join('\n')}
                       </pre>
-                      {codeFileList.truncated && <SheetFooter className="!justify-start border-t py-3 font-medium">
-                        File list truncated. (Maximum number of items has been reached)
-                      </SheetFooter>}
+                      {codeFileList.truncated && (
+                        <SheetFooter className="!justify-start border-t py-3 font-medium">
+                          File list truncated. (Maximum number of items has been
+                          reached)
+                        </SheetFooter>
+                      )}
                     </SheetContent>
                   </Sheet>
                 ) : null}
