@@ -507,6 +507,7 @@ export const listThreadMessages = graphql(/* GraphQL */ `
             }
             codeFileList {
               fileList
+              truncated
             }
           }
         }

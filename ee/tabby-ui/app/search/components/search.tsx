@@ -431,7 +431,20 @@ export function Search() {
       }
     }
 
-    // FIXME(jueliang) process FileList
+    if (
+      !currentAssistantMessage.attachment?.codeFileList &&
+      answer?.attachmentsFileList?.codeFileList?.length
+    ) {
+      currentAssistantMessage.attachment = {
+        clientCode: null,
+        doc: currentAssistantMessage.attachment?.doc || null,
+        codeFileList: {
+          fileList: answer.attachmentsFileList.codeFileList,
+          truncated: answer.attachmentsFileList.truncated
+        },
+        code: currentAssistantMessage.attachment?.code || null
+      }
+    }
 
     currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
 

@@ -344,6 +344,7 @@ export function AssistantMessageSection({
                 docQueryResources={docSources}
                 webResources={issuesAndPRs}
                 commitResources={commitDocs}
+                codeFileList={message.attachment?.codeFileList}
                 readingCode={{
                   fileList: showFileListStep,
                   snippet: showCodeSnippetsStep
