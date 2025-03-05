@@ -29,7 +29,7 @@ use tabby_schema::{
 use super::graphql_pagination_to_filter;
 use crate::service::utils::{
     convert_messages_to_chat_completion_request, convert_user_message_to_chat_completion_request,
-    prompt::{request_llm_stream, request_llm_with_message, transform_line_items},
+    prompt::{request_llm_stream, request_llm_with_message, transform_line_items, trim_title},
 };
 
 struct PageServiceImpl {
@@ -367,19 +367,13 @@ impl PageServiceImpl {
         .await?;
 
         let title = request_llm_with_message(self.chat.clone(), messages).await?;
-        let title = trim_title(title.as_ref());
+        let title = trim_title(title.as_str());
 
         self.db
             .update_page_title(page_id.as_rowid()?, title)
             .await?;
         Ok(title.to_owned())
     }
-}
-
-fn trim_title(title: &str) -> &str {
-    // take first line.
-    let title = title.lines().next().unwrap_or(title);
-    title.trim_matches(&['"', '#', ' ', '-', '*'][..]).trim()
 }
 
 async fn build_chat_messages(
@@ -447,7 +441,7 @@ pub async fn generate_page_sections(
     let titles = request_llm_with_message(chat.clone(), messages).await?;
     Ok(transform_line_items(&titles)
         .into_iter()
-        .map(|x| trim_title(&x).to_owned())
+        .map(|x| trim_title(x.as_str()).to_owned())
         .collect())
 }
 
