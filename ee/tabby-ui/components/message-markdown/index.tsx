@@ -48,7 +48,7 @@ import {
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
-import { IconFile } from '../ui/icons'
+import { IconFile, IconFileText } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 import { CodeElement } from './code'
 import { DocDetailView } from './doc-detail-view'
@@ -517,14 +517,24 @@ function RelevantDocumentBadge({
 }) {
   const link =
     relevantDocument.__typename === 'MessageAttachmentCommitDoc'
-      ? `${relevantDocument.gitUrl}/blob/${relevantDocument.sha}/${relevantDocument.changedFile}`
+      ? undefined
       : relevantDocument.link
+
   return (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger>
         <span
-          className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
-          onClick={() => window.open(link)}
+          className={cn(
+            'relative -top-2 mr-0.5 inline-block h-4 w-4 rounded-full bg-muted text-center text-xs font-medium',
+            {
+              'cursor-pointer': !!link
+            }
+          )}
+          onClick={() => {
+            if (link) {
+              window.open(link)
+            }
+          }}
         >
           {citationIndex}
         </span>
@@ -610,11 +620,14 @@ function RelevantCodeBadge({
           className="cursor-pointer space-y-2 hover:opacity-70"
           onClick={() => onCodeCitationClick?.(relevantCode)}
         >
-          <div className="truncate whitespace-nowrap font-medium">
-            <span>{fileName}</span>
-            {rangeText ? (
-              <span className="text-muted-foreground">:{rangeText}</span>
-            ) : null}
+          <div className="flex items-center gap-1 overflow-hidden font-medium">
+            <IconFileText className="shrink-0" />
+            <span className="flex-1 truncate">
+              <span>{fileName}</span>
+              {rangeText ? (
+                <span className="text-muted-foreground">:{rangeText}</span>
+              ) : null}
+            </span>
           </div>
           {!!path && (
             <div className="break-all text-xs text-muted-foreground">

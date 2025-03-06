@@ -229,22 +229,9 @@ export function AssistantMessageSection({
     (messageAttachmentClientCode?.length || 0) +
     (message.attachment?.code?.length || 0)
 
-  const issuesAndPRs = useMemo(() => {
+  const codebaseDocs = useMemo(() => {
     return messageAttachmentDocs?.filter(
-      x =>
-        x.__typename === 'MessageAttachmentIssueDoc' ||
-        x.__typename === 'MessageAttachmentPullDoc'
-    )
-  }, [messageAttachmentDocs])
-
-  const commitDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(
-      (
-        x
-      ): x is Extract<
-        AttachmentDocItem,
-        { __typename: 'MessageAttachmentCommitDoc' }
-      > => x.__typename === 'MessageAttachmentCommitDoc'
+      x => x.__typename !== 'MessageAttachmentWebDoc'
     )
   }, [messageAttachmentDocs])
 
@@ -342,8 +329,7 @@ export function AssistantMessageSection({
                 codeSourceId={message.codeSourceId}
                 docQuery
                 docQueryResources={docSources}
-                webResources={issuesAndPRs}
-                commitResources={commitDocs}
+                docs={codebaseDocs}
                 codeFileList={message.attachment?.codeFileList}
                 readingCode={{
                   fileList: showFileListStep,
