@@ -230,12 +230,12 @@ export function ReadingCodeStepper({
                   <div className="mb-3 mt-2 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {docs?.map((x, index) => {
-                        const link =
+                        const _key =
                           x.__typename === 'MessageAttachmentCommitDoc'
-                            ? `${x.gitUrl}/blob/${x.sha}/${x.changedFile}`
+                            ? x.sha
                             : x.link
                         return (
-                          <div key={`${link}_${index}`}>
+                          <div key={`${_key}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
                               <HoverCardTrigger>
                                 <CodebaseDocView doc={x} />
