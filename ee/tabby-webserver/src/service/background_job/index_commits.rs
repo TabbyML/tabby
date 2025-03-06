@@ -97,7 +97,10 @@ async fn indexing(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
 async fn garbage_collection(embedding: Arc<dyn Embedding>, source_id: &str) {
     let indexer = StructuredDocIndexer::new(embedding);
 
-    let count = match indexer.count_doc(source_id, STRUCTURED_DOC_KIND_COMMIT).await {
+    let count = match indexer
+        .count_doc(source_id, STRUCTURED_DOC_KIND_COMMIT)
+        .await
+    {
         Ok(count) => count,
         Err(err) => {
             logkit::warn!(

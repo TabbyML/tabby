@@ -280,7 +280,11 @@ impl Indexer {
             .collect())
     }
 
-    pub async fn count_doc_by_attribute(&self, source_id: &str, kvs: &Vec<(&str, &str)>) -> Result<usize> {
+    pub async fn count_doc_by_attribute(
+        &self,
+        source_id: &str,
+        kvs: &Vec<(&str, &str)>,
+    ) -> Result<usize> {
         let schema = IndexSchema::instance();
         let query = schema.doc_with_attribute_field(&self.corpus, source_id, kvs);
 

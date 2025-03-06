@@ -96,22 +96,20 @@ impl ThreadServiceImpl {
                     AttachmentDoc::Commit(commit) => commit.author_user_id.as_deref(),
                     _ => None,
                 };
-                let author = if let Some(id) = author_id {
+                
+                if let Some(id) = author_id {
                     auth.get_user(&juniper::ID::from(id.to_owned()))
                         .await
                         .ok()
                         .map(|x| x.into())
                 } else {
                     None
-                };
-                author
+                }
             } else {
                 None
             };
 
-            output.push(from_thread_message_attachment_document(
-                thread_doc, author
-            ));
+            output.push(from_thread_message_attachment_document(thread_doc, author));
         }
         output
     }

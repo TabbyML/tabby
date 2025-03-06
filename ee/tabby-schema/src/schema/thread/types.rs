@@ -1,4 +1,4 @@
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
@@ -9,8 +9,7 @@ use validator::Validate;
 
 use super::MessageAttachmentCodeInput;
 use crate::{
-    auth::UserSecured,
-    interface::{UserValue, UserValueEnum},
+    interface::UserValue,
     juniper::relay::NodeType,
     Context,
 };
@@ -205,10 +204,7 @@ pub struct MessageAttachmentCommitDoc {
 }
 
 impl MessageAttachmentDoc {
-    pub fn from_doc_search_document(
-        doc: DocSearchDocument,
-        author: Option<UserValue>,
-    ) -> Self {
+    pub fn from_doc_search_document(doc: DocSearchDocument, author: Option<UserValue>) -> Self {
         match doc {
             DocSearchDocument::Web(web) => MessageAttachmentDoc::Web(MessageAttachmentWebDoc {
                 title: web.title,

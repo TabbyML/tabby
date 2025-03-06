@@ -584,15 +584,10 @@ type MessageAttachmentCodeScores {
 }
 
 type MessageAttachmentCommitDoc {
-  gitUrl: String!
   sha: String!
   message: String!
   author: User
   authorAt: DateTime!
-  committer: User
-  commitAt: DateTime!
-  diff: String
-  changedFile: String
 }
 
 type MessageAttachmentIssueDoc {
