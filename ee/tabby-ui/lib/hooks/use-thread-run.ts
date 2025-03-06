@@ -95,7 +95,6 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
               merged
             }
             ... on MessageAttachmentCommitDoc {
-              gitUrl
               sha
               message
               author {
@@ -104,14 +103,6 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
                 name
               }
               authorAt
-              committer {
-                id
-                email
-                name
-              }
-              commitAt
-              diff
-              changedFile
             }
           }
           score
@@ -200,7 +191,6 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
               merged
             }
             ... on MessageAttachmentCommitDoc {
-              gitUrl
               sha
               message
               author {
@@ -209,14 +199,6 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
                 name
               }
               authorAt
-              committer {
-                id
-                email
-                name
-              }
-              commitAt
-              diff
-              changedFile
             }
           }
           score
