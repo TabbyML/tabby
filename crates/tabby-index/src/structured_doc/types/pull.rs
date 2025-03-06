@@ -22,7 +22,6 @@ pub struct PullDocument {
     /// For more details on the diff format, refer to:
     /// https://git-scm.com/docs/diff-format#_combined_diff_format
     ///
-    /// FIXME(zwpaper): ensure this.
     /// The diff is only stored if its size is less than or equal to 1MB
     pub diff: Option<String>,
     pub merged: bool,

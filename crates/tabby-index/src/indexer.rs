@@ -118,7 +118,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
 
             yield tokio::spawn(async move {
                 let mut failed_count = 0;
-                while let Some(_) = rx.recv().await {
+                while (rx.recv().await).is_some() {
                     failed_count += 1;
                 }
                 if failed_count > 0 {
@@ -250,7 +250,7 @@ impl Indexer {
         let query = schema.doc_with_attribute_field(&self.corpus, source_id, kvs);
         let docs = match self
             .searcher
-            .search(&query, &TopDocs::with_limit(std::u16::MAX as usize))
+            .search(&query, &TopDocs::with_limit(u16::MAX as usize))
         {
             Ok(docs) => docs,
             Err(e) => {
