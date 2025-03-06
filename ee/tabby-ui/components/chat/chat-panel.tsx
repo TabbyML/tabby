@@ -30,7 +30,6 @@ import {
   IconCheck,
   IconEye,
   IconEyeOff,
-  IconFile,
   IconFileText,
   IconRefresh,
   IconRemove,
@@ -284,9 +283,10 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
             id="chat-panel-container"
             className="rounded-md border bg-background px-4 pb-1.5 pt-3 outline-none transition-shadow duration-300 focus-within:ring-1 focus-within:!ring-ring hover:ring-1 hover:ring-ring/60 focus-visible:ring-offset-2"
           >
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex w-full flex-wrap gap-1.5">
               <RepoSelect
                 id="repo-select"
+                className="overflow-hidden"
                 value={selectedRepoId}
                 onChange={onSelectRepo}
                 repos={repos}
@@ -304,7 +304,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                     }
                   )}
                 >
-                  <IconFileText />
+                  <IconFileText className="shrink-0" />
                   <ContextLabel
                     context={activeSelection}
                     className="flex-1 truncate"
@@ -339,17 +339,18 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                       }}
                       exit={{ opacity: 0, scale: 0.9, y: -5 }}
                       layout
+                      className="overflow-hidden"
                     >
                       <Badge
                         variant="outline"
                         className={cn(
-                          'inline-flex h-7 cursor-pointer flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold'
+                          'inline-flex h-7 w-full cursor-pointer flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold'
                         )}
                         onClick={() => {
                           openInEditor(getFileLocationFromContext(item))
                         }}
                       >
-                        <IconFile className="shrink-0" />
+                        <IconFileText className="shrink-0" />
                         <ContextLabel context={item} />
                         <Button
                           size="icon"
