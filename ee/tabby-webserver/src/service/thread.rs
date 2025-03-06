@@ -96,7 +96,7 @@ impl ThreadServiceImpl {
                     AttachmentDoc::Commit(commit) => commit.author_user_id.as_deref(),
                     _ => None,
                 };
-                
+
                 if let Some(id) = author_id {
                     auth.get_user(&juniper::ID::from(id.to_owned()))
                         .await

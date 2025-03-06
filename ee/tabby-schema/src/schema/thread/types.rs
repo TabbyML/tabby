@@ -8,11 +8,7 @@ use tabby_common::api::{
 use validator::Validate;
 
 use super::MessageAttachmentCodeInput;
-use crate::{
-    interface::UserValue,
-    juniper::relay::NodeType,
-    Context,
-};
+use crate::{interface::UserValue, juniper::relay::NodeType, Context};
 
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
 pub enum Role {
