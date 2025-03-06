@@ -177,7 +177,7 @@ impl IndexSchema {
         &self,
         corpus: &str,
         source_id: &str,
-        kvs: &Vec<(&str, &str)>,
+        kvs: &[(&str, &str)],
     ) -> impl Query {
         let mut queries = vec![
             // Must match the corpus

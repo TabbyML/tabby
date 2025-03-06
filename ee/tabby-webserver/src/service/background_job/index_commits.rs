@@ -12,7 +12,7 @@ use tabby_schema::Result;
 
 const MAX_COMMIT_HISTORY_COUNT: usize = 100;
 
-fn to_commit_document<'a>(commit: &tabby_git::Commit) -> StructuredDocCommitFields {
+fn to_commit_document(commit: &tabby_git::Commit) -> StructuredDocCommitFields {
     StructuredDocCommitFields {
         sha: commit.id.clone(),
         message: commit.message.clone(),
@@ -116,7 +116,7 @@ async fn garbage_collection(embedding: Arc<dyn Embedding>, source_id: &str) {
             source_id,
             STRUCTURED_DOC_KIND_COMMIT,
             commit::AUTHOR_AT,
-            100,
+            MAX_COMMIT_HISTORY_COUNT,
         )
         .await
     {
