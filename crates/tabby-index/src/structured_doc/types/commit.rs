@@ -40,15 +40,10 @@ impl BuildStructuredDoc for CommitDocument {
         embedding: Arc<dyn Embedding>,
     ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         let s = stream! {
-                // FIXME(meng): improve commit message indexing format.
-                let rewritten_body = format!(r#"Commit Message:
-```
-{}
-```
-"#, self.message);
                 let embedding = embedding.clone();
+                let body = self.message.clone();
                 yield tokio::spawn(async move {
-                    match build_tokens(embedding.clone(), &rewritten_body).await {
+                    match build_tokens(embedding.clone(), &body).await {
                         Ok(tokens) => Ok((tokens, json!({}))),
                         Err(err) => Err(err),
                     }
