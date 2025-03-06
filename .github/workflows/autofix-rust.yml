@@ -41,9 +41,9 @@ jobs:
           components: rustfmt, clippy
 
       - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        uses: mozilla-actions/sccache-action@v0.0.7
         with:
-          version: "v0.4.0"
+          version: "v0.10.0"
 
       - name: Install cargo-machete
         uses: actions-rs/cargo@v1
@@ -52,11 +52,11 @@ jobs:
           args: --version 0.7.0 cargo-machete
 
       - name: Cargo registry cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-
             cargo-${{ runner.os }}-
           path: |
             ~/.cargo/registry
