@@ -486,7 +486,6 @@ export const listThreadMessages = graphql(/* GraphQL */ `
                 merged
               }
               ... on MessageAttachmentCommitDoc {
-                gitUrl
                 sha
                 message
                 author {
@@ -495,14 +494,6 @@ export const listThreadMessages = graphql(/* GraphQL */ `
                   name
                 }
                 authorAt
-                committer {
-                  id
-                  email
-                  name
-                }
-                commitAt
-                diff
-                changedFile
               }
             }
             codeFileList {
