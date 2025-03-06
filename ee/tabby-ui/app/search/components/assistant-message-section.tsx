@@ -150,9 +150,7 @@ export function AssistantMessageSection({
       answer.attachment?.doc
         ?.map((doc, idx) => {
           if (doc.__typename === 'MessageAttachmentCommitDoc') {
-            return `[${idx + 1}] ${doc.gitUrl}/blob/${doc.sha}/${
-              doc.changedFile
-            }`
+            return `[${idx + 1}] ${doc.sha}`
           } else {
             return `[${idx + 1}] ${doc.link}`
           }
@@ -488,9 +486,7 @@ function SourceCard({
   }
 
   const link =
-    source.__typename === 'MessageAttachmentCommitDoc'
-      ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
-      : source.link
+    source.__typename === 'MessageAttachmentCommitDoc' ? undefined : source.link
 
   return (
     <HoverCard openDelay={100} closeDelay={100}>
@@ -545,10 +541,9 @@ function SourceCardContent({
 
   const showAvatar = (isIssue || isPR) && !!author
 
-  const link = isCommit
-    ? `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
-    : source.link
-  const { hostname } = new URL(link)
+  const link = isCommit ? undefined : source.link
+
+  const hostname = link ? new URL(link).hostname : undefined
 
   const title = isCommit ? source.sha.slice(0, 7) : source.title
 
@@ -580,12 +575,14 @@ function SourceCardContent({
       </div>
       <div className="flex items-center text-xs text-muted-foreground">
         <div className="flex w-full flex-1 items-center justify-between gap-1">
-          <div className="flex items-center">
-            <SiteFavicon hostname={hostname} />
-            <p className="ml-1 truncate">
-              {hostname.replace('www.', '').split('/')[0]}
-            </p>
-          </div>
+          {!!hostname && (
+            <div className="flex items-center">
+              <SiteFavicon hostname={hostname} />
+              <p className="ml-1 truncate">
+                {hostname.replace('www.', '').split('/')[0]}
+              </p>
+            </div>
+          )}
           <div className="flex shrink-0 items-center gap-1">
             {isIssue && (
               <>

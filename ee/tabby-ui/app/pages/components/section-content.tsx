@@ -192,14 +192,7 @@ function SourceCard({
     return (
       <div className="flex items-start gap-2">
         {isEditMode && <Checkbox className="mt-2" />}
-        <div
-          className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60"
-          onClick={() =>
-            window.open(
-              `${source.gitUrl}/blob/${source.sha}/${source.changedFile}`
-            )
-          }
-        >
+        <div className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
           <CommitSourceCard source={source} />
         </div>
       </div>
@@ -311,7 +304,6 @@ function CommitSourceCard({ source }: { source: AttachmentDocItem }) {
     return null
   }
 
-  const hostname = source.gitUrl
   const author = source.author
   const showAvatar = !!author
 
@@ -340,16 +332,6 @@ function CommitSourceCard({ source }: { source: AttachmentDocItem }) {
             {normalizedText(getContent(source))}
           </p>
         )}
-      </div>
-      <div className="flex items-center text-xs text-muted-foreground">
-        <div className="flex w-full flex-1 items-center justify-between gap-1">
-          <div className="flex items-center">
-            <SiteFavicon hostname={hostname} />
-            <p className="ml-1 truncate">
-              {hostname.replace('www.', '').split('/')[0]}
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )
