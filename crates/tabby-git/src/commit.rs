@@ -14,9 +14,6 @@ pub struct Commit {
     pub author_name: String,
     pub author_email: String,
     pub author_at: DateTime<Utc>,
-    pub committer_name: String,
-    pub committer_email: String,
-    pub commit_at: DateTime<Utc>,
 
     pub diff: Vec<Diff>,
 }
@@ -29,7 +26,6 @@ pub struct Diff {
 
 fn commit_from_git2(repo: &git2::Repository, commit: &git2::Commit) -> Commit {
     let author = commit.author();
-    let committer = commit.committer();
 
     Commit {
         id: commit.id().to_string(),
@@ -40,13 +36,6 @@ fn commit_from_git2(repo: &git2::Repository, commit: &git2::Commit) -> Commit {
             .timestamp_opt(author.when().seconds(), 0)
             .single()
             .unwrap_or_default(),
-        committer_name: committer.name().unwrap_or("").to_string(),
-        committer_email: committer.email().unwrap_or("").to_string(),
-        commit_at: Utc
-            .timestamp_opt(committer.when().seconds(), 0)
-            .single()
-            .unwrap_or_default(),
-
         diff: get_diff_of_commit(repo, commit).unwrap_or_default(),
     }
 }
@@ -63,7 +52,6 @@ pub fn stream_commits(
         let tx_data = tx.clone();
         async move {
             // Keep all git operations inside spawn_blocking
-
             let result = tokio::task::spawn_blocking(move || {
                 let repo = match Repository::open(&repo_path) {
                     Ok(repo) => repo,

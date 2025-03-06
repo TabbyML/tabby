@@ -89,15 +89,12 @@ impl ThreadServiceImpl {
         let mut output = vec![];
         output.reserve(thread_docs.len());
         for thread_doc in thread_docs {
-            let (author, committer) = if let Some(auth) = self.auth.as_ref() {
-                let (author_id, committer_id) = match &thread_doc {
-                    AttachmentDoc::Issue(issue) => (issue.author_user_id.as_deref(), None),
-                    AttachmentDoc::Pull(pull) => (pull.author_user_id.as_deref(), None),
-                    AttachmentDoc::Commit(commit) => (
-                        commit.author_user_id.as_deref(),
-                        commit.committer_user_id.as_deref(),
-                    ),
-                    _ => (None, None),
+            let author = if let Some(auth) = self.auth.as_ref() {
+                let author_id = match &thread_doc {
+                    AttachmentDoc::Issue(issue) => issue.author_user_id.as_deref(),
+                    AttachmentDoc::Pull(pull) => pull.author_user_id.as_deref(),
+                    AttachmentDoc::Commit(commit) => commit.author_user_id.as_deref(),
+                    _ => None,
                 };
                 let author = if let Some(id) = author_id {
                     auth.get_user(&juniper::ID::from(id.to_owned()))
@@ -107,21 +104,13 @@ impl ThreadServiceImpl {
                 } else {
                     None
                 };
-                let committer = if let Some(id) = committer_id {
-                    auth.get_user(&juniper::ID::from(id.to_owned()))
-                        .await
-                        .ok()
-                        .map(|x| x.into())
-                } else {
-                    None
-                };
-                (author, committer)
+                author
             } else {
-                (None, None)
+                None
             };
 
             output.push(from_thread_message_attachment_document(
-                thread_doc, author, committer,
+                thread_doc, author
             ));
         }
         output

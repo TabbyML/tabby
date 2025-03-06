@@ -178,7 +178,7 @@ pub async fn get_github_pull_doc(
             author_email: email.clone(),
             body: pull.body.clone().unwrap_or_default(),
             merged: pull.merged_at.is_some(),
-            diff,
+            diff: Some(diff),
         }),
     })
 }

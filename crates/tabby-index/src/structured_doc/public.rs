@@ -8,11 +8,10 @@ use tabby_common::index::{corpus, structured_doc::fields as StructuredDocIndexFi
 use tabby_inference::Embedding;
 
 pub use super::types::{
-    commit::{CommitDiff as StructuredDocCommitDiff, CommitDocument as StructuredDocCommitFields},
+    commit::CommitDocument as StructuredDocCommitFields,
     issue::IssueDocument as StructuredDocIssueFields,
     pull::PullDocument as StructuredDocPullDocumentFields,
-    web::WebDocument as StructuredDocWebFields,
-    StructuredDoc, StructuredDocFields, KIND_COMMIT,
+    web::WebDocument as StructuredDocWebFields, StructuredDoc, StructuredDocFields, KIND_COMMIT,
 };
 use super::{create_structured_doc_builder, types::BuildStructuredDoc};
 use crate::{indexer::TantivyDocBuilder, Indexer};
@@ -97,31 +96,26 @@ impl StructuredDocIndexer {
         }
     }
 
-    pub async fn count_doc_by_attribute(
-        &self,
-        kind: &str,
-        field: &str,
-        value: &str,
-    ) -> Result<usize> {
-        let attributes = vec![(StructuredDocIndexFields::KIND, kind), (field, value)];
-        self.indexer.count_doc_by_attribute(&attributes).await
+    pub async fn count_doc(&self, source_id: &str, kind: &str) -> Result<usize> {
+        let attributes = vec![(StructuredDocIndexFields::KIND, kind)];
+        self.indexer
+            .count_doc_by_attribute(source_id, &attributes)
+            .await
     }
 
-    pub async fn get_newest_ids_by_attribute(
+    pub async fn list_latest_ids(
         &self,
+        source_id: &str,
         kind: &str,
-        field: &str,
-        value: &str,
-        count: usize,
+        datetime_field: &str,
         offset: usize,
-        order_by: &str,
     ) -> Result<Vec<String>> {
         self.indexer
-            .get_newest_ids_by_attribute(
-                &vec![(StructuredDocIndexFields::KIND, kind), (field, value)],
-                count,
+            .list_latest_ids(
+                source_id,
+                &vec![(StructuredDocIndexFields::KIND, kind)],
+                datetime_field,
                 offset,
-                order_by,
             )
             .await
     }

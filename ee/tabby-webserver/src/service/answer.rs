@@ -236,14 +236,11 @@ impl AnswerService {
         auth: Arc<dyn AuthenticationService>,
         doc: DocSearchDocument,
     ) -> MessageAttachmentDoc {
-        let (author, committer) = match &doc {
-            DocSearchDocument::Issue(issue) => (issue.author_email.as_deref(), None),
-            DocSearchDocument::Pull(pull) => (pull.author_email.as_deref(), None),
-            DocSearchDocument::Commit(commit) => (
-                Some(commit.author_email.as_str()),
-                Some(commit.committer_email.as_str()),
-            ),
-            _ => (None, None),
+        let author = match &doc {
+            DocSearchDocument::Issue(issue) => issue.author_email.as_deref(),
+            DocSearchDocument::Pull(pull) => pull.author_email.as_deref(),
+            DocSearchDocument::Commit(commit) => Some(commit.author_email.as_str()),
+            _ => None,
         };
         let user = if let Some(email) = author {
             auth.get_user_by_email(email).await.ok().map(|x| x.into())
@@ -251,13 +248,7 @@ impl AnswerService {
             None
         };
 
-        let committer = if let Some(email) = committer {
-            auth.get_user_by_email(email).await.ok().map(|x| x.into())
-        } else {
-            None
-        };
-
-        MessageAttachmentDoc::from_doc_search_document(doc, user, committer)
+        MessageAttachmentDoc::from_doc_search_document(doc, user)
     }
 
     async fn find_repository(
