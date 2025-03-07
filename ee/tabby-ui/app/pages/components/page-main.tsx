@@ -25,6 +25,7 @@ import { clearPendingThread, usePageStore } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { client, useMutation } from '@/lib/tabby/gql'
 import {
+  contextInfoQuery,
   listPages,
   listPageSections,
   listSecuredUsers
@@ -164,6 +165,9 @@ const PAGE_SIZE = 30
 
 export function Page() {
   const [{ data: meData }] = useMe()
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
+  })
   const { updateUrlComponents, pathname, router } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
@@ -441,13 +445,19 @@ export function Page() {
     return unsubscribe
   }
 
-  const createPage = async (title: string) => {
+  const createPage = async ({
+    titlePrompt,
+    codeSourceId
+  }: {
+    titlePrompt: string
+    codeSourceId?: string
+  }) => {
     const now = new Date().toISOString()
     const tempId = nanoid()
     const nextPage: PageItem = {
       id: tempId,
       authorId: '',
-      title,
+      title: titlePrompt,
       content: '',
       updatedAt: now,
       createdAt: now
@@ -461,7 +471,7 @@ export function Page() {
     const { unsubscribe } = client
       .subscription(createPageRunSubscription, {
         input: {
-          titlePrompt: title
+          titlePrompt
         }
       })
       .subscribe(res => {
@@ -750,6 +760,8 @@ export function Page() {
         isPageOwner,
         mode,
         setMode,
+        contextInfo: contextInfoData?.contextInfo,
+        fetchingContextInfo,
         pendingSectionIds,
         setPendingSectionIds,
         currentSectionId,
@@ -770,7 +782,7 @@ export function Page() {
             <ScrollArea className="h-full w-full" ref={contentContainerRef}>
               <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
                 {isNew && !page ? (
-                  <div className="col-span-4 mt-8 rounded-lg border py-2 pl-1 pr-3 ring-2 ring-transparent focus-within:ring-ring focus-visible:ring-ring">
+                  <div className="col-span-4 mt-8 rounded-xl border pl-1 pr-3 pt-2 ring-2 ring-transparent transition-colors focus-within:ring-ring focus-visible:ring-ring">
                     <NewPageForm onSubmit={createPage} />
                   </div>
                 ) : (
