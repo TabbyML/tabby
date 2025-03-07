@@ -76,11 +76,8 @@ impl WebCrawlerJob {
                 logkit::info!("Indexed {} documents from '{}'", num_docs, self.url);
                 return Ok(());
             }
-            Err(err) => {
-                logkit::info!(
-                    "No LLMS file found, continuing with normal indexing. Error: {:?}",
-                    err
-                );
+            Err(_) => {
+                logkit::info!("/llms.txt is not available");
             }
         }
 
