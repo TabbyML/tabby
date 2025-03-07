@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext } from 'react'
+import { useContext, useState } from 'react'
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
@@ -14,6 +14,7 @@ import {
   IconArrowDown,
   IconCheckCircled,
   IconCircleDot,
+  IconEdit,
   IconGitMerge,
   IconGitPullRequest,
   IconTrash
@@ -34,6 +35,7 @@ import { SiteFavicon } from '@/components/site-favicon'
 import { UserAvatar } from '@/components/user-avatar'
 
 import { SectionItem } from '../types'
+import { MessageContentForm } from './message-content-form'
 import { PageContext } from './page-context'
 import { SectionContentSkeleton } from './skeleton'
 
@@ -59,6 +61,7 @@ export function SectionContent({
     onMoveSectionPosition
   } = useContext(PageContext)
   const isPending = pendingSectionIds.has(section.id) && !section.content
+  const [showForm, setShowForm] = useState(false)
   // FIXME
   const sources: any[] = []
   const sourceLen = 0
@@ -71,6 +74,11 @@ export function SectionContent({
     onMoveSectionPosition(section.id, MoveSectionDirection.Down)
   }
 
+  const handleSubmitContentChange = async (message: string) => {
+    // todo submit change
+    setShowForm(false)
+  }
+
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
       <LoadingWrapper loading={isPending} fallback={<SectionContentSkeleton />}>
@@ -78,12 +86,20 @@ export function SectionContent({
           {isGenerating && !section.content && (
             <Skeleton className="mt-1 h-40 w-full" />
           )}
-          <MessageMarkdown
-            message={section.content}
-            canWrapLongLines={!isGenerating}
-            supportsOnApplyInEditorV2={false}
-            className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
-          />
+          {showForm ? (
+            <MessageContentForm
+              message={section.content}
+              onCancel={() => setShowForm(false)}
+              onSubmit={handleSubmitContentChange}
+            />
+          ) : (
+            <MessageMarkdown
+              message={section.content}
+              canWrapLongLines={!isGenerating}
+              supportsOnApplyInEditorV2={false}
+              className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
+            />
+          )}
           {!isGenerating && (
             <div className="mt-3 flex items-center gap-3 text-sm">
               {sourceLen > 0 && (
@@ -110,8 +126,20 @@ export function SectionContent({
                 </Sheet>
               )}
               <div className="flex items-center gap-x-3">
-                {isPageOwner && mode === 'edit' && !isLoading && (
+                {isPageOwner && mode === 'edit' && !isLoading && !showForm && (
                   <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-auto gap-0.5 px-2 py-1 font-normal"
+                      disabled={isLoading}
+                      onClick={() => {
+                        setShowForm(true)
+                      }}
+                    >
+                      <IconEdit />
+                      Edit
+                    </Button>
                     {enableMoveUp && (
                       <Button
                         size="sm"
