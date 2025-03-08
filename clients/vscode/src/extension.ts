@@ -75,6 +75,22 @@ export async function activate(context: ExtensionContext) {
     // findFiles preheat
     initFindFiles(context),
   ]);
+
+  async function canGetToken(): Promise<{ token: string | undefined }> {
+    const response = await window.showInformationMessage(
+      `Would you like to share your token with Tabby endpoint ${config.serverEndpoint}`,
+      "Yes",
+      "No",
+    );
+
+    if (response === "Yes") {
+      return { token: config.serverRecords.get(config.serverEndpoint)?.token };
+    }
+    return { token: undefined };
+  }
+  return {
+    canGetToken,
+  };
 }
 
 export async function deactivate() {
