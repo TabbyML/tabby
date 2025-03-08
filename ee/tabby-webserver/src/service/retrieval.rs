@@ -588,4 +588,66 @@ mod tests {
         assert_eq!(result[0].doc.commit, Some("commit".to_string()));
         assert_eq!(result[1].doc.commit, Some("commit".to_string()));
     }
+
+    #[tokio::test]
+    async fn test_find_repository() {
+        // Setup test database
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo_service = make_repository_service(db.clone()).await.unwrap();
+
+        // Create test repository via git service
+        let repo_id = repo_service
+            .git()
+            .create("test-repo".to_string(), TEST_GIT_URL.to_string())
+            .await
+            .unwrap();
+        let source_id = format!("git:{}", repo_id);
+
+        println!("Created test repository with ID: {}", source_id);
+
+        // Setup test context with actual repository
+        let test_repo = Repository {
+            id: repo_id,
+            source_id: source_id.clone(),
+            name: "test-repo".to_string(),
+            kind: RepositoryKind::Git,
+            dir: PathBuf::from("test-repo"),
+            git_url: TEST_GIT_URL.to_string(),
+            refs: vec![],
+        };
+
+        let context_info = ContextInfo {
+            sources: vec![ContextSourceValue::Repository(test_repo)],
+        };
+        let context_info_helper = ContextInfoHelper::new(&context_info);
+
+        let policy = make_policy(db.clone()).await;
+
+        let repos = repo_service.repository_list(Some(&policy)).await.unwrap();
+        assert!(!repos.is_empty(), "Repository should exist");
+
+        let code = Arc::new(FakeCodeSearch);
+        let doc = Arc::new(FakeDocSearch);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+
+        let retrieval = Arc::new(create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo_service.clone(),
+        ));
+
+        // Test repository lookup
+        let input = make_code_query_input(Some(&source_id), Some(TEST_GIT_URL));
+
+        let result = retrieval
+            .find_repository(&context_info_helper, &policy, &input)
+            .await;
+
+        assert!(result.is_some(), "Should find repository");
+        let found_repo = result.unwrap();
+        assert_eq!(found_repo.source_id, source_id, "Source ID should match");
+        assert_eq!(found_repo.git_url, TEST_GIT_URL, "Git URL should match");
+        assert_eq!(found_repo.kind, RepositoryKind::Git, "Kind should be Git");
+    }
 }
