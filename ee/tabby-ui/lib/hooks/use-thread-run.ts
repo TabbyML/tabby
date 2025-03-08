@@ -44,6 +44,7 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       }
       ... on ThreadAssistantMessageAttachmentsCodeFileList {
         codeFileList: fileList
+        truncated
       }
       ... on ThreadAssistantMessageAttachmentsCode {
         hits {
@@ -94,7 +95,6 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
               merged
             }
             ... on MessageAttachmentCommitDoc {
-              gitUrl
               sha
               message
               author {
@@ -103,14 +103,6 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
                 name
               }
               authorAt
-              committer {
-                id
-                email
-                name
-              }
-              commitAt
-              diff
-              changedFile
             }
           }
           score
@@ -148,6 +140,7 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       }
       ... on ThreadAssistantMessageAttachmentsCodeFileList {
         codeFileList: fileList
+        truncated
       }
       ... on ThreadAssistantMessageAttachmentsCode {
         hits {
@@ -198,7 +191,6 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
               merged
             }
             ... on MessageAttachmentCommitDoc {
-              gitUrl
               sha
               message
               author {
@@ -207,14 +199,6 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
                 name
               }
               authorAt
-              committer {
-                id
-                email
-                name
-              }
-              commitAt
-              diff
-              changedFile
             }
           }
           score
@@ -251,6 +235,10 @@ export interface AnswerStream {
   relevantQuestions?: Array<string>
   attachmentsCode?: ThreadAssistantMessageAttachmentCodeHits
   attachmentsDoc?: ThreadAssistantMessageAttachmentDocHits
+  attachmentsFileList?: Extract<
+    CreateThreadRunSubscriptionResponse['createThreadRun'],
+    { __typename: 'ThreadAssistantMessageAttachmentsCodeFileList' }
+  >
   readingCode?: ThreadAssistantMessageReadingCode
   content: string
   isReadingCode: boolean
@@ -343,6 +331,7 @@ export function useThreadRun({
         break
       case 'ThreadAssistantMessageAttachmentsCodeFileList':
         x.isReadingFileList = false
+        x.attachmentsFileList = data
         break
       case 'ThreadAssistantMessageAttachmentsCode':
         x.isReadingCode = false

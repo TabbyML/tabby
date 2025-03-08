@@ -180,9 +180,11 @@ impl DbConn {
         &self,
         message_id: i64,
         file_list: &[String],
+        truncated: bool,
     ) -> Result<()> {
         let code_file_list_attachment = Json(AttachmentCodeFileList {
             file_list: file_list.into(),
+            truncated,
         });
         query!(
             "UPDATE thread_messages SET attachment = JSON_SET(attachment, '$.code_file_list', JSON(?)), updated_at = DATETIME('now') WHERE id = ?",

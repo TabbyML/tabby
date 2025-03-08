@@ -574,6 +574,7 @@ type MessageAttachmentCode {
 
 type MessageAttachmentCodeFileList {
   fileList: [String!]!
+  truncated: Boolean!
 }
 
 type MessageAttachmentCodeScores {
@@ -583,15 +584,10 @@ type MessageAttachmentCodeScores {
 }
 
 type MessageAttachmentCommitDoc {
-  gitUrl: String!
   sha: String!
   message: String!
   author: User
   authorAt: DateTime!
-  committer: User
-  commitAt: DateTime!
-  diff: String
-  changedFile: String
 }
 
 type MessageAttachmentIssueDoc {
@@ -1004,6 +1000,7 @@ type ThreadAssistantMessageAttachmentsCode {
 
 type ThreadAssistantMessageAttachmentsCodeFileList {
   fileList: [String!]!
+  truncated: Boolean!
 }
 
 type ThreadAssistantMessageAttachmentsDoc {

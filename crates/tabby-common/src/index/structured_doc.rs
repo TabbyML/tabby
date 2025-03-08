@@ -26,16 +26,9 @@ pub mod fields {
 
     pub mod commit {
         // === Doc level fields ===
-        pub const GIT_URL: &str = "git_url";
         pub const SHA: &str = "sha";
         pub const MESSAGE: &str = "message";
         pub const AUTHOR_EMAIL: &str = "author_email";
         pub const AUTHOR_AT: &str = "author_at";
-        pub const COMMITTER_EMAIL: &str = "committer_email";
-        pub const COMMIT_AT: &str = "commit_at";
-
-        // === Chunk level fields ===
-        pub const CHUNK_FILEPATH: &str = "chunk_filepath";
-        pub const CHUNK_DIFF: &str = "chunk_diff";
     }
 }

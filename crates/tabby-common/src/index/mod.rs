@@ -173,10 +173,16 @@ impl IndexSchema {
     }
 
     /// Build a query the documents have specific attribute field and value.
-    pub fn doc_with_attribute_field(&self, corpus: &str, kvs: &Vec<(&str, &str)>) -> impl Query {
+    pub fn doc_with_attribute_field(
+        &self,
+        corpus: &str,
+        source_id: &str,
+        kvs: &[(&str, &str)],
+    ) -> impl Query {
         let mut queries = vec![
             // Must match the corpus
             (Occur::Must, self.corpus_query(corpus)),
+            (Occur::Must, Box::new(self.source_id_query(source_id))),
             // Exclude chunk documents
             (
                 Occur::MustNot,

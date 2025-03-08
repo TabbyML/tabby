@@ -89,40 +89,27 @@ impl ThreadServiceImpl {
         let mut output = vec![];
         output.reserve(thread_docs.len());
         for thread_doc in thread_docs {
-            let (author, committer) = if let Some(auth) = self.auth.as_ref() {
-                let (author_id, committer_id) = match &thread_doc {
-                    AttachmentDoc::Issue(issue) => (issue.author_user_id.as_deref(), None),
-                    AttachmentDoc::Pull(pull) => (pull.author_user_id.as_deref(), None),
-                    AttachmentDoc::Commit(commit) => (
-                        commit.author_user_id.as_deref(),
-                        commit.committer_user_id.as_deref(),
-                    ),
-                    _ => (None, None),
+            let author = if let Some(auth) = self.auth.as_ref() {
+                let author_id = match &thread_doc {
+                    AttachmentDoc::Issue(issue) => issue.author_user_id.as_deref(),
+                    AttachmentDoc::Pull(pull) => pull.author_user_id.as_deref(),
+                    AttachmentDoc::Commit(commit) => commit.author_user_id.as_deref(),
+                    _ => None,
                 };
-                let author = if let Some(id) = author_id {
+
+                if let Some(id) = author_id {
                     auth.get_user(&juniper::ID::from(id.to_owned()))
                         .await
                         .ok()
                         .map(|x| x.into())
                 } else {
                     None
-                };
-                let committer = if let Some(id) = committer_id {
-                    auth.get_user(&juniper::ID::from(id.to_owned()))
-                        .await
-                        .ok()
-                        .map(|x| x.into())
-                } else {
-                    None
-                };
-                (author, committer)
+                }
             } else {
-                (None, None)
+                None
             };
 
-            output.push(from_thread_message_attachment_document(
-                thread_doc, author, committer,
-            ));
+            output.push(from_thread_message_attachment_document(thread_doc, author));
         }
         output
     }
@@ -257,7 +244,7 @@ impl ThreadService for ThreadServiceImpl {
                     }
 
                     Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCodeFileList(x)) => {
-                        db.update_thread_message_code_file_list_attachment(assistant_message_id, &x.file_list).await?;
+                        db.update_thread_message_code_file_list_attachment(assistant_message_id, &x.file_list, x.truncated).await?;
                     }
 
                     Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(x)) => {
@@ -462,10 +449,14 @@ mod tests {
 
     use super::*;
     use crate::{
-        answer::testutils::{
-            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
-            FakeDocSearch,
+        answer::{
+            self,
+            testutils::{
+                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+                FakeContextService, FakeDocSearch,
+            },
         },
+        retrieval,
         service::auth,
     };
 
@@ -726,14 +717,18 @@ mod tests {
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
         let repo = make_repository_service(db.clone()).await.unwrap();
-        let answer_service = Arc::new(crate::answer::create(
-            &config,
-            auth.clone(),
-            chat.clone(),
+        let retrieval = Arc::new(retrieval::create(
             code.clone(),
             doc.clone(),
-            context.clone(),
             serper,
+            repo.clone(),
+        ));
+        let answer_service = Arc::new(answer::create(
+            &config,
+            auth,
+            chat,
+            retrieval,
+            context.clone(),
             repo,
         ));
         let service = create(db.clone(), Some(answer_service), None, context);

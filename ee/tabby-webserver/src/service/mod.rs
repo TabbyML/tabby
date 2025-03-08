@@ -14,6 +14,7 @@ mod notification;
 mod page;
 mod preset_web_documents_data;
 pub mod repository;
+pub mod retrieval;
 mod setting;
 mod thread;
 mod user_event;

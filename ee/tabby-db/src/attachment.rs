@@ -12,6 +12,9 @@ pub struct Attachment {
 #[derive(Serialize, Deserialize)]
 pub struct AttachmentCodeFileList {
     pub file_list: Vec<String>,
+
+    #[serde(default)]
+    pub truncated: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,16 +54,10 @@ pub struct AttachmentPullDoc {
 
 #[derive(Serialize, Deserialize)]
 pub struct AttachmentCommitDoc {
-    pub git_url: String,
     pub sha: String,
     pub message: String,
     pub author_user_id: Option<String>,
     pub author_at: DateTime<Utc>,
-    pub committer_user_id: Option<String>,
-    pub commit_at: DateTime<Utc>,
-
-    pub diff: Option<String>,
-    pub changed_file: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

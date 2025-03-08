@@ -129,13 +129,14 @@ pub async fn get_github_pull_doc(
         .map(|url| url.to_string())
         .unwrap_or_else(|| pull.url.clone());
 
-    // Fetch the diff only if the number of changed lines is fewer than 100,000,
-    // assuming 80 characters per line,
-    // and the size of the diff is less than 8MB.
+    // Fetch the diff only if the size of the diff is less than 1MB,
+    // assuming 80 characters per line at most, and 32 at average,
+    // so the number of changed lines is fewer than 32,000,
     //
-    // When there are more than 300 files, we must utilize the `List pull requests files` API to retrieve the diff.
-    let diff = if pull.additions.unwrap_or_default() + pull.deletions.unwrap_or_default()
-        < 100 * 1024
+    // When there are more than 300 files,
+    // we must utilize the `List pull requests files` API to retrieve the diff,
+    // or we will get a 406 status code.
+    let diff = if pull.additions.unwrap_or_default() + pull.deletions.unwrap_or_default() < 32000
         && pull.changed_files.unwrap_or_default() < 300
     {
         let (owner, repo) = full_name
@@ -143,13 +144,13 @@ pub async fn get_github_pull_doc(
             .ok_or_else(|| anyhow!("Invalid repository name"))?;
 
         match octocrab.pulls(owner, repo).get_diff(pull.number).await {
-            Ok(diff) => diff,
+            Ok(diff) => Some(diff),
             Err(e) => {
                 if let octocrab::Error::GitHub { source, .. } = &e {
                     // in most cases, GitHub API does not set the changed_files,
                     // so we need to handle the 406 status code here.
                     if source.status_code == 406 {
-                        String::new()
+                        None
                     } else {
                         return Err(anyhow!(
                             "Failed to fetch pull request diff for {}: {}",
@@ -167,7 +168,7 @@ pub async fn get_github_pull_doc(
             }
         }
     } else {
-        String::new()
+        None
     };
 
     Ok(StructuredDoc {

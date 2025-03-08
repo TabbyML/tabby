@@ -1,0 +1,25 @@
+name: GPT Translate
+
+on:
+  issue_comment:
+    types: [ created ]
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: write
+
+jobs:
+  gpt_translate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run GPT Translate
+        if: |
+          contains(github.event.comment.body, '/gpt-translate') || 
+          contains(github.event.comment.body, '/gt')
+        uses: 3ru/gpt-translate@master
+        with:
+          apikey: ${{ secrets.OPENAI_API_KEY }}

@@ -14,21 +14,10 @@ use super::{build_tokens, BuildStructuredDoc};
 
 #[derive(Debug)]
 pub struct CommitDocument {
-    pub git_url: String,
     pub sha: String,
     pub message: String,
     pub author_email: String,
     pub author_at: DateTime<Utc>,
-    pub committer_email: String,
-    pub commit_at: DateTime<Utc>,
-
-    pub diff: Vec<CommitDiff>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CommitDiff {
-    pub path: String,
-    pub content: String,
 }
 
 #[async_trait]
@@ -39,13 +28,10 @@ impl BuildStructuredDoc for CommitDocument {
 
     async fn build_attributes(&self) -> serde_json::Value {
         json!({
-            commit::GIT_URL: self.git_url,
             commit::SHA: self.sha,
             commit::MESSAGE: self.message,
             commit::AUTHOR_EMAIL: self.author_email,
             commit::AUTHOR_AT: self.author_at,
-            commit::COMMITTER_EMAIL: self.committer_email,
-            commit::COMMIT_AT: self.commit_at,
         })
     }
 
@@ -53,33 +39,15 @@ impl BuildStructuredDoc for CommitDocument {
         &self,
         embedding: Arc<dyn Embedding>,
     ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
-        let diffs = self.diff.clone();
-
         let s = stream! {
-            for diff in diffs.iter() {
-                let attributes = json!({
-                    commit::CHUNK_FILEPATH: diff.path,
-                    commit::CHUNK_DIFF: diff.content,
-                });
-
-                let rewritten_body = format!(r#"Commit Message:
-```
-{}
-```
-Changed file: {}
-Changed Content:
-```
-{}
-```
-"#, self.message, diff.path, diff.content);
                 let embedding = embedding.clone();
+                let body = self.message.clone();
                 yield tokio::spawn(async move {
-                    match build_tokens(embedding.clone(), &rewritten_body).await {
-                        Ok(tokens) => Ok((tokens, attributes)),
+                    match build_tokens(embedding.clone(), &body).await {
+                        Ok(tokens) => Ok((tokens, json!({}))),
                         Err(err) => Err(err),
                     }
                 });
-            }
         };
 
         Box::pin(s)

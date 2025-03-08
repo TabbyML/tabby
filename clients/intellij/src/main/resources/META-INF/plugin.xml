@@ -209,6 +209,21 @@
             <reference id="Tabby.OpenOnlineHelp"/>
         </group>
 
+        <group id="Tabby.ChatToolWindowToolbar">
+            <action id="Tabby.Chat.ShowNewChat"
+                    class="com.tabbyml.intellijtabby.actions.chat.ShowNewChat"
+                    text="New"
+                    icon="AllIcons.General.Add"
+                    description="Start a new chat.">
+            </action>
+            <action id="Tabby.Chat.ShowChatHistory"
+                    class="com.tabbyml.intellijtabby.actions.chat.ShowChatHistory"
+                    text="History"
+                    icon="AllIcons.Vcs.History"
+                    description="Show chat history.">
+            </action>
+        </group>
+
         <action id="Tabby.InlineCompletion.TabAccept"
                 class="com.tabbyml.intellijtabby.actions.inlineCompletion.TabAccept"
                 text="Accept Completion (Tab)"

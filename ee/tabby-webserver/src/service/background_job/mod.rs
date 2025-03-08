@@ -3,6 +3,7 @@ mod db;
 mod git;
 mod helper;
 mod hourly;
+mod index_commits;
 mod index_garbage_collection;
 mod license_check;
 mod third_party_integration;

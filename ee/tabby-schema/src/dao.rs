@@ -270,6 +270,7 @@ impl From<AttachmentCodeFileList> for thread::MessageAttachmentCodeFileList {
     fn from(value: AttachmentCodeFileList) -> Self {
         Self {
             file_list: value.file_list,
+            truncated: value.truncated,
         }
     }
 }
@@ -277,7 +278,6 @@ impl From<AttachmentCodeFileList> for thread::MessageAttachmentCodeFileList {
 pub fn from_thread_message_attachment_document(
     doc: AttachmentDoc,
     author: Option<UserValue>,
-    committer: Option<UserValue>,
 ) -> thread::MessageAttachmentDoc {
     match doc {
         AttachmentDoc::Web(web) => {
@@ -308,15 +308,10 @@ pub fn from_thread_message_attachment_document(
         }
         AttachmentDoc::Commit(commit) => {
             thread::MessageAttachmentDoc::Commit(thread::MessageAttachmentCommitDoc {
-                git_url: commit.git_url,
                 sha: commit.sha,
                 message: commit.message,
                 author,
                 author_at: commit.author_at,
-                committer,
-                commit_at: commit.commit_at,
-                diff: commit.diff,
-                changed_file: commit.changed_file,
             })
         }
     }
@@ -351,19 +346,12 @@ impl From<&thread::MessageAttachmentDoc> for AttachmentDoc {
             }),
             thread::MessageAttachmentDoc::Commit(val) => {
                 AttachmentDoc::Commit(AttachmentCommitDoc {
-                    git_url: val.git_url.clone(),
                     sha: val.sha.clone(),
                     message: val.message.clone(),
                     author_user_id: val.author.as_ref().map(|x| match x {
                         UserValue::UserSecured(user) => user.id.to_string(),
                     }),
                     author_at: val.author_at,
-                    committer_user_id: val.committer.as_ref().map(|x| match x {
-                        UserValue::UserSecured(user) => user.email.clone(),
-                    }),
-                    commit_at: val.commit_at,
-                    diff: val.diff.clone(),
-                    changed_file: val.changed_file.clone(),
                 })
             }
         }

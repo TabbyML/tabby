@@ -81,16 +81,10 @@ pub struct DocSearchPullDocument {
 
 #[derive(Clone)]
 pub struct DocSearchCommit {
-    pub git_url: String,
     pub sha: String,
     pub message: String,
     pub author_email: String,
     pub author_at: DateTime<Utc>,
-    pub committer_email: String,
-    pub commit_at: DateTime<Utc>,
-
-    pub diff: Option<String>,
-    pub changed_file: Option<String>,
 }
 
 pub trait FromTantivyDocument {
@@ -230,14 +224,8 @@ impl FromTantivyDocument for DocSearchPullDocument {
 }
 
 impl FromTantivyDocument for DocSearchCommit {
-    fn from_tantivy_document(doc: &TantivyDocument, chunk: &TantivyDocument) -> Option<Self> {
+    fn from_tantivy_document(doc: &TantivyDocument, _chunk: &TantivyDocument) -> Option<Self> {
         let schema = IndexSchema::instance();
-        let git_url = get_json_text_field(
-            doc,
-            schema.field_attributes,
-            structured_doc::fields::commit::GIT_URL,
-        )
-        .to_string();
         let sha = get_json_text_field(
             doc,
             schema.field_attributes,
@@ -262,42 +250,12 @@ impl FromTantivyDocument for DocSearchCommit {
             structured_doc::fields::commit::AUTHOR_AT,
         )
         .unwrap_or_default();
-        let committer_email = get_json_text_field(
-            doc,
-            schema.field_attributes,
-            structured_doc::fields::commit::COMMITTER_EMAIL,
-        )
-        .to_string();
-        let commit_at = get_json_date_field(
-            doc,
-            schema.field_attributes,
-            structured_doc::fields::commit::COMMIT_AT,
-        )
-        .unwrap_or_default();
-        let diff = get_json_option_text_field(
-            chunk,
-            schema.field_chunk_attributes,
-            structured_doc::fields::commit::CHUNK_DIFF,
-        )
-        .map(|s| s.to_string());
-        let changed_file = get_json_option_text_field(
-            chunk,
-            schema.field_chunk_attributes,
-            structured_doc::fields::commit::CHUNK_FILEPATH,
-        )
-        .map(|s| s.to_string());
 
         Some(Self {
-            git_url,
             sha,
             message,
             author_email,
             author_at,
-            committer_email,
-            commit_at,
-
-            diff,
-            changed_file,
         })
     }
 }

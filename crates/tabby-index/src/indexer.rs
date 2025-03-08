@@ -118,7 +118,7 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
 
             yield tokio::spawn(async move {
                 let mut failed_count = 0;
-                while let Some(_) = rx.recv().await {
+                while (rx.recv().await).is_some() {
                     failed_count += 1;
                 }
                 if failed_count > 0 {
@@ -236,16 +236,22 @@ impl Indexer {
             .map_err(|e| e.into())
     }
 
-    pub async fn get_newest_ids_by_attribute(
+    /// Lists the latest document IDs based on the given source ID, key-value pairs, and datetime field.
+    ///
+    /// The IDs are sorted by the datetime field in descending order and filtered by the given constraints.
+    pub async fn list_latest_ids(
         &self,
+        source_id: &str,
         kvs: &Vec<(&str, &str)>,
-        count: usize,
+        datetime_field: &str,
         offset: usize,
-        order_by: &str,
     ) -> Result<Vec<String>> {
         let schema = IndexSchema::instance();
-        let query = schema.doc_with_attribute_field(&self.corpus, kvs);
-        let docs = match self.searcher.search(&query, &TopDocs::with_limit(count)) {
+        let query = schema.doc_with_attribute_field(&self.corpus, source_id, kvs);
+        let docs = match self
+            .searcher
+            .search(&query, &TopDocs::with_limit(u16::MAX as usize))
+        {
             Ok(docs) => docs,
             Err(e) => {
                 debug!("query tantivy error: {}", e);
@@ -261,7 +267,7 @@ impl Indexer {
             let doc: TantivyDocument = self.searcher.doc(doc_address)?;
             documents.push((
                 get_text(&doc, schema.field_id).to_owned(),
-                get_json_date_field(&doc, schema.field_attributes, order_by),
+                get_json_date_field(&doc, schema.field_attributes, datetime_field),
             ));
         }
 
@@ -274,9 +280,13 @@ impl Indexer {
             .collect())
     }
 
-    pub async fn count_doc_by_attribute(&self, kvs: &Vec<(&str, &str)>) -> Result<usize> {
+    pub async fn count_doc_by_attribute(
+        &self,
+        source_id: &str,
+        kvs: &Vec<(&str, &str)>,
+    ) -> Result<usize> {
         let schema = IndexSchema::instance();
-        let query = schema.doc_with_attribute_field(&self.corpus, kvs);
+        let query = schema.doc_with_attribute_field(&self.corpus, source_id, kvs);
 
         let count = self.searcher.search(&query, &tantivy::collector::Count)?;
         Ok(count)

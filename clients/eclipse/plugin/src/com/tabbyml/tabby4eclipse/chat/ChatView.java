@@ -11,8 +11,11 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.resource.FontRegistry;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.SWT;
@@ -36,6 +39,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tabbyml.tabby4eclipse.Activator;
 import com.tabbyml.tabby4eclipse.DebouncedRunnable;
+import com.tabbyml.tabby4eclipse.Images;
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.StringUtils;
 import com.tabbyml.tabby4eclipse.Utils;
@@ -67,11 +71,14 @@ public class ChatView extends ViewPart {
 	private List<String> pendingScripts = new ArrayList<>();
 	private Map<String, CompletableFuture<Object>> pendingChatPanelRequest = new HashMap<>();
 
+	private List<Action> toolbarActions = new ArrayList<>();
+
 	private boolean isDark;
 	private RGB bgColor;
 	private RGB bgActiveColor;
 	private RGB fgColor;
 	private RGB borderColor;
+	private RGB inputColor;
 	private RGB inputBorderColor;
 	private RGB primaryColor;
 	private RGB primaryFgColor;
@@ -79,6 +86,7 @@ public class ChatView extends ViewPart {
 	private RGB popoverFgColor;
 	private RGB accentColor;
 	private RGB accentFgColor;
+	private RGB ringColor;
 	private String font;
 	private int fontSize = 13;
 
@@ -87,6 +95,41 @@ public class ChatView extends ViewPart {
 		setupThemeStyle();
 		parent.setLayout(new FillLayout());
 
+		// Tool bar
+		IToolBarManager toolbarManager = getViewSite().getActionBars().getToolBarManager();
+		Action newChat = new Action("New") {
+			@Override
+			public void run() {
+				chatPanelClientInvoke("navigate", new ArrayList<>() {
+					{
+						add(ChatViewType.NEW_CHAT);
+					}
+				});
+			}
+		};
+		newChat.setImageDescriptor(ImageDescriptor.createFromImage(Images.getIcon(Images.ICON_ADD)));
+		newChat.setToolTipText("Start a new chat.");
+		newChat.setEnabled(false);
+		toolbarManager.add(newChat);
+		toolbarActions.add(newChat);
+
+		Action history = new Action("History") {
+			@Override
+			public void run() {
+				chatPanelClientInvoke("navigate", new ArrayList<>() {
+					{
+						add(ChatViewType.HISTORY);
+					}
+				});
+			}
+		};
+		history.setImageDescriptor(ImageDescriptor.createFromImage(Images.getIcon(Images.ICON_HISTORY)));
+		history.setToolTipText("Show chat history.");
+		newChat.setEnabled(false);
+		toolbarManager.add(history);
+		toolbarActions.add(history);
+
+		// Browser
 		browser = new Browser(parent, Utils.isWindows() ? SWT.EDGE : SWT.WEBKIT);
 		browser.setBackground(new Color(bgActiveColor));
 		browser.setVisible(false);
@@ -106,15 +149,16 @@ public class ChatView extends ViewPart {
 		statusInfoHolder.addStatusDidChangeListener(() -> {
 			reloadContent(false);
 		});
-		
-		PlatformUI.getWorkbench().getActiveWorkbenchWindow().getSelectionService().addSelectionListener(new ISelectionListener() {
-			@Override
-            public void selectionChanged(IWorkbenchPart part, ISelection selection) {
-                if (selection instanceof ITextSelection) {
-                	syncActiveSelectionRunnable.call();
-                }
-            }
-		});
+
+		PlatformUI.getWorkbench().getActiveWorkbenchWindow().getSelectionService()
+				.addSelectionListener(new ISelectionListener() {
+					@Override
+					public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+						if (selection instanceof ITextSelection) {
+							syncActiveSelectionRunnable.call();
+						}
+					}
+				});
 	}
 
 	private DebouncedRunnable syncActiveSelectionRunnable = new DebouncedRunnable(() -> {
@@ -209,6 +253,7 @@ public class ChatView extends ViewPart {
 		bgActiveColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_BG_END");
 		fgColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_TEXT_COLOR");
 		borderColor = isDark ? new RGB(64, 64, 64) : new RGB(192, 192, 192);
+		inputColor = bgActiveColor;
 		inputBorderColor = borderColor;
 
 		primaryColor = colorRegistry.getRGB("org.eclipse.ui.workbench.LINK_COLOR");
@@ -222,6 +267,7 @@ public class ChatView extends ViewPart {
 				: new RGB((int) (bgActiveColor.red * 0.8), (int) (bgActiveColor.green * 0.8),
 						(int) (bgActiveColor.blue * 0.8));
 		accentFgColor = fgColor;
+		ringColor = primaryColor;
 
 		FontRegistry fontRegistry = currentTheme.getFontRegistry();
 		FontData[] fontData = fontRegistry.getFontData("org.eclipse.jface.textfont");
@@ -245,8 +291,14 @@ public class ChatView extends ViewPart {
 		if (borderColor != null) {
 			css += String.format("--border: %s;", StringUtils.toHsl(borderColor));
 		}
+		if (inputColor != null) {
+			css += String.format("--input: %s;", StringUtils.toHsl(inputColor));
+		}
 		if (inputBorderColor != null) {
-			css += String.format("--input: %s;", StringUtils.toHsl(inputBorderColor));
+			css += String.format("--input-border: %s;", StringUtils.toHsl(inputBorderColor));
+		}
+		if (ringColor != null) {
+			css += String.format("--ring: %s;", StringUtils.toHsl(ringColor));
 		}
 		if (primaryColor != null) {
 			css += String.format("--primary: %s;", StringUtils.toHsl(primaryColor));
@@ -362,6 +414,7 @@ public class ChatView extends ViewPart {
 					}
 				}
 				initChatPanel();
+				setToolbarItemsEnabled(true);
 				return null;
 			}
 		});
@@ -526,11 +579,18 @@ public class ChatView extends ViewPart {
 	private void updateContentToMessage(String message) {
 		showMessage(message);
 		showChatPanel(false);
+		setToolbarItemsEnabled(false);
 	}
 
 	private void updateContentToChatPanel() {
 		showMessage(null);
 		showChatPanel(true);
+	}
+
+	private void setToolbarItemsEnabled(Boolean enabled) {
+		toolbarActions.forEach((action) -> {
+			action.setEnabled(enabled);
+		});
 	}
 
 	// execute js functions

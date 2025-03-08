@@ -20,11 +20,16 @@ if [[ "$OSTYPE" == "linux"* ]]; then
   if command -v apt-get ; then
     apt-get -y install protobuf-compiler libopenblas-dev sqlite3 graphviz libcurl4-openssl-dev
   else
-    # Build from manylinux2014 container
+    # Build from manylinux_2_28 container
 
     # CentOS 7 is EOL after 2024 06, need to update to vault.centos.org
     sed -i -e 's/mirrorlist/#mirrorlist/g' -e 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
-    yum -y install openblas-devel perl-IPC-Cmd unzip curl openssl-devel
+    yum -y install openblas-devel perl-IPC-Cmd unzip openssl-devel
+
+    # Install newer version of curl to support `--fail-with-body` on vulkan-sdk-install
+    curl -SLO https://mirror.city-fan.org/ftp/contrib/sysutils/Mirroring/curl-8.12.1-1.0.cf.rhel8.x86_64.rpm
+    curl -SLO https://mirror.city-fan.org/ftp/contrib/sysutils/Mirroring/libcurl-8.12.1-1.0.cf.rhel8.x86_64.rpm
+    rpm -Uvh curl-8.12.1-1.0.cf.rhel8.x86_64.rpm libcurl-8.12.1-1.0.cf.rhel8.x86_64.rpm
 
     # Disable safe directory in docker
     git config --system --add safe.directory "*"

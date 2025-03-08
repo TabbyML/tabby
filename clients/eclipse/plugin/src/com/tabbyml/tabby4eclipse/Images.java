@@ -20,6 +20,8 @@ public class Images {
 	public static final String ICON_WARN = "warn_tsk.png";
 	public static final String ICON_LOADING = "progress_task.png";
 	public static final String ICON_SETTINGS = "settings.png";
+	public static final String ICON_ADD = "add_obj.png";
+	public static final String ICON_HISTORY = "time_obj.png";
 
 	public static Image getIcon(String filename) {
 		Image icon = icons.get(filename);
