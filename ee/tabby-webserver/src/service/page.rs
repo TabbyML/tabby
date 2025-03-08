@@ -624,12 +624,17 @@ pub async fn generate_page_section_content(
 mod tests {
     #[tokio::test]
     async fn test_move_section() {
+        use tabby_common::api::structured_doc::DocSearch;
         use tabby_db::DbConn;
         use tabby_schema::page::MoveSectionDirection;
 
         use super::*;
         use crate::{
-            answer::testutils::{FakeChatCompletionStream, FakeContextService},
+            answer::testutils::{
+                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+                FakeContextService, FakeDocSearch,
+            },
+            retrieval,
             service::thread,
         };
 
@@ -638,7 +643,7 @@ mod tests {
             .create_user("test@example.com".into(), None, true, None)
             .await
             .unwrap();
-        let page_id = db.create_page(user_id).await.unwrap();
+        let page_id = db.create_page(user_id, None).await.unwrap();
         let section0 = db.create_page_section(page_id, "Section 0").await.unwrap();
         assert_eq!(section0.1, 0);
         let section1 = db.create_page_section(page_id, "Section 1").await.unwrap();
@@ -652,7 +657,18 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let thread = Arc::new(thread::create(db.clone(), None, None, context.clone()));
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
-        let service = create(db, chat, thread, context);
+        let code = Arc::new(FakeCodeSearch);
+        let doc = Arc::new(FakeDocSearch);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+        let repo_service = make_repository_service(db.clone()).await.unwrap();
+
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo_service.clone(),
+        ));
+        let service = create(PageConfig::default(), db, chat, thread, context, retrieval);
 
         // move down
         service

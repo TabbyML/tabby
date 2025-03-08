@@ -698,19 +698,13 @@ mod tests {
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
         let repo = make_repository_service(db.clone()).await.unwrap();
-        let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
-            serper,
-            repo.clone(),
-        ));
+        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
         let answer_service = Arc::new(answer::create(
             &config,
             auth,
             chat,
             retrieval,
             context.clone(),
-            repo,
         ));
         let service = create(db.clone(), Some(answer_service), None, context);
 

@@ -121,7 +121,6 @@ impl Webserver {
                 chat.clone(),
                 retrieval.clone(),
                 context.clone(),
-                repository.clone(),
             ))
         });
 
