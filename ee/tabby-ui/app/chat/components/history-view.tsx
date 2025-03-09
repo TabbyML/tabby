@@ -4,9 +4,11 @@ import { useQuery } from 'urql'
 import { useMutation } from '@/lib/tabby/gql'
 import { deleteThreadMutation, listMyThreads } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
-import { IconSpinner } from '@/components/ui/icons'
+import { CardContent } from '@/components/ui/card'
+import { IconFileSearch, IconSpinner } from '@/components/ui/icons'
 import { ThreadItem } from '@/components/chat/thread-item'
 import { LoadMoreIndicator } from '@/components/load-more-indicator'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 interface HistoryViewProps {
   onClose: () => void
@@ -64,24 +66,44 @@ export function HistoryView({ onClose, onNavigate }: HistoryViewProps) {
           </Button>
         </div>
         <div className="mt-4 space-y-4">
-          {threads?.map(thread => {
-            return (
-              <ThreadItem
-                key={thread.node.id}
-                data={thread}
-                sources={undefined}
-                onNavigate={onNavigateToThread}
-                onDeleteThread={onDeleteThread}
-              />
-            )
-          })}
-          {!!pageInfo?.hasPreviousPage && (
-            <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
+          <LoadingWrapper
+            loading={fetching}
+            fallback={
               <div className="flex justify-center">
                 <IconSpinner className="h-6 w-6" />
               </div>
-            </LoadMoreIndicator>
-          )}
+            }
+          >
+            {!threads?.length ? (
+              <>
+                <CardContent className="mt-6 flex items-center justify-center gap-1 rounded-lg border py-12">
+                  <IconFileSearch className="h-6 w-6" />
+                  <p className="font-semibold">No data</p>
+                </CardContent>
+              </>
+            ) : (
+              <>
+                {threads?.map(thread => {
+                  return (
+                    <ThreadItem
+                      key={thread.node.id}
+                      data={thread}
+                      sources={undefined}
+                      onNavigate={onNavigateToThread}
+                      onDeleteThread={onDeleteThread}
+                    />
+                  )
+                })}
+                {!!pageInfo?.hasPreviousPage && (
+                  <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
+                    <div className="flex justify-center">
+                      <IconSpinner className="h-6 w-6" />
+                    </div>
+                  </LoadMoreIndicator>
+                )}
+              </>
+            )}
+          </LoadingWrapper>
         </div>
       </div>
     </div>
