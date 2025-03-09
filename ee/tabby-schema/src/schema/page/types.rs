@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
+use validator::Validate;
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -57,6 +58,37 @@ impl NodeType for Section {
     fn edge_type_name() -> &'static str {
         "SectionEdge"
     }
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct UpdatePageContentInput {
+    pub id: ID,
+    #[validate(length(
+        min = 1,
+        max = 65535,
+        code = "content",
+        message = "content can not be empty"
+    ))]
+    pub content: String,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct UpdatePageSectionTitleInput {
+    pub id: ID,
+    #[validate(length(min = 1, max = 256, code = "title", message = "title can not be empty"))]
+    pub title: String,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct UpdatePageSectionContentInput {
+    pub id: ID,
+    #[validate(length(
+        min = 1,
+        max = 65535,
+        code = "content",
+        message = "content can not be empty"
+    ))]
+    pub content: String,
 }
 
 #[derive(GraphQLInputObject)]
