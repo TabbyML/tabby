@@ -284,6 +284,21 @@ input UpdateOAuthCredentialInput {
   clientSecret: String
 }
 
+input UpdatePageContentInput {
+  id: ID!
+  content: String!
+}
+
+input UpdatePageSectionContentInput {
+  id: ID!
+  content: String!
+}
+
+input UpdatePageSectionTitleInput {
+  id: ID!
+  title: String!
+}
+
 input UpsertUserGroupMembershipInput {
   userGroupId: ID!
   userId: ID!
@@ -686,6 +701,9 @@ type Mutation {
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
   updateThreadMessage(input: UpdateMessageInput!): Boolean!
+  updatePageContent(input: UpdatePageContentInput!): Boolean!
+  updatePageSectionTitle(input: UpdatePageSectionTitleInput!): Boolean!
+  updatePageSectionContent(input: UpdatePageSectionContentInput!): Boolean!
   "delete a page and all its sections."
   deletePage(id: ID!): Boolean!
   "delete a single page section."

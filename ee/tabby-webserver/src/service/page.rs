@@ -173,6 +173,11 @@ impl PageService for PageServiceImpl {
         Ok(page.into())
     }
 
+    async fn update_content(&self, id: &ID, content: &str) -> Result<()> {
+        self.db.update_page_content(id.as_rowid()?, content).await?;
+        Ok(())
+    }
+
     async fn list(
         &self,
         ids: Option<&[ID]>,
@@ -240,6 +245,20 @@ impl PageService for PageServiceImpl {
                 id.as_rowid()?,
                 matches!(direction, MoveSectionDirection::Up),
             )
+            .await?;
+        Ok(())
+    }
+
+    async fn update_section_title(&self, id: &ID, title: &str) -> Result<()> {
+        self.db
+            .update_page_section_title(id.as_rowid()?, title)
+            .await?;
+        Ok(())
+    }
+
+    async fn update_section_content(&self, id: &ID, content: &str) -> Result<()> {
+        self.db
+            .update_page_section_content(id.as_rowid()?, content)
             .await?;
         Ok(())
     }
