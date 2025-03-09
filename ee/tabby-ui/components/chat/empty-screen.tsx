@@ -67,36 +67,35 @@ export function EmptyScreen({
           ))}
         </div>
       </div>
-      {/* todo conditions */}
-      {/* {!!threads?.length && ( */}
-      <div className="mt-10">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="text-lg font-semibold">Recent Activities</span>
+      {!!threads?.length && (
+        <div className="mt-10">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-lg font-semibold">Recent Activities</span>
+          </div>
+          <div className="space-y-4">
+            {threads?.map(x => {
+              return (
+                <ThreadItem
+                  key={x.node.id}
+                  data={x}
+                  onNavigate={onNavigateToThread}
+                  sources={undefined}
+                />
+              )
+            })}
+          </div>
+          <div className="text-center">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={e => setShowHistory(true)}
+              className="mt-4 text-foreground/70"
+            >
+              View all history
+            </Button>
+          </div>
         </div>
-        <div className="space-y-4">
-          {threads?.map(x => {
-            return (
-              <ThreadItem
-                key={x.node.id}
-                data={x}
-                onNavigate={onNavigateToThread}
-                sources={undefined}
-              />
-            )
-          })}
-        </div>
-        <div className="text-center">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={e => setShowHistory(true)}
-            className="mt-4 text-foreground/70"
-          >
-            View all history
-          </Button>
-        </div>
-      </div>
-      {/* )} */}
+      )}
     </div>
   )
 }
