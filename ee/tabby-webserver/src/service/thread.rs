@@ -11,14 +11,14 @@ use tabby_schema::{
     from_thread_message_attachment_document,
     policy::AccessPolicy,
     thread::{
-        self, CodeQueryInput, CreateMessageInput, CreateThreadInput, MessageAttachment,
-        MessageAttachmentDoc, MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput,
-        ThreadRunStream, ThreadService, UpdateMessageInput,
+        self, CreateMessageInput, CreateThreadInput, MessageAttachment, MessageAttachmentDoc,
+        MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream,
+        ThreadService, UpdateMessageInput,
     },
     AsID, AsRowid, DbEnum, Result,
 };
 
-use super::{answer::AnswerService, graphql_pagination_to_filter};
+use super::{answer::AnswerService, graphql_pagination_to_filter, utils::get_source_id};
 
 struct ThreadServiceImpl {
     db: DbConn,
@@ -113,25 +113,6 @@ impl ThreadServiceImpl {
         }
         output
     }
-
-    async fn get_source_id(&self, policy: &AccessPolicy, input: &CodeQueryInput) -> Option<String> {
-        let helper = self.context.read(Some(policy)).await.ok()?.helper();
-
-        if let Some(source_id) = &input.source_id {
-            if helper.can_access_source_id(source_id) {
-                Some(source_id.clone())
-            } else {
-                None
-            }
-        } else if let Some(git_url) = &input.git_url {
-            helper
-                .allowed_code_repository()
-                .closest_match(git_url)
-                .map(|s| s.to_string())
-        } else {
-            None
-        }
-    }
 }
 
 #[async_trait]
@@ -212,7 +193,7 @@ impl ThreadService for ThreadServiceImpl {
             .await?;
 
         if let Some(code_query) = &options.code_query {
-            if let Some(source_id) = self.get_source_id(policy, code_query).await {
+            if let Some(source_id) = get_source_id(self.context.clone(), policy, code_query).await {
                 self.db
                     .update_thread_message_code_source_id(assistant_message_id, &source_id)
                     .await?;
@@ -717,19 +698,13 @@ mod tests {
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
         let repo = make_repository_service(db.clone()).await.unwrap();
-        let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
-            serper,
-            repo.clone(),
-        ));
+        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
         let answer_service = Arc::new(answer::create(
             &config,
             auth,
             chat,
             retrieval,
             context.clone(),
-            repo,
         ));
         let service = create(db.clone(), Some(answer_service), None, context);
 
