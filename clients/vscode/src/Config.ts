@@ -65,6 +65,30 @@ export class Config extends EventEmitter {
     this.emit("updated");
   }
 
+  private get approvedTokenRequestIds(): string[] {
+    return this.memento.get("token.approvedRequestIds", []);
+  }
+
+  private async updateApprovedTokenRequestIds(ids: string[]) {
+    await this.memento.update("token.approvedRequestIds", ids);
+  }
+
+  async clearApprovedTokenRequestIds() {
+    await this.updateApprovedTokenRequestIds([]);
+  }
+
+  async addApprovedTokenRequestId(id: string) {
+    const ids = this.approvedTokenRequestIds;
+    if (!ids.includes(id)) {
+      ids.push(id);
+      await this.updateApprovedTokenRequestIds(ids);
+    }
+  }
+
+  isTokenRequestApproved(id: string): boolean {
+    return this.approvedTokenRequestIds.includes(id);
+  }
+
   private async migrateServerRecordFromPastServerConfigs() {
     const pastServerConfigs = this.memento.get("server.pastServerConfigs", []);
     if (pastServerConfigs.length > 0) {

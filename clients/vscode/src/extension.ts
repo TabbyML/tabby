@@ -80,7 +80,11 @@ export async function activate(context: ExtensionContext) {
     initFindFiles(context),
   ]);
 
-  async function canGetToken(): Promise<{ token: string | undefined }> {
+  const canGetToken = async (requestId?: string): Promise<{ token: string | undefined }> => {
+    if (requestId && config.isTokenRequestApproved(requestId)) {
+      return { token: config.serverRecords.get(config.serverEndpoint)?.token };
+    }
+
     const response = await window.showInformationMessage(
       `Would you like to share your token with Tabby endpoint ${config.serverEndpoint}`,
       "Yes",
@@ -88,10 +92,13 @@ export async function activate(context: ExtensionContext) {
     );
 
     if (response === "Yes") {
+      if (requestId) {
+        await config.addApprovedTokenRequestId(requestId);
+      }
       return { token: config.serverRecords.get(config.serverEndpoint)?.token };
     }
     return { token: undefined };
-  }
+  };
   return {
     canGetToken,
   };
