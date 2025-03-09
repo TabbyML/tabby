@@ -79,6 +79,30 @@ export async function activate(context: ExtensionContext) {
     // findFiles preheat
     initFindFiles(context),
   ]);
+
+  const canGetToken = async (requestId?: string): Promise<{ token: string | undefined }> => {
+    if (requestId && config.isTokenRequestApproved(requestId)) {
+      return { token: config.serverRecords.get(config.serverEndpoint)?.token };
+    }
+
+    const response = await window.showInformationMessage(
+      `Would you like to share your Tabby's token with endpoint ${config.serverEndpoint}?`,
+      { modal: true, detail: "This will share your token to third parties VSCode extention" },
+      "Yes",
+      "No",
+    );
+
+    if (response === "Yes") {
+      if (requestId) {
+        await config.addApprovedTokenRequestId(requestId);
+      }
+      return { token: config.serverRecords.get(config.serverEndpoint)?.token };
+    }
+    return { token: undefined };
+  };
+  return {
+    canGetToken,
+  };
 }
 
 export async function deactivate() {
