@@ -76,8 +76,8 @@ export function HistoryView({ onClose, onNavigate }: HistoryViewProps) {
           >
             {!threads?.length ? (
               <>
-                <CardContent className="mt-10 flex flex-col items-center text-sm">
-                  <IconFileSearch className="mb-2 h-10 w-10" />
+                <CardContent className="mt-6 flex items-center justify-center gap-1 rounded-lg border py-12">
+                  <IconFileSearch className="h-6 w-6" />
                   <p className="font-semibold">No data</p>
                 </CardContent>
               </>
