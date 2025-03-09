@@ -86,7 +86,8 @@ export async function activate(context: ExtensionContext) {
     }
 
     const response = await window.showInformationMessage(
-      `Would you like to share your token with Tabby endpoint ${config.serverEndpoint}`,
+      `Would you like to share your Tabby's token with endpoint ${config.serverEndpoint}?`,
+      { modal: true, detail: "This will share your token to third parties VSCode extention" },
       "Yes",
       "No",
     );
