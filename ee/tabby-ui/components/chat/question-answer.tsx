@@ -134,12 +134,9 @@ function UserMessageCard(props: { message: UserMessage }) {
       {...props}
     >
       <div
-        className={cn(
-          'flex min-h-[2rem] w-full items-center justify-between md:w-auto',
-          {
-            hidden: !data?.me.name
-          }
-        )}
+        className={cn('flex min-h-[2rem] w-full items-center justify-between', {
+          hidden: !data?.me.name
+        })}
       >
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
@@ -188,11 +185,6 @@ function UserMessageCard(props: { message: UserMessage }) {
             </div>
           )}
         </div>
-        {/* {!data?.me.name && (
-          <div className="editor-bg absolute right-0 top-0 -mt-0.5 block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
-            <UserMessageCardActions {...props} />
-          </div>
-        )} */}
       </div>
     </div>
   )
@@ -359,7 +351,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
       {...rest}
     >
-      <div className="flex min-h-[2rem] w-full items-center justify-between md:w-auto">
+      <div className="flex min-h-[2rem] w-full items-center justify-between">
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <IconTabby className="h-8 w-8" />
@@ -407,14 +399,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
         )}
-        {/* <div className="hidden md:block">
-          <AssistantMessageCardActions
-            message={message}
-            userMessageId={userMessageId}
-            enableRegenerating={enableRegenerating}
-            attachmentCode={attachmentCode}
-          />
-        </div> */}
       </div>
     </div>
   )
