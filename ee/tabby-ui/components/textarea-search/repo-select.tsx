@@ -11,7 +11,7 @@ import {
   CommandList,
   CommandSeparator
 } from '@/components/ui/command'
-import { IconFolderGit } from '@/components/ui/icons'
+import { IconChevronDown, IconFolderGit } from '@/components/ui/icons'
 import {
   Popover,
   PopoverContent,
@@ -29,13 +29,17 @@ interface RepoSelectProps {
   value: string | undefined
   onChange: (v: string | undefined) => void
   isInitializing?: boolean
+  placeholder?: string
+  showChevron?: boolean
 }
 
 export function RepoSelect({
   repos,
   value,
   onChange,
-  isInitializing
+  isInitializing,
+  placeholder = 'Codebase',
+  showChevron
 }: RepoSelectProps) {
   const [open, setOpen] = useState(false)
   const commandListRef = useRef<HTMLDivElement>(null)
@@ -94,9 +98,12 @@ export function RepoSelect({
                   'text-muted-foreground': !selectedRepoName
                 })}
               >
-                {selectedRepoName || 'Codebase'}
+                {selectedRepoName || placeholder}
               </span>
             </div>
+            {!!showChevron && (
+              <IconChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent

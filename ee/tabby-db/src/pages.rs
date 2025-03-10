@@ -1,15 +1,16 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{query, query_as, FromRow};
+use sqlx::{query, query_as, types::Json, FromRow};
 use tabby_db_macros::query_paged_as;
 
-use crate::DbConn;
+use crate::{Attachment, AttachmentCode, AttachmentCodeFileList, DbConn};
 
 #[derive(FromRow)]
 pub struct PageDAO {
     pub id: i64,
     pub author_id: i64,
     pub title: Option<String>,
+    pub code_source_id: Option<String>,
     pub content: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -23,16 +24,21 @@ pub struct PageSectionDAO {
     pub title: String,
     pub content: Option<String>,
     pub position: i64,
+    pub attachment: Option<Json<Attachment>>,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl DbConn {
-    pub async fn create_page(&self, author_id: i64) -> Result<i64> {
-        let res = query!("INSERT INTO pages(author_id) VALUES (?)", author_id,)
-            .execute(&self.pool)
-            .await?;
+    pub async fn create_page(&self, author_id: i64, code_source_id: Option<String>) -> Result<i64> {
+        let res = query!(
+            "INSERT INTO pages(author_id, code_source_id) VALUES (?, ?)",
+            author_id,
+            code_source_id
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(res.last_insert_rowid())
     }
@@ -86,6 +92,7 @@ impl DbConn {
                 "id",
                 "author_id",
                 "title",
+                "code_source_id",
                 "content",
                 "created_at" as "created_at: DateTime<Utc>",
                 "updated_at" as "updated_at: DateTime<Utc>"
@@ -116,6 +123,7 @@ impl DbConn {
                 id,
                 author_id,
                 title,
+                code_source_id,
                 content,
                 created_at as "created_at: DateTime<Utc>",
                 updated_at  as "updated_at: DateTime<Utc>"
@@ -161,6 +169,7 @@ impl DbConn {
                 "title",
                 "content",
                 "position",
+                "attachment" as "attachment: Json<Attachment>",
                 "created_at" as "created_at: DateTime<Utc>",
                 "updated_at" as "updated_at: DateTime<Utc>"
             ],
@@ -184,6 +193,7 @@ impl DbConn {
                 title,
                 position,
                 content,
+                attachment as "attachment: Json<Attachment>",
                 created_at as "created_at: DateTime<Utc>",
                 updated_at  as "updated_at: DateTime<Utc>"
             FROM page_sections
@@ -207,16 +217,59 @@ impl DbConn {
                 WHERE page_id = ?1
             )
             INSERT INTO page_sections(page_id, title, position)
-            SELECT ?1, ?2, (SELECT next_pos FROM max_pos)
-            RETURNING id, position
+            SELECT
+                ?1,
+                ?2,
+                (SELECT next_pos FROM max_pos)
+            RETURNING
+              id,
+              position
             "#,
             page_id,
-            title
+            title,
         )
         .fetch_one(&self.pool)
         .await?;
 
         Ok((res.id, res.position))
+    }
+
+    pub async fn update_page_section_code_attachments(
+        &self,
+        section_id: i64,
+        code_attachments: &[AttachmentCode],
+    ) -> Result<()> {
+        let code_attachments = Json(code_attachments);
+        query!(
+            "UPDATE page_sections SET attachment = JSON_SET(attachment, '$.code', JSON(?)), updated_at = DATETIME('now') WHERE id = ?",
+            code_attachments,
+            section_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_page_section_code_file_list(
+        &self,
+        section_id: i64,
+        file_list: &[String],
+        truncated: bool,
+    ) -> Result<()> {
+        let code_file_list_attachment = Json(AttachmentCodeFileList {
+            file_list: file_list.into(),
+            truncated,
+        });
+        query!(
+            "UPDATE page_sections SET attachment = JSON_SET(attachment, '$.code_file_list', JSON(?)), updated_at = DATETIME('now') WHERE id = ?",
+            code_file_list_attachment,
+            section_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 
     pub async fn append_page_section_content(&self, id: i64, content: &str) -> Result<()> {

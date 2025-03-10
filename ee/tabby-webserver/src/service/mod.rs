@@ -43,6 +43,7 @@ pub use license::new_license_service;
 pub use setting::create as new_setting_service;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
+    config::PageConfig,
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::{DbConn, UserDAO, UserGroupDAO};
@@ -72,7 +73,7 @@ use tabby_schema::{
 };
 
 use self::analytic::new_analytic_service;
-use crate::rate_limit::UserRateLimiter;
+use crate::{rate_limit::UserRateLimiter, service::retrieval::RetrievalService};
 
 struct ServerContext {
     db_conn: DbConn,
@@ -113,6 +114,7 @@ impl ServerContext {
         integration: Arc<dyn IntegrationService>,
         job: Arc<dyn JobService>,
         answer: Option<Arc<AnswerService>>,
+        retrieval: Arc<retrieval::RetrievalService>,
         context: Arc<dyn ContextService>,
         web_documents: Arc<dyn WebDocumentService>,
         mail: Arc<dyn EmailService>,
@@ -130,10 +132,12 @@ impl ServerContext {
         ));
         let page = chat.as_ref().map(|chat| {
             Arc::new(page::create(
+                PageConfig::default(),
                 db_conn.clone(),
                 chat.clone(),
                 thread.clone(),
                 context.clone(),
+                retrieval,
             )) as Arc<dyn PageService>
         });
 
@@ -395,6 +399,7 @@ pub async fn create_service_locator(
     integration: Arc<dyn IntegrationService>,
     job: Arc<dyn JobService>,
     answer: Option<Arc<AnswerService>>,
+    retrieval: Arc<RetrievalService>,
     context: Arc<dyn ContextService>,
     web_documents: Arc<dyn WebDocumentService>,
     mail: Arc<dyn EmailService>,
@@ -414,6 +419,7 @@ pub async fn create_service_locator(
             integration,
             job,
             answer,
+            retrieval,
             context,
             web_documents,
             mail,
