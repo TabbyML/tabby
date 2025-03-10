@@ -411,7 +411,6 @@ export default function ChatPage() {
         />
       )}
       <Chat
-        style={{ display: showHistory ? 'none' : 'block' }}
         threadId={threadId}
         setThreadId={setThreadId}
         ref={chatRef}
