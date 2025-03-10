@@ -76,8 +76,22 @@ const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
       ... on PageSectionsCreated {
         sections {
           id
-          title
           position
+          title
+          attachments {
+            code {
+              gitUrl
+              commit
+              filepath
+              language
+              content
+              startLine
+            }
+            codeFileList {
+              fileList
+              truncated
+            }
+          }
         }
       }
       ... on PageSectionContentDelta {
@@ -104,6 +118,7 @@ const createPageSectionRunSubscription = graphql(/* GraphQL */ `
         position
       }
       ... on PageSectionContentDelta {
+        id
         delta
       }
       ... on PageSectionContentCompleted {
@@ -131,8 +146,22 @@ const createPageRunSubscription = graphql(/* GraphQL */ `
       ... on PageSectionsCreated {
         sections {
           id
-          title
           position
+          title
+          attachments {
+            code {
+              gitUrl
+              commit
+              filepath
+              language
+              content
+              startLine
+            }
+            codeFileList {
+              fileList
+              truncated
+            }
+          }
         }
       }
       ... on PageSectionContentDelta {
@@ -471,7 +500,8 @@ export function Page() {
     const { unsubscribe } = client
       .subscription(createPageRunSubscription, {
         input: {
-          titlePrompt
+          titlePrompt,
+          codeQuery: null
         }
       })
       .subscribe(res => {
@@ -740,7 +770,7 @@ export function Page() {
 
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections ||
-      pageSectionData?.pageSections?.pageInfo?.hasNextPage,
+    pageSectionData?.pageSections?.pageInfo?.hasNextPage,
     200
   )
 
