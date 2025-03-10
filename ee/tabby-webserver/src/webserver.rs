@@ -119,9 +119,8 @@ impl Webserver {
                 &config.answer,
                 auth.clone(),
                 chat.clone(),
-                retrieval,
+                retrieval.clone(),
                 context.clone(),
-                repository.clone(),
             ))
         });
 
@@ -137,6 +136,7 @@ impl Webserver {
             integration.clone(),
             job.clone(),
             answer.clone(),
+            retrieval,
             context.clone(),
             web_documents.clone(),
             mail,
