@@ -1,9 +1,12 @@
 // utils.ts
-import { JSONContent } from '@tiptap/core'
+import { Editor, JSONContent } from '@tiptap/core'
 import { SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
-import { PLACEHOLDER_FILE_REGEX } from '@/lib/constants/regex'
+import {
+  PLACEHOLDER_FILE_REGEX,
+  PLACEHOLDER_SYMBOL_REGEX
+} from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
 import {
   convertFromFilepath,
@@ -70,6 +73,17 @@ export function replaceAtMentionPlaceHolderWithAt(value: string) {
       const filepathInfo = JSON.parse(filepath) as Filepath
       const filepathString = getFilepathStringByChatPanelFilePath(filepathInfo)
       const labelName = resolveFileNameForDisplay(filepathString)
+      newValue = newValue.replace(match[0], `@${labelName}`)
+    } catch (error) {
+      continue
+    }
+  }
+
+  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(value)) !== null) {
+    try {
+      const symbolPlaceholder = match[1]
+      const symbolInfo = JSON.parse(symbolPlaceholder)
+      const labelName = symbolInfo.label || ''
       newValue = newValue.replace(match[0], `@${labelName}`)
     } catch (error) {
       continue
@@ -161,4 +175,14 @@ export const isSameFileContext = (a: FileContext, b: FileContext) => {
     a.range?.start === b.range?.start &&
     a.range?.end === b.range?.end
   )
+}
+
+export function getMention(editor: Editor) {
+  const currentMentions: any[] = []
+  editor.state.doc.descendants(node => {
+    if (node.type.name === 'mention') {
+      currentMentions.push(node.attrs)
+    }
+  })
+  return currentMentions
 }

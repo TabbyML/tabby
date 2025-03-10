@@ -222,7 +222,7 @@ export function ReadingCodeStepper({
             {docQuery && (
               <StepItem
                 key="docs"
-                title="Search for relevant Issues/PRs/Commits ..."
+                title="Collect documents ..."
                 isLastItem={lastItem === 'docs'}
                 isLoading={isReadingDocs}
               >
