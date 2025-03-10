@@ -96,11 +96,19 @@ jobs:
           submodules: recursive
 
       - name: Install Rust
+        if: runner.os != 'Windows'
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           target: ${{ matrix.target }}
           components: clippy
+
+      - name: Install Rust for Windows
+        if: runner.os == 'Windows'
+        run: |
+          rustup update --no-self-update ${{ env.RUST_TOOLCHAIN }}
+          rustup target add ${{ matrix.target }}
+          rustup component add clippy --toolchain ${{ env.RUST_TOOLCHAIN }}
 
       - name: Set default rust version
         run: rustup default ${{ env.RUST_TOOLCHAIN }}
@@ -195,11 +203,19 @@ jobs:
           submodules: recursive
 
       - name: Install Rust
+        if: runner.os != 'Windows'
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           target: ${{ matrix.target }}
           components: clippy
+
+      - name: Install Rust for Windows
+        if: runner.os == 'Windows'
+        run: |
+          rustup update --no-self-update ${{ env.RUST_TOOLCHAIN }}
+          rustup target add ${{ matrix.target }}
+          rustup component add clippy --toolchain ${{ env.RUST_TOOLCHAIN }}
 
       - name: Set default rust version
         run: rustup default ${{ env.RUST_TOOLCHAIN }}
