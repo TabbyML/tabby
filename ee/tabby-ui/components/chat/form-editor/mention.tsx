@@ -26,7 +26,6 @@ import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { cn, convertFromFilepath, resolveFileNameForDisplay } from '@/lib/utils'
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons'
 
-import { emitter } from '../event-emitter'
 import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from '../types'
 import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
 
@@ -35,16 +34,8 @@ import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
  * Displays the filename and an icon in a highlighted style.
  */
 export const MentionComponent = ({ node }: { node: any }) => {
-  const { category, fileItem, label } = node.attrs
+  const { category, label } = node.attrs
 
-  // FIXME(@jueliang) fine a better way to detect the mention
-  useEffect(() => {
-    emitter.emit('file_mention_update')
-
-    return () => {
-      emitter.emit('file_mention_update')
-    }
-  }, [])
   return (
     <NodeViewWrapper as="span" className="rounded-sm px-1">
       <span
