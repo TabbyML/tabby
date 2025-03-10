@@ -703,6 +703,24 @@ export function Page() {
       })
   }
 
+  const onUpdateSections = (id: string, values: Partial<SectionItem>) => {
+    if (!id) return
+
+    setSections(prev => {
+      if (!prev) return prev
+
+      return prev.map(x => {
+        if (x.id === id) {
+          return {
+            ...x,
+            ...values
+          }
+        }
+        return x
+      })
+    })
+  }
+
   const formatedPageError: ExtendedCombinedError | undefined = useMemo(() => {
     if (!isReady || fetchingPage || !pageIdFromURL) return undefined
     if (pageError || !pagesData?.pages?.edges?.length) {
@@ -816,7 +834,15 @@ export function Page() {
                         loading={!page || (isLoading && !page?.content)}
                         fallback={<SectionContentSkeleton />}
                       >
-                        <PageContent page={page} />
+                        <PageContent
+                          page={page}
+                          onUpdate={content => {
+                            setPage(p => {
+                              if (!p) return p
+                              return { ...p, content }
+                            })
+                          }}
+                        />
                       </LoadingWrapper>
 
                       {/* sections */}
@@ -848,12 +874,18 @@ export function Page() {
                                 <SectionTitle
                                   className="pt-8 prose-p:leading-tight"
                                   section={section}
+                                  onUpdate={title => {
+                                    onUpdateSections(section.id, { title })
+                                  }}
                                 />
                                 <SectionContent
                                   section={section}
                                   isGenerating={isSectionGenerating}
                                   enableMoveUp={enableMoveUp}
                                   enableMoveDown={enableMoveDown}
+                                  onUpdate={content => {
+                                    onUpdateSections(section.id, { content })
+                                  }}
                                 />
                               </motion.div>
                             )

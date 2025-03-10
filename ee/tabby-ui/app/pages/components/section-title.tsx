@@ -2,6 +2,8 @@
 
 import { HTMLAttributes, useContext, useEffect, useState } from 'react'
 
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconEdit } from '@/components/ui/icons'
@@ -11,23 +13,44 @@ import { SectionItem } from '../types'
 import { MessageContentForm } from './message-content-form'
 import { PageContext } from './page-context'
 
+const updatePageSectionTitleMutation = graphql(/* GraphQL */ `
+  mutation updatePageSectionTitle($input: UpdatePageSectionTitleInput!) {
+    updatePageSectionTitle(input: $input)
+  }
+`)
+
 interface QuestionBlockProps extends HTMLAttributes<HTMLDivElement> {
   section: SectionItem
+  onUpdate: (title: string) => void
 }
 
 export function SectionTitle({
   section,
   className,
+  onUpdate,
   ...props
 }: QuestionBlockProps) {
   const { pendingSectionIds, mode, isLoading } = useContext(PageContext)
   const [showForm, setShowForm] = useState(false)
   const isEditing = mode === 'edit'
   const isPending = pendingSectionIds.has(section.id) && !section.content
+  const updatePageSectionTitle = useMutation(updatePageSectionTitleMutation)
 
-  const handleSubmit = async (message: string) => {
-    // todo submit content page
-    setShowForm(false)
+  const handleSubmitTitleChange = async (title: string) => {
+    const result = await updatePageSectionTitle({
+      input: {
+        id: section.id,
+        title
+      }
+    })
+
+    if (result?.data?.updatePageSectionTitle) {
+      onUpdate(title)
+      setShowForm(false)
+    } else {
+      let error = result?.error
+      return error
+    }
   }
 
   useEffect(() => {
@@ -41,7 +64,7 @@ export function SectionTitle({
       {showForm ? (
         <MessageContentForm
           message={section.title}
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmitTitleChange}
           onCancel={() => setShowForm(false)}
           inputClassName="text-3xl font-semibold"
         />

@@ -5,7 +5,9 @@ import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
 
+import { graphql } from '@/lib/gql/generates'
 import { MoveSectionDirection } from '@/lib/gql/generates/graphql'
+import { useMutation } from '@/lib/tabby/gql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn, getContent } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -39,18 +41,26 @@ import { MessageContentForm } from './message-content-form'
 import { PageContext } from './page-context'
 import { SectionContentSkeleton } from './skeleton'
 
+const updatePageSectionContentMutation = graphql(/* GraphQL */ `
+  mutation updatePageSectionContent($input: UpdatePageSectionContentInput!) {
+    updatePageSectionContent(input: $input)
+  }
+`)
+
 export function SectionContent({
   className,
   section,
   isGenerating,
   enableMoveUp,
-  enableMoveDown
+  enableMoveDown,
+  onUpdate
 }: {
   className?: string
   section: SectionItem
   isGenerating?: boolean
   enableMoveUp?: boolean
   enableMoveDown?: boolean
+  onUpdate: (content: string) => void
 }) {
   const {
     mode,
@@ -62,6 +72,8 @@ export function SectionContent({
   } = useContext(PageContext)
   const isPending = pendingSectionIds.has(section.id) && !section.content
   const [showForm, setShowForm] = useState(false)
+  const updatePageSectionContent = useMutation(updatePageSectionContentMutation)
+
   // FIXME
   const sources: any[] = []
   const sourceLen = 0
@@ -74,9 +86,21 @@ export function SectionContent({
     onMoveSectionPosition(section.id, MoveSectionDirection.Down)
   }
 
-  const handleSubmitContentChange = async (message: string) => {
-    // todo submit change
-    setShowForm(false)
+  const handleSubmitContentChange = async (content: string) => {
+    const result = await updatePageSectionContent({
+      input: {
+        id: section.id,
+        content
+      }
+    })
+
+    if (result?.data?.updatePageSectionContent) {
+      onUpdate(content)
+      setShowForm(false)
+    } else {
+      let error = result?.error
+      return error
+    }
   }
 
   return (
