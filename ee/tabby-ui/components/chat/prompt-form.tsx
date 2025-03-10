@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useImperativeHandle } from 'react'
+import React, { useContext, useImperativeHandle, useRef } from 'react'
 import Document from '@tiptap/extension-document'
 import Mention from '@tiptap/extension-mention'
 import Paragraph from '@tiptap/extension-paragraph'
@@ -17,11 +17,9 @@ import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
 import { isEqual, uniqBy } from 'lodash-es'
-import { EditorFileContext } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
 import { NEWLINE_CHARACTER } from '@/lib/constants'
-import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import { updateSelectedModel } from '@/lib/stores/chat-store'
@@ -32,15 +30,18 @@ import { IconArrowRight, IconAtSign } from '@/components/ui/icons'
 
 import { ModelSelect } from '../textarea-search/model-select'
 import { ChatContext } from './chat-context'
-import { emitter } from './event-emitter'
 import {
   MentionList,
   MentionListActions,
   MentionListProps,
   PromptFormMentionExtension
 } from './form-editor/mention'
-import { fileItemToSourceItem, isSameFileContext } from './form-editor/utils'
-import { PromptFormRef, PromptProps } from './types'
+import {
+  fileItemToSourceItem,
+  getMention,
+  isSameFileContext
+} from './form-editor/utils'
+import { EditorMentionData, PromptFormRef, PromptProps } from './types'
 
 /**
  * It provides the main logic for the chat input with mention functionality.
@@ -56,7 +57,8 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
     } = useContext(ChatContext)
 
     const { selectedModel, models } = useSelectedModel()
-
+    // mentionData snapshoot
+    const prevMentionsRef = useRef<Array<EditorMentionData>>([])
     const doSubmit = useLatest(async () => {
       if (isLoading || !editor) return
 
@@ -186,8 +188,34 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
             )
           }
         },
+        onCreate({ editor }) {
+          prevMentionsRef.current = getMention(editor)
+        },
         onUpdate(props) {
           onUpdate?.(props)
+
+          if (!props.transaction.docChanged) {
+            return
+          }
+
+          // deal with mention diff
+          const { editor } = props
+          // get current mentions
+          const currentMentions: EditorMentionData[] = getMention(editor)
+
+          // detect changes
+          const added = currentMentions.filter(
+            c => !prevMentionsRef.current.some(p => isEqual(p, c))
+          )
+          const removed = prevMentionsRef.current.filter(
+            p => !currentMentions.some(c => isEqual(p, c))
+          )
+
+          if (added.length > 0 || removed.length > 0) {
+            onMentionUpdate({ added, removed })
+          }
+          // update snapshoot
+          prevMentionsRef.current = currentMentions
         }
       },
       [listFileInWorkspace]
@@ -246,81 +274,61 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
      * It adds new mentions and removes mentions that are no longer present in the editor.
      * Only mentions that refer to the whole file are considered.
      */
-    const diffAndUpdateMentionContext = useDebounceCallback(async () => {
-      if (!readFileContent || !editor) return
+    const updateMentionContext = useLatest(
+      async ({
+        added,
+        removed
+      }: {
+        added: EditorMentionData[]
+        removed: EditorMentionData[]
+      }) => {
+        if (!readFileContent || !editor) return
 
-      const contextInEditor: EditorFileContext[] = []
-      editor.view.state.doc.descendants(node => {
-        if (
-          node.type.name === 'mention' &&
-          (node.attrs.category === 'file' || node.attrs.category === 'symbol')
-        ) {
-          contextInEditor.push({
-            kind: 'file',
-            content: '',
-            filepath: node.attrs.fileItem.filepath,
-            range:
-              node.attrs.category === 'symbol'
-                ? node.attrs.fileItem.range
-                : undefined
-          })
+        let prevContext: FileContext[] = relevantContext
+        let updatedContext = [...prevContext]
+        for (const ctx of removed) {
+          updatedContext = updatedContext.filter(
+            prevCtx =>
+              !isSameFileContext(
+                prevCtx,
+                convertEditorContext({
+                  kind: 'file',
+                  content: '',
+                  ...ctx.fileItem
+                })
+              )
+          )
         }
-      })
 
-      let prevContext: FileContext[] = relevantContext
-      let updatedContext = [...prevContext]
-
-      const mentionsToAdd = contextInEditor.filter(
-        ctx =>
-          !prevContext.some(prevCtx =>
-            isSameFileContext(convertEditorContext(ctx), prevCtx)
-          )
-      )
-
-      // Remove mentions from the context if they are no longer present in the editor
-      const mentionsToRemove = prevContext.filter(
-        prevCtx =>
-          !contextInEditor.some(ctx =>
-            isSameFileContext(convertEditorContext(ctx), prevCtx)
-          )
-      )
-
-      for (const ctx of mentionsToRemove) {
-        updatedContext = updatedContext.filter(
-          prevCtx => !isEqual(prevCtx, ctx)
-        )
-      }
-
-      for (const ctx of mentionsToAdd) {
-        // Read the file content and add it to the context
-        const content = await readFileContent({
-          filepath: ctx.filepath,
-          range: ctx.range
-        })
-        updatedContext.push(
-          convertEditorContext({
-            kind: 'file',
-            content: content || '',
-            filepath: ctx.filepath,
-            range: ctx.range
+        for (const ctx of added) {
+          // Read the file content and add it to the context
+          const content = await readFileContent({
+            filepath: ctx.fileItem.filepath,
+            range: ctx.category === 'symbol' ? ctx.fileItem.range : undefined
           })
-        )
+          updatedContext.push(
+            convertEditorContext({
+              kind: 'file',
+              content: content || '',
+              filepath: ctx.fileItem.filepath,
+              range: ctx.category === 'symbol' ? ctx.fileItem.range : undefined
+            })
+          )
+        }
+
+        setRelevantContext(updatedContext)
       }
+    )
 
-      setRelevantContext(updatedContext)
-    }, 100)
-
-    useEffect(() => {
-      const onFileMentionUpdate = () => {
-        diffAndUpdateMentionContext.run()
-      }
-
-      emitter.on('file_mention_update', onFileMentionUpdate)
-
-      return () => {
-        emitter.off('file_mention_update', onFileMentionUpdate)
-      }
-    }, [])
+    const onMentionUpdate = ({
+      added,
+      removed
+    }: {
+      added: EditorMentionData[]
+      removed: EditorMentionData[]
+    }) => {
+      updateMentionContext.current({ added, removed })
+    }
 
     return (
       <div className={cn('relative flex flex-col', className)} {...props}>
@@ -375,7 +383,6 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
     )
   }
 )
-
 PromptForm.displayName = 'PromptForm'
 
 /**
@@ -383,8 +390,8 @@ PromptForm.displayName = 'PromptForm'
  */
 export default PromptForm
 
-const CustomKeyboardShortcuts = (onSubmit: () => void) =>
-  Extension.create({
+function CustomKeyboardShortcuts(onSubmit: () => void) {
+  return Extension.create({
     addKeyboardShortcuts() {
       return {
         Enter: ({ editor }) => {
@@ -402,3 +409,4 @@ const CustomKeyboardShortcuts = (onSubmit: () => void) =>
       }
     }
   })
+}

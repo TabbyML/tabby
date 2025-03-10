@@ -145,7 +145,6 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
 
       const currentContext: FileContext = relevantContext[idx]
       state.doc.descendants((node, pos) => {
-        // TODO: use a easy way to dealling with mention node
         if (
           node.type.name === 'mention' &&
           (node.attrs.category === 'file' || node.attrs.category === 'symbol')

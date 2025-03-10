@@ -77,6 +77,19 @@ export interface CategoryItem {
   icon: ReactNode
 }
 
+/**
+ * raw mention data in the form editor
+ */
+export type EditorMentionData =
+  | {
+      category: 'file'
+      fileItem: ListFileItem
+    }
+  | {
+      category: 'symbol'
+      fileItem: ListSymbolItem
+    }
+
 export type CategoryMenu = 'file' | 'symbol' | 'category'
 /**
  * Defines the attributes to be stored in a mention node.
