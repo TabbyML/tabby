@@ -386,6 +386,17 @@ impl From<PageDAO> for page::Page {
 
 impl From<PageSectionDAO> for page::Section {
     fn from(value: PageSectionDAO) -> Self {
+        let (code, code_file_list) = if let Some(attachment) = value.attachment {
+            let code = attachment
+                .0
+                .code
+                .map(|x| x.iter().map(|x| x.into()).collect());
+            let code_file_list = attachment.0.code_file_list.map(|x| x.into());
+
+            (code, code_file_list)
+        } else {
+            (None, None)
+        };
         Self {
             id: value.id.as_id(),
             page_id: value.page_id.as_id(),
@@ -394,6 +405,11 @@ impl From<PageSectionDAO> for page::Section {
             content: value.content.unwrap_or_default(),
             created_at: value.created_at,
             updated_at: value.updated_at,
+
+            attachments: page::SectionAttachment {
+                code: code.unwrap_or_default(),
+                code_file_list,
+            },
         }
     }
 }
@@ -407,6 +423,28 @@ impl From<&retrieval::AttachmentCode> for AttachmentCode {
             language: value.language.clone(),
             content: value.content.clone(),
             start_line: value.start_line.map(|x| x as usize),
+        }
+    }
+}
+
+impl From<&AttachmentCode> for retrieval::AttachmentCode {
+    fn from(value: &AttachmentCode) -> Self {
+        Self {
+            git_url: value.git_url.clone(),
+            commit: value.commit.clone(),
+            filepath: value.filepath.clone(),
+            language: value.language.clone(),
+            content: value.content.clone(),
+            start_line: value.start_line.map(|x| x as i32),
+        }
+    }
+}
+
+impl From<AttachmentCodeFileList> for retrieval::AttachmentCodeFileList {
+    fn from(value: AttachmentCodeFileList) -> Self {
+        Self {
+            file_list: value.file_list,
+            truncated: value.truncated,
         }
     }
 }

@@ -990,6 +990,7 @@ type Section {
   title: String!
   content: String!
   position: Int!
+  attachments: SectionAttachment!
   createdAt: DateTime!
   updatedAt: DateTime!
 }

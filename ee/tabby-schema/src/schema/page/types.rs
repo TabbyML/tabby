@@ -45,6 +45,8 @@ pub struct Section {
     pub content: String,
     pub position: i32,
 
+    pub attachments: SectionAttachment,
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
