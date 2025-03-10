@@ -169,6 +169,21 @@ export class Commands {
       const commandPalette = new CommandPalette(this.client, this.config);
       commandPalette.show();
     },
+    toggleLanguageInlineCompletion: async (languageId?: string) => {
+      if (!languageId) {
+        languageId = window.activeTextEditor?.document.languageId;
+        if (!languageId) {
+          return;
+        }
+      }
+      const isLanguageDisabled = this.config.disabledLanguages.includes(languageId);
+      const disabledLanguages = this.config.disabledLanguages;
+      if (isLanguageDisabled) {
+        await this.config.updateDisabledLanguages(disabledLanguages.filter((lang) => lang !== languageId));
+      } else {
+        await this.config.updateDisabledLanguages([...disabledLanguages, languageId]);
+      }
+    },
     "outputPanel.focus": () => {
       showOutputPanel();
     },
