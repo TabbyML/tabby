@@ -1,5 +1,5 @@
 // utils.ts
-import { JSONContent } from '@tiptap/core'
+import { Editor, JSONContent } from '@tiptap/core'
 import { SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
@@ -175,4 +175,14 @@ export const isSameFileContext = (a: FileContext, b: FileContext) => {
     a.range?.start === b.range?.start &&
     a.range?.end === b.range?.end
   )
+}
+
+export function getMention(editor: Editor) {
+  const currentMentions: any[] = []
+  editor.state.doc.descendants(node => {
+    if (node.type.name === 'mention') {
+      currentMentions.push(node.attrs)
+    }
+  })
+  return currentMentions
 }
