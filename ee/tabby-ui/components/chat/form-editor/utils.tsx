@@ -3,7 +3,7 @@ import { JSONContent } from '@tiptap/core'
 import { SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
-import { PLACEHOLDER_FILE_REGEX } from '@/lib/constants/regex'
+import { PLACEHOLDER_FILE_REGEX, PLACEHOLDER_SYMBOL_REGEX } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
 import {
   convertFromFilepath,
@@ -70,6 +70,17 @@ export function replaceAtMentionPlaceHolderWithAt(value: string) {
       const filepathInfo = JSON.parse(filepath) as Filepath
       const filepathString = getFilepathStringByChatPanelFilePath(filepathInfo)
       const labelName = resolveFileNameForDisplay(filepathString)
+      newValue = newValue.replace(match[0], `@${labelName}`)
+    } catch (error) {
+      continue
+    }
+  }
+
+  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(value)) !== null) {
+    try {
+      const symbolPlaceholder = match[1]
+      const symbolInfo = JSON.parse(symbolPlaceholder)
+      const labelName = symbolInfo.label || ''
       newValue = newValue.replace(match[0], `@${labelName}`)
     } catch (error) {
       continue
