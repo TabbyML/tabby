@@ -3,7 +3,10 @@ import { JSONContent } from '@tiptap/core'
 import { SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
-import { PLACEHOLDER_FILE_REGEX, PLACEHOLDER_SYMBOL_REGEX } from '@/lib/constants/regex'
+import {
+  PLACEHOLDER_FILE_REGEX,
+  PLACEHOLDER_SYMBOL_REGEX
+} from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
 import {
   convertFromFilepath,
