@@ -501,10 +501,12 @@ export function Page() {
       .subscription(createPageRunSubscription, {
         input: {
           titlePrompt,
-          codeQuery: codeSourceId ? {
-            sourceId: codeSourceId,
-            content: titlePrompt
-          } : null
+          codeQuery: codeSourceId
+            ? {
+                sourceId: codeSourceId,
+                content: titlePrompt
+              }
+            : null
         }
       })
       .subscribe(res => {
@@ -755,7 +757,7 @@ export function Page() {
 
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections ||
-    pageSectionData?.pageSections?.pageInfo?.hasNextPage,
+      pageSectionData?.pageSections?.pageInfo?.hasNextPage,
     200
   )
 
