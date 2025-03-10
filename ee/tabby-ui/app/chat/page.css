@@ -26,8 +26,10 @@ html {
   --accent-foreground: var(--vscode-editorSuggestWidget-selectedForeground);
 
   --ring: var(--vscode-focusBorder);
+
+  --sidebar-background: var(--vscode-sideBar-background)
 }
 
-.client-vscode .editor-bg {
-  background-color: hsl(var(--vscode-sideBar-background))
+.editor-bg {
+  background-color: hsl(var(--sidebar-background, var(--background)))
 }
