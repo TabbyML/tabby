@@ -501,7 +501,10 @@ export function Page() {
       .subscription(createPageRunSubscription, {
         input: {
           titlePrompt,
-          codeQuery: null
+          codeQuery: codeSourceId ? {
+            sourceId: codeSourceId,
+            content: titlePrompt
+          } : null
         }
       })
       .subscribe(res => {
