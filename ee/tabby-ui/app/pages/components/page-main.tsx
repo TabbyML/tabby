@@ -194,8 +194,12 @@ export function Page() {
               return {
                 ...x,
                 attachments: {
-                  code: x?.attachments.code ?? [],
+                  ...x.attachments,
                   codeFileList: data.codeFileList
+                  // codeFileList: {
+                  //   ...data.codeFileList,
+                  //   __typename: 'AttachmentCodeFileList'
+                  // }
                 }
               }
             } else {
@@ -209,22 +213,22 @@ export function Page() {
         setSections(prev => {
           if (!prev || !prev.length) return prev
 
-          const _sections = prev.slice()
-          const target = _sections.pop() as SectionItem
-          return [
-            ..._sections,
-            {
-              ...target,
-              attachments: {
-                // todo score
-                code: data.codes.map(x => ({
-                  __typename: 'AttachmentCode',
-                  ...x.code
-                })),
-                codeFileList: target?.attachments.codeFileList
+          return prev.map(x => {
+            if (x.id === data.id) {
+              return {
+                ...x,
+                attachments: {
+                  // todo score
+                  code: data.codes.map(x => ({
+                    ...x.code
+                  })),
+                  codeFileList: x.attachments.codeFileList
+                }
               }
             }
-          ]
+
+            return x
+          })
         })
         break
       }
@@ -318,8 +322,11 @@ export function Page() {
               return {
                 ...x,
                 attachments: {
-                  code: x?.attachments.code ?? [],
-                  codeFileList: data.codeFileList
+                  ...x.attachments,
+                  codeFileList: {
+                    ...data.codeFileList,
+                    __typename: 'AttachmentCodeFileList'
+                  }
                 }
               }
             } else {
@@ -333,22 +340,22 @@ export function Page() {
         setSections(prev => {
           if (!prev || !prev.length) return prev
 
-          const _sections = prev.slice()
-          const target = _sections.pop() as SectionItem
-          return [
-            ..._sections,
-            {
-              ...target,
-              attachments: {
-                // FIXME(juelang) add score
-                code: data.codes.map(x => ({
-                  __typename: 'AttachmentCode',
-                  ...x.code
-                })),
-                codeFileList: target?.attachments.codeFileList
+          return prev.map(x => {
+            if (x.id === data.id) {
+              return {
+                ...x,
+                attachments: {
+                  // todo score
+                  code: data.codes.map(x => ({
+                    ...x.code
+                  })),
+                  codeFileList: x.attachments.codeFileList
+                }
               }
+            } else {
+              return x
             }
-          ]
+          })
         })
         break
       }

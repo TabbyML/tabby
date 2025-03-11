@@ -22,6 +22,7 @@ export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
           title
           attachments {
             code {
+              __typename
               gitUrl
               commit
               filepath
@@ -30,6 +31,7 @@ export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
               startLine
             }
             codeFileList {
+              __typename
               fileList
               truncated
             }
@@ -70,6 +72,7 @@ export const createPageSectionRunSubscription = graphql(/* GraphQL */ `
         id
         codes {
           code {
+            __typename
             gitUrl
             commit
             filepath
@@ -117,6 +120,7 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
           title
           attachments {
             code {
+              __typename
               gitUrl
               commit
               filepath
@@ -125,6 +129,7 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
               startLine
             }
             codeFileList {
+              __typename
               fileList
               truncated
             }
@@ -134,6 +139,7 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
       ... on PageSectionAttachmentCodeFileList {
         id
         codeFileList {
+          __typename
           fileList
           truncated
         }
@@ -142,6 +148,7 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
         id
         codes {
           code {
+            __typename
             gitUrl
             commit
             filepath
