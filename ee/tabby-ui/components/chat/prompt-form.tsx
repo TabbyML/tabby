@@ -18,7 +18,6 @@ import './prompt-form.css'
 import { EditorState, PluginKey } from '@tiptap/pm/state'
 import { isEqual, uniqBy } from 'lodash-es'
 import { Slash } from 'lucide-react'
-import { ChatCommand } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
 import { NEWLINE_CHARACTER } from '@/lib/constants'
