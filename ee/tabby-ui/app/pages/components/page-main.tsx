@@ -865,7 +865,11 @@ export function Page() {
                             const enableMoveDown = index < sections.length - 1
                             return (
                               <motion.div
-                                layout={!isLoading && mode === 'edit' ? 'position' : false}
+                                layout={
+                                  !isLoading && mode === 'edit'
+                                    ? 'position'
+                                    : false
+                                }
                                 key={`section_${section.id}`}
                                 exit={{ opacity: 0 }}
                                 className="space-y-2"
