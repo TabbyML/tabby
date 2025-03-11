@@ -35,11 +35,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "tabby.config.clearApproveTokensShare",
-        "title": "Clear Token Sharing Approvals",
-        "category": "Tabby"
-      },
-      {
         "command": "tabby.toggleInlineCompletionTriggerMode",
         "title": "Toggle Code Completion Trigger Mode (Automatic/Manual)",
         "category": "Tabby"

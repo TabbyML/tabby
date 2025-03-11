@@ -65,18 +65,6 @@ export class Config extends EventEmitter {
     this.emit("updated");
   }
 
-  private get approvedShareToken(): boolean {
-    return this.memento.get("token.approvedShare", false);
-  }
-
-  isShareTokenApproved(): boolean {
-    return this.approvedShareToken;
-  }
-  async updateShareTokenApproved(value: boolean) {
-    await this.memento.update("token.approvedShare", value);
-    this.emit("updated");
-  }
-
   private async migrateServerRecordFromPastServerConfigs() {
     const pastServerConfigs = this.memento.get("server.pastServerConfigs", []);
     if (pastServerConfigs.length > 0) {
