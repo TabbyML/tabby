@@ -15,8 +15,10 @@ import {
 
 import './prompt-form.css'
 
-import { EditorState } from '@tiptap/pm/state'
+import { EditorState, PluginKey } from '@tiptap/pm/state'
 import { isEqual, uniqBy } from 'lodash-es'
+import { Slash } from 'lucide-react'
+import { ChatCommand } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
 import { NEWLINE_CHARACTER } from '@/lib/constants'
@@ -30,6 +32,13 @@ import { IconArrowRight, IconAtSign } from '@/components/ui/icons'
 
 import { ModelSelect } from '../textarea-search/model-select'
 import { ChatContext } from './chat-context'
+import {
+  availableCommands,
+  CommandList,
+  CommandListActions,
+  CommandListProps,
+  PromptFormCommandExtension
+} from './form-editor/command'
 import {
   MentionList,
   MentionListActions,
@@ -53,7 +62,8 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       readFileContent,
       relevantContext,
       setRelevantContext,
-      listSymbols
+      listSymbols,
+      executeCommand
     } = useContext(ChatContext)
 
     const { selectedModel, models } = useSelectedModel()
@@ -179,6 +189,81 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
                 }
               }
             }
+          }),
+
+          PromptFormCommandExtension.configure({
+            deleteTriggerWithBackspace: true,
+            suggestion: {
+              char: '/',
+              pluginKey: new PluginKey('command'),
+              items: ({ query }) => {
+                return availableCommands.filter(
+                  item =>
+                    !query ||
+                    item.name.toLowerCase().includes(query.toLowerCase())
+                )
+              },
+              render: () => {
+                let component: ReactRenderer<
+                  CommandListActions,
+                  CommandListProps
+                >
+                let popup: Instance[]
+
+                return {
+                  onStart: props => {
+                    component = new ReactRenderer(CommandList, {
+                      props: {
+                        ...props
+                      },
+                      editor: props.editor
+                    })
+
+                    if (!props.clientRect) {
+                      return
+                    }
+
+                    popup = tippy('body', {
+                      getReferenceClientRect:
+                        props.clientRect as GetReferenceClientRect,
+                      appendTo: () => document.body,
+                      content: component.element,
+                      showOnCreate: true,
+                      interactive: true,
+                      trigger: 'manual',
+                      placement: 'top-start',
+                      animation: 'shift-away'
+                    })
+                  },
+                  onUpdate: props => {
+                    component.updateProps(props)
+                  },
+                  onExit: () => {
+                    popup[0].destroy()
+                    component.destroy()
+                  },
+                  onKeyDown: props => {
+                    if (props.event.key === 'Escape') {
+                      popup[0].hide()
+                      return true
+                    }
+                    return component.ref?.onKeyDown(props) ?? false
+                  }
+                }
+              },
+              allow: ({ state }) => {
+                let hasCommand = false
+
+                state.doc.descendants(node => {
+                  if (node.type.name === 'slashCommand') {
+                    hasCommand = true
+                    return false
+                  }
+                })
+
+                return !hasCommand
+              }
+            }
           })
         ],
         editorProps: {
@@ -252,6 +337,28 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       setTimeout(() => {
         editor?.chain().focus().run()
       })
+    }
+    const onInsertCommand = (prefix: string) => {
+      if (!editor) return
+
+      editor
+        .chain()
+        .focus()
+        .command(({ tr, state }) => {
+          const { $from } = state.selection
+          const isAtLineStart = $from.parentOffset === 0
+          const isPrecededBySpace =
+            $from.nodeBefore?.text?.endsWith(' ') ?? false
+
+          if (isAtLineStart || isPrecededBySpace) {
+            tr.insertText(prefix)
+          } else {
+            tr.insertText(' ' + prefix)
+          }
+
+          return true
+        })
+        .run()
     }
 
     /**
@@ -352,7 +459,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <div className="-ml-1.5 flex items-center gap-2">
+          <div className="-ml-1.5 flex items-center gap-1">
             {!!listFileInWorkspace && (
               <Button
                 variant="ghost"
@@ -362,6 +469,14 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
                 <IconAtSign />
               </Button>
             )}
+
+            <Button
+              variant="ghost"
+              className="h-auto shrink-0  p-1.5 text-foreground/90"
+              onClick={e => onInsertCommand('/')}
+            >
+              <Slash className="h-3.5 w-3.5 -rotate-12" />
+            </Button>
             <ModelSelect
               models={models}
               value={selectedModel}
