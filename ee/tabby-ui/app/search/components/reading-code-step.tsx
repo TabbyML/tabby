@@ -190,7 +190,8 @@ export function ReadingCodeStepper({
                 defaultOpen={!isReadingCode}
                 isLastItem={lastItem === 'snippet'}
               >
-                {!!totalContextLength && (
+                {(!!clientCodeContexts?.length ||
+                  !!serverCodeContexts?.length) && (
                   <div className="mb-3 mt-2">
                     <div className="flex flex-wrap gap-2 text-xs font-semibold">
                       {clientCodeContexts?.map((item, index) => {
