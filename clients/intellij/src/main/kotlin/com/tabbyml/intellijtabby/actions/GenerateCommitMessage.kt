@@ -50,8 +50,10 @@ class GenerateCommitMessage : AnAction() {
 
           val commitMessage = try {
             val result = server.chatFeature.generateCommitMessage(GenerateCommitMessageParams(projectDir)).await()
-            result.commitMessage.ifBlank {
+            if (result?.commitMessage.isNullOrBlank()) {
               throw NoCommitMessageGeneratedException("No commit message generated.")
+            } else {
+              result.commitMessage
             }
           } catch (e: Exception) {
             invokeLater {
