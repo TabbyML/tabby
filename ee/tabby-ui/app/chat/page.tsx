@@ -354,6 +354,12 @@ export default function ChatPage() {
     )
   }
 
+  const onThreadDeleted = (id: string) => {
+    if (id === threadId) {
+      chatRef.current?.newChat()
+    }
+  }
+
   if (errorMessage) {
     return (
       <StaticContent>
@@ -408,6 +414,7 @@ export default function ChatPage() {
         <HistoryView
           onClose={() => setShowHistory(false)}
           onNavigate={(id: string) => setThreadId(id)}
+          onDeleted={onThreadDeleted}
         />
       )}
       <Chat

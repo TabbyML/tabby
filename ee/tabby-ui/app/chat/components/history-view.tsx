@@ -13,9 +13,14 @@ import LoadingWrapper from '@/components/loading-wrapper'
 interface HistoryViewProps {
   onClose: () => void
   onNavigate: (threadId: string) => void
+  onDeleted: (threadId: string) => void
 }
 
-export function HistoryView({ onClose, onNavigate }: HistoryViewProps) {
+export function HistoryView({
+  onClose,
+  onNavigate,
+  onDeleted
+}: HistoryViewProps) {
   const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
   const [{ data, fetching }] = useQuery({
     query: listMyThreads,
@@ -53,7 +58,11 @@ export function HistoryView({ onClose, onNavigate }: HistoryViewProps) {
   const deleteThread = useMutation(deleteThreadMutation)
 
   const onDeleteThread = (threadId: string) => {
-    return deleteThread({ id: threadId })
+    return deleteThread({ id: threadId }).then(data => {
+      if (data?.data?.deleteThread) {
+        onDeleted(threadId)
+      }
+    })
   }
 
   return (

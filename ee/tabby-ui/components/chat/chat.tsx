@@ -65,13 +65,13 @@ import {
 } from '@/lib/utils'
 
 import LoadingWrapper from '../loading-wrapper'
-import { Skeleton } from '../ui/skeleton'
 import { ChatContext } from './chat-context'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
 import { QuestionAnswerList } from './question-answer'
+import { QaPairSkeleton } from './skeletion'
 import { ChatRef, PromptFormRef } from './types'
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -211,6 +211,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
 
               if (!!currentPair.user && !!currentPair.assistant) {
                 pairs.push(currentPair as QuestionAnswerPair)
+                currentPair = {}
               }
             }
           }
@@ -218,9 +219,13 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         return pairs
       }
 
-      // todo erro handling
+      if (threadMessagesStale) return
+
       if (threadMessages?.threadMessages?.edges?.length && propsThreadId) {
-        setQaPairs(formatQaPairs(threadMessages.threadMessages.edges))
+        const nextQair = formatQaPairs(threadMessages.threadMessages.edges)
+        setQaPairs(nextQair)
+      } else {
+        setQaPairs([])
       }
     }, [threadMessages])
 
@@ -737,6 +742,12 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     }, [isDataSetup])
 
     React.useEffect(() => {
+      if (threadMessagesError && !initialMessages) {
+        setInitialized(true)
+      }
+    }, [threadMessagesError])
+
+    React.useEffect(() => {
       storeSessionState?.({
         threadId
       })
@@ -793,10 +804,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             {initialized && (
               <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
                 <LoadingWrapper
-                  loading={fetchingMessages}
+                  loading={fetchingMessages || threadMessagesStale}
                   triggerOnce={false}
-                  fallback={<Skeleton />}
-                  delay={200}
+                  fallback={<QaPairSkeleton />}
+                  delay={propsThreadId ? 0 : 200}
                 >
                   {qaPairs?.length ? (
                     <QuestionAnswerList messages={qaPairs} />
