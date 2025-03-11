@@ -24,9 +24,11 @@ import {
   IconArrowDown,
   IconCheckCircled,
   IconCircleDot,
+  IconCode,
   IconEdit,
   IconGitMerge,
   IconGitPullRequest,
+  IconListTree,
   IconTrash
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -238,11 +240,18 @@ function SourceCard({
 
   if (isCodeFileList) {
     return (
-      <div className="rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
-        <ScrollArea className="relative">
-          <div className="text-md sticky top-0 w-full">Code file list</div>
-          <pre className="text-xs">{source.fileList.join('\n')}</pre>
-        </ScrollArea>
+      <div className="flex gap-2 overflow-hidden rounded-lg border bg-accent p-3 text-accent-foreground hover:bg-accent/70">
+        <div className="flex h-5 w-5 items-center justify-center">
+          <IconListTree />
+        </div>
+        <div className="flex max-h-[100px] flex-col">
+          <div className="shrink-0 text-xs">
+            <span className="font-semibold leading-5">Code file list</span>
+          </div>
+          <ScrollArea className="relative flex-1">
+            <pre className="text-xs">{source.fileList.join('\n')}</pre>
+          </ScrollArea>
+        </div>
       </div>
     )
   }
@@ -250,14 +259,15 @@ function SourceCard({
   if (isCode) {
     return (
       <div className="flex w-full items-start gap-2">
-        <div className="relative flex flex-1 cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
+        <div className="relative flex flex-1 cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
+          <div className="flex h-5 w-5 items-center justify-center">
+            <IconCode />
+          </div>
           <div className="flex flex-1 flex-col justify-between gap-y-1">
-            <div className="flex flex-col gap-y-0.5">
-              <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-                {resolveFileNameForDisplay(source.filepath)}
-                <CodeRangeLabel range={getRangeFromAttachmentCode(source)} />
-              </p>
-            </div>
+            <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold leading-5">
+              {resolveFileNameForDisplay(source.filepath)}
+              <CodeRangeLabel range={getRangeFromAttachmentCode(source)} />
+            </p>
             <div className="flex items-center text-xs text-muted-foreground">
               <div className="flex w-full flex-1 items-center justify-between gap-1">
                 <div className="flex items-center">
