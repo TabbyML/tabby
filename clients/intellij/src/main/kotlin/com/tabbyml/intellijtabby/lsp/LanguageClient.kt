@@ -57,7 +57,9 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
       ), capabilities = ClientCapabilities(
         textDocument = TextDocumentClientCapabilities(
           synchronization = SynchronizationCapabilities(),
-          inlineCompletion = InlineCompletionCapabilities(),
+          inlineCompletion = InlineCompletionCapabilities(
+            dynamicRegistration = true,
+          ),
         ),
         workspace = WorkspaceClientCapabilities().apply {
           workspaceFolders = true
@@ -224,12 +226,18 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   }
 
   override fun registerCapability(params: RegistrationParams): CompletableFuture<Void> {
-    // nothing to do for now
+    params.registrations.forEach {
+      project.safeSyncPublisher(CapabilityRegistrationListener.TOPIC)
+        ?.onRegisterCapability(it.id, it.method, it.registerOptions)
+    }
     return CompletableFuture<Void>().apply { complete(null) }
   }
 
   override fun unregisterCapability(params: UnregistrationParams): CompletableFuture<Void> {
-    // nothing to do for now
+    params.unregisterations.forEach {
+      project.safeSyncPublisher(CapabilityRegistrationListener.TOPIC)
+        ?.onUnregisterCapability(it.id, it.method)
+    }
     return CompletableFuture<Void>().apply { complete(null) }
   }
 
@@ -357,6 +365,16 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     companion object {
       @Topic.ProjectLevel
       val TOPIC = Topic(StatusListener::class.java, Topic.BroadcastDirection.NONE)
+    }
+  }
+
+  interface CapabilityRegistrationListener {
+    fun onRegisterCapability(id: String, method: String, options: Any) {}
+    fun onUnregisterCapability(id: String, method: String) {}
+
+    companion object {
+      @Topic.ProjectLevel
+      val TOPIC = Topic(CapabilityRegistrationListener::class.java, Topic.BroadcastDirection.NONE)
     }
   }
 }

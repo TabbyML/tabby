@@ -12,11 +12,13 @@ import kotlinx.coroutines.launch
 class StartupActivity : ProjectActivity {
   override suspend fun execute(project: Project) {
     // initialize services
+    project.serviceOrNull<CombinedState>()
+    project.serviceOrNull<FeaturesState>()
+    project.serviceOrNull<InlineCompletionService>()
+
     val connectionService = project.serviceOrNull<ConnectionService>()
     CoroutineScope(Dispatchers.IO).launch {
       connectionService?.getServerAsync()
     }
-    project.serviceOrNull<CombinedState>()
-    project.serviceOrNull<InlineCompletionService>()
   }
 }
