@@ -81,12 +81,15 @@ export async function activate(context: ExtensionContext) {
   ]);
 
   const tryReadAuthenticationToken = async (): Promise<{ token: string | undefined }> => {
-    const response = await window.showInformationMessage(
-      `Would you like to share your Tabby's token with endpoint ${config.serverEndpoint}?`,
-      { modal: true, detail: "This will share your token to third parties VSCode extension" },
-      "Yes",
-      "No",
-    );
+const response = await window.showInformationMessage(
+  "Do you consent to sharing your Tabby token with another VSCode extension?",
+  { 
+    modal: true, 
+    detail: `The extension requests your token to access the Tabby server at ${config.serverEndpoint}. Sharing your token allows the extension to perform actions as if it were you. Only proceed if you trust the extension.` 
+  },
+  "Yes",
+  "No"
+);
 
     if (response === "Yes") {
       return { token: config.serverRecords.get(config.serverEndpoint)?.token };
