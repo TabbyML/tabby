@@ -10,6 +10,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.WindowManager
 import com.tabbyml.intellijtabby.events.FeaturesState
 import com.tabbyml.intellijtabby.git.GitProvider
@@ -44,17 +45,37 @@ class GenerateCommitMessage : AnAction() {
           indicator.isIndeterminate = true
           indicator.text = "Generating commit message..."
 
+          val parentComponent = WindowManager.getInstance().getFrame(project)
           val server = project.serviceOrNull<ConnectionService>()?.getServerAsync() ?: return@launch
-          val result = server.chatFeature.generateCommitMessage(GenerateCommitMessageParams(projectDir)).await()
+
+          val commitMessage = try {
+            val result = server.chatFeature.generateCommitMessage(GenerateCommitMessageParams(projectDir)).await()
+            result.commitMessage.ifBlank {
+              throw NoCommitMessageGeneratedException("No commit message generated.")
+            }
+          } catch (e: Exception) {
+            invokeLater {
+              Messages.showErrorDialog(
+                parentComponent,
+                if (e is NoCommitMessageGeneratedException) {
+                  e.message
+                } else {
+                  "Failed to generate commit message. ${e.message}"
+                },
+                "Generate Commit Message"
+              )
+            }
+            return@launch
+          }
 
           invokeLater {
-            val textArea = JTextArea(result.commitMessage, 10, 80)
+            val textArea = JTextArea(commitMessage, 10, 80)
             textArea.lineWrap = true
             val panel = JPanel(BorderLayout())
             panel.add(JScrollPane(textArea), BorderLayout.CENTER)
 
             val selection = JOptionPane.showOptionDialog(
-              WindowManager.getInstance().getFrame(project),
+              parentComponent,
               panel,
               "Generate Commit Message",
               JOptionPane.OK_CANCEL_OPTION,
@@ -85,6 +106,8 @@ class GenerateCommitMessage : AnAction() {
 
     ProgressManager.getInstance().run(task)
   }
+
+  class NoCommitMessageGeneratedException(message: String) : Exception(message)
 
   override fun update(e: AnActionEvent) {
     val project = e.project ?: e.getData(CommonDataKeys.PROJECT)
