@@ -234,7 +234,13 @@ impl DbConn {
                 ?2,
                 (SELECT next_pos FROM max_pos)
             RETURNING
-              id
+              id,
+              page_id,
+              title,
+              position,
+              content,
+              created_at as "created_at: DateTime<Utc>",
+              updated_at as "updated_at: DateTime<Utc>"
             "#,
             page_id,
             title,
@@ -242,9 +248,16 @@ impl DbConn {
         .fetch_one(&self.pool)
         .await?;
 
-        self.get_page_section(res.id)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Section not found after created"))
+        Ok(PageSectionDAO {
+            id: res.id,
+            page_id: res.page_id,
+            title: res.title,
+            position: res.position,
+            content: res.content,
+            created_at: res.created_at,
+            updated_at: res.updated_at,
+            attachment: None,
+        })
     }
 
     pub async fn update_page_section_code_attachments(
