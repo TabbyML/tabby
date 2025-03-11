@@ -164,6 +164,27 @@ const createPageRunSubscription = graphql(/* GraphQL */ `
           }
         }
       }
+      ... on AttachmentCodeFileList {
+        fileList
+        truncated
+      }
+      ... on AttachmentCodeHits {
+        hits {
+          code {
+            gitUrl
+            commit
+            filepath
+            language
+            content
+            startLine
+          }
+          scores {
+            rrf
+            bm25
+            embedding
+          }
+        }
+      }
       ... on PageSectionContentDelta {
         id
         delta
