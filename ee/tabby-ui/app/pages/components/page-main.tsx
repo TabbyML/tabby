@@ -5,15 +5,13 @@ import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compact, uniqBy } from 'lodash-es'
-import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
-import { graphql } from '@/lib/gql/generates'
 import {
+  CreatePageRunSubscription,
   CreatePageSectionRunSubscription,
-  CreateThreadToPageRunSubscription,
   MoveSectionDirection
 } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
@@ -42,6 +40,14 @@ import LoadingWrapper from '@/components/loading-wrapper'
 import NotFoundPage from '@/components/not-found-page'
 import { UserAvatar } from '@/components/user-avatar'
 
+import {
+  createPageRunSubscription,
+  createPageSectionRunSubscription,
+  createThreadToPageRunSubscription,
+  deletePageSectionMutation,
+  movePageSectionPositionMutation
+} from '../lib/query'
+import { formatTime } from '../lib/utils'
 import { PageItem, SectionItem } from '../types'
 import { Header } from './header'
 import { Navbar } from './nav-bar'
@@ -57,159 +63,6 @@ import {
   SectionsSkeleton,
   SectionTitleSkeleton
 } from './skeleton'
-
-const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
-  subscription createThreadToPageRun($threadId: ID!) {
-    createThreadToPageRun(threadId: $threadId) {
-      __typename
-      ... on PageCreated {
-        id
-        authorId
-        title
-      }
-      ... on PageContentDelta {
-        delta
-      }
-      ... on PageContentCompleted {
-        id
-      }
-      ... on PageSectionsCreated {
-        sections {
-          id
-          position
-          title
-          attachments {
-            code {
-              gitUrl
-              commit
-              filepath
-              language
-              content
-              startLine
-            }
-            codeFileList {
-              fileList
-              truncated
-            }
-          }
-        }
-      }
-      ... on PageSectionContentDelta {
-        id
-        delta
-      }
-      ... on PageSectionContentCompleted {
-        id
-      }
-      ... on PageCompleted {
-        id
-      }
-    }
-  }
-`)
-
-const createPageSectionRunSubscription = graphql(/* GraphQL */ `
-  subscription createPageSectionRun($input: CreatePageSectionRunInput!) {
-    createPageSectionRun(input: $input) {
-      __typename
-      ... on PageSection {
-        id
-        title
-        position
-      }
-      ... on PageSectionContentDelta {
-        id
-        delta
-      }
-      ... on PageSectionContentCompleted {
-        id
-      }
-    }
-  }
-`)
-
-const createPageRunSubscription = graphql(/* GraphQL */ `
-  subscription createPageRun($input: CreatePageRunInput!) {
-    createPageRun(input: $input) {
-      __typename
-      ... on PageCreated {
-        id
-        authorId
-        title
-      }
-      ... on PageContentDelta {
-        delta
-      }
-      ... on PageContentCompleted {
-        id
-      }
-      ... on PageSectionsCreated {
-        sections {
-          id
-          position
-          title
-          attachments {
-            code {
-              gitUrl
-              commit
-              filepath
-              language
-              content
-              startLine
-            }
-            codeFileList {
-              fileList
-              truncated
-            }
-          }
-        }
-      }
-      ... on AttachmentCodeFileList {
-        fileList
-        truncated
-      }
-      ... on AttachmentCodeHits {
-        hits {
-          code {
-            gitUrl
-            commit
-            filepath
-            language
-            content
-            startLine
-          }
-          scores {
-            rrf
-            bm25
-            embedding
-          }
-        }
-      }
-      ... on PageSectionContentDelta {
-        id
-        delta
-      }
-      ... on PageSectionContentCompleted {
-        id
-      }
-      ... on PageCompleted {
-        id
-      }
-    }
-  }
-`)
-
-const deletePageSectionMutation = graphql(/* GraphQL */ `
-  mutation DeletePageSection($sectionId: ID!) {
-    deletePageSection(sectionId: $sectionId)
-  }
-`)
-
-const movePageSectionPositionMutation = graphql(/* GraphQL */ `
-  mutation movePageSection($id: ID!, $direction: MoveSectionDirection!) {
-    movePageSection(id: $id, direction: $direction)
-  }
-`)
 
 const PAGE_SIZE = 30
 
@@ -287,7 +140,7 @@ export function Page() {
   }
 
   const processPageRunItemStream = (
-    data: CreateThreadToPageRunSubscription['createThreadToPageRun']
+    data: CreatePageRunSubscription['createPageRun']
   ) => {
     switch (data.__typename) {
       case 'PageCreated':
@@ -322,17 +175,56 @@ export function Page() {
         const nextSections: SectionItem[] = data.sections.map(x => ({
           ...x,
           pageId: pageId as string,
-          content: ''
+          content: '',
+          attachments: {
+            code: [],
+            codeFileList: null
+          }
         }))
         setPendingSectionIds(new Set(data.sections.map(x => x.id)))
         setSections(nextSections)
         break
       }
       case 'AttachmentCodeHits': {
-        const hits = data
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          const _sections = prev.slice()
+          const target = _sections.pop() as SectionItem
+          return [
+            ..._sections,
+            {
+              ...target,
+              attachments: {
+                // todo score
+                code: data.hits.map(x => ({
+                  __typename: 'AttachmentCode',
+                  ...x.code
+                })),
+                codeFileList: target?.attachments.codeFileList
+              }
+            }
+          ]
+        })
         break
       }
       case 'AttachmentCodeFileList': {
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          const _sections = prev.slice()
+          const target = _sections.pop() as SectionItem
+          return [
+            ..._sections,
+            {
+              ...target,
+              attachments: {
+                code: target?.attachments.code ?? [],
+                codeFileList: data
+              }
+            }
+          ]
+        })
         break
       }
       case 'PageSectionContentDelta': {
@@ -389,7 +281,7 @@ export function Page() {
               id,
               title,
               position,
-              content: '', 
+              content: '',
               pageId: pageId as string,
               attachments: {
                 code: [],
@@ -414,6 +306,48 @@ export function Page() {
             }
             return x
           })
+        })
+        break
+      }
+      case 'AttachmentCodeFileList': {
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          const _sections = prev.slice()
+          const target = _sections.pop() as SectionItem
+          return [
+            ..._sections,
+            {
+              ...target,
+              attachments: {
+                code: target?.attachments.code ?? [],
+                codeFileList: data
+              }
+            }
+          ]
+        })
+        break
+      }
+      case 'AttachmentCodeHits': {
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          const _sections = prev.slice()
+          const target = _sections.pop() as SectionItem
+          return [
+            ..._sections,
+            {
+              ...target,
+              attachments: {
+                // todo score
+                code: data.hits.map(x => ({
+                  __typename: 'AttachmentCode',
+                  ...x.code
+                })),
+                codeFileList: target?.attachments.codeFileList
+              }
+            }
+          ]
         })
         break
       }
@@ -510,6 +444,7 @@ export function Page() {
           return
         }
 
+        // FIXME(jueliang)
         processPageRunItemStream(value)
       })
 
@@ -1055,20 +990,4 @@ function ErrorView({ error, pageIdFromURL }: ErrorViewProps) {
       </div>
     </div>
   )
-}
-
-function formatTime(time: string) {
-  const targetTime = moment(time)
-
-  if (targetTime.isBefore(moment().subtract(1, 'year'))) {
-    const timeText = targetTime.format('MMM D, YYYY, h:mm A')
-    return timeText
-  }
-
-  if (targetTime.isBefore(moment().subtract(1, 'month'))) {
-    const timeText = targetTime.format('MMM D, hh:mm A')
-    return `${timeText}`
-  }
-
-  return `${targetTime.fromNow()}`
 }

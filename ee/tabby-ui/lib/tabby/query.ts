@@ -640,6 +640,7 @@ export const listPageSections = graphql(/* GraphQL */ `
           position
           attachments {
             code {
+              __typename
               gitUrl
               commit
               filepath
@@ -648,6 +649,7 @@ export const listPageSections = graphql(/* GraphQL */ `
               startLine
             }
             codeFileList {
+              __typename
               fileList
               truncated
             }

@@ -1,17 +1,25 @@
 'use client'
 
-import { useContext, useState } from 'react'
+import { useContext, useState, useMemo } from 'react'
 import DOMPurify from 'dompurify'
 import he from 'he'
+import { compact } from 'lodash-es'
 import { marked } from 'marked'
 
 import { graphql } from '@/lib/gql/generates'
-import { MoveSectionDirection } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
+import {
+  AttachmentCodeFileList,
+  MoveSectionDirection
+} from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
-import { cn, getContent } from '@/lib/utils'
+import {
+  cn,
+  getContent,
+  getRangeFromAttachmentCode,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   IconArrowDown,
   IconCheckCircled,
@@ -21,16 +29,17 @@ import {
   IconGitPullRequest,
   IconTrash
 } from '@/components/ui/icons'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CodeRangeLabel } from '@/components/code-range-label'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { MessageMarkdown } from '@/components/message-markdown'
 import { SiteFavicon } from '@/components/site-favicon'
@@ -74,9 +83,12 @@ export function SectionContent({
   const [showForm, setShowForm] = useState(false)
   const updatePageSectionContent = useMutation(updatePageSectionContentMutation)
 
-  // FIXME
-  const sources: any[] = []
-  const sourceLen = 0
+  const attachmentCode = section.attachments.code
+  const attachmentCodeFileList = section.attachments.codeFileList
+  const sources = useMemo(() => {
+    return compact([attachmentCodeFileList, ...attachmentCode])
+  }, [attachmentCodeFileList, attachmentCode])
+  const sourceLen = attachmentCode?.length
 
   const onMoveUp = () => {
     onMoveSectionPosition(section.id, MoveSectionDirection.Up)
@@ -122,6 +134,7 @@ export function SectionContent({
               canWrapLongLines={!isGenerating}
               supportsOnApplyInEditorV2={false}
               className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
+              attachmentCode={attachmentCode}
             />
           )}
           {!isGenerating && (
@@ -143,9 +156,6 @@ export function SectionContent({
                         return <SourceCard source={x} key={index} />
                       })}
                     </div>
-                    <SheetFooter>
-                      <Button>Remove sources</Button>
-                    </SheetFooter>
                   </SheetContent>
                 </Sheet>
               )}
@@ -214,22 +224,56 @@ export function SectionContent({
 function SourceCard({
   source
 }: {
-  source: AttachmentDocItem | AttachmentCodeItem
+  source: AttachmentDocItem | AttachmentCodeItem | AttachmentCodeFileList
 }) {
-  const { mode } = useContext(PageContext)
-  const isEditMode = mode === 'edit'
-
+  const isCodeFileList = source.__typename === 'AttachmentCodeFileList'
+  const isCode =
+    source.__typename === 'MessageAttachmentCode' ||
+    source.__typename === 'AttachmentCode'
   const isDoc =
     source.__typename === 'MessageAttachmentIssueDoc' ||
     source.__typename === 'MessageAttachmentPullDoc' ||
     source.__typename === 'MessageAttachmentWebDoc'
-
   const isCommit = source.__typename === 'MessageAttachmentCommitDoc'
+
+  if (isCodeFileList) {
+    return (
+      <div className="flex w-full">
+        <ScrollArea>
+          <pre>{source.fileList.join('\n')}</pre>
+        </ScrollArea>
+      </div>
+    )
+  }
+
+  if (isCode) {
+    return (
+      <div className="flex w-full items-start gap-2">
+        <div className="relative flex flex-1 cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
+          <div className="flex flex-1 flex-col justify-between gap-y-1">
+            <div className="flex flex-col gap-y-0.5">
+              <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+                {resolveFileNameForDisplay(source.filepath)}
+                <CodeRangeLabel range={getRangeFromAttachmentCode(source)} />
+              </p>
+            </div>
+            <div className="flex items-center text-xs text-muted-foreground">
+              <div className="flex w-full flex-1 items-center justify-between gap-1">
+                <div className="flex items-center">
+                  <SiteFavicon hostname={source.gitUrl} />
+                  <p className="ml-1 truncate">{source.gitUrl}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (isDoc) {
     return (
       <div className="flex items-start gap-2">
-        {isEditMode && <Checkbox className="mt-2" />}
         <div
           className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60"
           onClick={() => window.open(source.link)}
@@ -243,7 +287,6 @@ function SourceCard({
   if (isCommit) {
     return (
       <div className="flex items-start gap-2">
-        {isEditMode && <Checkbox className="mt-2" />}
         <div className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
           <CommitSourceCard source={source} />
         </div>
@@ -251,28 +294,7 @@ function SourceCard({
     )
   }
 
-  return (
-    <div className="flex w-full items-start gap-2">
-      {isEditMode && <Checkbox className="mt-2" />}
-      <div className="relative flex flex-1 cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
-        <div className="flex flex-1 flex-col justify-between gap-y-1">
-          <div className="flex flex-col gap-y-0.5">
-            <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-              {source.filepath}
-            </p>
-          </div>
-          <div className="flex items-center text-xs text-muted-foreground">
-            <div className="flex w-full flex-1 items-center justify-between gap-1">
-              <div className="flex items-center">
-                <SiteFavicon hostname={source.gitUrl} />
-                <p className="ml-1 truncate">{source.gitUrl}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+  return null
 }
 
 function DocSourceCard({ source }: { source: AttachmentDocItem }) {
