@@ -1,17 +1,17 @@
 'use client'
 
-import { useContext, useState, useMemo } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { compact } from 'lodash-es'
 import { marked } from 'marked'
 
 import { graphql } from '@/lib/gql/generates'
-import { useMutation } from '@/lib/tabby/gql'
 import {
   AttachmentCodeFileList,
   MoveSectionDirection
 } from '@/lib/gql/generates/graphql'
+import { useMutation } from '@/lib/tabby/gql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import {
   cn,
@@ -238,9 +238,10 @@ function SourceCard({
 
   if (isCodeFileList) {
     return (
-      <div className="flex w-full">
-        <ScrollArea>
-          <pre>{source.fileList.join('\n')}</pre>
+      <div className="rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
+        <ScrollArea className="relative">
+          <div className="text-md sticky top-0 w-full">Code file list</div>
+          <pre className="text-xs">{source.fileList.join('\n')}</pre>
         </ScrollArea>
       </div>
     )

@@ -59,12 +59,16 @@ export const createPageSectionRunSubscription = graphql(/* GraphQL */ `
         title
         position
       }
-      ... on AttachmentCodeFileList {
-        fileList
-        truncated
+      ... on PageSectionAttachmentCodeFileList {
+        id
+        codeFileList {
+          fileList
+          truncated
+        }
       }
-      ... on AttachmentCodeHits {
-        hits {
+      ... on PageSectionAttachmentCode {
+        id
+        codes {
           code {
             gitUrl
             commit
@@ -127,12 +131,16 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
           }
         }
       }
-      ... on AttachmentCodeFileList {
-        fileList
-        truncated
+      ... on PageSectionAttachmentCodeFileList {
+        id
+        codeFileList {
+          fileList
+          truncated
+        }
       }
-      ... on AttachmentCodeHits {
-        hits {
+      ... on PageSectionAttachmentCode {
+        id
+        codes {
           code {
             gitUrl
             commit

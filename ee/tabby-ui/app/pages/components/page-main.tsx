@@ -185,7 +185,27 @@ export function Page() {
         setSections(nextSections)
         break
       }
-      case 'AttachmentCodeHits': {
+      case 'PageSectionAttachmentCodeFileList': {
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          return prev.map(x => {
+            if (x.id === data.id) {
+              return {
+                ...x,
+                attachments: {
+                  code: x?.attachments.code ?? [],
+                  codeFileList: data.codeFileList
+                }
+              }
+            } else {
+              return x
+            }
+          })
+        })
+        break
+      }
+      case 'PageSectionAttachmentCode': {
         setSections(prev => {
           if (!prev || !prev.length) return prev
 
@@ -197,7 +217,7 @@ export function Page() {
               ...target,
               attachments: {
                 // todo score
-                code: data.hits.map(x => ({
+                code: data.codes.map(x => ({
                   __typename: 'AttachmentCode',
                   ...x.code
                 })),
@@ -208,30 +228,10 @@ export function Page() {
         })
         break
       }
-      case 'AttachmentCodeFileList': {
-        setSections(prev => {
-          if (!prev || !prev.length) return prev
-
-          const _sections = prev.slice()
-          const target = _sections.pop() as SectionItem
-          return [
-            ..._sections,
-            {
-              ...target,
-              attachments: {
-                code: target?.attachments.code ?? [],
-                codeFileList: data
-              }
-            }
-          ]
-        })
-        break
-      }
       case 'PageSectionContentDelta': {
         setCurrentSectionId(data.id)
         setSections(prev => {
-          const section = prev?.find(x => x.id === data.id)
-          if (!section || !prev) {
+          if (!prev) {
             return prev
           }
           return prev.map(x => {
@@ -293,12 +293,12 @@ export function Page() {
         break
       }
       case 'PageSectionContentDelta': {
-        const { delta } = data
+        const { delta, id } = data
         setSections(prev => {
           if (!prev) return prev
           const len = prev.length
-          return prev.map((x, index) => {
-            if (index === len - 1) {
+          return prev.map(x => {
+            if (x.id === id) {
               return {
                 ...x,
                 content: x.content + delta
@@ -309,26 +309,27 @@ export function Page() {
         })
         break
       }
-      case 'AttachmentCodeFileList': {
+      case 'PageSectionAttachmentCodeFileList': {
         setSections(prev => {
           if (!prev || !prev.length) return prev
 
-          const _sections = prev.slice()
-          const target = _sections.pop() as SectionItem
-          return [
-            ..._sections,
-            {
-              ...target,
-              attachments: {
-                code: target?.attachments.code ?? [],
-                codeFileList: data
+          return prev.map(x => {
+            if (x.id === data.id) {
+              return {
+                ...x,
+                attachments: {
+                  code: x?.attachments.code ?? [],
+                  codeFileList: data.codeFileList
+                }
               }
+            } else {
+              return x
             }
-          ]
+          })
         })
         break
       }
-      case 'AttachmentCodeHits': {
+      case 'PageSectionAttachmentCode': {
         setSections(prev => {
           if (!prev || !prev.length) return prev
 
@@ -339,8 +340,8 @@ export function Page() {
             {
               ...target,
               attachments: {
-                // todo score
-                code: data.hits.map(x => ({
+                // FIXME(juelang) add score
+                code: data.codes.map(x => ({
                   __typename: 'AttachmentCode',
                   ...x.code
                 })),
