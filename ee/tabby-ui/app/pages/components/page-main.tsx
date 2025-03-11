@@ -307,6 +307,13 @@ export function Page() {
         setSections(nextSections)
         break
       }
+      case 'AttachmentCodeHits': {
+        const hits = data
+        break
+      }
+      case 'AttachmentCodeFileList': {
+        break
+      }
       case 'PageSectionContentDelta': {
         setCurrentSectionId(data.id)
         setSections(prev => {
@@ -357,7 +364,17 @@ export function Page() {
           const _sections = prev.slice(0, -1)
           return [
             ..._sections,
-            { id, title, position, content: '', pageId: pageId as string }
+            {
+              id,
+              title,
+              position,
+              content: '', 
+              pageId: pageId as string,
+              attachments: {
+                code: [],
+                codeFileList: null
+              }
+            }
           ]
         })
         break
@@ -399,7 +416,11 @@ export function Page() {
         title,
         pageId,
         content: '',
-        position: lastPosition + 1
+        position: lastPosition + 1,
+        attachments: {
+          code: [],
+          codeFileList: null
+        }
       }
 
       if (!prev) return [newSection]

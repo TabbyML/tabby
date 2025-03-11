@@ -638,6 +638,20 @@ export const listPageSections = graphql(/* GraphQL */ `
           title
           content
           position
+          attachments {
+            code {
+              gitUrl
+              commit
+              filepath
+              language
+              content
+              startLine
+            }
+            codeFileList {
+              fileList
+              truncated
+            }
+          }
         }
         cursor
       }
