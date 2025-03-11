@@ -346,10 +346,6 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
-    "config.clearApproveTokensShare": async () => {
-      await this.config.clearApprovedTokenRequestIds();
-    },
-
     "chat.generateCommitMessage": async (repository?: Repository) => {
       let selectedRepo = repository;
       if (!selectedRepo) {
