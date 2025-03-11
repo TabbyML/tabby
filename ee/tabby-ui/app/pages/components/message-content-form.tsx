@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
@@ -6,6 +5,7 @@ import * as z from 'zod'
 
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import { ExtendedCombinedError } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -16,15 +16,19 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 
-export function MessageContentForm({
-  message,
-  onCancel,
-  onSubmit
-}: {
+interface Props {
   message: string
   onCancel: () => void
   onSubmit: (newMessage: string) => Promise<ExtendedCombinedError | void>
-}) {
+  inputClassName?: string
+}
+
+export function MessageContentForm({
+  message,
+  onCancel,
+  onSubmit,
+  inputClassName
+}: Props) {
   const formSchema = z.object({
     content: z.string().trim()
   })
@@ -33,7 +37,6 @@ export function MessageContentForm({
     defaultValues: { content: message }
   })
   const { isSubmitting } = form.formState
-  const [draftMessage] = useState<string | undefined>(message)
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     const error = await onSubmit(values.content)
@@ -54,9 +57,15 @@ export function MessageContentForm({
               <FormControl>
                 <Textarea
                   autoFocus
+                  autoCapitalize="off"
+                  autoComplete="off"
+                  autoCorrect="off"
                   minRows={2}
                   maxRows={20}
-                  className="w-full rounded-lg border bg-background p-4 outline-ring"
+                  className={cn(
+                    'w-full rounded-lg border bg-background p-4 outline-ring',
+                    inputClassName
+                  )}
                   {...field}
                 />
               </FormControl>
@@ -64,7 +73,7 @@ export function MessageContentForm({
             </FormItem>
           )}
         />
-        <div className="my-4 flex items-center justify-between gap-2 px-2">
+        <div className="mb-3 mt-1 flex items-center justify-between gap-2 px-2">
           <div>
             <FormMessage />
           </div>
