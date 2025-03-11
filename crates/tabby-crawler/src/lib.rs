@@ -93,7 +93,7 @@ async fn crawl_url(
             if !data
                 .response
                 .headers
-                .get("content_type")
+                .get("content-type")
                 .is_some_and(|ct| ct.starts_with("text/html"))
             {
                 continue;

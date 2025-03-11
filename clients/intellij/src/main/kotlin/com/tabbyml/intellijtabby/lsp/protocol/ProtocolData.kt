@@ -50,7 +50,9 @@ data class TextDocumentClientCapabilities(
   val inlineCompletion: InlineCompletionCapabilities? = null,
 )
 
-typealias InlineCompletionCapabilities = DynamicRegistrationCapabilities
+data class InlineCompletionCapabilities(
+  val dynamicRegistration: Boolean? = null,
+)
 
 data class TabbyClientCapabilities(
   val configDidChangeListener: Boolean? = null,
@@ -345,4 +347,12 @@ data class EditorOptionsParams(
 
 data class EditorOptions(
   val indentation: String? = null,
+)
+
+data class GenerateCommitMessageParams(
+  val repository: String,
+)
+
+data class GenerateCommitMessageResult(
+  val commitMessage: String,
 )

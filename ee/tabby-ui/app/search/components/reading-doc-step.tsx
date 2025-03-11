@@ -87,7 +87,7 @@ export function ReadingDocStepper({
         <AccordionContent className="pb-0">
           <div className="space-y-2 text-sm text-muted-foreground">
             <StepItem
-              title="Search for relevant web docs ..."
+              title="Collect documents ..."
               isLastItem
               isLoading={isReadingDocs}
             >
