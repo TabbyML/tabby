@@ -85,7 +85,7 @@ export async function activate(context: ExtensionContext) {
     if (!endpoint || endpoint.trim() === "") {
       return { token: undefined };
     }
-    
+
     const response = await window.showInformationMessage(
       "Do you consent to sharing your Tabby token with another VSCode extension?",
       {
