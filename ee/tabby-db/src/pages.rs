@@ -220,7 +220,7 @@ impl DbConn {
 
     // create_page_section creates a new section in the specified page with the given title,
     // returning the id and position of the newly created section.
-    pub async fn create_page_section(&self, page_id: i64, title: &str) -> Result<(i64, i64)> {
+    pub async fn create_page_section(&self, page_id: i64, title: &str) -> Result<PageSectionDAO> {
         let res = query!(
             r#"
             WITH max_pos AS (
@@ -234,8 +234,7 @@ impl DbConn {
                 ?2,
                 (SELECT next_pos FROM max_pos)
             RETURNING
-              id,
-              position
+              id
             "#,
             page_id,
             title,
@@ -243,7 +242,9 @@ impl DbConn {
         .fetch_one(&self.pool)
         .await?;
 
-        Ok((res.id, res.position))
+        self.get_page_section(res.id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Section not found after created"))
     }
 
     pub async fn update_page_section_code_attachments(

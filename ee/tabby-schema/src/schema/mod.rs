@@ -785,7 +785,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<page::Section>> {
+    ) -> Result<Connection<page::PageSection>> {
         check_user(ctx).await?;
 
         let page_service = if let Some(service) = ctx.locator.page() {

@@ -4,7 +4,7 @@ use validator::Validate;
 
 use crate::{
     juniper::relay::NodeType,
-    retrieval::{AttachmentCode, AttachmentCodeFileList, AttachmentCodeHits},
+    retrieval::{AttachmentCode, AttachmentCodeFileList, AttachmentCodeHit},
     thread::{CodeQueryInput, MessageAttachment},
     Context,
 };
@@ -36,9 +36,9 @@ impl NodeType for Page {
     }
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 #[graphql(context = Context)]
-pub struct Section {
+pub struct PageSection {
     pub id: ID,
     pub page_id: ID,
     pub title: String,
@@ -51,7 +51,7 @@ pub struct Section {
     pub updated_at: DateTime<Utc>,
 }
 
-impl NodeType for Section {
+impl NodeType for PageSection {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -98,7 +98,7 @@ pub struct UpdatePageSectionContentInput {
     pub content: String,
 }
 
-#[derive(GraphQLInputObject)]
+#[derive(GraphQLInputObject, Validate)]
 pub struct CreatePageRunInput {
     pub title_prompt: String,
 
@@ -126,19 +126,22 @@ pub struct PageCreated {
     pub title: String,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 #[graphql(context = Context)]
 pub struct PageSectionsCreated {
     pub sections: Vec<PageSection>,
 }
 
-#[derive(GraphQLObject, Clone)]
-#[graphql(context = Context)]
-pub struct PageSection {
+#[derive(GraphQLObject)]
+pub struct PageSectionAttachmentCodeFileList {
     pub id: ID,
-    pub position: i32,
-    pub title: String,
-    pub attachments: SectionAttachment,
+    pub code_file_list: AttachmentCodeFileList,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageSectionAttachmentCode {
+    pub id: ID,
+    pub codes: Vec<AttachmentCodeHit>,
 }
 
 #[derive(GraphQLObject, Clone, Default)]
@@ -222,8 +225,8 @@ pub enum PageRunItem {
     // PageSectionsCreated will return the titles of all sections.
     PageSectionsCreated(PageSectionsCreated),
 
-    PageSectionAttachmentCodeFileList(AttachmentCodeFileList),
-    PageSectionAttachmentCode(AttachmentCodeHits),
+    PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList),
+    PageSectionAttachmentCode(PageSectionAttachmentCode),
 
     PageSectionContentDelta(PageSectionContentDelta),
     PageSectionContentCompleted(PageSectionContentCompleted),
@@ -237,8 +240,8 @@ pub enum PageRunItem {
 pub enum SectionRunItem {
     PageSectionCreated(PageSection),
 
-    PageSectionAttachmentCodeFileList(AttachmentCodeFileList),
-    PageSectionAttachmentCode(AttachmentCodeHits),
+    PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList),
+    PageSectionAttachmentCode(PageSectionAttachmentCode),
 
     PageSectionContentDelta(PageSectionContentDelta),
     PageSectionContentCompleted(PageSectionContentCompleted),

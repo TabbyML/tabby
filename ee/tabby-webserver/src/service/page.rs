@@ -19,12 +19,12 @@ use tabby_schema::{
     page::{
         CreatePageRunInput, CreatePageSectionRunInput, MoveSectionDirection, Page, PageCompleted,
         PageContentCompleted, PageContentDelta, PageCreated, PageRunItem, PageRunStream,
-        PageSection, PageSectionContentCompleted, PageSectionContentDelta, PageSectionsCreated,
-        PageService, Section, SectionAttachment, SectionRunItem, SectionRunStream,
-        ThreadToPageRunStream,
+        PageSection, PageSectionAttachmentCode, PageSectionAttachmentCodeFileList,
+        PageSectionContentCompleted, PageSectionContentDelta, PageSectionsCreated, PageService,
+        SectionAttachment, SectionRunItem, SectionRunStream, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
-    retrieval::{AttachmentCodeFileList, AttachmentCodeHits},
+    retrieval::AttachmentCodeFileList,
     thread::{CodeQueryInput, Message, ThreadService},
     AsID, AsRowid, CoreError, Result,
 };
@@ -141,7 +141,7 @@ impl PageService for PageServiceImpl {
             .ok_or_else(|| CoreError::Other(anyhow!("failed to generate section title")))?
             .to_owned();
 
-            let (section_id, position) = db
+            let section = db
                 .create_page_section(page_id, &new_section_title)
                 .await?;
 
@@ -153,10 +153,13 @@ impl PageService for PageServiceImpl {
                             file_list: file_list.clone(),
                             truncated,
                         });
-                        db.update_page_section_code_file_list(section_id, &file_list, truncated).await?;
-                        yield Ok(SectionRunItem::PageSectionAttachmentCodeFileList(AttachmentCodeFileList {
-                            file_list,
-                            truncated
+                        db.update_page_section_code_file_list(section.id, &file_list, truncated).await?;
+                        yield Ok(SectionRunItem::PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList {
+                            id: section.id.as_id(),
+                            code_file_list: AttachmentCodeFileList{
+                                file_list,
+                                truncated
+                            }
                         }));
                     }
                     Err(e) => {
@@ -180,20 +183,18 @@ impl PageService for PageServiceImpl {
 
                 if !hits.is_empty() {
                     let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
-                    db.update_page_section_code_attachments(section_id, &attachment.code.iter().map(|c| c.into()).collect::<Vec<_>>()).await?;
+                    db.update_page_section_code_attachments(section.id, &attachment.code.iter().map(|c| c.into()).collect::<Vec<_>>()).await?;
                     yield Ok(SectionRunItem::PageSectionAttachmentCode(
-                        AttachmentCodeHits { hits }
+                        PageSectionAttachmentCode {
+                            id: section.id.as_id(),
+                            codes: hits,
+                        }
                     ));
                 }
             }
 
-
-            yield Ok(SectionRunItem::PageSectionCreated (PageSection {
-                id: section_id.as_id(),
-                title: new_section_title.clone(),
-                position: position as i32,
-                attachments: attachment.clone(),
-            }));
+            let section_id = section.id;
+            yield Ok(SectionRunItem::PageSectionCreated (section.into()));
 
             let content_stream = generate_page_section_content(
                 chat.clone(),
@@ -275,7 +276,7 @@ impl PageService for PageServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<Section>> {
+    ) -> Result<Vec<PageSection>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
 
         let sections = self
@@ -286,7 +287,7 @@ impl PageService for PageServiceImpl {
         Ok(sections.into_iter().map(Into::into).collect())
     }
 
-    async fn get_section(&self, id: &ID) -> Result<Section> {
+    async fn get_section(&self, id: &ID) -> Result<PageSection> {
         let section = self
             .db
             .get_page_section(id.as_rowid()?)
@@ -393,12 +394,7 @@ impl PageServiceImpl {
             let mut page_sections = Vec::new();
             for section_title in sections {
                 let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
-                page_sections.push(PageSection {
-                    id: section.0.as_id(),
-                    title: section_title.to_owned(),
-                    position: section.1 as i32,
-                    attachments: SectionAttachment::default(),
-                });
+                page_sections.push(section.into());
             }
 
             yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
@@ -440,9 +436,12 @@ impl PageServiceImpl {
                                     truncated,
                                 });
                                 db.update_page_section_code_file_list(section_id.as_rowid()?, &file_list, truncated).await?;
-                                yield Ok(PageRunItem::PageSectionAttachmentCodeFileList(AttachmentCodeFileList {
-                                    file_list,
-                                    truncated
+                                yield Ok(PageRunItem::PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList {
+                                    id: section_id.clone(),
+                                    code_file_list: AttachmentCodeFileList {
+                                        file_list,
+                                        truncated,
+                                    }
                                 }));
                             }
                             Err(e) => {
@@ -463,7 +462,10 @@ impl PageServiceImpl {
                             let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                             db.update_page_section_code_attachments(section_id.as_rowid()?, &attachment.code.iter().map(|c| c.into()).collect::<Vec<_>>()).await?;
                             yield Ok(PageRunItem::PageSectionAttachmentCode(
-                                AttachmentCodeHits { hits }
+                                PageSectionAttachmentCode {
+                                    id: section_id.clone(),
+                                    codes: hits,
+                                 }
                             ));
                         }
                     }
@@ -579,7 +581,7 @@ pub async fn generate_page_sections(
     policy: &AccessPolicy,
     new_section_prompt: Option<&str>,
     page_title: &str,
-    page_sections: &[Section],
+    page_sections: &[PageSection],
     thread_messages: Option<&[Message]>,
 ) -> anyhow::Result<Vec<String>> {
     let messages = build_chat_messages(
@@ -604,7 +606,7 @@ pub async fn generate_page_section_content(
     policy: &AccessPolicy,
     thread_messages: Option<&[Message]>,
     page_title: &str,
-    page_sections: &[Section],
+    page_sections: &[PageSection],
     new_section_title: &str,
     new_section_attachment: &SectionAttachment,
 ) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
@@ -645,11 +647,11 @@ mod tests {
             .unwrap();
         let page_id = db.create_page(user_id, None).await.unwrap();
         let section0 = db.create_page_section(page_id, "Section 0").await.unwrap();
-        assert_eq!(section0.1, 0);
+        assert_eq!(section0.position, 0);
         let section1 = db.create_page_section(page_id, "Section 1").await.unwrap();
-        assert_eq!(section1.1, 1);
+        assert_eq!(section1.position, 1);
         let section2 = db.create_page_section(page_id, "Section 2").await.unwrap();
-        assert_eq!(section2.1, 2);
+        assert_eq!(section2.position, 2);
 
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
@@ -674,7 +676,7 @@ mod tests {
         service
             .move_section(
                 &page_id.as_id(),
-                &section0.0.as_id(),
+                &section0.id.as_id(),
                 MoveSectionDirection::Down,
             )
             .await
@@ -691,7 +693,7 @@ mod tests {
         service
             .move_section(
                 &page_id.as_id(),
-                &section2.0.as_id(),
+                &section2.id.as_id(),
                 MoveSectionDirection::Up,
             )
             .await
@@ -708,7 +710,7 @@ mod tests {
         assert!(service
             .move_section(
                 &page_id.as_id(),
-                &section1.0.as_id(),
+                &section1.id.as_id(),
                 MoveSectionDirection::Up,
             )
             .await
@@ -718,7 +720,7 @@ mod tests {
         assert!(service
             .move_section(
                 &page_id.as_id(),
-                &section0.0.as_id(),
+                &section0.id.as_id(),
                 MoveSectionDirection::Down,
             )
             .await

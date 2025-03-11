@@ -384,7 +384,7 @@ impl From<PageDAO> for page::Page {
     }
 }
 
-impl From<PageSectionDAO> for page::Section {
+impl From<PageSectionDAO> for page::PageSection {
     fn from(value: PageSectionDAO) -> Self {
         let (code, code_file_list) = if let Some(attachment) = value.attachment {
             let code = attachment

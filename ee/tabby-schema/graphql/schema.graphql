@@ -366,10 +366,6 @@ type AttachmentCodeHit {
   scores: AttachmentCodeScores!
 }
 
-type AttachmentCodeHits {
-  hits: [AttachmentCodeHit!]!
-}
-
 type AttachmentCodeScores {
   rrf: Float!
   bm25: Float!
@@ -816,9 +812,23 @@ type PageInfo {
 
 type PageSection {
   id: ID!
-  position: Int!
+  pageId: ID!
   title: String!
+  content: String!
+  position: Int!
   attachments: SectionAttachment!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type PageSectionAttachmentCode {
+  id: ID!
+  codes: [AttachmentCodeHit!]!
+}
+
+type PageSectionAttachmentCodeFileList {
+  id: ID!
+  codeFileList: AttachmentCodeFileList!
 }
 
 type PageSectionContentCompleted {
@@ -984,17 +994,6 @@ type RepositoryGrepOutput {
   elapsedMs: Int!
 }
 
-type Section {
-  id: ID!
-  pageId: ID!
-  title: String!
-  content: String!
-  position: Int!
-  attachments: SectionAttachment!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
 type SectionAttachment {
   code: [AttachmentCode!]!
   codeFileList: AttachmentCodeFileList
@@ -1006,7 +1005,7 @@ type SectionConnection {
 }
 
 type SectionEdge {
-  node: Section!
+  node: PageSection!
   cursor: String!
 }
 
@@ -1173,10 +1172,10 @@ type WebContextSource implements ContextSourceId & ContextSource {
 union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc | MessageAttachmentCommitDoc
 
 "Schema of page convert stream."
-union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | AttachmentCodeFileList | AttachmentCodeHits | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
+union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
 
 "Schema of page convert stream."
-union SectionRunItem = PageSection | AttachmentCodeFileList | AttachmentCodeHits | PageSectionContentDelta | PageSectionContentCompleted
+union SectionRunItem = PageSection | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionContentDelta | PageSectionContentCompleted
 
 """
   Schema of thread run stream.
