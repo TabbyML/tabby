@@ -140,6 +140,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         }
       }
     })
+
     messageBusConnection.subscribe(EditorColorsManager.TOPIC, EditorColorsListener {
       BackgroundTaskUtil.executeOnPooledThread(this) {
         logger.debug("EditorColorsManager globalSchemeChange received, updating style.")
@@ -341,28 +342,30 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       ?: if (isDarkTheme) editorColorsScheme.defaultBackground.brighter() else editorColorsScheme.defaultBackground.darker()
   }
 
+  @Suppress("UnnecessaryVariable", "UseJBColor")
   private fun buildCss(): String {
     val editorColorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
+    val componentBgColor = calcComponentBgColor()
     val bgColor = editorColorsScheme.defaultBackground
-    val bgActiveColor = calcComponentBgColor()
     val fgColor = editorColorsScheme.defaultForeground
     val borderColor = if (isDarkTheme) JBColor.DARK_GRAY.darker() else JBColor.LIGHT_GRAY
-    val inputColor = bgActiveColor
+    val inputColor = componentBgColor
     val inputBorderColor = borderColor
 
     val primaryColor = editorColorsScheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR).foregroundColor
       ?: if (isDarkTheme) Color(55, 148, 255) else Color(26, 133, 255)
-    val primaryFgColor = JBColor.WHITE
-    val popoverColor = bgActiveColor
+    val primaryFgColor = Color.WHITE
+    val popoverColor = componentBgColor
     val popoverFgColor = fgColor
-    val accentColor = if (isDarkTheme) Color(4, 57, 94) else bgActiveColor.interpolate(bgActiveColor.darker(), 0.2)
+    val accentColor =
+      if (isDarkTheme) Color(4, 57, 94) else componentBgColor.interpolate(componentBgColor.darker(), 0.2)
     val accentFgColor = fgColor
 
     val ringColor = primaryColor
 
     val font = editorColorsScheme.getFont(EditorFontType.PLAIN).fontName
     val fontSize = editorColorsScheme.editorFontSize
-    val css = String.format("background-color: hsl(%s);", bgActiveColor.toHsl()) +
+    val css = String.format("--sidebar-background: %s;", componentBgColor.toHsl()) +
         String.format("--background: %s;", bgColor.toHsl()) +
         String.format("--foreground: %s;", fgColor.toHsl()) +
         String.format("--border: %s;", borderColor.toHsl()) +
@@ -385,6 +388,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     if (force) {
       scope.launch {
         val server = getServer() ?: return@launch
+        reloadContentInternal(StatusInfo(StatusInfo.Status.CONNECTING))
+        delay(500) // make the loading indicator visible for a bit
         server.statusFeature.getStatus(StatusRequestParams(recheckConnection = true)).thenAccept {
           reloadContentInternal(it, true)
         }
@@ -787,6 +792,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       return Position(position.line + 1, position.character + 1)
     }
 
+    @Suppress("UseJBColor")
     private fun Color.interpolate(other: Color, fraction: Double): Color {
       val r = (red + (other.red - red) * fraction).toInt().coerceIn(0..255)
       val g = (green + (other.green - green) * fraction).toInt().coerceIn(0..255)
@@ -886,6 +892,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
             display: flex;
             justify-content: center;
             align-items: flex-start;
+            font-family: ui-sans-serif, system-ui;
           }
       
           #message div {
