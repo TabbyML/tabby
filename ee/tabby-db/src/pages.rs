@@ -61,6 +61,18 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_page_content(&self, page_id: i64, content: &str) -> Result<()> {
+        query!(
+            "UPDATE pages SET content = ?, updated_at = DATETIME('now') WHERE id = ?",
+            content,
+            page_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn list_pages(
         &self,
         ids: Option<&[i64]>,
@@ -219,9 +231,33 @@ impl DbConn {
         Ok((res.id, res.position))
     }
 
+    pub async fn update_page_section_title(&self, id: i64, title: &str) -> Result<()> {
+        query!(
+            "UPDATE page_sections SET title = ?, updated_at = DATETIME('now') WHERE id = ?",
+            title,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn append_page_section_content(&self, id: i64, content: &str) -> Result<()> {
         query!(
             "UPDATE page_sections SET content = COALESCE(content, '') || ?, updated_at = DATETIME('now') WHERE id = ?",
+            content,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_page_section_content(&self, id: i64, content: &str) -> Result<()> {
+        query!(
+            "UPDATE page_sections SET content = ?, updated_at = DATETIME('now') WHERE id = ?",
             content,
             id
         )
