@@ -15,6 +15,7 @@ pub struct Page {
     pub id: ID,
     pub author_id: ID,
     pub title: Option<String>,
+    pub code_source_id: Option<String>,
     pub content: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

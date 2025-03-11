@@ -770,6 +770,7 @@ type Page {
   id: ID!
   authorId: ID!
   title: String
+  codeSourceId: String
   content: String
   createdAt: DateTime!
   updatedAt: DateTime!

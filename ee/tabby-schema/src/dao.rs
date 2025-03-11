@@ -377,6 +377,7 @@ impl From<PageDAO> for page::Page {
             id: value.id.as_id(),
             author_id: value.author_id.as_id(),
             title: value.title,
+            code_source_id: value.code_source_id,
             content: value.content,
             created_at: value.created_at,
             updated_at: value.updated_at,
