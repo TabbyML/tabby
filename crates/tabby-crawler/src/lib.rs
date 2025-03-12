@@ -160,10 +160,16 @@ pub async fn crawler_llms(start_url: &str) -> anyhow::Result<Vec<CrawledDocument
     // Remove trailing slash from the base URL if present.
     let base_url = start_url.trim_end_matches('/');
 
-    let llms_full_url = format!("{}/llms-full.txt", base_url);
+    // Check if the URL already ends with llms-full.txt
+    let llms_full_url = if base_url.ends_with("llms-full.txt") {
+        base_url.to_string()
+    } else {
+        format!("{}/llms-full.txt", base_url)
+    };
+
     let resp = reqwest::get(&llms_full_url).await?;
     if !resp.status().is_success() {
-        anyhow::bail!("Unable to fetch llms-full.txt from {}", base_url);
+        anyhow::bail!("Unable to fetch llms-full.txt from {}", llms_full_url);
     }
     let body = resp.text().await?;
     debug!("Successfully fetched llms-full.txt: {}", llms_full_url);
@@ -171,7 +177,7 @@ pub async fn crawler_llms(start_url: &str) -> anyhow::Result<Vec<CrawledDocument
     // Split the fetched markdown content into sections.
     let docs = llms_txt_parser::split_llms_content(&body, start_url);
     if docs.is_empty() {
-        anyhow::bail!("No sections found in llms-full.txt from {}", base_url);
+        anyhow::bail!("No sections found in llms-full.txt from {}", llms_full_url);
     }
 
     Ok(docs)
