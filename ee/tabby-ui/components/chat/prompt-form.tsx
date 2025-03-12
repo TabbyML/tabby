@@ -158,7 +158,8 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
                       interactive: true,
                       trigger: 'manual',
                       placement: 'top-start',
-                      animation: 'shift-away'
+                      animation: 'shift-away',
+                      maxWidth: '90%'
                     })
                   },
                   onUpdate: props => {

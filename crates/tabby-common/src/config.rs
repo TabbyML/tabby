@@ -407,6 +407,19 @@ fn default_embedding_max_input_length() -> usize {
     5120
 }
 
+#[derive(Clone)]
+pub struct PageConfig {
+    pub code_search_params: CodeSearchParams,
+}
+
+impl Default for PageConfig {
+    fn default() -> Self {
+        Self {
+            code_search_params: default_answer_code_search_params(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AnswerConfig {
     #[serde(default = "default_answer_code_search_params")]

@@ -600,6 +600,7 @@ export const listPages = graphql(/* GraphQL */ `
           id
           authorId
           title
+          codeSourceId
           content
           createdAt
           updatedAt
@@ -638,6 +639,22 @@ export const listPageSections = graphql(/* GraphQL */ `
           title
           content
           position
+          attachments {
+            code {
+              __typename
+              gitUrl
+              commit
+              filepath
+              language
+              content
+              startLine
+            }
+            codeFileList {
+              __typename
+              fileList
+              truncated
+            }
+          }
         }
         cursor
       }

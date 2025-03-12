@@ -237,5 +237,11 @@
                 description="Switch focus between editor and chat, add selected text to chat if any.">
             <keyboard-shortcut first-keystroke="ctrl L" keymap="$default"/>
         </action>
+
+        <action id="Tabby.GenerateCommitMessage"
+                class="com.tabbyml.intellijtabby.actions.GenerateCommitMessage"
+                text="Generate Commit Message"
+                description="Generate a commit message based on the changes in the current Git repository.">
+        </action>
     </actions>
 </idea-plugin>

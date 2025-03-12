@@ -11,6 +11,7 @@ pub mod license;
 pub mod notification;
 pub mod page;
 pub mod repository;
+pub mod retrieval;
 pub mod setting;
 pub mod thread;
 pub mod user_event;
@@ -47,7 +48,8 @@ use ldap3::result::LdapError;
 use notification::NotificationService;
 use page::{
     CreatePageRunInput, CreatePageSectionRunInput, PageRunStream, SectionRunStream,
-    ThreadToPageRunStream,
+    ThreadToPageRunStream, UpdatePageContentInput, UpdatePageSectionContentInput,
+    UpdatePageSectionTitleInput,
 };
 use repository::RepositoryGrepOutput;
 use strum::IntoEnumIterator;
@@ -783,7 +785,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<page::Section>> {
+    ) -> Result<Connection<page::PageSection>> {
         check_user(ctx).await?;
 
         let page_service = if let Some(service) = ctx.locator.page() {
@@ -1432,6 +1434,71 @@ impl Mutation {
     }
 
     // page mutations
+    async fn update_page_content(ctx: &Context, input: UpdatePageContentInput) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+        input.validate()?;
+
+        let page = page_service.get(&input.id).await?;
+
+        user.policy.check_update_page(&page.author_id)?;
+
+        page_service
+            .update_content(&input.id, &input.content)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_page_section_title(
+        ctx: &Context,
+        input: UpdatePageSectionTitleInput,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+        input.validate()?;
+
+        let section = page_service.get_section(&input.id).await?;
+
+        let page = page_service.get(&section.page_id).await?;
+        user.policy.check_update_page(&page.author_id)?;
+
+        page_service
+            .update_section_title(&input.id, &input.title)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_page_section_content(
+        ctx: &Context,
+        input: UpdatePageSectionContentInput,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+        input.validate()?;
+
+        let section = page_service.get_section(&input.id).await?;
+        let page = page_service.get(&section.page_id).await?;
+        user.policy.check_update_page(&page.author_id)?;
+        page_service
+            .update_section_content(&input.id, &input.content)
+            .await?;
+        Ok(true)
+    }
 
     /// delete a page and all its sections.
     async fn delete_page(ctx: &Context, id: ID) -> Result<bool> {
