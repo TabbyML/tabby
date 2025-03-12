@@ -41,6 +41,11 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { CodeRangeLabel } from '@/components/code-range-label'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { MessageMarkdown } from '@/components/message-markdown'
@@ -64,7 +69,8 @@ export function SectionContent({
   isGenerating,
   enableMoveUp,
   enableMoveDown,
-  onUpdate
+  onUpdate,
+  enableDeveloperMode
 }: {
   className?: string
   section: SectionItem
@@ -72,6 +78,7 @@ export function SectionContent({
   enableMoveUp?: boolean
   enableMoveDown?: boolean
   onUpdate: (content: string) => void
+  enableDeveloperMode: boolean
 }) {
   const {
     mode,
@@ -170,7 +177,13 @@ export function SectionContent({
                     </SheetHeader>
                     <div className="flex-1 space-y-3 overflow-y-auto">
                       {sources.map((x, index) => {
-                        return <SourceCard source={x} key={index} />
+                        return (
+                          <SourceCard
+                            enableDeveloperMode={enableDeveloperMode}
+                            source={x}
+                            key={index}
+                          />
+                        )
                       })}
                     </div>
                   </SheetContent>
@@ -239,9 +252,11 @@ export function SectionContent({
 }
 
 function SourceCard({
-  source
+  source,
+  enableDeveloperMode
 }: {
   source: AttachmentDocItem | AttachmentCodeItem | AttachmentCodeFileList
+  enableDeveloperMode: boolean
 }) {
   const isCodeFileList = source.__typename === 'AttachmentCodeFileList'
   const isCode =
@@ -279,45 +294,67 @@ function SourceCard({
   if (isCode) {
     const pathSegments = source.filepath.split('/')
     const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+    const scores = source?.extra?.scores
+    const showScores = enableDeveloperMode && !!scores
     return (
-      <div
-        className="flex w-full items-start gap-2"
-        onClick={() => {
-          if (!source.filepath) return
-          const url = buildCodeBrowserUrlForContext(window.location.origin, {
-            kind: 'file',
-            ...source,
-            commit: source.commit ?? undefined,
-            range: getRangeFromAttachmentCode(source)
-          })
-          window.open(url, '_blank')
-        }}
-      >
-        <div className="relative flex flex-1 cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
-          <div className="flex h-5 w-5 items-center justify-center">
-            <IconCode />
-          </div>
-          <div className="flex flex-1 flex-col justify-between gap-y-1">
-            <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold leading-5">
-              {resolveFileNameForDisplay(source.filepath)}
-              <CodeRangeLabel range={getRangeFromAttachmentCode(source)} />
-            </p>
-            {!!path && (
-              <div className="break-all text-xs text-muted-foreground">
-                {path}
+      <Tooltip delayDuration={0}>
+        <TooltipTrigger asChild>
+          <div
+            className="flex w-full items-start gap-2"
+            onClick={() => {
+              if (!source.filepath) return
+              const url = buildCodeBrowserUrlForContext(
+                window.location.origin,
+                {
+                  kind: 'file',
+                  ...source,
+                  commit: source.commit ?? undefined,
+                  range: getRangeFromAttachmentCode(source)
+                }
+              )
+              window.open(url, '_blank')
+            }}
+          >
+            <div className="relative flex flex-1 cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
+              <div className="flex h-5 w-5 items-center justify-center">
+                <IconCode />
               </div>
-            )}
-            {/* <div className="mt-1 flex items-center text-xs text-muted-foreground">
-              <div className="flex w-full flex-1 items-center justify-between gap-1">
-                <div className="flex items-center">
-                  <SiteFavicon hostname={source.gitUrl} />
-                  <p className="ml-1 truncate">{source.gitUrl}</p>
+              <div className="flex flex-1 flex-col justify-between gap-y-1">
+                <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold leading-5">
+                  {resolveFileNameForDisplay(source.filepath)}
+                  <CodeRangeLabel range={getRangeFromAttachmentCode(source)} />
+                </p>
+                {!!path && (
+                  <div className="break-all text-xs text-muted-foreground">
+                    {path}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent hidden={!showScores} side="left">
+          {!!scores && (
+            <div className="pt-1">
+              <div className="mb-1 font-semibold">Scores</div>
+              <div className="space-y-1">
+                <div className="flex">
+                  <span className="w-20">rrf:</span>
+                  {scores?.rrf ?? '-'}
+                </div>
+                <div className="flex">
+                  <span className="w-20">bm25:</span>
+                  {scores?.bm25 ?? '-'}
+                </div>
+                <div className="flex">
+                  <span className="w-20">embedding:</span>
+                  {scores?.embedding ?? '-'}
                 </div>
               </div>
-            </div> */}
-          </div>
-        </div>
-      </div>
+            </div>
+          )}
+        </TooltipContent>
+      </Tooltip>
     )
   }
 

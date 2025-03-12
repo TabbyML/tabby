@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
+import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import {
   CreatePageRunSubscription,
   CreatePageSectionRunSubscription,
@@ -74,6 +75,7 @@ export function Page() {
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
   })
+  const [enableDeveloperMode] = useEnableDeveloperMode()
   const { updateUrlComponents, pathname, router } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
@@ -215,9 +217,9 @@ export function Page() {
               return {
                 ...x,
                 attachments: {
-                  // todo score
                   code: data.codes.map(x => ({
-                    ...x.code
+                    ...x.code,
+                    extra: { scores: x.scores }
                   })),
                   codeFileList: x.attachments.codeFileList
                 }
@@ -297,7 +299,6 @@ export function Page() {
         const { delta, id } = data
         setSections(prev => {
           if (!prev) return prev
-          const len = prev.length
           return prev.map(x => {
             if (x.id === id) {
               return {
@@ -342,9 +343,9 @@ export function Page() {
               return {
                 ...x,
                 attachments: {
-                  // todo score
                   code: data.codes.map(x => ({
-                    ...x.code
+                    ...x.code,
+                    extra: { scores: x.scores }
                   })),
                   codeFileList: x.attachments.codeFileList
                 }
@@ -938,6 +939,9 @@ export function Page() {
                                   onUpdate={content => {
                                     onUpdateSections(section.id, { content })
                                   }}
+                                  enableDeveloperMode={
+                                    enableDeveloperMode.value
+                                  }
                                 />
                               </motion.div>
                             )
