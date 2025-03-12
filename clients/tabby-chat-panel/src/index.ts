@@ -275,6 +275,18 @@ export interface ListSymbolsParams {
 
   limit?: number
 }
+export interface currentChangeFilesParams {
+  limit?: number
+}
+
+export interface ChangeItem {
+  // filepath
+  filepath: Filepath
+  // use line range to show range in chat panel
+  range: LineRange
+  before: string
+  after: string
+}
 
 export interface ListFileItem {
   /**
@@ -388,6 +400,8 @@ export interface ClientApiMethods {
    * @returns An array of {@link ListSymbolItem} objects that could be empty.
    */
   listSymbols?: (params: ListSymbolsParams) => Promise<ListSymbolItem[]>
+
+  currentChangeFiles?: (params: currentChangeFilesParams) => Promise<ChangeItem[]>
 
   /**
    * Returns the content of a file within the specified range.
