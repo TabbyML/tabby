@@ -2,7 +2,6 @@
 
 import { ReactNode, useContext, useMemo } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
-import { isNil } from 'lodash-es'
 
 import {
   ContextSource,
@@ -46,6 +45,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { CodeRangeLabel } from '@/components/code-range-label'
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SourceIcon } from '@/components/source-icon'
 
@@ -276,30 +276,12 @@ function CodeContextItem({
   onContextClick,
   enableDeveloperMode
 }: CodeContextItemProps) {
-  const isMultiLine =
-    context.range &&
-    !isNil(context.range?.start) &&
-    !isNil(context.range?.end) &&
-    context.range.start < context.range.end
   const pathSegments = context.filepath.split('/')
   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
 
   const fileName = useMemo(() => {
     return resolveFileNameForDisplay(context.filepath)
   }, [context.filepath])
-
-  const rangeText = useMemo(() => {
-    if (!context.range) return undefined
-
-    let text = ''
-    if (context.range.start) {
-      text = String(context.range.start)
-    }
-    if (isMultiLine) {
-      text += `-${context.range.end}`
-    }
-    return text
-  }, [context.range])
 
   const scores = context?.extra?.scores
 
@@ -322,15 +304,12 @@ function CodeContextItem({
           <IconFileText className="h-3 w-3" />
           <span>
             <span>{fileName}</span>
-            {rangeText ? (
-              <span
-                className={cn('font-normal text-muted-foreground', {
-                  'group-hover:text-foreground': clickable
-                })}
-              >
-                :{rangeText}
-              </span>
-            ) : null}
+            <CodeRangeLabel
+              className={cn('font-normal text-muted-foreground', {
+                'group-hover:text-foreground': clickable
+              })}
+              range={context.range}
+            ></CodeRangeLabel>
           </span>
         </div>
       </TooltipTrigger>
@@ -338,9 +317,7 @@ function CodeContextItem({
         <div className="space-y-2">
           <div className="whitespace-nowrap font-medium">
             <span>{fileName}</span>
-            {rangeText ? (
-              <span className="text-muted-foreground">:{rangeText}</span>
-            ) : null}
+            <CodeRangeLabel range={context.range} />
           </div>
           {!!path && (
             <div className="break-all text-xs text-muted-foreground">
