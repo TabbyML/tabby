@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext, useMemo, useState } from 'react'
+import { ReactNode, useContext, useMemo, useState } from 'react'
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { compact } from 'lodash-es'
@@ -14,6 +14,7 @@ import {
 import { useMutation } from '@/lib/tabby/gql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import {
+  buildCodeBrowserUrlForContext,
   cn,
   getContent,
   getRangeFromAttachmentCode,
@@ -31,7 +32,6 @@ import {
   IconListTree,
   IconTrash
 } from '@/components/ui/icons'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Sheet,
   SheetClose,
@@ -90,7 +90,7 @@ export function SectionContent({
   const sources = useMemo(() => {
     return compact([attachmentCodeFileList, ...attachmentCode])
   }, [attachmentCodeFileList, attachmentCode])
-  const sourceLen = attachmentCode?.length
+  const sourceLen = sources?.length
 
   const onMoveUp = () => {
     onMoveSectionPosition(section.id, MoveSectionDirection.Up)
@@ -144,13 +144,28 @@ export function SectionContent({
               {sourceLen > 0 && (
                 <Sheet>
                   <SheetTrigger asChild>
-                    <div className="cursor-pointer rounded-full border px-2 py-1">
-                      {sourceLen} sources
+                    <div className="group relative flex w-28 cursor-pointer items-center overflow-hidden rounded-full border py-1 hover:bg-muted">
+                      <div className="ml-1.5 flex items-center -space-x-2 transition-all duration-300 ease-in-out group-hover:space-x-0">
+                        {!!attachmentCodeFileList?.fileList?.length && (
+                          <SourceIcon className="bg-background group-hover:bg-transparent">
+                            <IconListTree className="h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
+                          </SourceIcon>
+                        )}
+                        {!!attachmentCode?.length && (
+                          <SourceIcon className="bg-background group-hover:bg-transparent">
+                            <IconCode className="h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
+                          </SourceIcon>
+                        )}
+                      </div>
+                      <span className="mx-1 whitespace-nowrap text-xs text-muted-foreground">
+                        {sourceLen} sources
+                      </span>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 w-2 bg-gradient-to-l from-background to-transparent"></div>
                     </div>
                   </SheetTrigger>
                   <SheetContent className="flex w-[50vw] min-w-[300px] flex-col">
                     <SheetHeader className="border-b">
-                      <SheetTitle>Sources</SheetTitle>
+                      <SheetTitle>{sourceLen} Sources</SheetTitle>
                       <SheetClose />
                     </SheetHeader>
                     <div className="flex-1 space-y-3 overflow-y-auto">
@@ -167,7 +182,7 @@ export function SectionContent({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-auto gap-0.5 px-2 py-1 font-normal"
+                      className="h-auto gap-0.5 px-2 py-1 font-medium text-foreground/60"
                       disabled={isLoading}
                       onClick={() => {
                         setShowForm(true)
@@ -180,7 +195,7 @@ export function SectionContent({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-auto gap-0.5 px-2 py-1 font-normal"
+                        className="h-auto gap-0.5 px-2 py-1 font-medium text-foreground/60"
                         onClick={e => onMoveUp()}
                         disabled={isLoading}
                       >
@@ -192,7 +207,7 @@ export function SectionContent({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-auto gap-0.5 px-2 py-1 font-normal"
+                        className="h-auto gap-0.5 px-2 py-1 font-medium text-foreground/60"
                         onClick={e => onMoveDown()}
                         disabled={isLoading}
                       >
@@ -203,7 +218,7 @@ export function SectionContent({
                     <Button
                       size="sm"
                       variant="hover-destructive"
-                      className="h-auto gap-0.5 px-2 py-1 font-normal"
+                      className="h-auto gap-0.5 px-2 py-1 font-medium text-foreground/60"
                       disabled={isLoading}
                       onClick={() => {
                         onDeleteSection(section.id)
@@ -244,21 +259,40 @@ function SourceCard({
         <div className="flex h-5 w-5 items-center justify-center">
           <IconListTree />
         </div>
-        <div className="flex max-h-[100px] flex-col">
+        <div className="flex flex-1 flex-col overflow-hidden">
           <div className="shrink-0 text-xs">
-            <span className="font-semibold leading-5">Code file list</span>
+            <span className="font-semibold leading-5">File list</span>
           </div>
-          <ScrollArea className="relative flex-1">
+          <div className="max-h-[90px] flex-1 overflow-auto">
             <pre className="text-xs">{source.fileList.join('\n')}</pre>
-          </ScrollArea>
+          </div>
+          {!!source.truncated && (
+            <div className="mt-2 shrink-0 border-t pt-2 text-xs text-muted-foreground">
+              File list truncated. (Maximum number of items has been reached)
+            </div>
+          )}
         </div>
       </div>
     )
   }
 
   if (isCode) {
+    const pathSegments = source.filepath.split('/')
+    const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
     return (
-      <div className="flex w-full items-start gap-2">
+      <div
+        className="flex w-full items-start gap-2"
+        onClick={() => {
+          if (!source.filepath) return
+          const url = buildCodeBrowserUrlForContext(window.location.origin, {
+            kind: 'file',
+            ...source,
+            commit: source.commit ?? undefined,
+            range: getRangeFromAttachmentCode(source)
+          })
+          window.open(url, '_blank')
+        }}
+      >
         <div className="relative flex flex-1 cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
           <div className="flex h-5 w-5 items-center justify-center">
             <IconCode />
@@ -268,14 +302,19 @@ function SourceCard({
               {resolveFileNameForDisplay(source.filepath)}
               <CodeRangeLabel range={getRangeFromAttachmentCode(source)} />
             </p>
-            <div className="flex items-center text-xs text-muted-foreground">
+            {!!path && (
+              <div className="break-all text-xs text-muted-foreground">
+                {path}
+              </div>
+            )}
+            {/* <div className="mt-1 flex items-center text-xs text-muted-foreground">
               <div className="flex w-full flex-1 items-center justify-between gap-1">
                 <div className="flex items-center">
                   <SiteFavicon hostname={source.gitUrl} />
                   <p className="ml-1 truncate">{source.gitUrl}</p>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -432,4 +471,23 @@ const normalizedText = (input: string) => {
   const decoded = he.decode(parsed)
   const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
   return plainText
+}
+
+function SourceIcon({
+  children,
+  className
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-center rounded-full p-0.5 transition-all duration-300 ease-in-out',
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
 }

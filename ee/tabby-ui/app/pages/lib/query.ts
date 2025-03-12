@@ -38,6 +38,33 @@ export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
           }
         }
       }
+      ... on PageSectionAttachmentCodeFileList {
+        id
+        codeFileList {
+          __typename
+          fileList
+          truncated
+        }
+      }
+      ... on PageSectionAttachmentCode {
+        id
+        codes {
+          code {
+            __typename
+            gitUrl
+            commit
+            filepath
+            language
+            content
+            startLine
+          }
+          scores {
+            rrf
+            bm25
+            embedding
+          }
+        }
+      }
       ... on PageSectionContentDelta {
         id
         delta

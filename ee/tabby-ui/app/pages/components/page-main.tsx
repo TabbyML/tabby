@@ -29,15 +29,16 @@ import {
   listSecuredUsers
 } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
-import { cn, nanoid } from '@/lib/utils'
+import { cn, isCodeSourceContext, nanoid } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
-import { IconClock, IconFileSearch } from '@/components/ui/icons'
+import { IconFileSearch } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
 import NotFoundPage from '@/components/not-found-page'
+import { SourceIcon } from '@/components/source-icon'
 import { UserAvatar } from '@/components/user-avatar'
 
 import {
@@ -65,6 +66,8 @@ import {
 } from './skeleton'
 
 const PAGE_SIZE = 30
+
+type PageRunItem = CreatePageRunSubscription['createPageRun']
 
 export function Page() {
   const [{ data: meData }] = useMe()
@@ -139,9 +142,7 @@ export function Page() {
     return location.origin + path
   }
 
-  const processPageRunItemStream = (
-    data: CreatePageRunSubscription['createPageRun']
-  ) => {
+  const processPageRunItemStream = (data: PageRunItem) => {
     switch (data.__typename) {
       case 'PageCreated':
         setPage(prev => {
@@ -196,10 +197,6 @@ export function Page() {
                 attachments: {
                   ...x.attachments,
                   codeFileList: data.codeFileList
-                  // codeFileList: {
-                  //   ...data.codeFileList,
-                  //   __typename: 'AttachmentCodeFileList'
-                  // }
                 }
               }
             } else {
@@ -452,7 +449,6 @@ export function Page() {
           return
         }
 
-        // FIXME(jueliang)
         processPageRunItemStream(value)
       })
 
@@ -473,6 +469,7 @@ export function Page() {
       authorId: '',
       title: titlePrompt,
       content: '',
+      codeSourceId,
       updatedAt: now,
       createdAt: now
     }
@@ -597,6 +594,15 @@ export function Page() {
 
     return meData.me.id === page.node.authorId
   }, [meData, pagesData, pageIdFromURL])
+
+  const repository = useMemo(() => {
+    if (!page?.codeSourceId) return undefined
+
+    const target = contextInfoData?.contextInfo?.sources.find(
+      x => isCodeSourceContext(x.sourceKind) && x.sourceId === page.codeSourceId
+    )
+    return target
+  }, [page?.codeSourceId, contextInfoData])
 
   useEffect(() => {
     if (page?.title) {
@@ -828,6 +834,17 @@ export function Page() {
                     <div className="relative col-span-3">
                       {/* page title */}
                       <div className="mb-2 mt-8">
+                        {!!repository && (
+                          <div className="mb-4 inline-flex items-center gap-1 rounded-lg bg-accent px-2 py-1 text-xs font-medium text-accent-foreground">
+                            <SourceIcon
+                              kind={repository.sourceKind}
+                              className="h-3.5 w-3.5 shrink-0"
+                            />
+                            <span className="truncate">
+                              {repository.sourceName}
+                            </span>
+                          </div>
+                        )}
                         <LoadingWrapper
                           loading={!page}
                           fallback={<SectionTitleSkeleton />}
@@ -841,20 +858,20 @@ export function Page() {
                             {page?.title}
                           </h1>
                         </LoadingWrapper>
-                        <div className="my-4 flex gap-4 text-sm text-muted-foreground">
+                        <div className="my-4 flex gap-4 text-sm">
                           <LoadingWrapper
                             loading={fetchingAuthor || !page?.authorId}
                             fallback={<Skeleton />}
                           >
-                            <div className="flex items-center gap-1">
-                              <UserAvatar user={author} className="h-6 w-6" />
-                              <div>{author?.name}</div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-0.5">
-                                <IconClock />
-                                <span>{formatTime(page?.createdAt)}</span>
+                            <div className="flex items-center gap-2">
+                              <UserAvatar user={author} className="h-8 w-8" />
+                              <div className="pt-0.5">
+                                <div className="text-sm leading-none">
+                                  {author?.name}
+                                </div>
+                                <span className="text-xs leading-none text-muted-foreground">
+                                  {formatTime(page?.createdAt)}
+                                </span>
                               </div>
                             </div>
                           </LoadingWrapper>
@@ -907,7 +924,7 @@ export function Page() {
                                 className="space-y-2"
                               >
                                 <SectionTitle
-                                  className="pt-8 prose-p:leading-tight"
+                                  className="pt-12 prose-p:leading-tight"
                                   section={section}
                                   onUpdate={title => {
                                     onUpdateSections(section.id, { title })

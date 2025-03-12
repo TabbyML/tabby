@@ -600,6 +600,7 @@ export const listPages = graphql(/* GraphQL */ `
           id
           authorId
           title
+          codeSourceId
           content
           createdAt
           updatedAt
