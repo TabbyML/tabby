@@ -45,8 +45,8 @@ pub trait PageService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<Section>>;
-    async fn get_section(&self, id: &ID) -> Result<Section>;
+    ) -> Result<Vec<PageSection>>;
+    async fn get_section(&self, id: &ID) -> Result<PageSection>;
     async fn move_section(
         &self,
         page_id: &ID,
