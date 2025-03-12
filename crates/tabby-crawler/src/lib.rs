@@ -160,9 +160,13 @@ pub async fn crawler_llms(start_url: &str) -> anyhow::Result<Vec<CrawledDocument
     // Remove trailing slash from the base URL if present.
     let base_url = start_url.trim_end_matches('/');
 
-    // Check if the URL already ends with llms-full.txt
+    // Check if the URL already ends with llms-full.txt or llms.txt
     let llms_full_url = if base_url.ends_with("llms-full.txt") {
         base_url.to_string()
+    } else if base_url.ends_with("llms.txt") {
+        // If URL ends with llms.txt, try to access llms-full.txt instead
+        let base_without_llms = base_url.trim_end_matches("llms.txt");
+        format!("{}llms-full.txt", base_without_llms)
     } else {
         format!("{}/llms-full.txt", base_url)
     };
