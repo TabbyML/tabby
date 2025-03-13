@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { findIndex } from 'lodash-es'
 import { useQuery } from 'urql'
@@ -22,7 +22,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import LdapSignInForm from './ldap-signin-form'
 import UserSignInForm from './user-signin-form'
-import LoadingWrapper from '@/components/loading-wrapper'
 
 const authProvidersQuery = graphql(/* GraphQL */ `
   query authProviders {
@@ -39,7 +38,8 @@ export default function SigninSection() {
   const errorMessage = searchParams.get('error_message')
   const accessToken = searchParams.get('access_token')
   const refreshToken = searchParams.get('refresh_token')
-  const passwordForceRender = searchParams.get('password_sign_in')?.toString() === 'true'
+  const passwordForceRender =
+    searchParams.get('password_sign_in')?.toString() === 'true'
   const shouldAutoSignin = !!accessToken && !!refreshToken
 
   const [{ data, fetching: fetchingAuthProviders }] = useQuery({
@@ -79,7 +79,6 @@ export default function SigninSection() {
       router.replace('/')
     }
   }, [status])
-
 
   // todo add fetching configuration
   const displayLoading =
