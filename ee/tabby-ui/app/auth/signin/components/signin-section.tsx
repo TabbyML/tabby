@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { findIndex } from 'lodash-es'
 import { useQuery } from 'urql'
@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import LdapSignInForm from './ldap-signin-form'
 import UserSignInForm from './user-signin-form'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 const authProvidersQuery = graphql(/* GraphQL */ `
   query authProviders {
@@ -38,7 +39,7 @@ export default function SigninSection() {
   const errorMessage = searchParams.get('error_message')
   const accessToken = searchParams.get('access_token')
   const refreshToken = searchParams.get('refresh_token')
-
+  const passwordForceRender = searchParams.get('password_sign_in')?.toString() === 'true'
   const shouldAutoSignin = !!accessToken && !!refreshToken
 
   const [{ data, fetching: fetchingAuthProviders }] = useQuery({
@@ -46,9 +47,6 @@ export default function SigninSection() {
     pause: shouldAutoSignin
   })
   const authProviders = data?.authProviders
-
-  const displayLoading =
-    fetchingAuthProviders || (shouldAutoSignin && !errorMessage)
 
   const enableGithubOauth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.OauthGithub) > -1
@@ -60,6 +58,13 @@ export default function SigninSection() {
     enableGithubOauth || enableGitlabOauth || enableGoogleOauth
   const enableLdapAuth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.Ldap) > -1
+
+  // FIXME mock, maybe display loading status
+  const disableNonSsoLogin = true
+  const passwordSigninVisible = passwordForceRender || !disableNonSsoLogin
+  const tabsDefaultValue = passwordSigninVisible ? 'standard' : 'ldap'
+  const formVisible = passwordSigninVisible || enableLdapAuth
+  const tabListVisible = passwordSigninVisible && enableLdapAuth
 
   useEffect(() => {
     if (errorMessage) return
@@ -74,6 +79,11 @@ export default function SigninSection() {
       router.replace('/')
     }
   }, [status])
+
+
+  // todo add fetching configuration
+  const displayLoading =
+    fetchingAuthProviders || (shouldAutoSignin && !errorMessage)
 
   if (displayLoading) {
     return <IconSpinner className="h-8 w-8 animate-spin" />
@@ -90,28 +100,30 @@ export default function SigninSection() {
         </div>
         <Card
           className={cn('bg-background', {
-            'border-0 shadow-0': !enableLdapAuth
+            'border-0 shadow-0': !tabListVisible
           })}
         >
           <CardContent
             className={cn('pt-4', {
-              'p-0': !enableLdapAuth
+              'p-0': !tabListVisible
             })}
           >
-            <Tabs defaultValue="standard">
-              {enableLdapAuth && (
-                <TabsList className="mb-2">
-                  <TabsTrigger value="standard">Standard</TabsTrigger>
-                  <TabsTrigger value="ldap">LDAP</TabsTrigger>
-                </TabsList>
-              )}
-              <TabsContent value="standard">
-                <UserSignInForm />
-              </TabsContent>
-              <TabsContent value="ldap">
-                <LdapSignInForm />
-              </TabsContent>
-            </Tabs>
+            {formVisible && (
+              <Tabs defaultValue={tabsDefaultValue}>
+                {tabListVisible && (
+                  <TabsList className="mb-2">
+                    <TabsTrigger value="standard">Standard</TabsTrigger>
+                    <TabsTrigger value="ldap">LDAP</TabsTrigger>
+                  </TabsList>
+                )}
+                <TabsContent value="standard">
+                  <UserSignInForm />
+                </TabsContent>
+                <TabsContent value="ldap">
+                  <LdapSignInForm />
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
         {allowSelfSignup && (
