@@ -53,4 +53,8 @@ pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
 }
 
+pub fn background_jobs_dir() -> PathBuf {
+    tabby_root().join("background_jobs")
+}
+
 mod registry {}
