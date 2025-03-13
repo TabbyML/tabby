@@ -46,6 +46,7 @@ export const securitySetting = graphql(/* GraphQL */ `
 
 const formSchema = z.object({
   disableClientSideTelemetry: z.boolean(),
+  disableNonSsoLogin: z.boolean(),
   // https://github.com/shadcn-ui/ui/issues/384
   // https://github.com/shadcn-ui/ui/blob/main/apps/www/app/examples/forms/profile-form.tsx
   allowedRegisterDomainList: z
@@ -144,6 +145,28 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                 <FormDescription>
                   When activated, the client-side telemetry (IDE/Extensions)
                   will be disabled, regardless of the client-side settings.
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="disableNonSsoLogin"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center gap-1">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer">
+                    Disabling Non-SSO Logins
+                  </FormLabel>
+                </div>
+                <FormDescription>
+                  When activated, non-SSO logins will be hidden.
                 </FormDescription>
               </FormItem>
             )}
