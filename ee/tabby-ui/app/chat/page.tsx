@@ -50,9 +50,9 @@ const convertToHSLColor = (style: string) => {
 export default function ChatPage() {
   const [isChatComponentLoaded, setIsChatComponentLoaded] = useState(false)
   const [isServerLoaded, setIsServerLoaded] = useState(false)
-  const [fetcherOptions, setFetcherOptions] = useState<InitRequest["fetcherOptions"] | null>(
-    null
-  )
+  const [fetcherOptions, setFetcherOptions] = useState<
+    InitRequest['fetcherOptions'] | null
+  >(null)
   const [showHistory, setShowHistory] = useState(false)
   const [threadId, setThreadId] = useState<string | undefined>()
   const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
@@ -92,7 +92,9 @@ export default function ChatPage() {
     }
   }
 
-  const updateActiveSelection = async (ctx: EditorContext | null | undefined) => {
+  const updateActiveSelection = async (
+    ctx: EditorContext | null | undefined
+  ) => {
     if (chatRef.current) {
       chatRef.current.updateActiveSelection(ctx ?? null)
     } else if (ctx) {
