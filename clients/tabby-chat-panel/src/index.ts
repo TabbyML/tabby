@@ -396,6 +396,8 @@ export interface ClientApiMethods {
    * @returns The content of the file as a string, or `null` if the file or range cannot be accessed.
    */
   readFileContent?: (info: FileRange) => Promise<string | null>
+
+  runTerminalCommand?: (command: string) => Promise<void>
 }
 
 export interface ClientApi extends ClientApiMethods {

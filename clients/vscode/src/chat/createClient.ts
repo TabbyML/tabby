@@ -41,6 +41,7 @@ export function createClient(webview: Webview, api: ClientApiMethods): ServerApi
       listFileInWorkspace: api.listFileInWorkspace,
       readFileContent: api.readFileContent,
       listSymbols: api.listSymbols,
+      runTerminalCommand: api.runTerminalCommand,
     },
   });
 }
