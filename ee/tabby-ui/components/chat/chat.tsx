@@ -93,7 +93,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   onLookupSymbol?: (
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
-  ) => Promise<SymbolInfo | undefined>
+  ) => Promise<SymbolInfo | null>
   openInEditor: (target: FileLocation) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
   chatInputRef: React.RefObject<PromptFormRef>

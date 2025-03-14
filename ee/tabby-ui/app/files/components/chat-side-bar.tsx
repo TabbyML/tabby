@@ -5,8 +5,7 @@ import type {
   ChatView,
   EditorFileContext,
   FileLocation,
-  GitRepository,
-  ServerApi
+  GitRepository
 } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
@@ -79,6 +78,9 @@ function ChatSideBarRenderer({
   const repoMapRef = useLatest(repoMap)
 
   const client = useClient(iframeRef, {
+    onLoaded: async () => {
+      setIsLoaded(true)
+    },
     refresh: async () => {
       window.location.reload()
 
@@ -87,18 +89,15 @@ function ChatSideBarRenderer({
         setTimeout(() => resolve(null), 1000)
       })
     },
-    onApplyInEditor(_content) {},
-    onLoaded() {
-      setIsLoaded(true)
-    },
-    onCopy(_content) {},
-    onKeyboardEvent() {},
     openInEditor: async (fileLocation: FileLocation) => {
       return openInCodeBrowser(fileLocation)
     },
     openExternal: async (url: string) => {
       window.open(url, '_blank')
     },
+    onApplyInEditor: async _content => {},
+    onCopy: async _content => {},
+    onKeyboardEvent: async () => {},
     readWorkspaceGitRepositories: async () => {
       return readWorkspaceGitRepositories.current()
     },
@@ -109,7 +108,7 @@ function ChatSideBarRenderer({
 
   React.useEffect(() => {
     const quickActionCallback = (command: ChatCommand) => {
-      client?.executeCommand(command)
+      client?.['0.8.0'].executeCommand(command)
     }
 
     emitter.on('quick_action_command', quickActionCallback)
@@ -123,7 +122,7 @@ function ChatSideBarRenderer({
     const notifyActiveEditorSelectionChange = (
       editorFileContext: EditorFileContext | null
     ) => {
-      client?.updateActiveSelection(editorFileContext)
+      client?.['0.8.0'].updateActiveSelection(editorFileContext)
     }
 
     emitter.on('selection_change', notifyActiveEditorSelectionChange)
@@ -201,14 +200,14 @@ function ChatSideBarRenderer({
   })
 
   const navigate = useLatest((view: ChatView) => {
-    client?.navigate(view)
+    client?.['0.8.0'].navigate(view)
   })
 
   const onNavigate = navigate.current
 
   React.useEffect(() => {
     if (client && data && isLoaded) {
-      client.init({
+      client['0.8.0'].init({
         fetcherOptions: {
           authorization: data.me.authToken
         }
@@ -219,7 +218,7 @@ function ChatSideBarRenderer({
   React.useEffect(() => {
     if (pendingCommand && client && isLoaded) {
       const execute = async () => {
-        client.executeCommand(pendingCommand)
+        client['0.8.0'].executeCommand(pendingCommand)
       }
 
       execute()
@@ -240,7 +239,7 @@ function ChatSideBarRenderer({
 }
 
 interface HeaderProps {
-  onNavigate: ServerApi['navigate']
+  onNavigate: (view: ChatView) => void
   initialized: boolean
 }
 function Header({ onNavigate, initialized }: HeaderProps) {
