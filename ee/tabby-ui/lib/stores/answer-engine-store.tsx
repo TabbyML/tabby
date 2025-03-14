@@ -9,7 +9,7 @@ export interface AnswerEngineState {
 const initialState: AnswerEngineState = {
   threadsPageNo: 1,
   myThreadsPageNo: 1,
-  threadsTab: 'mine'
+  threadsTab: 'all'
 }
 
 export const useAnswerEngineStore = create<AnswerEngineState>()(() => {
