@@ -34,7 +34,7 @@ export type ChatContextValue = {
   onLookupSymbol?: (
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
-  ) => Promise<SymbolInfo | undefined>
+  ) => Promise<SymbolInfo | null>
   openInEditor: (target: FileLocation) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
   activeSelection: Context | null
