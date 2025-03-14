@@ -30,6 +30,7 @@ import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import {
   CodeQueryInput,
   CreateMessageInput,
+  DocQueryInput,
   InputMaybe,
   ListThreadMessagesQuery,
   MessageAttachmentCodeInput,
@@ -540,6 +541,13 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         }))
 
       const content = userMessage.message
+      const docQuery: InputMaybe<DocQueryInput> = selectedRepoId
+        ? {
+            content,
+            sourceIds: [selectedRepoId],
+            searchPublic: false
+          }
+        : null
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
             content,
@@ -556,9 +564,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           }
         },
         {
-          docQuery: docQuery ? { content, searchPublic: false } : null,
-          generateRelevantQuestions: !!generateRelevantQuestions,
+          docQuery,
           codeQuery,
+          generateRelevantQuestions: !!generateRelevantQuestions,
           modelName: selectedModel
         }
       ]

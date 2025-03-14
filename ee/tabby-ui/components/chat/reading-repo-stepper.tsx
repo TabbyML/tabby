@@ -1,10 +1,16 @@
-import { Maybe, MessageAttachmentCodeFileList, ThreadAssistantMessageReadingCode } from "@/lib/gql/generates/graphql"
-import { AttachmentDocItem, RelevantCodeContext } from "@/lib/types"
-import { useContext, useMemo } from "react"
-import { ChatContext } from "./chat-context"
-import { Accordion, AccordionItem, AccordionTrigger } from "../ui/accordion"
-import { SourceIcon } from "../source-icon"
-import { IconCode } from "../ui/icons"
+import { useContext, useMemo } from 'react'
+
+import {
+  Maybe,
+  MessageAttachmentCodeFileList,
+  ThreadAssistantMessageReadingCode
+} from '@/lib/gql/generates/graphql'
+import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
+
+import { SourceIcon } from '../source-icon'
+import { Accordion, AccordionItem, AccordionTrigger } from '../ui/accordion'
+import { IconCode } from '../ui/icons'
+import { ChatContext } from './chat-context'
 
 interface ReadingRepoStepperProps {
   supportsOpenInEditor?: boolean
@@ -25,7 +31,6 @@ export function ReadingRepoStepper({
   serverCodeContexts,
   docs
 }: ReadingRepoStepperProps) {
-
   const { repos } = useContext(ChatContext)
   const totalContextLength =
     (clientCodeContexts?.length || 0) +
@@ -37,7 +42,7 @@ export function ReadingRepoStepper({
   }, [repos, codeSourceId])
 
   return (
-    <Accordion collapsible type='single'>
+    <Accordion collapsible type="single">
       <AccordionItem value="readingRepo">
         <AccordionTrigger className="w-full py-2 pr-2">
           <div className="flex flex-1 items-center justify-between pr-2">
@@ -67,4 +72,3 @@ export function ReadingRepoStepper({
     </Accordion>
   )
 }
-
