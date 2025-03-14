@@ -96,9 +96,6 @@ export function MyThreadFeeds() {
     resetMyThreadsPageNo()
   }, [])
 
-  const hasThreads = !!data?.myThreads?.edges?.length
-  // const hasThreads = false
-
   return (
     <div className={cn('w-full')}>
       <motion.div
@@ -121,90 +118,82 @@ export function MyThreadFeeds() {
           }
           delay={600}
         >
-          {hasThreads ? (
-            <>
-              <div className="relative flex flex-col gap-3 text-sm">
-                {threads.map(t => {
-                  return (
-                    <ThreadItem
-                      data={t}
-                      key={t.node.id}
-                      onNavigateToThread={handleNavigateToThread}
+          <div className="relative flex flex-col gap-3 text-sm">
+            {threads.map(t => {
+              return (
+                <ThreadItem
+                  data={t}
+                  key={t.node.id}
+                  onNavigateToThread={handleNavigateToThread}
+                />
+              )
+            })}
+            {fetching && (
+              <div className="absolute inset-0 bottom-10 z-10 flex items-center justify-center backdrop-blur-sm" />
+            )}
+            {showPagination && (
+              // FIXME abstract Pagination
+              <Pagination className={cn('flex items-center justify-end')}>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      disabled={page === 1}
+                      onClick={() => {
+                        if (page === 1) return
+
+                        const _page = page - 1
+                        setPage(_page)
+                      }}
                     />
-                  )
-                })}
-                {fetching && (
-                  <div className="absolute inset-0 bottom-10 z-10 flex items-center justify-center backdrop-blur-sm" />
-                )}
-                {showPagination && (
-                  // FIXME abstract Pagination
-                  <Pagination className={cn('flex items-center justify-end')}>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          disabled={page === 1}
-                          onClick={() => {
-                            if (page === 1) return
-
-                            const _page = page - 1
-                            setPage(_page)
-                          }}
-                        />
-                      </PaginationItem>
-                      {paginationPages.map((item, index) => {
-                        return (
-                          <PaginationItem
-                            key={`${item}-${index}`}
-                            onClick={() => {
-                              if (typeof item === 'number') {
-                                setPage(item)
-                              }
-                            }}
+                  </PaginationItem>
+                  {paginationPages.map((item, index) => {
+                    return (
+                      <PaginationItem
+                        key={`${item}-${index}`}
+                        onClick={() => {
+                          if (typeof item === 'number') {
+                            setPage(item)
+                          }
+                        }}
+                      >
+                        {typeof item === 'number' ? (
+                          <PaginationLink
+                            className="cursor-pointer"
+                            isActive={item === page}
                           >
-                            {typeof item === 'number' ? (
-                              <PaginationLink
-                                className="cursor-pointer"
-                                isActive={item === page}
-                              >
-                                {item}
-                              </PaginationLink>
-                            ) : (
-                              <PaginationEllipsis />
-                            )}
-                          </PaginationItem>
-                        )
-                      })}
-                      {hasNextPage && (
-                        <PaginationItem>
+                            {item}
+                          </PaginationLink>
+                        ) : (
                           <PaginationEllipsis />
-                        </PaginationItem>
-                      )}
-                      <PaginationItem>
-                        <PaginationNext
-                          disabled={isNextPageDisabled}
-                          onClick={() => {
-                            if (isNextPageDisabled) {
-                              return
-                            }
-
-                            const _page = page + 1
-                            setPage(_page)
-                            if (_page > pageCount) {
-                              loadMore()
-                            }
-                          }}
-                        />
+                        )}
                       </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="my-12 text-center text-lg font-medium text-muted-foreground">
-              No data
-            </div>
-          )}
+                    )
+                  })}
+                  {hasNextPage && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      disabled={isNextPageDisabled}
+                      onClick={() => {
+                        if (isNextPageDisabled) {
+                          return
+                        }
+
+                        const _page = page + 1
+                        setPage(_page)
+                        if (_page > pageCount) {
+                          loadMore()
+                        }
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </div>
         </LoadingWrapper>
       </motion.div>
     </div>
