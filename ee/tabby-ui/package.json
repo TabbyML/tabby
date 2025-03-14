@@ -66,7 +66,6 @@
     "@vercel/analytics": "^1.0.0",
     "@vercel/kv": "^0.2.1",
     "@vercel/og": "^0.5.7",
-    "ai": "^2.1.6",
     "class-variance-authority": "^0.4.0",
     "clsx": "^1.2.1",
     "cm6-graphql": "^0.0.15",
