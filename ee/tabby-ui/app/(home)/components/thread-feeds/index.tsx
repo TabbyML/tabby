@@ -1,3 +1,6 @@
+'use-client'
+
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery } from 'urql'
 
@@ -6,7 +9,7 @@ import {
   setThreadsTab,
   useAnswerEngineStore
 } from '@/lib/stores/answer-engine-store'
-import { contextInfoQuery } from '@/lib/tabby/query'
+import { contextInfoQuery, listMyThreads, listThreads } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { IconSpinner } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -25,12 +28,48 @@ export function ThreadFeeds({
   className,
   onNavigateToThread
 }: ThreadFeedsProps) {
-  // FIXME rename
   const threadsTab = useAnswerEngineStore(state => state.threadsTab)
   const [allUsers, fetchingUsers] = useAllMembers()
   const [{ data: contextInfoData, fetching: fetchingSources }] = useQuery({
     query: contextInfoQuery
   })
+
+  const [{ data: persistedThreads, fetching: fetchingPersistedThreads }] =
+    useQuery({
+      query: listThreads,
+      variables: {
+        last: 1,
+        isEphemeral: false
+      }
+    })
+  const [{ data: myThreads, fetching: fetchingMyThreads }] = useQuery({
+    query: listMyThreads,
+    variables: {
+      last: 1
+    }
+  })
+
+  const loading =
+    fetchingPersistedThreads ||
+    fetchingMyThreads ||
+    fetchingSources ||
+    fetchingUsers
+  const hasPersistedThreads = !!persistedThreads?.threads?.edges?.length
+  const hasMyThreads = !!myThreads?.myThreads.edges.length
+
+  useEffect(() => {
+    if (loading) return
+    if (!hasPersistedThreads && !hasMyThreads) return
+
+    if (!hasPersistedThreads && threadsTab === 'all') {
+      setThreadsTab('mine')
+    } else if (!hasMyThreads && threadsTab === 'mine') {
+      setThreadsTab('all')
+    }
+  }, [loading, hasPersistedThreads, hasMyThreads, threadsTab])
+
+  // if there's no thread, hide the section
+  if (!hasPersistedThreads && !hasMyThreads) return null
 
   return (
     <ThreadFeedsContext.Provider
@@ -55,8 +94,7 @@ export function ThreadFeeds({
           }}
         >
           <LoadingWrapper
-            // FIXME fetching threads
-            loading={fetchingSources || fetchingUsers}
+            loading={loading}
             fallback={
               <div className="flex justify-center">
                 <IconSpinner className="h-8 w-8" />
@@ -71,18 +109,22 @@ export function ThreadFeeds({
               >
                 <div className="flex items-center justify-between pb-3">
                   <TabsList className="w-full justify-start border-b bg-transparent p-0">
-                    <TabsTrigger
-                      value="all"
-                      className="rounded-none border-b-2 border-b-transparent bg-transparent px-3 py-2 text-base font-medium shadow-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                      Recent Activities
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="mine"
-                      className="rounded-none border-b-2 border-b-transparent bg-transparent px-3 py-2 text-base font-medium shadow-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                      My Activities
-                    </TabsTrigger>
+                    {!!hasPersistedThreads && (
+                      <TabsTrigger
+                        value="all"
+                        className="rounded-none border-b-2 border-b-transparent bg-transparent px-3 py-2 text-base font-medium shadow-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                      >
+                        Recent Activities
+                      </TabsTrigger>
+                    )}
+                    {!!hasMyThreads && (
+                      <TabsTrigger
+                        value="mine"
+                        className="rounded-none border-b-2 border-b-transparent bg-transparent px-3 py-2 text-base font-medium shadow-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                      >
+                        My Activities
+                      </TabsTrigger>
+                    )}
                   </TabsList>
                 </div>
                 <TabsContent value="all">
