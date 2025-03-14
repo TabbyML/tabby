@@ -43,6 +43,11 @@ export class CommandPalette {
       const iconPath = this.config.inlineCompletionTriggerMode === "automatic" ? new ThemeIcon("check") : undefined;
       const labelPrefix = iconPath ? "" : MENU_ITEM_INDENT_SPACING;
 
+      const currentLanguageId = window.activeTextEditor?.document.languageId;
+      const isLanguageDisabled = currentLanguageId ? this.config.disabledLanguages.includes(currentLanguageId) : false;
+      const languageToggleIcon = !isLanguageDisabled ? new ThemeIcon("check") : undefined;
+      const languageTogglePrefix = languageToggleIcon ? "" : MENU_ITEM_INDENT_SPACING;
+
       items.push(
         {
           label: "enable/disable features",
@@ -57,6 +62,20 @@ export class CommandPalette {
           alwaysShow: true,
         },
       );
+
+      if (currentLanguageId) {
+        items.push({
+          label: languageTogglePrefix + `Code Completion for ${currentLanguageId}`,
+          picked: !isLanguageDisabled,
+          command: {
+            title: "triggerLanguageInlineCompletion",
+            command: "tabby.toggleLanguageInlineCompletion",
+            arguments: [currentLanguageId],
+          },
+          iconPath: languageToggleIcon,
+          alwaysShow: true,
+        });
+      }
     }
 
     // Chat section
