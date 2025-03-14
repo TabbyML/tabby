@@ -795,7 +795,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           initialized,
           listFileInWorkspace,
           readFileContent,
-          listSymbols
+          listSymbols,
+          executeCommand
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>

@@ -10,6 +10,7 @@ import {
 import type { MentionAttributes } from '@/lib/types'
 
 import {
+  COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
   PLACEHOLDER_FILE_REGEX,
@@ -213,6 +214,19 @@ export function encodeMentionPlaceHolder(value: string): string {
     }
   }
 
+  // also dealing with command
+  while ((match = COMMAND_REGEX.exec(value)) !== null) {
+    try {
+      // eslint-disable-next-line no-console
+      console.log('machine command', match[0])
+      newValue = newValue.replace(
+        match[0],
+        `[[command:${encodeURIComponent(match[1])}]]`
+      )
+    } catch (error) {
+      continue
+    }
+  }
   return newValue
 }
 
