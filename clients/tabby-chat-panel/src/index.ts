@@ -396,6 +396,13 @@ export interface ClientApiMethods {
    * @returns The content of the file as a string, or `null` if the file or range cannot be accessed.
    */
   readFileContent?: (info: FileRange) => Promise<string | null>
+
+  /**
+   * Run a terminal command in the IDE Terminal.
+   * @param command The command to run in the terminal.
+   * @returns void
+   */
+  runTerminalCommand?: (command: string) => Promise<void>
 }
 
 export interface ClientApi extends ClientApiMethods {
