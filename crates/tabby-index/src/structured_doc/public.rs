@@ -70,7 +70,7 @@ impl StructuredDocIndexer {
     // If the document is marked as deleted, it will be removed.
     // Next, the document is rebuilt, the original is deleted, and the newly indexed document is added.
     pub async fn sync(&self, document: StructuredDoc) -> bool {
-        if !self.require_updates(&document) {
+        if !self.require_updates(&document).await {
             return false;
         }
 
@@ -124,13 +124,19 @@ impl StructuredDocIndexer {
         self.indexer.commit();
     }
 
-    fn require_updates(&self, document: &StructuredDoc) -> bool {
+    async fn require_updates(&self, document: &StructuredDoc) -> bool {
         if document.should_skip() {
             return false;
         }
 
         if self.should_backfill(document) {
             return true;
+        }
+
+        if let StructuredDocFields::Commit(_commit) = &document.fields {
+            if self.indexer.get_doc(document.id()).await.is_ok() {
+                return false;
+            }
         }
 
         true
