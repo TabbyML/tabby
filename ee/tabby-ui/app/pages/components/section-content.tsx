@@ -238,7 +238,7 @@ export function SectionContent({
                       }}
                     >
                       <IconTrash />
-                      Delete Section
+                      Delete
                     </Button>
                   </>
                 )}
