@@ -321,10 +321,7 @@ export function Page() {
                 ...x,
                 attachments: {
                   ...x.attachments,
-                  codeFileList: {
-                    ...data.codeFileList,
-                    __typename: 'AttachmentCodeFileList'
-                  }
+                  codeFileList: data.codeFileList
                 }
               }
             } else {

@@ -565,7 +565,7 @@ function RelevantCodeBadge({
       range: getRangeFromAttachmentCode(relevantCode),
       filepath: relevantCode.filepath || '',
       content: relevantCode.content,
-      git_url: ''
+      gitUrl: ''
     }
   }, [relevantCode])
 
