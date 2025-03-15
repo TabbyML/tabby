@@ -1,7 +1,7 @@
 {
   "name": "tabby-chat-panel",
   "type": "module",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "keywords": [],
   "sideEffects": false,
   "exports": {
@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "react": "18.2.0",
+    "semver": "^7.6.0",
     "tabby-threads": "workspace:*"
   },
   "devDependencies": {
@@ -52,6 +53,7 @@
     "@antfu/ni": "^0.21.12",
     "@types/node": "^20.12.7",
     "@types/react": "18.2.23",
+    "@types/semver": "^7.5.8",
     "bumpp": "^9.4.0",
     "eslint": "^9.1.1",
     "eslint-formatter-mo": "^1.2.0",

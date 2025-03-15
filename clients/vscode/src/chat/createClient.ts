@@ -1,5 +1,10 @@
 import type { Webview } from "vscode";
-import type { ServerApi, ClientApiMethods } from "tabby-chat-panel";
+import {
+  type ServerApiList,
+  type ClientApi,
+  type ServerApi,
+  createClient as createClientFromThread,
+} from "tabby-chat-panel";
 import { createThread, type ThreadOptions } from "tabby-threads";
 
 function createThreadFromWebview<Self = Record<string, never>, Target = Record<string, never>>(
@@ -22,25 +27,7 @@ function createThreadFromWebview<Self = Record<string, never>, Target = Record<s
   );
 }
 
-export function createClient(webview: Webview, api: ClientApiMethods): ServerApi {
-  return createThreadFromWebview(webview, {
-    expose: {
-      refresh: api.refresh,
-      onApplyInEditor: api.onApplyInEditor,
-      onApplyInEditorV2: api.onApplyInEditorV2,
-      onLoaded: api.onLoaded,
-      onCopy: api.onCopy,
-      onKeyboardEvent: api.onKeyboardEvent,
-      lookupSymbol: api.lookupSymbol,
-      openInEditor: api.openInEditor,
-      openExternal: api.openExternal,
-      readWorkspaceGitRepositories: api.readWorkspaceGitRepositories,
-      getActiveEditorSelection: api.getActiveEditorSelection,
-      fetchSessionState: api.fetchSessionState,
-      storeSessionState: api.storeSessionState,
-      listFileInWorkspace: api.listFileInWorkspace,
-      readFileContent: api.readFileContent,
-      listSymbols: api.listSymbols,
-    },
-  });
+export async function createClient(webview: Webview, api: ClientApi): Promise<ServerApiList> {
+  const thread = createThreadFromWebview<ClientApi, ServerApi>(webview, { expose: api });
+  return await createClientFromThread(thread);
 }

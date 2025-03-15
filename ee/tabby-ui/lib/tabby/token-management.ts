@@ -1,9 +1,11 @@
 import { jwtDecode } from 'jwt-decode'
 import { isNil } from 'lodash-es'
-import { FetcherOptions } from 'tabby-chat-panel/index'
+import { InitRequest } from 'tabby-chat-panel'
 
 import { isClientSide } from '../utils'
 import { AuthData } from './auth'
+
+type FetcherOptions = InitRequest['fetcherOptions']
 
 export const AUTH_TOKEN_KEY = '_tabby_auth'
 export const AUTH_LOCK_KEY = '_tabby_auth_lock'
