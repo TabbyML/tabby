@@ -219,7 +219,6 @@ export function AssistantMessageSection({
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
     const url = buildCodeBrowserUrlForContext(window.location.origin, ctx)
-    debugger
     window.open(url, '_blank')
   }
 
