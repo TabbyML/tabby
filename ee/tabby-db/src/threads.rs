@@ -31,6 +31,11 @@ pub struct ThreadMessageDAO {
     pub code_source_id: Option<String>,
     pub attachment: Option<Json<Attachment>>,
 
+    // Deprecated since 0.25 (not removed from db yet).
+    // FIXME(meng): remove these columns from db in 0.26.
+    // pub code_attachments: Option<Json<Vec<AttachmentCode>>>,
+    // pub client_code_attachments: Option<Json<Vec<AttachmentClientCode>>>,
+    // pub doc_attachments: Option<Json<Vec<AttachmentDoc>>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
