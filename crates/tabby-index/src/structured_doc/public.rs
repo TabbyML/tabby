@@ -133,13 +133,10 @@ impl StructuredDocIndexer {
             return true;
         }
 
-        match &document.fields {
-            StructuredDocFields::Commit(_commit) => {
-                if self.indexer.get_doc(document.id()).await.is_ok() {
-                    return false;
-                }
+        if let StructuredDocFields::Commit(_commit) = &document.fields {
+            if self.indexer.get_doc(document.id()).await.is_ok() {
+                return false;
             }
-            _ => (),
         }
 
         true
