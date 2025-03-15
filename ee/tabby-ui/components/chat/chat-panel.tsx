@@ -325,7 +325,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
               ) : null}
               <AnimatePresence>
                 {relevantContext.map((item, idx) => {
-                  // `git_url + filepath + range` as unique key
+                  // `gitUrl + filepath + range` as unique key
                   const key = `${item.gitUrl}_${item.filepath}_${item.range?.start}_${item.range?.end}`
                   return (
                     <motion.div

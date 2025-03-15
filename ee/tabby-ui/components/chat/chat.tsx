@@ -197,7 +197,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
                   content: x.content,
                   filepath: x.filepath ?? '',
                   startLine: x.startLine,
-                  git_url: ''
+                  gitUrl: ''
                 }
               })
             }
