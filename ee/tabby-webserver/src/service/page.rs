@@ -144,6 +144,9 @@ impl PageService for PageServiceImpl {
             let section = db
                 .create_page_section(page_id, &new_section_title)
                 .await?;
+            let section_id = section.id;
+            let page_section: PageSection = section.into();
+            yield Ok(SectionRunItem::PageSectionCreated(page_section));
 
             let mut attachment = SectionAttachment::default();
             if let Some(source_id) = &page.code_source_id {
@@ -153,9 +156,9 @@ impl PageService for PageServiceImpl {
                             file_list: file_list.clone(),
                             truncated,
                         });
-                        db.update_page_section_code_file_list(section.id, &file_list, truncated).await?;
+                        db.update_page_section_code_file_list(section_id, &file_list, truncated).await?;
                         yield Ok(SectionRunItem::PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList {
-                            id: section.id.as_id(),
+                            id: section_id.as_id(),
                             code_file_list: AttachmentCodeFileList{
                                 file_list,
                                 truncated
@@ -183,18 +186,15 @@ impl PageService for PageServiceImpl {
 
                 if !hits.is_empty() {
                     let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
-                    db.update_page_section_code_attachments(section.id, &attachment.code.iter().map(|c| c.into()).collect::<Vec<_>>()).await?;
+                    db.update_page_section_code_attachments(section_id, &attachment.code.iter().map(|c| c.into()).collect::<Vec<_>>()).await?;
                     yield Ok(SectionRunItem::PageSectionAttachmentCode(
                         PageSectionAttachmentCode {
-                            id: section.id.as_id(),
+                            id: section_id.as_id(),
                             codes: hits,
                         }
                     ));
                 }
             }
-
-            let section_id = section.id;
-            yield Ok(SectionRunItem::PageSectionCreated (section.into()));
 
             let content_stream = generate_page_section_content(
                 chat.clone(),
