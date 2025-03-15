@@ -168,7 +168,7 @@ export function AssistantMessageSection({
           range: getRangeFromAttachmentCode(code),
           filepath: code.filepath || '',
           content: code.content,
-          git_url: clientCodeGitUrl
+          gitUrl: clientCodeGitUrl
         }
       }) ?? []
     )
@@ -182,7 +182,7 @@ export function AssistantMessageSection({
           range: getRangeFromAttachmentCode(code),
           filepath: code.filepath,
           content: code.content,
-          git_url: code.gitUrl,
+          gitUrl: code.gitUrl,
           commit: code.commit ?? undefined,
           extra: {
             scores: code?.extra?.scores
@@ -219,6 +219,7 @@ export function AssistantMessageSection({
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
     const url = buildCodeBrowserUrlForContext(window.location.origin, ctx)
+    debugger
     window.open(url, '_blank')
   }
 

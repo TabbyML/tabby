@@ -95,7 +95,7 @@ export type ISearchHit = {
     body?: string
     name?: string
     filepath?: string
-    git_url?: string
+    gitUrl?: string
     kind?: string
     language?: string
   }
