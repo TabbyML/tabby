@@ -175,11 +175,6 @@ CREATE TABLE thread_messages(
   role TEXT NOT NULL,
   content TEXT NOT NULL,
   -- Array of code attachments, in format of `ThreadMessageAttachmentCode`
-  code_attachments BLOB,
-  -- Array of client code attachments, in format of `ThreadMessageAttachmentClientCode`
-  client_code_attachments BLOB,
-  -- Array of doc attachments, in format of `ThreadMessageAttachmentDoc`
-  doc_attachments BLOB,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   code_source_id VARCHAR(255),
