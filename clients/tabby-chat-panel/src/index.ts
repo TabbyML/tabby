@@ -275,17 +275,15 @@ export interface ListSymbolsParams {
 
   limit?: number
 }
-export interface currentChangeFilesParams {
+export interface CurrentChangeFilesParams {
   limit?: number
 }
 
 export interface ChangeItem {
-  // filepath
-  filepath: Filepath
-  // use line range to show range in chat panel
-  range: LineRange
-  before: string
-  after: string
+  /**
+   * The content of the change, and it will follow the same Diff format as the `git diff` command.
+   */
+  content: string[]
 }
 
 export interface ListFileItem {
@@ -401,7 +399,7 @@ export interface ClientApiMethods {
    */
   listSymbols?: (params: ListSymbolsParams) => Promise<ListSymbolItem[]>
 
-  currentChangeFiles?: (params: currentChangeFilesParams) => Promise<ChangeItem[]>
+  currentChangeFiles?: (params: CurrentChangeFilesParams) => Promise<ChangeItem[]>
 
   /**
    * Returns the content of a file within the specified range.
