@@ -63,7 +63,8 @@ CREATE TABLE server_setting(
   security_disable_client_side_telemetry BOOLEAN NOT NULL DEFAULT FALSE,
   network_external_url STRING NOT NULL DEFAULT 'http://localhost:8080'
   ,
-  billing_enterprise_license STRING
+  billing_enterprise_license STRING,
+  security_disable_password_login BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE TABLE email_setting(
   id INTEGER PRIMARY KEY AUTOINCREMENT,

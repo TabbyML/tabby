@@ -495,6 +495,12 @@ impl Query {
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
             is_email_configured: ctx.locator.email().read_setting().await?.is_some(),
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
+            disable_password_login: ctx
+                .locator
+                .setting()
+                .read_security_setting()
+                .await?
+                .disable_password_login,
             is_demo_mode: env::is_demo_mode(),
         })
     }
@@ -972,6 +978,7 @@ pub struct ServerInfo {
     is_chat_enabled: bool,
     is_email_configured: bool,
     allow_self_signup: bool,
+    disable_password_login: bool,
     is_demo_mode: bool,
 }
 
