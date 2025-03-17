@@ -184,6 +184,7 @@ export function getContent(item: AttachmentDocItem) {
   return ''
 }
 
+// FIXME(Sma1lboy): assume there is ChatCommand & ChatCommand2, focus prompt
 export function getPromptForChatCommand(command: ChatCommand) {
   switch (command) {
     case 'explain':
@@ -194,6 +195,8 @@ export function getPromptForChatCommand(command: ChatCommand) {
       return 'Generate documentation for the selected code:'
     case 'generate-tests':
       return 'Generate a unit test for the selected code:'
+    case 'code-review':
+      return 'Review the selected code and provide feedback:'
   }
 }
 

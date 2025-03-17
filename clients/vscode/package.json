@@ -100,6 +100,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.chat.codeReviewCodeBlock",
+        "title": "Code Review",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.chat.generateCodeBlockDoc",
         "title": "Generate Docs",
         "category": "Tabby"
@@ -169,14 +174,39 @@
           "group": "tabby.submenu.0edit@1"
         },
         {
+          "command": "tabby.chat.explainCodeBlock",
+          "when": "editorHasSelection && tabby.chatEnabled",
+          "group": "tabby.submenu.1edit@1"
+        },
+        {
+          "command": "tabby.chat.fixCodeBlock",
+          "when": "editorHasSelection && tabby.chatEnabled",
+          "group": "tabby.submenu.1edit@2"
+        },
+        {
+          "command": "tabby.chat.codeReviewCodeBlock",
+          "when": "editorHasSelection && tabby.chatEnabled",
+          "group": "tabby.submenu.1edit@3"
+        },
+        {
+          "command": "tabby.chat.generateCodeBlockDoc",
+          "when": "editorHasSelection && tabby.chatEnabled",
+          "group": "tabby.submenu.1edit@4"
+        },
+        {
+          "command": "tabby.chat.generateCodeBlockTest",
+          "when": "editorHasSelection && tabby.chatEnabled",
+          "group": "tabby.submenu.1edit@5"
+        },
+        {
           "command": "tabby.chat.addRelevantContext",
           "when": "editorHasSelection && tabby.chatEnabled",
-          "group": "tabby.submenu.1chat@1"
+          "group": "tabby.submenu.2chat@1"
         },
         {
           "command": "tabby.chat.addFileContext",
           "when": "tabby.chatEnabled",
-          "group": "tabby.submenu.1chat@2"
+          "group": "tabby.submenu.2chat@2"
         }
       ],
       "commandPalette": [
@@ -199,6 +229,10 @@
         {
           "command": "tabby.chat.fixCodeBlock",
           "when": "false"
+        },
+        {
+          "command": "tabby.chat.codeReviewCodeBlock",
+          "when": "editorHasSelection && tabby.chatEnabled"
         },
         {
           "command": "tabby.chat.generateCodeBlockDoc",
