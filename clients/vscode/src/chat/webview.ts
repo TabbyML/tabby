@@ -730,6 +730,11 @@ export class ChatWebview extends EventEmitter {
           return [];
         }
       },
+      runTerminalCommand: async (command: string) => {
+        const terminal = window.createTerminal();
+        terminal.show();
+        terminal.sendText(command);
+      },
     });
   }
 
