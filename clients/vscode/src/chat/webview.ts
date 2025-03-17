@@ -282,10 +282,6 @@ export class ChatWebview extends EventEmitter {
         }
       },
 
-      onLoaded: async () => {
-        // deprecated
-      },
-
       onCopy: async (content) => {
         env.clipboard.writeText(content);
       },

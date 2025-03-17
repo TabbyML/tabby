@@ -6,25 +6,12 @@ export interface ClientApi {
    * Notify the client that the server is ready.
    * @param params {@link OnLoadedParams}
    */
-  onLoaded: (params?: OnLoadedParams | undefined) => Promise<void>
+  onLoaded?: (params?: OnLoadedParams | undefined) => Promise<void>
 
   /**
    * Forces the webview to refresh.
    */
   refresh: () => Promise<void>
-
-  /**
-   * Apply the content into the active editor.
-   * @param content The content to apply.
-   * See {@link onApplyInEditorV2} for Smart Apply support.
-   */
-  onApplyInEditor: (content: string) => Promise<void>
-
-  /**
-   * Copy the content to the clipboard.
-   * @param content The content to copy.
-   */
-  onCopy: (content: string) => Promise<void>
 
   /**
    * Open the target file location in the editor.
@@ -40,17 +27,23 @@ export interface ClientApi {
   openExternal: (url: string) => Promise<void>
 
   /**
-   * Notify the client that a keyboard event has been triggered.
-   * @param type The type of the keyboard event.
-   * @param event The {@link KeyboardEventInit} to handle.
-   */
-  onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => Promise<void>
-
-  /**
    * Get the active editor selection as context, or the whole file if no selection.
    * @returns The {@link EditorContext} of the active editor, or `null` if no active editor is found.
    */
   getActiveEditorSelection: () => Promise<EditorContext | null>
+
+  /**
+   * Copy the content to the clipboard.
+   * @param content The content to copy.
+   */
+  onCopy: (content: string) => Promise<void>
+
+  /**
+   * Apply the content into the active editor.
+   * @param content The content to apply.
+   * See {@link onApplyInEditorV2} for Smart Apply support.
+   */
+  onApplyInEditor: (content: string) => Promise<void>
 
   /**
    * Apply the content into the active editor, with Smart Apply support.
@@ -58,6 +51,13 @@ export interface ClientApi {
    * @param options The optional {@link ApplyInEditorOptions} to control the behavior of the apply.
    */
   onApplyInEditorV2?: (content: string, options?: ApplyInEditorOptions) => Promise<void>
+
+  /**
+   * Notify the client that a keyboard event has been triggered.
+   * @param type The type of the keyboard event.
+   * @param event The {@link KeyboardEventInit} to handle.
+   */
+  onKeyboardEvent?: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => Promise<void>
 
   /**
    * Fetch all git repositories information for the current workspace.

@@ -185,7 +185,7 @@ export default function ChatPage() {
       type: 'keydown' | 'keyup' | 'keypress',
       event: KeyboardEvent
     ) => {
-      server?.onKeyboardEvent(type, {
+      server?.onKeyboardEvent?.(type, {
         code: event.code,
         isComposing: event.isComposing,
         key: event.key,
@@ -241,7 +241,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (server) {
-      server?.onLoaded({
+      server?.onLoaded?.({
         apiVersion: TABBY_CHAT_PANEL_API_VERSION
       })
 

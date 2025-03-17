@@ -70,7 +70,6 @@ function ChatSideBarRenderer({
   ...props
 }: ChatSideBarProps) {
   const [{ data }] = useMe()
-  const [isLoaded, setIsLoaded] = useState(false)
   const { repoMap, updateActivePath, activeEntryInfo, textEditorViewRef } =
     React.useContext(SourceCodeBrowserContext)
   const activeChatId = useChatStore(state => state.activeChatId)
@@ -78,9 +77,6 @@ function ChatSideBarRenderer({
   const repoMapRef = useLatest(repoMap)
 
   const client = useClient(iframeRef, {
-    onLoaded: async () => {
-      setIsLoaded(true)
-    },
     refresh: async () => {
       window.location.reload()
 
@@ -97,7 +93,6 @@ function ChatSideBarRenderer({
     },
     onApplyInEditor: async _content => {},
     onCopy: async _content => {},
-    onKeyboardEvent: async () => {},
     readWorkspaceGitRepositories: async () => {
       return readWorkspaceGitRepositories.current()
     },
@@ -206,24 +201,24 @@ function ChatSideBarRenderer({
   const onNavigate = navigate.current
 
   React.useEffect(() => {
-    if (client && data && isLoaded) {
+    if (client && data) {
       client['0.8.0'].init({
         fetcherOptions: {
           authorization: data.me.authToken
         }
       })
     }
-  }, [iframeRef?.current, data, isLoaded])
+  }, [iframeRef?.current, data, client])
 
   React.useEffect(() => {
-    if (pendingCommand && client && isLoaded) {
+    if (pendingCommand && client) {
       const execute = async () => {
         client['0.8.0'].executeCommand(pendingCommand)
       }
 
       execute()
     }
-  }, [isLoaded])
+  }, [client])
 
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
