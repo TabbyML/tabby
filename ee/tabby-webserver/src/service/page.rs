@@ -241,6 +241,11 @@ impl PageService for PageServiceImpl {
         Ok(page.into())
     }
 
+    async fn update_title(&self, id: &ID, title: &str) -> Result<()> {
+        self.db.update_page_title(id.as_rowid()?, title).await?;
+        Ok(())
+    }
+
     async fn update_content(&self, id: &ID, content: &str) -> Result<()> {
         self.db.update_page_content(id.as_rowid()?, content).await?;
         Ok(())

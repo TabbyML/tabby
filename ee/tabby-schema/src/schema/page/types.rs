@@ -69,6 +69,13 @@ impl NodeType for PageSection {
 }
 
 #[derive(GraphQLInputObject, Validate)]
+pub struct UpdatePageTitleInput {
+    pub id: ID,
+    #[validate(length(min = 1, max = 256, code = "title", message = "title can not be empty"))]
+    pub title: String,
+}
+
+#[derive(GraphQLInputObject, Validate)]
 pub struct UpdatePageContentInput {
     pub id: ID,
     #[validate(length(
