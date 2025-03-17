@@ -112,7 +112,6 @@ impl DbTarget {
 
         let file = OpenOptions::new()
             .create(true)
-            
             .append(true)
             .open(&filename)?;
 
