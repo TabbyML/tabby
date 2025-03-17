@@ -532,8 +532,16 @@ export class ChatWebview extends EventEmitter {
             .flatMap((group) => group.tabs)
             .filter((tab) => tab.input && (tab.input as TabInputText).uri);
 
-          this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
-          return openTabs.map((tab) => localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
+          if (openTabs.length > 0) {
+            this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
+            return openTabs.map((tab) => localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
+          }
+
+          // If no open tabs, fall back to findFiles with maxResults
+          this.logger.info(`No open editors found, searching workspace with limit: ${maxResults}`);
+          const files = await this.findFiles("**/*", { maxResults });
+          this.logger.info(`Found ${files.length} files.`);
+          return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
         }
 
         try {
