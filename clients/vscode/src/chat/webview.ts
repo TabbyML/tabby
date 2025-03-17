@@ -67,23 +67,20 @@ export class ChatWebview extends EventEmitter {
   private webview: Webview | undefined = undefined;
   private client: ServerApiList | undefined = undefined;
 
-  // Once the chat iframe is loaded, the `onLoaded` should be called from server side later,
-  // and we can start to initialize the chat panel.
-  // So we set a timeout here to ensure the `onLoaded` is called, otherwise we will show an error.
-  private onLoadedTimeout: NodeJS.Timeout | undefined = undefined;
-
-  // Mark the `onLoaded` is called. Before this, we should schedule the actions like
-  // `addRelevantContext` and `executeCommand` as pending actions.
-  private chatPanelLoaded = false;
-
-  // Pending actions to perform after the chat panel is initialized.
-  private pendingActions: (() => Promise<void>)[] = [];
-
   // The current server config used to load the chat panel.
   private currentConfig: Config["server"] | undefined = undefined;
 
   // A number to ensure the html is reloaded when assigned a new value
   private reloadCount = 0;
+
+  // Once the chat iframe is loaded, the `createChatPanelApiClient` should be resolved,
+  // and we can start to `initChatPanel`.
+  // So we set a timeout here to ensure the `createChatPanelApiClient` is resolved,
+  // otherwise we will show an error.
+  private createClientTimeout: NodeJS.Timeout | undefined = undefined;
+
+  // Pending actions to perform after the chat panel is initialized.
+  private pendingActions: (() => Promise<void>)[] = [];
 
   // A callback list for invoke javascript function by postMessage
   private pendingCallbacks = new Map<string, (...arg: unknown[]) => void>();
@@ -106,8 +103,6 @@ export class ChatWebview extends EventEmitter {
     };
     this.webview = webview;
 
-    this.setupChatPanelApiClient();
-
     const statusListener = () => {
       this.checkStatusAndLoadContent();
     };
@@ -121,14 +116,14 @@ export class ChatWebview extends EventEmitter {
 
     this.disposables.push(
       window.onDidChangeActiveTextEditor((editor) => {
-        if (this.chatPanelLoaded) {
+        if (this.client) {
           this.debouncedNotifyActiveEditorSelectionChange(editor);
         }
       }),
     );
     this.disposables.push(
       window.onDidChangeTextEditorSelection((event) => {
-        if (event.textEditor === window.activeTextEditor && this.chatPanelLoaded) {
+        if (event.textEditor === window.activeTextEditor && this.client) {
           this.debouncedNotifyActiveEditorSelectionChange(event.textEditor);
         }
       }),
@@ -138,7 +133,7 @@ export class ChatWebview extends EventEmitter {
       webview.onDidReceiveMessage((event) => {
         switch (event.action) {
           case "chatIframeLoaded": {
-            this.onLoadedTimeout = setTimeout(() => {
+            this.createClientTimeout = setTimeout(() => {
               const endpoint = this.currentConfig?.endpoint ?? "";
               if (!endpoint) {
                 this.checkStatusAndLoadContent();
@@ -170,11 +165,10 @@ export class ChatWebview extends EventEmitter {
     this.disposables = [];
     this.webview = undefined;
     this.client = undefined;
-    if (this.onLoadedTimeout) {
-      clearTimeout(this.onLoadedTimeout);
-      this.onLoadedTimeout = undefined;
+    if (this.createClientTimeout) {
+      clearTimeout(this.createClientTimeout);
+      this.createClientTimeout = undefined;
     }
-    this.chatPanelLoaded = false;
     this.currentConfig = undefined;
   }
 
@@ -193,7 +187,7 @@ export class ChatWebview extends EventEmitter {
   }
 
   async addRelevantContext(context: EditorContext) {
-    if (this.client && this.chatPanelLoaded) {
+    if (this.client) {
       this.logger.info(`Adding relevant context: ${context}`);
       this.client["0.8.0"].addRelevantContext(context);
     } else {
@@ -205,7 +199,7 @@ export class ChatWebview extends EventEmitter {
   }
 
   async executeCommand(command: ChatCommand) {
-    if (this.client && this.chatPanelLoaded) {
+    if (this.client) {
       this.logger.info(`Executing command: ${command}`);
       this.client["0.8.0"].executeCommand(command);
     } else {
@@ -217,18 +211,46 @@ export class ChatWebview extends EventEmitter {
   }
 
   async navigate(view: ChatView) {
-    if (this.client && this.chatPanelLoaded) {
+    if (this.client) {
       this.logger.info(`Navigate: ${view}`);
       this.client["0.8.0"].navigate(view);
     }
   }
 
-  private async setupChatPanelApiClient() {
-    const webview = this.webview;
-    if (!webview) {
-      return undefined;
+  private async initChatPanel(webview: Webview) {
+    const client = await this.createChatPanelApiClient(webview);
+    this.client = client;
+    this.emit("didChangedStatus", "ready");
+
+    if (this.createClientTimeout) {
+      clearTimeout(this.createClientTimeout);
+      this.createClientTimeout = undefined;
     }
-    this.client = await createClient(webview, {
+
+    // 1. Send pending actions
+    // 2. Call the client's init method
+    // 3. Show the chat panel (call syncStyle underlay)
+    this.pendingActions.forEach(async (fn) => {
+      await fn();
+    });
+    this.pendingActions = [];
+
+    const isMac = isBrowser
+      ? navigator.userAgent.toLowerCase().includes("mac")
+      : process.platform.toLowerCase().includes("darwin");
+
+    await client["0.8.0"].init({
+      fetcherOptions: {
+        authorization: this.currentConfig?.token ?? "",
+      },
+      useMacOSKeyboardEventHandler: isMac,
+    });
+
+    webview.postMessage({ action: "showChatPanel" });
+  }
+
+  private async createChatPanelApiClient(webview: Webview): Promise<ServerApiList> {
+    return await createClient(webview, {
       refresh: async () => {
         commands.executeCommand("tabby.reconnectToServer");
         return;
@@ -261,34 +283,7 @@ export class ChatWebview extends EventEmitter {
       },
 
       onLoaded: async () => {
-        if (this.onLoadedTimeout) {
-          clearTimeout(this.onLoadedTimeout);
-          this.onLoadedTimeout = undefined;
-        }
-
-        this.chatPanelLoaded = true;
-        this.emit("didChangedStatus", "ready");
-
-        // 1. Send pending actions
-        // 2. Call the client's init method
-        // 3. Show the chat panel (call syncStyle underlay)
-        this.pendingActions.forEach(async (fn) => {
-          await fn();
-        });
-        this.pendingActions = [];
-
-        const isMac = isBrowser
-          ? navigator.userAgent.toLowerCase().includes("mac")
-          : process.platform.toLowerCase().includes("darwin");
-
-        await this.client?.["0.8.0"].init({
-          fetcherOptions: {
-            authorization: this.currentConfig?.token ?? "",
-          },
-          useMacOSKeyboardEventHandler: isMac,
-        });
-
-        this.webview?.postMessage({ action: "showChatPanel" });
+        // deprecated
       },
 
       onCopy: async (content) => {
@@ -758,7 +753,7 @@ export class ChatWebview extends EventEmitter {
     if (!webview) {
       return;
     }
-    this.chatPanelLoaded = false;
+    this.client = undefined;
     this.emit("didChangedStatus", "loading");
     this.reloadCount += 1;
     webview.html = mainHtml
@@ -766,6 +761,8 @@ export class ChatWebview extends EventEmitter {
       .replace(/{{SERVER_ENDPOINT}}/g, this.currentConfig?.endpoint ?? "")
       .replace(/{{URI_STYLESHEET}}/g, this.getUriStylesheet())
       .replace(/{{URI_AVATAR_TABBY}}/g, this.getUriAvatarTabby());
+
+    this.initChatPanel(webview);
   }
 
   private loadErrorPage(message: string) {
@@ -773,7 +770,7 @@ export class ChatWebview extends EventEmitter {
     if (!webview) {
       return;
     }
-    this.chatPanelLoaded = false;
+    this.client = undefined;
     this.emit("didChangedStatus", "error");
     this.reloadCount += 1;
     webview.html = errorHtml

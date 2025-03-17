@@ -2,6 +2,7 @@ import type { EditorContext, FileLocation, FileRange, Filepath, GitRepository, L
 
 export interface ClientApi {
   /**
+   * @deprecated
    * Notify the client that the server is ready.
    * @param params {@link OnLoadedParams}
    */
@@ -111,11 +112,11 @@ export interface ClientApi {
 }
 
 /**
+ * @deprecated
  * The params used in {@link ClientApi.onLoaded}.
  */
 export interface OnLoadedParams {
   /**
-   * @deprecated
    * The current version used by the server.
    */
   apiVersion: string
