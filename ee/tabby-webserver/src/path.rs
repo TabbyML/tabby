@@ -15,5 +15,5 @@ pub fn db_file() -> PathBuf {
 }
 
 pub fn background_jobs_dir() -> PathBuf {
-      tabby_ee_root().join("background-jobs")
+    tabby_ee_root().join("background-jobs")
 }
