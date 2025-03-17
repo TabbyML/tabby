@@ -108,6 +108,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
   setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
+  runTerminalCommand?: (command: string) => Promise<void>
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(
@@ -139,6 +140,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       readFileContent,
       listSymbols,
       setShowHistory,
+      runTerminalCommand,
       ...props
     },
     ref
@@ -784,7 +786,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           initialized,
           listFileInWorkspace,
           readFileContent,
-          listSymbols
+          listSymbols,
+          runTerminalCommand
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>

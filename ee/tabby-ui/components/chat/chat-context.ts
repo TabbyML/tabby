@@ -53,6 +53,7 @@ export type ChatContextValue = {
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
   repos: RepositorySourceListQuery['repositoryList'] | undefined
   fetchingRepos: boolean
+  runTerminalCommand?: (command: string) => Promise<void>
 }
 
 export const ChatContext = createContext<ChatContextValue>(
