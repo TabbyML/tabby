@@ -730,7 +730,7 @@ export class ChatWebview extends EventEmitter {
           return [];
         }
       },
-      runTerminalCommand: async (command: string) => {
+      runCommand: async (command: string) => {
         const terminal = window.createTerminal("Tabby");
         terminal.show();
         terminal.sendText(command);
