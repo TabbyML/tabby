@@ -262,7 +262,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     React.useState<number | undefined>(undefined)
   const serverCode: Array<Context> = React.useMemo(() => {
     return (
-      message?.relevant_code?.map(code => ({
+      message?.attachment?.code?.map(code => ({
         kind: 'file',
         range: getRangeFromAttachmentCode(code),
         filepath: code.filepath,
@@ -271,7 +271,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         commit: code.commit ?? undefined
       })) ?? []
     )
-  }, [message?.relevant_code])
+  }, [message?.attachment?.code])
 
   const clientCode: Array<Context> = React.useMemo(() => {
     return uniqWith(
