@@ -13,3 +13,11 @@ pub fn db_file() -> PathBuf {
         tabby_ee_root().join("dev-db.sqlite")
     }
 }
+
+pub fn background_jobs_dir() -> PathBuf {
+    if cfg!(feature = "prod") {
+        tabby_ee_root().join("background-jobs")
+    } else {
+        tabby_ee_root().join("dev-background-jobs")
+    }
+}
