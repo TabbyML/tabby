@@ -112,7 +112,7 @@ impl DbTarget {
 
         let file = OpenOptions::new()
             .create(true)
-            .write(true)
+            
             .append(true)
             .open(&filename)?;
 
@@ -152,8 +152,9 @@ fn should_rotate(now: DateTime<Local>, last_rotation: DateTime<Local>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use chrono::TimeZone;
+
+    use super::*;
 
     #[test]
     fn test_should_rotate() {
