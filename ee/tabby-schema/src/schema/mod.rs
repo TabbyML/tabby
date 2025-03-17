@@ -48,8 +48,8 @@ use ldap3::result::LdapError;
 use notification::NotificationService;
 use page::{
     CreatePageRunInput, CreatePageSectionRunInput, PageRunStream, SectionRunStream,
-    ThreadToPageRunStream, UpdatePageTitleInput, UpdatePageContentInput, UpdatePageSectionContentInput,
-    UpdatePageSectionTitleInput,
+    ThreadToPageRunStream, UpdatePageContentInput, UpdatePageSectionContentInput,
+    UpdatePageSectionTitleInput, UpdatePageTitleInput,
 };
 use repository::RepositoryGrepOutput;
 use strum::IntoEnumIterator;
@@ -1448,9 +1448,7 @@ impl Mutation {
 
         user.policy.check_update_page(&page.author_id)?;
 
-        page_service
-            .update_title(&input.id, &input.title)
-            .await?;
+        page_service.update_title(&input.id, &input.title).await?;
         Ok(true)
     }
 
