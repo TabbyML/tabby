@@ -115,125 +115,101 @@ const CodeBlock: FC<CodeBlockProps> = memo(
         <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
           <span className="text-xs lowercase">{language}</span>
           <div className="flex items-center space-x-1">
-            {runTerminalCommand && language === 'bash' ? (
-              // For bash code blocks with runTerminalCommand support, show Run and Copy buttons
-              <>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                      onClick={onRunCommand}
-                    >
-                      <PlayCircle className="h-4 w-4" />
-                      <span className="sr-only">Run Command</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="m-0">Run Command</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                      onClick={onCopy}
-                    >
-                      {isCopied ? <IconCheck /> : <IconCopy />}
-                      <span className="sr-only">Copy</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="m-0">Copy</p>
-                  </TooltipContent>
-                </Tooltip>
-              </>
-            ) : (
-              // For non-bash code blocks or bash without runTerminalCommand, show all the original buttons
-              <>
-                {canWrapLongLines && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                        onClick={() => setWrapLongLines(!wrapLongLines)}
-                      >
-                        {wrapLongLines ? (
-                          <IconAlignJustify />
-                        ) : (
-                          <IconWrapText />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="m-0">Toggle word wrap</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-                {supportsOnApplyInEditorV2 && onApplyInEditor && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                        onClick={() =>
-                          onApplyInEditor(value, {
-                            languageId: language,
-                            smart: true
-                          })
-                        }
-                      >
-                        <IconSmartApplyInEditor />
-                        <span className="sr-only">Smart Apply in Editor</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="m-0">Smart Apply in Editor</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-                {onApplyInEditor && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                        onClick={() => onApplyInEditor(value, undefined)}
-                      >
-                        <IconApplyInEditor />
-                        <span className="sr-only">Apply in Editor</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="m-0">Apply in Editor</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                      onClick={onCopy}
-                    >
-                      {isCopied ? <IconCheck /> : <IconCopy />}
-                      <span className="sr-only">Copy</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="m-0">Copy</p>
-                  </TooltipContent>
-                </Tooltip>
-              </>
+            {runTerminalCommand && language === 'bash' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                    onClick={onRunCommand}
+                  >
+                    <PlayCircle className="h-4 w-4" />
+                    <span className="sr-only">Run Command</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="m-0">Run Command</p>
+                </TooltipContent>
+              </Tooltip>
             )}
+            {canWrapLongLines && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                    onClick={() => setWrapLongLines(!wrapLongLines)}
+                  >
+                    {wrapLongLines ? <IconAlignJustify /> : <IconWrapText />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="m-0">Toggle word wrap</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {supportsOnApplyInEditorV2 &&
+              onApplyInEditor &&
+              !(runTerminalCommand && language === 'bash') && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                      onClick={() =>
+                        onApplyInEditor(value, {
+                          languageId: language,
+                          smart: true
+                        })
+                      }
+                    >
+                      <IconSmartApplyInEditor />
+                      <span className="sr-only">Smart Apply in Editor</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="m-0">Smart Apply in Editor</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            {onApplyInEditor &&
+              !(runTerminalCommand && language === 'bash') && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                      onClick={() => onApplyInEditor(value, undefined)}
+                    >
+                      <IconApplyInEditor />
+                      <span className="sr-only">Apply in Editor</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="m-0">Apply in Editor</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                  onClick={onCopy}
+                >
+                  {isCopied ? <IconCheck /> : <IconCopy />}
+                  <span className="sr-only">Copy</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="m-0">Copy</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
         <SyntaxHighlighter
