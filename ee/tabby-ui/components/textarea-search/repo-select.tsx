@@ -31,6 +31,7 @@ interface RepoSelectProps {
   isInitializing?: boolean
   placeholder?: string
   showChevron?: boolean
+  disabled?: boolean
 }
 
 export function RepoSelect({
@@ -39,12 +40,14 @@ export function RepoSelect({
   onChange,
   isInitializing,
   placeholder = 'Codebase',
-  showChevron
+  showChevron,
+  disabled
 }: RepoSelectProps) {
   const [open, setOpen] = useState(false)
   const commandListRef = useRef<HTMLDivElement>(null)
 
   const onSelectRepo = (v: string) => {
+    if (disabled) return
     onChange(v)
   }
 
@@ -81,8 +84,9 @@ export function RepoSelect({
         <PopoverTrigger className="outline-none" asChild>
           <Button
             variant="ghost"
-            className="gap-2 px-1.5 py-1 font-normal text-foreground/90"
+            className="gap-2 px-1.5 py-1 font-normal text-foreground/90 disabled:opacity-100"
             title={selectedRepoName || 'select codebase'}
+            disabled={disabled}
           >
             {selectedRepo ? (
               <SourceIcon
