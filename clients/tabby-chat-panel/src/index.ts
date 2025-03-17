@@ -402,7 +402,7 @@ export interface ClientApiMethods {
    * @param command The command to run in the terminal.
    * @returns void
    */
-  runTerminalCommand?: (command: string) => Promise<void>
+  runCommand?: (command: string) => Promise<void>
 }
 
 export interface ClientApi extends ClientApiMethods {
