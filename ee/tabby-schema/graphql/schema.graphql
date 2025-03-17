@@ -300,6 +300,11 @@ input UpdatePageSectionTitleInput {
   title: String!
 }
 
+input UpdatePageTitleInput {
+  id: ID!
+  title: String!
+}
+
 input UpsertUserGroupMembershipInput {
   userGroupId: ID!
   userId: ID!
@@ -728,6 +733,7 @@ type Mutation {
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
   updateThreadMessage(input: UpdateMessageInput!): Boolean!
+  updatePageTitle(input: UpdatePageTitleInput!): Boolean!
   updatePageContent(input: UpdatePageContentInput!): Boolean!
   updatePageSectionTitle(input: UpdatePageSectionTitleInput!): Boolean!
   updatePageSectionContent(input: UpdatePageSectionContentInput!): Boolean!
