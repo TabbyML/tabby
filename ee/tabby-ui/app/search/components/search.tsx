@@ -1030,8 +1030,8 @@ function getSourceInputs(
   repositorySourceId: string | undefined,
   ctx: ThreadRunContexts | undefined
 ) {
-  let sourceIdsForDocQuery: string[] = []
-  let sourceIdForCodeQuery: string | undefined
+  let sourceIdsForDocQuery: string[] = compact([repositorySourceId])
+  let sourceIdForCodeQuery: string | undefined = repositorySourceId
   let searchPublic = false
 
   if (ctx) {
