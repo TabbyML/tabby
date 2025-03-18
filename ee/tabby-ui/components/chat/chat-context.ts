@@ -1,9 +1,9 @@
 import { createContext, RefObject } from 'react'
 import type {
   ChangeItem,
-  CurrentChangeFilesParams,
   FileLocation,
   FileRange,
+  GetChangesParams,
   ListFileItem,
   ListFilesInWorkspaceParams,
   ListSymbolItem,
@@ -15,6 +15,7 @@ import type {
 import { RepositorySourceListQuery } from '@/lib/gql/generates/graphql'
 import { Context, MessageActionType, QuestionAnswerPair } from '@/lib/types'
 
+import { GitChange } from './git/git-change-context'
 import { PromptFormRef } from './types'
 
 export type ChatContextValue = {
@@ -49,14 +50,15 @@ export type ChatContextValue = {
   ) => Promise<ListFileItem[]>
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
-  getCurrentChangeFiles?: (
-    params: CurrentChangeFilesParams
-  ) => Promise<ChangeItem[]>
+  getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
   // for repo select
   selectedRepoId: string | undefined
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>
   repos: RepositorySourceListQuery['repositoryList'] | undefined
   fetchingRepos: boolean
+  // FIXME: remove commant
+  gitChanges: GitChange[]
+  setGitChanges: React.Dispatch<React.SetStateAction<GitChange[]>>
 }
 
 export const ChatContext = createContext<ChatContextValue>(

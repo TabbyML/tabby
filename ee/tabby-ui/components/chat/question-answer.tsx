@@ -376,6 +376,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           supportsOpenInEditor={!!openInEditor}
           showClientCodeIcon={!isInEditor}
           highlightIndex={relevantCodeHighlightIndex}
+          gitChanges={userMessage.gitChanges}
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />

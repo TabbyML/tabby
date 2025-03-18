@@ -854,7 +854,7 @@ export class ChatWebview extends EventEmitter {
       return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
     }
 
-    const MIN_VERSION = "0.27.0";
+    const MIN_VERSION = "0.26.0";
 
     if (health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;

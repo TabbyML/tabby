@@ -16,11 +16,13 @@ import {
   AccordionTrigger
 } from '../ui/accordion'
 import { IconExternalLink, IconFile, IconFileSearch2 } from '../ui/icons'
+import { GitChange } from './git/git-change-context'
 
 interface ContextReferencesProps {
   supportsOpenInEditor?: boolean
   contexts: RelevantCodeContext[]
   clientContexts?: RelevantCodeContext[]
+  gitChanges?: GitChange[]
   className?: string
   triggerClassname?: string
   onContextClick?: (
@@ -43,6 +45,7 @@ export const CodeReferences = forwardRef<
     {
       contexts,
       clientContexts,
+      gitChanges,
       className,
       triggerClassname,
       onContextClick,
@@ -58,8 +61,10 @@ export const CodeReferences = forwardRef<
   ) => {
     const serverCtxLen = contexts?.length ?? 0
     const clientCtxLen = clientContexts?.length ?? 0
-    const ctxLen = serverCtxLen + clientCtxLen
-    const isMultipleReferences = ctxLen > 1
+    const gitChangesLen = gitChanges?.length ?? 0
+
+    const ctxLen = serverCtxLen + clientCtxLen + gitChangesLen
+
     const [accordionValue, setAccordionValue] = useState<string | undefined>(
       ctxLen <= 5 ? 'references' : undefined
     )
@@ -72,6 +77,8 @@ export const CodeReferences = forwardRef<
     }, [ctxLen])
 
     if (!ctxLen) return null
+
+    const displayTitle = title || `Read ${ctxLen} file${ctxLen > 1 ? 's' : ''}`
 
     return (
       <Accordion
@@ -89,28 +96,22 @@ export const CodeReferences = forwardRef<
               triggerClassname
             )}
           >
-            {title ? (
-              title
-            ) : (
-              <span className="mr-2">{`Read ${ctxLen} file${
-                isMultipleReferences ? 's' : ''
-              }`}</span>
-            )}
+            {displayTitle}
           </AccordionTrigger>
           <AccordionContent className="space-y-2">
-            {clientContexts?.map((item, index) => {
-              return (
-                <ContextItem
-                  key={`user-${index}`}
-                  context={item}
-                  onContextClick={ctx => onContextClick?.(ctx, true)}
-                  isHighlighted={highlightIndex === index}
-                  clickable={supportsOpenInEditor}
-                  showClientCodeIcon={showClientCodeIcon}
-                />
-              )
-            })}
-            {contexts.map((item, index) => {
+            {clientContexts?.map((item, index) => (
+              <ContextItem
+                key={`user-${index}`}
+                context={item}
+                onContextClick={ctx => onContextClick?.(ctx, true)}
+                isHighlighted={highlightIndex === index}
+                clickable={supportsOpenInEditor}
+                showClientCodeIcon={showClientCodeIcon}
+              />
+            ))}
+
+            {contexts?.map((item, index) => {
+              const offsetIndex = index + (clientContexts?.length || 0)
               return (
                 <ContextItem
                   key={`assistant-${index}`}
@@ -119,9 +120,23 @@ export const CodeReferences = forwardRef<
                   enableTooltip={enableTooltip}
                   onTooltipClick={onTooltipClick}
                   showExternalLinkIcon={showExternalLink}
-                  isHighlighted={
-                    highlightIndex === index + (clientContexts?.length || 0)
-                  }
+                  isHighlighted={highlightIndex === offsetIndex}
+                />
+              )
+            })}
+
+            {gitChanges?.map((change, index) => {
+              const offsetIndex =
+                index + (clientContexts?.length || 0) + (contexts?.length || 0)
+              return (
+                <ChangeContextItem
+                  key={`git-change-${change.id}`}
+                  change={change}
+                  isHighlighted={highlightIndex === offsetIndex}
+                  onClick={() => {
+                    // eslint-disable-next-line no-console
+                    console.log('Git change clicked', change)
+                  }}
                 />
               )
             })}
@@ -235,5 +250,37 @@ function ContextItem({
         </div>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+function ChangeContextItem({
+  change,
+  isHighlighted,
+  onClick
+}: {
+  change: GitChange
+  isHighlighted?: boolean
+  onClick?: () => void
+}) {
+  return (
+    <div
+      className={cn('rounded-md border p-2', {
+        'cursor-pointer hover:bg-accent': !!onClick,
+        'bg-accent transition-all': isHighlighted
+      })}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-1 overflow-hidden">
+        <IconFile className="shrink-0" />
+        <div className="flex-1 truncate" title={change.filepath}>
+          <span>{change.filepath}</span>
+        </div>
+        {/* additions / deletions */}
+        <span className="ml-2 shrink-0 text-green-500">
+          +{change.additions}
+        </span>
+        <span className="ml-1 shrink-0 text-red-500">-{change.deletions}</span>
+      </div>
+    </div>
   )
 }

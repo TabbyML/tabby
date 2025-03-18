@@ -11,11 +11,11 @@ import {
 import type {
   ChangeItem,
   ChatCommand,
-  CurrentChangeFilesParams,
   EditorContext,
   EditorFileContext,
   FileLocation,
   FileRange,
+  GetChangesParams,
   GitRepository,
   ListFileItem,
   ListFilesInWorkspaceParams,
@@ -72,6 +72,8 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
+import { GitChange } from './git/git-change-context'
+import { hasChangesCommand, parseChangesToGitChanges } from './git/git-utils'
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
 import { ChatRef, PromptFormRef } from './types'
@@ -110,9 +112,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
   setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
-  getCurrentChangeFiles?: (
-    params: CurrentChangeFilesParams
-  ) => Promise<ChangeItem[]>
+  getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(
@@ -144,7 +144,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       readFileContent,
       listSymbols,
       setShowHistory,
-      getCurrentChangeFiles,
+      getChanges,
       ...props
     },
     ref
@@ -161,6 +161,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const [selectedRepoId, setSelectedRepoId] = React.useState<
       string | undefined
     >()
+    const [gitChanges, setGitChanges] = React.useState<GitChange[]>([])
 
     React.useEffect(() => {
       if (propsThreadId) {
@@ -574,6 +575,21 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             selectCodeContextContent ?? ''
           }\n${'```'}\n`
         }
+        let gitChanges: GitChange[] = []
+        if (getChanges && hasChangesCommand(userMessage.message)) {
+          try {
+            const changes = await getChanges({})
+            // eslint-disable-next-line no-console
+            console.log('Retrieved git changes:', changes)
+            gitChanges.push(...parseChangesToGitChanges(changes))
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('Error fetching git changes:', error)
+          }
+        }
+
+        // eslint-disable-next-line no-console
+        console.log('curretent git changes', gitChanges)
 
         const newUserMessage: UserMessage = {
           ...userMessage,
@@ -585,7 +601,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             enableActiveSelection && activeSelection
               ? activeSelection
               : undefined,
-          relevantContext: [...(userMessage.relevantContext || [])]
+          relevantContext: [...(userMessage.relevantContext || [])],
+          gitChanges: gitChanges
         }
 
         const nextQaPairs = [
@@ -600,6 +617,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             }
           }
         ]
+
         setQaPairs(nextQaPairs)
 
         storeSessionState?.({
@@ -802,7 +820,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           listFileInWorkspace,
           readFileContent,
           listSymbols,
-          getCurrentChangeFiles
+          getChanges,
+          gitChanges,
+          setGitChanges
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>
