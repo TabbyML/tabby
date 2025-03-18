@@ -35,14 +35,14 @@ import type {
   Filepath,
   ListSymbolsParams,
   ListSymbolItem,
-  GetChangesParams,
   ChangeItem,
+  GetChangesParams,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
 import { v4 as uuid } from "uuid";
 import type { StatusInfo, Config } from "tabby-agent";
-import type { GitProvider } from "../git/GitProvider";
+import type { GitProvider, Repository } from "../git/GitProvider";
 import type { Client as LspClient } from "../lsp/client";
 import { createClient } from "./createClient";
 import { isBrowser } from "../env";
@@ -731,25 +731,39 @@ export class ChatWebview extends EventEmitter {
         if (!this.gitProvider.isApiAvailable()) {
           return [];
         }
-        const limit = params.limit || 50;
+        let remain = params.limit || 50;
 
         const repositories = this.gitProvider.getRepositories();
         if (!repositories) {
           return [];
         }
-        const res: ChangeItem[] = [];
-        for (const repo of repositories) {
-          const diffs = await this.gitProvider.getDiff(repo, false);
-          if (!diffs) {
-            continue;
+
+        const getRepoChanges = async (repos: Repository[], cached: boolean, limit: number): Promise<ChangeItem[]> => {
+          if (limit <= 0) {
+            return [];
           }
-          res.push(...diffs.map((diff) => ({ content: diff }) as ChangeItem));
-          if (res.length >= limit) {
-            res.slice(limit);
-            break;
+          const res: ChangeItem[] = [];
+          for (const repo of repos) {
+            const diffs = await this.gitProvider.getDiff(repo, cached);
+            if (!diffs) {
+              continue;
+            }
+            res.push(...diffs.map((diff) => ({ content: diff }) as ChangeItem));
+            if (res.length >= limit) {
+              res.slice(limit);
+              break;
+            }
           }
-        }
+          return res;
+        };
+        // get staged first
+        const res: ChangeItem[] = await getRepoChanges(repositories, true, remain);
+        remain -= res.length;
+        // if there are still some left, get unstaged
+        res.push(...(await getRepoChanges(repositories, false, remain)));
         this.logger.info(`Found ${res.length} changed files.`);
+
+        // return the result order from stage to unstaged
         return res;
       },
     });
