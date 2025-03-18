@@ -47,6 +47,14 @@ export class GitProvider {
     return this.api?.getRepository(uri) ?? undefined;
   }
 
+  /**
+   * Retrieves diff information from the specified git repository.
+   * @param repository The Git repository to get the diff from.
+   * @param cached When true, shows diff between index and HEAD (staged changes).
+   *               When false, shows diff between working tree and index (unstaged changes).
+   * @returns Promise resolving to an array of diff strings, each representing a single file's changes,
+   *          or undefined if the operation fails. Results are sorted by file modification time.
+   */
   async getDiff(repository: Repository, cached: boolean): Promise<string[] | undefined> {
     const diff = (await repository.diff(cached)).trim();
     const diffs = await Promise.all(
