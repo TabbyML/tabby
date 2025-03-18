@@ -60,7 +60,8 @@ function MainPanel() {
   const scrollY = useStore(useScrollStore, state => state.homePage)
 
   const { selectedModel, isFetchingModels, models } = useSelectedModel()
-  const { selectedRepository, isFetchingRepositories } = useSelectedRepository()
+  const { selectedRepository, isFetchingRepositories, onSelectRepository } =
+    useSelectedRepository()
 
   const showMainSection = !!data?.me || !isFetchingServerInfo
 
@@ -88,10 +89,6 @@ function MainPanel() {
 
   const handleSelectModel = (model: string) => {
     updateSelectedModel(model)
-  }
-
-  const onSelectedRepo = (sourceId: string | undefined) => {
-    updateSelectedRepoSourceId(sourceId)
   }
 
   const onSearch = (question: string, context?: ThreadRunContexts) => {
@@ -180,7 +177,7 @@ function MainPanel() {
                   modelName={selectedModel}
                   onSelectModel={handleSelectModel}
                   repoSourceId={selectedRepository?.sourceId}
-                  onSelectRepo={onSelectedRepo}
+                  onSelectRepo={onSelectRepository}
                   isInitializingResources={
                     isFetchingModels || isFetchingRepositories
                   }
