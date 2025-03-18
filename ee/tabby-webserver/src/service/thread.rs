@@ -156,6 +156,7 @@ impl ThreadService for ThreadServiceImpl {
 
     async fn create_run(
         &self,
+        user_id: &ID,
         policy: &AccessPolicy,
         thread_id: &ID,
         options: &ThreadRunOptionsInput,
@@ -201,7 +202,7 @@ impl ThreadService for ThreadServiceImpl {
         }
 
         let s = answer
-            .answer(policy, &messages, options, attachment_input)
+            .answer(user_id, policy, &messages, options, attachment_input)
             .await?;
 
         // Copy ownership of db and thread_id for the stream
@@ -435,6 +436,7 @@ mod tests {
                 FakeContextService, FakeDocSearch,
             },
         },
+        event_logger::test_utils::MockEventLogger,
         retrieval,
         service::auth,
     };
@@ -697,7 +699,9 @@ mod tests {
         let config = make_answer_config();
         let repo = make_repository_service(db.clone()).await.unwrap();
         let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let logger = Arc::new(MockEventLogger {});
         let answer_service = Arc::new(answer::create(
+            logger,
             &config,
             auth,
             chat,
@@ -719,7 +723,7 @@ mod tests {
         let options = ThreadRunOptionsInput::default();
 
         let run_stream = service
-            .create_run(&policy, &thread_id, &options, None, true, true)
+            .create_run(&user_id, &policy, &thread_id, &options, None, true, true)
             .await;
 
         assert!(run_stream.is_ok());

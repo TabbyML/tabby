@@ -50,6 +50,7 @@ pub trait ThreadService: Send + Sync {
     /// Create a new thread run
     async fn create_run(
         &self,
+        user_id: &ID,
         policy: &AccessPolicy,
         id: &ID,
         options: &ThreadRunOptionsInput,

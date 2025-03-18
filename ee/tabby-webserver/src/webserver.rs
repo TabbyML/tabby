@@ -116,6 +116,7 @@ impl Webserver {
 
         let answer = chat.as_ref().map(|chat| {
             Arc::new(crate::service::answer::create(
+                self.logger(),
                 &config.answer,
                 auth.clone(),
                 chat.clone(),

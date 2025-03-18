@@ -1781,6 +1781,7 @@ impl Subscription {
 
         thread
             .create_run(
+                &user.id,
                 &user.policy,
                 &thread_id,
                 &input.options,
@@ -1813,6 +1814,7 @@ impl Subscription {
             .await?;
 
         svc.create_run(
+            &user.id,
             &user.policy,
             &input.thread_id,
             &input.options,
