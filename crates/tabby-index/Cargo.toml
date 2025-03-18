@@ -12,6 +12,7 @@ tantivy = { workspace = true }
 tracing = { workspace = true }
 tree-sitter-tags = "0.22.6"
 lazy_static = { workspace = true }
+tree-sitter-scala = "0.22.1"
 tree-sitter-python = "0.21.0"
 tree-sitter-java = "0.21.0"
 tree-sitter-kotlin = "0.3.6"
