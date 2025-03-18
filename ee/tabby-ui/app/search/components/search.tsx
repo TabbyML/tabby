@@ -28,7 +28,6 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
-import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
@@ -292,8 +291,7 @@ export function Search() {
   const isLoadingRef = useLatest(isLoading)
 
   const { selectedModel, isFetchingModels, models } = useSelectedModel()
-  const { selectedRepository, isFetchingRepositories, repos } =
-    useSelectedRepository()
+  const { isFetchingRepositories, repos } = useSelectedRepository()
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
   }, [messageIdForDev, messages])
@@ -312,6 +310,32 @@ export function Search() {
     currentMessageForDev?.attachment?.code,
     currentMessageForDev?.attachment?.doc
   ])
+
+  const qaPairs = useMemo(() => {
+    const pairs: Array<ConversationPair> = []
+    let currentPair: ConversationPair = { question: null, answer: null }
+    messages.forEach(message => {
+      if (message.role === Role.User) {
+        currentPair.question = message
+      } else if (message.role === Role.Assistant) {
+        if (!currentPair.answer) {
+          // Take the first answer
+          currentPair.answer = message
+          pairs.push(currentPair)
+          currentPair = { question: null, answer: null }
+        }
+      }
+    })
+
+    return pairs
+  }, [messages])
+
+  const codeSourceIdInThread = useMemo(() => {
+    return (
+      qaPairs.find(x => !!x.answer?.codeSourceId)?.answer?.codeSourceId ??
+      undefined
+    )
+  }, [qaPairs])
 
   const onPanelLayout = (sizes: number[]) => {
     if (sizes?.[1]) {
@@ -534,7 +558,7 @@ export function Search() {
 
   const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(selectedRepository?.sourceId, ctx)
+      getSourceInputs(codeSourceIdInThread, ctx)
 
     const newUserMessageId = tempNanoId()
     const newAssistantMessageId = tempNanoId()
@@ -594,8 +618,7 @@ export function Search() {
     const userMessage = messages[userMessageIndex]
     const assistantMessage = messages[assistantMessageIndex]
 
-    const codeSourceId =
-      assistantMessage?.codeSourceId || selectedRepository?.sourceId
+    const codeSourceId = assistantMessage?.codeSourceId || codeSourceIdInThread
 
     const newUserMessage: ConversationMessage = {
       ...userMessage,
@@ -719,30 +742,6 @@ export function Search() {
       return threadError || new Error(ERROR_CODE_NOT_FOUND)
     }
   }, [threadData, fetchingThread, threadError, isReady, threadIdFromURL])
-
-  const [isFetchingMessages] = useDebounceValue(
-    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage,
-    200
-  )
-
-  const qaPairs = useMemo(() => {
-    const pairs: Array<ConversationPair> = []
-    let currentPair: ConversationPair = { question: null, answer: null }
-    messages.forEach(message => {
-      if (message.role === Role.User) {
-        currentPair.question = message
-      } else if (message.role === Role.Assistant) {
-        if (!currentPair.answer) {
-          // Take the first answer
-          currentPair.answer = message
-          pairs.push(currentPair)
-          currentPair = { question: null, answer: null }
-        }
-      }
-    })
-
-    return pairs
-  }, [messages])
 
   const onConvertToPage = () => {
     if (!threadId) return
@@ -942,7 +941,7 @@ export function Search() {
                         fetchingContextInfo={fetchingContextInfo}
                         modelName={selectedModel}
                         onSelectModel={onSelectModel}
-                        repoSourceId={selectedRepository?.sourceId}
+                        repoSourceId={codeSourceIdInThread}
                         onSelectRepo={onSelectedRepo}
                         isInitializingResources={
                           isFetchingModels || isFetchingRepositories

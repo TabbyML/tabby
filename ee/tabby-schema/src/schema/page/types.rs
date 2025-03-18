@@ -2,7 +2,12 @@ use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use validator::Validate;
 
-use crate::{juniper::relay::NodeType, Context};
+use crate::{
+    juniper::relay::NodeType,
+    retrieval::{AttachmentCode, AttachmentCodeFileList, AttachmentCodeHit},
+    thread::{CodeQueryInput, MessageAttachment},
+    Context,
+};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
@@ -10,6 +15,7 @@ pub struct Page {
     pub id: ID,
     pub author_id: ID,
     pub title: Option<String>,
+    pub code_source_id: Option<String>,
     pub content: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -31,20 +37,22 @@ impl NodeType for Page {
     }
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 #[graphql(context = Context)]
-pub struct Section {
+pub struct PageSection {
     pub id: ID,
     pub page_id: ID,
     pub title: String,
     pub content: String,
     pub position: i32,
 
+    pub attachments: SectionAttachment,
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl NodeType for Section {
+impl NodeType for PageSection {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -58,6 +66,13 @@ impl NodeType for Section {
     fn edge_type_name() -> &'static str {
         "SectionEdge"
     }
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct UpdatePageTitleInput {
+    pub id: ID,
+    #[validate(length(min = 1, max = 256, code = "title", message = "title can not be empty"))]
+    pub title: String,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -91,9 +106,13 @@ pub struct UpdatePageSectionContentInput {
     pub content: String,
 }
 
-#[derive(GraphQLInputObject)]
+#[derive(GraphQLInputObject, Validate)]
 pub struct CreatePageRunInput {
     pub title_prompt: String,
+
+    #[validate(nested)]
+    #[graphql(default)]
+    pub code_query: Option<CodeQueryInput>,
 }
 
 #[derive(GraphQLInputObject)]
@@ -115,16 +134,63 @@ pub struct PageCreated {
     pub title: String,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
 pub struct PageSectionsCreated {
     pub sections: Vec<PageSection>,
 }
 
-#[derive(GraphQLObject, Clone)]
-pub struct PageSection {
+#[derive(GraphQLObject)]
+pub struct PageSectionAttachmentCodeFileList {
     pub id: ID,
-    pub title: String,
-    pub position: i32,
+    pub code_file_list: AttachmentCodeFileList,
+}
+
+#[derive(GraphQLObject)]
+pub struct PageSectionAttachmentCode {
+    pub id: ID,
+    pub codes: Vec<AttachmentCodeHit>,
+}
+
+#[derive(GraphQLObject, Clone, Default)]
+#[graphql(context = Context)]
+pub struct SectionAttachment {
+    pub code: Vec<AttachmentCode>,
+    pub code_file_list: Option<AttachmentCodeFileList>,
+}
+
+impl From<SectionAttachment> for MessageAttachment {
+    fn from(attachment: SectionAttachment) -> MessageAttachment {
+        MessageAttachment {
+            client_code: vec![],
+            code: attachment.code.iter().map(Into::into).collect(),
+            code_file_list: attachment.code_file_list.map(Into::into),
+            doc: vec![],
+        }
+    }
+}
+
+impl SectionAttachment {
+    pub fn from_message_attachment(attachment: &MessageAttachment) -> SectionAttachment {
+        SectionAttachment {
+            code: attachment.code.iter().map(Into::into).collect(),
+            code_file_list: attachment.code_file_list.as_ref().map(Into::into),
+        }
+    }
+
+    pub fn merge(&mut self, other: &SectionAttachment) {
+        for code in &other.code {
+            if !self.code.iter().any(|c| c != code) {
+                self.code.push(code.clone());
+            }
+        }
+
+        if let Some(code_file_list) = &other.code_file_list {
+            if self.code_file_list.is_none() {
+                self.code_file_list = Some(code_file_list.clone());
+            }
+        }
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -167,6 +233,9 @@ pub enum PageRunItem {
     // PageSectionsCreated will return the titles of all sections.
     PageSectionsCreated(PageSectionsCreated),
 
+    PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList),
+    PageSectionAttachmentCode(PageSectionAttachmentCode),
+
     PageSectionContentDelta(PageSectionContentDelta),
     PageSectionContentCompleted(PageSectionContentCompleted),
 
@@ -178,6 +247,9 @@ pub enum PageRunItem {
 #[graphql(context = Context)]
 pub enum SectionRunItem {
     PageSectionCreated(PageSection),
+
+    PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList),
+    PageSectionAttachmentCode(PageSectionAttachmentCode),
 
     PageSectionContentDelta(PageSectionContentDelta),
     PageSectionContentCompleted(PageSectionContentCompleted),

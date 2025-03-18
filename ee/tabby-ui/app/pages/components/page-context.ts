@@ -1,6 +1,6 @@
 import { createContext, Dispatch, SetStateAction } from 'react'
 
-import { MoveSectionDirection } from '@/lib/gql/generates/graphql'
+import { ContextInfo, MoveSectionDirection } from '@/lib/gql/generates/graphql'
 
 type PageContextValue = {
   mode: 'edit' | 'view'
@@ -18,6 +18,8 @@ type PageContextValue = {
   ) => Promise<void>
   pageIdFromURL: string | undefined
   isNew: boolean
+  fetchingContextInfo: boolean
+  contextInfo: ContextInfo | undefined
 }
 
 export const PageContext = createContext<PageContextValue>(

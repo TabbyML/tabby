@@ -156,7 +156,8 @@ export default function TextAreaSearch({
   }, [contextInfo?.sources])
 
   const showModelSelect = !!models?.length
-  const showRepoSelect = !!repos?.length
+  const showRepoSelect =
+    !!repos?.length && (!isFollowup || (isFollowup && !!repoSourceId))
   const showBottomBar = showModelSelect || showRepoSelect
 
   return (
@@ -221,6 +222,7 @@ export default function TextAreaSearch({
                   repos={repos}
                   value={repoSourceId}
                   onChange={handleSelectRepo}
+                  disabled={isFollowup}
                 />
               )}
               {showRepoSelect && showModelSelect && (

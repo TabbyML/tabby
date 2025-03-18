@@ -13,3 +13,7 @@ pub fn db_file() -> PathBuf {
         tabby_ee_root().join("dev-db.sqlite")
     }
 }
+
+pub fn background_jobs_dir() -> PathBuf {
+    tabby_ee_root().join("background-jobs")
+}

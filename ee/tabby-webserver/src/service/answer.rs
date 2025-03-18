@@ -11,11 +11,10 @@ use tabby_common::{api::structured_doc::DocSearchDocument, config::AnswerConfig}
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     auth::AuthenticationService,
-    context::{ContextInfoHelper, ContextService},
+    context::ContextService,
     policy::AccessPolicy,
-    repository::{Repository, RepositoryService},
     thread::{
-        CodeQueryInput, MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
+        MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
         MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
         ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
@@ -37,7 +36,6 @@ pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
     retrieval: Arc<RetrievalService>,
     context: Arc<dyn ContextService>,
-    repository: Arc<dyn RepositoryService>,
 }
 
 impl AnswerService {
@@ -47,7 +45,6 @@ impl AnswerService {
         chat: Arc<dyn ChatCompletionStream>,
         retrieval: Arc<RetrievalService>,
         context: Arc<dyn ContextService>,
-        repository: Arc<dyn RepositoryService>,
     ) -> Self {
         Self {
             config: config.clone(),
@@ -55,7 +52,6 @@ impl AnswerService {
             chat,
             retrieval,
             context,
-            repository,
         }
     }
 
@@ -85,7 +81,7 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                if let Some(repository) = self.find_repository(&context_info_helper, code_query, policy.clone()).await {
+                if let Some(repository) = self.retrieval.find_repository(&context_info_helper, &policy, code_query).await {
                     let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &last_message.content).await?;
                     yield Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(need_codebase_context.clone()));
                     if need_codebase_context.file_list {
@@ -251,32 +247,6 @@ impl AnswerService {
         MessageAttachmentDoc::from_doc_search_document(doc, user)
     }
 
-    async fn find_repository(
-        &self,
-        helper: &ContextInfoHelper,
-        input: &CodeQueryInput,
-        policy: AccessPolicy,
-    ) -> Option<Repository> {
-        let source_id = {
-            if let Some(source_id) = &input.source_id {
-                if helper.can_access_source_id(source_id) {
-                    Some(source_id.as_str())
-                } else {
-                    None
-                }
-            } else if let Some(git_url) = &input.git_url {
-                helper.allowed_code_repository().closest_match(git_url)
-            } else {
-                None
-            }
-        }?;
-
-        match self.repository.repository_list(Some(&policy)).await {
-            Ok(repos) => repos.into_iter().find(|x| x.source_id == source_id),
-            Err(_) => None,
-        }
-    }
-
     async fn generate_relevant_questions(
         &self,
         attachment: &MessageAttachment,
@@ -314,9 +284,8 @@ pub fn create(
     chat: Arc<dyn ChatCompletionStream>,
     retrieval: Arc<RetrievalService>,
     context: Arc<dyn ContextService>,
-    repository: Arc<dyn RepositoryService>,
 ) -> AnswerService {
-    AnswerService::new(config, auth, chat, retrieval, context, repository)
+    AnswerService::new(config, auth, chat, retrieval, context)
 }
 
 #[cfg(test)]
@@ -324,7 +293,7 @@ pub mod testutils;
 
 #[cfg(test)]
 mod tests {
-    use std::{path::PathBuf, sync::Arc};
+    use std::sync::Arc;
 
     use juniper::ID;
     use tabby_common::{
@@ -337,8 +306,7 @@ mod tests {
     use tabby_db::DbConn;
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
-        context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
-        repository::{Repository, RepositoryKind},
+        context::{ContextInfo, ContextService, ContextSourceValue},
         thread::{CodeQueryInput, MessageAttachment},
         web_documents::PresetWebDocument,
         AsID,
@@ -351,11 +319,7 @@ mod tests {
         },
         *,
     };
-    use crate::{
-        retrieval,
-        service::{access_policy::testutils::make_policy, auth},
-        utils::build_user_prompt,
-    };
+    use crate::{retrieval, service::auth, utils::build_user_prompt};
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
@@ -533,13 +497,8 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
 
-        let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
-            serper,
-            repo.clone(),
-        ));
-        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo);
+        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let service = AnswerService::new(&config, auth, chat, retrieval, context);
 
         let attachment = MessageAttachment {
             doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
@@ -593,13 +552,8 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
 
-        let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
-            serper,
-            repo.clone(),
-        ));
-        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo);
+        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let service = AnswerService::new(&config, auth, chat, retrieval, context);
 
         let attachment = MessageAttachment {
             doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
@@ -657,15 +611,8 @@ mod tests {
         };
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
-        let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
-            serper,
-            repo.clone(),
-        ));
-        let service = Arc::new(AnswerService::new(
-            &config, auth, chat, retrieval, context, repo,
-        ));
+        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let service = Arc::new(AnswerService::new(&config, auth, chat, retrieval, context));
 
         let db = DbConn::new_in_memory().await.unwrap();
         let policy = AccessPolicy::new(db, &1.as_id(), false);
@@ -712,74 +659,5 @@ mod tests {
             4,
             "Expected 4 items in the result stream"
         );
-    }
-
-    #[tokio::test]
-    async fn test_find_repository() {
-        // Setup test database
-        let db = DbConn::new_in_memory().await.unwrap();
-        let repo_service = make_repository_service(db.clone()).await.unwrap();
-
-        // Create test repository via git service
-        let repo_id = repo_service
-            .git()
-            .create("test-repo".to_string(), TEST_GIT_URL.to_string())
-            .await
-            .unwrap();
-        let source_id = format!("git:{}", repo_id);
-
-        println!("Created test repository with ID: {}", source_id);
-
-        // Setup test context with actual repository
-        let test_repo = Repository {
-            id: repo_id,
-            source_id: source_id.clone(),
-            name: "test-repo".to_string(),
-            kind: RepositoryKind::Git,
-            dir: PathBuf::from("test-repo"),
-            git_url: TEST_GIT_URL.to_string(),
-            refs: vec![],
-        };
-
-        let context_info = ContextInfo {
-            sources: vec![ContextSourceValue::Repository(test_repo)],
-        };
-        let context_info_helper = ContextInfoHelper::new(&context_info);
-
-        let policy = make_policy(db.clone()).await;
-
-        let repos = repo_service.repository_list(Some(&policy)).await.unwrap();
-        assert!(!repos.is_empty(), "Repository should exist");
-
-        let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
-        let chat = Arc::new(FakeChatCompletionStream {
-            return_error: false,
-        });
-        let code = Arc::new(FakeCodeSearch);
-        let doc = Arc::new(FakeDocSearch);
-        let context = Arc::new(FakeContextService);
-        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
-        let config = make_answer_config();
-
-        let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
-            serper,
-            repo_service.clone(),
-        ));
-        let service = AnswerService::new(&config, auth, chat, retrieval, context, repo_service);
-
-        // Test repository lookup
-        let input = make_code_query_input(Some(&source_id), Some(TEST_GIT_URL));
-
-        let result = service
-            .find_repository(&context_info_helper, &input, policy)
-            .await;
-
-        assert!(result.is_some(), "Should find repository");
-        let found_repo = result.unwrap();
-        assert_eq!(found_repo.source_id, source_id, "Source ID should match");
-        assert_eq!(found_repo.git_url, TEST_GIT_URL, "Git URL should match");
-        assert_eq!(found_repo.kind, RepositoryKind::Git, "Kind should be Git");
     }
 }
