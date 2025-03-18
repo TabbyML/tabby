@@ -35,6 +35,7 @@ import {
   IconCheck,
   IconChevronUpDown,
   IconCode,
+  IconMessageSquare,
   IconUsers
 } from '@/components/ui/icons'
 import {
@@ -56,7 +57,8 @@ import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
 import { AnnualActivity } from './annual-activity'
-import { DailyActivity } from './daily-activity'
+import { ChatDailyActivity } from './chat-daily-activity'
+import { DailyActivity } from './completion-daily-activity'
 
 const KEY_SELECT_ALL = 'all'
 const DEFAULT_DATE_RANGE = '-14d'
@@ -271,98 +273,124 @@ export function Report() {
           </div>
         }
       >
+        {/* completions */}
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="-mb-2 flex flex-col items-center justify-between gap-y-1 md:flex-row md:gap-y-0">
-            <h1 className="text-xl font-semibold">Usage</h1>
-
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-y-0">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <div className="flex h-9 w-[240px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed md:w-[150px]">
-                    <div className="w-full">
-                      {selectedLanguage.length === 0 && (
-                        <p className="w-full overflow-hidden text-ellipsis">
-                          All languages
-                        </p>
-                      )}
-                      {selectedLanguage.length === 1 && (
-                        <p className="w-full overflow-hidden text-ellipsis">
-                          {getLanguageDisplayName(selectedLanguage[0])}
-                        </p>
-                      )}
-                      {selectedLanguage.length > 1 && (
-                        <span className="px-1">
-                          {selectedLanguage.length} selected
-                        </span>
-                      )}
+          <h1 className="text-xl font-semibold">Usage</h1>
+          <div className="flex flex-col gap-y-5">
+            <div className="-mb-2 flex flex-col items-center justify-between gap-y-1 md:flex-row md:gap-y-0">
+              <h2 className="font-semibold">Completions</h2>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-y-0">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="flex h-9 w-[240px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed md:w-[150px]">
+                      <div className="w-full">
+                        {selectedLanguage.length === 0 && (
+                          <p className="w-full overflow-hidden text-ellipsis">
+                            All languages
+                          </p>
+                        )}
+                        {selectedLanguage.length === 1 && (
+                          <p className="w-full overflow-hidden text-ellipsis">
+                            {getLanguageDisplayName(selectedLanguage[0])}
+                          </p>
+                        )}
+                        {selectedLanguage.length > 1 && (
+                          <span className="px-1">
+                            {selectedLanguage.length} selected
+                          </span>
+                        )}
+                      </div>
+                      <IconChevronUpDown className="h-3 w-3" />
                     </div>
-                    <IconChevronUpDown className="h-3 w-3" />
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[240px] p-0 md:w-[180px]"
-                  align="end"
-                >
-                  <Command>
-                    <CommandInput placeholder="Language" />
-                    <CommandList>
-                      <CommandEmpty>No results found.</CommandEmpty>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[240px] p-0 md:w-[180px]"
+                    align="end"
+                  >
+                    <Command>
+                      <CommandInput placeholder="Language" />
+                      <CommandList>
+                        <CommandEmpty>No results found.</CommandEmpty>
 
-                      <CommandGroup>
-                        {Object.entries(Language)
-                          .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
-                          .map(([_, value]) => {
-                            const isSelected = selectedLanguage.includes(value)
-                            return (
-                              <CommandItem
-                                key={value}
-                                onSelect={() => {
-                                  const newSelect = [...selectedLanguage]
-                                  if (isSelected) {
-                                    const idx = newSelect.findIndex(
-                                      item => item === value
-                                    )
-                                    if (idx !== -1) newSelect.splice(idx, 1)
-                                  } else {
-                                    newSelect.push(value)
-                                  }
-                                  setSelectedLanguage(newSelect)
-                                }}
-                                className="!pointer-events-auto cursor-pointer !opacity-100"
-                              >
-                                <div
-                                  className={cn(
-                                    'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                                    isSelected
-                                      ? 'bg-primary text-primary-foreground'
-                                      : 'opacity-50 [&_svg]:invisible'
-                                  )}
+                        <CommandGroup>
+                          {Object.entries(Language)
+                            .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
+                            .map(([_, value]) => {
+                              const isSelected =
+                                selectedLanguage.includes(value)
+                              return (
+                                <CommandItem
+                                  key={value}
+                                  onSelect={() => {
+                                    const newSelect = [...selectedLanguage]
+                                    if (isSelected) {
+                                      const idx = newSelect.findIndex(
+                                        item => item === value
+                                      )
+                                      if (idx !== -1) newSelect.splice(idx, 1)
+                                    } else {
+                                      newSelect.push(value)
+                                    }
+                                    setSelectedLanguage(newSelect)
+                                  }}
+                                  className="!pointer-events-auto cursor-pointer !opacity-100"
                                 >
-                                  <IconCheck className={cn('h-4 w-4')} />
-                                </div>
-                                <span>{getLanguageDisplayName(value)}</span>
+                                  <div
+                                    className={cn(
+                                      'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                                      isSelected
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'opacity-50 [&_svg]:invisible'
+                                    )}
+                                  >
+                                    <IconCheck className={cn('h-4 w-4')} />
+                                  </div>
+                                  <span>{getLanguageDisplayName(value)}</span>
+                                </CommandItem>
+                              )
+                            })}
+                        </CommandGroup>
+                        {selectedLanguage.length > 0 && (
+                          <>
+                            <CommandSeparator />
+                            <CommandGroup>
+                              <CommandItem
+                                onSelect={() => setSelectedLanguage([])}
+                                className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
+                              >
+                                Clear filters
                               </CommandItem>
-                            )
-                          })}
-                      </CommandGroup>
-                      {selectedLanguage.length > 0 && (
-                        <>
-                          <CommandSeparator />
-                          <CommandGroup>
-                            <CommandItem
-                              onSelect={() => setSelectedLanguage([])}
-                              className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
-                            >
-                              Clear filters
-                            </CommandItem>
-                          </CommandGroup>
-                        </>
-                      )}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                            </CommandGroup>
+                          </>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
 
+                <DateRangePicker
+                  options={[
+                    { label: 'Last 7 days', value: '-7d' },
+                    { label: 'Last 14 days', value: '-14d' },
+                    { label: 'Last 30 days', value: '-30d' }
+                  ]}
+                  defaultValue={DEFAULT_DATE_RANGE}
+                  onSelect={setDateRange}
+                  hasToday
+                  hasYesterday
+                />
+              </div>
+            </div>
+            <StatsSummary dailyStats={dailyStats} />
+            <DailyActivity dailyStats={dailyStats} dateRange={dateRange} />
+          </div>
+        </div>
+
+        {/* chats */}
+        <div className="mb-10 flex flex-col gap-y-5">
+          <div className="flex flex-col items-center justify-between gap-y-1 md:flex-row md:gap-y-0">
+            <h2 className="font-semibold">Chats</h2>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-y-0">
               <DateRangePicker
                 options={[
                   { label: 'Last 7 days', value: '-7d' },
@@ -376,10 +404,22 @@ export function Report() {
               />
             </div>
           </div>
-
-          <StatsSummary dailyStats={dailyStats} />
-
-          <DailyActivity dailyStats={dailyStats} dateRange={dateRange} />
+          <div className="grid md:grid-cols-3">
+            <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Chats
+                </CardTitle>
+                <IconMessageSquare className="text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {numeral(1265).format('0,0')}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <ChatDailyActivity dailyStats={dailyStats} dateRange={dateRange} />
         </div>
       </LoadingWrapper>
     </div>
