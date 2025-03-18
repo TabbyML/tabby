@@ -163,11 +163,11 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                     />
                   </FormControl>
                   <FormLabel className="cursor-pointer">
-                    Disabling Non-SSO Logins
+                    Disabling Password Login
                   </FormLabel>
                 </div>
                 <FormDescription>
-                  When activated, non-SSO logins will be hidden.
+                  When activated, password login will be hidden.
                 </FormDescription>
               </FormItem>
             )}
