@@ -5,12 +5,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+    html {
+      background-color: hsl(var(--sidebar-background));
+    }
+
     html,
     body,
     div,
     p,
     iframe {
-      background: transparent;
       padding: 0;
       margin: 0;
       box-sizing: border-box;
@@ -21,6 +24,7 @@
       display: flex;
       justify-content: center;
       align-items: flex-start;
+      font-family: ui-sans-serif, system-ui;
     }
 
     #message div {

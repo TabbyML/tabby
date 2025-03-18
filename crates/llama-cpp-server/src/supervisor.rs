@@ -1,5 +1,9 @@
 use std::{
-    collections::VecDeque, env::var, net::TcpListener, process::Stdio, sync::Arc, time::Duration,
+    collections::VecDeque,
+    env::var,
+    net::TcpListener,
+    process::Stdio,
+    time::{Duration, Instant},
 };
 
 use tokio::{
@@ -34,7 +38,8 @@ impl LlamaCppSupervisor {
 
         let model_path = model_path.to_owned();
         let port = get_available_port();
-        let mut first_retry = true;
+        let mut retry_count = 0;
+        let initial_time = Instant::now();
 
         let handle = tokio::spawn(async move {
             loop {
@@ -121,47 +126,43 @@ impl LlamaCppSupervisor {
                         name, status_code, command_args
                     );
 
-                    eprintln!(
-                        "{}\n",
-                        tabby_common::terminal::HeaderFormat::BoldRed
-                            .format("Recent llama-cpp errors:")
-                    );
-                    match status_code {
-                        0 => (),
-                        1 | -1 => {
-                            for line in error_lines {
-                                eprintln!("{}", line);
-                                if let Some(solution) = analyze_error_message(&line) {
-                                    let solution_lines: Vec<_> = solution.split('\n').collect();
-                                    let msg = tabby_common::terminal::InfoMessage::new(
-                                        "ERROR",
-                                        tabby_common::terminal::HeaderFormat::BoldRed,
-                                        &solution_lines,
-                                    );
-                                    msg.print();
-                                    break;
-                                }
-                            }
-                            eprintln!(
-                                "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs and suggested solutions for details.",
-                                name
-                            );
-                            std::process::exit(1);
+                    // print only the initial round error message.
+                    if retry_count == 0 {
+                        eprintln!(
+                            "{}\n",
+                            tabby_common::terminal::HeaderFormat::BoldRed
+                                .format("Recent llama-cpp errors:")
+                        );
+                    }
+                    for line in error_lines {
+                        // print only the initial round error message.
+                        if retry_count == 0 {
+                            eprintln!("{}", line);
                         }
-                        _ => {
-                            if first_retry {
-                                for line in &error_lines {
-                                    eprintln!("{}", line);
-                                }
-                                first_retry = false;
-                            }
-                            warn!(
-                                "llama-server <{}> exited with status code {}, retrying...",
-                                name, status_code
+                        if let Some(solution) = analyze_error_message(&line) {
+                            let solution_lines: Vec<_> = solution.split('\n').collect();
+                            let msg = tabby_common::terminal::InfoMessage::new(
+                                "ERROR",
+                                tabby_common::terminal::HeaderFormat::BoldRed,
+                                &solution_lines,
                             );
+                            msg.print();
+                            break;
                         }
                     }
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+                    // exit only after the retry loop has been exhausted 5 times and Tabby was initialing for fewer than 1 minute.
+                    if retry_count >= 5 && initial_time.elapsed().as_secs() < 60 {
+                        eprintln!(
+                            "llama-server <{}> encountered a fatal error. Exiting service. Please check the above logs and suggested solutions for details.",
+                            name
+                        );
+                        std::process::exit(1);
+                    }
+
+                    retry_count += 1;
+                    warn!("Attempting to restart the llama-server...");
+                    tokio::time::sleep(Duration::from_secs(1)).await;
                 }
             }
         });

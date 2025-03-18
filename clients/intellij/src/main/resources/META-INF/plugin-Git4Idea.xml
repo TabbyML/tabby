@@ -4,4 +4,13 @@
                         serviceImplementation="com.tabbyml.intellijtabby.git.Git4IdeaProvider"
                         overrides="true"/>
     </extensions>
+
+    <actions>
+        <group id="Tabby.GitMenu" popup="false">
+            <add-to-group group-id="Git.MainMenu" anchor="after" relative-to-action="Git.Clone" />
+            <separator/>
+            <reference id="Tabby.GenerateCommitMessage" />
+            <separator/>
+        </group>
+    </actions>
 </idea-plugin>

@@ -10,6 +10,7 @@
 [![codecov](https://codecov.io/gh/TabbyML/tabby/graph/badge.svg?token=WYVVH8MKK3)](https://codecov.io/gh/TabbyML/tabby)
 
 [English](/README.md) |
+[简体中文](/README-zh.md) |
 [日本語](/README-ja.md)
 
 </div>

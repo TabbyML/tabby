@@ -18,7 +18,7 @@ use tabby_schema::{
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
     thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput},
-    Result,
+    CoreError, Result,
 };
 use tracing::{debug, error, warn};
 
@@ -42,6 +42,24 @@ impl RetrievalService {
             serper,
             repository,
         }
+    }
+
+    pub async fn collect_file_list_by_source_id(
+        &self,
+        policy: &AccessPolicy,
+        source_id: &str,
+        rev: Option<&str>,
+        limit: Option<usize>,
+    ) -> Result<(Vec<String>, bool)> {
+        let repo = self
+            .repository
+            .repository_list(Some(policy))
+            .await?
+            .into_iter()
+            .find(|x| x.source_id == source_id)
+            .ok_or_else(|| CoreError::NotFound("Repository not found"))?;
+
+        self.collect_file_list(policy, &repo, rev, limit).await
     }
 
     pub async fn collect_file_list(
@@ -68,6 +86,28 @@ impl RetrievalService {
                 Err(e)
             }
         }
+    }
+
+    pub async fn collect_relevant_code_by_source_id(
+        &self,
+        policy: &AccessPolicy,
+        source_id: &str,
+        helper: &ContextInfoHelper,
+        input: &CodeQueryInput,
+        params: &CodeSearchParams,
+        override_params: Option<&CodeSearchParamsOverrideInput>,
+    ) -> Result<Vec<CodeSearchHit>> {
+        let repo = self
+            .repository
+            .repository_list(Some(policy))
+            .await?
+            .into_iter()
+            .find(|x| x.source_id == source_id)
+            .ok_or_else(|| CoreError::NotFound("Repository not found"))?;
+
+        Ok(self
+            .collect_relevant_code(&repo, helper, input, params, override_params)
+            .await)
     }
 
     pub async fn collect_relevant_code(
@@ -145,6 +185,32 @@ impl RetrievalService {
         }
 
         hits
+    }
+
+    pub async fn find_repository(
+        &self,
+        helper: &ContextInfoHelper,
+        policy: &AccessPolicy,
+        input: &CodeQueryInput,
+    ) -> Option<Repository> {
+        let source_id = {
+            if let Some(source_id) = &input.source_id {
+                if helper.can_access_source_id(source_id) {
+                    Some(source_id.as_str())
+                } else {
+                    None
+                }
+            } else if let Some(git_url) = &input.git_url {
+                helper.allowed_code_repository().closest_match(git_url)
+            } else {
+                None
+            }
+        }?;
+
+        match self.repository.repository_list(Some(policy)).await {
+            Ok(repos) => repos.into_iter().find(|x| x.source_id == source_id),
+            Err(_) => None,
+        }
     }
 }
 
@@ -521,5 +587,67 @@ mod tests {
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].doc.commit, Some("commit".to_string()));
         assert_eq!(result[1].doc.commit, Some("commit".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_find_repository() {
+        // Setup test database
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo_service = make_repository_service(db.clone()).await.unwrap();
+
+        // Create test repository via git service
+        let repo_id = repo_service
+            .git()
+            .create("test-repo".to_string(), TEST_GIT_URL.to_string())
+            .await
+            .unwrap();
+        let source_id = format!("git:{}", repo_id);
+
+        println!("Created test repository with ID: {}", source_id);
+
+        // Setup test context with actual repository
+        let test_repo = Repository {
+            id: repo_id,
+            source_id: source_id.clone(),
+            name: "test-repo".to_string(),
+            kind: RepositoryKind::Git,
+            dir: PathBuf::from("test-repo"),
+            git_url: TEST_GIT_URL.to_string(),
+            refs: vec![],
+        };
+
+        let context_info = ContextInfo {
+            sources: vec![ContextSourceValue::Repository(test_repo)],
+        };
+        let context_info_helper = ContextInfoHelper::new(&context_info);
+
+        let policy = make_policy(db.clone()).await;
+
+        let repos = repo_service.repository_list(Some(&policy)).await.unwrap();
+        assert!(!repos.is_empty(), "Repository should exist");
+
+        let code = Arc::new(FakeCodeSearch);
+        let doc = Arc::new(FakeDocSearch);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+
+        let retrieval = Arc::new(create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo_service.clone(),
+        ));
+
+        // Test repository lookup
+        let input = make_code_query_input(Some(&source_id), Some(TEST_GIT_URL));
+
+        let result = retrieval
+            .find_repository(&context_info_helper, &policy, &input)
+            .await;
+
+        assert!(result.is_some(), "Should find repository");
+        let found_repo = result.unwrap();
+        assert_eq!(found_repo.source_id, source_id, "Source ID should match");
+        assert_eq!(found_repo.git_url, TEST_GIT_URL, "Git URL should match");
+        assert_eq!(found_repo.kind, RepositoryKind::Git, "Kind should be Git");
     }
 }

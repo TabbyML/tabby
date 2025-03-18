@@ -2,7 +2,6 @@ import React, { RefObject, useMemo, useState } from 'react'
 import slugify from '@sindresorhus/slugify'
 import { Content, EditorEvents } from '@tiptap/core'
 import { useWindowSize } from '@uidotdev/usehooks'
-import type { UseChatHelpers } from 'ai/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compact } from 'lodash-es'
 import { toast } from 'sonner'
@@ -46,7 +45,7 @@ import { isSameFileContext } from './form-editor/utils'
 import { RepoSelect } from './repo-select'
 import { PromptFormRef } from './types'
 
-export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
+export interface ChatPanelProps {
   setInput: (v: string) => void
   id?: string
   className?: string
@@ -54,6 +53,8 @@ export interface ChatPanelProps extends Pick<UseChatHelpers, 'stop' | 'input'> {
   onUpdate: (p: EditorEvents['update']) => void
   reload: () => void
   chatInputRef: RefObject<PromptFormRef>
+  input: string
+  stop: () => void
 }
 
 export interface ChatPanelRef {
@@ -325,7 +326,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
               ) : null}
               <AnimatePresence>
                 {relevantContext.map((item, idx) => {
-                  // `git_url + filepath + range` as unique key
+                  // `gitUrl + filepath + range` as unique key
                   const key = `${item.gitUrl}_${item.filepath}_${item.range?.start}_${item.range?.end}`
                   return (
                     <motion.div

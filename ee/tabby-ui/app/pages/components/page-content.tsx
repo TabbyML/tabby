@@ -67,7 +67,7 @@ export function PageContent({ page, onUpdate }: Props) {
           <Button
             size="sm"
             variant="ghost"
-            className="h-auto gap-0.5 px-2 py-1 font-normal"
+            className="h-auto gap-0.5 px-2 py-1 font-medium text-foreground/60"
             disabled={isLoading}
             onClick={() => {
               setShowForm(true)
