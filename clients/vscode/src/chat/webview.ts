@@ -731,36 +731,65 @@ export class ChatWebview extends EventEmitter {
         if (!this.gitProvider.isApiAvailable()) {
           return [];
         }
-        let remain = params.limit || 50;
+
+        const tokenLimit = params.limitToken || 4096;
+        let remainingTokens = tokenLimit;
 
         const repositories = this.gitProvider.getRepositories();
         if (!repositories) {
           return [];
         }
 
-        const getRepoChanges = async (repos: Repository[], cached: boolean, limit: number): Promise<ChangeItem[]> => {
-          if (limit <= 0) {
+        const getRepoChanges = async (
+          repos: Repository[],
+          staged: boolean,
+          tokenLimit: number,
+        ): Promise<ChangeItem[]> => {
+          if (tokenLimit <= 0) {
             return [];
           }
+
           const res: ChangeItem[] = [];
+          let currentTokenCount = 0;
+
           for (const repo of repos) {
-            const diffs = await this.gitProvider.getDiff(repo, cached);
+            const diffs = await this.gitProvider.getDiff(repo, staged);
             if (!diffs) {
               continue;
             }
-            res.push(...diffs.map((diff) => ({ content: diff }) as ChangeItem));
-            if (res.length >= limit) {
-              res.slice(limit);
+
+            for (const diff of diffs) {
+              const diffTokens = Math.ceil(diff.length / 4);
+
+              if (currentTokenCount + diffTokens > tokenLimit) {
+                break;
+              }
+
+              res.push({
+                content: diff,
+                staged: staged,
+              } as ChangeItem);
+
+              currentTokenCount += diffTokens;
+            }
+
+            if (currentTokenCount >= tokenLimit) {
               break;
             }
           }
+
           return res;
         };
-        // get staged first
-        const res: ChangeItem[] = await getRepoChanges(repositories, true, remain);
-        remain -= res.length;
-        // if there are still some left, get unstaged
-        res.push(...(await getRepoChanges(repositories, false, remain)));
+
+        const stagedChanges: ChangeItem[] = await getRepoChanges(repositories, true, remainingTokens);
+
+        const stagedTokenCount = stagedChanges.reduce((count, item) => count + Math.ceil(item.content.length / 4), 0);
+        remainingTokens = tokenLimit - stagedTokenCount;
+
+        const unstagedChanges: ChangeItem[] = await getRepoChanges(repositories, false, remainingTokens);
+
+        const res = [...stagedChanges, ...unstagedChanges];
+
         this.logger.info(`Found ${res.length} changed files.`);
 
         // return the result order from stage to unstaged
