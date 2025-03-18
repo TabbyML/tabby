@@ -37,6 +37,8 @@ import type {
   Filepath,
   ListSymbolsParams,
   ListSymbolItem,
+  CurrentChangeFilesParams,
+  ChangeItem,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
@@ -729,6 +731,34 @@ export class ChatWebview extends EventEmitter {
           this.logger.error(`listActiveSymbols: Failed - ${error}`);
           return [];
         }
+      },
+      currentChangeFiles: async (params: CurrentChangeFilesParams): Promise<ChangeItem[]> => {
+        if (!this.gitProvider.isApiAvailable()) {
+          return [];
+        }
+        const limit = params.limit || 50;
+
+        const repositories = this.gitProvider.getRepositories();
+        if (!repositories) {
+          return [];
+        }
+        const res: ChangeItem[] = [];
+        for (const repo of repositories) {
+          this.logger.info("repo", JSON.stringify(repo));
+
+          const diffs = await this.gitProvider.getDiff(repo, false);
+          this.logger.info("diffs", JSON.stringify(diffs));
+          if (!diffs) {
+            continue;
+          }
+          res.push(...diffs.map((diff) => ({ content: diff }) as ChangeItem));
+          if (res.length >= limit) {
+            res.slice(limit);
+            break;
+          }
+        }
+        this.logger.info(`Found ${res.length} changed files.`);
+        return res;
       },
     });
   }
