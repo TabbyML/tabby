@@ -17,9 +17,13 @@ pub fn prompt_page_content(title: &str, page_section_titles: &[String]) -> Strin
 You're writing the intro section of a page named "{title}". It contains the following sub sections:
 {page_section_titles}.
 
-Please generate the content for the introduction section based on the information provided above.
-Ensure the content is a single paragraph without any subtitles or nested sections.
-Do not include any additional text.
+Here're some rules you need to follow when creating content:
+* Please generate the content for the introduction section based on the information provided above.
+* Ensure the content is a single paragraph without any subtitles or nested sections.
+* Do not just blindly create a intro section listing all sub section, you should give a high level overview of the page, e.g background, why it's important, etc.
+* Include code snippets if necessary, but keep them concise and relevant.
+* Do not include any additional text.
+
 "#
     )
 }
@@ -63,6 +67,7 @@ pub fn prompt_page_section_titles(
         r#"{page_prompt}{new_section}Please generate {count} section titles for the page based on above information.
 Please only generate the section title and nothing else. Do not include any additional text.
 Each section title should be on a new line.
+There's no need to have a intro section, as page will contains a intro section anyway.
 "#
     )
 }
@@ -75,12 +80,13 @@ pub fn prompt_page_section_content(
     let page_prompt = generate_page_prompt(title, sections);
 
     format!(
-        r#"{page_prompt}.
-The current new section title is: {new_section_title}
+        r#"{page_prompt}The current section title is: {new_section_title}, please create content for this section based on above information.
 
-Please generate the content for the section based on the information provided above.
-Ensure the content is a single paragraph without any subtitles or nested sections.
-Do not include any additional text.
+Here're some rules you need to follow when creating content:
+* Try not repeat content / pattern from the previous sections as much as possible.
+* Ensure the content is a single paragraph without any subtitles or nested sections.
+* Do not include any additional output, just write the content directly.
+* Include code snippets if necessary, but keep them concise and relevant, and try refer to the code snippets in the previous sections if possible (instead of creating new ones).
 "#,
     )
 }

@@ -41,7 +41,7 @@ pub struct DocQueryInput {
     pub source_ids: Option<Vec<String>>,
 }
 
-#[derive(GraphQLInputObject, Validate, Clone, Default)]
+#[derive(GraphQLInputObject, Validate, Clone, Debug, Default)]
 #[validate(schema(function = "validate_code_query_input", skip_on_field_errors = false))]
 pub struct CodeQueryInput {
     pub filepath: Option<String>,

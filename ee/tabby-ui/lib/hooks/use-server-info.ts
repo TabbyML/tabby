@@ -10,6 +10,7 @@ export const getServerInfo = graphql(/* GraphQL */ `
       isChatEnabled
       allowSelfSignup
       isDemoMode
+      disablePasswordLogin
     }
   }
 `)
@@ -44,11 +45,17 @@ const useIsDemoMode = () => {
   return useServerInfo()?.isDemoMode
 }
 
+const useIsDisablePasswordLogin = () => {
+  return useServerInfo()?.disablePasswordLogin
+}
+
 export {
+  useServerInfo,
   useIsChatEnabled,
   useIsAdminInitialized,
   useIsEmailConfigured,
   useAllowSelfSignup,
   useIsDemoMode,
-  useIsFetchingServerInfo
+  useIsFetchingServerInfo,
+  useIsDisablePasswordLogin
 }
