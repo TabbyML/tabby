@@ -28,7 +28,7 @@ use tabby_schema::{
     thread::{CodeQueryInput, Message, ThreadService},
     AsID, AsRowid, CoreError, Result,
 };
-use tracing::error;
+use tracing::{debug, error};
 
 use super::{graphql_pagination_to_filter, retrieval::RetrievalService, utils::get_source_id};
 use crate::service::utils::{
@@ -388,7 +388,7 @@ impl PageServiceImpl {
                 title: page_title.clone(),
             }));
 
-            let sections = generate_page_sections(
+            let page_section_titles = generate_page_sections(
                 3,
                 chat.clone(),
                 context.clone(),
@@ -399,7 +399,7 @@ impl PageServiceImpl {
                 thread_messages.as_deref(),
             ).await?;
             let mut page_sections = Vec::new();
-            for section_title in sections {
+            for section_title in &page_section_titles {
                 let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
                 page_sections.push(section.into());
             }
@@ -408,8 +408,8 @@ impl PageServiceImpl {
                 sections: page_sections.clone(),
             }));
 
-            let page_section_titles = page_sections.iter().map(|s| s.title.clone()).collect::<Vec<_>>();
             let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &page_title, &page_section_titles, thread_messages.as_deref()).await?;
+            let mut page_content = "";
             for await delta in content_stream {
                 let delta = delta?;
                 db.append_page_content(page_id.as_rowid()?, &delta).await?;
@@ -422,7 +422,7 @@ impl PageServiceImpl {
                 id: page_id.clone(),
             }));
 
-            for section in page_sections {
+            for (i, section) in page_sections.iter().enumerate()  {
                 let section_id = section.id.clone();
 
                 let existed_sections: Vec<_> = db
@@ -430,7 +430,10 @@ impl PageServiceImpl {
                     .await?
                     .into_iter()
                     .map(Into::into)
+                    // Only take the sections before the current section
+                    .take(i)
                     .collect();
+
                 let mut attachment = SectionAttachment::default();
                 if let Some(ref code_query) = code_query {
                     if let Some(repository) = retrieval.find_repository(&context_info_helper, &policy, code_query)
@@ -628,6 +631,7 @@ pub async fn generate_page_section_content(
     )
     .await?;
 
+    debug!("Requesting LLM for page section content: {:?}", messages);
     Ok(request_llm_stream(chat.clone(), messages).await)
 }
 
