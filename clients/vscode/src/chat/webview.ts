@@ -19,13 +19,11 @@ import {
   SymbolInformation,
   DocumentSymbol,
 } from "vscode";
-import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import type {
-  ServerApi,
+  ServerApiList,
   ChatCommand,
   ChatView,
   EditorContext,
-  OnLoadedParams,
   LookupSymbolHint,
   SymbolInfo,
   FileLocation,
@@ -67,25 +65,22 @@ export class ChatWebview extends EventEmitter {
   private readonly logger = getLogger("ChatWebView");
   private disposables: Disposable[] = [];
   private webview: Webview | undefined = undefined;
-  private client: ServerApi | undefined = undefined;
-
-  // Once the chat iframe is loaded, the `onLoaded` should be called from server side later,
-  // and we can start to initialize the chat panel.
-  // So we set a timeout here to ensure the `onLoaded` is called, otherwise we will show an error.
-  private onLoadedTimeout: NodeJS.Timeout | undefined = undefined;
-
-  // Mark the `onLoaded` is called. Before this, we should schedule the actions like
-  // `addRelevantContext` and `executeCommand` as pending actions.
-  private chatPanelLoaded = false;
-
-  // Pending actions to perform after the chat panel is initialized.
-  private pendingActions: (() => Promise<void>)[] = [];
+  private client: ServerApiList | undefined = undefined;
 
   // The current server config used to load the chat panel.
   private currentConfig: Config["server"] | undefined = undefined;
 
   // A number to ensure the html is reloaded when assigned a new value
   private reloadCount = 0;
+
+  // Once the chat iframe is loaded, the `createChatPanelApiClient` should be resolved,
+  // and we can start to `initChatPanel`.
+  // So we set a timeout here to ensure the `createChatPanelApiClient` is resolved,
+  // otherwise we will show an error.
+  private createClientTimeout: NodeJS.Timeout | undefined = undefined;
+
+  // Pending actions to perform after the chat panel is initialized.
+  private pendingActions: (() => Promise<void>)[] = [];
 
   // A callback list for invoke javascript function by postMessage
   private pendingCallbacks = new Map<string, (...arg: unknown[]) => void>();
@@ -108,8 +103,6 @@ export class ChatWebview extends EventEmitter {
     };
     this.webview = webview;
 
-    this.client = this.createChatPanelApiClient();
-
     const statusListener = () => {
       this.checkStatusAndLoadContent();
     };
@@ -123,14 +116,14 @@ export class ChatWebview extends EventEmitter {
 
     this.disposables.push(
       window.onDidChangeActiveTextEditor((editor) => {
-        if (this.chatPanelLoaded) {
+        if (this.client) {
           this.debouncedNotifyActiveEditorSelectionChange(editor);
         }
       }),
     );
     this.disposables.push(
       window.onDidChangeTextEditorSelection((event) => {
-        if (event.textEditor === window.activeTextEditor && this.chatPanelLoaded) {
+        if (event.textEditor === window.activeTextEditor && this.client) {
           this.debouncedNotifyActiveEditorSelectionChange(event.textEditor);
         }
       }),
@@ -140,7 +133,7 @@ export class ChatWebview extends EventEmitter {
       webview.onDidReceiveMessage((event) => {
         switch (event.action) {
           case "chatIframeLoaded": {
-            this.onLoadedTimeout = setTimeout(() => {
+            this.createClientTimeout = setTimeout(() => {
               const endpoint = this.currentConfig?.endpoint ?? "";
               if (!endpoint) {
                 this.checkStatusAndLoadContent();
@@ -154,7 +147,7 @@ export class ChatWebview extends EventEmitter {
             return;
           }
           case "syncStyle": {
-            this.client?.updateTheme(event.style, this.getColorThemeString());
+            this.client?.["0.8.0"].updateTheme(event.style, this.getColorThemeString());
             return;
           }
           case "jsCallback": {
@@ -172,11 +165,10 @@ export class ChatWebview extends EventEmitter {
     this.disposables = [];
     this.webview = undefined;
     this.client = undefined;
-    if (this.onLoadedTimeout) {
-      clearTimeout(this.onLoadedTimeout);
-      this.onLoadedTimeout = undefined;
+    if (this.createClientTimeout) {
+      clearTimeout(this.createClientTimeout);
+      this.createClientTimeout = undefined;
     }
-    this.chatPanelLoaded = false;
     this.currentConfig = undefined;
   }
 
@@ -195,42 +187,70 @@ export class ChatWebview extends EventEmitter {
   }
 
   async addRelevantContext(context: EditorContext) {
-    if (this.client && this.chatPanelLoaded) {
+    if (this.client) {
       this.logger.info(`Adding relevant context: ${context}`);
-      this.client.addRelevantContext(context);
+      this.client["0.8.0"].addRelevantContext(context);
     } else {
       this.pendingActions.push(async () => {
         this.logger.info(`Adding pending relevant context: ${context}`);
-        await this.client?.addRelevantContext(context);
+        await this.client?.["0.8.0"].addRelevantContext(context);
       });
     }
   }
 
   async executeCommand(command: ChatCommand) {
-    if (this.client && this.chatPanelLoaded) {
+    if (this.client) {
       this.logger.info(`Executing command: ${command}`);
-      this.client.executeCommand(command);
+      this.client["0.8.0"].executeCommand(command);
     } else {
       this.pendingActions.push(async () => {
         this.logger.info(`Executing pending command: ${command}`);
-        await this.client?.executeCommand(command);
+        await this.client?.["0.8.0"].executeCommand(command);
       });
     }
   }
 
   async navigate(view: ChatView) {
-    if (this.client && this.chatPanelLoaded) {
+    if (this.client) {
       this.logger.info(`Navigate: ${view}`);
-      this.client.navigate(view);
+      this.client["0.8.0"].navigate(view);
     }
   }
 
-  private createChatPanelApiClient(): ServerApi | undefined {
-    const webview = this.webview;
-    if (!webview) {
-      return undefined;
+  private async initChatPanel(webview: Webview) {
+    const client = await this.createChatPanelApiClient(webview);
+    this.client = client;
+    this.emit("didChangedStatus", "ready");
+
+    if (this.createClientTimeout) {
+      clearTimeout(this.createClientTimeout);
+      this.createClientTimeout = undefined;
     }
-    return createClient(webview, {
+
+    // 1. Send pending actions
+    // 2. Call the client's init method
+    // 3. Show the chat panel (call syncStyle underlay)
+    this.pendingActions.forEach(async (fn) => {
+      await fn();
+    });
+    this.pendingActions = [];
+
+    const isMac = isBrowser
+      ? navigator.userAgent.toLowerCase().includes("mac")
+      : process.platform.toLowerCase().includes("darwin");
+
+    await client["0.8.0"].init({
+      fetcherOptions: {
+        authorization: this.currentConfig?.token ?? "",
+      },
+      useMacOSKeyboardEventHandler: isMac,
+    });
+
+    webview.postMessage({ action: "showChatPanel" });
+  }
+
+  private async createChatPanelApiClient(webview: Webview): Promise<ServerApiList> {
+    return await createClient(webview, {
       refresh: async () => {
         commands.executeCommand("tabby.reconnectToServer");
         return;
@@ -245,16 +265,16 @@ export class ChatWebview extends EventEmitter {
         await this.applyInEditor(editor, content);
       },
 
-      onApplyInEditorV2: async (content: string, opts?: { languageId: string; smart: boolean }) => {
+      onApplyInEditorV2: async (content: string, options?: { languageId?: string; smart?: boolean }) => {
         const editor = window.activeTextEditor;
         if (!editor) {
           window.showErrorMessage("No active editor found.");
           return;
         }
-        if (!opts || !opts.smart) {
+        if (!options || !options.smart) {
           await this.applyInEditor(editor, content);
-        } else if (editor.document.languageId !== opts.languageId) {
-          this.logger.debug("Editor's languageId:", editor.document.languageId, "opts.languageId:", opts.languageId);
+        } else if (editor.document.languageId !== options.languageId) {
+          this.logger.debug("Editor's languageId:", editor.document.languageId, "opts.languageId:", options.languageId);
           await this.applyInEditor(editor, content);
           window.showInformationMessage("The active editor is not in the correct language. Did normal apply.");
         } else {
@@ -262,58 +282,19 @@ export class ChatWebview extends EventEmitter {
         }
       },
 
-      onLoaded: async (params: OnLoadedParams | undefined) => {
-        if (this.onLoadedTimeout) {
-          clearTimeout(this.onLoadedTimeout);
-          this.onLoadedTimeout = undefined;
-        }
-
-        if (params?.apiVersion) {
-          const error = this.checkChatPanelApiVersion(params.apiVersion);
-          if (error) {
-            this.loadErrorPage(error);
-            return;
-          }
-        }
-
-        this.chatPanelLoaded = true;
-        this.emit("didChangedStatus", "ready");
-
-        // 1. Send pending actions
-        // 2. Call the client's init method
-        // 3. Show the chat panel (call syncStyle underlay)
-        this.pendingActions.forEach(async (fn) => {
-          await fn();
-        });
-        this.pendingActions = [];
-
-        const isMac = isBrowser
-          ? navigator.userAgent.toLowerCase().includes("mac")
-          : process.platform.toLowerCase().includes("darwin");
-
-        await this.client?.init({
-          fetcherOptions: {
-            authorization: this.currentConfig?.token ?? "",
-          },
-          useMacOSKeyboardEventHandler: isMac,
-        });
-
-        this.webview?.postMessage({ action: "showChatPanel" });
-      },
-
-      onCopy: (content) => {
+      onCopy: async (content) => {
         env.clipboard.writeText(content);
       },
 
-      onKeyboardEvent: (type: string, event: KeyboardEventInit) => {
+      onKeyboardEvent: async (type: string, event: KeyboardEventInit) => {
         this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
         this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
 
-      lookupSymbol: async (symbol: string, hints?: LookupSymbolHint[] | undefined): Promise<SymbolInfo | undefined> => {
+      lookupSymbol: async (symbol: string, hints?: LookupSymbolHint[] | undefined): Promise<SymbolInfo | null> => {
         if (!symbol.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
           // Do not process invalid symbols
-          return undefined;
+          return null;
         }
         /// FIXME: When no hints provided, try to use `vscode.executeWorkspaceSymbolProvider` to find the symbol.
 
@@ -418,7 +399,7 @@ export class ChatWebview extends EventEmitter {
           }
         }
         this.logger.debug(`Symbol not found: ${symbol} with hints: ${JSON.stringify(hints)}`);
-        return undefined;
+        return null;
       },
 
       openInEditor: async (fileLocation: FileLocation): Promise<boolean> => {
@@ -532,8 +513,22 @@ export class ChatWebview extends EventEmitter {
             .flatMap((group) => group.tabs)
             .filter((tab) => tab.input && (tab.input as TabInputText).uri);
 
+          const openTabItems = openTabs.map((tab) =>
+            localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider),
+          );
+
+          // If we have less than 5 open tabs, fetch additional files to make total = 5
+          if (openTabs.length < 5) {
+            const additionalCount = 5 - openTabs.length;
+            this.logger.info(`Found ${openTabs.length} open tabs, fetching ${additionalCount} more files`);
+            const files = await this.findFiles("**/*", { maxResults: additionalCount });
+            this.logger.info(`Found ${files.length} additional files`);
+            const fileItems = files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
+            return [...openTabItems, ...fileItems];
+          }
+
           this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
-          return openTabs.map((tab) => localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
+          return openTabItems;
         }
 
         try {
@@ -768,7 +763,7 @@ export class ChatWebview extends EventEmitter {
     if (!webview) {
       return;
     }
-    this.chatPanelLoaded = false;
+    this.client = undefined;
     this.emit("didChangedStatus", "loading");
     this.reloadCount += 1;
     webview.html = mainHtml
@@ -776,6 +771,8 @@ export class ChatWebview extends EventEmitter {
       .replace(/{{SERVER_ENDPOINT}}/g, this.currentConfig?.endpoint ?? "")
       .replace(/{{URI_STYLESHEET}}/g, this.getUriStylesheet())
       .replace(/{{URI_AVATAR_TABBY}}/g, this.getUriAvatarTabby());
+
+    this.initChatPanel(webview);
   }
 
   private loadErrorPage(message: string) {
@@ -783,7 +780,7 @@ export class ChatWebview extends EventEmitter {
     if (!webview) {
       return;
     }
-    this.chatPanelLoaded = false;
+    this.client = undefined;
     this.emit("didChangedStatus", "error");
     this.reloadCount += 1;
     webview.html = errorHtml
@@ -816,7 +813,7 @@ export class ChatWebview extends EventEmitter {
       return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
     }
 
-    const MIN_VERSION = "0.18.0";
+    const MIN_VERSION = "0.27.0";
 
     if (health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
@@ -834,25 +831,6 @@ export class ChatWebview extends EventEmitter {
       }
     }
 
-    return undefined;
-  }
-
-  private checkChatPanelApiVersion(version: string): string | undefined {
-    const serverApiVersion = semver.coerce(version);
-    if (serverApiVersion) {
-      this.logger.info(
-        `Chat panel server API version: ${serverApiVersion}, client API version: ${TABBY_CHAT_PANEL_API_VERSION}`,
-      );
-      const clientApiMajorVersion = semver.major(TABBY_CHAT_PANEL_API_VERSION);
-      const clientApiMinorVersion = semver.minor(TABBY_CHAT_PANEL_API_VERSION);
-      const clientCompatibleRange = `~${clientApiMajorVersion}.${clientApiMinorVersion}`;
-      if (semver.ltr(serverApiVersion, clientCompatibleRange)) {
-        return "Please update your Tabby server to the latest version to use chat panel.";
-      }
-      if (semver.gtr(serverApiVersion, clientCompatibleRange)) {
-        return "Please update the Tabby VSCode extension to the latest version to use chat panel.";
-      }
-    }
     return undefined;
   }
 
@@ -926,12 +904,12 @@ export class ChatWebview extends EventEmitter {
     }
 
     if (!editor || !isValidForSyncActiveEditorSelection(editor)) {
-      await this.client?.updateActiveSelection(null);
+      await this.client?.["0.8.0"].updateActiveSelection(null);
       return;
     }
 
     const fileContext = await getEditorContext(editor, this.gitProvider);
-    await this.client?.updateActiveSelection(fileContext);
+    await this.client?.["0.8.0"].updateActiveSelection(fileContext);
   }
 
   private debouncedNotifyActiveEditorSelectionChange = debounce(async (editor: TextEditor | undefined) => {

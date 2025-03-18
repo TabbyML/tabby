@@ -233,6 +233,7 @@ input RequestPasswordResetEmailInput {
 input SecuritySettingInput {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
+  disablePasswordLogin: Boolean!
 }
 
 input SetPresetDocumentActiveInput {
@@ -1019,6 +1020,7 @@ type SectionEdge {
 type SecuritySetting {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
+  disablePasswordLogin: Boolean!
 }
 
 type ServerInfo {
@@ -1026,6 +1028,7 @@ type ServerInfo {
   isChatEnabled: Boolean!
   isEmailConfigured: Boolean!
   allowSelfSignup: Boolean!
+  disablePasswordLogin: Boolean!
   isDemoMode: Boolean!
 }
 
