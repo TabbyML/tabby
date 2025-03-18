@@ -513,8 +513,22 @@ export class ChatWebview extends EventEmitter {
             .flatMap((group) => group.tabs)
             .filter((tab) => tab.input && (tab.input as TabInputText).uri);
 
+          const openTabItems = openTabs.map((tab) =>
+            localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider),
+          );
+
+          // If we have less than 5 open tabs, fetch additional files to make total = 5
+          if (openTabs.length < 5) {
+            const additionalCount = 5 - openTabs.length;
+            this.logger.info(`Found ${openTabs.length} open tabs, fetching ${additionalCount} more files`);
+            const files = await this.findFiles("**/*", { maxResults: additionalCount });
+            this.logger.info(`Found ${files.length} additional files`);
+            const fileItems = files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
+            return [...openTabItems, ...fileItems];
+          }
+
           this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
-          return openTabs.map((tab) => localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider));
+          return openTabItems;
         }
 
         try {
