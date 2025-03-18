@@ -360,7 +360,6 @@ export function Search() {
       initializing.current = true
 
       if (pendingUserMessage?.content) {
-        // setIsReady(true)
         onSubmitSearch(pendingUserMessage.content, pendingUserMessage.context)
         updatePendingUserMessage(undefined)
         return
@@ -1038,13 +1037,10 @@ function getSourceInputs(
   if (ctx) {
     sourceIdsForDocQuery = uniq(
       // Compatible with existing user messages
-      compact(
-        [repositorySourceId, ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds)
-      )
+      compact([repositorySourceId, ctx?.codeSourceId].concat(ctx.docSourceIds))
     )
     searchPublic = ctx.searchPublic ?? false
-    sourceIdForCodeQuery =
-      repositorySourceId || ctx.codeSourceIds?.[0] || undefined
+    sourceIdForCodeQuery = repositorySourceId || ctx.codeSourceId || undefined
   }
   return {
     sourceIdsForDocQuery,

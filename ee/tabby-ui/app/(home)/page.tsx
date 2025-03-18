@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
+import { compact } from 'lodash-es'
 import { useQuery } from 'urql'
 import { useStore } from 'zustand'
 
@@ -98,7 +99,14 @@ function MainPanel() {
     setIsLoading(true)
     updatePendingUserMessage({
       content: question,
-      context
+      context: {
+        ...context,
+        codeSourceId: selectedRepository?.id,
+        docSourceIds: compact([
+          selectedRepository?.id,
+          ...(context?.docSourceIds ?? [])
+        ])
+      }
     })
     router.push('/search')
   }
@@ -108,8 +116,8 @@ function MainPanel() {
     updatePendingUserMessage({
       content: question,
       context: {
-        docSourceIds: [sourceId as string],
-        codeSourceIds: [sourceId as string],
+        docSourceIds: [sourceId],
+        codeSourceId: sourceId,
         modelName: selectedModel
       }
     })
