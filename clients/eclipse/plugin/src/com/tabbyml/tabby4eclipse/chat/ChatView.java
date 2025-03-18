@@ -54,6 +54,7 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.IStatusService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusInfo;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusRequestParams;
 
+@SuppressWarnings("serial")
 public class ChatView extends ViewPart {
 	private Logger logger = new Logger("ChatView");
 	private Gson gson = new Gson();
@@ -74,8 +75,8 @@ public class ChatView extends ViewPart {
 	private List<Action> toolbarActions = new ArrayList<>();
 
 	private boolean isDark;
+	private RGB browserBgColor;
 	private RGB bgColor;
-	private RGB bgActiveColor;
 	private RGB fgColor;
 	private RGB borderColor;
 	private RGB inputColor;
@@ -131,7 +132,7 @@ public class ChatView extends ViewPart {
 
 		// Browser
 		browser = new Browser(parent, Utils.isWindows() ? SWT.EDGE : SWT.WEBKIT);
-		browser.setBackground(new Color(bgActiveColor));
+		browser.setBackground(new Color(browserBgColor));
 		browser.setVisible(false);
 
 		browser.addProgressListener(new ProgressAdapter() {
@@ -250,10 +251,10 @@ public class ChatView extends ViewPart {
 		bgColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_BG_START");
 		isDark = (bgColor.red + bgColor.green + bgColor.blue) / 3 < 128;
 
-		bgActiveColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_BG_END");
+		browserBgColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_BG_END");
 		fgColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_TEXT_COLOR");
 		borderColor = isDark ? new RGB(64, 64, 64) : new RGB(192, 192, 192);
-		inputColor = bgActiveColor;
+		inputColor = browserBgColor;
 		inputBorderColor = borderColor;
 
 		primaryColor = colorRegistry.getRGB("org.eclipse.ui.workbench.LINK_COLOR");
@@ -261,11 +262,11 @@ public class ChatView extends ViewPart {
 			primaryColor = isDark ? new RGB(55, 148, 255) : new RGB(26, 133, 255);
 		}
 		primaryFgColor = new RGB(255, 255, 255);
-		popoverColor = bgActiveColor;
+		popoverColor = browserBgColor;
 		popoverFgColor = fgColor;
 		accentColor = isDark ? new RGB(4, 57, 94)
-				: new RGB((int) (bgActiveColor.red * 0.8), (int) (bgActiveColor.green * 0.8),
-						(int) (bgActiveColor.blue * 0.8));
+				: new RGB((int) (browserBgColor.red * 0.8), (int) (browserBgColor.green * 0.8),
+						(int) (browserBgColor.blue * 0.8));
 		accentFgColor = fgColor;
 		ringColor = primaryColor;
 
@@ -279,8 +280,8 @@ public class ChatView extends ViewPart {
 
 	private String buildCss() {
 		String css = "";
-		if (bgActiveColor != null) {
-			css += String.format("background-color: hsl(%s);", StringUtils.toHsl(bgActiveColor));
+		if (browserBgColor != null) {
+			css += String.format("--sidebar-background: %s;", StringUtils.toHsl(browserBgColor));
 		}
 		if (bgColor != null) {
 			css += String.format("--background: %s;", StringUtils.toHsl(bgColor));
@@ -528,14 +529,18 @@ public class ChatView extends ViewPart {
 			return;
 		}
 		if (force) {
-			LanguageServerService.getInstance().getServer().execute((server) -> {
-				IStatusService statusService = ((ILanguageServer) server).getStatusService();
-				StatusRequestParams params = new StatusRequestParams();
-				params.setRecheckConnection(true);
-				return statusService.getStatus(params);
-			}).thenAccept((statusInfo) -> {
-				String status = statusInfo.getStatus();
-				reloadContentForStatus(status, true);
+			reloadContentForStatus(StatusInfo.Status.CONNECTING, false);
+			// delay to make the loading indicator visible for a bit
+			browser.getDisplay().timerExec(500, () -> {
+				LanguageServerService.getInstance().getServer().execute((server) -> {
+					IStatusService statusService = ((ILanguageServer) server).getStatusService();
+					StatusRequestParams params = new StatusRequestParams();
+					params.setRecheckConnection(true);
+					return statusService.getStatus(params);
+				}).thenAccept((statusInfo) -> {
+					String status = statusInfo.getStatus();
+					reloadContentForStatus(status, true);
+				});
 			});
 		} else {
 			String status = statusInfoHolder.getStatusInfo().getStatus();

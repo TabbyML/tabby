@@ -1,24 +1,25 @@
-import type { RefObject } from 'react'
-import { useEffect, useState } from 'react'
+import { type RefObject, useEffect, useState } from 'react'
+import { createThreadFromIframe, createThreadFromInsideIframe } from 'tabby-threads'
+import { createClient, createServer } from './thread'
+import type { ClientApi } from './client'
+import type { ServerApi, ServerApiList } from './server'
 
-import type { ClientApi, ClientApiMethods, ServerApi } from './index'
-import { createClient, createServer } from './index'
-
-function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApiMethods) {
-  const [client, setClient] = useState<ServerApi | null>(null)
+export function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApi) {
+  const [client, setClient] = useState<ServerApiList | null>(null)
   let isCreated = false
 
   useEffect(() => {
     if (iframeRef.current && !isCreated) {
       isCreated = true
-      createClient(iframeRef.current!, api).then(setClient)
+      const thread = createThreadFromIframe<ClientApi, ServerApi>(iframeRef.current, { expose: api })
+      createClient(thread).then(setClient)
     }
   }, [iframeRef.current])
 
   return client
 }
 
-function useServer(api: ServerApi) {
+export function useServer(api: ServerApi) {
   const [server, setServer] = useState<ClientApi | null>(null)
   let isCreated = false
 
@@ -26,14 +27,10 @@ function useServer(api: ServerApi) {
     const isInIframe = window.self !== window.top
     if (isInIframe && !isCreated) {
       isCreated = true
-      createServer(api).then(setServer)
+      const thread = createThreadFromInsideIframe<ServerApi, ClientApi>({ expose: api })
+      createServer(thread).then(setServer)
     }
   }, [])
 
   return server
-}
-
-export {
-  useClient,
-  useServer,
 }

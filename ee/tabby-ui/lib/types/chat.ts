@@ -95,7 +95,7 @@ export type ISearchHit = {
     body?: string
     name?: string
     filepath?: string
-    git_url?: string
+    gitUrl?: string
     kind?: string
     language?: string
   }
@@ -146,12 +146,15 @@ export type ThreadAssistantMessageAttachmentDocHits = ExtractHitsByType<
 >
 
 // for rendering, including scores
-export type AttachmentCodeItem =
-  ArrayElementType<ThreadAssistantMessageAttachmentCodeHits>['code'] & {
-    isClient?: boolean
-    extra?: { scores?: MessageCodeSearchHit['scores'] }
-    baseDir?: string
-  }
+export type AttachmentCodeItem = Omit<
+  ArrayElementType<ThreadAssistantMessageAttachmentCodeHits>['code'],
+  '__typename'
+> & {
+  isClient?: boolean
+  extra?: { scores?: MessageCodeSearchHit['scores'] }
+  baseDir?: string
+  __typename?: 'MessageAttachmentCode' | 'AttachmentCode'
+}
 
 // for rendering, including score
 export type AttachmentDocItem =

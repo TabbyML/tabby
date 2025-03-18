@@ -11,6 +11,7 @@ pub mod license;
 pub mod notification;
 pub mod page;
 pub mod repository;
+pub mod retrieval;
 pub mod setting;
 pub mod thread;
 pub mod user_event;
@@ -48,7 +49,7 @@ use notification::NotificationService;
 use page::{
     CreatePageRunInput, CreatePageSectionRunInput, PageRunStream, SectionRunStream,
     ThreadToPageRunStream, UpdatePageContentInput, UpdatePageSectionContentInput,
-    UpdatePageSectionTitleInput,
+    UpdatePageSectionTitleInput, UpdatePageTitleInput,
 };
 use repository::RepositoryGrepOutput;
 use strum::IntoEnumIterator;
@@ -494,6 +495,12 @@ impl Query {
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
             is_email_configured: ctx.locator.email().read_setting().await?.is_some(),
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
+            disable_password_login: ctx
+                .locator
+                .setting()
+                .read_security_setting()
+                .await?
+                .disable_password_login,
             is_demo_mode: env::is_demo_mode(),
         })
     }
@@ -784,7 +791,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<page::Section>> {
+    ) -> Result<Connection<page::PageSection>> {
         check_user(ctx).await?;
 
         let page_service = if let Some(service) = ctx.locator.page() {
@@ -971,6 +978,7 @@ pub struct ServerInfo {
     is_chat_enabled: bool,
     is_email_configured: bool,
     allow_self_signup: bool,
+    disable_password_login: bool,
     is_demo_mode: bool,
 }
 
@@ -1433,6 +1441,24 @@ impl Mutation {
     }
 
     // page mutations
+    async fn update_page_title(ctx: &Context, input: UpdatePageTitleInput) -> Result<bool> {
+        let user = check_user(ctx).await?;
+
+        let page_service = if let Some(service) = ctx.locator.page() {
+            service
+        } else {
+            return Err(CoreError::Forbidden("Page service is not enabled"));
+        };
+        input.validate()?;
+
+        let page = page_service.get(&input.id).await?;
+
+        user.policy.check_update_page(&page.author_id)?;
+
+        page_service.update_title(&input.id, &input.title).await?;
+        Ok(true)
+    }
+
     async fn update_page_content(ctx: &Context, input: UpdatePageContentInput) -> Result<bool> {
         let user = check_user(ctx).await?;
 

@@ -5,15 +5,14 @@ import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compact, uniqBy } from 'lodash-es'
-import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
-import { graphql } from '@/lib/gql/generates'
+import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import {
+  CreatePageRunSubscription,
   CreatePageSectionRunSubscription,
-  CreateThreadToPageRunSubscription,
   MoveSectionDirection
 } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
@@ -25,22 +24,32 @@ import { clearPendingThread, usePageStore } from '@/lib/stores/page-store'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { client, useMutation } from '@/lib/tabby/gql'
 import {
+  contextInfoQuery,
   listPages,
   listPageSections,
   listSecuredUsers
 } from '@/lib/tabby/query'
 import { ExtendedCombinedError } from '@/lib/types'
-import { cn, nanoid } from '@/lib/utils'
+import { cn, isCodeSourceContext, nanoid } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
-import { IconClock, IconFileSearch } from '@/components/ui/icons'
+import { IconFileSearch } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
 import NotFoundPage from '@/components/not-found-page'
+import { SourceIcon } from '@/components/source-icon'
 import { UserAvatar } from '@/components/user-avatar'
 
+import {
+  createPageRunSubscription,
+  createPageSectionRunSubscription,
+  createThreadToPageRunSubscription,
+  deletePageSectionMutation,
+  movePageSectionPositionMutation
+} from '../lib/query'
+import { formatTime } from '../lib/utils'
 import { PageItem, SectionItem } from '../types'
 import { Header } from './header'
 import { Navbar } from './nav-bar'
@@ -48,6 +57,7 @@ import { NewPageForm } from './new-page-form'
 import { NewSectionForm } from './new-section-form'
 import { PageContent } from './page-content'
 import { PageContext } from './page-context'
+import { PageTitle } from './page-title'
 import { SectionContent } from './section-content'
 import { SectionTitle } from './section-title'
 import {
@@ -57,113 +67,16 @@ import {
   SectionTitleSkeleton
 } from './skeleton'
 
-const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
-  subscription createThreadToPageRun($threadId: ID!) {
-    createThreadToPageRun(threadId: $threadId) {
-      __typename
-      ... on PageCreated {
-        id
-        authorId
-        title
-      }
-      ... on PageContentDelta {
-        delta
-      }
-      ... on PageContentCompleted {
-        id
-      }
-      ... on PageSectionsCreated {
-        sections {
-          id
-          title
-          position
-        }
-      }
-      ... on PageSectionContentDelta {
-        id
-        delta
-      }
-      ... on PageSectionContentCompleted {
-        id
-      }
-      ... on PageCompleted {
-        id
-      }
-    }
-  }
-`)
-
-const createPageSectionRunSubscription = graphql(/* GraphQL */ `
-  subscription createPageSectionRun($input: CreatePageSectionRunInput!) {
-    createPageSectionRun(input: $input) {
-      __typename
-      ... on PageSection {
-        id
-        title
-        position
-      }
-      ... on PageSectionContentDelta {
-        delta
-      }
-      ... on PageSectionContentCompleted {
-        id
-      }
-    }
-  }
-`)
-
-const createPageRunSubscription = graphql(/* GraphQL */ `
-  subscription createPageRun($input: CreatePageRunInput!) {
-    createPageRun(input: $input) {
-      __typename
-      ... on PageCreated {
-        id
-        authorId
-        title
-      }
-      ... on PageContentDelta {
-        delta
-      }
-      ... on PageContentCompleted {
-        id
-      }
-      ... on PageSectionsCreated {
-        sections {
-          id
-          title
-          position
-        }
-      }
-      ... on PageSectionContentDelta {
-        id
-        delta
-      }
-      ... on PageSectionContentCompleted {
-        id
-      }
-      ... on PageCompleted {
-        id
-      }
-    }
-  }
-`)
-
-const deletePageSectionMutation = graphql(/* GraphQL */ `
-  mutation DeletePageSection($sectionId: ID!) {
-    deletePageSection(sectionId: $sectionId)
-  }
-`)
-
-const movePageSectionPositionMutation = graphql(/* GraphQL */ `
-  mutation movePageSection($id: ID!, $direction: MoveSectionDirection!) {
-    movePageSection(id: $id, direction: $direction)
-  }
-`)
-
 const PAGE_SIZE = 30
+
+type PageRunItem = CreatePageRunSubscription['createPageRun']
 
 export function Page() {
   const [{ data: meData }] = useMe()
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
+  })
+  const [enableDeveloperMode] = useEnableDeveloperMode()
   const { updateUrlComponents, pathname, router } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
@@ -232,9 +145,7 @@ export function Page() {
     return location.origin + path
   }
 
-  const processPageRunItemStream = (
-    data: CreateThreadToPageRunSubscription['createThreadToPageRun']
-  ) => {
+  const processPageRunItemStream = (data: PageRunItem) => {
     switch (data.__typename) {
       case 'PageCreated':
         setPage(prev => {
@@ -268,17 +179,63 @@ export function Page() {
         const nextSections: SectionItem[] = data.sections.map(x => ({
           ...x,
           pageId: pageId as string,
-          content: ''
+          content: '',
+          attachments: {
+            code: [],
+            codeFileList: null
+          }
         }))
         setPendingSectionIds(new Set(data.sections.map(x => x.id)))
         setSections(nextSections)
         break
       }
+      case 'PageSectionAttachmentCodeFileList': {
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          return prev.map(x => {
+            if (x.id === data.id) {
+              return {
+                ...x,
+                attachments: {
+                  ...x.attachments,
+                  codeFileList: data.codeFileList
+                }
+              }
+            } else {
+              return x
+            }
+          })
+        })
+        break
+      }
+      case 'PageSectionAttachmentCode': {
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          return prev.map(x => {
+            if (x.id === data.id) {
+              return {
+                ...x,
+                attachments: {
+                  code: data.codes.map(x => ({
+                    ...x.code,
+                    extra: { scores: x.scores }
+                  })),
+                  codeFileList: x.attachments.codeFileList
+                }
+              }
+            }
+
+            return x
+          })
+        })
+        break
+      }
       case 'PageSectionContentDelta': {
         setCurrentSectionId(data.id)
         setSections(prev => {
-          const section = prev?.find(x => x.id === data.id)
-          if (!section || !prev) {
+          if (!prev) {
             return prev
           }
           return prev.map(x => {
@@ -324,24 +281,76 @@ export function Page() {
           const _sections = prev.slice(0, -1)
           return [
             ..._sections,
-            { id, title, position, content: '', pageId: pageId as string }
+            {
+              id,
+              title,
+              position,
+              content: '',
+              pageId: pageId as string,
+              attachments: {
+                code: [],
+                codeFileList: null
+              }
+            }
           ]
         })
         break
       }
       case 'PageSectionContentDelta': {
-        const { delta } = data
+        const { delta, id } = data
         setSections(prev => {
           if (!prev) return prev
-          const len = prev.length
-          return prev.map((x, index) => {
-            if (index === len - 1) {
+          return prev.map(x => {
+            if (x.id === id) {
               return {
                 ...x,
                 content: x.content + delta
               }
             }
             return x
+          })
+        })
+        break
+      }
+      case 'PageSectionAttachmentCodeFileList': {
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          return prev.map(x => {
+            if (x.id === data.id) {
+              return {
+                ...x,
+                attachments: {
+                  ...x.attachments,
+                  codeFileList: data.codeFileList
+                }
+              }
+            } else {
+              return x
+            }
+          })
+        })
+        break
+      }
+      case 'PageSectionAttachmentCode': {
+        setSections(prev => {
+          if (!prev || !prev.length) return prev
+
+          return prev.map(x => {
+            if (x.id === data.id) {
+              return {
+                ...x,
+                attachments: {
+                  code: data.codes.map(x => ({
+                    ...x.code,
+                    extra: { scores: x.scores }
+                  })),
+                  codeFileList: x.attachments.codeFileList
+                }
+              }
+            } else {
+              return x
+            }
           })
         })
         break
@@ -366,7 +375,11 @@ export function Page() {
         title,
         pageId,
         content: '',
-        position: lastPosition + 1
+        position: lastPosition + 1,
+        attachments: {
+          code: [],
+          codeFileList: null
+        }
       }
 
       if (!prev) return [newSection]
@@ -441,14 +454,21 @@ export function Page() {
     return unsubscribe
   }
 
-  const createPage = async (title: string) => {
+  const createPage = async ({
+    titlePrompt,
+    codeSourceId
+  }: {
+    titlePrompt: string
+    codeSourceId?: string
+  }) => {
     const now = new Date().toISOString()
     const tempId = nanoid()
     const nextPage: PageItem = {
       id: tempId,
       authorId: '',
-      title,
+      title: titlePrompt,
       content: '',
+      codeSourceId,
       updatedAt: now,
       createdAt: now
     }
@@ -461,7 +481,13 @@ export function Page() {
     const { unsubscribe } = client
       .subscription(createPageRunSubscription, {
         input: {
-          titlePrompt: title
+          titlePrompt,
+          codeQuery: codeSourceId
+            ? {
+                sourceId: codeSourceId,
+                content: titlePrompt
+              }
+            : null
         }
       })
       .subscribe(res => {
@@ -567,6 +593,15 @@ export function Page() {
 
     return meData.me.id === page.node.authorId
   }, [meData, pagesData, pageIdFromURL])
+
+  const repository = useMemo(() => {
+    if (!page?.codeSourceId) return undefined
+
+    const target = contextInfoData?.contextInfo?.sources.find(
+      x => isCodeSourceContext(x.sourceKind) && x.sourceId === page.codeSourceId
+    )
+    return target
+  }, [page?.codeSourceId, contextInfoData])
 
   useEffect(() => {
     if (page?.title) {
@@ -768,6 +803,8 @@ export function Page() {
         isPageOwner,
         mode,
         setMode,
+        contextInfo: contextInfoData?.contextInfo,
+        fetchingContextInfo,
         pendingSectionIds,
         setPendingSectionIds,
         currentSectionId,
@@ -788,7 +825,7 @@ export function Page() {
             <ScrollArea className="h-full w-full" ref={contentContainerRef}>
               <div className="mx-auto grid grid-cols-4 gap-2 px-4 pb-32 lg:max-w-5xl lg:px-0">
                 {isNew && !page ? (
-                  <div className="col-span-4 mt-8 rounded-lg border py-2 pl-1 pr-3 ring-2 ring-transparent focus-within:ring-ring focus-visible:ring-ring">
+                  <div className="col-span-4 mt-8 rounded-xl border pl-1 pr-3 pt-2 ring-2 ring-transparent transition-colors focus-within:ring-ring focus-visible:ring-ring">
                     <NewPageForm onSubmit={createPage} />
                   </div>
                 ) : (
@@ -796,33 +833,46 @@ export function Page() {
                     <div className="relative col-span-3">
                       {/* page title */}
                       <div className="mb-2 mt-8">
+                        {!!repository && (
+                          <div className="mb-4 inline-flex items-center gap-1 rounded-lg bg-accent px-2 py-1 text-xs font-medium text-accent-foreground">
+                            <SourceIcon
+                              kind={repository.sourceKind}
+                              className="h-3.5 w-3.5 shrink-0"
+                            />
+                            <span className="truncate">
+                              {repository.sourceName}
+                            </span>
+                          </div>
+                        )}
                         <LoadingWrapper
                           loading={!page}
                           fallback={<SectionTitleSkeleton />}
                         >
-                          <h1
-                            className={cn('text-4xl font-semibold', {
-                              'animate-pulse text-muted-foreground':
-                                isGeneratingPageTitle
-                            })}
-                          >
-                            {page?.title}
-                          </h1>
+                          <PageTitle
+                            page={page}
+                            isGeneratingPageTitle={isGeneratingPageTitle}
+                            onUpdate={title => {
+                              setPage(p => {
+                                if (!p) return p
+                                return { ...p, title }
+                              })
+                            }}
+                          />
                         </LoadingWrapper>
-                        <div className="my-4 flex gap-4 text-sm text-muted-foreground">
+                        <div className="my-4 flex gap-4 text-sm">
                           <LoadingWrapper
                             loading={fetchingAuthor || !page?.authorId}
                             fallback={<Skeleton />}
                           >
-                            <div className="flex items-center gap-1">
-                              <UserAvatar user={author} className="h-6 w-6" />
-                              <div>{author?.name}</div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-0.5">
-                                <IconClock />
-                                <span>{formatTime(page?.createdAt)}</span>
+                            <div className="flex items-center gap-2">
+                              <UserAvatar user={author} className="h-8 w-8" />
+                              <div className="pt-0.5">
+                                <div className="text-sm leading-none">
+                                  {author?.name}
+                                </div>
+                                <span className="text-xs leading-none text-muted-foreground">
+                                  {formatTime(page?.createdAt)}
+                                </span>
                               </div>
                             </div>
                           </LoadingWrapper>
@@ -875,7 +925,7 @@ export function Page() {
                                 className="space-y-2"
                               >
                                 <SectionTitle
-                                  className="pt-8 prose-p:leading-tight"
+                                  className="pt-12 prose-p:leading-tight"
                                   section={section}
                                   onUpdate={title => {
                                     onUpdateSections(section.id, { title })
@@ -889,6 +939,9 @@ export function Page() {
                                   onUpdate={content => {
                                     onUpdateSections(section.id, { content })
                                   }}
+                                  enableDeveloperMode={
+                                    enableDeveloperMode.value
+                                  }
                                 />
                               </motion.div>
                             )
@@ -966,20 +1019,4 @@ function ErrorView({ error, pageIdFromURL }: ErrorViewProps) {
       </div>
     </div>
   )
-}
-
-function formatTime(time: string) {
-  const targetTime = moment(time)
-
-  if (targetTime.isBefore(moment().subtract(1, 'year'))) {
-    const timeText = targetTime.format('MMM D, YYYY, h:mm A')
-    return timeText
-  }
-
-  if (targetTime.isBefore(moment().subtract(1, 'month'))) {
-    const timeText = targetTime.format('MMM D, hh:mm A')
-    return `${timeText}`
-  }
-
-  return `${targetTime.fromNow()}`
 }

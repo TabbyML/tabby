@@ -41,6 +41,9 @@ interface LanguageServer {
   val statusFeature: StatusFeature
 
   @get:JsonDelegate
+  val chatFeature: ChatFeature
+
+  @get:JsonDelegate
   val editorsFeature: EditorsFeature
 
   @JsonNotification("$/setTrace")

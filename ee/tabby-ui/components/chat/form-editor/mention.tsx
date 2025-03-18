@@ -318,7 +318,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     }))
 
     return (
-      <div className="relative flex max-h-[300px] min-w-[60vw] max-w-[90vw] flex-col overflow-hidden rounded-md border bg-background p-1">
+      <div className="relative flex max-h-[300px] w-[80vw] flex-col overflow-hidden rounded-md border bg-background p-1 sm:w-[420px]">
         {debouncedIsLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/80">
             <Loader2 className="h-6 w-6 animate-spin" />
