@@ -1,0 +1,3 @@
+kind: Features
+body: Add security option to hide password login in frontend. Reveal it by setting the URL search parameter `password_sign_in=true` when needed.
+time: 2025-03-18T13:12:19.547444+08:00
