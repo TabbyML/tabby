@@ -156,6 +156,8 @@ pub struct PageSectionAttachmentCode {
 #[graphql(context = Context)]
 pub struct SectionAttachment {
     pub code: Vec<AttachmentCode>,
+
+    // FIXME(meng): consider remove code file list from section attachment.
     pub code_file_list: Option<AttachmentCodeFileList>,
 }
 
