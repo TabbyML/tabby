@@ -116,6 +116,7 @@ impl From<ServerSettingDAO> for SecuritySetting {
                 .map(|s| s.to_owned())
                 .collect(),
             disable_client_side_telemetry: value.security_disable_client_side_telemetry,
+            disable_password_login: value.security_disable_password_login,
         }
     }
 }
