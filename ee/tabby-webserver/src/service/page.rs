@@ -150,23 +150,25 @@ impl PageService for PageServiceImpl {
 
             let mut attachment = SectionAttachment::default();
             if let Some(source_id) = &page.code_source_id {
-                match retrieval.collect_file_list_by_source_id(&policy, source_id, None, Some(300)).await {
-                    Ok((file_list, truncated)) => {
-                        attachment.code_file_list = Some(AttachmentCodeFileList {
-                            file_list: file_list.clone(),
-                            truncated,
-                        });
-                        db.update_page_section_code_file_list(section_id, &file_list, truncated).await?;
-                        yield Ok(SectionRunItem::PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList {
-                            id: section_id.as_id(),
-                            code_file_list: AttachmentCodeFileList{
-                                file_list,
-                                truncated
-                            }
-                        }));
-                    }
-                    Err(e) => {
-                        error!("failed to list files for repository {}: {}", source_id, e);
+                if false {
+                    match retrieval.collect_file_list_by_source_id(&policy, source_id, None, Some(300)).await {
+                        Ok((file_list, truncated)) => {
+                            attachment.code_file_list = Some(AttachmentCodeFileList {
+                                file_list: file_list.clone(),
+                                truncated,
+                            });
+                            db.update_page_section_code_file_list(section_id, &file_list, truncated).await?;
+                            yield Ok(SectionRunItem::PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList {
+                                id: section_id.as_id(),
+                                code_file_list: AttachmentCodeFileList{
+                                    file_list,
+                                    truncated
+                                }
+                            }));
+                        }
+                        Err(e) => {
+                            error!("failed to list files for repository {}: {}", source_id, e);
+                        }
                     }
                 }
 
@@ -434,23 +436,25 @@ impl PageServiceImpl {
                     if let Some(repository) = retrieval.find_repository(&context_info_helper, &policy, code_query)
                         .await
                     {
-                        match retrieval.collect_file_list(&policy, &repository, None, Some(300)).await {
-                            Ok((file_list, truncated)) => {
-                                attachment.code_file_list = Some(AttachmentCodeFileList {
-                                    file_list: file_list.clone(),
-                                    truncated,
-                                });
-                                db.update_page_section_code_file_list(section_id.as_rowid()?, &file_list, truncated).await?;
-                                yield Ok(PageRunItem::PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList {
-                                    id: section_id.clone(),
-                                    code_file_list: AttachmentCodeFileList {
-                                        file_list,
+                        if false {
+                            match retrieval.collect_file_list(&policy, &repository, None, Some(300)).await {
+                                Ok((file_list, truncated)) => {
+                                    attachment.code_file_list = Some(AttachmentCodeFileList {
+                                        file_list: file_list.clone(),
                                         truncated,
-                                    }
-                                }));
-                            }
-                            Err(e) => {
-                                error!("failed to list files for repository {}: {}", repository.id, e);
+                                    });
+                                    db.update_page_section_code_file_list(section_id.as_rowid()?, &file_list, truncated).await?;
+                                    yield Ok(PageRunItem::PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList {
+                                        id: section_id.clone(),
+                                        code_file_list: AttachmentCodeFileList {
+                                            file_list,
+                                            truncated,
+                                        }
+                                    }));
+                                }
+                                Err(e) => {
+                                    error!("failed to list files for repository {}: {}", repository.id, e);
+                                }
                             }
                         }
 
