@@ -40,13 +40,14 @@ export const securitySetting = graphql(/* GraphQL */ `
     securitySetting {
       allowedRegisterDomainList
       disableClientSideTelemetry
+      disablePasswordLogin
     }
   }
 `)
 
 const formSchema = z.object({
   disableClientSideTelemetry: z.boolean(),
-  disableNonSsoLogin: z.boolean(),
+  disablePasswordLogin: z.boolean(),
   // https://github.com/shadcn-ui/ui/issues/384
   // https://github.com/shadcn-ui/ui/blob/main/apps/www/app/examples/forms/profile-form.tsx
   allowedRegisterDomainList: z
@@ -151,7 +152,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
           />
           <FormField
             control={form.control}
-            name="disableNonSsoLogin"
+            name="disablePasswordLogin"
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">

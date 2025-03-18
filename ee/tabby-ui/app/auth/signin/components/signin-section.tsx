@@ -8,7 +8,11 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import { AuthProviderKind } from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
-import { useAllowSelfSignup } from '@/lib/hooks/use-server-info'
+import {
+  useAllowSelfSignup,
+  useIsDisablePasswordLogin,
+  useIsFetchingServerInfo
+} from '@/lib/hooks/use-server-info'
 import { useSession, useSignIn } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -33,7 +37,9 @@ const authProvidersQuery = graphql(/* GraphQL */ `
 
 export default function SigninSection() {
   const { router, searchParams } = useRouterStuff()
+  const isFetchingServerInfo = useIsFetchingServerInfo()
   const allowSelfSignup = useAllowSelfSignup()
+  const isDisablePasswordLogin = useIsDisablePasswordLogin()
   const signin = useSignIn()
   const errorMessage = searchParams.get('error_message')
   const accessToken = searchParams.get('access_token')
@@ -58,10 +64,7 @@ export default function SigninSection() {
     enableGithubOauth || enableGitlabOauth || enableGoogleOauth
   const enableLdapAuth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.Ldap) > -1
-
-  // FIXME mock, maybe display loading status
-  const disableNonSsoLogin = true
-  const passwordSigninVisible = passwordForceRender || !disableNonSsoLogin
+  const passwordSigninVisible = passwordForceRender || !isDisablePasswordLogin
   const tabsDefaultValue = passwordSigninVisible ? 'standard' : 'ldap'
   const formVisible = passwordSigninVisible || enableLdapAuth
   const tabListVisible = passwordSigninVisible && enableLdapAuth
@@ -80,9 +83,10 @@ export default function SigninSection() {
     }
   }, [status])
 
-  // todo add fetching configuration
   const displayLoading =
-    fetchingAuthProviders || (shouldAutoSignin && !errorMessage)
+    isFetchingServerInfo ||
+    fetchingAuthProviders ||
+    (shouldAutoSignin && !errorMessage)
 
   if (displayLoading) {
     return <IconSpinner className="h-8 w-8 animate-spin" />
@@ -93,9 +97,11 @@ export default function SigninSection() {
       <div className="w-[350px] space-y-6">
         <div className="flex flex-col space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Sign In</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter credentials to login to your account
-          </p>
+          {formVisible && (
+            <p className="text-sm text-muted-foreground">
+              Enter credentials to login to your account
+            </p>
+          )}
         </div>
         <Card
           className={cn('bg-background', {
