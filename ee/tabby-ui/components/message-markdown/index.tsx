@@ -81,7 +81,7 @@ export interface MessageMarkdownProps {
   onLookupSymbol?: (
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
-  ) => Promise<SymbolInfo | undefined>
+  ) => Promise<SymbolInfo | null>
   openInEditor?: (target: FileLocation) => void
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
   onCodeCitationMouseEnter?: (index: number) => void
@@ -114,7 +114,7 @@ export function MessageMarkdown({
   ...rest
 }: MessageMarkdownProps) {
   const [symbolPositionMap, setSymbolLocationMap] = useState<
-    Map<string, SymbolInfo | undefined>
+    Map<string, SymbolInfo | null>
   >(new Map())
   const messageAttachments: MessageAttachments = useMemo(() => {
     const docs: MessageAttachments =
@@ -210,7 +210,7 @@ export function MessageMarkdown({
     if (!onLookupSymbol) return
     if (symbolPositionMap.has(keyword)) return
 
-    setSymbolLocationMap(map => new Map(map.set(keyword, undefined)))
+    setSymbolLocationMap(map => new Map(map.set(keyword, null)))
     const hints: LookupSymbolHint[] = []
 
     attachmentClientCode?.forEach(item => {
