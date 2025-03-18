@@ -35,7 +35,7 @@ import type {
   Filepath,
   ListSymbolsParams,
   ListSymbolItem,
-  CurrentChangeFilesParams,
+  GetChangesParams,
   ChangeItem,
 } from "tabby-chat-panel";
 import * as semver from "semver";
@@ -727,7 +727,7 @@ export class ChatWebview extends EventEmitter {
           return [];
         }
       },
-      currentChangeFiles: async (params: CurrentChangeFilesParams): Promise<ChangeItem[]> => {
+      getChanges: async (params: GetChangesParams): Promise<ChangeItem[]> => {
         if (!this.gitProvider.isApiAvailable()) {
           return [];
         }
