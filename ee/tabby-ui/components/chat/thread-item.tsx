@@ -38,6 +38,11 @@ export function ThreadItem({
 
   const threadMessages = threadMessagesData?.threadMessages?.edges
 
+  // If we don't have any messages, hide the thread item
+  if (!fetching && !threadMessages?.length) {
+    return null
+  }
+
   return (
     <div
       onClick={e => onNavigate(data.node.id)}

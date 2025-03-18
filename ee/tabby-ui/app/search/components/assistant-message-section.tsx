@@ -11,11 +11,11 @@ import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import {
   ContextSource,
   Maybe,
-  MessageAttachmentClientCode,
-  MessageAttachmentCode
+  MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
+  AttachmentCodeItem,
   Context,
   ExtendedCombinedError,
   RelevantCodeContext
@@ -168,7 +168,7 @@ export function AssistantMessageSection({
           range: getRangeFromAttachmentCode(code),
           filepath: code.filepath || '',
           content: code.content,
-          git_url: clientCodeGitUrl
+          gitUrl: clientCodeGitUrl
         }
       }) ?? []
     )
@@ -182,7 +182,7 @@ export function AssistantMessageSection({
           range: getRangeFromAttachmentCode(code),
           filepath: code.filepath,
           content: code.content,
-          git_url: code.gitUrl,
+          gitUrl: code.gitUrl,
           commit: code.commit ?? undefined,
           extra: {
             scores: code?.extra?.scores
@@ -222,7 +222,7 @@ export function AssistantMessageSection({
     window.open(url, '_blank')
   }
 
-  const openCodeBrowserTab = (code: MessageAttachmentCode) => {
+  const openCodeBrowserTab = (code: AttachmentCodeItem) => {
     const range = getRangeFromAttachmentCode(code)
 
     if (!code.filepath) return
@@ -243,7 +243,7 @@ export function AssistantMessageSection({
     window.open(url.toString())
   }
 
-  const onCodeCitationClick = (code: MessageAttachmentCode) => {
+  const onCodeCitationClick = (code: AttachmentCodeItem) => {
     if (code.gitUrl) {
       openCodeBrowserTab(code)
     }

@@ -1183,7 +1183,7 @@ mod tests {
         let service = test_authentication_service().await;
         service
             .db
-            .update_security_setting(Some("example.com".into()), false)
+            .update_security_setting(Some("example.com".into()), false, false)
             .await
             .unwrap();
 
@@ -1228,7 +1228,7 @@ mod tests {
 
         service
             .db
-            .update_security_setting(Some("example.com".into()), false)
+            .update_security_setting(Some("example.com".into()), false, false)
             .await
             .unwrap();
 
@@ -1537,7 +1537,7 @@ mod tests {
 
         service
             .db
-            .update_security_setting(Some("abc.com".to_owned()), false)
+            .update_security_setting(Some("abc.com".to_owned()), false, false)
             .await
             .unwrap();
 

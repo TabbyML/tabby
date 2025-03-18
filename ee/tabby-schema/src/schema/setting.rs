@@ -19,6 +19,7 @@ pub trait SettingService: Send + Sync {
 pub struct SecuritySetting {
     pub allowed_register_domain_list: Vec<String>,
     pub disable_client_side_telemetry: bool,
+    pub disable_password_login: bool,
 }
 
 impl SecuritySetting {
@@ -34,6 +35,7 @@ pub struct SecuritySettingInput {
     #[validate(custom(function = "validate_unique_domains"))]
     pub allowed_register_domain_list: Vec<String>,
     pub disable_client_side_telemetry: bool,
+    pub disable_password_login: bool,
 }
 
 #[derive(GraphQLObject, Debug, PartialEq)]
@@ -114,6 +116,7 @@ mod tests {
         let setting = SecuritySetting {
             allowed_register_domain_list: vec![],
             disable_client_side_telemetry: false,
+            disable_password_login: false,
         };
 
         assert!(!setting.can_register_without_invitation("abc@abc.com"));
@@ -121,6 +124,7 @@ mod tests {
         let setting = SecuritySetting {
             allowed_register_domain_list: vec!["".into()],
             disable_client_side_telemetry: false,
+            disable_password_login: false,
         };
 
         assert!(!setting.can_register_without_invitation("abc@abc.com"));
@@ -128,6 +132,7 @@ mod tests {
         let setting = SecuritySetting {
             allowed_register_domain_list: vec![".com".into()],
             disable_client_side_telemetry: false,
+            disable_password_login: false,
         };
 
         assert!(!setting.can_register_without_invitation("abc@abc.com"));
@@ -135,6 +140,7 @@ mod tests {
         let setting = SecuritySetting {
             allowed_register_domain_list: vec!["abc.com".into()],
             disable_client_side_telemetry: false,
+            disable_password_login: false,
         };
 
         assert!(setting.can_register_without_invitation("abc@abc.com"));

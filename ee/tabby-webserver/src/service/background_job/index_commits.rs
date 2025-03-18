@@ -10,7 +10,7 @@ use tabby_index::public::{
 use tabby_inference::Embedding;
 use tabby_schema::Result;
 
-const MAX_COMMIT_HISTORY_COUNT: usize = 100;
+const MAX_COMMIT_HISTORY_COUNT: usize = 10000;
 
 fn to_commit_document(commit: &tabby_git::Commit) -> StructuredDocCommitFields {
     StructuredDocCommitFields {
@@ -57,29 +57,24 @@ async fn indexing(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
     let mut count = 0;
     let mut num_updated = 0;
 
-    let existing_commit_count = indexer
-        .count_doc(&repository.source_id, STRUCTURED_DOC_KIND_COMMIT)
-        .await
-        .unwrap_or(0);
-
     while let Some(commit_result) = commits.next().await {
-        if existing_commit_count + count >= MAX_COMMIT_HISTORY_COUNT * 2 {
+        if count >= MAX_COMMIT_HISTORY_COUNT {
             break;
         }
 
         match commit_result {
             Ok(commit) => {
+                count += 1;
                 let commit = StructuredDoc {
                     source_id: repository.source_id.clone(),
                     fields: StructuredDocFields::Commit(to_commit_document(&commit)),
                 };
                 if !indexer.sync(commit).await {
-                    break;
+                    continue;
                 }
 
                 num_updated += 1;
-                count += 1;
-                if count % 50 == 0 {
+                if count % 100 == 0 {
                     logkit::info!("{} commits seen, {} commits updated", count, num_updated);
                 }
             }

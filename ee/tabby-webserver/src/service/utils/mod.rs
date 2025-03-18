@@ -1,5 +1,7 @@
 pub mod prompt;
 
+use std::sync::Arc;
+
 use anyhow::{bail, Result};
 use async_openai_alt::types::{
     ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
@@ -8,12 +10,36 @@ use async_openai_alt::types::{
     ChatCompletionRequestUserMessageContent, Role,
 };
 use tabby_schema::{
-    context::ContextInfoHelper,
+    context::{ContextInfoHelper, ContextService},
+    policy::AccessPolicy,
     thread::{
-        Message, MessageAttachment, MessageAttachmentCodeInput, MessageAttachmentInput,
-        Role as ThreadRole,
+        CodeQueryInput, Message, MessageAttachment, MessageAttachmentCodeInput,
+        MessageAttachmentInput, Role as ThreadRole,
     },
 };
+
+pub async fn get_source_id(
+    context: Arc<dyn ContextService>,
+    policy: &AccessPolicy,
+    input: &CodeQueryInput,
+) -> Option<String> {
+    let helper = context.read(Some(policy)).await.ok()?.helper();
+
+    if let Some(source_id) = &input.source_id {
+        if helper.can_access_source_id(source_id) {
+            Some(source_id.clone())
+        } else {
+            None
+        }
+    } else if let Some(git_url) = &input.git_url {
+        helper
+            .allowed_code_repository()
+            .closest_match(git_url)
+            .map(|s| s.to_string())
+    } else {
+        None
+    }
+}
 
 pub fn convert_messages_to_chat_completion_request(
     system_prompt: Option<&str>,

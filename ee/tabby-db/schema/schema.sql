@@ -63,7 +63,8 @@ CREATE TABLE server_setting(
   security_disable_client_side_telemetry BOOLEAN NOT NULL DEFAULT FALSE,
   network_external_url STRING NOT NULL DEFAULT 'http://localhost:8080'
   ,
-  billing_enterprise_license STRING
+  billing_enterprise_license STRING,
+  security_disable_password_login BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE TABLE email_setting(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -175,11 +176,6 @@ CREATE TABLE thread_messages(
   role TEXT NOT NULL,
   content TEXT NOT NULL,
   -- Array of code attachments, in format of `ThreadMessageAttachmentCode`
-  code_attachments BLOB,
-  -- Array of client code attachments, in format of `ThreadMessageAttachmentClientCode`
-  client_code_attachments BLOB,
-  -- Array of doc attachments, in format of `ThreadMessageAttachmentDoc`
-  doc_attachments BLOB,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   code_source_id VARCHAR(255),
@@ -262,25 +258,25 @@ CREATE TABLE ldap_credential(
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
 );
-CREATE TABLE pages(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  -- The user who created the page
-  author_id INTEGER NOT NULL,
-  title TEXT,
-  content TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  FOREIGN KEY(author_id) REFERENCES users(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS "pages"(
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  author_id integer NOT NULL,
+  title text,
+  content text,
+  created_at timestamp NOT NULL DEFAULT(DATETIME('now')),
+  updated_at timestamp NOT NULL DEFAULT(DATETIME('now')),
+  code_source_id VARCHAR(255),
+  FOREIGN KEY(author_id) REFERENCES "users"(id) ON DELETE CASCADE
 );
-CREATE TABLE page_sections(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  page_id INTEGER NOT NULL,
-  title TEXT NOT NULL,
-  content TEXT,
-  position INTEGER NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  --- Ensure that the position is unique for each page
-  CONSTRAINT `unique_page_id_position` UNIQUE(page_id, position),
-  FOREIGN KEY(page_id) REFERENCES pages(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS "page_sections"(
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  page_id integer NOT NULL,
+  title text NOT NULL,
+  content text,
+  "position" integer NOT NULL,
+  created_at timestamp NOT NULL DEFAULT(DATETIME('now')),
+  updated_at timestamp NOT NULL DEFAULT(DATETIME('now')),
+  attachment BLOB NOT NULL DEFAULT '{}',
+  FOREIGN KEY(page_id) REFERENCES "pages"(id) ON DELETE CASCADE,
+  UNIQUE(page_id, "position")
 );

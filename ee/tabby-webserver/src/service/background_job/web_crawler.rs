@@ -77,7 +77,7 @@ impl WebCrawlerJob {
                 return Ok(());
             }
             Err(_) => {
-                logkit::info!("/llms.txt is not available");
+                logkit::info!("/llms-full.txt is not available");
             }
         }
 

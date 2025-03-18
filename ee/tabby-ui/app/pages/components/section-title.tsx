@@ -89,7 +89,7 @@ export function SectionTitle({
           {isEditing && !isLoading && (
             <Button
               size="icon"
-              className="shrink-0 rounded-full"
+              className="shrink-0 rounded-full shadow-none"
               onClick={e => setShowForm(true)}
               variant="secondary"
             >
