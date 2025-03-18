@@ -747,7 +747,6 @@ export class ChatWebview extends EventEmitter {
           this.logger.info("repo", JSON.stringify(repo));
 
           const diffs = await this.gitProvider.getDiff(repo, false);
-          this.logger.info("diffs", JSON.stringify(diffs));
           if (!diffs) {
             continue;
           }
