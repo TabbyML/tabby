@@ -400,7 +400,7 @@ impl PageServiceImpl {
             ).await?;
             let mut page_sections = Vec::new();
             for section_title in &page_section_titles {
-                let section = db.create_page_section(page_id.as_rowid()?, &section_title).await?;
+                let section = db.create_page_section(page_id.as_rowid()?, section_title).await?;
                 page_sections.push(section.into());
             }
 
