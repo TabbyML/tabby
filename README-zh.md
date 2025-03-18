@@ -1,4 +1,3 @@
-```html
 <div align="center">
   
 # 🐾 Tabby
@@ -131,4 +130,3 @@ apt install make sqlite3 graphviz
 ### 🌟 星标历史
 
 [![星标历史图表](https://api.star-history.com/svg?repos=tabbyml/tabby&type=Date)](https://star-history.com/#tabbyml/tabby&Date)
-```
