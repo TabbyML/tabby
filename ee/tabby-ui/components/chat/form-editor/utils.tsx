@@ -1,6 +1,6 @@
 // utils.ts
 import { Editor, JSONContent } from '@tiptap/core'
-import { SquareFunction } from 'lucide-react'
+import { SquareFunction, ZapIcon } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import {
@@ -15,7 +15,7 @@ import {
 } from '@/lib/utils'
 import { IconFile } from '@/components/ui/icons'
 
-import { FileItem, SourceItem } from '../types'
+import { CommandItem, FileItem, SourceItem } from '../types'
 
 /**
  * Converts a FileItem to a SourceItem for use in the mention dropdown list.
@@ -185,4 +185,27 @@ export function getMention(editor: Editor) {
     }
   })
   return currentMentions
+}
+
+export function commandItemToSourceItem(info: CommandItem): SourceItem {
+  return {
+    id: info.id,
+    name: info.name,
+    category: 'command',
+    command: info.command,
+    description: info.description,
+    icon: <ZapIcon className="h-4 w-4" />
+  }
+}
+
+/**
+ * Creates a default "changes" command item.
+ */
+export function createChangesCommand(): CommandItem {
+  return {
+    id: 'changes',
+    name: 'changes',
+    command: 'changes',
+    description: 'Show file changes in the current workspace'
+  }
 }

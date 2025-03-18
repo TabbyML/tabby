@@ -1,5 +1,7 @@
 import { createContext, RefObject } from 'react'
 import type {
+  ChangeItem,
+  CurrentChangeFilesParams,
   FileLocation,
   FileRange,
   ListFileItem,
@@ -47,7 +49,9 @@ export type ChatContextValue = {
   ) => Promise<ListFileItem[]>
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
-
+  getCurrentChangeFiles?: (
+    params: CurrentChangeFilesParams
+  ) => Promise<ChangeItem[]>
   // for repo select
   selectedRepoId: string | undefined
   setSelectedRepoId: React.Dispatch<React.SetStateAction<string | undefined>>

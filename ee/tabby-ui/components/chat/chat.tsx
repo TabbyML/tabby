@@ -9,7 +9,9 @@ import {
   uniqWith
 } from 'lodash-es'
 import type {
+  ChangeItem,
   ChatCommand,
+  CurrentChangeFilesParams,
   EditorContext,
   EditorFileContext,
   FileLocation,
@@ -108,6 +110,9 @@ interface ChatProps extends React.ComponentProps<'div'> {
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
   setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
+  getCurrentChangeFiles?: (
+    params: CurrentChangeFilesParams
+  ) => Promise<ChangeItem[]>
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(
@@ -139,6 +144,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       readFileContent,
       listSymbols,
       setShowHistory,
+      getCurrentChangeFiles,
       ...props
     },
     ref
@@ -795,7 +801,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           initialized,
           listFileInWorkspace,
           readFileContent,
-          listSymbols
+          listSymbols,
+          getCurrentChangeFiles
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>

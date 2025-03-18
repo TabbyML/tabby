@@ -446,6 +446,7 @@ export default function ChatPage() {
         listFileInWorkspace={isInEditor && server?.listFileInWorkspace}
         readFileContent={isInEditor && server?.readFileContent}
         listSymbols={isInEditor && server?.listSymbols}
+        getCurrentChangeFiles={isInEditor && server?.currentChangeFiles}
       />
     </ErrorBoundary>
   )
