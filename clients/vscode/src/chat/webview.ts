@@ -739,8 +739,6 @@ export class ChatWebview extends EventEmitter {
         }
         const res: ChangeItem[] = [];
         for (const repo of repositories) {
-          this.logger.info("repo", JSON.stringify(repo));
-
           const diffs = await this.gitProvider.getDiff(repo, false);
           if (!diffs) {
             continue;
