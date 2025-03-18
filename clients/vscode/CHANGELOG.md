@@ -1,3 +1,17 @@
+## 1.24.0
+
+### Features
+
+- **Chat**:
+  - Requires a server version of 0.26.0 or later.
+  - Added support to view recent chat history in the chat panel.
+- Added support for other extensions to read Tabby server configurations after user grants permission.
+
+### Fixes & Improvements
+
+- **Inline Edit**: Added keyboard shortcut hints for `Accept` and `Discard` actions in the inline edit preview.
+- Fixed the status bar item not updating when disconnected from the server.
+
 ## 1.22.0
 
 ### Features
