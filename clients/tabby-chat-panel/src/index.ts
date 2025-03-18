@@ -283,7 +283,7 @@ export interface ChangeItem {
   /**
    * The content of the change, and it will follow the same Diff format as the `git diff` command.
    */
-  content: string[]
+  content: string
 }
 
 export interface ListFileItem {
