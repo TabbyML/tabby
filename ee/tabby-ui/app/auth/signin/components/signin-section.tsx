@@ -45,7 +45,7 @@ export default function SigninSection() {
   const accessToken = searchParams.get('access_token')
   const refreshToken = searchParams.get('refresh_token')
   const passwordForceRender =
-    searchParams.get('password_sign_in')?.toString() === 'true'
+    searchParams.get('passwordSignIn')?.toString() === 'true'
   const shouldAutoSignin = !!accessToken && !!refreshToken
 
   const [{ data, fetching: fetchingAuthProviders }] = useQuery({
