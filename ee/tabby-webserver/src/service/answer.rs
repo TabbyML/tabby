@@ -79,13 +79,10 @@ impl AnswerService {
 
             let mut attachment = MessageAttachment::default();
 
-            debug!("code_query: {:?}", options.code_query);
-
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
                 if let Some(repository) = self.retrieval.find_repository(&context_info_helper, &policy, code_query).await {
                     let need_codebase_context = pipeline_decide_need_codebase_context(self.chat.clone(), &last_message.content).await?;
-                    debug!("need_codebase_context: {:?}", need_codebase_context);
                     yield Ok(ThreadRunItem::ThreadAssistantMessageReadingCode(need_codebase_context.clone()));
                     if need_codebase_context.file_list {
                         // List at most 300 files in the repository.

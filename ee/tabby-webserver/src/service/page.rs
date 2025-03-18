@@ -28,7 +28,7 @@ use tabby_schema::{
     thread::{CodeQueryInput, Message, ThreadService},
     AsID, AsRowid, CoreError, Result,
 };
-use tracing::{debug, error};
+use tracing::error;
 
 use super::{graphql_pagination_to_filter, retrieval::RetrievalService, utils::get_source_id};
 use crate::service::utils::{
@@ -409,7 +409,6 @@ impl PageServiceImpl {
             }));
 
             let content_stream = generate_page_content(chat.clone(), context.clone(), &policy, &page_title, &page_section_titles, thread_messages.as_deref()).await?;
-            let mut page_content = "";
             for await delta in content_stream {
                 let delta = delta?;
                 db.append_page_content(page_id.as_rowid()?, &delta).await?;
@@ -631,7 +630,6 @@ pub async fn generate_page_section_content(
     )
     .await?;
 
-    debug!("Requesting LLM for page section content: {:?}", messages);
     Ok(request_llm_stream(chat.clone(), messages).await)
 }
 
