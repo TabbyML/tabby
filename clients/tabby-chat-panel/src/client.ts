@@ -243,12 +243,11 @@ export interface ListSymbolItem {
  */
 export interface GetChangesParams {
   /**
-   * The maximum number of change items to return.
-   * If not provided, all changes will be returned.
+   * The maximum number of tokens to return in the change content.
+   * If not provided, all changes will be returned without token limitation.
    */
-  limit?: number
+  limitToken?: number
 }
-
 /**
  * Represents a Git change item returned by the {@link ClientApi.getChanges} method.
  * Contains information about modifications detected in the Git workspace.
@@ -259,4 +258,9 @@ export interface ChangeItem {
    * This includes information about added, modified, and deleted lines in the affected files.
    */
   content: string
+  /**
+   * Indicates whether the change has been staged in the Git index.
+   * True if the change is staged, false if it is unstaged.
+   */
+  staged: boolean
 }
