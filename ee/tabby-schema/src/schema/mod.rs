@@ -1809,8 +1809,7 @@ impl Subscription {
 
         thread
             .create_run(
-                &user.id,
-                &user.policy,
+                &user,
                 &thread_id,
                 &input.options,
                 input.thread.user_message.attachments.as_ref(),
@@ -1842,8 +1841,7 @@ impl Subscription {
             .await?;
 
         svc.create_run(
-            &user.id,
-            &user.policy,
+            &user,
             &input.thread_id,
             &input.options,
             input.additional_user_message.attachments.as_ref(),

@@ -6,7 +6,6 @@ use anyhow::anyhow;
 use async_openai_alt::{error::OpenAIError, types::CreateChatCompletionRequestArgs};
 use async_stream::stream;
 use futures::stream::BoxStream;
-use juniper::ID;
 use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
 use tabby_common::{
     api::{
@@ -17,9 +16,8 @@ use tabby_common::{
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
-    auth::AuthenticationService,
+    auth::{AuthenticationService, UserSecured},
     context::ContextService,
-    policy::AccessPolicy,
     thread::{
         self, MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
         MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
@@ -67,8 +65,7 @@ impl AnswerService {
 
     pub async fn answer<'a>(
         self: Arc<Self>,
-        user_id: &ID,
-        policy: &AccessPolicy,
+        user: &UserSecured,
         messages: &[tabby_schema::thread::Message],
         options: &ThreadRunOptionsInput,
         user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
@@ -82,7 +79,7 @@ impl AnswerService {
 
         let options = options.clone();
         let user_attachment_input = user_attachment_input.cloned();
-        let policy = policy.clone();
+        let policy = user.policy.clone();
         let logger = self.logger.clone();
 
         let s = stream! {
@@ -251,7 +248,7 @@ impl AnswerService {
             ));
         };
 
-        logger.log(Some(user_id.to_string()), Event::ChatCompletion {});
+        logger.log(Some(user.id.to_string()), Event::ChatCompletion {});
 
         Ok(Box::pin(s))
     }
@@ -349,7 +346,9 @@ mod tests {
         *,
     };
     use crate::{
-        event_logger::test_utils::MockEventLogger, retrieval, service::auth,
+        event_logger::test_utils::MockEventLogger,
+        retrieval,
+        service::{auth, UserSecuredExt},
         utils::build_user_prompt,
     };
 
@@ -627,7 +626,7 @@ mod tests {
         use std::sync::Arc;
 
         use futures::StreamExt;
-        use tabby_schema::{policy::AccessPolicy, thread::ThreadRunOptionsInput};
+        use tabby_schema::thread::ThreadRunOptionsInput;
 
         let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
@@ -651,8 +650,8 @@ mod tests {
             logger, &config, auth, chat, retrieval, context,
         ));
 
-        let user_id = create_user(&db).await.as_id();
-        let policy = AccessPolicy::new(db, &user_id, false);
+        let user_id = create_user(&db).await;
+        let user = UserSecured::new(db.clone(), db.get_user(user_id).await.unwrap().unwrap());
         let messages = vec![
             make_message(1, "What is Rust?", tabby_schema::thread::Role::User, None),
             make_message(
@@ -685,13 +684,7 @@ mod tests {
         let user_attachment_input = None;
 
         let result = service
-            .answer(
-                &user_id,
-                &policy,
-                &messages,
-                &options,
-                user_attachment_input,
-            )
+            .answer(&user, &messages, &options, user_attachment_input)
             .await
             .unwrap();
 
