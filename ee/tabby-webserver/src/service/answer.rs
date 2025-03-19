@@ -3,10 +3,7 @@ mod prompt_tools;
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use async_openai_alt::{
-    error::OpenAIError,
-    types::CreateChatCompletionRequestArgs,
-};
+use async_openai_alt::{error::OpenAIError, types::CreateChatCompletionRequestArgs};
 use async_stream::stream;
 use futures::stream::BoxStream;
 use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
