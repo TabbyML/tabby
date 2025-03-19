@@ -1,6 +1,6 @@
 // utils.ts
 import { Editor, JSONContent } from '@tiptap/core'
-import { SquareFunction, ZapIcon } from 'lucide-react'
+import { FileBox, SquareFunction, ZapIcon } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import {
@@ -194,7 +194,7 @@ export function commandItemToSourceItem(info: CommandItem): SourceItem {
     category: 'command',
     command: info.command,
     description: info.description,
-    icon: <ZapIcon className="h-4 w-4" />
+    icon: <FileBox className="h-4 w-4" />
   }
 }
 
@@ -206,6 +206,6 @@ export function createChangesCommand(): CommandItem {
     id: 'changes',
     name: 'changes',
     command: 'changes',
-    description: 'Show file changes in the current workspace'
+    description: 'Adding git diff changes into context'
   }
 }

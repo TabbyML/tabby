@@ -54,7 +54,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       relevantContext,
       setRelevantContext,
       listSymbols,
-      getCurrentChangeFiles
+      getChanges
     } = useContext(ChatContext)
 
     const { selectedModel, models } = useSelectedModel()
@@ -130,7 +130,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
                 ]
 
                 if (
-                  getCurrentChangeFiles &&
+                  getChanges &&
                   (!query || 'changes'.includes(query.toLowerCase()))
                 ) {
                   items.push({
@@ -158,7 +158,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
                         ...props,
                         listFileInWorkspace,
                         listSymbols,
-                        getCurrentChangeFiles
+                        getChanges
                       },
                       editor: props.editor
                     })
@@ -237,7 +237,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
           prevMentionsRef.current = currentMentions
         }
       },
-      [listFileInWorkspace, getCurrentChangeFiles]
+      [listFileInWorkspace, getChanges]
     )
 
     // Current text from the editor (for checking if the submit button is disabled)
@@ -306,7 +306,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         let prevContext: FileContext[] = relevantContext
         let updatedContext = [...prevContext]
         for (const ctx of removed) {
-          if ('command' in ctx) continue
+          if (ctx.category === 'command') continue
 
           updatedContext = updatedContext.filter(
             prevCtx =>
@@ -322,7 +322,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         }
 
         for (const ctx of added) {
-          if ('command' in ctx) continue
+          if (ctx.category === 'command') continue
 
           const content = await readFileContent({
             filepath: ctx.fileItem.filepath,

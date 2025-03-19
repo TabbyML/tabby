@@ -11,11 +11,11 @@ import {
 import type {
   ChangeItem,
   ChatCommand,
-  CurrentChangeFilesParams,
   EditorContext,
   EditorFileContext,
   FileLocation,
   FileRange,
+  GetChangesParams,
   GitRepository,
   ListFileItem,
   ListFilesInWorkspaceParams,
@@ -72,9 +72,14 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
+import {
+  convertChangesToGitChanges,
+  convertGitChangesToAttachmentCodeBlock,
+  hasChangesCommand
+} from './git/utils'
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
-import { ChatRef, PromptFormRef } from './types'
+import { ChatRef, GitChange, PromptFormRef } from './types'
 
 interface ChatProps extends React.ComponentProps<'div'> {
   threadId: string | undefined
@@ -110,9 +115,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
   setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
-  getCurrentChangeFiles?: (
-    params: CurrentChangeFilesParams
-  ) => Promise<ChangeItem[]>
+  getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(
@@ -144,7 +147,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       readFileContent,
       listSymbols,
       setShowHistory,
-      getCurrentChangeFiles,
+      getChanges,
       ...props
     },
     ref
@@ -535,6 +538,14 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           startLine: o.range?.start
         }))
 
+      if (userMessage.gitChanges && userMessage.gitChanges.length > 0) {
+        const gitChangesAttachments: MessageAttachmentCodeInput[] =
+          userMessage.gitChanges.map(change =>
+            convertGitChangesToAttachmentCodeBlock(change)
+          )
+        attachmentCode.push(...gitChangesAttachments)
+      }
+
       const content = userMessage.message
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
@@ -559,7 +570,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         }
       ]
     }
-
     const handleSendUserChat = useLatest(
       async (userMessage: UserMessageWithOptionalId) => {
         if (isLoading) return
@@ -574,6 +584,15 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             selectCodeContextContent ?? ''
           }\n${'```'}\n`
         }
+        let gitChanges: GitChange[] = []
+        if (getChanges && hasChangesCommand(userMessage.message)) {
+          try {
+            const changes = await getChanges({})
+            gitChanges.push(...convertChangesToGitChanges(changes))
+          } catch (error) {
+            // do nothing
+          }
+        }
 
         const newUserMessage: UserMessage = {
           ...userMessage,
@@ -585,7 +604,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             enableActiveSelection && activeSelection
               ? activeSelection
               : undefined,
-          relevantContext: [...(userMessage.relevantContext || [])]
+          relevantContext: [...(userMessage.relevantContext || [])],
+          gitChanges: gitChanges
         }
 
         const nextQaPairs = [
@@ -802,7 +822,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           listFileInWorkspace,
           readFileContent,
           listSymbols,
-          getCurrentChangeFiles
+          getChanges
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>

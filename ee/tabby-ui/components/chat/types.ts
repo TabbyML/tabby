@@ -128,3 +128,15 @@ export interface MentionState {
   query: string
   selectedIndex: number
 }
+
+/**
+ * Represents a change item in the git diff.
+ */
+export interface GitChange {
+  id: string
+  filepath: string
+  additions: number
+  deletions: number
+  diffContent: string
+  lineStart?: number
+}

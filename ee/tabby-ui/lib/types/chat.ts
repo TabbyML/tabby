@@ -1,6 +1,8 @@
 import { Content } from '@tiptap/core'
 import type { components } from 'tabby-openapi'
 
+import { GitChange } from '@/components/chat/git/types'
+
 import {
   ContextSourceKind,
   CreateThreadRunSubscription,
@@ -61,6 +63,8 @@ export interface UserMessage {
 
   // Client side active selection context - displayed in assistant message
   activeContext?: Context
+
+  gitChanges?: Array<GitChange>
 }
 
 export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {

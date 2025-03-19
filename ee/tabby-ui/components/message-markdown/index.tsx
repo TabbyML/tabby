@@ -31,7 +31,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-import { SquareFunctionIcon } from 'lucide-react'
+import { FileBox, SquareFunctionIcon } from 'lucide-react'
 import {
   FileLocation,
   Filepath,
@@ -42,6 +42,7 @@ import {
 
 import {
   MARKDOWN_CITATION_REGEX,
+  MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
   MARKDOWN_SYMBOL_REGEX
@@ -196,6 +197,18 @@ export function MessageMarkdown({
         const fullMatch = match[1]
         return {
           encodedSymbol: fullMatch,
+          openInEditor
+        }
+      }
+    )
+
+    processMatches(
+      MARKDOWN_COMMAND_REGEX,
+      ContextCommandTag,
+      (match: RegExpExecArray) => {
+        const fullMatch = match[1]
+        return {
+          encodedCommand: fullMatch,
           openInEditor
         }
       }
@@ -504,6 +517,37 @@ function SymbolTag({
     >
       <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
       <span className="font-medium">{symbol.label}</span>
+    </span>
+  )
+}
+
+function ContextCommandTag({
+  encodedCommand,
+  className
+}: {
+  encodedCommand: string | undefined
+  className?: string
+  openInEditor?: MessageMarkdownProps['openInEditor']
+}) {
+  const command = useMemo(() => {
+    if (!encodedCommand) return null
+    try {
+      const decodedCommand = decodeURIComponent(encodedCommand)
+      return JSON.parse(decodedCommand) as string
+    } catch (e) {
+      return null
+    }
+  }, [encodedCommand])
+
+  return (
+    <span
+      className={cn(
+        'symbol bg-muted space-x-1 whitespace-nowrap border py-0.5 align-middle leading-5',
+        className
+      )}
+    >
+      <FileBox className="relative inline-block h-3.5 w-3.5" />
+      <span className="font-medium">{command}</span>
     </span>
   )
 }

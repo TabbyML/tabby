@@ -13,9 +13,10 @@ import Mention from '@tiptap/extension-mention'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import { uniqBy } from 'lodash-es'
-import { FileText, Loader2, SquareFunctionIcon, ZapIcon } from 'lucide-react'
+import { FileBox, FileText, Loader2, SquareFunctionIcon } from 'lucide-react'
 import {
-  Filepath,
+  ChangeItem,
+  GetChangesParams,
   ListFileItem,
   ListFilesInWorkspaceParams,
   ListSymbolItem,
@@ -54,7 +55,7 @@ export const MentionComponent = ({ node }: { node: any }) => {
         ) : category === 'symbol' ? (
           <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
         ) : (
-          <ZapIcon className="relative -top-px inline-block h-3.5 w-3.5" />
+          <FileBox className="relative -top-px inline-block h-3.5 w-3.5" />
         )}
         <span className="relative whitespace-normal">{label}</span>
       </span>
@@ -78,7 +79,7 @@ export const PromptFormMentionExtension = Mention.extend({
     // If symbols can be mentioned later, the placeholder could be [[symbol:{label}]].
     switch (category) {
       case 'command':
-        return `[[contextCommand:"${node.attrs.command || 'default'}]]`
+        return `[[contextCommand:"${node.attrs.command || 'default'}"]]`
       case 'symbol':
         return `[[symbol:${JSON.stringify(node.attrs.fileItem)}]]`
       case 'file':
@@ -149,7 +150,7 @@ export interface MentionListProps extends SuggestionProps {
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
   listSymbols?: (params: ListSymbolsParams) => Promise<ListSymbolItem[]>
-  getCurrentChangeFiles?: () => Promise<ListFileItem[]>
+  getChanges?: (param: GetChangesParams) => Promise<ChangeItem[]>
   onSelectItem: (item: SourceItem) => void
 }
 
@@ -165,7 +166,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
       query,
       listFileInWorkspace,
       listSymbols,
-      getCurrentChangeFiles
+      getChanges
     },
     ref
   ) => {
@@ -234,7 +235,10 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
                       icon: c.icon
                     } as SourceItem)
                 ),
-                commandItemToSourceItem(createChangesCommand()),
+                // Only add the changes command if getChanges is available
+                ...(getChanges
+                  ? [commandItemToSourceItem(createChangesCommand())]
+                  : []),
                 ...files.map(fileItemToSourceItem)
               ]
             }
@@ -274,6 +278,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
       isFirstShow,
       listFileInWorkspace,
       listSymbols,
+      getChanges,
       mode,
       query,
       shouldShowCategoryMenu

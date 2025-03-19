@@ -10,8 +10,10 @@ import {
 import type { MentionAttributes } from '@/lib/types'
 
 import {
+  MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
+  PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
@@ -213,6 +215,18 @@ export function encodeMentionPlaceHolder(value: string): string {
     }
   }
 
+  // encode the contextCommand placeholder
+  while ((match = PLACEHOLDER_COMMAND_REGEX.exec(value)) !== null) {
+    try {
+      newValue = newValue.replace(
+        match[0],
+        `[[contextCommand:"${encodeURIComponent(match[1])}"]]`
+      )
+    } catch (error) {
+      continue
+    }
+  }
+
   return newValue
 }
 
@@ -247,6 +261,10 @@ export function getTitleFromMessages(
     .replace(MARKDOWN_FILE_REGEX, value => {
       const filepath = value.slice(7, -2)
       return resolveFileNameForDisplay(filepath)
+    })
+    .replace(MARKDOWN_COMMAND_REGEX, value => {
+      const command = value.slice(17, -2).replaceAll(/"/g, '')
+      return `@${command}`
     })
     .trim()
 
