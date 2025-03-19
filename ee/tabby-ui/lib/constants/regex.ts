@@ -13,3 +13,5 @@ export const MARKDOWN_SYMBOL_REGEX = /\[\[symbol:([^\]]+)\]\]/g
 export const PLACEHOLDER_COMMAND_REGEX = /\[\[contextCommand:"(.+?)"\]\]/g
 
 export const MARKDOWN_COMMAND_REGEX = /\[\[contextCommand:([^\]]+)\]\]/g
+
+export const CHANGE_DIFF_REGEX = /``diff\s+([\s\S]*?)``/g

@@ -20,6 +20,7 @@ import {
   convertToFilepath,
   encodeMentionPlaceHolder,
   getRangeFromAttachmentCode,
+  removeContextPlaceHolder,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import {
@@ -244,7 +245,7 @@ export function MessageMarkdown({
   }
 
   const encodedMessage = useMemo(() => {
-    return encodeMentionPlaceHolder(message)
+    return encodeMentionPlaceHolder(removeContextPlaceHolder(message))
   }, [message])
 
   return (

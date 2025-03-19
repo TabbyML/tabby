@@ -74,12 +74,12 @@ import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
 import {
   convertChangesToGitChanges,
-  convertGitChangesToAttachmentCodeBlock,
+  convertGitChangesToInlineDiff,
   hasChangesCommand
 } from './git/utils'
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
-import { ChatRef, GitChange, PromptFormRef } from './types'
+import { ChatRef, PromptFormRef } from './types'
 
 interface ChatProps extends React.ComponentProps<'div'> {
   threadId: string | undefined
@@ -538,14 +538,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           startLine: o.range?.start
         }))
 
-      if (userMessage.gitChanges && userMessage.gitChanges.length > 0) {
-        const gitChangesAttachments: MessageAttachmentCodeInput[] =
-          userMessage.gitChanges.map(change =>
-            convertGitChangesToAttachmentCodeBlock(change)
-          )
-        attachmentCode.push(...gitChangesAttachments)
-      }
-
       const content = userMessage.message
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
@@ -584,19 +576,20 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             selectCodeContextContent ?? ''
           }\n${'```'}\n`
         }
-        let gitChanges: GitChange[] = []
+        let gitChanges = '\n'
         if (getChanges && hasChangesCommand(userMessage.message)) {
           try {
             const changes = await getChanges({})
-            gitChanges.push(...convertChangesToGitChanges(changes))
+            gitChanges += convertChangesToGitChanges(changes)
+              .map(change => convertGitChangesToInlineDiff(change))
+              .join('\n')
           } catch (error) {
             // do nothing
           }
         }
-
         const newUserMessage: UserMessage = {
           ...userMessage,
-          message: userMessage.message + selectCodeSnippet,
+          message: userMessage.message + selectCodeSnippet + gitChanges,
           // If no id is provided, set a fallback id.
           id: userMessage.id ?? nanoid(),
           selectContext: userMessage.selectContext,
@@ -604,8 +597,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             enableActiveSelection && activeSelection
               ? activeSelection
               : undefined,
-          relevantContext: [...(userMessage.relevantContext || [])],
-          gitChanges: gitChanges
+          relevantContext: [...(userMessage.relevantContext || [])]
         }
 
         const nextQaPairs = [

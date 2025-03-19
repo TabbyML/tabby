@@ -88,13 +88,7 @@ export function extractContextCommand(text: string): string | null {
  *   startLine: 10
  * }
  */
-export function convertGitChangesToAttachmentCodeBlock(
-  gitChange: GitChange
-): MessageAttachmentCodeInput {
-  const { filepath, diffContent, lineStart } = gitChange
-  return {
-    content: `\`\`\`diff label=changes\n${diffContent} \`\`\``,
-    filepath,
-    startLine: lineStart
-  }
+export function convertGitChangesToInlineDiff(gitChange: GitChange): string {
+  const { diffContent, filepath } = gitChange
+  return `\`\`diff\nlabel=changes\nfilepath:${filepath}\n${diffContent}\n\`\``
 }
