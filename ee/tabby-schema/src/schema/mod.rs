@@ -25,7 +25,9 @@ use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
 use async_openai_alt::{
     error::OpenAIError,
     types::{
-        ChatCompletionRequestAssistantMessageContent, ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs
+        ChatCompletionRequestAssistantMessageContent, ChatCompletionRequestMessage,
+        ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessageArgs,
+        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
     },
 };
 use auth::{
@@ -281,15 +283,15 @@ impl From<ChatCompletionRequestMessage> for ChatCompletionMessage {
                 role: "user".into(),
                 content: match x.content {
                     ChatCompletionRequestUserMessageContent::Text(x) => x,
-                    _ => "".into()
-                }
+                    _ => "".into(),
+                },
             },
             ChatCompletionRequestMessage::Assistant(x) => ChatCompletionMessage {
                 role: "assistant".into(),
                 content: match x.content {
                     Some(ChatCompletionRequestAssistantMessageContent::Text(x)) => x,
                     _ => "".into(),
-                }
+                },
             },
             ChatCompletionRequestMessage::Tool(x) => ChatCompletionMessage {
                 role: "tool".into(),
@@ -300,7 +302,7 @@ impl From<ChatCompletionRequestMessage> for ChatCompletionMessage {
                 content: match x.content {
                     ChatCompletionRequestSystemMessageContent::Text(x) => x,
                     _ => "".into(),
-                }
+                },
             },
             ChatCompletionRequestMessage::Function(x) => ChatCompletionMessage {
                 role: "function".into(),
