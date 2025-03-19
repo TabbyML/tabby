@@ -17,15 +17,21 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import {
   IconChevronLeft,
+  IconMore,
   IconPlus,
-  IconSpinner,
-  IconTrash
+  IconSpinner
 } from '@/components/ui/icons'
 import { ClientOnly } from '@/components/client-only'
 import { NotificationBox } from '@/components/notification-box'
@@ -101,54 +107,42 @@ export function Header({
         {streamingDone && threadIdFromURL && (
           <Button
             variant="ghost"
-            className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+            className="flex items-center gap-1 px-2 font-normal"
             onClick={() => onNavigateToHomePage(true)}
           >
             <IconPlus />
           </Button>
         )}
-
-        {streamingDone && threadIdFromURL && isThreadOwner && (
-          <AlertDialog
-            open={deleteAlertVisible}
-            onOpenChange={setDeleteAlertVisible}
-          >
-            <AlertDialogTrigger asChild>
-              <Button size="icon" variant="hover-destructive">
-                <IconTrash />
+        {streamingDone && isThreadOwner && threadId && (
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost">
+                <IconMore />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this thread</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this thread? This operation is
-                  not revertible.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className={buttonVariants({ variant: 'destructive' })}
-                  onClick={handleDeleteThread}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {!!enablePage.value && (
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onSelect={e => onConvertToPage?.()}
                 >
-                  {isDeleting && (
-                    <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Yes, delete it
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-        {!!enablePage.value && streamingDone && isThreadOwner && threadId && (
-          <Button
-            variant="ghost"
-            onClick={e => onConvertToPage?.()}
-            className="gap-1"
-          >
-            Convert to page
-          </Button>
+                  <span>Convert to page</span>
+                  <Badge
+                    variant="outline"
+                    className="h-3.5 border-secondary-foreground/60 px-1.5 text-[10px] text-secondary-foreground/60"
+                  >
+                    Beta
+                  </Badge>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 !text-destructive"
+                onSelect={e => setDeleteAlertVisible(true)}
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         <ClientOnly>
           <ThemeToggle />
@@ -164,6 +158,32 @@ export function Header({
           <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
       </div>
+      <AlertDialog
+        open={deleteAlertVisible}
+        onOpenChange={setDeleteAlertVisible}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this thread</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this thread? This operation is not
+              revertible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={buttonVariants({ variant: 'destructive' })}
+              onClick={handleDeleteThread}
+            >
+              {isDeleting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Yes, delete it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }

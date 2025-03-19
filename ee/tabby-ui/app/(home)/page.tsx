@@ -133,11 +133,11 @@ function MainPanel() {
           top: isShowDemoBanner ? BANNER_HEIGHT : 0
         }}
       >
-        <div className="flex items-center gap-x-6">
+        <div className="flex items-center gap-x-2">
           <ClientOnly>
             <ThemeToggle />
           </ClientOnly>
-          <NotificationBox />
+          <NotificationBox className="mr-4" />
           <UserPanel showHome={false} showSetting>
             <MyAvatar className="h-10 w-10 border" />
           </UserPanel>
