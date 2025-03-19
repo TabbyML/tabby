@@ -3,7 +3,7 @@ mod prompt_tools;
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use async_openai_alt::{error::OpenAIError, types::{ChatCompletionRequestMessage, CreateChatCompletionRequestArgs}};
+use async_openai_alt::{error::OpenAIError, types::CreateChatCompletionRequestArgs};
 use async_stream::stream;
 use futures::stream::BoxStream;
 use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
@@ -14,7 +14,11 @@ use tabby_schema::{
     context::ContextService,
     policy::AccessPolicy,
     thread::{
-        self, MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc, MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageCompletedDebugData, ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput
+        self, MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
+        MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
+        ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
+        ThreadAssistantMessageCompletedDebugData, ThreadAssistantMessageContentDelta,
+        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
