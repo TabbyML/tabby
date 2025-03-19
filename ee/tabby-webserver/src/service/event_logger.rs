@@ -151,7 +151,7 @@ pub mod test_utils {
 mod tests {
     use std::time::Duration;
 
-    use tabby_common::api::event::{Event, EventLogger, Message};
+    use tabby_common::api::event::{Event, EventLogger};
     use tabby_db::DbConn;
     use tabby_schema::AsID;
 
