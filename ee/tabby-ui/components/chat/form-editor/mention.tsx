@@ -98,8 +98,6 @@ export const PromptFormMentionExtension = Mention.extend({
         parseHTML: element => element.getAttribute('data-file'),
         renderHTML: attrs => {
           if (!attrs.fileItem) return {}
-          // eslint-disable-next-line no-console
-          console.log('attrs.fileItem', attrs.fileItem)
           return { 'data-id': JSON.stringify(attrs.fileItem.filepath) }
         }
       },
@@ -310,8 +308,6 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
       }
 
       if (item.category === 'command') {
-        // eslint-disable-next-line no-console
-        console.log('command', item)
         command({
           category: 'command',
           command: item.name,
