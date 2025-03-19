@@ -243,6 +243,7 @@ input SetPresetDocumentActiveInput {
 
 input ThreadRunDebugOptionsInput {
   codeSearchParamsOverride: CodeSearchParamsOverrideInput = null
+  returnChatCompletionRequest: Boolean! = false
 }
 
 input ThreadRunOptionsInput {
@@ -380,6 +381,11 @@ type AttachmentCodeScores {
 
 type AuthProvider {
   kind: AuthProviderKind!
+}
+
+type ChatCompletionMessage {
+  role: String!
+  content: String!
 }
 
 type CompletionStats {
@@ -1073,7 +1079,12 @@ type ThreadAssistantMessageAttachmentsDoc {
 }
 
 type ThreadAssistantMessageCompleted {
-  id: ID!
+  "Debug data for the assistant message completion."
+  debugData: ThreadAssistantMessageCompletedDebugData
+}
+
+type ThreadAssistantMessageCompletedDebugData {
+  chatCompletionMessages: [ChatCompletionMessage!]!
 }
 
 type ThreadAssistantMessageContentDelta {
