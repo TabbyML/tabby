@@ -19,6 +19,7 @@ import {
   convertFromFilepath,
   convertToFilepath,
   encodeMentionPlaceHolder,
+  getPromptForChatCommand,
   getRangeFromAttachmentCode,
   resolveFileNameForDisplay
 } from '@/lib/utils'
@@ -33,6 +34,7 @@ import './style.css'
 
 import { SquareFunctionIcon } from 'lucide-react'
 import {
+  ChatCommand,
   FileLocation,
   Filepath,
   ListSymbolItem,
@@ -41,6 +43,7 @@ import {
 } from 'tabby-chat-panel/index'
 
 import {
+  COMMAND_REGEX,
   MARKDOWN_CITATION_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
@@ -200,6 +203,12 @@ export function MessageMarkdown({
         }
       }
     )
+    processMatches(COMMAND_REGEX, CommandTag, (match: RegExpExecArray) => {
+      const fullMatch = match[1]
+      return {
+        encodedSymbol: fullMatch
+      }
+    })
 
     addTextNode(text.slice(lastIndex))
 
@@ -504,6 +513,32 @@ function SymbolTag({
     >
       <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
       <span className="font-medium">{symbol.label}</span>
+    </span>
+  )
+}
+
+function CommandTag({
+  encodedSymbol,
+  className
+}: {
+  encodedSymbol: string | undefined
+  className?: string
+}) {
+  const symbol = useMemo(() => {
+    if (!encodedSymbol) return null
+    try {
+      const decodedSymbol = decodeURIComponent(encodedSymbol)
+      return decodedSymbol as string
+    } catch (e) {
+      return null
+    }
+  }, [encodedSymbol])
+
+  if (!symbol) return null
+
+  return (
+    <span className="font-medium">
+      {getPromptForChatCommand(symbol as unknown as ChatCommand)}
     </span>
   )
 }

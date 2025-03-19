@@ -9,3 +9,7 @@ export const MARKDOWN_FILE_REGEX = /\[\[file:([^\]]+)\]\]/g
 export const PLACEHOLDER_SYMBOL_REGEX = /\[\[symbol:({.*?})\]\]/g
 
 export const MARKDOWN_SYMBOL_REGEX = /\[\[symbol:([^\]]+)\]\]/g
+
+export const COMMAND_REGEX = /\[\[command:([^\]]+)\]\]/g
+
+export const PLACEHOLDER_COMMAND_REGEX = /\[\[command:({.*?})\]\]/g
