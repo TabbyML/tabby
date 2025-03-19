@@ -542,7 +542,7 @@ function ContextCommandTag({
   return (
     <span
       className={cn(
-        'symbol bg-muted space-x-1 whitespace-nowrap border py-0.5 align-middle leading-5',
+        'symbol space-x-1 whitespace-nowrap border bg-muted py-0.5 align-middle leading-5',
         className
       )}
     >

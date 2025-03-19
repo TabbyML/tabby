@@ -1,6 +1,6 @@
 // utils.ts
 import { Editor, JSONContent } from '@tiptap/core'
-import { FileBox, SquareFunction, ZapIcon } from 'lucide-react'
+import { FileBox, SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import {
