@@ -5,11 +5,10 @@ use futures::StreamExt;
 use juniper::ID;
 use tabby_db::{AttachmentDoc, DbConn, ThreadMessageDAO};
 use tabby_schema::{
-    auth::AuthenticationService,
+    auth::{AuthenticationService, UserSecured},
     bail,
     context::ContextService,
     from_thread_message_attachment_document,
-    policy::AccessPolicy,
     thread::{
         self, CreateMessageInput, CreateThreadInput, MessageAttachment, MessageAttachmentDoc,
         MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream,
@@ -156,7 +155,7 @@ impl ThreadService for ThreadServiceImpl {
 
     async fn create_run(
         &self,
-        policy: &AccessPolicy,
+        user: &UserSecured,
         thread_id: &ID,
         options: &ThreadRunOptionsInput,
         attachment_input: Option<&MessageAttachmentInput>,
@@ -193,7 +192,9 @@ impl ThreadService for ThreadServiceImpl {
             .await?;
 
         if let Some(code_query) = &options.code_query {
-            if let Some(source_id) = get_source_id(self.context.clone(), policy, code_query).await {
+            if let Some(source_id) =
+                get_source_id(self.context.clone(), &user.policy, code_query).await
+            {
                 self.db
                     .update_thread_message_code_source_id(assistant_message_id, &source_id)
                     .await?;
@@ -201,7 +202,7 @@ impl ThreadService for ThreadServiceImpl {
         }
 
         let s = answer
-            .answer(policy, &messages, options, attachment_input)
+            .answer(user, &messages, options, attachment_input)
             .await?;
 
         // Copy ownership of db and thread_id for the stream
@@ -435,8 +436,9 @@ mod tests {
                 FakeContextService, FakeDocSearch,
             },
         },
+        event_logger::test_utils::MockEventLogger,
         retrieval,
-        service::auth,
+        service::{auth, UserSecuredExt},
     };
 
     #[tokio::test]
@@ -685,7 +687,8 @@ mod tests {
     #[tokio::test]
     async fn test_create_run() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let user_id = create_user(&db).await.as_id();
+        let user_id = create_user(&db).await;
+        let user = UserSecured::new(db.clone(), db.get_user(user_id).await.unwrap().unwrap());
         let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
             return_error: false,
@@ -697,7 +700,9 @@ mod tests {
         let config = make_answer_config();
         let repo = make_repository_service(db.clone()).await.unwrap();
         let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let logger = Arc::new(MockEventLogger {});
         let answer_service = Arc::new(answer::create(
+            logger,
             &config,
             auth,
             chat,
@@ -713,13 +718,12 @@ mod tests {
             },
         };
 
-        let thread_id = service.create(&user_id, &input).await.unwrap();
+        let thread_id = service.create(&user.id, &input).await.unwrap();
 
-        let policy = AccessPolicy::new(db.clone(), &user_id, false);
         let options = ThreadRunOptionsInput::default();
 
         let run_stream = service
-            .create_run(&policy, &thread_id, &options, None, true, true)
+            .create_run(&user, &thread_id, &options, None, true, true)
             .await;
 
         assert!(run_stream.is_ok());

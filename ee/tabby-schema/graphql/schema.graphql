@@ -34,6 +34,7 @@ enum Encryption {
 
 enum EventKind {
   COMPLETION
+  CHAT_COMPLETION
   SELECT
   VIEW
   DISMISS
@@ -386,6 +387,13 @@ type AuthProvider {
 type ChatCompletionMessage {
   role: String!
   content: String!
+}
+
+type ChatCompletionStats {
+  start: DateTime!
+  end: DateTime!
+  userId: ID!
+  chats: Int!
 }
 
 type CompletionStats {
@@ -943,6 +951,8 @@ type Query {
   jobs: [String!]!
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTime!, end: DateTime!, users: [ID!], languages: [Language!]): [CompletionStats!]!
+  chatDailyStatsInPastYear(users: [ID!]): [ChatCompletionStats!]!
+  chatDailyStats(start: DateTime!, end: DateTime!, users: [ID!]): [ChatCompletionStats!]!
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
   notifications: [Notification!]!
   diskUsageStats: DiskUsageStats!

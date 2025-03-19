@@ -70,7 +70,7 @@ use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
 
 use self::{
-    analytic::{AnalyticService, CompletionStats, DiskUsageStats},
+    analytic::{AnalyticService, ChatCompletionStats, CompletionStats, DiskUsageStats},
     auth::{
         JWTPayload, OAuthCredential, OAuthProvider, PasswordChangeInput, PasswordResetInput,
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
@@ -585,6 +585,34 @@ impl Query {
         ctx.locator
             .analytic()
             .daily_stats(start, end, users, languages.unwrap_or_default())
+            .await
+    }
+
+    async fn chat_daily_stats_in_past_year(
+        ctx: &Context,
+        users: Option<Vec<ID>>,
+    ) -> Result<Vec<ChatCompletionStats>> {
+        let users = users.unwrap_or_default();
+        let user = check_user(ctx).await?;
+        user.policy.check_read_analytic(&users)?;
+        ctx.locator
+            .analytic()
+            .chat_daily_stats_in_past_year(users)
+            .await
+    }
+
+    async fn chat_daily_stats(
+        ctx: &Context,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        users: Option<Vec<ID>>,
+    ) -> Result<Vec<ChatCompletionStats>> {
+        let users = users.unwrap_or_default();
+        let user = check_user(ctx).await?;
+        user.policy.check_read_analytic(&users)?;
+        ctx.locator
+            .analytic()
+            .chat_daily_stats(start, end, users)
             .await
     }
 
@@ -1781,7 +1809,7 @@ impl Subscription {
 
         thread
             .create_run(
-                &user.policy,
+                &user,
                 &thread_id,
                 &input.options,
                 input.thread.user_message.attachments.as_ref(),
@@ -1813,7 +1841,7 @@ impl Subscription {
             .await?;
 
         svc.create_run(
-            &user.policy,
+            &user,
             &input.thread_id,
             &input.options,
             input.additional_user_message.attachments.as_ref(),
