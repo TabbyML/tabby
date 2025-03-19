@@ -28,7 +28,7 @@ impl DbConn {
         let res = sqlx::query_as::<_, UserChatCompletionDailyStatsDAO>(&format!(
             r#"
             SELECT
-                DATE(created_at) || ' 00:00:00' as start,
+                STRFTIME('%F %T', DATE(created_at)) as start,
                 user_id,
                 COUNT(1) as chats
             FROM user_events
