@@ -1,14 +1,14 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import type { Content, Editor, EditorEvents } from '@tiptap/react'
 import type {
-  ChatCommand,
+  ChatCommandV2,
   EditorContext,
   ListFileItem,
   ListSymbolItem
 } from 'tabby-chat-panel'
 
 export interface ChatRef {
-  executeCommand: (command: ChatCommand) => Promise<void>
+  executeCommand: (command: ChatCommandV2) => Promise<void>
   stop: () => void
   isLoading: boolean
   addRelevantContext: (context: EditorContext) => void

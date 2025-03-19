@@ -11,7 +11,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import {
   TABBY_CHAT_PANEL_API_VERSION,
-  type ChatCommand,
+  type ChatCommandV2,
   type ChatView,
   type EditorContext,
   type ErrorMessage,
@@ -55,7 +55,7 @@ export default function ChatPage() {
   >(null)
   const [showHistory, setShowHistory] = useState(false)
   const [threadId, setThreadId] = useState<string | undefined>()
-  const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
+  const [pendingCommand, setPendingCommand] = useState<ChatCommandV2>()
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
     EditorContext[]
   >([])
@@ -74,7 +74,7 @@ export default function ChatPage() {
   const isInEditor = !!client || undefined
   const useMacOSKeyboardEventHandler = useRef<boolean>()
 
-  const executeCommand = (command: ChatCommand) => {
+  const executeCommand = (command: ChatCommandV2) => {
     if (chatRef.current) {
       chatRef.current.executeCommand(command)
     } else {
@@ -132,7 +132,7 @@ export default function ChatPage() {
     getVersion: async () => {
       return TABBY_CHAT_PANEL_API_VERSION
     },
-    executeCommand: async (command: ChatCommand) => {
+    executeCommand: async (command: ChatCommandV2) => {
       return executeCommand(command)
     },
     showError: async (errorMessage: ErrorMessage) => {
