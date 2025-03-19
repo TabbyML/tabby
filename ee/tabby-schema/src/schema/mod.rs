@@ -25,8 +25,9 @@ use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
 use async_openai_alt::{
     error::OpenAIError,
     types::{
-        ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
-        CreateChatCompletionRequestArgs,
+        ChatCompletionRequestAssistantMessageContent, ChatCompletionRequestMessage,
+        ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessageArgs,
+        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
     },
 };
 use auth::{
@@ -267,6 +268,48 @@ enum ModelHealthBackend {
 struct ModelBackendHealthInfo {
     /// Latency in milliseconds.
     latency_ms: i32,
+}
+
+#[derive(GraphQLObject, Clone, Debug)]
+pub struct ChatCompletionMessage {
+    pub role: String,
+    pub content: String,
+}
+
+impl From<ChatCompletionRequestMessage> for ChatCompletionMessage {
+    fn from(x: ChatCompletionRequestMessage) -> Self {
+        match x {
+            ChatCompletionRequestMessage::User(x) => ChatCompletionMessage {
+                role: "user".into(),
+                content: match x.content {
+                    ChatCompletionRequestUserMessageContent::Text(x) => x,
+                    _ => "".into(),
+                },
+            },
+            ChatCompletionRequestMessage::Assistant(x) => ChatCompletionMessage {
+                role: "assistant".into(),
+                content: match x.content {
+                    Some(ChatCompletionRequestAssistantMessageContent::Text(x)) => x,
+                    _ => "".into(),
+                },
+            },
+            ChatCompletionRequestMessage::Tool(x) => ChatCompletionMessage {
+                role: "tool".into(),
+                content: "".into(),
+            },
+            ChatCompletionRequestMessage::System(x) => ChatCompletionMessage {
+                role: "system".into(),
+                content: match x.content {
+                    ChatCompletionRequestSystemMessageContent::Text(x) => x,
+                    _ => "".into(),
+                },
+            },
+            ChatCompletionRequestMessage::Function(x) => ChatCompletionMessage {
+                role: "function".into(),
+                content: "".into(),
+            },
+        }
+    }
 }
 
 #[derive(Default)]

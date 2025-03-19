@@ -261,8 +261,6 @@ impl ThreadService for ThreadServiceImpl {
 
                 yield item;
             }
-
-            yield Ok(ThreadRunItem::ThreadAssistantMessageCompleted(thread::ThreadAssistantMessageCompleted { id: assistant_message_id.as_id() }));
         };
 
         Ok(s.boxed())

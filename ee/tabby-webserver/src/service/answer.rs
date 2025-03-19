@@ -14,11 +14,11 @@ use tabby_schema::{
     context::ContextService,
     policy::AccessPolicy,
     thread::{
-        MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
+        self, MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
         MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
-        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
-        ThreadRunOptionsInput,
+        ThreadAssistantMessageCompletedDebugData, ThreadAssistantMessageContentDelta,
+        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -193,7 +193,7 @@ impl AnswerService {
                     .expect("Failed to build chat completion request")
             };
 
-            let s = match self.chat.chat_stream(request).await {
+            let s = match self.chat.chat_stream(request.clone()).await {
                 Ok(s) => s,
                 Err(err) => {
                     warn!("Failed to create chat completion stream: {:?}", err);
@@ -223,6 +223,20 @@ impl AnswerService {
                     }));
                 }
             }
+
+            let debug_data = if options.debug_options.map(|x| x.return_chat_completion_request).unwrap_or_default() {
+                Some(ThreadAssistantMessageCompletedDebugData {
+                    chat_completion_messages: request.messages.into_iter().map(|x| x.into()).collect(),
+                })
+            } else {
+                None
+            };
+
+            yield Ok(ThreadRunItem::ThreadAssistantMessageCompleted(
+                thread::ThreadAssistantMessageCompleted {
+                    debug_data,
+                },
+            ));
         };
 
         Ok(Box::pin(s))
@@ -656,8 +670,8 @@ mod tests {
 
         assert_eq!(
             collected_results.len(),
-            4,
-            "Expected 4 items in the result stream"
+            5,
+            "Expected 5 items in the result stream"
         );
     }
 }
