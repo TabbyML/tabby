@@ -666,8 +666,8 @@ mod tests {
 
         assert_eq!(
             collected_results.len(),
-            4,
-            "Expected 4 items in the result stream"
+            5,
+            "Expected 5 items in the result stream"
         );
     }
 }
