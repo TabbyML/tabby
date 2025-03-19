@@ -8,6 +8,7 @@ pub struct ServerSettingDAO {
     billing_enterprise_license: Option<String>,
     security_allowed_register_domain_list: Option<String>,
     pub security_disable_client_side_telemetry: bool,
+    pub security_disable_password_login: bool,
     pub network_external_url: String,
 }
 
@@ -29,9 +30,16 @@ impl DbConn {
         transaction: &mut Transaction<'_, Sqlite>,
     ) -> Result<Option<ServerSettingDAO>> {
         let setting: Option<ServerSettingDAO> = sqlx::query_as(
-            "SELECT security_disable_client_side_telemetry, network_external_url, security_allowed_register_domain_list, billing_enterprise_license
-            FROM server_setting WHERE id = ?;"
-        ).bind(SERVER_SETTING_ROW_ID)
+            "SELECT
+                security_disable_client_side_telemetry,
+                network_external_url,
+                security_allowed_register_domain_list,
+                billing_enterprise_license,
+                security_disable_password_login
+            FROM server_setting
+            WHERE id = ?;",
+        )
+        .bind(SERVER_SETTING_ROW_ID)
         .fetch_optional(&mut **transaction)
         .await?;
         Ok(setting)
@@ -61,13 +69,28 @@ impl DbConn {
         &self,
         allowed_register_domain_list: Option<String>,
         disable_client_side_telemetry: bool,
+        disable_password_login: bool,
     ) -> Result<()> {
-        query!("INSERT INTO server_setting (id, security_allowed_register_domain_list, security_disable_client_side_telemetry) VALUES ($1, $2, $3)
-                ON CONFLICT(id) DO UPDATE SET security_allowed_register_domain_list = $2, security_disable_client_side_telemetry = $3",
+        query!(
+            "INSERT INTO server_setting (
+                    id,
+                    security_allowed_register_domain_list,
+                    security_disable_client_side_telemetry,
+                    security_disable_password_login
+                )
+                VALUES ($1, $2, $3, $4)
+            ON CONFLICT(id) DO
+                UPDATE SET
+                    security_allowed_register_domain_list = $2,
+                    security_disable_client_side_telemetry = $3,
+                    security_disable_password_login = $4",
             SERVER_SETTING_ROW_ID,
             allowed_register_domain_list,
             disable_client_side_telemetry,
-        ).execute(&self.pool).await?;
+            disable_password_login,
+        )
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 
@@ -117,6 +140,7 @@ mod tests {
             billing_enterprise_license: None,
             security_allowed_register_domain_list,
             security_disable_client_side_telemetry: false,
+            security_disable_password_login: false,
             network_external_url: "http://localhost:8080".into(),
         }
     }

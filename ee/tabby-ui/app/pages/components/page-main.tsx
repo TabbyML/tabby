@@ -57,6 +57,7 @@ import { NewPageForm } from './new-page-form'
 import { NewSectionForm } from './new-section-form'
 import { PageContent } from './page-content'
 import { PageContext } from './page-context'
+import { PageTitle } from './page-title'
 import { SectionContent } from './section-content'
 import { SectionTitle } from './section-title'
 import {
@@ -847,14 +848,16 @@ export function Page() {
                           loading={!page}
                           fallback={<SectionTitleSkeleton />}
                         >
-                          <h1
-                            className={cn('text-4xl font-semibold', {
-                              'animate-pulse text-muted-foreground':
-                                isGeneratingPageTitle
-                            })}
-                          >
-                            {page?.title}
-                          </h1>
+                          <PageTitle
+                            page={page}
+                            isGeneratingPageTitle={isGeneratingPageTitle}
+                            onUpdate={title => {
+                              setPage(p => {
+                                if (!p) return p
+                                return { ...p, title }
+                              })
+                            }}
+                          />
                         </LoadingWrapper>
                         <div className="my-4 flex gap-4 text-sm">
                           <LoadingWrapper

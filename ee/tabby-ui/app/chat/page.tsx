@@ -10,12 +10,11 @@ import { ErrorBoundary } from 'react-error-boundary'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import {
-  ChatView,
   TABBY_CHAT_PANEL_API_VERSION,
   type ChatCommand,
+  type ChatView,
   type EditorContext,
   type ErrorMessage,
-  type FetcherOptions,
   type FileLocation,
   type InitRequest
 } from 'tabby-chat-panel'
@@ -51,9 +50,9 @@ const convertToHSLColor = (style: string) => {
 export default function ChatPage() {
   const [isChatComponentLoaded, setIsChatComponentLoaded] = useState(false)
   const [isServerLoaded, setIsServerLoaded] = useState(false)
-  const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
-    null
-  )
+  const [fetcherOptions, setFetcherOptions] = useState<
+    InitRequest['fetcherOptions'] | null
+  >(null)
   const [showHistory, setShowHistory] = useState(false)
   const [threadId, setThreadId] = useState<string | undefined>()
   const [pendingCommand, setPendingCommand] = useState<ChatCommand>()
@@ -83,7 +82,7 @@ export default function ChatPage() {
     }
   }
 
-  const addRelevantContext = (ctx: EditorContext) => {
+  const addRelevantContext = async (ctx: EditorContext) => {
     if (chatRef.current) {
       chatRef.current.addRelevantContext(ctx)
     } else {
@@ -93,15 +92,17 @@ export default function ChatPage() {
     }
   }
 
-  const updateActiveSelection = (ctx: EditorContext | null) => {
+  const updateActiveSelection = async (
+    ctx: EditorContext | null | undefined
+  ) => {
     if (chatRef.current) {
-      chatRef.current.updateActiveSelection(ctx)
+      chatRef.current.updateActiveSelection(ctx ?? null)
     } else if (ctx) {
       setPendingActiveSelection(ctx)
     }
   }
 
-  const navigate = (view: ChatView) => {
+  const navigate = async (view: ChatView) => {
     switch (view) {
       case 'history':
         setShowHistory(true)
@@ -116,7 +117,7 @@ export default function ChatPage() {
   }
 
   const server = useServer({
-    init: (request: InitRequest) => {
+    init: async (request: InitRequest) => {
       if (chatRef.current) return
 
       // save fetcherOptions to sessionStorage
@@ -128,17 +129,20 @@ export default function ChatPage() {
       useMacOSKeyboardEventHandler.current =
         request.useMacOSKeyboardEventHandler
     },
+    getVersion: async () => {
+      return TABBY_CHAT_PANEL_API_VERSION
+    },
     executeCommand: async (command: ChatCommand) => {
       return executeCommand(command)
     },
-    showError: (errorMessage: ErrorMessage) => {
+    showError: async (errorMessage: ErrorMessage) => {
       setErrorMessage(errorMessage)
     },
-    cleanError: () => {
+    cleanError: async () => {
       setErrorMessage(null)
     },
     addRelevantContext,
-    updateTheme: (style, themeClass) => {
+    updateTheme: async (style, themeClass) => {
       const styleWithHslValue = style
         .split(';')
         .filter((style: string) => style)
@@ -181,7 +185,7 @@ export default function ChatPage() {
       type: 'keydown' | 'keyup' | 'keypress',
       event: KeyboardEvent
     ) => {
-      server?.onKeyboardEvent(type, {
+      server?.onKeyboardEvent?.(type, {
         code: event.code,
         isComposing: event.isComposing,
         key: event.key,
@@ -237,7 +241,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (server) {
-      server?.onLoaded({
+      server?.onLoaded?.({
         apiVersion: TABBY_CHAT_PANEL_API_VERSION
       })
 

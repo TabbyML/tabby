@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
+import { compact } from 'lodash-es'
 import { useQuery } from 'urql'
 import { useStore } from 'zustand'
 
@@ -60,7 +61,8 @@ function MainPanel() {
   const scrollY = useStore(useScrollStore, state => state.homePage)
 
   const { selectedModel, isFetchingModels, models } = useSelectedModel()
-  const { selectedRepository, isFetchingRepositories } = useSelectedRepository()
+  const { selectedRepository, isFetchingRepositories, onSelectRepository } =
+    useSelectedRepository()
 
   const showMainSection = !!data?.me || !isFetchingServerInfo
 
@@ -90,15 +92,18 @@ function MainPanel() {
     updateSelectedModel(model)
   }
 
-  const onSelectedRepo = (sourceId: string | undefined) => {
-    updateSelectedRepoSourceId(sourceId)
-  }
-
   const onSearch = (question: string, context?: ThreadRunContexts) => {
     setIsLoading(true)
     updatePendingUserMessage({
       content: question,
-      context
+      context: {
+        ...context,
+        codeSourceId: selectedRepository?.id,
+        docSourceIds: compact([
+          selectedRepository?.id,
+          ...(context?.docSourceIds ?? [])
+        ])
+      }
     })
     router.push('/search')
   }
@@ -108,8 +113,8 @@ function MainPanel() {
     updatePendingUserMessage({
       content: question,
       context: {
-        docSourceIds: [sourceId as string],
-        codeSourceIds: [sourceId as string],
+        docSourceIds: [sourceId],
+        codeSourceId: sourceId,
         modelName: selectedModel
       }
     })
@@ -180,7 +185,7 @@ function MainPanel() {
                   modelName={selectedModel}
                   onSelectModel={handleSelectModel}
                   repoSourceId={selectedRepository?.sourceId}
-                  onSelectRepo={onSelectedRepo}
+                  onSelectRepo={onSelectRepository}
                   isInitializingResources={
                     isFetchingModels || isFetchingRepositories
                   }

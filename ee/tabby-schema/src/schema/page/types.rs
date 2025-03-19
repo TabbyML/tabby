@@ -69,6 +69,13 @@ impl NodeType for PageSection {
 }
 
 #[derive(GraphQLInputObject, Validate)]
+pub struct UpdatePageTitleInput {
+    pub id: ID,
+    #[validate(length(min = 1, max = 256, code = "title", message = "title can not be empty"))]
+    pub title: String,
+}
+
+#[derive(GraphQLInputObject, Validate)]
 pub struct UpdatePageContentInput {
     pub id: ID,
     #[validate(length(
@@ -149,6 +156,8 @@ pub struct PageSectionAttachmentCode {
 #[graphql(context = Context)]
 pub struct SectionAttachment {
     pub code: Vec<AttachmentCode>,
+
+    // FIXME(meng): consider remove code file list from section attachment.
     pub code_file_list: Option<AttachmentCodeFileList>,
 }
 

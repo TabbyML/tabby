@@ -29,7 +29,11 @@ impl SettingService for SettingServiceImpl {
         };
 
         self.db
-            .update_security_setting(domains, input.disable_client_side_telemetry)
+            .update_security_setting(
+                domains,
+                input.disable_client_side_telemetry,
+                input.disable_password_login,
+            )
             .await?;
         Ok(())
     }
@@ -58,12 +62,14 @@ mod tests {
             SecuritySetting {
                 allowed_register_domain_list: vec![],
                 disable_client_side_telemetry: false,
+                disable_password_login: false,
             }
         );
 
         svc.update_security_setting(SecuritySettingInput {
             allowed_register_domain_list: vec!["example.com".into()],
             disable_client_side_telemetry: true,
+            disable_password_login: true,
         })
         .await
         .unwrap();
@@ -73,6 +79,7 @@ mod tests {
             SecuritySetting {
                 allowed_register_domain_list: vec!["example.com".into()],
                 disable_client_side_telemetry: true,
+                disable_password_login: true,
             }
         );
     }

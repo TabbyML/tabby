@@ -40,12 +40,14 @@ export const securitySetting = graphql(/* GraphQL */ `
     securitySetting {
       allowedRegisterDomainList
       disableClientSideTelemetry
+      disablePasswordLogin
     }
   }
 `)
 
 const formSchema = z.object({
   disableClientSideTelemetry: z.boolean(),
+  disablePasswordLogin: z.boolean(),
   // https://github.com/shadcn-ui/ui/issues/384
   // https://github.com/shadcn-ui/ui/blob/main/apps/www/app/examples/forms/profile-form.tsx
   allowedRegisterDomainList: z
@@ -144,6 +146,28 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                 <FormDescription>
                   When activated, the client-side telemetry (IDE/Extensions)
                   will be disabled, regardless of the client-side settings.
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="disablePasswordLogin"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center gap-1">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer">
+                    Disabling Password Login
+                  </FormLabel>
+                </div>
+                <FormDescription>
+                  When activated, password login will be hidden.
                 </FormDescription>
               </FormItem>
             )}

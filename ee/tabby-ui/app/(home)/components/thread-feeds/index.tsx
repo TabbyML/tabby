@@ -38,14 +38,16 @@ export function ThreadFeeds({
     useQuery({
       query: listThreads,
       variables: {
-        last: 1,
-        isEphemeral: false
+        last: 25,
+        isEphemeral: false,
+        before: undefined
       }
     })
   const [{ data: myThreads, fetching: fetchingMyThreads }] = useQuery({
     query: listMyThreads,
     variables: {
-      last: 1
+      last: 25,
+      before: undefined
     }
   })
 
