@@ -23,7 +23,7 @@ use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqliteP
 pub use threads::{ThreadDAO, ThreadMessageDAO};
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
-pub use user_events::UserEventDAO;
+pub use user_events::{UserChatCompletionDailyStatsDAO, UserEventDAO};
 pub use user_groups::{UserGroupDAO, UserGroupMembershipDAO};
 pub use users::UserDAO;
 pub use web_documents::WebDocumentDAO;
