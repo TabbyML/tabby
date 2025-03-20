@@ -732,8 +732,8 @@ export class ChatWebview extends EventEmitter {
           return [];
         }
 
-        const tokenLimit = params.limitToken || 4096;
-        let remainingTokens = tokenLimit;
+        const maxChars = params.maxChars || 4096;
+        let remainingChars = maxChars;
 
         const repositories = this.gitProvider.getRepositories();
         if (!repositories) {
@@ -743,9 +743,9 @@ export class ChatWebview extends EventEmitter {
         const getRepoChanges = async (
           repos: Repository[],
           staged: boolean,
-          tokenLimit: number,
+          charLimit: number,
         ): Promise<ChangeItem[]> => {
-          if (tokenLimit <= 0) {
+          if (charLimit <= 0) {
             return [];
           }
 
@@ -759,9 +759,9 @@ export class ChatWebview extends EventEmitter {
             }
 
             for (const diff of diffs) {
-              const diffTokens = Math.ceil(diff.length / 4);
+              const diffChars = diff.length;
 
-              if (currentTokenCount + diffTokens > tokenLimit) {
+              if (currentTokenCount + diffChars > charLimit) {
                 break;
               }
 
@@ -770,10 +770,10 @@ export class ChatWebview extends EventEmitter {
                 staged: staged,
               } as ChangeItem);
 
-              currentTokenCount += diffTokens;
+              currentTokenCount += diffChars;
             }
 
-            if (currentTokenCount >= tokenLimit) {
+            if (currentTokenCount >= maxChars) {
               break;
             }
           }
@@ -781,12 +781,12 @@ export class ChatWebview extends EventEmitter {
           return res;
         };
 
-        const stagedChanges: ChangeItem[] = await getRepoChanges(repositories, true, remainingTokens);
+        const stagedChanges: ChangeItem[] = await getRepoChanges(repositories, true, remainingChars);
 
         const stagedTokenCount = stagedChanges.reduce((count, item) => count + Math.ceil(item.content.length / 4), 0);
-        remainingTokens = tokenLimit - stagedTokenCount;
+        remainingChars = maxChars - stagedTokenCount;
 
-        const unstagedChanges: ChangeItem[] = await getRepoChanges(repositories, false, remainingTokens);
+        const unstagedChanges: ChangeItem[] = await getRepoChanges(repositories, false, remainingChars);
 
         const res = [...stagedChanges, ...unstagedChanges];
 
