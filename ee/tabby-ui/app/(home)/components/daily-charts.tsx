@@ -71,7 +71,7 @@ function BarTooltip({
       pendings: number
     }
   }[]
-  type: 'accept' | 'view' | 'all' | 'chats'
+  type: 'accept' | 'view' | 'all'
 }) {
   if (active && payload && payload.length) {
     const { views, selects, name } = payload[0].payload
@@ -91,6 +91,38 @@ function BarTooltip({
               <b>{selects}</b>
             </p>
           )}
+          <p className="text-muted-foreground">{name}</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return null
+}
+
+function ChatBarTooltip({
+  active,
+  payload
+}: {
+  active?: boolean
+  payload?: {
+    name: string
+    payload: {
+      name: string
+      chats: number
+    }
+  }[]
+}) {
+  if (active && payload && payload.length) {
+    const { chats, name } = payload[0].payload
+    if (!chats) return null
+    return (
+      <Card>
+        <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
+          <p className="flex items-center">
+            <span className="mr-3 inline-block w-20">Chats:</span>
+            <b>{chats}</b>
+          </p>
           <p className="text-muted-foreground">{name}</p>
         </CardContent>
       </Card>
@@ -124,7 +156,7 @@ export function DailyCharts({
     }
   )
 
-  const { chatChartData } = useChatDailyStats({
+  const { chatChartData, totalCount: totalChats } = useChatDailyStats({
     dateRange: {
       from,
       to
@@ -135,6 +167,7 @@ export function DailyCharts({
 
   const totalViews = sum(completionChartData?.map(stats => stats.views))
   const totalAccepts = sum(completionDailyStats?.map(stats => stats.selects))
+
   const daysBetweenRange = eachDayOfInterval({
     start: from,
     end: to
@@ -299,7 +332,7 @@ export function DailyCharts({
               className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-montserrat)' }}
             >
-              {numeral(totalAccepts).format('0,0')}
+              {numeral(totalChats).format('0,0')}
             </div>
           </CardContent>
           <ResponsiveContainer width="100%" height={68}>
@@ -326,7 +359,7 @@ export function DailyCharts({
               />
               <Tooltip
                 cursor={{ fill: 'transparent' }}
-                content={<BarTooltip type="chats" />}
+                content={<ChatBarTooltip />}
               />
             </BarChart>
           </ResponsiveContainer>
