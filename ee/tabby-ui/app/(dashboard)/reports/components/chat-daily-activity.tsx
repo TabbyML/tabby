@@ -132,7 +132,7 @@ export function ChatDailyActivity({
             />
           </div>
         </div>
-        <div className="grid md:grid-cols-3 gap-5">
+        <div className="grid gap-5 md:grid-cols-3">
           <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Chats</CardTitle>
