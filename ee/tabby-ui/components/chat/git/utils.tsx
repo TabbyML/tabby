@@ -64,29 +64,6 @@ export function extractContextCommand(text: string): string | null {
   return text.slice(commandStartIndex, commandEndIndex)
 }
 
-/**
- * Converts a GitChange object to a MessageAttachmentCodeInput format suitable for API requests.
- * The function wraps the diff content in a code block with a specific label to identify it as a git change.
- *
- * @param gitChange - The GitChange object containing diff information
- * @returns A MessageAttachmentCodeInput object with formatted content
- *
- * @example
- * // Input GitChange
- * const gitChange = {
- *   id: "abc123",
- *   filepath: "src/components/Button.tsx",
- *   additions: 15,
- *   deletions: 7,
- *   diffContent: "diff --git a/src/components/Button.tsx b/src/components/Button.tsx\nindex 1234567..abcdef0 100644\n--- a/src/components/Button.tsx\n+++ b/src/components/Button.tsx\n@@ -10,7 +10,15 @@ export const Button = () => {\n   return (\n-    <button className=\"btn\">\n+    <button className=\"btn btn-primary\">\n       Click me\n     </button>\n   );\n }",
- *   lineStart: 10
- * };
- * const output = {
- *   content: "```diff label=changes\ndiff --git a/src/components/Button.tsx b/src/components/Button.tsx\nindex 1234567..abcdef0 100644\n--- a/src/components/Button.tsx\n+++ b/src/components/Button.tsx\n@@ -10,7 +10,15 @@ export const Button = () => {\n   return (\n-    <button className=\"btn\">\n+    <button className=\"btn btn-primary\">\n       Click me\n     </button>\n   );\n } ```",
- *   filepath: "src/components/Button.tsx",
- *   startLine: 10
- * }
- */
 export function convertChangeItemsToContextContent(
   changes: ChangeItem[]
 ): string {
