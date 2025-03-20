@@ -171,7 +171,8 @@ export function useCompletionDailyStats({
         users:
           selectedMember === KEY_SELECT_ALL
             ? undefined
-            : compact([selectedMember])
+            : compact([selectedMember]),
+        languages
       }
     })
 
