@@ -11,7 +11,6 @@ import type { MentionAttributes } from '@/lib/types'
 
 import {
   DIFF_CHANGES_REGEX,
-  MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
   PLACEHOLDER_COMMAND_REGEX,
@@ -255,7 +254,6 @@ export function getTitleFromMessages(
   let processedContent = content
 
   processedContent = processedContent.replace(DIFF_CHANGES_REGEX, '@changes')
-
   const firstLine = processedContent.split('\n')[0] ?? ''
   const cleanedLine = firstLine
     .replace(MARKDOWN_SOURCE_REGEX, value => {
@@ -263,11 +261,23 @@ export function getTitleFromMessages(
       const source = sources.find(s => s.sourceId === sourceId)
       return source?.sourceName ?? ''
     })
-    .replace(MARKDOWN_FILE_REGEX, value => {
-      const content = JSON.parse(value.slice(9, -2))
-      return resolveFileNameForDisplay(content.filepath)
+    .replace(PLACEHOLDER_FILE_REGEX, value => {
+      try {
+        const content = JSON.parse(value.slice(9, -2))
+        return resolveFileNameForDisplay(content.filepath)
+      } catch (e) {
+        return ''
+      }
     })
-    .replace(MARKDOWN_COMMAND_REGEX, value => {
+    .replace(PLACEHOLDER_SYMBOL_REGEX, value => {
+      try {
+        const content = JSON.parse(value.slice(11, -2))
+        return `@${content.label}`
+      } catch (e) {
+        return ''
+      }
+    })
+    .replace(PLACEHOLDER_COMMAND_REGEX, value => {
       const command = value.slice(21, -3)
       return `@${command}`
     })
