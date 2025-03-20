@@ -1,8 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { eachDayOfInterval } from 'date-fns'
-import { sum } from 'lodash-es'
+import { useState } from 'react'
 import moment from 'moment'
 import numeral from 'numeral'
 import { DateRange } from 'react-day-picker'
@@ -14,19 +12,16 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-import seedrandom from 'seedrandom'
-import { useQuery } from 'urql'
 
-import { ChatDailyStatsQuery } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
-import { chatDailyStatsQuery } from '@/lib/tabby/query'
+import { useChatDailyStats } from '@/lib/hooks/use-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IconMessageSquare } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 import DateRangePicker from '@/components/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-import { DEFAULT_DATE_RANGE, KEY_SELECT_ALL } from './constants'
+import { DEFAULT_DATE_RANGE } from './constants'
 
 export function ChatDailyActivity({
   selectedMember,
@@ -44,66 +39,18 @@ export function ChatDailyActivity({
   const from = dateRange.from || new Date()
   const to = dateRange.to || from
 
-  // Query chat stats of selected date range
-  const [{ data: chatDailyStatsData, fetching: fetchingChatDailyState }] =
-    useQuery({
-      query: chatDailyStatsQuery,
-      variables: {
-        start: moment(dateRange.from).startOf('day').utc().format(),
-        end: moment(dateRange.to).endOf('day').utc().format(),
-        users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember]
+  const { fetchingChatDailyStats, chatChartData, chatDailyStats, totalCount } =
+    useChatDailyStats({
+      sample,
+      selectedMember,
+      dateRange: {
+        from,
+        to
       }
     })
-
-  const chatDailyStats: ChatDailyStatsQuery['chatDailyStats'] | undefined =
-    useMemo(() => {
-      if (sample) {
-        const daysBetweenRange = eachDayOfInterval({
-          start: from,
-          end: to
-        })
-        return daysBetweenRange.map(date => {
-          const rng = seedrandom(
-            moment(date).format('YYYY-MM-DD') + selectedMember + 'chats'
-          )
-          const chats = Math.ceil(Math.ceil(rng() * 50))
-          return {
-            start: moment(date).utc().format(),
-            end: moment(date).add(1, 'day').utc().format(),
-            chats
-          }
-        })
-      } else {
-        return chatDailyStatsData?.chatDailyStats
-      }
-    }, [chatDailyStatsData, sample])
-
-  const totalChats = sum(chatDailyStats?.map(stats => stats.chats))
-
-  const dailyChatMap: Record<string, number> = {}
-
-  chatDailyStats?.forEach(stats => {
-    const date = moment(stats.start).format('YYYY-MM-DD')
-    dailyChatMap[date] = dailyChatMap[date] || 0
-    dailyChatMap[date] += stats.chats
-  }, {})
-
-  const daysBetweenRange = eachDayOfInterval({
-    start: dateRange.from!,
-    end: dateRange.to!
-  })
-
-  const chartData = daysBetweenRange.map(date => {
-    const dateKey = moment(date).format('YYYY-MM-DD')
-    const chats = dailyChatMap[dateKey] || 0
-    return {
-      name: moment(date).format('MMMM D'),
-      chats
-    }
-  })
   return (
     <LoadingWrapper
-      loading={fetchingChatDailyState}
+      loading={fetchingChatDailyStats}
       fallback={
         <div className="flex flex-col gap-5">
           <div className="flex justify-between gap-5">
@@ -140,7 +87,7 @@ export function ChatDailyActivity({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {numeral(totalChats).format('0,0')}
+                {numeral(totalCount).format('0,0')}
               </div>
             </CardContent>
           </Card>
@@ -151,7 +98,7 @@ export function ChatDailyActivity({
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
-              data={chartData}
+              data={chatChartData}
               margin={{
                 top: 5,
                 right: 20,

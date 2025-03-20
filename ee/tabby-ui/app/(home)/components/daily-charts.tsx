@@ -13,8 +13,11 @@ import {
   Tooltip
 } from 'recharts'
 
-import { DailyStatsQuery } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
+import {
+  useChatDailyStats,
+  useCompletionDailyStats
+} from '@/lib/hooks/use-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { AnimationWrapper } from './animation-wrapper'
@@ -68,7 +71,7 @@ function BarTooltip({
       pendings: number
     }
   }[]
-  type: 'accept' | 'view' | 'all'
+  type: 'accept' | 'view' | 'all' | 'chats'
 }) {
   if (active && payload && payload.length) {
     const { views, selects, name } = payload[0].payload
@@ -97,18 +100,41 @@ function BarTooltip({
   return null
 }
 
-export function CompletionCharts({
+export function DailyCharts({
   from,
   to,
-  dailyStats
+  sample,
+  userId
 }: {
   from: Date
   to: Date
-  dailyStats?: DailyStatsQuery['dailyStats']
+  sample?: boolean
+  userId: string | undefined
 }) {
   const { theme } = useCurrentTheme()
-  const totalViews = sum(dailyStats?.map(stats => stats.views))
-  const totalAccepts = sum(dailyStats?.map(stats => stats.selects))
+
+  const { completionDailyStats, completionChartData } = useCompletionDailyStats(
+    {
+      dateRange: {
+        from,
+        to
+      },
+      sample,
+      selectedMember: userId
+    }
+  )
+
+  const { chatChartData } = useChatDailyStats({
+    dateRange: {
+      from,
+      to
+    },
+    sample,
+    selectedMember: userId
+  })
+
+  const totalViews = sum(completionChartData?.map(stats => stats.views))
+  const totalAccepts = sum(completionDailyStats?.map(stats => stats.selects))
   const daysBetweenRange = eachDayOfInterval({
     start: from,
     end: to
@@ -116,7 +142,7 @@ export function CompletionCharts({
 
   const dailyViewMap: Record<string, number> = {}
   const dailySelectMap: Record<string, number> = {}
-  dailyStats?.forEach(stats => {
+  completionDailyStats?.forEach(stats => {
     const date = moment(stats.start).format('YYYY-MM-DD')
     dailyViewMap[date] = dailyViewMap[date] || 0
     dailySelectMap[date] = dailySelectMap[date] || 0
@@ -138,7 +164,7 @@ export function CompletionCharts({
       views
     }
   })
-  const viewData = daysBetweenRange.map(date => {
+  const completionViewData = daysBetweenRange.map(date => {
     const dateKey = moment(date).format('YYYY-MM-DD')
     const views = dailyViewMap[dateKey] || 0
     const selects = dailySelectMap[dateKey] || 0
@@ -151,6 +177,13 @@ export function CompletionCharts({
       realPending: views === 0 ? 0 : pendings,
       viewPlaceholder: views === 0 ? 0.5 : 0,
       selectPlaceholder: selects === 0 ? 0.5 : 0
+    }
+  })
+
+  const chatData = chatChartData?.map(x => {
+    return {
+      ...x,
+      chatsPlaceholder: x.chats === 0 ? 0.5 : 0
     }
   })
 
@@ -220,7 +253,7 @@ export function CompletionCharts({
           </CardContent>
           <ResponsiveContainer width="100%" height={68}>
             <BarChart
-              data={viewData}
+              data={completionViewData}
               margin={{
                 top: totalViews === 0 ? 30 : 5,
                 right: 15,
@@ -258,7 +291,7 @@ export function CompletionCharts({
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
-              Acceptances
+              Chats
             </CardTitle>
           </CardHeader>
           <CardContent className="mb-1 px-4 py-0">
@@ -271,7 +304,7 @@ export function CompletionCharts({
           </CardContent>
           <ResponsiveContainer width="100%" height={68}>
             <BarChart
-              data={viewData}
+              data={chatData}
               margin={{
                 top: totalViews === 0 ? 30 : 5,
                 right: 15,
@@ -280,20 +313,20 @@ export function CompletionCharts({
               }}
             >
               <Bar
-                dataKey="selects"
+                dataKey="chats"
                 stackId="stats"
                 fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
                 radius={3}
               />
               <Bar
-                dataKey="selectPlaceholder"
+                dataKey="chatsPlaceholder"
                 stackId="stats"
                 fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
                 radius={3}
               />
               <Tooltip
                 cursor={{ fill: 'transparent' }}
-                content={<BarTooltip type="accept" />}
+                content={<BarTooltip type="chats" />}
               />
             </BarChart>
           </ResponsiveContainer>

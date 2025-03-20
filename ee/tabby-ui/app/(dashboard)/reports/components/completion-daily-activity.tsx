@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { eachDayOfInterval } from 'date-fns'
 import { sum } from 'lodash-es'
 import moment from 'moment'
 import numeral from 'numeral'
@@ -14,13 +13,11 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-import seedrandom from 'seedrandom'
-import { useQuery } from 'urql'
 
 import { DailyStatsQuery, Language } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
+import { useCompletionDailyStats } from '@/lib/hooks/use-statistics'
 import { getLanguageDisplayName } from '@/lib/language-utils'
-import { dailyStatsQuery } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -47,7 +44,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import DateRangePicker from '@/components/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-import { DEFAULT_DATE_RANGE, KEY_SELECT_ALL } from './constants'
+import { DEFAULT_DATE_RANGE } from './constants'
 
 function BarTooltip({
   active,
@@ -103,89 +100,19 @@ export function CompletionDailyActivity({
   })
   const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
   // Query stats of selected date range
-  const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
-    query: dailyStatsQuery,
-    variables: {
-      start: moment(dateRange.from).startOf('day').utc().format(),
-      end: moment(dateRange.to).endOf('day').utc().format(),
-      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember]
-    }
+  const {
+    completionChartData,
+    completionDailyStats,
+    fetchingCompletionDailyStats
+  } = useCompletionDailyStats({
+    selectedMember,
+    dateRange,
+    sample
   })
 
-  // todo useMemo
-  let dailyStats: DailyStatsQuery['dailyStats'] | undefined
-  if (sample) {
-    const daysBetweenRange = eachDayOfInterval({
-      start: dateRange.from!,
-      end: dateRange.to || dateRange.from!
-    })
-    dailyStats = daysBetweenRange.map(date => {
-      const languages = [Language.Typescript, Language.Python, Language.Rust]
-      const rng = seedrandom(
-        moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
-      )
-      const selects = Math.ceil(rng() * 20)
-      const completions = Math.ceil(selects / 0.35)
-      return {
-        start: moment(date).utc().format(),
-        end: moment(date).add(1, 'day').utc().format(),
-        completions,
-        selects,
-        views: completions,
-        language: languages[selects % languages.length]
-      }
-    })
-  } else {
-    dailyStats = dailyStatsData?.dailyStats.map(item => ({
-      start: item.start,
-      end: item.end,
-      completions: item.completions,
-      selects: item.selects,
-      views: item.views,
-      language: item.language
-    }))
-  }
-  dailyStats = dailyStats?.filter(stats => {
-    if (selectedLanguage.length === 0) return true
-    return selectedLanguage.includes(stats.language)
-  })
-  // todo
-
-  const from = dateRange.from || new Date()
-  const to = dateRange.to || from
-
-  const dailyViewMap: Record<string, number> = {}
-  const dailySelectMap: Record<string, number> = {}
-
-  dailyStats?.forEach(stats => {
-    const date = moment(stats.start).format('YYYY-MM-DD')
-    dailyViewMap[date] = dailyViewMap[date] || 0
-    dailySelectMap[date] = dailySelectMap[date] || 0
-
-    dailyViewMap[date] += stats.views
-    dailySelectMap[date] += stats.selects
-  }, {})
-
-  const daysBetweenRange = eachDayOfInterval({
-    start: from,
-    end: to
-  })
-
-  const chartData = daysBetweenRange.map(date => {
-    const dateKey = moment(date).format('YYYY-MM-DD')
-    const views = dailyViewMap[dateKey] || 0
-    const selects = dailySelectMap[dateKey] || 0
-    const pendings = views - selects
-    return {
-      name: moment(date).format('MMMM D'),
-      views,
-      selects,
-      pendings
-    }
-  })
   return (
     <LoadingWrapper
-      loading={fetchingDailyState}
+      loading={fetchingCompletionDailyStats}
       fallback={
         <div className="flex flex-col gap-5">
           <div className="flex justify-between gap-5">
@@ -303,14 +230,14 @@ export function CompletionDailyActivity({
               />
             </div>
           </div>
-          <StatsSummary dailyStats={dailyStats} />
+          <StatsSummary dailyStats={completionDailyStats} />
           <div className="rounded-lg border bg-primary-foreground/30 px-6 py-4">
             <h3 className="mb-5 text-sm font-medium tracking-tight">
               Daily Statistics
             </h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
-                data={chartData}
+                data={completionChartData}
                 margin={{
                   top: 5,
                   right: 20,

@@ -162,58 +162,6 @@ export const listSecuredUsers = graphql(/* GraphQL */ `
   }
 `)
 
-export const dailyStatsInPastYearQuery = graphql(/* GraphQL */ `
-  query DailyStatsInPastYear($users: [ID!]) {
-    dailyStatsInPastYear(users: $users) {
-      __typename
-      start
-      end
-      completions
-      selects
-      views
-    }
-  }
-`)
-
-export const chatDailyStatsInPastYearQuery = graphql(/* GraphQL */ `
-  query chatDailyStatsInPastYear($users: [ID!]) {
-    chatDailyStatsInPastYear(users: $users) {
-      __typename
-      start
-      end
-      chats
-    }
-  }
-`)
-
-export const dailyStatsQuery = graphql(/* GraphQL */ `
-  query DailyStats(
-    $start: DateTime!
-    $end: DateTime!
-    $users: [ID!]
-    $languages: [Language!]
-  ) {
-    dailyStats(start: $start, end: $end, users: $users, languages: $languages) {
-      start
-      end
-      completions
-      selects
-      views
-      language
-    }
-  }
-`)
-
-export const chatDailyStatsQuery = graphql(/* GraphQL */ `
-  query ChatDailyStats($start: DateTime!, $end: DateTime!, $users: [ID!]) {
-    chatDailyStats(start: $start, end: $end, users: $users) {
-      start
-      end
-      chats
-    }
-  }
-`)
-
 export const listIntegrations = graphql(/* GraphQL */ `
   query ListIntegrations(
     $ids: [ID!]

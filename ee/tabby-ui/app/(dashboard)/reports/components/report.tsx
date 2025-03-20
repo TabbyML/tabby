@@ -2,22 +2,10 @@
 
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { eachDayOfInterval } from 'date-fns'
-import moment from 'moment'
-import seedrandom from 'seedrandom'
-import { useQuery } from 'urql'
 
-import {
-  ChatDailyStatsInPastYearQuery,
-  DailyStatsInPastYearQuery
-} from '@/lib/gql/generates/graphql'
 import { useAllMembers } from '@/lib/hooks/use-all-members'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
-import {
-  chatDailyStatsInPastYearQuery,
-  dailyStatsInPastYearQuery
-} from '@/lib/tabby/query'
-import { ArrayElementType } from '@/lib/types'
+import { useYearlyStats } from '@/lib/hooks/use-statistics'
 import { IconUsers } from '@/components/ui/icons'
 import {
   Select,
@@ -43,54 +31,9 @@ export function Report() {
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const sample = isDemoMode || searchParams.get('sample') === 'true'
 
-  // query chat yearly stats
-  const [{ data: chatYearlyStatsData, fetching: fetchingChatYearlyStats }] =
-    useQuery({
-      query: chatDailyStatsInPastYearQuery,
-      variables: {
-        users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
-      }
-    })
-
-  // Query yearly stats
-  const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
-    query: dailyStatsInPastYearQuery,
-    variables: {
-      users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
-    }
+  const { yearlyStats, fetching: fetchingYearlyStats } = useYearlyStats({
+    selectedMember
   })
-  let yearlyStats:
-    | Array<
-        | ArrayElementType<DailyStatsInPastYearQuery['dailyStatsInPastYear']>
-        | ArrayElementType<
-            ChatDailyStatsInPastYearQuery['chatDailyStatsInPastYear']
-          >
-      >
-    | undefined
-  if (sample) {
-    const daysBetweenRange = eachDayOfInterval({
-      start: moment().toDate(),
-      end: moment().subtract(365, 'days').toDate()
-    })
-    yearlyStats = daysBetweenRange.map(date => {
-      const rng = seedrandom(moment(date).format('YYYY-MM-DD') + selectedMember)
-      const selects = Math.ceil(rng() * 20)
-      const completions = selects + Math.floor(rng() * 10)
-      return {
-        __typename: 'CompletionStats',
-        start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
-        end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
-        completions,
-        selects,
-        views: completions
-      }
-    })
-  } else {
-    yearlyStats = [
-      ...(yearlyStatsData?.dailyStatsInPastYear || []),
-      ...(chatYearlyStatsData?.chatDailyStatsInPastYear || [])
-    ]
-  }
 
   return (
     <div className="w-[calc(100vw-2rem)] md:w-auto 2xl:mx-auto 2xl:max-w-5xl">
