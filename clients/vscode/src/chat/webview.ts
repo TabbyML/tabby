@@ -220,13 +220,6 @@ export class ChatWebview extends EventEmitter {
     }
   }
 
-  async getLatestApiVersion(): Promise<number> {
-    if (this.client && this.client["0.9.0"]) {
-      return Number(this.client["0.9.0"].getVersion());
-    }
-    return Number("0.8.0"); // 0.8.0 is the default last version without backward compatibility
-  }
-
   async navigate(view: ChatView) {
     if (this.client) {
       this.logger.info(`Navigate: ${view}`);

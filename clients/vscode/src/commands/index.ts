@@ -265,6 +265,7 @@ export class Commands {
     },
     "chat.codeReviewCodeBlock": async () => {
       ensureHasEditorSelection(async () => {
+        // FIXME: should check 0.9.0+ version
         await commands.executeCommand("tabby.chatView.focus");
         this.chatSidePanelProvider.chatWebview.executeCommand("code-review");
       });
