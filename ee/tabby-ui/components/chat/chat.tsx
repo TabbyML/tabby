@@ -600,8 +600,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           relevantContext: [...(userMessage.relevantContext || [])]
         }
 
-        // eslint-disable-next-line no-console
-        console.log(newUserMessage.message)
         const nextQaPairs = [
           ...qaPairs,
           {
