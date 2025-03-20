@@ -175,7 +175,10 @@ export default function DateRangePicker({
           <SelectSeparator />
           <div
             className="relative cursor-default py-1.5 pl-8 text-sm hover:bg-accent hover:text-accent-foreground"
-            onClick={() => setShowDateUntilNowPicker(true)}
+            onClick={() => {
+              setShowDateFilter(false)
+              setShowDateUntilNowPicker(true)
+            }}
           >
             {selectDateFilter === DATE_OPTIONS.CUSTOM_DATE && (
               <div className="absolute inset-y-0 left-2 flex items-center">
@@ -186,7 +189,10 @@ export default function DateRangePicker({
           </div>
           <div
             className="relative cursor-default py-1.5 pl-8 text-sm hover:bg-accent hover:text-accent-foreground"
-            onClick={() => setShowDateRangerPicker(true)}
+            onClick={() => {
+              setShowDateFilter(false)
+              setShowDateRangerPicker(true)
+            }}
           >
             {selectDateFilter === DATE_OPTIONS.CUSTOM_RANGE && (
               <div className="absolute inset-y-0 left-2 flex items-center">
@@ -207,7 +213,6 @@ export default function DateRangePicker({
       >
         <CardContent className="w-auto pb-0">
           <Calendar
-            initialFocus
             mode="single"
             selected={dateUntilNow}
             onSelect={setDateUntilNow}
@@ -235,7 +240,6 @@ export default function DateRangePicker({
       >
         <CardContent className="w-auto pb-0">
           <Calendar
-            initialFocus
             mode="range"
             defaultMonth={moment(calendarDateRange?.from)
               .subtract(1, 'month')

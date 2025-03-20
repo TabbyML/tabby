@@ -16,7 +16,7 @@ import {
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
-import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
+import { dailyStatsInPastYearQuery, dailyStatsQuery } from '@/lib/tabby/query'
 
 import { AnimationWrapper } from './animation-wrapper'
 import { CompletionCharts } from './completion-charts'
@@ -69,7 +69,7 @@ export default function Stats() {
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
-    query: queryDailyStats,
+    query: dailyStatsQuery,
     variables: {
       start: startDate,
       end: endDate,
@@ -110,7 +110,7 @@ export default function Stats() {
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
-    query: queryDailyStatsInPastYear,
+    query: dailyStatsInPastYearQuery,
     variables: {
       users: data?.me?.id
     }
@@ -127,6 +127,7 @@ export default function Stats() {
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
+        __typename: 'CompletionStats',
         start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         completions,
@@ -135,13 +136,7 @@ export default function Stats() {
       }
     })
   } else {
-    yearlyStats = yearlyStatsData?.dailyStatsInPastYear.map(item => ({
-      start: item.start,
-      end: item.end,
-      completions: item.completions,
-      selects: item.selects,
-      views: item.views
-    }))
+    yearlyStats = yearlyStatsData?.dailyStatsInPastYear
   }
   const dailyCompletionMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
