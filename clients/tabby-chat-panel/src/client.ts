@@ -109,6 +109,13 @@ export interface ClientApi {
    * @param state The state to save.
    */
   storeSessionState?: (state: Record<string, unknown>) => Promise<void>
+
+  /**
+   * Run a terminal command in the IDE Terminal.
+   * @param command The command to run in the terminal.
+   * @returns void
+   */
+  runCommand?: (command: string) => Promise<void>
 }
 
 /**

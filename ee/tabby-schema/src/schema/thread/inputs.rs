@@ -41,7 +41,7 @@ pub struct DocQueryInput {
     pub source_ids: Option<Vec<String>>,
 }
 
-#[derive(GraphQLInputObject, Validate, Clone, Default)]
+#[derive(GraphQLInputObject, Validate, Clone, Debug, Default)]
 #[validate(schema(function = "validate_code_query_input", skip_on_field_errors = false))]
 pub struct CodeQueryInput {
     pub filepath: Option<String>,
@@ -102,6 +102,9 @@ pub struct CodeSearchParamsOverrideInput {
 pub struct ThreadRunDebugOptionsInput {
     #[graphql(default)]
     pub code_search_params_override: Option<CodeSearchParamsOverrideInput>,
+
+    #[graphql(default)]
+    pub return_chat_completion_request: bool,
 }
 
 impl CodeSearchParamsOverrideInput {
