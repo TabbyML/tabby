@@ -4,8 +4,12 @@ import { useWindowSize } from '@uidotdev/usehooks'
 import moment from 'moment'
 import ReactActivityCalendar from 'react-activity-calendar'
 
-import { DailyStatsInPastYearQuery } from '@/lib/gql/generates/graphql'
+import {
+  ChatDailyStatsInPastYearQuery,
+  DailyStatsInPastYearQuery
+} from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
+import { ArrayElementType } from '@/lib/types'
 
 function ActivityCalendar({
   data
@@ -39,16 +43,36 @@ function ActivityCalendar({
 export function AnnualActivity({
   yearlyStats
 }: {
-  yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
+  yearlyStats:
+    | Array<
+        | ArrayElementType<DailyStatsInPastYearQuery['dailyStatsInPastYear']>
+        | ArrayElementType<
+            ChatDailyStatsInPastYearQuery['chatDailyStatsInPastYear']
+          >
+      >
+    | undefined
 }) {
   let lastYearActivities = 0
   const dailyViewMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
       const date = moment.utc(cur.start).format('YYYY-MM-DD')
-      lastYearActivities += cur.views
-      lastYearActivities += cur.selects
-      return { ...acc, [date]: cur.views }
-    }, {}) || {}
+      if (cur.__typename === 'CompletionStats') {
+        lastYearActivities += cur.views
+        lastYearActivities += cur.selects
+        return {
+          ...acc,
+          [date]: (acc[date] ?? 0) + cur.views
+        }
+      } else if (cur.__typename === 'ChatCompletionStats') {
+        lastYearActivities += cur.chats
+        return {
+          ...acc,
+          [date]: (acc[date] ?? 0) + cur.chats
+        }
+      } else {
+        return acc
+      }
+    }, {} as Record<string, number>) || {}
 
   const data = new Array(365)
     .fill('')
