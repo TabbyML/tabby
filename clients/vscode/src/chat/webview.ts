@@ -795,7 +795,7 @@ export class ChatWebview extends EventEmitter {
         this.logger.info(`Found ${res.length} changed files.`);
 
         return res;
-      }
+      },
 
       runCommand: async (command: string) => {
         const terminal = window.createTerminal("Tabby");
