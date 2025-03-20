@@ -23,6 +23,7 @@ import {
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
+import { processingContextCommand } from '@/lib/utils/markdown'
 
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
@@ -128,6 +129,8 @@ function UserMessageCard(props: { message: UserMessage }) {
         range.start < range.end
     }
   }
+
+  message.message = processingContextCommand(message.message)
   return (
     <div
       className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}

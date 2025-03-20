@@ -87,9 +87,11 @@ export function extractContextCommand(text: string): string | null {
  *   startLine: 10
  * }
  */
-export function convertGitChangesToContextContent(
-  gitChange: GitChange
+export function convertChangeItemsToContextContent(
+  changes: ChangeItem[]
 ): string {
-  const { diffContent, filepath } = gitChange
-  return `\`\`context command=git_diff_changes filepath:${filepath}\n${diffContent}\n\`\``
+  const prefix = '\n```diff label=changes\n'
+  const suffix = '\n```'
+  const content = changes.map(change => change.content).join('\n')
+  return `${prefix}${content}${suffix}\n`
 }

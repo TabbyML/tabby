@@ -10,7 +10,7 @@ import {
 import type { MentionAttributes } from '@/lib/types'
 
 import {
-  CONTEXT_COMMAND_REGEX,
+  DIFF_CHANGES_REGEX,
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
@@ -231,19 +231,6 @@ export function encodeMentionPlaceHolder(value: string): string {
   return newValue
 }
 
-export function removeContextPlaceHolder(value: string): string {
-  let newValue = value
-  let match
-  while ((match = CONTEXT_COMMAND_REGEX.exec(value)) !== null) {
-    try {
-      newValue = newValue.replace(match[0], '')
-    } catch (error) {
-      continue
-    }
-  }
-  return newValue
-}
-
 export function formatThreadTime(time: string, prefix: string) {
   const targetTime = moment(time)
 
@@ -265,7 +252,11 @@ export function getTitleFromMessages(
   content: string,
   options?: { maxLength?: number }
 ) {
-  const firstLine = content.split('\n')[0] ?? ''
+  let processedContent = content
+
+  processedContent = processedContent.replace(DIFF_CHANGES_REGEX, '@changes')
+
+  const firstLine = processedContent.split('\n')[0] ?? ''
   const cleanedLine = firstLine
     .replace(MARKDOWN_SOURCE_REGEX, value => {
       const sourceId = value.slice(9, -2)
@@ -273,15 +264,15 @@ export function getTitleFromMessages(
       return source?.sourceName ?? ''
     })
     .replace(MARKDOWN_FILE_REGEX, value => {
-      const filepath = value.slice(7, -2)
-      return resolveFileNameForDisplay(filepath)
+      const content = JSON.parse(value.slice(9, -2))
+      return resolveFileNameForDisplay(content.filepath)
     })
     .replace(MARKDOWN_COMMAND_REGEX, value => {
-      const command = value.slice(17, -2).replaceAll(/"/g, '')
+      const command = value.slice(21, -3)
       return `@${command}`
     })
-    .trim()
 
+    .trim()
   let title = cleanedLine
   if (options?.maxLength) {
     title = title.slice(0, options?.maxLength)

@@ -73,8 +73,7 @@ import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
 import {
-  convertChangesToGitChanges,
-  convertGitChangesToContextContent,
+  convertChangeItemsToContextContent,
   hasChangesCommand
 } from './git/utils'
 import { QuestionAnswerList } from './question-answer'
@@ -576,20 +575,24 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             selectCodeContextContent ?? ''
           }\n${'```'}\n`
         }
-        let gitChanges = '\n'
+
+        let gitChanges = ''
         if (getChanges && hasChangesCommand(userMessage.message)) {
           try {
             const changes = await getChanges({})
-            gitChanges += convertChangesToGitChanges(changes)
-              .map(change => convertGitChangesToContextContent(change))
-              .join('\n')
+            gitChanges += convertChangeItemsToContextContent(changes)
           } catch (error) {
             // do nothing
           }
         }
+        userMessage.message = userMessage.message.replaceAll(
+          /\[\[contextCommand:"changes"\]\]/g,
+          `${gitChanges}`
+        )
+
         const newUserMessage: UserMessage = {
           ...userMessage,
-          message: userMessage.message + selectCodeSnippet + gitChanges,
+          message: userMessage.message + selectCodeSnippet,
           // If no id is provided, set a fallback id.
           id: userMessage.id ?? nanoid(),
           selectContext: userMessage.selectContext,

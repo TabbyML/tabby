@@ -4,6 +4,7 @@ import React, { useMemo } from 'react'
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 
 import {
+  DIFF_CHANGES_REGEX,
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_SOURCE_REGEX
 } from '@/lib/constants/regex'
@@ -75,10 +76,14 @@ export function ThreadTitleWithMentions({
   const contentWithTags = useMemo(() => {
     if (!message) return null
 
-    const firstLine = message.split('\n')[0] ?? ''
+    let processedMessage = message
 
-    // First process source tags
-    const partsWithSources = firstLine
+    processedMessage = processedMessage.replace(
+      DIFF_CHANGES_REGEX,
+      '[[contextCommand: "changes"]]'
+    )
+
+    const partsWithSources = processedMessage
       .split(MARKDOWN_SOURCE_REGEX)
       .map((part, index) => {
         if (index % 2 === 1) {
