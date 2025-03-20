@@ -11,6 +11,7 @@ import {
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 import {
   IconCode,
   IconEmojiBook,
@@ -78,10 +79,7 @@ export function ThreadTitleWithMentions({
 
     let processedMessage = message
 
-    processedMessage = processedMessage.replace(
-      DIFF_CHANGES_REGEX,
-      '[[contextCommand: "changes"]]'
-    )
+    processedMessage = convertContextBlockToPlaceholder(processedMessage)
 
     const partsWithSources = processedMessage
       .split(MARKDOWN_SOURCE_REGEX)

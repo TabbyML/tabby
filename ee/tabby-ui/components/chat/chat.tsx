@@ -65,6 +65,7 @@ import {
   getPromptForChatCommand,
   nanoid
 } from '@/lib/utils'
+import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
 import LoadingWrapper from '../loading-wrapper'
 import { ChatContext } from './chat-context'
@@ -366,9 +367,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         qaPairs: nextQaPairs
       })
 
-      setInput(userMessage.message)
-
-      const inputContent = convertTextToTiptapContent(userMessage.message)
+      const inputContent = convertTextToTiptapContent(
+        convertContextBlockToPlaceholder(userMessage.message)
+      )
       setInput({
         type: 'doc',
         content: inputContent

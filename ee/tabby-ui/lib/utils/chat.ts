@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { uniq } from 'lodash-es'
 import moment from 'moment'
 import type { Filepath } from 'tabby-chat-panel'
@@ -17,6 +18,10 @@ import {
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
+import {
+  convertContextBlockToLabelName,
+  convertContextBlockToPlaceholder
+} from './markdown'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [
@@ -251,9 +256,8 @@ export function getTitleFromMessages(
   content: string,
   options?: { maxLength?: number }
 ) {
-  let processedContent = content
+  const processedContent = convertContextBlockToLabelName(content)
 
-  processedContent = processedContent.replace(DIFF_CHANGES_REGEX, '@changes')
   const firstLine = processedContent.split('\n')[0] ?? ''
   const cleanedLine = firstLine
     .replace(MARKDOWN_SOURCE_REGEX, value => {

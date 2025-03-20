@@ -20,6 +20,7 @@ export function processCodeBlocksWithLabel(
     const node = ast.children[i]
 
     // Check if the node is a code block with the specified label
+    // TODO: extract logic for generic use in later symbol/file context change
     if (node.type === 'code' && node.meta === `label=${labelValue}`) {
       const prevNode = newChildren[newChildren.length - 1] as Parent | undefined
       const nextNode = ast.children[i + 1] as Parent | undefined
@@ -96,10 +97,20 @@ export function processContextCommand(
   return processor.stringify(ast)
 }
 
-export function processingContextCommand(input: string): string {
+export function convertContextBlockToPlaceholder(input: string): string {
   return processContextCommand(
     input,
     'changes',
     '[[contextCommand: "changes"]]'
   )
+}
+/**
+ * convert context block to label name
+ * from
+ * @param input message
+ * @returns
+ */
+
+export function convertContextBlockToLabelName(input: string): string {
+  return processContextCommand(input, 'changes', '@changes')
 }

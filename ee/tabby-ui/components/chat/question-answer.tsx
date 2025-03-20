@@ -1,7 +1,7 @@
 // Inspired by Chatbot-UI and modified to fit the needs of this project
 // @see https://github.com/mckaywrigley/chatbot-ui/blob/main/components/Chat/ChatMessage.tsx
 
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
@@ -23,7 +23,7 @@ import {
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
-import { processingContextCommand } from '@/lib/utils/markdown'
+import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
@@ -130,7 +130,9 @@ function UserMessageCard(props: { message: UserMessage }) {
     }
   }
 
-  message.message = processingContextCommand(message.message)
+  const processedContent = useMemo(() => {
+    return convertContextBlockToPlaceholder(message.message)
+  }, [message.message])
   return (
     <div
       className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
@@ -161,7 +163,7 @@ function UserMessageCard(props: { message: UserMessage }) {
       <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1">
           <MessageMarkdown
-            message={message.message}
+            message={processedContent}
             canWrapLongLines
             supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             openInEditor={openInEditor}
