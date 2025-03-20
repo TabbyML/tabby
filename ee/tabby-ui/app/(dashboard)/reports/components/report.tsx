@@ -31,7 +31,11 @@ export function Report() {
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const sample = isDemoMode || searchParams.get('sample') === 'true'
 
-  const { dailyData, fetching: fetchingYearlyStats, totalCount } = useYearlyStats({
+  const {
+    dailyData,
+    fetching: fetchingYearlyStats,
+    totalCount
+  } = useYearlyStats({
     selectedMember,
     sample
   })
