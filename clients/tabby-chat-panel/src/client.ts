@@ -243,10 +243,10 @@ export interface ListSymbolItem {
  */
 export interface GetChangesParams {
   /**
-   * The maximum number of tokens to return in the change content.
-   * If not provided, all changes will be returned without token limitation.
+   * The maximum number of characters to return in the change content.
+   * If not provided, all changes will be returned without character limitation.
    */
-  limitToken?: number
+  maxChars?: number
 }
 /**
  * Represents a Git change item returned by the {@link ClientApi.getChanges} method.
