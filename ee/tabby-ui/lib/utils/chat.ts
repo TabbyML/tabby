@@ -10,7 +10,7 @@ import {
 import type { MentionAttributes } from '@/lib/types'
 
 import {
-  CHANGE_DIFF_REGEX,
+  CONTEXT_COMMAND_REGEX,
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
@@ -234,7 +234,7 @@ export function encodeMentionPlaceHolder(value: string): string {
 export function removeContextPlaceHolder(value: string): string {
   let newValue = value
   let match
-  while ((match = CHANGE_DIFF_REGEX.exec(value)) !== null) {
+  while ((match = CONTEXT_COMMAND_REGEX.exec(value)) !== null) {
     try {
       newValue = newValue.replace(match[0], '')
     } catch (error) {

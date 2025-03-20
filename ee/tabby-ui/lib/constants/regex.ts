@@ -14,4 +14,4 @@ export const PLACEHOLDER_COMMAND_REGEX = /\[\[contextCommand:"(.+?)"\]\]/g
 
 export const MARKDOWN_COMMAND_REGEX = /\[\[contextCommand:([^\]]+)\]\]/g
 
-export const CHANGE_DIFF_REGEX = /``diff\s+([\s\S]*?)``/g
+export const CONTEXT_COMMAND_REGEX = /``context\s+([\s\S]*?)``/g

@@ -74,7 +74,7 @@ import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
 import {
   convertChangesToGitChanges,
-  convertGitChangesToInlineDiff,
+  convertGitChangesToContextContent,
   hasChangesCommand
 } from './git/utils'
 import { QuestionAnswerList } from './question-answer'
@@ -581,7 +581,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           try {
             const changes = await getChanges({})
             gitChanges += convertChangesToGitChanges(changes)
-              .map(change => convertGitChangesToInlineDiff(change))
+              .map(change => convertGitChangesToContextContent(change))
               .join('\n')
           } catch (error) {
             // do nothing
@@ -600,6 +600,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           relevantContext: [...(userMessage.relevantContext || [])]
         }
 
+        // eslint-disable-next-line no-console
+        console.log(newUserMessage.message)
         const nextQaPairs = [
           ...qaPairs,
           {

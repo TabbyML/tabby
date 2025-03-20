@@ -87,7 +87,9 @@ export function extractContextCommand(text: string): string | null {
  *   startLine: 10
  * }
  */
-export function convertGitChangesToInlineDiff(gitChange: GitChange): string {
+export function convertGitChangesToContextContent(
+  gitChange: GitChange
+): string {
   const { diffContent, filepath } = gitChange
-  return `\`\`diff\nlabel=changes\nfilepath:${filepath}\n${diffContent}\n\`\``
+  return `\`\`context command=git_diff_changes filepath:${filepath}\n${diffContent}\n\`\``
 }
