@@ -9,7 +9,10 @@ use axum::{
 use axum_extra::TypedHeader;
 use futures::{Stream, StreamExt};
 use hyper::StatusCode;
-use tabby_common::axum::MaybeUser;
+use tabby_common::{
+    api::event::{Event as LoggerEvent, EventLogger},
+    axum::MaybeUser,
+};
 use tabby_inference::ChatCompletionStream;
 use tracing::{error, instrument, warn};
 
@@ -32,17 +35,23 @@ pub async fn chat_completions_utoipa(_request: Json<serde_json::Value>) -> Statu
     unimplemented!()
 }
 
+pub struct ChatState {
+    pub chat_completion: Arc<dyn ChatCompletionStream>,
+    pub logger: Arc<dyn EventLogger>,
+}
+
 #[instrument(skip(state, request))]
 pub async fn chat_completions(
-    State(state): State<Arc<dyn ChatCompletionStream>>,
+    State(state): State<Arc<ChatState>>,
     TypedHeader(MaybeUser(user)): TypedHeader<MaybeUser>,
     Json(mut request): Json<async_openai_alt::types::CreateChatCompletionRequest>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, anyhow::Error>>>, StatusCode> {
     if let Some(user) = user {
         request.user.replace(user);
     }
+    let user = request.user.clone();
 
-    let s = match state.chat_stream(request).await {
+    let s = match state.chat_completion.chat_stream(request).await {
         Ok(s) => s,
         Err(err) => {
             warn!("Error happens during chat completion: {}", err);
@@ -70,6 +79,8 @@ pub async fn chat_completions(
             }
         }
     };
+
+    state.logger.log(user, LoggerEvent::ChatCompletion {});
 
     Ok(Sse::new(s).keep_alive(KeepAlive::default()))
 }
