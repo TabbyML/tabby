@@ -40,6 +40,17 @@ export class StatusBarItem {
   }
 
   update() {
+    const currentLanguageId = window.activeTextEditor?.document.languageId;
+    const isLanguageDisabled = currentLanguageId ? this.config.disabledLanguages.includes(currentLanguageId) : false;
+
+    // TODO(Sma1lboy): move disabled languages to tabby-agents when needed generalize to all IDEs
+    if (isLanguageDisabled) {
+      this.setColorNormal();
+      this.setIcon(iconDisabled);
+      this.setTooltip(`Tabby: disabled for ${currentLanguageId} files`);
+      return;
+    }
+
     const languageClientState = this.client.languageClient.state;
     switch (languageClientState) {
       case LanguageClientState.Stopped:

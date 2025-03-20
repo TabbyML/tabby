@@ -153,6 +153,11 @@
         "icon": "$(history)",
         "enablement": "tabby.chatSidePanelStatus === 'ready'",
         "category": "Tabby"
+      },
+      {
+        "command": "tabby.toggleLanguageInlineCompletion",
+        "title": "Toggle Language Inline Completion",
+        "category": "Tabby"
       }
     ],
     "submenus": [
