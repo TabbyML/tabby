@@ -732,7 +732,7 @@ export class ChatWebview extends EventEmitter {
           return [];
         }
 
-        const maxChars = params.maxChars || 4096;
+        const maxChars = params.maxChars ?? undefined;
         let remainingChars = maxChars;
 
         const repositories = this.gitProvider.getRepositories();
@@ -743,14 +743,14 @@ export class ChatWebview extends EventEmitter {
         const getRepoChanges = async (
           repos: Repository[],
           staged: boolean,
-          charLimit: number,
+          charLimit?: number,
         ): Promise<ChangeItem[]> => {
-          if (charLimit <= 0) {
+          if (charLimit !== undefined && charLimit <= 0) {
             return [];
           }
 
           const res: ChangeItem[] = [];
-          let currentTokenCount = 0;
+          let currentCharCount = 0;
 
           for (const repo of repos) {
             const diffs = await this.gitProvider.getDiff(repo, staged);
@@ -761,7 +761,7 @@ export class ChatWebview extends EventEmitter {
             for (const diff of diffs) {
               const diffChars = diff.length;
 
-              if (currentTokenCount + diffChars > charLimit) {
+              if (charLimit !== undefined && currentCharCount + diffChars > charLimit) {
                 break;
               }
 
@@ -770,10 +770,10 @@ export class ChatWebview extends EventEmitter {
                 staged: staged,
               } as ChangeItem);
 
-              currentTokenCount += diffChars;
+              currentCharCount += diffChars;
             }
 
-            if (currentTokenCount >= maxChars) {
+            if (charLimit !== undefined && currentCharCount >= charLimit) {
               break;
             }
           }
@@ -783,8 +783,9 @@ export class ChatWebview extends EventEmitter {
 
         const stagedChanges: ChangeItem[] = await getRepoChanges(repositories, true, remainingChars);
 
-        const stagedTokenCount = stagedChanges.reduce((count, item) => count + Math.ceil(item.content.length / 4), 0);
-        remainingChars = maxChars - stagedTokenCount;
+        const stagedCharCount = stagedChanges.reduce((count, item) => count + item.content.length, 0);
+
+        remainingChars = maxChars !== undefined ? maxChars - stagedCharCount : undefined;
 
         const unstagedChanges: ChangeItem[] = await getRepoChanges(repositories, false, remainingChars);
 
@@ -792,7 +793,6 @@ export class ChatWebview extends EventEmitter {
 
         this.logger.info(`Found ${res.length} changed files.`);
 
-        // return the result order from stage to unstaged
         return res;
       },
     });
