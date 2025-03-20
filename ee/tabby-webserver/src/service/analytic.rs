@@ -5,8 +5,10 @@ use chrono::{DateTime, Utc};
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    analytic::{AnalyticService, CompletionStats, DiskUsage, DiskUsageStats, Language},
-    Result,
+    analytic::{
+        AnalyticService, ChatCompletionStats, CompletionStats, DiskUsage, DiskUsageStats, Language,
+    },
+    AsID, Result,
 };
 use tracing::warn;
 
@@ -66,6 +68,49 @@ impl AnalyticService for AnalyticServiceImpl {
                 completions: s.completions,
                 selects: s.selects,
                 views: s.views,
+            })
+            .collect();
+        Ok(stats)
+    }
+
+    async fn chat_daily_stats_in_past_year(
+        &self,
+        users: Vec<ID>,
+    ) -> Result<Vec<ChatCompletionStats>> {
+        let users = convert_ids(users);
+        let now = Utc::now();
+        let stats = self
+            .db
+            .compute_chat_daily_stats(now - chrono::Duration::days(365), now, users)
+            .await?;
+        let stats = stats
+            .into_iter()
+            .map(|s| ChatCompletionStats {
+                start: s.start,
+                end: (s.start + chrono::Duration::days(1)),
+                user_id: s.user_id.as_id(),
+                chats: s.chats,
+            })
+            .collect();
+        Ok(stats)
+    }
+
+    async fn chat_daily_stats(
+        &self,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        users: Vec<ID>,
+    ) -> Result<Vec<ChatCompletionStats>> {
+        let users = convert_ids(users);
+
+        let stats = self.db.compute_chat_daily_stats(start, end, users).await?;
+        let stats = stats
+            .into_iter()
+            .map(|s| ChatCompletionStats {
+                start: s.start,
+                end: (s.start + chrono::Duration::days(1)),
+                user_id: s.user_id.as_id(),
+                chats: s.chats,
             })
             .collect();
         Ok(stats)

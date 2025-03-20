@@ -110,7 +110,7 @@ const enablePageFactory = new ExperimentFlagFactory(
   'enable_page',
   'Page',
   'Enable Page. This feature allows you to convert threads to page.',
-  false
+  true
 )
 
 export const EXP_enable_page = enablePageFactory.defineGlobalVar()

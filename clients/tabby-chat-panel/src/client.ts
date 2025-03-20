@@ -116,6 +116,13 @@ export interface ClientApi {
    * @returns A Promise resolving to an array of {@link ChangeItem} objects representing the Git diff results.
    */
   getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
+
+  /**
+   * Run a terminal command in the IDE Terminal.
+   * @param command The command to run in the terminal.
+   * @returns void
+   */
+  runCommand?: (command: string) => Promise<void>
 }
 
 /**

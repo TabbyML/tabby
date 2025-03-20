@@ -8,7 +8,7 @@ use tabby_common::api::{
 use validator::Validate;
 
 use super::MessageAttachmentCodeInput;
-use crate::{interface::UserValue, juniper::relay::NodeType, Context};
+use crate::{interface::UserValue, juniper::relay::NodeType, ChatCompletionMessage, Context};
 
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
 pub enum Role {
@@ -330,7 +330,14 @@ pub struct ThreadAssistantMessageContentDelta {
 
 #[derive(GraphQLObject)]
 pub struct ThreadAssistantMessageCompleted {
-    pub id: ID,
+    /// Debug data for the assistant message completion.
+    pub debug_data: Option<ThreadAssistantMessageCompletedDebugData>,
+}
+
+#[derive(GraphQLObject, Clone, Debug)]
+pub struct ThreadAssistantMessageCompletedDebugData {
+    // Messages sent to LLM to generate the response.
+    pub chat_completion_messages: Vec<ChatCompletionMessage>,
 }
 
 /// Schema of thread run stream.

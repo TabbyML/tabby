@@ -47,6 +47,7 @@ mod refresh_tokens;
 mod repositories;
 mod server_setting;
 mod threads;
+mod user_chats;
 mod user_completions;
 mod user_events;
 mod user_groups;
