@@ -109,6 +109,20 @@ export interface ClientApi {
    * @param state The state to save.
    */
   storeSessionState?: (state: Record<string, unknown>) => Promise<void>
+
+  /**
+   * Retrieves the Git diff changes from the client IDE.
+   * @param params The parameters to filter or specify the changes to retrieve.
+   * @returns A Promise resolving to an array of {@link ChangeItem} objects representing the Git diff results.
+   */
+  getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
+
+  /**
+   * Run a terminal command in the IDE Terminal.
+   * @param command The command to run in the terminal.
+   * @returns void
+   */
+  runCommand?: (command: string) => Promise<void>
 }
 
 /**
@@ -228,4 +242,32 @@ export interface ListSymbolItem {
    * The line range of the symbol definition in the file.
    */
   range: LineRange
+}
+
+/**
+ * Parameters for retrieving Git changes from the client IDE.
+ * Used with {@link ClientApi.getChanges} method.
+ */
+export interface GetChangesParams {
+  /**
+   * The maximum number of characters to return in the change content.
+   * If not provided, all changes will be returned without character limitation.
+   */
+  maxChars?: number
+}
+/**
+ * Represents a Git change item returned by the {@link ClientApi.getChanges} method.
+ * Contains information about modifications detected in the Git workspace.
+ */
+export interface ChangeItem {
+  /**
+   * The content of the change, formatted in the same Diff format as the `git diff` command.
+   * This includes information about added, modified, and deleted lines in the affected files.
+   */
+  content: string
+  /**
+   * Indicates whether the change has been staged in the Git index.
+   * True if the change is staged, false if it is unstaged.
+   */
+  staged: boolean
 }

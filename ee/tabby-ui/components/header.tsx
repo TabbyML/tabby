@@ -40,11 +40,11 @@ export function Header() {
           </a>
         )}
       </div>
-      <div className="flex items-center justify-center gap-6">
+      <div className="flex items-center justify-center gap-2">
         <ClientOnly>
           <ThemeToggle />
         </ClientOnly>
-        <NotificationBox />
+        <NotificationBox className="mr-4" />
         <UserPanel>
           <MyAvatar className="h-10 w-10 border" />
         </UserPanel>

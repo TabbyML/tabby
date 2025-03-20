@@ -8,6 +8,7 @@ use crate::{juniper::relay::NodeType, schema::Result};
 #[derive(GraphQLEnum, Debug)]
 pub enum EventKind {
     Completion,
+    ChatCompletion,
     Select,
     View,
     Dismiss,

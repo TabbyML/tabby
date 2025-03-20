@@ -3,7 +3,10 @@
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
 
-import { useChatStore } from '@/lib/stores/chat-store'
+import {
+  updateSelectedRepoSourceId,
+  useChatStore
+} from '@/lib/stores/chat-store'
 import { repositorySourceListQuery } from '@/lib/tabby/query'
 
 export function useRepositorySources() {
@@ -17,6 +20,10 @@ export function useSelectedRepository() {
   const repos = data?.repositoryList
   const repoId = useChatStore(state => state.selectedRepoSourceId)
 
+  const onSelectRepository = (sourceId: string | undefined) => {
+    updateSelectedRepoSourceId(sourceId)
+  }
+
   const selectedRepository = useMemo(() => {
     if (!repos?.length || !repoId) return undefined
 
@@ -26,6 +33,7 @@ export function useSelectedRepository() {
   return {
     repos,
     isFetchingRepositories: fetching,
-    selectedRepository
+    selectedRepository,
+    onSelectRepository
   }
 }

@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { usePathname } from 'next/navigation'
+import { useRef } from 'react'
 
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { SidebarInset } from '@/components/ui/sidebar'
@@ -14,7 +13,6 @@ export default function MainContent({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
   const scroller = useRef<HTMLDivElement>(null)
   const [isShowDemoBanner] = useShowDemoBanner()
   const [isShowLicenseBanner] = useShowLicenseBanner()
@@ -26,12 +24,6 @@ export default function MainContent({
           } - ${isShowLicenseBanner ? BANNER_HEIGHT : '0rem'})`
         }
       : { height: '100vh' }
-
-  useEffect(() => {
-    if (pathname && scroller.current) {
-      scroller.current.scrollTop = 0
-    }
-  }, [pathname])
 
   return (
     <SidebarInset className="overflow-x-hidden">

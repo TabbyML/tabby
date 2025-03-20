@@ -102,6 +102,9 @@ pub struct CodeSearchParamsOverrideInput {
 pub struct ThreadRunDebugOptionsInput {
     #[graphql(default)]
     pub code_search_params_override: Option<CodeSearchParamsOverrideInput>,
+
+    #[graphql(default)]
+    pub return_chat_completion_request: bool,
 }
 
 impl CodeSearchParamsOverrideInput {

@@ -75,8 +75,8 @@ export function RepoSelect({
     <LoadingWrapper
       loading={isInitializing}
       fallback={
-        <div className="w-full pl-2">
-          <Skeleton className="h-3 w-[10rem]" />
+        <div className="flex w-full pl-2">
+          <Skeleton className="my-2 h-4 w-[10rem]" />
         </div>
       }
     >

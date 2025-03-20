@@ -69,11 +69,7 @@ pub enum Event {
         choices: Vec<Choice>,
         user_agent: Option<String>,
     },
-    ChatCompletion {
-        completion_id: String,
-        input: Vec<Message>,
-        output: Message,
-    },
+    ChatCompletion {},
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
