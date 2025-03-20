@@ -31,8 +31,9 @@ export function Report() {
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const sample = isDemoMode || searchParams.get('sample') === 'true'
 
-  const { yearlyStats, fetching: fetchingYearlyStats } = useYearlyStats({
-    selectedMember
+  const { dailyData, fetching: fetchingYearlyStats, totalCount } = useYearlyStats({
+    selectedMember,
+    sample
   })
 
   return (
@@ -81,7 +82,7 @@ export function Report() {
           <h1 className="mb-2 text-center text-xl font-semibold md:text-start">
             Activity
           </h1>
-          <AnnualActivity yearlyStats={yearlyStats} />
+          <AnnualActivity totalCount={totalCount} dailyData={dailyData} />
         </div>
       </LoadingWrapper>
 

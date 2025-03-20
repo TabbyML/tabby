@@ -107,14 +107,15 @@ export function CompletionDailyActivity({
   } = useCompletionDailyStats({
     selectedMember,
     dateRange,
-    sample
+    sample,
+    languages: selectedLanguage
   })
 
   return (
     <LoadingWrapper
       loading={fetchingCompletionDailyStats}
       fallback={
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 mb-10">
           <div className="flex justify-between gap-5">
             <Skeleton className="h-32 flex-1" />
             <Skeleton className="h-32 flex-1" />

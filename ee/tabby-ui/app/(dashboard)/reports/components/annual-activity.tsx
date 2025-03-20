@@ -1,15 +1,9 @@
 'use client'
 
 import { useWindowSize } from '@uidotdev/usehooks'
-import moment from 'moment'
 import ReactActivityCalendar from 'react-activity-calendar'
 
-import {
-  ChatDailyStatsInPastYearQuery,
-  DailyStatsInPastYearQuery
-} from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
-import { ArrayElementType } from '@/lib/types'
 
 function ActivityCalendar({
   data
@@ -41,60 +35,23 @@ function ActivityCalendar({
 }
 
 export function AnnualActivity({
-  yearlyStats
+  totalCount,
+  dailyData
 }: {
-  yearlyStats:
-    | Array<
-        | ArrayElementType<DailyStatsInPastYearQuery['dailyStatsInPastYear']>
-        | ArrayElementType<
-            ChatDailyStatsInPastYearQuery['chatDailyStatsInPastYear']
-          >
-      >
-    | undefined
+  totalCount: number
+  dailyData: Array<{
+    date: string
+    count: number
+    level: number
+  }>
 }) {
-  let lastYearActivities = 0
-  const dailyViewMap: Record<string, number> =
-    yearlyStats?.reduce((acc, cur) => {
-      const date = moment.utc(cur.start).format('YYYY-MM-DD')
-      if (cur.__typename === 'CompletionStats') {
-        lastYearActivities += cur.views
-        lastYearActivities += cur.selects
-        return {
-          ...acc,
-          [date]: (acc[date] ?? 0) + cur.views
-        }
-      } else if (cur.__typename === 'ChatCompletionStats') {
-        lastYearActivities += cur.chats
-        return {
-          ...acc,
-          [date]: (acc[date] ?? 0) + cur.chats
-        }
-      } else {
-        return acc
-      }
-    }, {} as Record<string, number>) || {}
-
-  const data = new Array(365)
-    .fill('')
-    .map((_, idx) => {
-      const date = moment().subtract(idx, 'days').format('YYYY-MM-DD')
-      const count = dailyViewMap[date] || 0
-      const level = Math.min(4, Math.ceil(count / 5))
-      return {
-        date: date,
-        count,
-        level
-      }
-    })
-    .reverse()
-
   return (
     <div className="flex h-full flex-col rounded-lg border bg-primary-foreground/30 px-6 py-4">
       <h3 className="mb-5 text-sm font-medium tracking-tight">
-        <b>{lastYearActivities}</b> activities in the last year
+        <b>{totalCount}</b> activities in the last year
       </h3>
       <div className="flex flex-1 items-center justify-center">
-        <ActivityCalendar data={data} />
+        <ActivityCalendar data={dailyData} />
       </div>
     </div>
   )
