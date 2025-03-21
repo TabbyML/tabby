@@ -35,7 +35,6 @@ import type {
   Filepath,
   ListSymbolsParams,
   ListSymbolItem,
-  ChatCommandV2,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
@@ -199,24 +198,14 @@ export class ChatWebview extends EventEmitter {
     }
   }
 
-  async executeCommand(command: ChatCommandV2): Promise<void> {
+  async executeCommand(command: ChatCommand): Promise<void> {
     if (this.client) {
       this.logger.info(`Executing command: ${command}`);
-      if (this.client["0.9.0"]) {
-        return await this.client["0.9.0"].executeCommand(command);
-      } else {
-        return await this.client["0.8.0"].executeCommand(command as ChatCommand);
-      }
+      return await this.client["0.8.0"].executeCommand(command as ChatCommand);
     } else {
       this.pendingActions.push(async () => {
-        this.logger.info(`Executing pending command: ${command}`);
-        if (this.client?.["0.9.0"]) {
-          await this.client["0.9.0"].executeCommand(command);
-        } else if (this.client?.["0.8.0"]) {
-          await this.client["0.8.0"].executeCommand(command as ChatCommand);
-        }
+        await this.client?.["0.8.0"].executeCommand(command);
       });
-      return Promise.resolve();
     }
   }
 
