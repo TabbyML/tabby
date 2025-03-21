@@ -263,6 +263,12 @@ export class Commands {
         this.chatSidePanelProvider.chatWebview.executeCommand("generate-tests");
       });
     },
+    "chat.codeReviewCodeBlock": async () => {
+      ensureHasEditorSelection(async () => {
+        await commands.executeCommand("tabby.chatView.focus");
+        this.chatSidePanelProvider.chatWebview.executeCommand("code-review");
+      });
+    },
     "chat.createPanel": async () => {
       await createChatPanel(this.context, this.client, this.gitProvider);
     },

@@ -35,6 +35,7 @@ import type {
   Filepath,
   ListSymbolsParams,
   ListSymbolItem,
+  ChatCommandV2,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
@@ -198,15 +199,24 @@ export class ChatWebview extends EventEmitter {
     }
   }
 
-  async executeCommand(command: ChatCommand) {
+  async executeCommand(command: ChatCommandV2): Promise<void> {
     if (this.client) {
       this.logger.info(`Executing command: ${command}`);
-      this.client["0.8.0"].executeCommand(command);
+      if (this.client["0.9.0"]) {
+        return await this.client["0.9.0"].executeCommand(command);
+      } else {
+        return await this.client["0.8.0"].executeCommand(command as ChatCommand);
+      }
     } else {
       this.pendingActions.push(async () => {
         this.logger.info(`Executing pending command: ${command}`);
-        await this.client?.["0.8.0"].executeCommand(command);
+        if (this.client?.["0.9.0"]) {
+          await this.client["0.9.0"].executeCommand(command);
+        } else if (this.client?.["0.8.0"]) {
+          await this.client["0.8.0"].executeCommand(command as ChatCommand);
+        }
       });
+      return Promise.resolve();
     }
   }
 
@@ -818,7 +828,7 @@ export class ChatWebview extends EventEmitter {
       return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
     }
 
-    const MIN_VERSION = "0.27.0";
+    const MIN_VERSION = "0.26.0";
 
     if (health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
