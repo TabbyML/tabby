@@ -3,10 +3,14 @@
 import React, { useMemo } from 'react'
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 
-import { MARKDOWN_SOURCE_REGEX } from '@/lib/constants/regex'
+import {
+  MARKDOWN_COMMAND_REGEX,
+  MARKDOWN_SOURCE_REGEX
+} from '@/lib/constants/regex'
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 import {
   IconCode,
   IconEmojiBook,
@@ -72,27 +76,49 @@ export function ThreadTitleWithMentions({
   const contentWithTags = useMemo(() => {
     if (!message) return null
 
-    const firstLine = message.split('\n')[0] ?? ''
-    return firstLine.split(MARKDOWN_SOURCE_REGEX).map((part, index) => {
-      if (index % 2 === 1) {
-        const sourceId = part
-        const source = sources?.find(s => s.sourceId === sourceId)
-        if (source) {
-          return (
-            <Mention
-              key={index}
-              id={source.sourceId}
-              kind={source.sourceKind}
-              label={source.sourceName}
-              className="rounded-md border border-[#b3ada0] border-opacity-30 bg-[#e8e1d3] py-[1px] text-sm dark:bg-[#333333]"
-            />
-          )
-        } else {
+    let processedMessage = message
+
+    processedMessage = convertContextBlockToPlaceholder(processedMessage)
+
+    const partsWithSources = processedMessage
+      .split(MARKDOWN_SOURCE_REGEX)
+      .map((part, index) => {
+        if (index % 2 === 1) {
+          const sourceId = part
+          const source = sources?.find(s => s.sourceId === sourceId)
+          if (source) {
+            return (
+              <Mention
+                key={`source-${index}`}
+                id={source.sourceId}
+                kind={source.sourceKind}
+                label={source.sourceName}
+                className="rounded-md border border-[#b3ada0] border-opacity-30 bg-[#e8e1d3] py-[1px] text-sm dark:bg-[#333333]"
+              />
+            )
+          }
           return null
         }
+        return part
+      })
+    // FIXME(Sma1lboy): refactor this process mention tags part later for different placeholder
+    const finalContent = partsWithSources.map((part, index) => {
+      if (!part || React.isValidElement(part)) {
+        return part // Return null or existing Mention components as is
       }
-      return part
+
+      const textPart = part as string
+      return textPart
+        .split(MARKDOWN_COMMAND_REGEX)
+        .map((cmdPart: string, cmdIndex: number) => {
+          if (cmdIndex % 2 === 1) {
+            return `@${cmdPart.replace(/"/g, '')}`
+          }
+          return cmdPart
+        })
     })
+
+    return finalContent.flat()
   }, [sources, message])
 
   return <div className={cn(className)}>{contentWithTags}</div>

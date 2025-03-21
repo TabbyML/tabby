@@ -1,6 +1,7 @@
-import { HTMLAttributes, useContext } from 'react'
+import { HTMLAttributes, useContext, useMemo } from 'react'
 
 import { cn } from '@/lib/utils'
+import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 import { CollapsibleContainer } from '@/components/collapsible-container'
 import { MessageMarkdown } from '@/components/message-markdown'
 
@@ -16,12 +17,16 @@ export function UserMessageSection({
   className,
   ...props
 }: QuestionBlockProps) {
+  const processedContent = useMemo(() => {
+    return convertContextBlockToPlaceholder(message.content)
+  }, [message.content])
+
   const { contextInfo, fetchingContextInfo } = useContext(SearchContext)
   return (
     <div className={cn('font-semibold', className)} {...props}>
       <CollapsibleContainer>
         <MessageMarkdown
-          message={message.content}
+          message={processedContent}
           contextInfo={contextInfo}
           supportsOnApplyInEditorV2={false}
           fetchingContextInfo={fetchingContextInfo}
