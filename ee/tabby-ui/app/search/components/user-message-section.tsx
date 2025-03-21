@@ -1,4 +1,4 @@
-import { HTMLAttributes, useContext, useEffect, useMemo } from 'react'
+import { HTMLAttributes, useContext, useMemo } from 'react'
 
 import { cn } from '@/lib/utils'
 import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'

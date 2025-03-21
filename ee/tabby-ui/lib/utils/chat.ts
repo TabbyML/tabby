@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { uniq } from 'lodash-es'
 import moment from 'moment'
 import type { Filepath } from 'tabby-chat-panel'
@@ -11,17 +10,13 @@ import {
 import type { MentionAttributes } from '@/lib/types'
 
 import {
-  DIFF_CHANGES_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
   PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
-import {
-  convertContextBlockToLabelName,
-  convertContextBlockToPlaceholder
-} from './markdown'
+import { convertContextBlockToLabelName } from './markdown'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [

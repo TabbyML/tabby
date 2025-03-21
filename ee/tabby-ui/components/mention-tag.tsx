@@ -4,7 +4,6 @@ import React, { useMemo } from 'react'
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 
 import {
-  DIFF_CHANGES_REGEX,
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_SOURCE_REGEX
 } from '@/lib/constants/regex'

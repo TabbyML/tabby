@@ -1,10 +1,8 @@
 // utils.ts
 import { Editor, JSONContent } from '@tiptap/core'
-import { conforms } from 'lodash-es'
 import { FileBox, SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
-import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import {
   PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
