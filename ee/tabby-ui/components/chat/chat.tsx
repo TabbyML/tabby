@@ -115,6 +115,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
   setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
+  runShell?: (command: string) => Promise<void>
   getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
 }
 
@@ -147,6 +148,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       readFileContent,
       listSymbols,
       setShowHistory,
+      runShell,
       getChanges,
       ...props
     },
@@ -818,6 +820,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           listFileInWorkspace,
           readFileContent,
           listSymbols,
+          runShell,
           getChanges
         }}
       >

@@ -30,7 +30,8 @@ export function CodeElement({
     onApplyInEditor,
     onCopyContent,
     supportsOnApplyInEditorV2,
-    symbolPositionMap
+    symbolPositionMap,
+    runShell
   } = useContext(MessageMarkdownContext)
 
   const keyword = children[0]?.toString()
@@ -91,6 +92,7 @@ export function CodeElement({
       onCopyContent={onCopyContent}
       canWrapLongLines={canWrapLongLines}
       supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+      runShell={runShell}
     />
   )
 }

@@ -94,6 +94,7 @@ export interface MessageMarkdownProps {
   canWrapLongLines?: boolean
   supportsOnApplyInEditorV2: boolean
   activeSelection?: FileContext
+  runShell?: (command: string) => Promise<void>
 }
 
 export function MessageMarkdown({
@@ -112,6 +113,7 @@ export function MessageMarkdown({
   openInEditor,
   supportsOnApplyInEditorV2,
   activeSelection,
+  runShell,
   ...rest
 }: MessageMarkdownProps) {
   const [symbolPositionMap, setSymbolLocationMap] = useState<
@@ -288,7 +290,8 @@ export function MessageMarkdown({
         activeSelection,
         symbolPositionMap,
         lookupSymbol: onLookupSymbol ? lookupSymbol : undefined,
-        openInEditor
+        openInEditor,
+        runShell
       }}
     >
       <MemoizedReactMarkdown

@@ -254,7 +254,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     onLookupSymbol,
     openInEditor,
     openExternal,
-    supportsOnApplyInEditorV2
+    supportsOnApplyInEditorV2,
+    runShell
   } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -400,6 +401,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               openInEditor={openInEditor}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
               activeSelection={userMessage.activeContext}
+              runShell={runShell}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
