@@ -1,6 +1,7 @@
 import {
   AttachmentCode,
   AttachmentCodeFileList,
+  AttachmentDoc,
   ListPageSectionsQuery,
   ListPagesQuery,
   Maybe,
@@ -20,5 +21,10 @@ export type SectionItem = Omit<
       }
     >
     codeFileList?: Maybe<AttachmentCodeFileList>
+    doc?: Array<
+      AttachmentDoc & {
+        score?: number
+      }
+    >
   }
 }
