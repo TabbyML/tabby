@@ -37,7 +37,7 @@ export interface CodeBlockProps {
   ) => void
   canWrapLongLines: boolean | undefined
   supportsOnApplyInEditorV2: boolean
-  runTerminalCommand?: (command: string) => Promise<void>
+  runShell?: (command: string) => Promise<void>
 }
 
 interface languageMap {
@@ -88,7 +88,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
     onApplyInEditor,
     canWrapLongLines,
     supportsOnApplyInEditorV2,
-    runTerminalCommand
+    runShell
   }) => {
     const [wrapLongLines, setWrapLongLines] = useState(false)
     const { isCopied, copyToClipboard } = useCopyToClipboard({
@@ -102,8 +102,8 @@ const CodeBlock: FC<CodeBlockProps> = memo(
     }
 
     const onRunCommand = () => {
-      if (runTerminalCommand && language === 'bash') {
-        runTerminalCommand(value)
+      if (runShell && language === 'bash') {
+        runShell(value)
       }
     }
 
@@ -115,7 +115,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
         <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
           <span className="text-xs lowercase">{language}</span>
           <div className="flex items-center space-x-1">
-            {runTerminalCommand && language === 'bash' && (
+            {runShell && language === 'bash' && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -152,7 +152,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
             )}
             {supportsOnApplyInEditorV2 &&
               onApplyInEditor &&
-              !(runTerminalCommand && language === 'bash') && (
+              !(runShell && language === 'bash') && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -175,25 +175,24 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                   </TooltipContent>
                 </Tooltip>
               )}
-            {onApplyInEditor &&
-              !(runTerminalCommand && language === 'bash') && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                      onClick={() => onApplyInEditor(value, undefined)}
-                    >
-                      <IconApplyInEditor />
-                      <span className="sr-only">Apply in Editor</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="m-0">Apply in Editor</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+            {onApplyInEditor && !(runShell && language === 'bash') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                    onClick={() => onApplyInEditor(value, undefined)}
+                  >
+                    <IconApplyInEditor />
+                    <span className="sr-only">Apply in Editor</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="m-0">Apply in Editor</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

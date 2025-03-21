@@ -250,7 +250,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     openInEditor,
     openExternal,
     supportsOnApplyInEditorV2,
-    runTerminalCommand
+    runShell
   } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -396,7 +396,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               openInEditor={openInEditor}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
               activeSelection={userMessage.activeContext}
-              runTerminalCommand={runTerminalCommand}
+              runShell={runShell}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
