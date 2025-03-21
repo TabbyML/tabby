@@ -67,6 +67,12 @@ export interface ServerApiV0_9 extends ServerApiV0_8 {
    * @returns the version string.
    */
   getVersion: () => Promise<string>
+
+  /**
+   * Execute a predefined command version 2, added code-review command.
+   * @param command {@link ChatCommand}
+   */
+  executeCommand: (command: ChatCommandV2) => Promise<void>
 }
 
 /**
@@ -77,6 +83,12 @@ export interface ServerApiV0_9 extends ServerApiV0_8 {
  * - 'generate-tests': Generate tests for the selected code.
  */
 export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests'
+
+/**
+ * Predefined commands used in {@link ServerApiV0_9.executeCommand}.
+ * - 'code-review': Review the selected code.
+ */
+export type ChatCommandV2 = ChatCommand | 'code-review'
 
 /**
  * The views used in {@link ServerApiV0_8.navigate}.
