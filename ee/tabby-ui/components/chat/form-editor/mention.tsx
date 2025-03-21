@@ -13,9 +13,10 @@ import Mention from '@tiptap/extension-mention'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion'
 import { uniqBy } from 'lodash-es'
-import { FileText, Loader2, SquareFunctionIcon } from 'lucide-react'
+import { FileBox, FileText, Loader2, SquareFunctionIcon } from 'lucide-react'
 import {
-  Filepath,
+  ChangeItem,
+  GetChangesParams,
   ListFileItem,
   ListFilesInWorkspaceParams,
   ListSymbolItem,
@@ -27,7 +28,12 @@ import { cn, convertFromFilepath, resolveFileNameForDisplay } from '@/lib/utils'
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons'
 
 import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from '../types'
-import { fileItemToSourceItem, symbolItemToSourceItem } from './utils'
+import {
+  commandItemToSourceItem,
+  createChangesCommand,
+  fileItemToSourceItem,
+  symbolItemToSourceItem
+} from './utils'
 
 /**
  * A React component to render a mention node in the editor.
@@ -46,8 +52,10 @@ export const MentionComponent = ({ node }: { node: any }) => {
       >
         {category === 'file' ? (
           <FileText className="relative -top-px inline-block h-3.5 w-3.5" />
-        ) : (
+        ) : category === 'symbol' ? (
           <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
+        ) : (
+          <FileBox className="relative -top-px inline-block h-3.5 w-3.5" />
         )}
         <span className="relative whitespace-normal">{label}</span>
       </span>
@@ -66,16 +74,18 @@ export const PromptFormMentionExtension = Mention.extend({
 
   // When exported as plain text, use a placeholder format
   renderText({ node }) {
-    const fileItem = node.attrs.fileItem
-    const filePath = fileItem.filepath as Filepath
     const category = node.attrs.category
 
     // If symbols can be mentioned later, the placeholder could be [[symbol:{label}]].
     switch (category) {
+      case 'command':
+        return `[[contextCommand:"${node.attrs.command || 'default'}"]]`
       case 'symbol':
         return `[[symbol:${JSON.stringify(node.attrs.fileItem)}]]`
       case 'file':
       default:
+        const fileItem = node.attrs.fileItem
+        const filePath = fileItem.filepath
         return `[[file:${JSON.stringify(filePath)}]]`
     }
   },
@@ -107,6 +117,14 @@ export const PromptFormMentionExtension = Mention.extend({
           return { 'data-category': attrs.category }
         }
       },
+      command: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-command'),
+        renderHTML: attrs => {
+          if (!attrs.command) return {}
+          return { 'data-command': attrs.command }
+        }
+      },
       // label could be basename of path or symbol name
       label: {
         default: '',
@@ -130,6 +148,7 @@ export interface MentionListProps extends SuggestionProps {
     params: ListFilesInWorkspaceParams
   ) => Promise<ListFileItem[]>
   listSymbols?: (params: ListSymbolsParams) => Promise<ListSymbolItem[]>
+  getChanges?: (param: GetChangesParams) => Promise<ChangeItem[]>
   onSelectItem: (item: SourceItem) => void
 }
 
@@ -139,7 +158,14 @@ export interface MentionListProps extends SuggestionProps {
  */
 export const MentionList = forwardRef<MentionListActions, MentionListProps>(
   (
-    { items: propItems, command, query, listFileInWorkspace, listSymbols },
+    {
+      items: propItems,
+      command,
+      query,
+      listFileInWorkspace,
+      listSymbols,
+      getChanges
+    },
     ref
   ) => {
     const [items, setItems] = useState<SourceItem[]>(propItems)
@@ -194,6 +220,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
             if (currentQuery) {
               result = files.map(fileItemToSourceItem)
             } else {
+              // No query, show categories and top-level items
               result = [
                 ...categories.map(
                   c =>
@@ -206,6 +233,10 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
                       icon: c.icon
                     } as SourceItem)
                 ),
+                // Only add the changes command if getChanges is available
+                ...(getChanges
+                  ? [commandItemToSourceItem(createChangesCommand())]
+                  : []),
                 ...files.map(fileItemToSourceItem)
               ]
             }
@@ -245,6 +276,7 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
       isFirstShow,
       listFileInWorkspace,
       listSymbols,
+      getChanges,
       mode,
       query,
       shouldShowCategoryMenu
@@ -271,18 +303,31 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
     const handleSelect = (item: SourceItem) => {
       if (item.isRootCategoryItem && !isSingleMode) {
-        setMode(item.id as unknown as CategoryMenu)
+        setMode(item.id as CategoryMenu)
+        return
+      }
+
+      if (item.category === 'command') {
+        command({
+          category: 'command',
+          command: item.name,
+          label: item.name
+        })
         return
       }
 
       const label =
         item.category === 'file'
           ? resolveFileNameForDisplay(
-              convertFromFilepath(item.fileItem.filepath).filepath || ''
+              convertFromFilepath(item.fileItem!.filepath).filepath || ''
             )
           : item.name
 
-      command({ category: item.category, fileItem: item.fileItem, label })
+      command({
+        category: item.category as 'file' | 'symbol',
+        fileItem: item.fileItem,
+        label
+      })
     }
 
     useImperativeHandle(ref, () => ({
@@ -367,6 +412,7 @@ interface OptionItemView extends HTMLAttributes<HTMLDivElement> {
   isSelected: boolean
   data: SourceItem
 }
+
 function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
   const ref = useRef<HTMLDivElement>(null)
   const filepathWithoutFilename = useMemo(() => {
@@ -396,9 +442,16 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
     >
       <span className="flex h-5 shrink-0 items-center">{data.icon}</span>
       <span className="mr-2 truncate whitespace-nowrap">{data.name}</span>
-      <span className="flex-1 truncate text-xs text-muted-foreground">
-        {filepathWithoutFilename}
-      </span>
+      {data.description && (
+        <span className="flex-1 truncate text-xs text-muted-foreground">
+          {data.description}
+        </span>
+      )}
+      {data.category === 'file' && (
+        <span className="flex-1 truncate text-xs text-muted-foreground">
+          {filepathWithoutFilename}
+        </span>
+      )}
       {data.category === 'category' && (
         <IconChevronRight className="h-4 w-4 text-muted-foreground" />
       )}

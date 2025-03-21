@@ -108,7 +108,23 @@ impl EventLogger for DbEventLogger {
                     Ok(())
                 });
             }
-            Event::ChatCompletion { .. } => {}
+            Event::ChatCompletion { .. } => {
+                let Some(user) = get_user_id(entry.user) else {
+                    return;
+                };
+                let db = self.db.clone();
+                run_in_background(async move {
+                    db.create_user_event(
+                        user,
+                        EventKind::ChatCompletion.as_enum_str().into(),
+                        entry.ts,
+                        event_json,
+                    )
+                    .await?;
+
+                    Ok(())
+                });
+            }
         }
     }
 }
@@ -121,10 +137,21 @@ where
 }
 
 #[cfg(test)]
+pub mod test_utils {
+    use tabby_common::api::event::{EventLogger, LogEntry};
+
+    pub struct MockEventLogger;
+
+    impl EventLogger for MockEventLogger {
+        fn write(&self, _x: LogEntry) {}
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::time::Duration;
 
-    use tabby_common::api::event::{Event, EventLogger, Message};
+    use tabby_common::api::event::{Event, EventLogger};
     use tabby_db::DbConn;
     use tabby_schema::AsID;
 
@@ -258,17 +285,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = create_event_logger(db.clone());
 
-        logger.log(
-            None,
-            Event::ChatCompletion {
-                completion_id: "test_id".into(),
-                input: vec![],
-                output: Message {
-                    role: "user".into(),
-                    content: "test".into(),
-                },
-            },
-        );
+        logger.log(None, Event::ChatCompletion {});
 
         sleep_50().await;
         assert!(db.fetch_one_user_completion().await.unwrap().is_none());

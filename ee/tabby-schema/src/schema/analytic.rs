@@ -109,14 +109,22 @@ impl From<String> for Language {
     }
 }
 
+#[derive(GraphQLObject, Debug, Clone)]
+pub struct ChatCompletionStats {
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub user_id: ID,
+    pub chats: i32,
+}
+
 #[async_trait]
 pub trait AnalyticService: Send + Sync {
-    /// Generate the report for past year, with daily granularity.
+    /// Generate the completion report for past year, with daily granularity.
     ///
     /// `users` is a list of user IDs. If empty, the report is computed for all users.
     async fn daily_stats_in_past_year(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>>;
 
-    /// Computes the report with daily granularity.
+    /// Computes the completion report with daily granularity.
     ///
     /// 1. [`start`, `end`) define the time range for the report.
     /// 2. `users` is a list of user IDs. If empty, the report is computed for all users.
@@ -128,6 +136,25 @@ pub trait AnalyticService: Send + Sync {
         users: Vec<ID>,
         languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>>;
+
+    /// Generate the chat report for past year, with daily granularity.
+    ///
+    /// `users` is a list of user IDs. If empty, the report is computed for all users.
+    async fn chat_daily_stats_in_past_year(
+        &self,
+        users: Vec<ID>,
+    ) -> Result<Vec<ChatCompletionStats>>;
+
+    /// Computes the chat report with daily granularity.
+    ///
+    /// 1. [`start`, `end`) define the time range for the report.
+    /// 2. `users` is a list of user IDs. If empty, the report is computed for all users.
+    async fn chat_daily_stats(
+        &self,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        users: Vec<ID>,
+    ) -> Result<Vec<ChatCompletionStats>>;
 
     async fn disk_usage_stats(&self) -> Result<DiskUsageStats>;
 }

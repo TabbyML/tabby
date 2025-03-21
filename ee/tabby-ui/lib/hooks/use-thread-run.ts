@@ -112,7 +112,12 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
         delta
       }
       ... on ThreadAssistantMessageCompleted {
-        id
+        debugData {
+          chatCompletionMessages {
+            role
+            content
+          }
+        }
       }
     }
   }
@@ -208,7 +213,12 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
         delta
       }
       ... on ThreadAssistantMessageCompleted {
-        id
+        debugData {
+          chatCompletionMessages {
+            role
+            content
+          }
+        }
       }
     }
   }

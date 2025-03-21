@@ -11,7 +11,6 @@ use tabby_common::{
     usage,
 };
 use tabby_download::ModelKind;
-use tabby_inference::ChatCompletionStream;
 use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
 use tracing::{debug, warn};
@@ -22,7 +21,7 @@ use utoipa::{
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    routes::{self, run_app},
+    routes::{self, run_app, ChatState},
     services::{
         self,
         code::create_code_search,
@@ -160,13 +159,19 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     )
     .await;
 
+    let chat_state = chat.as_ref().map(|c| {
+        Arc::new(ChatState {
+            chat_completion: c.clone(),
+            logger: logger.clone(),
+        })
+    });
     let mut api = api_router(
         args,
         &config,
         logger.clone(),
         code.clone(),
         completion,
-        chat.clone(),
+        chat_state,
         webserver,
     )
     .await;
@@ -220,7 +225,7 @@ async fn api_router(
     logger: Arc<dyn EventLogger>,
     _code: Arc<dyn CodeSearch>,
     completion_state: Option<CompletionService>,
-    chat_state: Option<Arc<dyn ChatCompletionStream>>,
+    chat_state: Option<Arc<ChatState>>,
     webserver: Option<bool>,
 ) -> Router {
     let mut routers = vec![];

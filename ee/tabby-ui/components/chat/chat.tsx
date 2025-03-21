@@ -65,6 +65,7 @@ import {
   getPromptForChatCommand,
   nanoid
 } from '@/lib/utils'
+import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
 import LoadingWrapper from '../loading-wrapper'
 import { ChatContext } from './chat-context'
@@ -72,6 +73,10 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
+import {
+  convertChangeItemsToContextContent,
+  hasChangesCommand
+} from './git/utils'
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
 import { ChatRef, PromptFormRef } from './types'
@@ -364,9 +369,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         qaPairs: nextQaPairs
       })
 
-      setInput(userMessage.message)
-
-      const inputContent = convertTextToTiptapContent(userMessage.message)
+      const inputContent = convertTextToTiptapContent(
+        convertContextBlockToPlaceholder(userMessage.message)
+      )
       setInput({
         type: 'doc',
         content: inputContent
@@ -559,7 +564,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         }
       ]
     }
-
     const handleSendUserChat = useLatest(
       async (userMessage: UserMessageWithOptionalId) => {
         if (isLoading) return
@@ -574,6 +578,20 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             selectCodeContextContent ?? ''
           }\n${'```'}\n`
         }
+
+        let gitChanges = ''
+        if (getChanges && hasChangesCommand(userMessage.message)) {
+          try {
+            const changes = await getChanges({})
+            gitChanges += convertChangeItemsToContextContent(changes)
+          } catch (error) {
+            // do nothing
+          }
+        }
+        userMessage.message = userMessage.message.replaceAll(
+          /\[\[contextCommand:"changes"\]\]/g,
+          `${gitChanges}`
+        )
 
         const newUserMessage: UserMessage = {
           ...userMessage,

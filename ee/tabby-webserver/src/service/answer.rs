@@ -7,18 +7,23 @@ use async_openai_alt::{error::OpenAIError, types::CreateChatCompletionRequestArg
 use async_stream::stream;
 use futures::stream::BoxStream;
 use prompt_tools::{pipeline_decide_need_codebase_context, pipeline_related_questions};
-use tabby_common::{api::structured_doc::DocSearchDocument, config::AnswerConfig};
+use tabby_common::{
+    api::{
+        event::{Event, EventLogger},
+        structured_doc::DocSearchDocument,
+    },
+    config::AnswerConfig,
+};
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
-    auth::AuthenticationService,
+    auth::{AuthenticationService, UserSecured},
     context::ContextService,
-    policy::AccessPolicy,
     thread::{
-        MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
+        self, MessageAttachment, MessageAttachmentCodeFileList, MessageAttachmentDoc,
         MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
-        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
-        ThreadRunOptionsInput,
+        ThreadAssistantMessageCompletedDebugData, ThreadAssistantMessageContentDelta,
+        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -31,6 +36,7 @@ use crate::service::{
     },
 };
 pub struct AnswerService {
+    logger: Arc<dyn EventLogger>,
     config: AnswerConfig,
     auth: Arc<dyn AuthenticationService>,
     chat: Arc<dyn ChatCompletionStream>,
@@ -40,6 +46,7 @@ pub struct AnswerService {
 
 impl AnswerService {
     fn new(
+        logger: Arc<dyn EventLogger>,
         config: &AnswerConfig,
         auth: Arc<dyn AuthenticationService>,
         chat: Arc<dyn ChatCompletionStream>,
@@ -47,6 +54,7 @@ impl AnswerService {
         context: Arc<dyn ContextService>,
     ) -> Self {
         Self {
+            logger,
             config: config.clone(),
             auth,
             chat,
@@ -57,7 +65,7 @@ impl AnswerService {
 
     pub async fn answer<'a>(
         self: Arc<Self>,
-        policy: &AccessPolicy,
+        user: &UserSecured,
         messages: &[tabby_schema::thread::Message],
         options: &ThreadRunOptionsInput,
         user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
@@ -71,7 +79,8 @@ impl AnswerService {
 
         let options = options.clone();
         let user_attachment_input = user_attachment_input.cloned();
-        let policy = policy.clone();
+        let policy = user.policy.clone();
+        let logger = self.logger.clone();
 
         let s = stream! {
             let context_info = self.context.read(Some(&policy)).await?;
@@ -193,7 +202,7 @@ impl AnswerService {
                     .expect("Failed to build chat completion request")
             };
 
-            let s = match self.chat.chat_stream(request).await {
+            let s = match self.chat.chat_stream(request.clone()).await {
                 Ok(s) => s,
                 Err(err) => {
                     warn!("Failed to create chat completion stream: {:?}", err);
@@ -223,7 +232,23 @@ impl AnswerService {
                     }));
                 }
             }
+
+            let debug_data = if options.debug_options.map(|x| x.return_chat_completion_request).unwrap_or_default() {
+                Some(ThreadAssistantMessageCompletedDebugData {
+                    chat_completion_messages: request.messages.into_iter().map(|x| x.into()).collect(),
+                })
+            } else {
+                None
+            };
+
+            yield Ok(ThreadRunItem::ThreadAssistantMessageCompleted(
+                thread::ThreadAssistantMessageCompleted {
+                    debug_data,
+                },
+            ));
         };
+
+        logger.log(Some(user.id.to_string()), Event::ChatCompletion {});
 
         Ok(Box::pin(s))
     }
@@ -279,13 +304,14 @@ impl AnswerService {
 }
 
 pub fn create(
+    logger: Arc<dyn EventLogger>,
     config: &AnswerConfig,
     auth: Arc<dyn AuthenticationService>,
     chat: Arc<dyn ChatCompletionStream>,
     retrieval: Arc<RetrievalService>,
     context: Arc<dyn ContextService>,
 ) -> AnswerService {
-    AnswerService::new(config, auth, chat, retrieval, context)
+    AnswerService::new(logger, config, auth, chat, retrieval, context)
 }
 
 #[cfg(test)]
@@ -303,7 +329,7 @@ mod tests {
         },
         config::AnswerConfig,
     };
-    use tabby_db::DbConn;
+    use tabby_db::{testutils::create_user, DbConn};
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
         context::{ContextInfo, ContextService, ContextSourceValue},
@@ -319,7 +345,12 @@ mod tests {
         },
         *,
     };
-    use crate::{retrieval, service::auth, utils::build_user_prompt};
+    use crate::{
+        event_logger::test_utils::MockEventLogger,
+        retrieval,
+        service::{auth, UserSecuredExt},
+        utils::build_user_prompt,
+    };
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
@@ -496,9 +527,10 @@ mod tests {
         let config = make_answer_config();
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
+        let logger = Arc::new(MockEventLogger);
 
         let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
-        let service = AnswerService::new(&config, auth, chat, retrieval, context);
+        let service = AnswerService::new(logger, &config, auth, chat, retrieval, context);
 
         let attachment = MessageAttachment {
             doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
@@ -551,9 +583,10 @@ mod tests {
         let config = make_answer_config();
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
+        let logger = Arc::new(MockEventLogger);
 
         let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
-        let service = AnswerService::new(&config, auth, chat, retrieval, context);
+        let service = AnswerService::new(logger, &config, auth, chat, retrieval, context);
 
         let attachment = MessageAttachment {
             doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
@@ -593,7 +626,7 @@ mod tests {
         use std::sync::Arc;
 
         use futures::StreamExt;
-        use tabby_schema::{policy::AccessPolicy, thread::ThreadRunOptionsInput};
+        use tabby_schema::thread::ThreadRunOptionsInput;
 
         let auth = Arc::new(auth::testutils::FakeAuthService::new(vec![]));
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream {
@@ -610,12 +643,15 @@ mod tests {
             system_prompt: AnswerConfig::default_system_prompt(),
         };
         let db = DbConn::new_in_memory().await.unwrap();
-        let repo = make_repository_service(db).await.unwrap();
+        let repo = make_repository_service(db.clone()).await.unwrap();
+        let logger = Arc::new(MockEventLogger);
         let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
-        let service = Arc::new(AnswerService::new(&config, auth, chat, retrieval, context));
+        let service = Arc::new(AnswerService::new(
+            logger, &config, auth, chat, retrieval, context,
+        ));
 
-        let db = DbConn::new_in_memory().await.unwrap();
-        let policy = AccessPolicy::new(db, &1.as_id(), false);
+        let user_id = create_user(&db).await;
+        let user = UserSecured::new(db.clone(), db.get_user(user_id).await.unwrap().unwrap());
         let messages = vec![
             make_message(1, "What is Rust?", tabby_schema::thread::Role::User, None),
             make_message(
@@ -648,7 +684,7 @@ mod tests {
         let user_attachment_input = None;
 
         let result = service
-            .answer(&policy, &messages, &options, user_attachment_input)
+            .answer(&user, &messages, &options, user_attachment_input)
             .await
             .unwrap();
 
@@ -656,8 +692,8 @@ mod tests {
 
         assert_eq!(
             collected_results.len(),
-            4,
-            "Expected 4 items in the result stream"
+            5,
+            "Expected 5 items in the result stream"
         );
     }
 }

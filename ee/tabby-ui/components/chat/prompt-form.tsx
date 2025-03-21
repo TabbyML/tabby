@@ -53,7 +53,8 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       readFileContent,
       relevantContext,
       setRelevantContext,
-      listSymbols
+      listSymbols,
+      getChanges
     } = useContext(ChatContext)
 
     const { selectedModel, models } = useSelectedModel()
@@ -125,9 +126,21 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
                           category: 'category'
                         }
                       ]
-                    : []),
-                  ...uniqBy(files.map(fileItemToSourceItem), 'id')
+                    : [])
                 ]
+
+                if (
+                  getChanges &&
+                  (!query || 'changes'.includes(query.toLowerCase()))
+                ) {
+                  items.push({
+                    id: 'command',
+                    name: 'changes',
+                    category: 'command'
+                  })
+                }
+                items.push(...uniqBy(files.map(fileItemToSourceItem), 'id'))
+
                 return items
               },
 
@@ -141,7 +154,12 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
                 return {
                   onStart: props => {
                     component = new ReactRenderer(MentionList, {
-                      props: { ...props, listFileInWorkspace, listSymbols },
+                      props: {
+                        ...props,
+                        listFileInWorkspace,
+                        listSymbols,
+                        getChanges
+                      },
                       editor: props.editor
                     })
 
@@ -219,7 +237,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
           prevMentionsRef.current = currentMentions
         }
       },
-      [listFileInWorkspace]
+      [listFileInWorkspace, getChanges]
     )
 
     // Current text from the editor (for checking if the submit button is disabled)
@@ -288,6 +306,8 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         let prevContext: FileContext[] = relevantContext
         let updatedContext = [...prevContext]
         for (const ctx of removed) {
+          if (ctx.category === 'command') continue
+
           updatedContext = updatedContext.filter(
             prevCtx =>
               !isSameFileContext(
@@ -302,7 +322,8 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         }
 
         for (const ctx of added) {
-          // Read the file content and add it to the context
+          if (ctx.category === 'command') continue
+
           const content = await readFileContent({
             filepath: ctx.fileItem.filepath,
             range: ctx.category === 'symbol' ? ctx.fileItem.range : undefined

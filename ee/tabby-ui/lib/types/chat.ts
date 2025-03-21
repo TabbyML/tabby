@@ -116,11 +116,11 @@ type MergeUnionType<T> = {
   [k in Keys<T>]?: Pick<T, k>
 }
 
-export type ThreadRunContexts = {
+export interface ThreadRunContexts {
   modelName?: string
   searchPublic?: boolean
   docSourceIds?: string[]
-  codeSourceIds?: string[]
+  codeSourceId?: string
 }
 
 export interface RelevantCodeContext extends Context {
