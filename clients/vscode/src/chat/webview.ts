@@ -201,7 +201,7 @@ export class ChatWebview extends EventEmitter {
   async executeCommand(command: ChatCommand) {
     if (this.client) {
       this.logger.info(`Executing command: ${command}`);
-      await this.client["0.8.0"].executeCommand(command as ChatCommand);
+      this.client["0.8.0"].executeCommand(command);
     } else {
       this.pendingActions.push(async () => {
         this.logger.info(`Executing pending command: ${command}`);
