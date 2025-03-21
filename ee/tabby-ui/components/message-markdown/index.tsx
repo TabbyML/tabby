@@ -291,7 +291,7 @@ export function MessageMarkdown({
         symbolPositionMap,
         lookupSymbol: onLookupSymbol ? lookupSymbol : undefined,
         openInEditor,
-        runTerminalCommand: runTerminalCommand
+        runShell
       }}
     >
       <MemoizedReactMarkdown
