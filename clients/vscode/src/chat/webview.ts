@@ -35,12 +35,14 @@ import type {
   Filepath,
   ListSymbolsParams,
   ListSymbolItem,
+  ChangeItem,
+  GetChangesParams,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
 import { v4 as uuid } from "uuid";
 import type { StatusInfo, Config } from "tabby-agent";
-import type { GitProvider } from "../git/GitProvider";
+import type { GitProvider, Repository } from "../git/GitProvider";
 import type { Client as LspClient } from "../lsp/client";
 import { createClient } from "./createClient";
 import { isBrowser } from "../env";
@@ -725,7 +727,76 @@ export class ChatWebview extends EventEmitter {
           return [];
         }
       },
-      runCommand: async (command: string) => {
+
+      getChanges: async (params: GetChangesParams): Promise<ChangeItem[]> => {
+        if (!this.gitProvider.isApiAvailable()) {
+          return [];
+        }
+
+        const maxChars = params.maxChars ?? undefined;
+        let remainingChars = maxChars;
+
+        const repositories = this.gitProvider.getRepositories();
+        if (!repositories) {
+          return [];
+        }
+
+        const getRepoChanges = async (
+          repos: Repository[],
+          staged: boolean,
+          charLimit?: number,
+        ): Promise<ChangeItem[]> => {
+          if (charLimit !== undefined && charLimit <= 0) {
+            return [];
+          }
+
+          const res: ChangeItem[] = [];
+          let currentCharCount = 0;
+
+          for (const repo of repos) {
+            const diffs = await this.gitProvider.getDiff(repo, staged);
+            if (!diffs) {
+              continue;
+            }
+
+            for (const diff of diffs) {
+              const diffChars = diff.length;
+
+              if (charLimit !== undefined && currentCharCount + diffChars > charLimit) {
+                break;
+              }
+
+              res.push({
+                content: diff,
+                staged: staged,
+              } as ChangeItem);
+
+              currentCharCount += diffChars;
+            }
+
+            if (charLimit !== undefined && currentCharCount >= charLimit) {
+              break;
+            }
+          }
+
+          return res;
+        };
+
+        const stagedChanges: ChangeItem[] = await getRepoChanges(repositories, true, remainingChars);
+
+        const stagedCharCount = stagedChanges.reduce((count, item) => count + item.content.length, 0);
+
+        remainingChars = maxChars !== undefined ? maxChars - stagedCharCount : undefined;
+
+        const unstagedChanges: ChangeItem[] = await getRepoChanges(repositories, false, remainingChars);
+
+        const res = [...stagedChanges, ...unstagedChanges];
+
+        this.logger.info(`Found ${res.length} changed files.`);
+
+        return res;
+      },
+      runShell: async (command: string) => {
         const terminal = window.createTerminal("Tabby");
         terminal.show();
         terminal.sendText(command);

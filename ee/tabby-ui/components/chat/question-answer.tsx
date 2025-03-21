@@ -23,6 +23,7 @@ import {
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
+import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
@@ -128,6 +129,10 @@ function UserMessageCard(props: { message: UserMessage }) {
         range.start < range.end
     }
   }
+
+  const processedContent = useMemo(() => {
+    return convertContextBlockToPlaceholder(message.message)
+  }, [message.message])
   return (
     <div
       className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
@@ -158,7 +163,7 @@ function UserMessageCard(props: { message: UserMessage }) {
       <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1">
           <MessageMarkdown
-            message={message.message}
+            message={processedContent}
             canWrapLongLines
             supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             openInEditor={openInEditor}
@@ -249,7 +254,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     onLookupSymbol,
     openInEditor,
     openExternal,
-    supportsOnApplyInEditorV2
+    supportsOnApplyInEditorV2,
+    runShell
   } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -395,6 +401,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               openInEditor={openInEditor}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
               activeSelection={userMessage.activeContext}
+              runShell={runShell}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>

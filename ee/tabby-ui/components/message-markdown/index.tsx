@@ -31,7 +31,7 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
-import { SquareFunctionIcon } from 'lucide-react'
+import { FileBox, SquareFunctionIcon } from 'lucide-react'
 import {
   FileLocation,
   Filepath,
@@ -42,6 +42,7 @@ import {
 
 import {
   MARKDOWN_CITATION_REGEX,
+  MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
   MARKDOWN_SYMBOL_REGEX
@@ -93,6 +94,7 @@ export interface MessageMarkdownProps {
   canWrapLongLines?: boolean
   supportsOnApplyInEditorV2: boolean
   activeSelection?: FileContext
+  runShell?: (command: string) => Promise<void>
 }
 
 export function MessageMarkdown({
@@ -111,6 +113,7 @@ export function MessageMarkdown({
   openInEditor,
   supportsOnApplyInEditorV2,
   activeSelection,
+  runShell,
   ...rest
 }: MessageMarkdownProps) {
   const [symbolPositionMap, setSymbolLocationMap] = useState<
@@ -140,68 +143,106 @@ export function MessageMarkdown({
   const processMessagePlaceholder = (text: string) => {
     const elements: React.ReactNode[] = []
     let lastIndex = 0
-    let match
 
-    const addTextNode = (text: string) => {
-      if (text) {
-        elements.push(text)
-      }
+    type Match = {
+      pattern: RegExp
+      Component: (...arg: any) => ReactNode
+      getProps: Function
+      match: RegExpExecArray
     }
 
-    const processMatches = (
+    const allMatches: Match[] = []
+
+    const findMatches = (
       regex: RegExp,
       Component: (...arg: any) => ReactNode,
       getProps: Function
     ) => {
+      regex.lastIndex = 0
+      let match
       while ((match = regex.exec(text)) !== null) {
-        addTextNode(text.slice(lastIndex, match.index))
-        elements.push(<Component key={match.index} {...getProps(match)} />)
-        lastIndex = match.index + match[0].length
+        allMatches.push({
+          pattern: regex,
+          Component,
+          getProps,
+          match
+        })
       }
     }
 
-    processMatches(MARKDOWN_CITATION_REGEX, CitationTag, (match: string) => {
-      const citationIndex = parseInt(match[1], 10)
-      const citationSource = !isNil(citationIndex)
-        ? messageAttachments?.[citationIndex - 1]
-        : undefined
-      const citationType = citationSource?.type
-      const showcitation = citationSource && !isNil(citationIndex)
-      return {
-        citationIndex,
-        showcitation,
-        citationType,
-        citationSource
+    findMatches(
+      MARKDOWN_CITATION_REGEX,
+      CitationTag,
+      (match: RegExpExecArray) => {
+        const citationIndex = parseInt(match[1], 10)
+        const citationSource = !isNil(citationIndex)
+          ? messageAttachments?.[citationIndex - 1]
+          : undefined
+        const citationType = citationSource?.type
+        const showcitation = citationSource && !isNil(citationIndex)
+        return {
+          citationIndex,
+          showcitation,
+          citationType,
+          citationSource
+        }
       }
-    })
-    processMatches(MARKDOWN_SOURCE_REGEX, SourceTag, (match: string) => {
+    )
+
+    findMatches(MARKDOWN_SOURCE_REGEX, SourceTag, (match: RegExpExecArray) => {
       const sourceId = match[1]
       const className = headline ? 'text-[1rem] font-semibold' : undefined
       return { sourceId, className }
     })
-    processMatches(MARKDOWN_FILE_REGEX, FileTag, (match: string) => {
+
+    findMatches(MARKDOWN_FILE_REGEX, FileTag, (match: RegExpExecArray) => {
       const encodedFilepath = match[1]
       try {
         return {
           encodedFilepath,
           openInEditor
         }
-      } catch (e) {}
+      } catch (e) {
+        return {}
+      }
     })
 
-    processMatches(
-      MARKDOWN_SYMBOL_REGEX,
-      SymbolTag,
+    findMatches(MARKDOWN_SYMBOL_REGEX, SymbolTag, (match: RegExpExecArray) => {
+      const fullMatch = match[1]
+      return {
+        encodedSymbol: fullMatch,
+        openInEditor
+      }
+    })
+
+    findMatches(
+      MARKDOWN_COMMAND_REGEX,
+      ContextCommandTag,
       (match: RegExpExecArray) => {
         const fullMatch = match[1]
         return {
-          encodedSymbol: fullMatch,
-          openInEditor
+          encodedCommand: fullMatch
         }
       }
     )
 
-    addTextNode(text.slice(lastIndex))
+    allMatches.sort((a, b) => a.match.index - b.match.index)
+
+    for (const { match, Component, getProps } of allMatches) {
+      if (match.index >= lastIndex) {
+        if (match.index > lastIndex) {
+          elements.push(text.slice(lastIndex, match.index))
+        }
+
+        elements.push(<Component key={match.index} {...getProps(match)} />)
+
+        lastIndex = match.index + match[0].length
+      }
+    }
+
+    if (lastIndex < text.length) {
+      elements.push(text.slice(lastIndex))
+    }
 
     return elements
   }
@@ -249,7 +290,8 @@ export function MessageMarkdown({
         activeSelection,
         symbolPositionMap,
         lookupSymbol: onLookupSymbol ? lookupSymbol : undefined,
-        openInEditor
+        openInEditor,
+        runShell
       }}
     >
       <MemoizedReactMarkdown
@@ -504,6 +546,37 @@ function SymbolTag({
     >
       <SquareFunctionIcon className="relative -top-px inline-block h-3.5 w-3.5" />
       <span className="font-medium">{symbol.label}</span>
+    </span>
+  )
+}
+
+function ContextCommandTag({
+  encodedCommand,
+  className
+}: {
+  encodedCommand: string | undefined
+  className?: string
+  openInEditor?: MessageMarkdownProps['openInEditor']
+}) {
+  const command = useMemo(() => {
+    if (!encodedCommand) return null
+    try {
+      const decodedCommand = decodeURIComponent(encodedCommand)
+      return JSON.parse(decodedCommand) as string
+    } catch (e) {
+      return null
+    }
+  }, [encodedCommand])
+
+  return (
+    <span
+      className={cn(
+        'symbol space-x-1 whitespace-nowrap border bg-muted py-0.5 align-middle leading-5',
+        className
+      )}
+    >
+      <FileBox className="relative inline-block h-3.5 w-3.5" />
+      <span className="font-medium">{command}</span>
     </span>
   )
 }

@@ -21,6 +21,7 @@ export type MessageMarkdownContextValue = {
   symbolPositionMap: Map<string, SymbolInfo | null>
   openInEditor?: (target: FileLocation) => void
   lookupSymbol?: (keyword: string) => void
+  runShell?: (command: string) => Promise<void>
 }
 
 export const MessageMarkdownContext =

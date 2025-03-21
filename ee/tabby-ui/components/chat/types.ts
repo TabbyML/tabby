@@ -54,31 +54,43 @@ export interface PromptFormRef {
 }
 
 /**
+ * Represents a command item for use in mentions.
+ */
+export interface CommandItem {
+  id: string
+  name: string
+  command: string
+  description?: string
+}
+
+/**
  * Represents a file item in the workspace.
  */
 export type FileItem = ListFileItem | ListSymbolItem
 
 /**
- * Represents a file source item for the mention suggestion list.
+ * Represents a source item for the mention suggestion list.
  */
 export interface SourceItem {
   id: string
   name: string
-  filepath: string
+  filepath?: string
   category: CategoryMenu
   isRootCategoryItem?: boolean
-  fileItem: FileItem
+  fileItem?: FileItem
   icon: ReactNode
+  command?: string
+  description?: string
 }
+
 export interface CategoryItem {
   label: string
-  type: 'category'
-  categoryKind: 'file' | 'symbol'
+  categoryKind: CategoryMenu
   icon: ReactNode
 }
 
 /**
- * raw mention data in the form editor
+ * Raw mention data in the form editor
  */
 export type EditorMentionData =
   | {
@@ -89,15 +101,22 @@ export type EditorMentionData =
       category: 'symbol'
       fileItem: ListSymbolItem
     }
+  | {
+      category: 'command'
+      command: string
+    }
 
-export type CategoryMenu = 'file' | 'symbol' | 'category'
+export type CategoryMenu = 'file' | 'symbol' | 'category' | 'command'
+
 /**
  * Defines the attributes to be stored in a mention node.
  */
 export interface MentionNodeAttrs {
-  category: 'file' | 'symbol'
-  filepath: string
+  category: 'file' | 'symbol' | 'command'
+  filepath?: string
   label: string
+  fileItem?: FileItem
+  command?: string
 }
 
 /**
@@ -108,4 +127,16 @@ export interface MentionState {
   command: ((props: MentionNodeAttrs) => void) | null
   query: string
   selectedIndex: number
+}
+
+/**
+ * Represents a change item in the git diff.
+ */
+export interface GitChange {
+  id: string
+  filepath: string
+  additions: number
+  deletions: number
+  diffContent: string
+  lineStart?: number
 }

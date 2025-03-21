@@ -118,11 +118,11 @@ export interface ClientApi {
   getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
 
   /**
-   * Run a terminal command in the IDE Terminal.
+   * Run a terminal command in the IDE Terminal shell.
    * @param command The command to run in the terminal.
    * @returns void
    */
-  runCommand?: (command: string) => Promise<void>
+  runShell?: (command: string) => Promise<void>
 }
 
 /**

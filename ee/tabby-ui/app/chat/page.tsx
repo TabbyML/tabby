@@ -450,6 +450,8 @@ export default function ChatPage() {
         listFileInWorkspace={isInEditor && server?.listFileInWorkspace}
         readFileContent={isInEditor && server?.readFileContent}
         listSymbols={isInEditor && server?.listSymbols}
+        runShell={isInEditor && server?.runShell}
+        getChanges={isInEditor && server?.getChanges}
       />
     </ErrorBoundary>
   )

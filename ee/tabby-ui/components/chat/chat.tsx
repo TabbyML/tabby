@@ -9,11 +9,13 @@ import {
   uniqWith
 } from 'lodash-es'
 import type {
+  ChangeItem,
   ChatCommand,
   EditorContext,
   EditorFileContext,
   FileLocation,
   FileRange,
+  GetChangesParams,
   GitRepository,
   ListFileItem,
   ListFilesInWorkspaceParams,
@@ -63,6 +65,7 @@ import {
   getPromptForChatCommand,
   nanoid
 } from '@/lib/utils'
+import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
 import LoadingWrapper from '../loading-wrapper'
 import { ChatContext } from './chat-context'
@@ -70,6 +73,10 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
+import {
+  convertChangeItemsToContextContent,
+  hasChangesCommand
+} from './git/utils'
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
 import { ChatRef, PromptFormRef } from './types'
@@ -108,6 +115,8 @@ interface ChatProps extends React.ComponentProps<'div'> {
   listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
   readFileContent?: (info: FileRange) => Promise<string | null>
   setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
+  runShell?: (command: string) => Promise<void>
+  getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(
@@ -139,6 +148,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       readFileContent,
       listSymbols,
       setShowHistory,
+      runShell,
+      getChanges,
       ...props
     },
     ref
@@ -358,9 +369,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         qaPairs: nextQaPairs
       })
 
-      setInput(userMessage.message)
-
-      const inputContent = convertTextToTiptapContent(userMessage.message)
+      const inputContent = convertTextToTiptapContent(
+        convertContextBlockToPlaceholder(userMessage.message)
+      )
       setInput({
         type: 'doc',
         content: inputContent
@@ -553,7 +564,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         }
       ]
     }
-
     const handleSendUserChat = useLatest(
       async (userMessage: UserMessageWithOptionalId) => {
         if (isLoading) return
@@ -568,6 +578,20 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             selectCodeContextContent ?? ''
           }\n${'```'}\n`
         }
+
+        let gitChanges = ''
+        if (getChanges && hasChangesCommand(userMessage.message)) {
+          try {
+            const changes = await getChanges({})
+            gitChanges += convertChangeItemsToContextContent(changes)
+          } catch (error) {
+            // do nothing
+          }
+        }
+        userMessage.message = userMessage.message.replaceAll(
+          /\[\[contextCommand:"changes"\]\]/g,
+          `${gitChanges}`
+        )
 
         const newUserMessage: UserMessage = {
           ...userMessage,
@@ -795,7 +819,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           initialized,
           listFileInWorkspace,
           readFileContent,
-          listSymbols
+          listSymbols,
+          runShell,
+          getChanges
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>
