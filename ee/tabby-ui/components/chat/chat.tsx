@@ -288,8 +288,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const onDeleteMessage = async (userMessageId: string) => {
       if (!threadId) return
 
-      // Stop generating first.
-      stop()
       const qaPair = qaPairs.find(o => o.user.id === userMessageId)
       if (!qaPair?.user || !qaPair.assistant) return
 
