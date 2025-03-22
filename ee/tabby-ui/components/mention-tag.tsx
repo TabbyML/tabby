@@ -6,7 +6,8 @@ import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 import {
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
-  MARKDOWN_SOURCE_REGEX
+  MARKDOWN_SOURCE_REGEX,
+  MARKDOWN_SYMBOL_REGEX
 } from '@/lib/constants/regex'
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
@@ -76,10 +77,7 @@ export function ThreadTitleWithMentions({
 }) {
   const contentWithTags = useMemo(() => {
     if (!message) return null
-
     let processedMessage = convertContextBlockToPlaceholder(message)
-
-    // Process source mentions (using Mention components)
     const partsWithSources = processedMessage
       .split(MARKDOWN_SOURCE_REGEX)
       .map((part, index) => {
@@ -101,13 +99,12 @@ export function ThreadTitleWithMentions({
         }
         return part
       })
-
     const finalContent = partsWithSources.map((part, index) => {
       if (!part || React.isValidElement(part)) {
         return part
       }
-
       let textPart = part as string
+
       textPart = textPart.replace(MARKDOWN_FILE_REGEX, (match, content) => {
         try {
           if (content.startsWith('{') && content.endsWith('}')) {
@@ -123,14 +120,30 @@ export function ThreadTitleWithMentions({
         }
       })
 
-      // Handle command mentions
+      textPart = textPart.replace(MARKDOWN_SYMBOL_REGEX, (match, content) => {
+        try {
+          if (content.startsWith('{') && content.endsWith('}')) {
+            const symbolInfo = JSON.parse(content)
+            if (symbolInfo.label) {
+              return `@${symbolInfo.label}`
+            }
+            const filename = resolveFileNameForDisplay(symbolInfo.filepath)
+            const range = symbolInfo.range
+              ? `:${symbolInfo.range.start}-${symbolInfo.range.end}`
+              : ''
+            return `@${filename}${range}`
+          }
+          return content
+        } catch (e) {
+          return match
+        }
+      })
+
       return textPart.replace(MARKDOWN_COMMAND_REGEX, (_, cmdPart) => {
         return `@${cmdPart.replace(/"/g, '')}`
       })
     })
-
     return finalContent
   }, [sources, message])
-
   return <div className={cn(className)}>{contentWithTags}</div>
 }

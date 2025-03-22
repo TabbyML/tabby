@@ -96,6 +96,14 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
             finalCommandText = `[[file:${JSON.stringify(fileObject)}]]`
           }
           break
+        case 'symbol':
+          if (metas['object']) {
+            const symbolObject = JSON.parse(
+              metas['object'].replace(/\\"/g, '"')
+            )
+            finalCommandText = `[[symbol:${JSON.stringify(symbolObject)}]]`
+          }
+          break
         default:
           newChildren.push(node)
           continue

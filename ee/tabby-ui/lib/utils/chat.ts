@@ -367,6 +367,33 @@ export async function processingPlaceholder(
         fileRegex.lastIndex = 0
       }
     }
+
+    const symbolRegex = new RegExp(PLACEHOLDER_SYMBOL_REGEX)
+    match = null
+    tempMessage = processedMessage
+    while ((match = symbolRegex.exec(tempMessage)) !== null) {
+      try {
+        const symbolInfoStr = match[1]
+        const symbolInfo = JSON.parse(symbolInfoStr)
+        const content = await options.readFileContent({
+          filepath: symbolInfo.filepath,
+          range: symbolInfo.range
+        })
+        let replacement = ''
+        if (content) {
+          const symbolInfoJSON = JSON.stringify(symbolInfo).replace(/"/g, '\\"')
+          replacement = `\n\`\`\`context label='symbol' object='${symbolInfoJSON}'\n${content}\n\`\`\`\n`
+        }
+        processedMessage = processedMessage.replace(match[0], replacement)
+        tempMessage = tempMessage.replace(match[0], replacement)
+        symbolRegex.lastIndex = 0
+      } catch (error) {
+        const errorMessage = `\n*Error loading symbol*\n`
+        processedMessage = processedMessage.replace(match[0], errorMessage)
+        tempMessage = tempMessage.replace(match[0], errorMessage)
+        symbolRegex.lastIndex = 0
+      }
+    }
   }
   return processedMessage
 }
