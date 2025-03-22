@@ -6,7 +6,7 @@ import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 
-import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
+import { MARKDOWN_CITATION_REGEX_ESCAPED } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -418,7 +418,7 @@ function getCopyContent(
   if (!attachmentCode || isEmpty(attachmentCode)) return content
 
   const parsedContent = content
-    .replace(MARKDOWN_CITATION_REGEX, match => {
+    .replace(MARKDOWN_CITATION_REGEX_ESCAPED, match => {
       const citationNumberMatch = match?.match(/\d+/)
       return `[${citationNumberMatch}]`
     })

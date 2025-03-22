@@ -41,11 +41,11 @@ import {
 } from 'tabby-chat-panel/index'
 
 import {
-  MARKDOWN_CITATION_REGEX,
-  MARKDOWN_COMMAND_REGEX,
-  MARKDOWN_FILE_REGEX,
-  MARKDOWN_SOURCE_REGEX,
-  MARKDOWN_SYMBOL_REGEX
+  MARKDOWN_CITATION_REGEX_ESCAPED,
+  MARKDOWN_COMMAND_REGEX_ESCAPED,
+  MARKDOWN_FILE_REGEX_ESCAPED,
+  MARKDOWN_SOURCE_REGEX_ESCAPED,
+  MARKDOWN_SYMBOL_REGEX_ESCAPED
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
@@ -171,7 +171,7 @@ export function MessageMarkdown({
     }
 
     findMatches(
-      MARKDOWN_CITATION_REGEX,
+      MARKDOWN_CITATION_REGEX_ESCAPED,
       CitationTag,
       (match: RegExpExecArray) => {
         const citationIndex = parseInt(match[1], 10)
@@ -189,34 +189,46 @@ export function MessageMarkdown({
       }
     )
 
-    findMatches(MARKDOWN_SOURCE_REGEX, SourceTag, (match: RegExpExecArray) => {
-      const sourceId = match[1]
-      const className = headline ? 'text-[1rem] font-semibold' : undefined
-      return { sourceId, className }
-    })
-
-    findMatches(MARKDOWN_FILE_REGEX, FileTag, (match: RegExpExecArray) => {
-      const encodedFilepath = match[1]
-      try {
-        return {
-          encodedFilepath,
-          openInEditor
-        }
-      } catch (e) {
-        return {}
+    findMatches(
+      MARKDOWN_SOURCE_REGEX_ESCAPED,
+      SourceTag,
+      (match: RegExpExecArray) => {
+        const sourceId = match[1]
+        const className = headline ? 'text-[1rem] font-semibold' : undefined
+        return { sourceId, className }
       }
-    })
-
-    findMatches(MARKDOWN_SYMBOL_REGEX, SymbolTag, (match: RegExpExecArray) => {
-      const fullMatch = match[1]
-      return {
-        encodedSymbol: fullMatch,
-        openInEditor
-      }
-    })
+    )
 
     findMatches(
-      MARKDOWN_COMMAND_REGEX,
+      MARKDOWN_FILE_REGEX_ESCAPED,
+      FileTag,
+      (match: RegExpExecArray) => {
+        const encodedFilepath = match[1]
+        try {
+          return {
+            encodedFilepath,
+            openInEditor
+          }
+        } catch (e) {
+          return {}
+        }
+      }
+    )
+
+    findMatches(
+      MARKDOWN_SYMBOL_REGEX_ESCAPED,
+      SymbolTag,
+      (match: RegExpExecArray) => {
+        const fullMatch = match[1]
+        return {
+          encodedSymbol: fullMatch,
+          openInEditor
+        }
+      }
+    )
+
+    findMatches(
+      MARKDOWN_COMMAND_REGEX_ESCAPED,
       ContextCommandTag,
       (match: RegExpExecArray) => {
         const fullMatch = match[1]
