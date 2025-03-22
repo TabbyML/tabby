@@ -4,6 +4,7 @@ import { Content, EditorEvents } from '@tiptap/core'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compact } from 'lodash-es'
+import { SquareFunctionIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
@@ -19,6 +20,8 @@ import type { Context, FileContext } from '@/lib/types'
 import {
   cn,
   convertEditorContext,
+  convertFromFilepath,
+  getFileLocationFromBadge,
   getFileLocationFromContext,
   getTitleFromMessages,
   resolveFileNameForDisplay
@@ -79,7 +82,9 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
       repos,
       initialized,
       setRelevantContext,
-      openInEditor
+      openInEditor,
+      setBadges,
+      badges
     } = React.useContext(ChatContext)
     const enableActiveSelection = useChatStore(
       state => state.enableActiveSelection
@@ -166,6 +171,51 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
       })
 
       setRelevantContext(prev => prev.filter((item, index) => index !== idx))
+      positionsToDelete.reverse().forEach(({ from, to }) => {
+        tr.delete(from, to)
+      })
+
+      view.dispatch(tr)
+      editor.commands.focus()
+    })
+
+    const removeBadgeContext = useLatest((idx: number) => {
+      const editor = chatInputRef.current?.editor
+      if (!editor) {
+        return
+      }
+
+      const { state, view } = editor
+      const { tr } = state
+      const positionsToDelete: any[] = []
+      const currentBadge = badges[idx]
+
+      state.doc.descendants((node, pos) => {
+        if (
+          node.type.name === 'mention' &&
+          (node.attrs.category === 'file' || node.attrs.category === 'symbol')
+        ) {
+          const filepath = node.attrs.fileItem.filepath
+          const path = convertFromFilepath(filepath)
+          const isSameFile = path.filepath === currentBadge.filepath
+          const nodeRange =
+            node.attrs.category === 'symbol'
+              ? node.attrs.fileItem.range
+              : undefined
+          const isSameRange =
+            (!nodeRange && !currentBadge.range) ||
+            (nodeRange &&
+              currentBadge.range &&
+              nodeRange.start === currentBadge.range.start &&
+              nodeRange.end === currentBadge.range.end)
+          if (isSameFile && isSameRange) {
+            positionsToDelete.push({ from: pos, to: pos + node.nodeSize })
+          }
+        }
+      })
+
+      setBadges(prev => prev.filter((_, index) => index !== idx))
+
       positionsToDelete.reverse().forEach(({ from, to }) => {
         tr.delete(from, to)
       })
@@ -359,6 +409,58 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                           onClick={e => {
                             e.stopPropagation()
                             removeRelevantContext.current(idx)
+                          }}
+                        >
+                          <IconRemove />
+                        </Button>
+                      </Badge>
+                    </motion.div>
+                  )
+                })}
+                {badges.map((badge, idx) => {
+                  return (
+                    <motion.div
+                      key={badge.id}
+                      initial={{ opacity: 0, scale: 0.9, y: -5 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{
+                        ease: 'easeInOut',
+                        duration: 0.1
+                      }}
+                      exit={{ opacity: 0, scale: 0.9, y: -5 }}
+                      layout
+                      className="overflow-hidden"
+                    >
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'inline-flex h-7 w-full cursor-pointer flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold'
+                        )}
+                        onClick={() => {
+                          openInEditor(getFileLocationFromBadge(badge))
+                        }}
+                      >
+                        {badge.category === 'file' ? (
+                          <IconFileText className="shrink-0" />
+                        ) : (
+                          <SquareFunctionIcon className="h-4 w-4 shrink-0" />
+                        )}
+                        <span className="truncate">
+                          {badge.displayName}
+                          {badge.range && badge.category == 'file' && (
+                            <span className="text-muted-foreground">
+                              :{badge.range.start}-{badge.range.end}
+                            </span>
+                          )}
+                        </span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="hover:bg-muted/50 h-7 w-7 shrink-0 rounded-l-none"
+                          onClick={e => {
+                            e.stopPropagation()
+                            setBadges(prev => prev.filter((_, i) => i !== idx))
+                            removeBadgeContext.current(idx)
                           }}
                         >
                           <IconRemove />

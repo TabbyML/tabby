@@ -5,6 +5,7 @@ import {
   findIndex,
   isEqual,
   isEqualWith,
+  pad,
   some,
   uniqWith
 } from 'lodash-es'
@@ -63,7 +64,8 @@ import {
   findClosestGitRepository,
   getFileLocationFromContext,
   getPromptForChatCommand,
-  nanoid
+  nanoid,
+  processingPlaceholder
 } from '@/lib/utils'
 import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
@@ -73,13 +75,12 @@ import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { convertTextToTiptapContent } from './form-editor/utils'
-import {
-  convertChangeItemsToContextContent,
-  hasChangesCommand
-} from './git/utils'
+
+import './git/utils'
+
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
-import { ChatRef, PromptFormRef } from './types'
+import { ChatRef, PromptBadge, PromptFormRef } from './types'
 
 interface ChatProps extends React.ComponentProps<'div'> {
   threadId: string | undefined
@@ -162,6 +163,18 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
     const [activeSelection, setActiveSelection] =
       React.useState<Context | null>(null)
+
+    const [badges, setBadges] = React.useState<PromptBadge[]>([])
+    const addBadge = (badge: PromptBadge) => {
+      setBadges(prev => {
+        if (prev.some(b => b.id === badge.id)) return prev
+        return [...prev, badge]
+      })
+    }
+
+    const removeBadge = (index: number) => {
+      setBadges(prev => prev.filter((_, i) => i !== index))
+    }
     // sourceId
     const [selectedRepoId, setSelectedRepoId] = React.useState<
       string | undefined
@@ -577,19 +590,11 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           }\n${'```'}\n`
         }
 
-        let gitChanges = ''
-        if (getChanges && hasChangesCommand(userMessage.message)) {
-          try {
-            const changes = await getChanges({})
-            gitChanges += convertChangeItemsToContextContent(changes)
-          } catch (error) {
-            // do nothing
-          }
-        }
-        userMessage.message = userMessage.message.replaceAll(
-          /\[\[contextCommand:"changes"\]\]/g,
-          `${gitChanges}`
-        )
+        // processing placeholder like contextCommand, file, symbol, etc.
+        userMessage.message = await processingPlaceholder(userMessage.message, {
+          getChanges,
+          readFileContent
+        })
 
         const newUserMessage: UserMessage = {
           ...userMessage,
@@ -650,6 +655,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       })
 
       setRelevantContext([])
+      setBadges([])
     }
 
     const handleAddRelevantContext = useLatest((context: Context) => {
@@ -819,7 +825,11 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           readFileContent,
           listSymbols,
           runShell,
-          getChanges
+          getChanges,
+          badges,
+          addBadge,
+          removeBadge,
+          setBadges
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>

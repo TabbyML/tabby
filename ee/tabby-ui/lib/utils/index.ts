@@ -304,3 +304,43 @@ export function buildCodeBrowserUrlForContext(
 
   return url.toString()
 }
+
+export function getFileLocationFromBadge(badge: {
+  filepath: string
+  range?: { start: number; end: number }
+  baseDir?: string
+  gitUrl?: string
+  commit?: string
+}): FileLocation {
+  return {
+    filepath: convertBadgeToFilepath(badge),
+    location: badge.range
+  }
+}
+
+export function convertBadgeToFilepath(badge: {
+  filepath: string
+  baseDir?: string
+  gitUrl?: string
+  commit?: string
+}): Filepath {
+  if (badge.gitUrl && !badge.filepath.includes(':')) {
+    return {
+      kind: 'git',
+      filepath: badge.filepath,
+      gitUrl: badge.gitUrl,
+      revision: badge.commit
+    }
+  }
+  if (badge.baseDir && !badge.filepath.includes(':')) {
+    return {
+      kind: 'workspace',
+      filepath: badge.filepath,
+      baseDir: badge.baseDir
+    }
+  }
+  return {
+    kind: 'uri',
+    uri: badge.filepath
+  }
+}

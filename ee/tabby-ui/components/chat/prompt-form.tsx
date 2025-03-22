@@ -17,14 +17,14 @@ import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
 import { isEqual, uniqBy } from 'lodash-es'
+import { ListFileItem, ListSymbolItem } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
 import { NEWLINE_CHARACTER } from '@/lib/constants'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import { updateSelectedModel } from '@/lib/stores/chat-store'
-import { FileContext } from '@/lib/types'
-import { cn, convertEditorContext } from '@/lib/utils'
+import { cn, convertFromFilepath, resolveFileNameForDisplay } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconArrowRight, IconAtSign } from '@/components/ui/icons'
 
@@ -36,11 +36,7 @@ import {
   MentionListProps,
   PromptFormMentionExtension
 } from './form-editor/mention'
-import {
-  fileItemToSourceItem,
-  getMention,
-  isSameFileContext
-} from './form-editor/utils'
+import { fileItemToSourceItem, getMention } from './form-editor/utils'
 import { EditorMentionData, PromptFormRef, PromptProps } from './types'
 
 /**
@@ -54,7 +50,8 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       relevantContext,
       setRelevantContext,
       listSymbols,
-      getChanges
+      getChanges,
+      setBadges
     } = useContext(ChatContext)
 
     const { selectedModel, models } = useSelectedModel()
@@ -287,58 +284,95 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       [editor, input]
     )
 
-    /**
-     * This function compares the current mentions in the editor with the relevant context
-     * and updates the context accordingly.
-     * It adds new mentions and removes mentions that are no longer present in the editor.
-     * Only mentions that refer to the whole file are considered.
-     */
-    const updateMentionContext = useLatest(
-      async ({
+    const updateMentionBadges = useLatest(
+      ({
         added,
         removed
       }: {
         added: EditorMentionData[]
         removed: EditorMentionData[]
       }) => {
-        if (!readFileContent || !editor) return
+        const getFilepathInfo = (
+          mention:
+            | {
+                category: 'file'
+                fileItem: ListFileItem
+              }
+            | {
+                category: 'symbol'
+                fileItem: ListSymbolItem
+              }
+        ) => {
+          let filepath = mention.fileItem.filepath
+          const path = convertFromFilepath(filepath)
 
-        let prevContext: FileContext[] = relevantContext
-        let updatedContext = [...prevContext]
-        for (const ctx of removed) {
-          if (ctx.category === 'command') continue
+          let displayName
+          if (mention.category === 'symbol' && mention.fileItem.label) {
+            displayName = mention.fileItem.label
+          } else {
+            displayName = resolveFileNameForDisplay(path.filepath)
+          }
 
-          updatedContext = updatedContext.filter(
-            prevCtx =>
-              !isSameFileContext(
-                prevCtx,
-                convertEditorContext({
-                  kind: 'file',
-                  content: '',
-                  ...ctx.fileItem
-                })
-              )
-          )
+          return {
+            displayName,
+            ...path
+          }
         }
 
-        for (const ctx of added) {
-          if (ctx.category === 'command') continue
+        if (added.length > 0) {
+          const newBadges = added
+            .filter(
+              mention =>
+                mention.category === 'file' || mention.category === 'symbol'
+            )
+            .map(mention => {
+              const { filepath, displayName } = getFilepathInfo(mention)
+              return {
+                id: `${filepath}${
+                  'range' in mention.fileItem
+                    ? `:${mention.fileItem.range?.start}-${mention.fileItem.range?.end}`
+                    : ''
+                }`,
+                filepath,
+                displayName,
+                range:
+                  mention.category === 'symbol'
+                    ? mention.fileItem.range
+                    : undefined,
+                category: mention.category
+              }
+            })
 
-          const content = await readFileContent({
-            filepath: ctx.fileItem.filepath,
-            range: ctx.category === 'symbol' ? ctx.fileItem.range : undefined
+          setBadges(prev => {
+            const combined = [...prev, ...newBadges]
+            return combined.filter(
+              (badge, index) =>
+                combined.findIndex(b => b.id === badge.id) === index
+            )
           })
-          updatedContext.push(
-            convertEditorContext({
-              kind: 'file',
-              content: content || '',
-              filepath: ctx.fileItem.filepath,
-              range: ctx.category === 'symbol' ? ctx.fileItem.range : undefined
+        }
+
+        if (removed.length > 0) {
+          setBadges(prev =>
+            prev.filter(badge => {
+              return !removed.some(mention => {
+                if (
+                  mention.category !== 'file' &&
+                  mention.category !== 'symbol'
+                ) {
+                  return false
+                }
+                const { filepath } = getFilepathInfo(mention)
+                const mentionId = `${filepath}${
+                  'range' in mention.fileItem
+                    ? `:${mention.fileItem.range.start}-${mention.fileItem.range.end}`
+                    : ''
+                }`
+                return badge.id === mentionId
+              })
             })
           )
         }
-
-        setRelevantContext(updatedContext)
       }
     )
 
@@ -349,7 +383,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       added: EditorMentionData[]
       removed: EditorMentionData[]
     }) => {
-      updateMentionContext.current({ added, removed })
+      updateMentionBadges.current({ added, removed })
     }
 
     return (
