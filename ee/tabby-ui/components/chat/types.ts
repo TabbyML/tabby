@@ -140,3 +140,11 @@ export interface GitChange {
   diffContent: string
   lineStart?: number
 }
+
+export interface PromptBadge {
+  id: string
+  filepath: string
+  displayName: string
+  range?: { start: number; end: number }
+  category: 'file' | 'symbol'
+}

@@ -133,6 +133,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const processedContent = useMemo(() => {
     return convertContextBlockToPlaceholder(message.message)
   }, [message.message])
+
   return (
     <div
       className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
