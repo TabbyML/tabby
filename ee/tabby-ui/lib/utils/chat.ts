@@ -10,11 +10,11 @@ import {
 import type { MentionAttributes } from '@/lib/types'
 
 import {
-  MARKDOWN_FILE_REGEX_ESCAPED,
-  MARKDOWN_SOURCE_REGEX_ESCAPED,
-  PLACEHOLDER_COMMAND_REGEX_ESCAPED,
-  PLACEHOLDER_FILE_REGEX_ESCAPED,
-  PLACEHOLDER_SYMBOL_REGEX_ESCAPED
+  MARKDOWN_FILE_REGEX,
+  MARKDOWN_SOURCE_REGEX,
+  PLACEHOLDER_COMMAND_REGEX,
+  PLACEHOLDER_FILE_REGEX,
+  PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
 import { convertContextBlockToLabelName } from './markdown'
 
@@ -38,7 +38,7 @@ export const getMentionsFromText = (
 
   const mentions: MentionAttributes[] = []
   let match
-  while ((match = MARKDOWN_SOURCE_REGEX_ESCAPED.exec(text))) {
+  while ((match = MARKDOWN_SOURCE_REGEX.exec(text))) {
     const sourceId = match[1]
     const source = sources?.find(o => o.sourceId === sourceId)
     if (source) {
@@ -149,7 +149,7 @@ export const getFileMentionFromText = (text: string) => {
 
   const mentions: Array<{ filepath: Filepath }> = []
   let match
-  while ((match = MARKDOWN_FILE_REGEX_ESCAPED.exec(text))) {
+  while ((match = MARKDOWN_FILE_REGEX.exec(text))) {
     const fileItem = match[1]
     if (fileItem) {
       try {
@@ -173,7 +173,7 @@ export function replaceAtMentionPlaceHolder(value: string) {
   let match
 
   // Use a loop to handle cases where the string contains multiple placeholders
-  while ((match = MARKDOWN_FILE_REGEX_ESCAPED.exec(value)) !== null) {
+  while ((match = MARKDOWN_FILE_REGEX.exec(value)) !== null) {
     try {
       const filepath = match[1]
       const labelName = resolveFileNameForDisplay(filepath)
@@ -194,7 +194,7 @@ export function replaceAtMentionPlaceHolder(value: string) {
 export function encodeMentionPlaceHolder(value: string): string {
   let newValue = value
   let match
-  while ((match = PLACEHOLDER_FILE_REGEX_ESCAPED.exec(value)) !== null) {
+  while ((match = PLACEHOLDER_FILE_REGEX.exec(value)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
@@ -204,7 +204,7 @@ export function encodeMentionPlaceHolder(value: string): string {
       continue
     }
   }
-  while ((match = PLACEHOLDER_SYMBOL_REGEX_ESCAPED.exec(value)) !== null) {
+  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(value)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
@@ -216,7 +216,7 @@ export function encodeMentionPlaceHolder(value: string): string {
   }
 
   // encode the contextCommand placeholder
-  while ((match = PLACEHOLDER_COMMAND_REGEX_ESCAPED.exec(value)) !== null) {
+  while ((match = PLACEHOLDER_COMMAND_REGEX.exec(value)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
@@ -255,41 +255,41 @@ export function getTitleFromMessages(
   const firstLine = processedContent.split('\n')[0] ?? ''
 
   const cleanedLine = firstLine
-    .replace(MARKDOWN_SOURCE_REGEX_ESCAPED, value => {
-      const sourceId = value.slice(11, -2).replaceAll(/\\/g, '')
+    .replace(MARKDOWN_SOURCE_REGEX, value => {
+      const sourceId = value.slice(9, -2).replaceAll(/\\/g, '')
       const source = sources.find(s => s.sourceId === sourceId)
       return source?.sourceName ?? ''
     })
-    .replace(PLACEHOLDER_FILE_REGEX_ESCAPED, value => {
+    .replace(PLACEHOLDER_FILE_REGEX, value => {
       try {
-        const content = JSON.parse(value.slice(9, -2))
+        const content = JSON.parse(value.slice(7, -2))
         return resolveFileNameForDisplay(content.filepath)
       } catch (e) {
         return ''
       }
     })
-    .replace(PLACEHOLDER_SYMBOL_REGEX_ESCAPED, value => {
+    .replace(PLACEHOLDER_SYMBOL_REGEX, value => {
       try {
-        const content = JSON.parse(value.slice(11, -2))
+        const content = JSON.parse(value.slice(9, -2))
         return `@${content.label}`
       } catch (e) {
         return ''
       }
     })
-    .replace(PLACEHOLDER_COMMAND_REGEX_ESCAPED, value => {
-      const command = value.slice(21, -3)
+    .replace(PLACEHOLDER_COMMAND_REGEX, value => {
+      const command = value.slice(19, -3)
       return `@${command}`
     })
-    .replace(PLACEHOLDER_SYMBOL_REGEX_ESCAPED, value => {
+    .replace(PLACEHOLDER_SYMBOL_REGEX, value => {
       try {
-        const content = JSON.parse(value.slice(11, -2))
+        const content = JSON.parse(value.slice(9, -2))
         return `@${content.label}`
       } catch (e) {
         return ''
       }
     })
-    .replace(PLACEHOLDER_COMMAND_REGEX_ESCAPED, value => {
-      const command = value.slice(21, -3)
+    .replace(PLACEHOLDER_COMMAND_REGEX, value => {
+      const command = value.slice(19, -3)
       return `@${command}`
     })
     .trim()

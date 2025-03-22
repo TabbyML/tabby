@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
 import * as z from 'zod'
 
-import { MARKDOWN_CITATION_REGEX_ESCAPED } from '@/lib/constants/regex'
+import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import {
   ContextSource,
   Maybe,
@@ -118,7 +118,7 @@ export function AssistantMessageSection({
     }
 
     const content = answer.content
-      .replace(MARKDOWN_CITATION_REGEX_ESCAPED, match => {
+      .replace(MARKDOWN_CITATION_REGEX, match => {
         const citationNumberMatch = match?.match(/\d+/)
         return `[${citationNumberMatch}]`
       })

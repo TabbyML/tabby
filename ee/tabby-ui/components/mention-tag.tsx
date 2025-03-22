@@ -4,8 +4,8 @@ import React, { useMemo } from 'react'
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 
 import {
-  MARKDOWN_COMMAND_REGEX_ESCAPED,
-  MARKDOWN_SOURCE_REGEX_ESCAPED
+  MARKDOWN_COMMAND_REGEX,
+  MARKDOWN_SOURCE_REGEX
 } from '@/lib/constants/regex'
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
@@ -81,10 +81,9 @@ export function ThreadTitleWithMentions({
     processedMessage = convertContextBlockToPlaceholder(processedMessage)
 
     const partsWithSources = processedMessage
-      .split(MARKDOWN_SOURCE_REGEX_ESCAPED)
+      .split(MARKDOWN_SOURCE_REGEX)
       .map((part, index) => {
         if (index % 2 === 1) {
-          // TODO(Sma1lboy): AST to string shouldn't bring \, it will fix in next few PRs
           const sourceId = part.replace(/\\/g, '')
           const source = sources?.find(s => s.sourceId === sourceId)
           if (source) {
@@ -110,7 +109,7 @@ export function ThreadTitleWithMentions({
 
       const textPart = part as string
       return textPart
-        .split(MARKDOWN_COMMAND_REGEX_ESCAPED)
+        .split(MARKDOWN_COMMAND_REGEX)
         .map((cmdPart: string, cmdIndex: number) => {
           if (cmdIndex % 2 === 1) {
             return `@${cmdPart.replace(/"/g, '')}`

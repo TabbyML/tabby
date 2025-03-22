@@ -4,9 +4,9 @@ import { FileBox, SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import {
-  PLACEHOLDER_COMMAND_REGEX_ESCAPED,
-  PLACEHOLDER_FILE_REGEX_ESCAPED,
-  PLACEHOLDER_SYMBOL_REGEX_ESCAPED
+  PLACEHOLDER_COMMAND_REGEX,
+  PLACEHOLDER_FILE_REGEX,
+  PLACEHOLDER_SYMBOL_REGEX
 } from '@/lib/constants/regex'
 import { FileContext } from '@/lib/types'
 import {
@@ -68,7 +68,7 @@ export function replaceAtMentionPlaceHolderWithAt(value: string) {
   let match
 
   // Use a loop to handle cases where the string contains multiple placeholders
-  while ((match = PLACEHOLDER_FILE_REGEX_ESCAPED.exec(value)) !== null) {
+  while ((match = PLACEHOLDER_FILE_REGEX.exec(value)) !== null) {
     try {
       const filepath = match[1]
       const filepathInfo = JSON.parse(filepath) as Filepath
@@ -80,7 +80,7 @@ export function replaceAtMentionPlaceHolderWithAt(value: string) {
     }
   }
 
-  while ((match = PLACEHOLDER_SYMBOL_REGEX_ESCAPED.exec(value)) !== null) {
+  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(value)) !== null) {
     try {
       const symbolPlaceholder = match[1]
       const symbolInfo = JSON.parse(symbolPlaceholder)
@@ -106,7 +106,7 @@ export function getFilepathStringByChatPanelFilePath(
 export function convertTextToTiptapContent(text: string): JSONContent[] {
   const nodes: JSONContent[] = []
   let lastIndex = 0
-  text.replace(PLACEHOLDER_FILE_REGEX_ESCAPED, (match, filepath, offset) => {
+  text.replace(PLACEHOLDER_FILE_REGEX, (match, filepath, offset) => {
     const content = JSON.parse(filepath) as Filepath
     const label = resolveFileNameForDisplay(
       'uri' in content ? content.uri : content.filepath
@@ -137,7 +137,7 @@ export function convertTextToTiptapContent(text: string): JSONContent[] {
     return match
   })
 
-  text.replace(PLACEHOLDER_SYMBOL_REGEX_ESCAPED, (match, symbol, offset) => {
+  text.replace(PLACEHOLDER_SYMBOL_REGEX, (match, symbol, offset) => {
     const content = JSON.parse(symbol) as ListSymbolItem
 
     const label = content.label || ''
@@ -163,7 +163,7 @@ export function convertTextToTiptapContent(text: string): JSONContent[] {
     return match
   })
 
-  text.replace(PLACEHOLDER_COMMAND_REGEX_ESCAPED, (match, command, offset) => {
+  text.replace(PLACEHOLDER_COMMAND_REGEX, (match, command, offset) => {
     if (offset > lastIndex) {
       nodes.push({
         type: 'text',

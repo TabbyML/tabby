@@ -3,6 +3,61 @@ import { remark } from 'remark'
 import remarkStringify from 'remark-stringify'
 
 /**
+ * Custom stringification of AST to preserve special patterns
+ * @param ast AST to stringify
+ * @returns Plain string representation
+ */
+export function customAstToString(ast: Root): string {
+  let result = ''
+
+  for (const node of ast.children) {
+    result += nodeToString(node) + '\n\n'
+  }
+
+  // Remove trailing newlines
+  return result.trim()
+}
+
+/**
+ * Convert a single node to string
+ * @param node AST node
+ * @returns String representation
+ */
+function nodeToString(node: any): string {
+  switch (node.type) {
+    case 'paragraph':
+      return paragraphToString(node)
+    case 'text':
+      return node.value
+    default:
+      const processor = remark().use(remarkStringify)
+      return processor.stringify({ type: 'root', children: [node] }).trim()
+  }
+}
+
+/**
+ * Convert paragraph node to string
+ * @param node Paragraph node
+ * @returns String representation
+ */
+function paragraphToString(node: any): string {
+  return childrenToString(node)
+}
+
+/**
+ * Process children of a node and join them
+ * @param node Parent node
+ * @returns Combined string of all children
+ */
+function childrenToString(node: any): string {
+  if (!node.children || node.children.length === 0) {
+    return ''
+  }
+
+  return node.children.map((child: any) => nodeToString(child)).join('')
+}
+
+/**
  * Process code blocks with specific labels and insert corresponding command markers
  * @param ast The parsed AST
  * @param labelValue Label value to look for
@@ -20,7 +75,6 @@ export function processCodeBlocksWithLabel(
     const node = ast.children[i]
 
     // Check if the node is a code block with the specified label
-    // TODO: extract logic for generic use in later symbol/file context change
     if (node.type === 'code' && node.meta === `label=${labelValue}`) {
       const prevNode = newChildren[newChildren.length - 1] as Parent | undefined
       const nextNode = ast.children[i + 1] as Parent | undefined
@@ -76,7 +130,7 @@ export function processCodeBlocksWithLabel(
 }
 
 /**
- * Process context commands in text
+ * Process context commands in text using custom AST string conversion
  * @param input Input text
  * @param labelValue Label value to look for
  * @param commandText Command text to insert
@@ -87,16 +141,22 @@ export function processContextCommand(
   labelValue: string,
   commandText: string
 ): string {
-  const processor = remark().use(remarkStringify as any, {
-    entities: 'permissive'
-  })
-
+  // Parse input to AST
+  const processor = remark()
   const ast = processor.parse(input) as Root
 
+  // Process the AST using our AST-based approach
   ast.children = processCodeBlocksWithLabel(ast, labelValue, commandText)
-  return processor.stringify(ast)
+
+  // Use our custom stringifier instead of the built-in one
+  return customAstToString(ast)
 }
 
+/**
+ * Convert context block to placeholder
+ * @param input Input text
+ * @returns Processed text with context commands replaced by placeholders
+ */
 export function convertContextBlockToPlaceholder(input: string): string {
   return processContextCommand(
     input,
@@ -104,13 +164,12 @@ export function convertContextBlockToPlaceholder(input: string): string {
     '[[contextCommand: "changes"]]'
   )
 }
-/**
- * convert context block to label name
- * from
- * @param input message
- * @returns
- */
 
+/**
+ * Convert context block to label name
+ * @param input Input text
+ * @returns Processed text with context commands replaced by label names
+ */
 export function convertContextBlockToLabelName(input: string): string {
   return processContextCommand(input, 'changes', '@changes')
 }

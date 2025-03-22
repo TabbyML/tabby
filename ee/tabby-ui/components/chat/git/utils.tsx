@@ -1,6 +1,6 @@
 import { ChangeItem } from 'tabby-chat-panel/index'
 
-import { PLACEHOLDER_COMMAND_REGEX_ESCAPED } from '@/lib/constants/regex'
+import { PLACEHOLDER_COMMAND_REGEX } from '@/lib/constants/regex'
 import { nanoid } from '@/lib/utils'
 
 import { GitChange } from '../types'
@@ -48,7 +48,7 @@ export function convertChangesToGitChanges(changes: ChangeItem[]): GitChange[] {
 }
 
 export function hasChangesCommand(text: string): boolean {
-  const commandMatch = text.match(PLACEHOLDER_COMMAND_REGEX_ESCAPED)
+  const commandMatch = text.match(PLACEHOLDER_COMMAND_REGEX)
   return (
     commandMatch !== null &&
     extractContextCommand(commandMatch[0]) === 'changes'
