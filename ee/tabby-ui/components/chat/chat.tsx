@@ -5,7 +5,6 @@ import {
   findIndex,
   isEqual,
   isEqualWith,
-  pad,
   some,
   uniqWith
 } from 'lodash-es'

@@ -17,7 +17,6 @@ import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
 import { isEqual, uniqBy } from 'lodash-es'
-import { ListFileItem, ListSymbolItem } from 'tabby-chat-panel/index'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
 import { NEWLINE_CHARACTER } from '@/lib/constants'
@@ -292,22 +291,19 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         added: EditorMentionData[]
         removed: EditorMentionData[]
       }) => {
-        const getFilepathInfo = (
-          mention:
-            | {
-                category: 'file'
-                fileItem: ListFileItem
-              }
-            | {
-                category: 'symbol'
-                fileItem: ListSymbolItem
-              }
-        ) => {
+        const getFilepathInfo = (mention: EditorMentionData) => {
+          if (mention.category === 'command') {
+            return {
+              filepath: '',
+              displayName: mention.command || 'command'
+            }
+          }
+
           let filepath = mention.fileItem.filepath
           const path = convertFromFilepath(filepath)
 
           let displayName
-          if (mention.category === 'symbol' && mention.fileItem.label) {
+          if (mention.category === 'symbol' && 'label' in mention.fileItem) {
             displayName = mention.fileItem.label
           } else {
             displayName = resolveFileNameForDisplay(path.filepath)
@@ -322,8 +318,12 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         if (added.length > 0) {
           const newBadges = added
             .filter(
-              mention =>
-                mention.category === 'file' || mention.category === 'symbol'
+              (
+                mention
+              ): mention is Extract<
+                EditorMentionData,
+                { category: 'file' | 'symbol' }
+              > => mention.category === 'file' || mention.category === 'symbol'
             )
             .map(mention => {
               const { filepath, displayName } = getFilepathInfo(mention)
