@@ -509,36 +509,56 @@ export class ChatWebview extends EventEmitter {
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
         const maxResults = params.limit || 50;
         const searchQuery = params.query?.trim();
-
         if (!searchQuery) {
           const openTabs = window.tabGroups.all
             .flatMap((group) => group.tabs)
             .filter((tab) => tab.input && (tab.input as TabInputText).uri);
-
           const openTabItems = openTabs.map((tab) =>
             localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider),
           );
 
-          // If we have less than 5 open tabs, fetch additional files to make total = 5
-          if (openTabs.length < 5) {
-            const additionalCount = 5 - openTabs.length;
-            this.logger.info(`Found ${openTabs.length} open tabs, fetching ${additionalCount} more files`);
+          const targetCount = 5;
+
+          const uniqueItems = new Map();
+          openTabItems.forEach((item) => {
+            const key = JSON.stringify(item.filepath);
+            uniqueItems.set(key, item);
+          });
+
+          if (uniqueItems.size < targetCount) {
+            const additionalCount = targetCount * 2;
             const files = await this.findFiles("**/*", { maxResults: additionalCount });
-            this.logger.info(`Found ${files.length} additional files`);
             const fileItems = files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
-            return [...openTabItems, ...fileItems];
+
+            for (const item of fileItems) {
+              const key = JSON.stringify(item.filepath);
+              if (!uniqueItems.has(key) && uniqueItems.size < targetCount) {
+                uniqueItems.set(key, item);
+              }
+            }
+
+            const combined = Array.from(uniqueItems.values());
+            return combined.slice(0, targetCount);
           }
 
-          this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
-          return openTabItems;
+          const uniqueOpenTabs = Array.from(uniqueItems.values());
+          return uniqueOpenTabs.slice(0, targetCount);
         }
 
         try {
+          // For search queries, limit results to 10
+          const effectiveMaxResults = Math.min(maxResults, 10);
           const globPattern = caseInsensitivePattern(searchQuery);
-          this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
-          const files = await this.findFiles(globPattern, { maxResults });
-          this.logger.info(`Found ${files.length} files.`);
-          return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
+          const files = await this.findFiles(globPattern, { maxResults: effectiveMaxResults });
+
+          const uniqueItems = new Map();
+          files.forEach((uri) => {
+            const item = localUriToListFileItem(uri, this.gitProvider);
+            const key = JSON.stringify(item.filepath);
+            uniqueItems.set(key, item);
+          });
+
+          return Array.from(uniqueItems.values());
         } catch (error) {
           this.logger.warn("Failed to find files:", error);
           return [];
