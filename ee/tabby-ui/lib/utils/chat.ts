@@ -252,17 +252,17 @@ export function getTitleFromMessages(
   options?: { maxLength?: number }
 ) {
   const processedContent = convertContextBlockToLabelName(content)
-
   const firstLine = processedContent.split('\n')[0] ?? ''
+
   const cleanedLine = firstLine
     .replace(MARKDOWN_SOURCE_REGEX, value => {
-      const sourceId = value.slice(9, -2)
+      const sourceId = value.slice(9, -2).replaceAll(/\\/g, '')
       const source = sources.find(s => s.sourceId === sourceId)
       return source?.sourceName ?? ''
     })
     .replace(PLACEHOLDER_FILE_REGEX, value => {
       try {
-        const content = JSON.parse(value.slice(9, -2))
+        const content = JSON.parse(value.slice(7, -2))
         return resolveFileNameForDisplay(content.filepath)
       } catch (e) {
         return ''
@@ -270,16 +270,29 @@ export function getTitleFromMessages(
     })
     .replace(PLACEHOLDER_SYMBOL_REGEX, value => {
       try {
-        const content = JSON.parse(value.slice(11, -2))
+        const content = JSON.parse(value.slice(9, -2))
         return `@${content.label}`
       } catch (e) {
         return ''
       }
     })
     .replace(PLACEHOLDER_COMMAND_REGEX, value => {
-      const command = value.slice(21, -3)
+      const command = value.slice(19, -3)
       return `@${command}`
     })
+    .replace(PLACEHOLDER_SYMBOL_REGEX, value => {
+      try {
+        const content = JSON.parse(value.slice(9, -2))
+        return `@${content.label}`
+      } catch (e) {
+        return ''
+      }
+    })
+    .replace(PLACEHOLDER_COMMAND_REGEX, value => {
+      const command = value.slice(19, -3)
+      return `@${command}`
+    })
+    .trim()
 
     .trim()
   let title = cleanedLine

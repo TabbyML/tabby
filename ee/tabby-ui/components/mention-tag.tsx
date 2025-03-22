@@ -84,7 +84,7 @@ export function ThreadTitleWithMentions({
       .split(MARKDOWN_SOURCE_REGEX)
       .map((part, index) => {
         if (index % 2 === 1) {
-          const sourceId = part
+          const sourceId = part.replace(/\\/g, '')
           const source = sources?.find(s => s.sourceId === sourceId)
           if (source) {
             return (
