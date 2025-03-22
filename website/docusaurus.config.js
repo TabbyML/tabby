@@ -123,19 +123,6 @@ export default {
             ],
           },
           {
-            title: 'Community',
-            items: [
-              {
-                label: 'Slack',
-                href: 'https://slack.tabbyml.com',
-              },
-              {
-                label: 'GitHub',
-                href: 'https://github.com/TabbyML/tabby',
-              },
-            ],
-          },
-          {
             title: 'More',
             items: [
               {
