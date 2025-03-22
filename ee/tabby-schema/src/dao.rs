@@ -5,7 +5,7 @@ use tabby_db::{
     AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentCommitDoc,
     AttachmentDoc, AttachmentIssueDoc, AttachmentPullDoc, AttachmentWebDoc, EmailSettingDAO,
     IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
-    OAuthCredentialDAO, PageDAO, PageSectionDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
+    OAuthCredentialDAO, PageDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
 };
 
 use crate::{
@@ -386,36 +386,6 @@ impl From<PageDAO> for page::Page {
     }
 }
 
-impl From<PageSectionDAO> for page::PageSection {
-    fn from(value: PageSectionDAO) -> Self {
-        let (code, code_file_list) = if let Some(attachment) = value.attachment {
-            let code = attachment
-                .0
-                .code
-                .map(|x| x.iter().map(|x| x.into()).collect());
-            let code_file_list = attachment.0.code_file_list.map(|x| x.into());
-
-            (code, code_file_list)
-        } else {
-            (None, None)
-        };
-        Self {
-            id: value.id.as_id(),
-            page_id: value.page_id.as_id(),
-            title: value.title,
-            position: value.position as i32,
-            content: value.content.unwrap_or_default(),
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-
-            attachments: page::SectionAttachment {
-                code: code.unwrap_or_default(),
-                code_file_list,
-            },
-        }
-    }
-}
-
 impl From<&retrieval::AttachmentCode> for AttachmentCode {
     fn from(value: &retrieval::AttachmentCode) -> Self {
         Self {
@@ -447,6 +417,47 @@ impl From<AttachmentCodeFileList> for retrieval::AttachmentCodeFileList {
         Self {
             file_list: value.file_list,
             truncated: value.truncated,
+        }
+    }
+}
+
+impl From<&retrieval::AttachmentDoc> for AttachmentDoc {
+    fn from(value: &retrieval::AttachmentDoc) -> Self {
+        match value {
+            retrieval::AttachmentDoc::Web(web) => AttachmentDoc::Web(AttachmentWebDoc {
+                title: web.title.clone(),
+                link: web.link.clone(),
+                content: web.content.clone(),
+            }),
+            retrieval::AttachmentDoc::Issue(issue) => AttachmentDoc::Issue(AttachmentIssueDoc {
+                title: issue.title.clone(),
+                link: issue.link.clone(),
+                author_user_id: issue.author.as_ref().map(|x| match x {
+                    UserValue::UserSecured(user) => user.id.to_string(),
+                }),
+                body: issue.body.clone(),
+                closed: issue.closed,
+            }),
+            retrieval::AttachmentDoc::Pull(pull) => AttachmentDoc::Pull(AttachmentPullDoc {
+                title: pull.title.clone(),
+                link: pull.link.clone(),
+                author_user_id: pull.author.as_ref().map(|x| match x {
+                    UserValue::UserSecured(user) => user.id.to_string(),
+                }),
+                body: pull.body.clone(),
+                diff: pull.diff.clone(),
+                merged: pull.merged,
+            }),
+            retrieval::AttachmentDoc::Commit(commit) => {
+                AttachmentDoc::Commit(AttachmentCommitDoc {
+                    sha: commit.sha.clone(),
+                    message: commit.message.clone(),
+                    author_user_id: commit.author.as_ref().map(|x| match x {
+                        UserValue::UserSecured(user) => user.id.to_string(),
+                    }),
+                    author_at: commit.author_at,
+                })
+            }
         }
     }
 }

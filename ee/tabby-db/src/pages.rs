@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, types::Json, FromRow};
 use tabby_db_macros::query_paged_as;
 
-use crate::{Attachment, AttachmentCode, AttachmentCodeFileList, DbConn};
+use crate::{Attachment, AttachmentCode, AttachmentCodeFileList, AttachmentDoc, DbConn};
 
 #[derive(FromRow)]
 pub struct PageDAO {
@@ -290,6 +290,23 @@ impl DbConn {
         query!(
             "UPDATE page_sections SET attachment = JSON_SET(attachment, '$.code_file_list', JSON(?)), updated_at = DATETIME('now') WHERE id = ?",
             code_file_list_attachment,
+            section_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_page_section_doc_attachments(
+        &self,
+        section_id: i64,
+        doc_attachments: &[AttachmentDoc],
+    ) -> Result<()> {
+        let doc_attachments = Json(doc_attachments);
+        query!(
+            "UPDATE page_sections SET attachment = JSON_SET(attachment, '$.doc', JSON(?)), updated_at = DATETIME('now') WHERE id = ?",
+            doc_attachments,
             section_id
         )
         .execute(&self.pool)

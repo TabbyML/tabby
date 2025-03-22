@@ -11,12 +11,17 @@ use tabby_common::api::{
         CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
         CodeSearchScores,
     },
-    structured_doc::{DocSearch, DocSearchError, DocSearchHit},
+    structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
 };
 use tabby_schema::{
+    auth::AuthenticationService,
     context::ContextInfoHelper,
+    interface::UserValue,
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
+    retrieval::{
+        AttachmentCommitDoc, AttachmentDoc, AttachmentIssueDoc, AttachmentPullDoc, AttachmentWebDoc,
+    },
     thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput},
     CoreError, Result,
 };
@@ -280,6 +285,119 @@ pub async fn merge_code_snippets(
 
     result.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
     result
+}
+
+pub async fn attachment_doc_from_search(
+    auth: Arc<dyn AuthenticationService>,
+    doc: DocSearchDocument,
+) -> AttachmentDoc {
+    let author = {
+        let email = match &doc {
+            DocSearchDocument::Issue(issue) => issue.author_email.as_deref(),
+            DocSearchDocument::Pull(pull) => pull.author_email.as_deref(),
+            DocSearchDocument::Commit(commit) => Some(commit.author_email.as_str()),
+            _ => None,
+        };
+
+        if let Some(email) = email {
+            auth.get_user_by_email(email).await.ok().map(|x| x.into())
+        } else {
+            None
+        }
+    };
+
+    match doc {
+        DocSearchDocument::Web(web) => AttachmentDoc::Web(AttachmentWebDoc {
+            title: web.title,
+            link: web.link,
+            content: web.snippet,
+        }),
+        DocSearchDocument::Issue(issue) => AttachmentDoc::Issue(AttachmentIssueDoc {
+            title: issue.title,
+            link: issue.link,
+            author,
+            body: issue.body,
+            closed: issue.closed,
+        }),
+        DocSearchDocument::Pull(pull) => AttachmentDoc::Pull(AttachmentPullDoc {
+            title: pull.title,
+            link: pull.link,
+            author,
+            body: pull.body,
+            diff: pull.diff,
+            merged: pull.merged,
+        }),
+        DocSearchDocument::Commit(commit) => AttachmentDoc::Commit(AttachmentCommitDoc {
+            sha: commit.sha,
+            message: commit.message,
+            author,
+            author_at: commit.author_at,
+        }),
+    }
+}
+
+pub async fn attachment_docs_from_db(
+    auth: Arc<dyn AuthenticationService>,
+    docs: Vec<tabby_db::AttachmentDoc>,
+) -> Vec<AttachmentDoc> {
+    let mut output = Vec::with_capacity(docs.len());
+
+    for doc in docs {
+        let author = {
+            let author_id = match &doc {
+                tabby_db::AttachmentDoc::Issue(issue) => issue.author_user_id.as_deref(),
+                tabby_db::AttachmentDoc::Pull(pull) => pull.author_user_id.as_deref(),
+                tabby_db::AttachmentDoc::Commit(commit) => commit.author_user_id.as_deref(),
+                _ => None,
+            };
+
+            if let Some(id) = author_id {
+                auth.get_user(&juniper::ID::from(id.to_owned()))
+                    .await
+                    .ok()
+                    .map(|x| x.into())
+            } else {
+                None
+            }
+        };
+
+        output.push(attachment_doc_from_db(doc, author));
+    }
+    output
+}
+
+pub fn attachment_doc_from_db(
+    value: tabby_db::AttachmentDoc,
+    author: Option<UserValue>,
+) -> AttachmentDoc {
+    match value {
+        tabby_db::AttachmentDoc::Web(web) => AttachmentDoc::Web(AttachmentWebDoc {
+            title: web.title,
+            link: web.link,
+            content: web.content,
+        }),
+        tabby_db::AttachmentDoc::Issue(issue) => AttachmentDoc::Issue(AttachmentIssueDoc {
+            title: issue.title,
+            link: issue.link,
+            author,
+            body: issue.body,
+            closed: issue.closed,
+        }),
+        tabby_db::AttachmentDoc::Pull(pull) => AttachmentDoc::Pull(AttachmentPullDoc {
+            title: pull.title,
+            link: pull.link,
+            author,
+            body: pull.body,
+            diff: pull.diff,
+            merged: pull.merged,
+        }),
+        tabby_db::AttachmentDoc::Commit(commit) => AttachmentDoc::Commit(AttachmentCommitDoc {
+            sha: commit.sha,
+            message: commit.message,
+            author,
+            author_at: commit.author_at,
+        }),
+    }
 }
 
 /// Read file content and return raw file content string.

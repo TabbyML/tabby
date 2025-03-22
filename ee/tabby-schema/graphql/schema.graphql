@@ -154,12 +154,14 @@ input CreateMessageInput {
 
 input CreatePageRunInput {
   titlePrompt: String!
+  docQuery: DocQueryInput = null
   codeQuery: CodeQueryInput = null
 }
 
 input CreatePageSectionRunInput {
   pageId: ID!
   titlePrompt: String!
+  docQuery: DocQueryInput = null
 }
 
 input CreateThreadAndRunInput {
@@ -378,6 +380,41 @@ type AttachmentCodeScores {
   rrf: Float!
   bm25: Float!
   embedding: Float!
+}
+
+type AttachmentCommitDoc {
+  sha: String!
+  message: String!
+  author: User
+  authorAt: DateTime!
+}
+
+type AttachmentDocHit {
+  doc: AttachmentDoc!
+  score: Float!
+}
+
+type AttachmentIssueDoc {
+  title: String!
+  link: String!
+  author: User
+  body: String!
+  closed: Boolean!
+}
+
+type AttachmentPullDoc {
+  title: String!
+  link: String!
+  author: User
+  body: String!
+  diff: String!
+  merged: Boolean!
+}
+
+type AttachmentWebDoc {
+  title: String!
+  link: String!
+  content: String!
 }
 
 type AuthProvider {
@@ -853,6 +890,11 @@ type PageSectionAttachmentCodeFileList {
   codeFileList: AttachmentCodeFileList!
 }
 
+type PageSectionAttachmentDoc {
+  id: ID!
+  doc: [AttachmentDocHit!]!
+}
+
 type PageSectionContentCompleted {
   id: ID!
 }
@@ -1021,6 +1063,7 @@ type RepositoryGrepOutput {
 type SectionAttachment {
   code: [AttachmentCode!]!
   codeFileList: AttachmentCodeFileList
+  doc: [AttachmentDoc!]!
 }
 
 type SectionConnection {
@@ -1200,13 +1243,15 @@ type WebContextSource implements ContextSourceId & ContextSource {
   sourceName: String!
 }
 
+union AttachmentDoc = AttachmentWebDoc | AttachmentIssueDoc | AttachmentPullDoc | AttachmentCommitDoc
+
 union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc | MessageAttachmentCommitDoc
 
 "Schema of page convert stream."
-union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
+union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionAttachmentDoc | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
 
 "Schema of page convert stream."
-union SectionRunItem = PageSection | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionContentDelta | PageSectionContentCompleted
+union SectionRunItem = PageSection | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionAttachmentDoc | PageSectionContentDelta | PageSectionContentCompleted
 
 """
   Schema of thread run stream.
