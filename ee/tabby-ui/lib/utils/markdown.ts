@@ -11,7 +11,7 @@ export function customAstToString(ast: Root): string {
   let result = ''
 
   for (const node of ast.children) {
-    result += nodeToString(node) + '\n\n'
+    result += nodeToString(node) + '\n'
   }
 
   // Remove trailing newlines
@@ -70,23 +70,36 @@ export function processCodeBlocksWithLabel(
   commandText: string
 ): RootContent[] {
   const newChildren: RootContent[] = []
-
   for (let i = 0; i < ast.children.length; i++) {
     const node = ast.children[i]
-
     // Check if the node is a code block with the specified label
     if (node.type === 'code' && node.meta === `label=${labelValue}`) {
       const prevNode = newChildren[newChildren.length - 1] as Parent | undefined
       const nextNode = ast.children[i + 1] as Parent | undefined
 
-      // Determine how to insert the command based on surrounding nodes
+      // Check if nodes are on the same line using position data
+      const isPrevNodeSameLine =
+        prevNode &&
+        prevNode.position &&
+        node.position &&
+        node.position.start.line - prevNode.position.end.line === 1
+
+      const isNextNodeSameLine =
+        nextNode &&
+        nextNode.position &&
+        node.position &&
+        nextNode.position.start.line - node.position.end.line === 1
+
+      // Determine how to insert the command based on surrounding nodes and line positions
       if (
         prevNode &&
         prevNode.type === 'paragraph' &&
         nextNode &&
-        nextNode.type === 'paragraph'
+        nextNode.type === 'paragraph' &&
+        isPrevNodeSameLine &&
+        isNextNodeSameLine
       ) {
-        // Case 1: Paragraphs both before and after - merge them
+        // Case 1: Paragraphs both before and after on same lines - merge them
         i++
         newChildren.pop()
         newChildren.push({
@@ -97,8 +110,12 @@ export function processCodeBlocksWithLabel(
             ...(nextNode.children || [])
           ]
         } as RootContent)
-      } else if (nextNode && nextNode.type === 'paragraph') {
-        // Case 2: Paragraph only after - add command before
+      } else if (
+        nextNode &&
+        nextNode.type === 'paragraph' &&
+        isNextNodeSameLine
+      ) {
+        // Case 2: Paragraph only after on same line - add command before
         i++
         newChildren.push({
           type: 'paragraph',
@@ -107,14 +124,18 @@ export function processCodeBlocksWithLabel(
             ...(nextNode.children || [])
           ]
         } as RootContent)
-      } else if (prevNode && prevNode.type === 'paragraph') {
-        // Case 3: Paragraph only before - add command after
+      } else if (
+        prevNode &&
+        prevNode.type === 'paragraph' &&
+        isPrevNodeSameLine
+      ) {
+        // Case 3: Paragraph only before on same line - add command after
         ;(prevNode.children || []).push({
           type: 'text',
           value: ` ${commandText}`
         })
       } else {
-        // Case 4: No paragraphs nearby - create new paragraph with command
+        // Case 4: No paragraphs nearby on same lines - create new paragraph with command
         newChildren.push({
           type: 'paragraph',
           children: [{ type: 'text', value: commandText }]
@@ -125,7 +146,6 @@ export function processCodeBlocksWithLabel(
       newChildren.push(node)
     }
   }
-
   return newChildren
 }
 
