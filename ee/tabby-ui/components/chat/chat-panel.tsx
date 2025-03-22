@@ -456,7 +456,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="hover:bg-muted/50 h-7 w-7 shrink-0 rounded-l-none"
+                          className="h-7 w-7 shrink-0 rounded-l-none hover:bg-muted/50"
                           onClick={e => {
                             e.stopPropagation()
                             setBadges(prev => prev.filter((_, i) => i !== idx))
