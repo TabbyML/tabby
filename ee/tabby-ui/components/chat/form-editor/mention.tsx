@@ -218,7 +218,22 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
               (await listFileInWorkspace?.({ query: currentQuery || '' })) || []
 
             if (currentQuery) {
-              result = files.map(fileItemToSourceItem)
+              // TODO(Sma1lboy): refactor this part as function if more context coimmand/category join
+              const changesCommand = getChanges
+                ? [commandItemToSourceItem(createChangesCommand())]
+                : []
+              const fileItems = files.map(fileItemToSourceItem)
+
+              if (
+                getChanges &&
+                createChangesCommand()
+                  .name.toLowerCase()
+                  .startsWith(currentQuery.toLowerCase())
+              ) {
+                result = [...changesCommand, ...fileItems]
+              } else {
+                result = fileItems
+              }
             } else {
               // No query, show categories and top-level items
               result = [
