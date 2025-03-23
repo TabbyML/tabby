@@ -16,14 +16,14 @@ import {
 import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
-import { isEqual, uniqBy } from 'lodash-es'
+import { uniqBy } from 'lodash-es'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
 import { NEWLINE_CHARACTER } from '@/lib/constants'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import { updateSelectedModel } from '@/lib/stores/chat-store'
-import { cn, convertFromFilepath, resolveFileNameForDisplay } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconArrowRight, IconAtSign } from '@/components/ui/icons'
 
