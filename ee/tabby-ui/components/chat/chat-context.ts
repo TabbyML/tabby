@@ -15,7 +15,7 @@ import type {
 import { RepositorySourceListQuery } from '@/lib/gql/generates/graphql'
 import { Context, MessageActionType, QuestionAnswerPair } from '@/lib/types'
 
-import { PromptBadge, PromptFormRef } from './types'
+import { PromptFormRef } from './types'
 
 export type ChatContextValue = {
   initialized: boolean
@@ -56,10 +56,6 @@ export type ChatContextValue = {
   repos: RepositorySourceListQuery['repositoryList'] | undefined
   fetchingRepos: boolean
   runShell?: (command: string) => Promise<void>
-  badges: PromptBadge[]
-  setBadges: React.Dispatch<React.SetStateAction<PromptBadge[]>>
-  addBadge: (badge: PromptBadge) => void
-  removeBadge: (index: number) => void
 }
 
 export const ChatContext = createContext<ChatContextValue>(

@@ -49,8 +49,7 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       relevantContext,
       setRelevantContext,
       listSymbols,
-      getChanges,
-      setBadges
+      getChanges
     } = useContext(ChatContext)
 
     const { selectedModel, models } = useSelectedModel()
@@ -208,29 +207,6 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         },
         onUpdate(props) {
           onUpdate?.(props)
-
-          if (!props.transaction.docChanged) {
-            return
-          }
-
-          // deal with mention diff
-          const { editor } = props
-          // get current mentions
-          const currentMentions: EditorMentionData[] = getMention(editor)
-
-          // detect changes
-          const added = currentMentions.filter(
-            c => !prevMentionsRef.current.some(p => isEqual(p, c))
-          )
-          const removed = prevMentionsRef.current.filter(
-            p => !currentMentions.some(c => isEqual(p, c))
-          )
-
-          if (added.length > 0 || removed.length > 0) {
-            onMentionUpdate({ added, removed })
-          }
-          // update snapshoot
-          prevMentionsRef.current = currentMentions
         }
       },
       [listFileInWorkspace, getChanges]
@@ -282,109 +258,6 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       }),
       [editor, input]
     )
-
-    const updateMentionBadges = useLatest(
-      ({
-        added,
-        removed
-      }: {
-        added: EditorMentionData[]
-        removed: EditorMentionData[]
-      }) => {
-        const getFilepathInfo = (mention: EditorMentionData) => {
-          if (mention.category === 'command') {
-            return {
-              filepath: '',
-              displayName: mention.command || 'command'
-            }
-          }
-
-          let filepath = mention.fileItem.filepath
-          const path = convertFromFilepath(filepath)
-
-          let displayName
-          if (mention.category === 'symbol' && 'label' in mention.fileItem) {
-            displayName = mention.fileItem.label
-          } else {
-            displayName = resolveFileNameForDisplay(path.filepath)
-          }
-
-          return {
-            displayName,
-            ...path
-          }
-        }
-
-        if (added.length > 0) {
-          const newBadges = added
-            .filter(
-              (
-                mention
-              ): mention is Extract<
-                EditorMentionData,
-                { category: 'file' | 'symbol' }
-              > => mention.category === 'file' || mention.category === 'symbol'
-            )
-            .map(mention => {
-              const { filepath, displayName } = getFilepathInfo(mention)
-              return {
-                id: `${filepath}${
-                  'range' in mention.fileItem
-                    ? `:${mention.fileItem.range?.start}-${mention.fileItem.range?.end}`
-                    : ''
-                }`,
-                filepath,
-                displayName,
-                range:
-                  mention.category === 'symbol'
-                    ? mention.fileItem.range
-                    : undefined,
-                category: mention.category
-              }
-            })
-
-          setBadges(prev => {
-            const combined = [...prev, ...newBadges]
-            return combined.filter(
-              (badge, index) =>
-                combined.findIndex(b => b.id === badge.id) === index
-            )
-          })
-        }
-
-        if (removed.length > 0) {
-          setBadges(prev =>
-            prev.filter(badge => {
-              return !removed.some(mention => {
-                if (
-                  mention.category !== 'file' &&
-                  mention.category !== 'symbol'
-                ) {
-                  return false
-                }
-                const { filepath } = getFilepathInfo(mention)
-                const mentionId = `${filepath}${
-                  'range' in mention.fileItem
-                    ? `:${mention.fileItem.range.start}-${mention.fileItem.range.end}`
-                    : ''
-                }`
-                return badge.id === mentionId
-              })
-            })
-          )
-        }
-      }
-    )
-
-    const onMentionUpdate = ({
-      added,
-      removed
-    }: {
-      added: EditorMentionData[]
-      removed: EditorMentionData[]
-    }) => {
-      updateMentionBadges.current({ added, removed })
-    }
 
     return (
       <div className={cn('relative flex flex-col', className)} {...props}>

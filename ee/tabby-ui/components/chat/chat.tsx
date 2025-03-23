@@ -79,7 +79,7 @@ import './git/utils'
 
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
-import { ChatRef, PromptBadge, PromptFormRef } from './types'
+import { ChatRef, PromptFormRef } from './types'
 
 interface ChatProps extends React.ComponentProps<'div'> {
   threadId: string | undefined
@@ -163,17 +163,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const [activeSelection, setActiveSelection] =
       React.useState<Context | null>(null)
 
-    const [badges, setBadges] = React.useState<PromptBadge[]>([])
-    const addBadge = (badge: PromptBadge) => {
-      setBadges(prev => {
-        if (prev.some(b => b.id === badge.id)) return prev
-        return [...prev, badge]
-      })
-    }
-
-    const removeBadge = (index: number) => {
-      setBadges(prev => prev.filter((_, i) => i !== index))
-    }
     // sourceId
     const [selectedRepoId, setSelectedRepoId] = React.useState<
       string | undefined
@@ -654,7 +643,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       })
 
       setRelevantContext([])
-      setBadges([])
     }
 
     const handleAddRelevantContext = useLatest((context: Context) => {
@@ -824,11 +812,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           readFileContent,
           listSymbols,
           runShell,
-          getChanges,
-          badges,
-          addBadge,
-          removeBadge,
-          setBadges
+          getChanges
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>
