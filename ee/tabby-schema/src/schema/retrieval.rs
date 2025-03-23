@@ -48,7 +48,7 @@ pub struct AttachmentCodeFileList {
     pub truncated: bool,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 #[graphql(context = Context)]
 pub struct AttachmentDocHit {
     pub doc: AttachmentDoc,

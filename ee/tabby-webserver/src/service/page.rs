@@ -673,6 +673,7 @@ async fn generate_section_with_attachments(
                         }
                     }
                 })).await;
+                attachment.doc = hits.clone().into_iter().map(|x| x.doc.into()).collect::<Vec<_>>();
                 db.update_page_section_doc_attachments(section_id, &attachment.doc.iter().map(|c| c.into()).collect::<Vec<_>>()).await?;
                 yield Ok(SectionRunItem::PageSectionAttachmentDoc(
                     PageSectionAttachmentDoc {
