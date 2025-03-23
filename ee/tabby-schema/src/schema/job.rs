@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, path::PathBuf};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -19,6 +19,9 @@ pub struct JobRun {
     pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
     pub exit_code: Option<i32>,
+
+    // Deprecated since v0.27.0, not yet removed from the database
+    // use `background_job_logs` instead
     pub stdout: String,
 }
 
@@ -76,4 +79,6 @@ pub trait JobService: Send + Sync {
     ) -> Result<Vec<JobRun>>;
 
     async fn compute_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats>;
+
+    async fn log_file_path(&self, id: &ID) -> Option<PathBuf>;
 }
