@@ -87,6 +87,15 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn get_job_run(&self, id: i64) -> Option<JobRunDAO> {
+        sqlx::query_as(r#"SELECT * FROM job_runs WHERE id = ?"#)
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .ok()
+            .flatten()
+    }
+
     pub async fn get_latest_job_run(&self, command: String) -> Option<JobRunDAO> {
         sqlx::query_as(
             r#"SELECT * FROM job_runs WHERE command = ? ORDER BY created_at DESC LIMIT 1"#,
