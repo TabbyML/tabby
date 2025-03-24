@@ -15,10 +15,9 @@ import {
 } from '@/lib/stores/chat-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { setThreadPersistedMutation } from '@/lib/tabby/query'
-import type { Context, FileContext } from '@/lib/types'
+import type { Context } from '@/lib/types'
 import {
   cn,
-  convertEditorContext,
   getFileLocationFromContext,
   getTitleFromMessages,
   resolveFileNameForDisplay
@@ -41,7 +40,6 @@ import PromptForm from '@/components/chat/prompt-form'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ChatContext } from './chat-context'
-import { isSameFileContext } from './form-editor/utils'
 import { RepoSelect } from './repo-select'
 import { PromptFormRef } from './types'
 
@@ -140,37 +138,8 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
         return
       }
 
-      const { state, view } = editor
-      const { tr } = state
-      const positionsToDelete: any[] = []
-
-      const currentContext: FileContext = relevantContext[idx]
-      state.doc.descendants((node, pos) => {
-        if (
-          node.type.name === 'mention' &&
-          (node.attrs.category === 'file' || node.attrs.category === 'symbol')
-        ) {
-          const fileContext = convertEditorContext({
-            filepath: node.attrs.fileItem.filepath,
-            content: '',
-            kind: 'file',
-            range:
-              node.attrs.category === 'symbol'
-                ? node.attrs.fileItem.range
-                : undefined
-          })
-          if (isSameFileContext(fileContext, currentContext)) {
-            positionsToDelete.push({ from: pos, to: pos + node.nodeSize })
-          }
-        }
-      })
-
       setRelevantContext(prev => prev.filter((item, index) => index !== idx))
-      positionsToDelete.reverse().forEach(({ from, to }) => {
-        tr.delete(from, to)
-      })
 
-      view.dispatch(tr)
       editor.commands.focus()
     })
 

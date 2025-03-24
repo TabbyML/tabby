@@ -77,10 +77,12 @@ export function Header({
   })
 
   const handleDeleteThread = (e: MouseEvent<HTMLButtonElement>) => {
+    if (!threadId) return
+
     e.preventDefault()
     setIsDeleting(true)
     deleteThread({
-      id: threadIdFromURL!
+      id: threadId
     })
   }
 

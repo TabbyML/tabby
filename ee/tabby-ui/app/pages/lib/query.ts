@@ -65,6 +65,52 @@ export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
           }
         }
       }
+      ... on PageSectionAttachmentDoc {
+        id
+        doc {
+          doc {
+            __typename
+            ... on AttachmentWebDoc {
+              title
+              link
+              content
+            }
+            ... on AttachmentIssueDoc {
+              title
+              link
+              author {
+                id
+                email
+                name
+              }
+              body
+              closed
+            }
+            ... on AttachmentPullDoc {
+              title
+              link
+              author {
+                id
+                email
+                name
+              }
+              body
+              merged
+            }
+            ... on AttachmentCommitDoc {
+              sha
+              message
+              author {
+                id
+                email
+                name
+              }
+              authorAt
+            }
+          }
+          score
+        }
+      }
       ... on PageSectionContentDelta {
         id
         delta
@@ -112,6 +158,52 @@ export const createPageSectionRunSubscription = graphql(/* GraphQL */ `
             bm25
             embedding
           }
+        }
+      }
+      ... on PageSectionAttachmentDoc {
+        id
+        doc {
+          doc {
+            __typename
+            ... on AttachmentWebDoc {
+              title
+              link
+              content
+            }
+            ... on AttachmentIssueDoc {
+              title
+              link
+              author {
+                id
+                email
+                name
+              }
+              body
+              closed
+            }
+            ... on AttachmentPullDoc {
+              title
+              link
+              author {
+                id
+                email
+                name
+              }
+              body
+              merged
+            }
+            ... on AttachmentCommitDoc {
+              sha
+              message
+              author {
+                id
+                email
+                name
+              }
+              authorAt
+            }
+          }
+          score
         }
       }
       ... on PageSectionContentDelta {
@@ -188,6 +280,52 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
             bm25
             embedding
           }
+        }
+      }
+      ... on PageSectionAttachmentDoc {
+        id
+        doc {
+          doc {
+            __typename
+            ... on AttachmentWebDoc {
+              title
+              link
+              content
+            }
+            ... on AttachmentIssueDoc {
+              title
+              link
+              author {
+                id
+                email
+                name
+              }
+              body
+              closed
+            }
+            ... on AttachmentPullDoc {
+              title
+              link
+              author {
+                id
+                email
+                name
+              }
+              body
+              merged
+            }
+            ... on AttachmentCommitDoc {
+              sha
+              message
+              author {
+                id
+                email
+                name
+              }
+              authorAt
+            }
+          }
+          score
         }
       }
       ... on PageSectionContentDelta {

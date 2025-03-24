@@ -23,7 +23,7 @@ export default function useRouterStuff() {
 
   const getQueryString = useCallback(
     (kv?: Record<string, string>) => {
-      const newParams = new URLSearchParams(searchParams)
+      const newParams = new URLSearchParams(searchParams.toString())
       if (kv) {
         Object.entries(kv).forEach(([k, v]) => newParams.set(k, v))
       }
@@ -68,7 +68,7 @@ function resolveUrlComponents(
 ) {
   const set = options.searchParams?.set
   const del = options.searchParams?.del
-  const newParams = new URLSearchParams(searchParams)
+  const newParams = new URLSearchParams(searchParams.toString())
   if (set) {
     Object.entries(set).forEach(([k, v]) => newParams.set(k, v))
   }

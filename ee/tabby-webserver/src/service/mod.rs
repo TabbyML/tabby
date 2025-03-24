@@ -134,6 +134,7 @@ impl ServerContext {
             Arc::new(page::create(
                 PageConfig::default(),
                 db_conn.clone(),
+                auth.clone(),
                 chat.clone(),
                 thread.clone(),
                 context.clone(),

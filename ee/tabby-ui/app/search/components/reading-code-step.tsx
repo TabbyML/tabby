@@ -9,7 +9,12 @@ import {
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
-import { cn, isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
+import {
+  cn,
+  isAttachmentCommitDoc,
+  isCodeSourceContext,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -231,10 +236,7 @@ export function ReadingCodeStepper({
                   <div className="mb-3 mt-2 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {docs?.map((x, index) => {
-                        const _key =
-                          x.__typename === 'MessageAttachmentCommitDoc'
-                            ? x.sha
-                            : x.link
+                        const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
                         return (
                           <div key={`${_key}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
@@ -351,9 +353,15 @@ function CodeContextItem({
 
 // Issue, PR, Commit
 function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
-  const isIssue = doc.__typename === 'MessageAttachmentIssueDoc'
-  const isPR = doc.__typename === 'MessageAttachmentPullDoc'
-  const isCommit = doc.__typename === 'MessageAttachmentCommitDoc'
+  const isIssue =
+    doc.__typename === 'MessageAttachmentIssueDoc' ||
+    doc.__typename === 'AttachmentIssueDoc'
+  const isPR =
+    doc.__typename === 'MessageAttachmentPullDoc' ||
+    doc.__typename === 'AttachmentPullDoc'
+  const isCommit =
+    doc.__typename === 'MessageAttachmentCommitDoc' ||
+    doc.__typename === 'AttachmentCommitDoc'
 
   const docName = isCommit
     ? `${doc.sha.slice(0, 7)}`

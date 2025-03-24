@@ -33,12 +33,9 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
             let mut builder = ExtendedOpenAIConfig::builder();
             builder
                 .base(config)
+                .kind(model.kind.clone())
                 .supported_models(model.supported_models.clone())
                 .model_name(model.model_name.as_deref().expect("Model name is required"));
-
-            if model.kind == "mistral/chat" {
-                builder.fields_to_remove(ExtendedOpenAIConfig::mistral_fields_to_remove());
-            }
 
             Box::new(
                 async_openai_alt::Client::with_config(
