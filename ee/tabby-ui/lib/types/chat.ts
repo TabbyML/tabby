@@ -3,6 +3,7 @@ import type { components } from 'tabby-openapi'
 
 import {
   ContextSourceKind,
+  CreatePageRunSubscription,
   CreateThreadRunSubscription,
   MessageAttachmentCode,
   MessageCodeSearchHit,
@@ -136,6 +137,13 @@ type ExtractHitsByType<T, N> = T extends {
   ? H
   : never
 
+type ExtractDocByType<T, N> = T extends {
+  __typename: N
+  doc: infer H
+}
+  ? H
+  : never
+
 export type ThreadAssistantMessageAttachmentCodeHits = ExtractHitsByType<
   CreateThreadRunSubscription['createThreadRun'],
   'ThreadAssistantMessageAttachmentsCode'
@@ -143,6 +151,11 @@ export type ThreadAssistantMessageAttachmentCodeHits = ExtractHitsByType<
 export type ThreadAssistantMessageAttachmentDocHits = ExtractHitsByType<
   CreateThreadRunSubscription['createThreadRun'],
   'ThreadAssistantMessageAttachmentsDoc'
+>
+
+export type PageSectionAttachmentDocHits = ExtractDocByType<
+  CreatePageRunSubscription['createPageRun'],
+  'PageSectionAttachmentDoc'
 >
 
 // for rendering, including scores
@@ -157,11 +170,13 @@ export type AttachmentCodeItem = Omit<
 }
 
 // for rendering, including score
-// todo: __typename?: MessageAttachmentWebDoc | AttachmentDoc
 export type AttachmentDocItem =
-  ArrayElementType<ThreadAssistantMessageAttachmentDocHits>['doc'] & {
-    extra?: { score?: MessageDocSearchHit['score'] }
-  }
+  | (ArrayElementType<ThreadAssistantMessageAttachmentDocHits>['doc'] & {
+      extra?: { score?: MessageDocSearchHit['score'] }
+    })
+  | (ArrayElementType<PageSectionAttachmentDocHits>['doc'] & {
+      extra?: { score?: MessageDocSearchHit['score'] }
+    })
 
 export type MentionAttributes = {
   id: string

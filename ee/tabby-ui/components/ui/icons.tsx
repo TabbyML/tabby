@@ -849,6 +849,7 @@ function IconCode({ className, ...props }: React.ComponentProps<'svg'>) {
         fill="currentColor"
         fillRule="evenodd"
         clipRule="evenodd"
+        strokeWidth={2}
       ></path>
     </svg>
   )

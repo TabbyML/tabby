@@ -1,12 +1,12 @@
 import {
   AttachmentCode,
   AttachmentCodeFileList,
-  AttachmentDoc,
   ListPageSectionsQuery,
   ListPagesQuery,
   Maybe,
   MessageCodeSearchHit
 } from '@/lib/gql/generates/graphql'
+import { AttachmentDocItem } from '@/lib/types'
 
 export type PageItem = ListPagesQuery['pages']['edges'][0]['node']
 export type SectionItem = Omit<
@@ -21,11 +21,6 @@ export type SectionItem = Omit<
       }
     >
     codeFileList?: Maybe<AttachmentCodeFileList>
-    doc?: Array<
-      // todo type
-      AttachmentDoc & {
-        score?: number
-      }
-    >
+    doc?: Maybe<AttachmentDocItem[]>
   }
 }

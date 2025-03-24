@@ -536,9 +536,9 @@ export function Page() {
           titlePrompt,
           codeQuery: codeSourceId
             ? {
-              sourceId: codeSourceId,
-              content: titlePrompt
-            }
+                sourceId: codeSourceId,
+                content: titlePrompt
+              }
             : null,
           docQuery: {
             sourceIds: compact([codeSourceId]),
@@ -822,7 +822,7 @@ export function Page() {
 
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections ||
-    pageSectionData?.pageSections?.pageInfo?.hasNextPage,
+      pageSectionData?.pageSections?.pageInfo?.hasNextPage,
     200
   )
 

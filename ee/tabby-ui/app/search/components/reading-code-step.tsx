@@ -9,7 +9,7 @@ import {
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
-import { cn, isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
+import { cn, isAttachmentCommitDoc, isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -192,32 +192,32 @@ export function ReadingCodeStepper({
               >
                 {(!!clientCodeContexts?.length ||
                   !!serverCodeContexts?.length) && (
-                  <div className="mb-3 mt-2">
-                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                      {clientCodeContexts?.map((item, index) => {
-                        return (
-                          <CodeContextItem
-                            key={`client-${index}`}
-                            context={item}
-                            clickable={false}
-                            onContextClick={ctx => onContextClick?.(ctx, true)}
-                            enableDeveloperMode={enableDeveloperMode}
-                          />
-                        )
-                      })}
-                      {serverCodeContexts?.map((item, index) => {
-                        return (
-                          <CodeContextItem
-                            key={`server-${index}`}
-                            context={item}
-                            onContextClick={ctx => onContextClick?.(ctx, true)}
-                            enableDeveloperMode={enableDeveloperMode}
-                          />
-                        )
-                      })}
+                    <div className="mb-3 mt-2">
+                      <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                        {clientCodeContexts?.map((item, index) => {
+                          return (
+                            <CodeContextItem
+                              key={`client-${index}`}
+                              context={item}
+                              clickable={false}
+                              onContextClick={ctx => onContextClick?.(ctx, true)}
+                              enableDeveloperMode={enableDeveloperMode}
+                            />
+                          )
+                        })}
+                        {serverCodeContexts?.map((item, index) => {
+                          return (
+                            <CodeContextItem
+                              key={`server-${index}`}
+                              context={item}
+                              onContextClick={ctx => onContextClick?.(ctx, true)}
+                              enableDeveloperMode={enableDeveloperMode}
+                            />
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </StepItem>
             )}
             {docQuery && (
@@ -232,7 +232,7 @@ export function ReadingCodeStepper({
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {docs?.map((x, index) => {
                         const _key =
-                          x.__typename === 'MessageAttachmentCommitDoc'
+                          isAttachmentCommitDoc(x)
                             ? x.sha
                             : x.link
                         return (
@@ -351,9 +351,15 @@ function CodeContextItem({
 
 // Issue, PR, Commit
 function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
-  const isIssue = doc.__typename === 'MessageAttachmentIssueDoc'
-  const isPR = doc.__typename === 'MessageAttachmentPullDoc'
-  const isCommit = doc.__typename === 'MessageAttachmentCommitDoc'
+  const isIssue =
+    doc.__typename === 'MessageAttachmentIssueDoc' ||
+    doc.__typename === 'AttachmentIssueDoc'
+  const isPR =
+    doc.__typename === 'MessageAttachmentPullDoc' ||
+    doc.__typename === 'AttachmentPullDoc'
+  const isCommit =
+    doc.__typename === 'MessageAttachmentCommitDoc' ||
+    doc.__typename === 'AttachmentCommitDoc'
 
   const docName = isCommit
     ? `${doc.sha.slice(0, 7)}`
