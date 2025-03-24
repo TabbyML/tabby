@@ -1,4 +1,4 @@
-import { useContext, useMemo, useRef, useState } from 'react'
+import { useContext, useMemo, useRef } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -41,7 +41,6 @@ export function NewPageForm({
   })
   const titlePrompt = form.watch('titlePrompt')
 
-  const [selectedRepoId, setSelectedRepoId] = useState<string | undefined>()
   const repos = useMemo(() => {
     return contextInfo?.sources.filter(x => isCodeSourceContext(x.sourceKind))
   }, [contextInfo?.sources])
@@ -60,7 +59,7 @@ export function NewPageForm({
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     const error = await onSubmit({
       titlePrompt: values.titlePrompt.trim(),
-      codeSourceId: selectedRepoId
+      codeSourceId: selectedRepository?.id
     })
 
     if (error) {

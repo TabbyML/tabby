@@ -20,6 +20,7 @@ import {
   convertToFilepath,
   encodeMentionPlaceHolder,
   getRangeFromAttachmentCode,
+  isAttachmentCommitDoc,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import {
@@ -592,10 +593,9 @@ function RelevantDocumentBadge({
   relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
-  const link =
-    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
-      ? undefined
-      : relevantDocument.link
+  const link = isAttachmentCommitDoc(relevantDocument)
+    ? undefined
+    : relevantDocument.link
 
   return (
     <HoverCard openDelay={100} closeDelay={100}>
