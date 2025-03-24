@@ -13,8 +13,6 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IToolBarManager;
-import org.eclipse.jface.resource.ColorRegistry;
-import org.eclipse.jface.resource.FontRegistry;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.ISelection;
@@ -28,11 +26,12 @@ import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
-import org.eclipse.ui.themes.ITheme;
+import org.eclipse.ui.themes.ColorUtil;
 import org.osgi.framework.Bundle;
 
 import com.google.gson.Gson;
@@ -94,7 +93,6 @@ public class ChatView extends ViewPart {
 
 	@Override
 	public void createPartControl(Composite parent) {
-		setupThemeStyle();
 		parent.setLayout(new FillLayout());
 
 		// Tool bar
@@ -133,6 +131,7 @@ public class ChatView extends ViewPart {
 
 		// Browser
 		browser = new Browser(parent, Utils.isWindows() ? SWT.EDGE : SWT.WEBKIT);
+		setupThemeStyle();
 		browser.setBackground(new Color(browserBgColor));
 		browser.setVisible(false);
 
@@ -246,33 +245,34 @@ public class ChatView extends ViewPart {
 		});
 	}
 
+	private RGB getColor(int coloirId, RGB defaultColor) {
+		Display display = browser.getDisplay();
+		Color swtColor = display.getSystemColor(coloirId);
+		if (swtColor != null) {
+			return swtColor.getRGB();
+		}
+		return defaultColor;
+	}
+
 	private void setupThemeStyle() {
-		ITheme currentTheme = PlatformUI.getWorkbench().getThemeManager().getCurrentTheme();
-		ColorRegistry colorRegistry = currentTheme.getColorRegistry();
-		bgColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_BG_START");
+		bgColor = getColor(SWT.COLOR_WIDGET_BACKGROUND, new RGB(32, 32, 32));
 		isDark = (bgColor.red + bgColor.green + bgColor.blue) / 3 < 128;
 
-		browserBgColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_BG_END");
-		fgColor = colorRegistry.getRGB("org.eclipse.ui.workbench.ACTIVE_TAB_TEXT_COLOR");
+		browserBgColor = getColor(SWT.COLOR_LIST_BACKGROUND, ColorUtil.blend(bgColor, new RGB(127, 127, 127), 75));
+		fgColor = getColor(SWT.COLOR_LIST_FOREGROUND, isDark ? new RGB(255, 255, 255) : new RGB(0, 0, 0));
 		borderColor = isDark ? new RGB(64, 64, 64) : new RGB(192, 192, 192);
 		inputColor = browserBgColor;
 		inputBorderColor = borderColor;
 
-		primaryColor = colorRegistry.getRGB("org.eclipse.ui.workbench.LINK_COLOR");
-		if (primaryColor == null) {
-			primaryColor = isDark ? new RGB(55, 148, 255) : new RGB(26, 133, 255);
-		}
+		primaryColor = getColor(SWT.COLOR_LINK_FOREGROUND, isDark ? new RGB(55, 148, 255) : new RGB(26, 133, 255));
 		primaryFgColor = new RGB(255, 255, 255);
 		popoverColor = browserBgColor;
 		popoverFgColor = fgColor;
-		accentColor = isDark ? new RGB(4, 57, 94)
-				: new RGB((int) (browserBgColor.red * 0.8), (int) (browserBgColor.green * 0.8),
-						(int) (browserBgColor.blue * 0.8));
+		accentColor = isDark ? new RGB(4, 57, 94) : ColorUtil.blend(browserBgColor, new RGB(0, 0, 0), 80);
 		accentFgColor = fgColor;
 		ringColor = primaryColor;
 
-		FontRegistry fontRegistry = currentTheme.getFontRegistry();
-		FontData[] fontData = fontRegistry.getFontData("org.eclipse.jface.textfont");
+		FontData[] fontData = browser.getDisplay().getSystemFont().getFontData();
 		if (fontData.length > 0) {
 			font = fontData[0].getName();
 			fontSize = fontData[0].getHeight();
