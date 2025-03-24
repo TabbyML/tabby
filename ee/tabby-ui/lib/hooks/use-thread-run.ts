@@ -5,6 +5,8 @@ import { graphql } from '@/lib/gql/generates'
 import {
   CreateMessageInput,
   CreateThreadRunSubscription as CreateThreadRunSubscriptionResponse,
+  Maybe,
+  ThreadAssistantMessageCompletedDebugData,
   ThreadAssistantMessageReadingCode,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
@@ -255,6 +257,7 @@ export interface AnswerStream {
   isReadingFileList: boolean
   isReadingDocs: boolean
   completed: boolean
+  debugData?: Maybe<ThreadAssistantMessageCompletedDebugData>
 }
 
 const defaultAnswerStream = (): AnswerStream => ({
@@ -358,6 +361,7 @@ export function useThreadRun({
         x.content += data.delta
         break
       case 'ThreadAssistantMessageCompleted':
+        x.debugData = data.debugData
         x.completed = true
         break
       default:
