@@ -1,3 +1,12 @@
+## 1.12.0
+
+### Features
+
+- **Chat**:
+  - Requires connecting to a Tabby server version 0.26.0 or later.
+  - Added support to view recent chat history in the chat panel.
+- Added an action `Generate Commit Message` in the `Git` menu to generate a commit message based on the current changes.
+
 ## 1.11.0
 
 ### Features
