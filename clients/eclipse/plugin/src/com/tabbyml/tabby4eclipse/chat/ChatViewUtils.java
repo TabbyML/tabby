@@ -37,12 +37,14 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepositoryParams;
 public class ChatViewUtils {
 	private static final String ID = "com.tabbyml.tabby4eclipse.views.chat";
 
-	private static final String MIN_SERVER_VERSION = "0.25.0";
-	private static final String CHAT_PANEL_API_VERSION = "0.8.0";
+	private static final String MIN_SERVER_VERSION = "0.27.0";
 	private static Logger logger = new Logger("ChatView");
 
 	private static final Gson gson = new Gson();
 	private static final Map<String, String> gitRemoteUrlToLocalRoot = new HashMap<>();
+
+	public static final String API_0_8_0 = "0.8.0";
+	public static final String API_0_9_0 = "0.9.0";
 
 	public static ChatView openChatView() {
 		IWorkbenchPage page = EditorUtils.getActiveWorkbenchPage();
@@ -98,15 +100,6 @@ public class ChatViewUtils {
 		return null;
 	}
 
-	public static String checkChatPanelApiVersion(String version) {
-		Version parsedVersion = new Version(version);
-		Version requiredVersion = new Version(CHAT_PANEL_API_VERSION);
-		if (!parsedVersion.isEqual(requiredVersion, true)) {
-			return "Please update your Tabby server and Tabby plugin for Eclipse to the latest version to use chat panel.";
-		}
-		return null;
-	}
-
 	// default: use selection if available, otherwise use the whole file
 	// selection: use selection if available, otherwise return null
 	// file: use the whole file
@@ -117,7 +110,7 @@ public class ChatViewUtils {
 	public static EditorFileContext getActiveEditorFileContext() {
 		return getActiveEditorFileContext(RangeStrategy.DEFAULT);
 	}
-	
+
 	public static EditorFileContext getActiveEditorFileContext(RangeStrategy rangeStrategy) {
 		ITextEditor activeTextEditor = EditorUtils.getActiveTextEditor();
 		if (activeTextEditor == null) {

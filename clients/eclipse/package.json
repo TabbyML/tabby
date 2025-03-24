@@ -6,7 +6,7 @@
   },
   "devDependencies": {
     "tabby-agent": "workspace:*",
-    "tabby-threads": "workspace:*",
+    "tabby-chat-panel": "workspace:*",
     "fs-extra": "^11.1.1"
   }
 }

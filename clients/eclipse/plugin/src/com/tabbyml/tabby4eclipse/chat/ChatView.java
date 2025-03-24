@@ -67,6 +67,7 @@ public class ChatView extends ViewPart {
 
 	private boolean isHtmlLoaded = false;
 	private boolean isChatPanelLoaded = false;
+	private String chatPanelApiVersion = null;
 	private Config.ServerConfig currentConfig;
 
 	private List<String> pendingScripts = new ArrayList<>();
@@ -101,7 +102,7 @@ public class ChatView extends ViewPart {
 		Action newChat = new Action("New") {
 			@Override
 			public void run() {
-				chatPanelClientInvoke("navigate", new ArrayList<>() {
+				chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "navigate", new ArrayList<>() {
 					{
 						add(ChatViewType.NEW_CHAT);
 					}
@@ -117,7 +118,7 @@ public class ChatView extends ViewPart {
 		Action history = new Action("History") {
 			@Override
 			public void run() {
-				chatPanelClientInvoke("navigate", new ArrayList<>() {
+				chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "navigate", new ArrayList<>() {
 					{
 						add(ChatViewType.HISTORY);
 					}
@@ -168,7 +169,7 @@ public class ChatView extends ViewPart {
 		}
 		EditorUtils.asyncExec(() -> {
 			try {
-				chatPanelClientInvoke("updateActiveSelection", new ArrayList<>() {
+				chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "updateActiveSelection", new ArrayList<>() {
 					{
 						add(ChatViewUtils.getActiveEditorFileContext());
 					}
@@ -197,7 +198,7 @@ public class ChatView extends ViewPart {
 	}
 
 	public void explainSelectedText() {
-		chatPanelClientInvoke("executeCommand", new ArrayList<>() {
+		chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "executeCommand", new ArrayList<>() {
 			{
 				add(ChatCommand.EXPLAIN);
 			}
@@ -206,7 +207,7 @@ public class ChatView extends ViewPart {
 
 	public void fixSelectedText() {
 		// FIXME(@icycodes): collect the diagnostic message provided by IDE or LSP
-		chatPanelClientInvoke("executeCommand", new ArrayList<>() {
+		chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "executeCommand", new ArrayList<>() {
 			{
 				add(ChatCommand.FIX);
 			}
@@ -214,7 +215,7 @@ public class ChatView extends ViewPart {
 	}
 
 	public void generateDocsForSelectedText() {
-		chatPanelClientInvoke("executeCommand", new ArrayList<>() {
+		chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "executeCommand", new ArrayList<>() {
 			{
 				add(ChatCommand.GENERATE_DOCS);
 			}
@@ -222,7 +223,7 @@ public class ChatView extends ViewPart {
 	}
 
 	public void generateTestsForSelectedText() {
-		chatPanelClientInvoke("executeCommand", new ArrayList<>() {
+		chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "executeCommand", new ArrayList<>() {
 			{
 				add(ChatCommand.GENERATE_TESTS);
 			}
@@ -230,7 +231,7 @@ public class ChatView extends ViewPart {
 	}
 
 	public void addSelectedTextAsContext() {
-		chatPanelClientInvoke("addRelevantContext", new ArrayList<>() {
+		chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "addRelevantContext", new ArrayList<>() {
 			{
 				add(ChatViewUtils.getActiveEditorFileContext(RangeStrategy.SELECTION));
 			}
@@ -238,7 +239,7 @@ public class ChatView extends ViewPart {
 	}
 
 	public void addActiveEditorAsContext() {
-		chatPanelClientInvoke("addRelevantContext", new ArrayList<>() {
+		chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "addRelevantContext", new ArrayList<>() {
 			{
 				add(ChatViewUtils.getActiveEditorFileContext(RangeStrategy.FILE));
 			}
@@ -339,6 +340,20 @@ public class ChatView extends ViewPart {
 	}
 
 	private void injectFunctions() {
+		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelHandleChatPanelClientCreated") {
+			@Override
+			public Object function(Object[] arguments) {
+				List<Object> params = parseArguments(arguments);
+				logger.debug("chatPanelClientCreated: " + params);
+				if (params.size() < 1) {
+					return null;
+				}
+				initChatPanel((String) params.get(0));
+				setToolbarItemsEnabled(true);
+				return null;
+			}
+		});
+
 		browserFunctions.add(new BrowserFunction(browser, "handleTabbyChatPanelResponse") {
 			@Override
 			public Object function(Object[] arguments) {
@@ -397,29 +412,6 @@ public class ChatView extends ViewPart {
 			}
 		});
 
-		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelOnLoaded") {
-			@Override
-			public Object function(Object[] arguments) {
-				List<Object> params = parseArguments(arguments);
-				logger.debug("tabbyChatPanelOnLoaded: " + params);
-				if (params.size() < 1) {
-					return null;
-				}
-				Map<String, Object> onLoadedParams = (Map<String, Object>) params.get(0);
-				String apiVersion = (String) onLoadedParams.getOrDefault("apiVersion", "");
-				if (!apiVersion.isBlank()) {
-					String error = ChatViewUtils.checkChatPanelApiVersion(apiVersion);
-					if (error != null) {
-						updateContentToMessage(error);
-						return null;
-					}
-				}
-				initChatPanel();
-				setToolbarItemsEnabled(true);
-				return null;
-			}
-		});
-
 		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelOnCopy") {
 			@Override
 			public Object function(Object[] arguments) {
@@ -473,7 +465,7 @@ public class ChatView extends ViewPart {
 				return null;
 			}
 		});
-		
+
 		browserFunctions.add(new BrowserFunction(browser, "tabbyChatPanelReadWorkspaceGitRepositories") {
 			@Override
 			public Object function(Object[] arguments) {
@@ -636,8 +628,9 @@ public class ChatView extends ViewPart {
 		browser.setVisible(true);
 	}
 
-	private void initChatPanel() {
+	private void initChatPanel(String version) {
 		isChatPanelLoaded = true;
+		chatPanelApiVersion = version;
 		browser.getDisplay().timerExec(100, () -> {
 			updateContentToChatPanel();
 			pendingScripts.forEach((script) -> {
@@ -645,7 +638,7 @@ public class ChatView extends ViewPart {
 			});
 			pendingScripts.clear();
 		});
-		chatPanelClientInvoke("init", new ArrayList<>() {
+		chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "init", new ArrayList<>() {
 			{
 				add(new HashMap<>() {
 					{
@@ -658,7 +651,7 @@ public class ChatView extends ViewPart {
 				});
 			}
 		});
-		chatPanelClientInvoke("updateTheme", new ArrayList<>() {
+		chatPanelClientInvoke(ChatViewUtils.API_0_8_0, "updateTheme", new ArrayList<>() {
 			{
 				add(buildCss());
 				add(isDark ? "dark" : "light");
@@ -684,36 +677,43 @@ public class ChatView extends ViewPart {
 	private void createChatPanelClient() {
 		String script = String.format(
 			String.join("\n",
-				"if (!window.tabbyChatPanelClient) {",
-				"  window.tabbyChatPanelClient = TabbyThreads.createThreadFromIframe(getChatPanel(), {",
-				"    expose: {",
-				"      refresh: %s,",
-				"      onApplyInEditor: %s,",
-				"      onLoaded: %s,",
-				"      onCopy: %s,",
-				"      onKeyboardEvent: %s,",
-				"      openInEditor: %s,",
-				"      openExternal: %s,",
-				"      readWorkspaceGitRepositories: %s,",
-				"      getActiveEditorSelection: %s,",
-				"    }",
-				"  })",
-				"}"
+				"TabbyChatPanel.createClient(getChatPanel(), {",
+				"  refresh: %s,",
+				"  onApplyInEditor: %s,",
+				"  onCopy: %s,",
+				"  onKeyboardEvent: %s,",
+				"  openInEditor: %s,",
+				"  openExternal: %s,",
+				"  readWorkspaceGitRepositories: %s,",
+				"  getActiveEditorSelection: %s,",
+				"}).then((client) => {",
+				"  window.tabbyChatPanelClient = client;",
+				"  const getVersion = client && client['0.9.0'] && client['0.9.0']['getVersion'];",
+				"  if (getVersion && typeof getVersion === 'function') {",
+				"    return getVersion();",
+				"  } else {",
+				"    return undefined;",
+				"  }",
+				"}).then((version) => {",
+				"  console.log('Tabby Chat Panel API version: ' + version);",
+				"  const callback = %s;",
+				"  callback(version);",
+				"});"
 			),
 			wrapJsFunction("tabbyChatPanelRefresh"),
 			wrapJsFunction("tabbyChatPanelOnApplyInEditor"),
-			wrapJsFunction("tabbyChatPanelOnLoaded"),
 			wrapJsFunction("tabbyChatPanelOnCopy"),
 			wrapJsFunction("tabbyChatPanelOnKeyboardEvent"),
 			wrapJsFunction("tabbyChatPanelOpenInEditor"),
 			wrapJsFunction("tabbyChatPanelOpenExternal"),
 			wrapJsFunction("tabbyChatPanelReadWorkspaceGitRepositories"),
-			wrapJsFunction("tabbyChatPanelGetActiveEditorSelection")
+			wrapJsFunction("tabbyChatPanelGetActiveEditorSelection"),
+			wrapJsFunction("tabbyChatPanelHandleChatPanelClientCreated")
 		);
 		executeScript(script);
 	}
 
-	private CompletableFuture<Object> chatPanelClientInvoke(String method, List<Object> params) {
+	private CompletableFuture<Object> chatPanelClientInvoke(String version, String method, List<Object> params) {
 		CompletableFuture<Object> future = new CompletableFuture<>();
 		String uuid = UUID.randomUUID().toString();
 		pendingChatPanelRequest.put(uuid, future);
@@ -722,28 +722,36 @@ public class ChatView extends ViewPart {
 		String script = String.format(
 			String.join("\n",
 				"(function() {",
-				"  const func = window.tabbyChatPanelClient['%s']",
-				"  if (func && typeof func === 'function') {",
-				"    const params = JSON.parse('%s')",
-				"    const resultPromise = func(...params)",
-				"    if (resultPromise && typeof resultPromise.then === 'function') {",
-				"      resultPromise.then(result => {",
-				"        const results = JSON.stringify(['%s', null, result])",
+				"  const client = window.tabbyChatPanelClient;",
+				"  if (client && typeof client === 'object') {",
+				"    const func = client['%s'] && client['%s']['%s']",
+				"    if (func && typeof func === 'function') {",
+				"      const params = JSON.parse('%s')",
+				"      const resultPromise = func(...params)",
+				"      if (resultPromise && typeof resultPromise.then === 'function') {",
+				"        resultPromise.then(result => {",
+				"          const results = JSON.stringify(['%s', null, result])",
+				"          %s",
+				"        }).catch(error => {",
+				"          const results = JSON.stringify(['%s', error.message, null])",
+				"          %s",
+				"        })",
+				"      } else {",
+				"        const results = JSON.stringify(['%s', null, resultPromise])",
 				"        %s",
-				"      }).catch(error => {",
-				"        const results = JSON.stringify(['%s', error.message, null])",
-				"        %s",
-				"      })",
+				"      }",
 				"    } else {",
-				"      const results = JSON.stringify(['%s', null, resultPromise])",
+				"      const results = JSON.stringify(['%s', 'Method not found: %s %s', null])",
 				"      %s",
 				"    }",
 				"  } else {",
-				"    const results = JSON.stringify(['%s', 'Method not found: %s', null])",
+				"    const results = JSON.stringify(['%s', 'Tabby chat panel client is not connected.', null])",
 				"    %s",
 				"  }",
-				"})()"
+				"})();"
 			),
+			version,
+			version,
 			method,
 			paramsJson,
 			uuid,
@@ -753,10 +761,13 @@ public class ChatView extends ViewPart {
 			uuid,
 			responseCallbackFunction,
 			uuid,
+			version,
 			method,
+			responseCallbackFunction,
+			uuid,
 			responseCallbackFunction
 		);
-		logger.debug("Request to chat panel: " + uuid + ", " + method + ", " + paramsJson);
+		logger.debug("Request to chat panel: " + uuid + ", " + version + "," + method + ", " + paramsJson);
 		if (isChatPanelLoaded) {
 			executeScript(script);
 		} else {

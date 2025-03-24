@@ -19,9 +19,9 @@ async function copyTabbyAgentScript() {
   }
 }
 
-async function copyTabbyThreadsScript() {
-  const sourceFile = path.join(cwd, 'node_modules', 'tabby-threads', 'dist', 'iife', 'create-thread-from-iframe.js');
-  const targetFile = path.join(cwd, 'plugin', 'chat-panel', 'create-thread-from-iframe.js');
+async function copyTabbyChatPanelScript() {
+  const sourceFile = path.join(cwd, 'node_modules', 'tabby-chat-panel', 'dist', 'iife', 'tabby-chat-panel.min.js');
+  const targetFile = path.join(cwd, 'plugin', 'chat-panel', 'tabby-chat-panel.min.js');
   try {
     await fs.copy(sourceFile, targetFile);
     console.log(`✅ Files copied: ${sourceFile} -> ${targetFile}`);
@@ -31,4 +31,4 @@ async function copyTabbyThreadsScript() {
 }
 
 copyTabbyAgentScript();
-copyTabbyThreadsScript();
+copyTabbyChatPanelScript();
