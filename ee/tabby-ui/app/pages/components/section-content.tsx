@@ -193,11 +193,11 @@ export function SectionContent({
               {sourceLen > 0 && (
                 <Sheet>
                   <SheetTrigger asChild>
-                    <div className="group relative flex w-28 cursor-pointer items-center overflow-hidden rounded-full border py-1 hover:bg-muted">
+                    <div className="group relative flex w-32 cursor-pointer items-center overflow-hidden rounded-full border py-1 hover:bg-muted">
                       <div className="ml-1.5 flex items-center -space-x-2 transition-all duration-300 ease-in-out group-hover:space-x-0">
                         <SourceIconSummary hostnames={sourceHostnames} />
                       </div>
-                      <span className="mx-1 whitespace-nowrap text-xs text-muted-foreground">
+                      <span className="ml-2 whitespace-nowrap text-xs text-muted-foreground">
                         {sourceLen} sources
                       </span>
                       <div className="pointer-events-none absolute inset-y-0 right-0 w-2 bg-gradient-to-l from-background to-transparent"></div>
