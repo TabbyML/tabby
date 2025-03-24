@@ -445,7 +445,7 @@ export function Page() {
             content: title,
             searchPublic: true
           }
-        },
+        }
       })
       .subscribe(res => {
         if (res?.error) {
