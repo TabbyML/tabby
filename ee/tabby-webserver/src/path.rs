@@ -15,5 +15,9 @@ pub fn db_file() -> PathBuf {
 }
 
 pub fn background_jobs_dir() -> PathBuf {
-    tabby_ee_root().join("background-jobs")
+    if cfg!(feature = "prod") {
+        tabby_ee_root().join("background-jobs")
+    } else {
+        tabby_ee_root().join("dev-background-jobs")
+    }
 }
