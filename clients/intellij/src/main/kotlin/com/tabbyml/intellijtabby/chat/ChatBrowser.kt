@@ -93,8 +93,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     component.background = bgColor
     setPageBackgroundColor("hsl(${bgColor.toHsl()})")
 
-    val tabbyThreadsScript = loadTabbyChatPanelScript()
-    val htmlContent = loadHtmlContent(tabbyThreadsScript)
+    val tabbyChatPanelScript = loadTabbyChatPanelScript()
+    val htmlContent = loadHtmlContent(tabbyChatPanelScript)
     loadHTML(htmlContent)
 
     jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
@@ -682,7 +682,11 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     }
   }.inject("results")
 
-  private fun jsChatPanelClientInvoke(version: ChatPanelApiVersion, method: String, params: List<Any?>): CompletableFuture<Any?> {
+  private fun jsChatPanelClientInvoke(
+    version: ChatPanelApiVersion,
+    method: String,
+    params: List<Any?>
+  ): CompletableFuture<Any?> {
     val future = CompletableFuture<Any?>()
     val uuid = UUID.randomUUID().toString()
     pendingChatPanelRequest[uuid] = future
