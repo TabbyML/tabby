@@ -1,7 +1,16 @@
-use juniper::GraphQLObject;
+use chrono::{DateTime, Utc};
+use juniper::{GraphQLObject, GraphQLUnion};
 use tabby_common::api::code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores};
 
-use crate::thread::{MessageAttachmentCode, MessageAttachmentCodeFileList};
+use crate::{
+    interface::UserValue,
+    thread::{
+        MessageAttachmentCode, MessageAttachmentCodeFileList, MessageAttachmentCommitDoc,
+        MessageAttachmentDoc, MessageAttachmentIssueDoc, MessageAttachmentPullDoc,
+        MessageAttachmentWebDoc,
+    },
+    Context,
+};
 
 #[derive(GraphQLObject)]
 pub struct AttachmentCodeHits {
@@ -37,6 +46,71 @@ pub struct AttachmentCode {
 pub struct AttachmentCodeFileList {
     pub file_list: Vec<String>,
     pub truncated: bool,
+}
+
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct AttachmentDocHit {
+    pub doc: AttachmentDoc,
+    pub score: f64,
+}
+
+#[derive(GraphQLUnion, Clone)]
+#[graphql(context = Context)]
+pub enum AttachmentDoc {
+    Web(AttachmentWebDoc),
+    Issue(AttachmentIssueDoc),
+    Pull(AttachmentPullDoc),
+    Commit(AttachmentCommitDoc),
+}
+
+impl PartialEq for AttachmentDoc {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (AttachmentDoc::Web(a), AttachmentDoc::Web(b)) => a.link == b.link,
+            (AttachmentDoc::Issue(a), AttachmentDoc::Issue(b)) => a.link == b.link,
+            (AttachmentDoc::Pull(a), AttachmentDoc::Pull(b)) => a.link == b.link,
+            (AttachmentDoc::Commit(a), AttachmentDoc::Commit(b)) => a.sha == b.sha,
+            _ => false,
+        }
+    }
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct AttachmentWebDoc {
+    pub title: String,
+    pub link: String,
+    pub content: String,
+}
+
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct AttachmentIssueDoc {
+    pub title: String,
+    pub link: String,
+    pub author: Option<UserValue>,
+    pub body: String,
+    pub closed: bool,
+}
+
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct AttachmentPullDoc {
+    pub title: String,
+    pub link: String,
+    pub author: Option<UserValue>,
+    pub body: String,
+    pub diff: String,
+    pub merged: bool,
+}
+
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct AttachmentCommitDoc {
+    pub sha: String,
+    pub message: String,
+    pub author: Option<UserValue>,
+    pub author_at: DateTime<Utc>,
 }
 
 impl From<&MessageAttachmentCodeFileList> for AttachmentCodeFileList {
@@ -111,6 +185,63 @@ impl From<CodeSearchScores> for AttachmentCodeScores {
             rrf: val.rrf as f64,
             bm25: val.bm25 as f64,
             embedding: val.embedding as f64,
+        }
+    }
+}
+
+impl From<&MessageAttachmentDoc> for AttachmentDoc {
+    fn from(val: &MessageAttachmentDoc) -> Self {
+        match val {
+            MessageAttachmentDoc::Web(doc) => AttachmentDoc::Web(doc.into()),
+            MessageAttachmentDoc::Issue(doc) => AttachmentDoc::Issue(doc.into()),
+            MessageAttachmentDoc::Pull(doc) => AttachmentDoc::Pull(doc.into()),
+            MessageAttachmentDoc::Commit(doc) => AttachmentDoc::Commit(doc.into()),
+        }
+    }
+}
+
+impl From<&MessageAttachmentWebDoc> for AttachmentWebDoc {
+    fn from(val: &MessageAttachmentWebDoc) -> Self {
+        Self {
+            title: val.title.clone(),
+            link: val.link.clone(),
+            content: val.content.clone(),
+        }
+    }
+}
+
+impl From<&MessageAttachmentIssueDoc> for AttachmentIssueDoc {
+    fn from(val: &MessageAttachmentIssueDoc) -> Self {
+        Self {
+            title: val.title.clone(),
+            link: val.link.clone(),
+            author: val.author.clone(),
+            body: val.body.clone(),
+            closed: val.closed,
+        }
+    }
+}
+
+impl From<&MessageAttachmentPullDoc> for AttachmentPullDoc {
+    fn from(val: &MessageAttachmentPullDoc) -> Self {
+        Self {
+            title: val.title.clone(),
+            link: val.link.clone(),
+            author: val.author.clone(),
+            body: val.body.clone(),
+            diff: val.patch.clone(),
+            merged: val.merged,
+        }
+    }
+}
+
+impl From<&MessageAttachmentCommitDoc> for AttachmentCommitDoc {
+    fn from(val: &MessageAttachmentCommitDoc) -> Self {
+        Self {
+            sha: val.sha.clone(),
+            message: val.message.clone(),
+            author: val.author.clone(),
+            author_at: val.author_at,
         }
     }
 }
