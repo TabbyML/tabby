@@ -6,6 +6,9 @@ import {
   GenerateCommitMessageRequest,
   GenerateCommitMessageParams,
   GenerateCommitMessageResult,
+  GenerateBranchNameRequest,
+  GenerateBranchNameParams,
+  GenerateBranchNameResult,
   ChatEditCommandRequest,
   ChatEditCommandParams,
   ChatEditCommand,
@@ -77,6 +80,16 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     return this.client.sendRequest(GenerateCommitMessageRequest.method, params, token);
+  }
+
+  async generateBranchName(
+    params: GenerateBranchNameParams,
+    token?: CancellationToken,
+  ): Promise<GenerateBranchNameResult | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+    return this.client.sendRequest(GenerateBranchNameRequest.method, params, token);
   }
 
   // target is where the fetched command will be filled in

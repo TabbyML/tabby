@@ -412,6 +412,65 @@ export class Commands {
         },
       );
     },
+    "chat.generateBranchName": async (repository?: Repository) => {
+      let selectedRepo = repository;
+      if (!selectedRepo) {
+        const repos = this.gitProvider.getRepositories() ?? [];
+        if (repos.length < 1) {
+          window.showInformationMessage("No Git repositories found.");
+          return;
+        }
+        if (repos.length == 1) {
+          selectedRepo = repos[0];
+        } else {
+          const selected = await window.showQuickPick(
+            repos
+              .map((repo) => {
+                const repoRoot = repo.rootUri.fsPath;
+                return {
+                  label: path.basename(repoRoot),
+                  detail: repoRoot,
+                  iconPath: new ThemeIcon("repo"),
+                  picked: repo.ui.selected,
+                  alwaysShow: true,
+                  value: repo,
+                };
+              })
+              .sort((a, b) => {
+                if (a.detail.startsWith(b.detail)) {
+                  return 1;
+                } else if (b.detail.startsWith(a.detail)) {
+                  return -1;
+                } else {
+                  return a.label.localeCompare(b.label);
+                }
+              }),
+            { placeHolder: "Select a Git repository" },
+          );
+          selectedRepo = selected?.value;
+        }
+      }
+      if (!selectedRepo) {
+        return;
+      }
+      window.withProgress(
+        {
+          location: ProgressLocation.Notification,
+          title: "Generating branch name...",
+          cancellable: true,
+        },
+        async (_, token) => {
+          const result = await this.client.chat.generateCommitMessage(
+            { repository: selectedRepo.rootUri.toString() },
+            token,
+          );
+          if (result) {
+            // TODO: testing
+            console.log("Generated branch name:", result.commitMessage);
+          }
+        },
+      );
+    },
   };
 }
 
