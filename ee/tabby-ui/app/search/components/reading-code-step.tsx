@@ -9,7 +9,12 @@ import {
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
-import { cn, isAttachmentCommitDoc, isCodeSourceContext, resolveFileNameForDisplay } from '@/lib/utils'
+import {
+  cn,
+  isAttachmentCommitDoc,
+  isCodeSourceContext,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -192,32 +197,32 @@ export function ReadingCodeStepper({
               >
                 {(!!clientCodeContexts?.length ||
                   !!serverCodeContexts?.length) && (
-                    <div className="mb-3 mt-2">
-                      <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                        {clientCodeContexts?.map((item, index) => {
-                          return (
-                            <CodeContextItem
-                              key={`client-${index}`}
-                              context={item}
-                              clickable={false}
-                              onContextClick={ctx => onContextClick?.(ctx, true)}
-                              enableDeveloperMode={enableDeveloperMode}
-                            />
-                          )
-                        })}
-                        {serverCodeContexts?.map((item, index) => {
-                          return (
-                            <CodeContextItem
-                              key={`server-${index}`}
-                              context={item}
-                              onContextClick={ctx => onContextClick?.(ctx, true)}
-                              enableDeveloperMode={enableDeveloperMode}
-                            />
-                          )
-                        })}
-                      </div>
+                  <div className="mb-3 mt-2">
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                      {clientCodeContexts?.map((item, index) => {
+                        return (
+                          <CodeContextItem
+                            key={`client-${index}`}
+                            context={item}
+                            clickable={false}
+                            onContextClick={ctx => onContextClick?.(ctx, true)}
+                            enableDeveloperMode={enableDeveloperMode}
+                          />
+                        )
+                      })}
+                      {serverCodeContexts?.map((item, index) => {
+                        return (
+                          <CodeContextItem
+                            key={`server-${index}`}
+                            context={item}
+                            onContextClick={ctx => onContextClick?.(ctx, true)}
+                            enableDeveloperMode={enableDeveloperMode}
+                          />
+                        )
+                      })}
                     </div>
-                  )}
+                  </div>
+                )}
               </StepItem>
             )}
             {docQuery && (
@@ -231,10 +236,7 @@ export function ReadingCodeStepper({
                   <div className="mb-3 mt-2 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {docs?.map((x, index) => {
-                        const _key =
-                          isAttachmentCommitDoc(x)
-                            ? x.sha
-                            : x.link
+                        const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
                         return (
                           <div key={`${_key}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
