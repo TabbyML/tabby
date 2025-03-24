@@ -439,13 +439,13 @@ export function Page() {
       .subscription(createPageSectionRunSubscription, {
         input: {
           pageId,
-          titlePrompt: title
+          titlePrompt: title,
+          docQuery: {
+            sourceIds: compact([page?.codeSourceId]),
+            content: title,
+            searchPublic: true
+          }
         },
-        docQuery: {
-          sourceIds: compact([page?.codeSourceId]),
-          content: title,
-          searchPublic: true
-        }
       })
       .subscribe(res => {
         if (res?.error) {
