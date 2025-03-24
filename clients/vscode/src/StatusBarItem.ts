@@ -40,17 +40,6 @@ export class StatusBarItem {
   }
 
   update() {
-    const currentLanguageId = window.activeTextEditor?.document.languageId;
-    const isLanguageDisabled = currentLanguageId ? this.config.disabledLanguages.includes(currentLanguageId) : false;
-
-    // TODO(Sma1lboy): move disabled languages to tabby-agents when needed generalize to all IDEs
-    if (isLanguageDisabled) {
-      this.setColorNormal();
-      this.setIcon(iconDisabled);
-      this.setTooltip(`Tabby: disabled for ${currentLanguageId} files`);
-      return;
-    }
-
     const languageClientState = this.client.languageClient.state;
     switch (languageClientState) {
       case LanguageClientState.Stopped:
@@ -84,6 +73,9 @@ export class StatusBarItem {
           case "ready":
           case "readyForAutoTrigger": {
             if (this.checkIfVSCodeInlineCompletionEnabled()) {
+              if (this.checkIfCurrentLanguageDisabled()) {
+                return;
+              }
               this.setColorNormal();
               this.setIcon(iconAutomatic);
               this.setTooltip(statusInfo.tooltip);
@@ -92,6 +84,9 @@ export class StatusBarItem {
           }
           case "readyForManualTrigger": {
             if (this.checkIfVSCodeInlineCompletionEnabled()) {
+              if (this.checkIfCurrentLanguageDisabled()) {
+                return;
+              }
               this.setColorNormal();
               this.setIcon(iconManual);
               this.setTooltip(statusInfo.tooltip);
@@ -115,6 +110,18 @@ export class StatusBarItem {
         break;
       }
     }
+  }
+
+  private checkIfCurrentLanguageDisabled(): boolean {
+    const currentLanguageId = window.activeTextEditor?.document.languageId;
+    const isLanguageDisabled = currentLanguageId ? this.config.disabledLanguages.includes(currentLanguageId) : false;
+    if (!isLanguageDisabled) {
+      return false;
+    }
+    this.setColorNormal();
+    this.setIcon(iconDisabled);
+    this.setTooltip(`Tabby: disabled for ${currentLanguageId} files`);
+    return true;
   }
 
   private checkIfVSCodeInlineCompletionEnabled() {

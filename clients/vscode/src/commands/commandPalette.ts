@@ -4,8 +4,6 @@ import { Client } from "../lsp/client";
 import { Config } from "../Config";
 import { isBrowser } from "../env";
 
-const MENU_ITEM_INDENT_SPACING = "      ";
-
 interface CommandPaletteItem extends QuickPickItem {
   command?: string | Command | (() => void | Promise<void>);
   picked?: boolean;
