@@ -63,6 +63,11 @@
                 anchor="right"
                 icon="com.tabbyml.intellijtabby.Icons.Chat"
                 factoryClass="com.tabbyml.intellijtabby.widgets.ChatToolWindowFactory"/>
+        <intentionAction>
+            <className>com.tabbyml.intellijtabby.inlineChat.InlineChatIntentionAction</className>
+        </intentionAction>
+
+        <codeInsight.lineMarkerProvider language="*" implementationClass="com.tabbyml.intellijtabby.inlineChat.GutterIconProvider"/>
     </extensions>
 
     <actions>
