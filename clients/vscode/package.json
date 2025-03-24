@@ -363,6 +363,14 @@
                   "Manual trigger by pressing `Alt + \\`"
                 ]
               },
+              "inlineCompletion.disabledLanguages": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": [],
+                "description": "List of language IDs for which code completion should be disabled. Use the 'Toggle Single Language Inline Completion' command to easily enable or disable completion for the current language."
+              },
               "chatEdit.history": {
                 "type": "integer",
                 "default": 20,
