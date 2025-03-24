@@ -117,10 +117,10 @@ export function SectionContent({
 
       switch (item.__typename) {
         case 'AttachmentCode':
-          result.push('codeFileList')
+          result.push('code')
           break
         case 'AttachmentCodeFileList':
-          result.push('code')
+          result.push('codeFileList')
           break
         case 'MessageAttachmentCommitDoc':
         case 'AttachmentCommitDoc':
