@@ -395,14 +395,11 @@ function SourcePreviewCard({
     return (
       <div className="flex items-start gap-2">
         <div className="relative flex flex-1 cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
-          {/* <div className="flex h-5 w-5 items-center justify-center">
-            <IconGlobe />
-          </div> */}
           <div
             className="relative flex flex-col justify-between"
             onClick={() => window.open(source.link)}
           >
-            <DocSourceCard source={source} />
+            <DocPreviewCard source={source} />
           </div>
         </div>
       </div>
@@ -413,7 +410,7 @@ function SourcePreviewCard({
     return (
       <div className="flex items-start gap-2">
         <div className="relative flex flex-1 cursor-pointer flex-col justify-between rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
-          <CommitSourceCard source={source} />
+          <CommitPreviewCard source={source} />
         </div>
       </div>
     )
@@ -422,7 +419,7 @@ function SourcePreviewCard({
   return null
 }
 
-function DocSourceCard({ source }: { source: AttachmentDocItem }) {
+function DocPreviewCard({ source }: { source: AttachmentDocItem }) {
   if (isAttachmentCommitDoc(source)) {
     return null
   }
@@ -499,9 +496,8 @@ function DocSourceCard({ source }: { source: AttachmentDocItem }) {
   )
 }
 
-function CommitSourceCard({ source }: { source: AttachmentDocItem }) {
-  const isCommit = source.__typename === 'AttachmentCommitDoc'
-  if (!isCommit) {
+function CommitPreviewCard({ source }: { source: AttachmentDocItem }) {
+  if (!isAttachmentCommitDoc(source)) {
     return null
   }
 

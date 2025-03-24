@@ -442,7 +442,7 @@ export function Page() {
           titlePrompt: title
         },
         docQuery: {
-          sourceids: compact([page?.codeSourceId]),
+          sourceIds: compact([page?.codeSourceId]),
           content: title,
           searchPublic: true
         }
