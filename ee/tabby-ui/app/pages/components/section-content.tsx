@@ -3,20 +3,22 @@
 import { ReactNode, useContext, useMemo, useState } from 'react'
 import DOMPurify from 'dompurify'
 import he from 'he'
-import { compact } from 'lodash-es'
+import { compact, uniq } from 'lodash-es'
 import { marked } from 'marked'
 
 import { graphql } from '@/lib/gql/generates'
 import {
   AttachmentCodeFileList,
+  AttachmentDoc,
+  AttachmentIssueDoc,
+  AttachmentPullDoc,
   MoveSectionDirection
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
-import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
+import { AttachmentCodeItem } from '@/lib/types'
 import {
   buildCodeBrowserUrlForContext,
   cn,
-  getContent,
   getRangeFromAttachmentCode,
   resolveFileNameForDisplay
 } from '@/lib/utils'
@@ -27,6 +29,7 @@ import {
   IconCircleDot,
   IconCode,
   IconEdit,
+  IconGitCommit,
   IconGitMerge,
   IconGitPullRequest,
   IconListTree,
@@ -94,10 +97,35 @@ export function SectionContent({
 
   const attachmentCode = section.attachments.code
   const attachmentCodeFileList = section.attachments.codeFileList
+  const attachmentDoc = section.attachments.doc
   const sources = useMemo(() => {
-    return compact([attachmentCodeFileList, ...attachmentCode])
-  }, [attachmentCodeFileList, attachmentCode])
+    return compact([attachmentCodeFileList, ...attachmentCode, ...(attachmentDoc || [])])
+  }, [attachmentCodeFileList, attachmentCode, attachmentDoc])
   const sourceLen = sources?.length
+
+  const sourceHostnames = useMemo(() => {
+    let result: string[] = []
+    for (let item of sources) {
+      if (!item.__typename) {
+        continue
+      }
+      if (item.__typename === 'AttachmentCodeFileList') {
+        result.push('codeFileList')
+      } else if (item.__typename === 'AttachmentCode') {
+        result.push('code')
+      } else if (item.__typename === 'AttachmentCommitDoc') {
+        result.push('commit')
+      } else {
+        try {
+          result.push(new URL(item.link).hostname)
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return uniq(compact(result)).slice(0,3).reverse()
+  }, [sources])
+  console.log(sources, sourceHostnames?.length, 'sourceOrigins')
 
   const onMoveUp = () => {
     onMoveSectionPosition(section.id, MoveSectionDirection.Up)
@@ -144,6 +172,7 @@ export function SectionContent({
               supportsOnApplyInEditorV2={false}
               className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
               attachmentCode={attachmentCode}
+              attachmentDocs={attachmentDoc}
             />
           )}
           {!isGenerating && (
@@ -153,16 +182,7 @@ export function SectionContent({
                   <SheetTrigger asChild>
                     <div className="group relative flex w-28 cursor-pointer items-center overflow-hidden rounded-full border py-1 hover:bg-muted">
                       <div className="ml-1.5 flex items-center -space-x-2 transition-all duration-300 ease-in-out group-hover:space-x-0">
-                        {!!attachmentCodeFileList?.fileList?.length && (
-                          <SourceIcon className="bg-background group-hover:bg-transparent">
-                            <IconListTree className="h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
-                          </SourceIcon>
-                        )}
-                        {!!attachmentCode?.length && (
-                          <SourceIcon className="bg-background group-hover:bg-transparent">
-                            <IconCode className="h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
-                          </SourceIcon>
-                        )}
+                        <SourceIconSummary hostnames={sourceHostnames} />
                       </div>
                       <span className="mx-1 whitespace-nowrap text-xs text-muted-foreground">
                         {sourceLen} sources
@@ -255,7 +275,8 @@ function SourceCard({
   source,
   enableDeveloperMode
 }: {
-  source: AttachmentDocItem | AttachmentCodeItem | AttachmentCodeFileList
+  // FIXME type
+  source: AttachmentDoc | AttachmentCodeItem | AttachmentCodeFileList
   enableDeveloperMode: boolean
 }) {
   const isCodeFileList = source.__typename === 'AttachmentCodeFileList'
@@ -263,10 +284,10 @@ function SourceCard({
     source.__typename === 'MessageAttachmentCode' ||
     source.__typename === 'AttachmentCode'
   const isDoc =
-    source.__typename === 'MessageAttachmentIssueDoc' ||
-    source.__typename === 'MessageAttachmentPullDoc' ||
-    source.__typename === 'MessageAttachmentWebDoc'
-  const isCommit = source.__typename === 'MessageAttachmentCommitDoc'
+    source.__typename === 'AttachmentIssueDoc' ||
+    source.__typename === 'AttachmentPullDoc' ||
+    source.__typename === 'AttachmentWebDoc'
+  const isCommit = source.__typename === 'AttachmentCommitDoc'
 
   if (isCodeFileList) {
     return (
@@ -361,11 +382,16 @@ function SourceCard({
   if (isDoc) {
     return (
       <div className="flex items-start gap-2">
-        <div
-          className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60"
-          onClick={() => window.open(source.link)}
-        >
-          <DocSourceCard source={source} />
+        <div className='relative flex flex-1 cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70'>
+          {/* <div className="flex h-5 w-5 items-center justify-center">
+            <IconGlobe />
+          </div> */}
+          <div
+            className="relative flex flex-col justify-between"
+            onClick={() => window.open(source.link)}
+          >
+            <DocSourceCard source={source} />
+          </div>
         </div>
       </div>
     )
@@ -374,7 +400,7 @@ function SourceCard({
   if (isCommit) {
     return (
       <div className="flex items-start gap-2">
-        <div className="relative flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 text-card-foreground hover:bg-card/60">
+        <div className="relative flex cursor-pointer flex-col justify-between rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
           <CommitSourceCard source={source} />
         </div>
       </div>
@@ -384,16 +410,17 @@ function SourceCard({
   return null
 }
 
-function DocSourceCard({ source }: { source: AttachmentDocItem }) {
-  if (source.__typename === 'MessageAttachmentCommitDoc') {
-    return null
-  }
+// FIXME type
+function DocSourceCard({ source }: { source: Exclude<AttachmentDoc, { __typename?: 'AttachmentCommitDoc' }> }) {
+  // if (source.__typename === 'AttachmentCommitDoc') {
+  //   return null
+  // }
 
   const { hostname } = new URL(source.link)
-  const isIssue = source.__typename === 'MessageAttachmentIssueDoc'
-  const isPR = source.__typename === 'MessageAttachmentPullDoc'
+  const isIssue = source.__typename === 'AttachmentIssueDoc'
+  const isPR = source.__typename === 'AttachmentPullDoc'
   const author =
-    source.__typename === 'MessageAttachmentWebDoc' ? undefined : source.author
+    source.__typename === 'AttachmentWebDoc' ? undefined : (source as AttachmentPullDoc | AttachmentIssueDoc).author
 
   const showAvatar = (isIssue || isPR) && !!author
 
@@ -459,8 +486,8 @@ function DocSourceCard({ source }: { source: AttachmentDocItem }) {
   )
 }
 
-function CommitSourceCard({ source }: { source: AttachmentDocItem }) {
-  const isCommit = source.__typename === 'MessageAttachmentCommitDoc'
+function CommitSourceCard({ source }: { source: AttachmentDoc }) {
+  const isCommit = source.__typename === 'AttachmentCommitDoc'
   if (!isCommit) {
     return null
   }
@@ -520,11 +547,59 @@ function SourceIcon({
   return (
     <div
       className={cn(
-        'flex items-center justify-center rounded-full p-0.5 transition-all duration-300 ease-in-out',
+        'relative z-20 flex items-center justify-center rounded-full p-0.5 transition-all duration-300 ease-in-out',
         className
       )}
     >
       {children}
     </div>
+  )
+}
+export function getContent(item: AttachmentDoc) {
+  switch (item.__typename) {
+    case 'AttachmentWebDoc':
+      return item.content
+    case 'AttachmentIssueDoc':
+    case 'AttachmentPullDoc':
+      return item.body
+    case 'AttachmentCommitDoc':
+      return item.message
+  }
+
+  return ''
+}
+
+function SourceIconSummary({ hostnames }: { hostnames: string[] }) {
+  return (
+    <>
+      {hostnames.map(hostname => {
+        if (hostname === 'codeFileList') {
+          return (
+            <SourceIcon key={hostname} className="bg-background group-hover:bg-transparent">
+              <IconListTree className="h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
+            </SourceIcon>
+          )
+        }
+        if (hostname === 'code') {
+          return (
+            <SourceIcon key={hostname} className="bg-background group-hover:bg-transparent">
+              <IconCode className="h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
+            </SourceIcon>
+          )
+        }
+        if (hostname === 'commit') {
+          return (
+            <SourceIcon key={hostname} className="bg-background group-hover:bg-transparent">
+              <IconGitCommit className="h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
+            </SourceIcon>
+          )
+        }
+        return (
+          <SourceIcon className="flex h-5 w-5 items-center justify-center bg-background p-0 group-hover:bg-transparent" key={hostname}>
+            <SiteFavicon hostname={hostname} />
+          </SourceIcon>
+        )
+      })}
+    </>
   )
 }

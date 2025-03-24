@@ -22,6 +22,7 @@ export type SectionItem = Omit<
     >
     codeFileList?: Maybe<AttachmentCodeFileList>
     doc?: Array<
+      // todo type
       AttachmentDoc & {
         score?: number
       }

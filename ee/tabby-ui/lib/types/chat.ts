@@ -157,6 +157,7 @@ export type AttachmentCodeItem = Omit<
 }
 
 // for rendering, including score
+// todo: __typename?: MessageAttachmentWebDoc | AttachmentDoc
 export type AttachmentDocItem =
   ArrayElementType<ThreadAssistantMessageAttachmentDocHits>['doc'] & {
     extra?: { score?: MessageDocSearchHit['score'] }
