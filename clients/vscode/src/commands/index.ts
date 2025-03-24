@@ -24,7 +24,7 @@ import { ChatSidePanelProvider } from "../chat/sidePanel";
 import { createChatPanel } from "../chat/chatPanel";
 import { getEditorContext } from "../chat/context";
 import { GitProvider, Repository } from "../git/GitProvider";
-import { showOutputPanel } from "../logger";
+import { getLogger, showOutputPanel } from "../logger";
 import { InlineEditController } from "../inline-edit";
 import { CommandPalette } from "./commandPalette";
 import { ConnectToServerWidget } from "./connectToServer";
@@ -460,13 +460,13 @@ export class Commands {
           cancellable: true,
         },
         async (_, token) => {
-          const result = await this.client.chat.generateCommitMessage(
+          const result = await this.client.chat.generateBranchName(
             { repository: selectedRepo.rootUri.toString() },
             token,
           );
           if (result) {
             // TODO: testing
-            console.log("Generated branch name:", result.commitMessage);
+            getLogger().info("Generated branch name:", result.branchName);
           }
         },
       );
