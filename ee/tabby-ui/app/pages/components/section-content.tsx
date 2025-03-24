@@ -508,7 +508,7 @@ function CommitPreviewCard({ source }: { source: AttachmentDocItem }) {
     <div className="flex flex-1 flex-col justify-between gap-y-1">
       <div className="flex flex-col gap-y-0.5">
         <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-          {source.sha.slice(0, 7)}: {source.message}
+          {source.sha.slice(0, 7)}{source.message ? `: ${source.message}` : ''}
         </p>
 
         {showAvatar && (
