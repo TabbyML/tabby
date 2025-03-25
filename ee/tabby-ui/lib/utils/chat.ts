@@ -1,21 +1,13 @@
 import { uniq } from 'lodash-es'
 import moment from 'moment'
-import type {
-  ChangeItem,
-  Filepath,
-  FileRange,
-  GetChangesParams
-} from 'tabby-chat-panel'
+import type { ChangeItem, Filepath, FileRange, GetChangesParams } from 'tabby-chat-panel'
+
 import {
   ContextInfo,
   ContextSource,
   ContextSourceKind
 } from '@/lib/gql/generates/graphql'
 import type { MentionAttributes } from '@/lib/types'
-import {
-  convertChangeItemsToContextContent,
-  hasChangesCommand
-} from '@/components/chat/git/utils'
 
 import {
   MARKDOWN_FILE_REGEX,
@@ -29,6 +21,7 @@ import {
   convertContextBlockToPlaceholder,
   formatObjectToMarkdownBlock
 } from './markdown'
+import { convertChangeItemsToContextContent, hasChangesCommand } from '@/components/chat/git/utils'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [
@@ -204,44 +197,41 @@ export function replaceAtMentionPlaceHolder(value: string) {
  * @returns
  */
 export function encodeMentionPlaceHolder(value: string): string {
-  let newValue = value;
-
-  // Process file placeholders.
-  let match;
-  while ((match = PLACEHOLDER_FILE_REGEX.exec(newValue)) !== null) {
+  let newValue = value
+  let match
+  while ((match = PLACEHOLDER_FILE_REGEX.exec(value)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
         `[[file:${encodeURIComponent(match[1])}]]`
-      );
+      )
     } catch (error) {
-      continue;
+      continue
     }
   }
-  // Process symbol placeholders.
-  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(newValue)) !== null) {
+  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(value)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
         `[[symbol:${encodeURIComponent(match[1])}]]`
-      );
+      )
     } catch (error) {
-      continue;
+      continue
     }
   }
-  // Process context command placeholders.
-  while ((match = PLACEHOLDER_COMMAND_REGEX.exec(newValue)) !== null) {
+
+  // encode the contextCommand placeholder
+  while ((match = PLACEHOLDER_COMMAND_REGEX.exec(value)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
         `[[contextCommand:"${encodeURIComponent(match[1])}"]]`
-      );
+      )
     } catch (error) {
-      continue;
+      continue
     }
   }
 
-  // Process <think> placeholders similar to other placeholders.
   while ((match = PLACEHOLDER_THINK_REGEX.exec(newValue)) !== null) {
     try {
       newValue = newValue.replace(
@@ -253,11 +243,8 @@ export function encodeMentionPlaceHolder(value: string): string {
     }
   }
 
-
-  return newValue;
+  return newValue
 }
-
-
 
 export function formatThreadTime(time: string, prefix: string) {
   const targetTime = moment(time)
@@ -306,7 +293,7 @@ export function getTitleFromMessages(
       }
     })
     .replace(PLACEHOLDER_COMMAND_REGEX, value => {
-      const command = value.slice(18, -3)
+      const command = value.slice(19, -3)
       return `@${command}`
     })
     .replace(PLACEHOLDER_SYMBOL_REGEX, value => {
