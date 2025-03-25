@@ -356,3 +356,16 @@ data class GenerateCommitMessageParams(
 data class GenerateCommitMessageResult(
   val commitMessage: String,
 )
+
+data class ChatEditParams(
+  val location: Location,
+  val command: String,
+  val format: String = "previewChanges",
+  val context: List<ChatEditFileContext>? = null,
+)
+
+data class ChatEditFileContext(
+  val referrer: String,
+  val uri: String,
+  val range: Range,
+)
