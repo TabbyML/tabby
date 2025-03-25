@@ -15,7 +15,7 @@ import {
   PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX,
-  PLACEHOLDER_THINK_REGEX,
+  PLACEHOLDER_THINK_REGEX
 } from '../constants/regex'
 import { convertContextBlockToLabelName } from './markdown'
 
@@ -233,9 +233,9 @@ export function encodeMentionPlaceHolder(value: string): string {
       newValue = newValue.replace(
         match[0],
         `[[think:${encodeURIComponent(match[1])}]]\n`
-      );
+      )
     } catch (error) {
-      continue;
+      continue
     }
   }
 
