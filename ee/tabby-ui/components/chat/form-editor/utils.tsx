@@ -1,6 +1,7 @@
 // utils.ts
+import { Pencil2Icon } from '@radix-ui/react-icons'
 import { Editor, JSONContent } from '@tiptap/core'
-import { ArrowRightToLine, FileBox, SquareFunction } from 'lucide-react'
+import { FileBox, SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import {
@@ -36,7 +37,7 @@ export function fileItemToSourceItem(info: FileItem): SourceItem {
     category: 'file',
     rightIcon:
       fileSourceType === 'searchResult' ? undefined : (
-        <ArrowRightToLine className="w-3 h-3" />
+        <Pencil2Icon className="h-3 w-3 text-muted-foreground" />
       ),
     icon: <IconFile />
   }
