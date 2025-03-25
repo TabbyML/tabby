@@ -4,6 +4,7 @@ import { ClientProvidedConfig } from "tabby-agent";
 
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
+  "inlineCompletion.disabledLanguages"?: string[];
   "chatEdit.history"?: number;
   useVSCodeProxy?: boolean;
 }
@@ -92,6 +93,18 @@ export class Config extends EventEmitter {
       advancedSettings["inlineCompletion.triggerMode"] = value;
       await this.workspace.update("settings.advanced", advancedSettings, ConfigurationTarget.Global);
     }
+  }
+
+  get disabledLanguages(): string[] {
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    return advancedSettings["inlineCompletion.disabledLanguages"] || [];
+  }
+
+  async updateDisabledLanguages(value: string[]) {
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    advancedSettings["inlineCompletion.disabledLanguages"] = value;
+    await this.workspace.update("settings.advanced", advancedSettings, ConfigurationTarget.Global);
+    this.emit("updated");
   }
 
   get useVSCodeProxy(): boolean {

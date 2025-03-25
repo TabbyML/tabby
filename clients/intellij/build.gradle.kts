@@ -44,7 +44,7 @@ tasks {
 
   intellijPlatform {
     pluginConfiguration {
-      version.set("1.12.0-dev")
+      version.set("1.13.0-dev")
       changeNotes.set(provider {
         changelog.renderItem(
           changelog.getLatest(),
@@ -90,13 +90,13 @@ tasks {
       into("intellij-tabby/tabby-agent/")
     }
 
-    // Copy the tabby-threads `create-thread-from-iframe` to the sandbox
+    // Copy the tabby-chat-panel to the sandbox
     from(
-      fileTree("node_modules/tabby-threads/dist/") {
-        include("iife/create-thread-from-iframe.js")
+      fileTree("node_modules/tabby-chat-panel/dist/") {
+        include("iife/tabby-chat-panel.min.js")
       }
     ) {
-      into("intellij-tabby/tabby-threads/")
+      into("intellij-tabby/tabby-chat-panel/")
     }
   }
 }

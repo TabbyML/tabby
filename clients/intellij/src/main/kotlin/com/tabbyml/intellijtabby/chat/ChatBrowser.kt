@@ -83,6 +83,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
   private var currentConfig: Config.ServerConfig? = null
   var isChatPanelLoaded = false
     private set
+  var chatPanelAPIVersion: String? = null
+    private set
   private val pendingScripts: MutableList<String> = mutableListOf()
 
   init {
@@ -91,8 +93,8 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     component.background = bgColor
     setPageBackgroundColor("hsl(${bgColor.toHsl()})")
 
-    val tabbyThreadsScript = loadTabbyThreadsScript()
-    val htmlContent = loadHtmlContent(tabbyThreadsScript)
+    val tabbyChatPanelScript = loadTabbyChatPanelScript()
+    val htmlContent = loadHtmlContent(tabbyChatPanelScript)
     loadHTML(htmlContent)
 
     jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
@@ -328,7 +330,6 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private fun handleLoaded() {
     jsInjectFunctions()
-    jsCreateChatPanelClient()
     jsApplyStyle()
     reloadContent()
     component.isVisible = true
@@ -436,6 +437,7 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
               isChatPanelLoaded = false
               currentConfig = config
               jsLoadChatPanel()
+              jsCreateChatPanelClient()
             }
           }
         }
@@ -465,20 +467,20 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         )
       )
     logger.debug("chatPanelInit: $params")
-    jsChatPanelClientInvoke("init", params)
+    jsChatPanelClientInvoke(ChatPanelApiVersion.V0_8_0, "init", params)
   }
 
   private fun chatPanelExecuteCommand(command: String) {
     val params = listOf(command)
     logger.debug("chatPanelExecuteCommand: $params")
-    jsChatPanelClientInvoke("executeCommand", params)
+    jsChatPanelClientInvoke(ChatPanelApiVersion.V0_8_0, "executeCommand", params)
   }
 
   private fun chatPanelAddRelevantContext(context: EditorFileContext) {
     val params = listOf(context)
 
     logger.debug("chatPanelAddRelevantContext: $params")
-    jsChatPanelClientInvoke("addRelevantContext", params)
+    jsChatPanelClientInvoke(ChatPanelApiVersion.V0_8_0, "addRelevantContext", params)
   }
 
   private fun chatPanelUpdateTheme() {
@@ -488,19 +490,19 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
         if (isDarkTheme) "dark" else "light",
       )
     logger.debug("chatPanelUpdateTheme: $params")
-    jsChatPanelClientInvoke("updateTheme", params)
+    jsChatPanelClientInvoke(ChatPanelApiVersion.V0_8_0, "updateTheme", params)
   }
 
   private fun chatPanelUpdateActiveSelection(context: EditorFileContext?) {
     val params = listOf(context)
     logger.debug("chatPanelUpdateActiveSelection: $params")
-    jsChatPanelClientInvoke("updateActiveSelection", params)
+    jsChatPanelClientInvoke(ChatPanelApiVersion.V0_8_0, "updateActiveSelection", params)
   }
 
   private fun chatPanelNavigate(view: String) {
     val params = listOf(view)
     logger.debug("chatPanelNavigate: $params")
-    jsChatPanelClientInvoke("navigate", params)
+    jsChatPanelClientInvoke(ChatPanelApiVersion.V0_8_0, "navigate", params)
   }
 
   // js handler functions to inject
@@ -528,6 +530,17 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     """.trimIndent().trimStart()
   }
 
+  private val jsHandleChatPanelClientCreated = createJsFunction { params ->
+    logger.debug("chatPanelClientCreated: $params")
+    isChatPanelLoaded = true
+    chatPanelAPIVersion = params.getOrNull(0) as String?
+    pendingScripts.forEach { executeJs(it) }
+    pendingScripts.clear()
+    chatPanelInit()
+    chatPanelUpdateTheme()
+    showContent()
+  }
+
   private val jsReloadContent = createJsFunction { reloadContent(true) }
 
   private val jsHandleChatPanelRefresh = createJsFunction {
@@ -549,36 +562,12 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     }
   }
 
-  private val jsHandleChatPanelOnLoaded = createJsFunction { params ->
-    logger.debug("onLoaded: $params")
-    val onLoadedParams = params.getOrNull(0) as Map<*, *>?
-    val apiVersion = onLoadedParams?.get("apiVersion") as String?
-    if (apiVersion != null) {
-      val error = checkChatPanelApiVersion(apiVersion)
-      if (error != null) {
-        showContent(error)
-        return@createJsFunction Unit
-      }
-    }
-    isChatPanelLoaded = true
-    pendingScripts.forEach { executeJs(it) }
-    pendingScripts.clear()
-    chatPanelInit()
-    chatPanelUpdateTheme()
-    showContent()
-  }
-
   private val jsHandleChatPanelOnCopy = createJsFunction { params ->
     logger.debug("onCopy: request: $params")
     val content = params.getOrNull(0) as String? ?: return@createJsFunction Unit
     val stringSelection = StringSelection(content)
     val clipboard = Toolkit.getDefaultToolkit().systemClipboard
     clipboard.setContents(stringSelection, null)
-  }
-
-  private val jsHandleChatPanelOnKeyboardEvent = createJsFunction { params ->
-    logger.debug("onKeyboardEvent: request: $params")
-    // nothing to do
   }
 
   private val jsHandleChatPanelOpenInEditor = createJsFunction { params ->
@@ -626,27 +615,6 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     executeJs(script)
   }
 
-  private fun jsCreateChatPanelClient() {
-    val script = """
-      if (!window.tabbyChatPanelClient) {
-        window.tabbyChatPanelClient = TabbyThreads.createThreadFromIframe(getChatPanel(), {
-          expose: {
-            refresh: $jsHandleChatPanelRefresh,
-            onApplyInEditor: $jsHandleChatPanelOnApplyInEditor,
-            onLoaded: $jsHandleChatPanelOnLoaded,
-            onCopy: $jsHandleChatPanelOnCopy,
-            onKeyboardEvent: $jsHandleChatPanelOnKeyboardEvent,
-            openInEditor: $jsHandleChatPanelOpenInEditor,
-            openExternal: $jsHandleChatPanelOpenExternal,
-            readWorkspaceGitRepositories: $jsHandleChatPanelReadWorkspaceGitRepositories,
-            getActiveEditorSelection: $jsHandleChatPanelGetActiveEditorSelection,
-          }
-        })
-      }
-    """.trimIndent().trimStart()
-    executeJs(script)
-  }
-
   private fun jsApplyStyle() {
     val script = String.format(
       "applyStyle('%s')",
@@ -672,6 +640,33 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     executeJs(script)
   }
 
+  private fun jsCreateChatPanelClient() {
+    val script = """
+      TabbyChatPanel.createClient(getChatPanel(), {
+        refresh: $jsHandleChatPanelRefresh,
+        onApplyInEditor: $jsHandleChatPanelOnApplyInEditor,
+        onCopy: $jsHandleChatPanelOnCopy,
+        openInEditor: $jsHandleChatPanelOpenInEditor,
+        openExternal: $jsHandleChatPanelOpenExternal,
+        readWorkspaceGitRepositories: $jsHandleChatPanelReadWorkspaceGitRepositories,
+        getActiveEditorSelection: $jsHandleChatPanelGetActiveEditorSelection,
+      }).then((client) => {
+        window.tabbyChatPanelClient = client;
+        const getVersion = client && client['0.9.0'] && client['0.9.0']['getVersion'];
+        if (getVersion && typeof getVersion === 'function') {
+          return getVersion();
+        } else {
+          return undefined;
+        }
+      }).then((version) => {
+        console.log('Tabby Chat Panel API version: ' + version);
+        const callback = $jsHandleChatPanelClientCreated;
+        callback(version);
+      });
+    """.trimIndent().trimStart()
+    executeJs(script)
+  }
+
   private val pendingChatPanelRequest = mutableMapOf<String, CompletableFuture<Any?>>()
   private val jsChatPanelResponseHandlerInjection = JBCefJSQuery.create(this as JBCefBrowserBase).apply {
     addHandler { results ->
@@ -687,37 +682,47 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     }
   }.inject("results")
 
-  private fun jsChatPanelClientInvoke(method: String, params: List<Any?>): CompletableFuture<Any?> {
+  private fun jsChatPanelClientInvoke(
+    version: ChatPanelApiVersion,
+    method: String,
+    params: List<Any?>
+  ): CompletableFuture<Any?> {
     val future = CompletableFuture<Any?>()
     val uuid = UUID.randomUUID().toString()
     pendingChatPanelRequest[uuid] = future
     val paramsJson = escapeCharacters(gson.toJson(params))
     val script = """
       (function() {
-        const func = window.tabbyChatPanelClient['$method']
-        if (func && typeof func === 'function') {
-          const params = JSON.parse('$paramsJson')
-          const resultPromise = func(...params)
-          if (resultPromise && typeof resultPromise.then === 'function') {
-            resultPromise.then(result => {
-              const results = JSON.stringify(['$uuid', null, result])
+        const client = window.tabbyChatPanelClient;
+        if (client && typeof client === 'object') {
+          const func = client['${version.value}'] && client['${version.value}']['$method'];
+          if (func && typeof func === 'function') {
+            const params = JSON.parse('$paramsJson')
+            const resultPromise = func(...params)
+            if (resultPromise && typeof resultPromise.then === 'function') {
+              resultPromise.then(result => {
+                const results = JSON.stringify(['$uuid', null, result])
+                $jsChatPanelResponseHandlerInjection
+              }).catch(error => {
+                const results = JSON.stringify(['$uuid', error.message, null])
+                $jsChatPanelResponseHandlerInjection
+              })
+            } else {
+              const results = JSON.stringify(['$uuid', null, resultPromise])
               $jsChatPanelResponseHandlerInjection
-            }).catch(error => {
-              const results = JSON.stringify(['$uuid', error.message, null])
-              $jsChatPanelResponseHandlerInjection
-            })
+            }
           } else {
-            const results = JSON.stringify(['$uuid', null, resultPromise])
+            const results = JSON.stringify(['$uuid', 'Function not found: $version $method', null])
             $jsChatPanelResponseHandlerInjection
           }
         } else {
-          const results = JSON.stringify(['$uuid', 'Method not found: $method', null])
+          const results = JSON.stringify(['$uuid', 'Tabby chat panel client is not connected.', null])
           $jsChatPanelResponseHandlerInjection
         }
       })()
     """.trimIndent().trimStart()
 
-    logger.debug("Request to chat panel: $uuid, $method, $paramsJson")
+    logger.debug("Request to chat panel: $uuid, $version, $method, $paramsJson")
     if (isChatPanelLoaded) {
       executeJs(script)
     } else {
@@ -727,6 +732,13 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
   }
 
   companion object {
+    private const val TABBY_SERVER_VERSION_RANGE = ">=0.27.0"
+
+    enum class ChatPanelApiVersion(val value: String) {
+      V0_8_0("0.8.0"),
+      V0_9_0("0.9.0"),
+    }
+
     private fun parseVersion(versionString: String): Version? {
       return try {
         val version = versionString.removePrefix("v").substringBefore("-")
@@ -734,15 +746,6 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       } catch (e: Exception) {
         null
       }
-    }
-
-    private fun checkChatPanelApiVersion(versionString: String): String? {
-      val version = parseVersion(versionString)
-      val range = Constraint.parse(TABBY_CHAT_PANEL_API_VERSION_RANGE)
-      if (version != null && !range.satisfiedBy(version)) {
-        return "Please update your Tabby server and Tabby plugin for IntelliJ Platform to the latest version to use chat panel."
-      }
-      return null
     }
 
     private fun checkServerHealth(serverHealth: Map<String, Any>?): String? {
@@ -851,20 +854,17 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
       return URLBuilder(this).appendPathSegments(path).toString()
     }
 
-    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.8.0"
-    private const val TABBY_SERVER_VERSION_RANGE = ">=0.25.0"
-
-    private fun loadTabbyThreadsScript(): String {
+    private fun loadTabbyChatPanelScript(): String {
       val script =
         PluginManagerCore.getPlugin(PluginId.getId("com.tabbyml.intellij-tabby"))
           ?.pluginPath
-          ?.resolve("tabby-threads/iife/create-thread-from-iframe.js")
+          ?.resolve("tabby-chat-panel/iife/tabby-chat-panel.min.js")
           ?.toFile()
       if (script?.exists() == true) {
-        logger<ChatBrowser>().info("Tabby-threads script path: ${script.absolutePath}")
+        logger<ChatBrowser>().info("Tabby-chat-panel script path: ${script.absolutePath}")
         return script.readText()
       } else {
-        throw InitializationException("Tabby-threads script not found. Please reinstall Tabby plugin.")
+        throw InitializationException("Tabby-chat-panel script not found. Please reinstall Tabby plugin.")
       }
     }
 

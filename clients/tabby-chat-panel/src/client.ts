@@ -206,6 +206,13 @@ export interface ListFileItem {
    * The filepath of the file.
    */
   filepath: Filepath
+
+  /**
+   * Source of the file, indicating whether it comes from an editor or search results.
+   * When undefined, the file is assumed to be from the workspace by default.
+   * This property helps determine how the file should be handled in the UI.
+   */
+  source?: 'openedInEditor' | 'searchResult'
 }
 
 /**

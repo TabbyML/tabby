@@ -9,12 +9,9 @@ import remarkStringify from 'remark-stringify'
  */
 export function customAstToString(ast: Root): string {
   let result = ''
-
   for (const node of ast.children) {
     result += nodeToString(node) + '\n'
   }
-
-  // Remove trailing newlines
   return result.trim()
 }
 
@@ -53,31 +50,27 @@ function childrenToString(node: any): string {
   if (!node.children || node.children.length === 0) {
     return ''
   }
-
   return node.children.map((child: any) => nodeToString(child)).join('')
 }
 
-/**
- * Process code blocks with specific labels and insert corresponding command markers
- * @param ast The parsed AST
- * @param labelValue Label value to look for
- * @param commandText Command text to insert
- * @returns Processed AST children array
- */
-export function processCodeBlocksWithLabel(
-  ast: Root,
-  labelValue: string,
-  commandText: string
-): RootContent[] {
+export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
   const newChildren: RootContent[] = []
   for (let i = 0; i < ast.children.length; i++) {
     const node = ast.children[i]
-    // Check if the node is a code block with the specified label
-    if (node.type === 'code' && node.meta === `label=${labelValue}`) {
+    const metas: Record<string, string> = {}
+
+    if (node.type === 'code' && node.meta) {
+      node.meta?.split(' ').forEach(item => {
+        const [key, rawValue] = item.split(/=(.+)/)
+        const value = rawValue?.replace(/^['"]|['"]$/g, '') || ''
+        metas[key] = value
+      })
+    }
+
+    if (node.type === 'code' && metas['label']) {
       const prevNode = newChildren[newChildren.length - 1] as Parent | undefined
       const nextNode = ast.children[i + 1] as Parent | undefined
 
-      // Check if nodes are on the same line using position data
       const isPrevNodeSameLine =
         prevNode &&
         prevNode.position &&
@@ -90,7 +83,32 @@ export function processCodeBlocksWithLabel(
         node.position &&
         nextNode.position.start.line - node.position.end.line === 1
 
-      // Determine how to insert the command based on surrounding nodes and line positions
+      let finalCommandText = ''
+
+      // processing differet type of context
+      switch (metas['label']) {
+        case 'changes':
+          finalCommandText = '[[contextCommand:"changes"]]'
+          break
+        case 'file':
+          if (metas['object']) {
+            const fileObject = JSON.parse(metas['object'].replace(/\\"/g, '"'))
+            finalCommandText = `[[file:${JSON.stringify(fileObject)}]]`
+          }
+          break
+        case 'symbol':
+          if (metas['object']) {
+            const symbolObject = JSON.parse(
+              metas['object'].replace(/\\"/g, '"')
+            )
+            finalCommandText = `[[symbol:${JSON.stringify(symbolObject)}]]`
+          }
+          break
+        default:
+          newChildren.push(node)
+          continue
+      }
+
       if (
         prevNode &&
         prevNode.type === 'paragraph' &&
@@ -99,14 +117,13 @@ export function processCodeBlocksWithLabel(
         isPrevNodeSameLine &&
         isNextNodeSameLine
       ) {
-        // Case 1: Paragraphs both before and after on same lines - merge them
         i++
         newChildren.pop()
         newChildren.push({
           type: 'paragraph',
           children: [
             ...(prevNode.children || []),
-            { type: 'text', value: ` ${commandText} ` },
+            { type: 'text', value: ` ${finalCommandText} ` },
             ...(nextNode.children || [])
           ]
         } as RootContent)
@@ -115,12 +132,11 @@ export function processCodeBlocksWithLabel(
         nextNode.type === 'paragraph' &&
         isNextNodeSameLine
       ) {
-        // Case 2: Paragraph only after on same line - add command before
         i++
         newChildren.push({
           type: 'paragraph',
           children: [
-            { type: 'text', value: `${commandText} ` },
+            { type: 'text', value: `${finalCommandText} ` },
             ...(nextNode.children || [])
           ]
         } as RootContent)
@@ -129,67 +145,30 @@ export function processCodeBlocksWithLabel(
         prevNode.type === 'paragraph' &&
         isPrevNodeSameLine
       ) {
-        // Case 3: Paragraph only before on same line - add command after
         ;(prevNode.children || []).push({
           type: 'text',
-          value: ` ${commandText}`
+          value: ` ${finalCommandText}`
         })
       } else {
-        // Case 4: No paragraphs nearby on same lines - create new paragraph with command
         newChildren.push({
           type: 'paragraph',
-          children: [{ type: 'text', value: commandText }]
+          children: [{ type: 'text', value: finalCommandText }]
         } as RootContent)
       }
     } else {
-      // Non-matching nodes remain unchanged
       newChildren.push(node)
     }
   }
   return newChildren
 }
 
-/**
- * Process context commands in text using custom AST string conversion
- * @param input Input text
- * @param labelValue Label value to look for
- * @param commandText Command text to insert
- * @returns Processed text
- */
-export function processContextCommand(
-  input: string,
-  labelValue: string,
-  commandText: string
-): string {
-  // Parse input to AST
+export function processContextCommand(input: string): string {
   const processor = remark()
   const ast = processor.parse(input) as Root
-
-  // Process the AST using our AST-based approach
-  ast.children = processCodeBlocksWithLabel(ast, labelValue, commandText)
-
-  // Use our custom stringifier instead of the built-in one
+  ast.children = processCodeBlocksWithLabel(ast)
   return customAstToString(ast)
 }
 
-/**
- * Convert context block to placeholder
- * @param input Input text
- * @returns Processed text with context commands replaced by placeholders
- */
 export function convertContextBlockToPlaceholder(input: string): string {
-  return processContextCommand(
-    input,
-    'changes',
-    '[[contextCommand: "changes"]]'
-  )
-}
-
-/**
- * Convert context block to label name
- * @param input Input text
- * @returns Processed text with context commands replaced by label names
- */
-export function convertContextBlockToLabelName(input: string): string {
-  return processContextCommand(input, 'changes', '@changes')
+  return processContextCommand(input)
 }

@@ -5,11 +5,13 @@ import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 
 import {
   MARKDOWN_COMMAND_REGEX,
-  MARKDOWN_SOURCE_REGEX
+  MARKDOWN_FILE_REGEX,
+  MARKDOWN_SOURCE_REGEX,
+  MARKDOWN_SYMBOL_REGEX
 } from '@/lib/constants/regex'
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, resolveFileNameForDisplay } from '@/lib/utils'
 import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 import {
   IconCode,
@@ -75,11 +77,7 @@ export function ThreadTitleWithMentions({
 }) {
   const contentWithTags = useMemo(() => {
     if (!message) return null
-
-    let processedMessage = message
-
-    processedMessage = convertContextBlockToPlaceholder(processedMessage)
-
+    let processedMessage = convertContextBlockToPlaceholder(message)
     const partsWithSources = processedMessage
       .split(MARKDOWN_SOURCE_REGEX)
       .map((part, index) => {
@@ -101,25 +99,51 @@ export function ThreadTitleWithMentions({
         }
         return part
       })
-    // FIXME(Sma1lboy): refactor this process mention tags part later for different placeholder
     const finalContent = partsWithSources.map((part, index) => {
       if (!part || React.isValidElement(part)) {
-        return part // Return null or existing Mention components as is
+        return part
       }
+      let textPart = part as string
 
-      const textPart = part as string
-      return textPart
-        .split(MARKDOWN_COMMAND_REGEX)
-        .map((cmdPart: string, cmdIndex: number) => {
-          if (cmdIndex % 2 === 1) {
-            return `@${cmdPart.replace(/"/g, '')}`
+      textPart = textPart.replace(MARKDOWN_FILE_REGEX, (match, content) => {
+        try {
+          if (content.startsWith('{') && content.endsWith('}')) {
+            const fileInfo = JSON.parse(content)
+            const filename = resolveFileNameForDisplay(fileInfo.filepath)
+            return `@${filename}`
           }
-          return cmdPart
-        })
+          // Otherwise just use the content as is
+          return content
+        } catch (e) {
+          // If parse fails, return original
+          return match
+        }
+      })
+
+      textPart = textPart.replace(MARKDOWN_SYMBOL_REGEX, (match, content) => {
+        try {
+          if (content.startsWith('{') && content.endsWith('}')) {
+            const symbolInfo = JSON.parse(content)
+            if (symbolInfo.label) {
+              return `@${symbolInfo.label}`
+            }
+            const filename = resolveFileNameForDisplay(symbolInfo.filepath)
+            const range = symbolInfo.range
+              ? `:${symbolInfo.range.start}-${symbolInfo.range.end}`
+              : ''
+            return `@${filename}${range}`
+          }
+          return content
+        } catch (e) {
+          return match
+        }
+      })
+
+      return textPart.replace(MARKDOWN_COMMAND_REGEX, (_, cmdPart) => {
+        return `@${cmdPart.replace(/"/g, '')}`
+      })
     })
-
-    return finalContent.flat()
+    return finalContent
   }, [sources, message])
-
   return <div className={cn(className)}>{contentWithTags}</div>
 }

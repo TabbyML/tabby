@@ -5,7 +5,14 @@ import { marked } from 'marked'
 
 import { Maybe } from '@/lib/gql/generates/graphql'
 import type { AttachmentDocItem } from '@/lib/types'
-import { cn, getContent } from '@/lib/utils'
+import {
+  cn,
+  getAttachmentDocContent,
+  isAttachmentCommitDoc,
+  isAttachmentIssueDoc,
+  isAttachmentPullDoc,
+  isAttachmentWebDoc
+} from '@/lib/utils'
 
 import { SiteFavicon } from '../site-favicon'
 import { Badge } from '../ui/badge'
@@ -24,9 +31,9 @@ export function DocDetailView({
   relevantDocument: AttachmentDocItem
   enableDeveloperMode?: boolean
 }) {
-  const isIssue = relevantDocument?.__typename === 'MessageAttachmentIssueDoc'
-  const isPR = relevantDocument?.__typename === 'MessageAttachmentPullDoc'
-  const isCommit = relevantDocument.__typename === 'MessageAttachmentCommitDoc'
+  const isIssue = isAttachmentIssueDoc(relevantDocument)
+  const isPR = isAttachmentPullDoc(relevantDocument)
+  const isCommit = isAttachmentCommitDoc(relevantDocument)
   const link = isCommit ? undefined : relevantDocument.link
   const title = isCommit ? (
     <span>
@@ -42,10 +49,9 @@ export function DocDetailView({
     relevantDocument.title
   )
   const sourceUrl = link ? new URL(link) : null
-  const author =
-    relevantDocument.__typename === 'MessageAttachmentWebDoc'
-      ? undefined
-      : relevantDocument.author
+  const author = isAttachmentWebDoc(relevantDocument)
+    ? undefined
+    : relevantDocument.author
   const score = relevantDocument?.extra?.score
 
   return (
@@ -82,7 +88,7 @@ export function DocDetailView({
           {isCommit && <CommitInfoView user={author} />}
         </div>
         <p className="m-0 line-clamp-4 leading-none">
-          {normalizedText(getContent(relevantDocument))}
+          {normalizedText(getAttachmentDocContent(relevantDocument))}
         </p>
         {!!enableDeveloperMode && !isNil(score) && (
           <p className="mt-4">Score: {score}</p>
