@@ -1,4 +1,4 @@
-import { Fragment, ReactNode, useContext, useMemo, useState } from 'react'
+import { Fragment, useContext, useMemo, useState } from 'react'
 import { compact, isNil } from 'lodash-es'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -20,6 +20,7 @@ import {
   convertToFilepath,
   encodeMentionPlaceHolder,
   getRangeFromAttachmentCode,
+  isAttachmentCommitDoc,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import {
@@ -45,7 +46,8 @@ import {
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
-  MARKDOWN_SYMBOL_REGEX
+  MARKDOWN_SYMBOL_REGEX,
+  MARKDOWN_THINK_REGEX
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
@@ -146,17 +148,18 @@ export function MessageMarkdown({
 
     type Match = {
       pattern: RegExp
-      Component: (...arg: any) => ReactNode
-      getProps: Function
+      Component: (...args: any) => React.ReactNode
+      getProps: (match: RegExpExecArray) => any
       match: RegExpExecArray
     }
 
     const allMatches: Match[] = []
 
+    // Helper function to gather matches.
     const findMatches = (
       regex: RegExp,
-      Component: (...arg: any) => ReactNode,
-      getProps: Function
+      Component: (...args: any) => React.ReactNode,
+      getProps: (match: RegExpExecArray) => any
     ) => {
       regex.lastIndex = 0
       let match
@@ -170,14 +173,25 @@ export function MessageMarkdown({
       }
     }
 
+    // Add think placeholders to the matches.
+    findMatches(
+      MARKDOWN_THINK_REGEX,
+      ThinkPlaceholder,
+      (match: RegExpExecArray) => ({
+        content: decodeURIComponent(match[1])
+      })
+    )
+
+    // Add citation placeholders.
     findMatches(
       MARKDOWN_CITATION_REGEX,
       CitationTag,
       (match: RegExpExecArray) => {
         const citationIndex = parseInt(match[1], 10)
-        const citationSource = !isNil(citationIndex)
-          ? messageAttachments?.[citationIndex - 1]
-          : undefined
+        const citationSource =
+          !isNil(citationIndex) && messageAttachments
+            ? messageAttachments[citationIndex - 1]
+            : undefined
         const citationType = citationSource?.type
         const showcitation = citationSource && !isNil(citationIndex)
         return {
@@ -189,12 +203,14 @@ export function MessageMarkdown({
       }
     )
 
+    // Add source placeholders.
     findMatches(MARKDOWN_SOURCE_REGEX, SourceTag, (match: RegExpExecArray) => {
       const sourceId = match[1]
       const className = headline ? 'text-[1rem] font-semibold' : undefined
       return { sourceId, className }
     })
 
+    // Add file placeholders.
     findMatches(MARKDOWN_FILE_REGEX, FileTag, (match: RegExpExecArray) => {
       const encodedFilepath = match[1]
       try {
@@ -207,6 +223,7 @@ export function MessageMarkdown({
       }
     })
 
+    // Add symbol placeholders.
     findMatches(MARKDOWN_SYMBOL_REGEX, SymbolTag, (match: RegExpExecArray) => {
       const fullMatch = match[1]
       return {
@@ -215,6 +232,7 @@ export function MessageMarkdown({
       }
     })
 
+    // Add context command placeholders.
     findMatches(
       MARKDOWN_COMMAND_REGEX,
       ContextCommandTag,
@@ -226,16 +244,16 @@ export function MessageMarkdown({
       }
     )
 
+    // Sort all matches by their position in the text.
     allMatches.sort((a, b) => a.match.index - b.match.index)
 
+    // Build the final elements array by inserting plain text between matches.
     for (const { match, Component, getProps } of allMatches) {
       if (match.index >= lastIndex) {
         if (match.index > lastIndex) {
           elements.push(text.slice(lastIndex, match.index))
         }
-
         elements.push(<Component key={match.index} {...getProps(match)} />)
-
         lastIndex = match.index + match[0].length
       }
     }
@@ -393,6 +411,29 @@ export function ErrorMessageBlock({
     >
       {errorMessage}
     </MemoizedReactMarkdown>
+  )
+}
+
+function ThinkPlaceholder({ content }: { content: string }): JSX.Element {
+  return (
+    <details
+      open
+      className={`
+        my-4 w-full rounded-md border p-3 text-sm 
+        border-gray-300 bg-white text-gray-800
+        dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-100
+      `}
+    >
+      <summary
+        className={`
+          cursor-pointer list-none font-semibold outline-none 
+          text-gray-600 dark:text-gray-300
+        `}
+      >
+        Thinking
+      </summary>
+      <div className="mt-2 whitespace-pre-wrap leading-relaxed">{content}</div>
+    </details>
   )
 }
 
@@ -592,10 +633,9 @@ function RelevantDocumentBadge({
   relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
-  const link =
-    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
-      ? undefined
-      : relevantDocument.link
+  const link = isAttachmentCommitDoc(relevantDocument)
+    ? undefined
+    : relevantDocument.link
 
   return (
     <HoverCard openDelay={100} closeDelay={100}>
