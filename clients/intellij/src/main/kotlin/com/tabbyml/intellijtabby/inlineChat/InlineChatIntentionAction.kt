@@ -4,13 +4,14 @@ import com.intellij.codeInsight.intention.impl.BaseIntentionAction;
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.icons.AllIcons
 import com.intellij.ide.ui.LafManagerListener
-import com.intellij.openapi.actionSystem.impl.ActionButton
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.markup.TextAttributes
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
@@ -22,10 +23,20 @@ import java.awt.event.*
 import javax.swing.*
 import com.intellij.ui.components.IconLabelButton
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.tabbyml.intellijtabby.lsp.ConnectionService
+import com.tabbyml.intellijtabby.lsp.protocol.ChatEditParams
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.eclipse.lsp4j.Location
+import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.Range
 
 class InlineChatIntentionAction : BaseIntentionAction() {
     private var inlay: Inlay<InlineChatInlayRenderer>? = null
     private var inlayRender: InlineChatInlayRenderer? = null
+    private var project: Project? = null
+    private var location: Location? = null
     override fun getFamilyName(): String {
         return "Tabby"
     }
@@ -35,13 +46,56 @@ class InlineChatIntentionAction : BaseIntentionAction() {
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+        this.project = project
         if (editor != null) {
+            this.location = getCurrentLocation(editor = editor)
             addInputToEditor(editor = editor, offset = editor.caretModel.offset);
         }
 
         project.messageBus.connect().subscribe(LafManagerListener.TOPIC, LafManagerListener {
-                inlayRender?.repaint()
+                inlayRender?.repaint() // FIXME
         })
+    }
+
+    private fun getCurrentLocation(editor: Editor): Location {
+        val file = editor.document.let {
+            FileDocumentManager.getInstance().getFile(it)
+        }
+        val fileUri = file?.let { "file://${it.path}" }
+        val location = Location()
+        location.uri = fileUri
+        val selectionModel = editor.selectionModel
+        val document = editor.document
+        if (selectionModel.hasSelection()) {
+            val startOffset = selectionModel.selectionStart
+            val endOffset = selectionModel.selectionEnd
+            val startPosition = Position(document.getLineNumber(startOffset), startOffset - document.getLineStartOffset(document.getLineNumber(startOffset)))
+            val endPosition = Position(document.getLineNumber(endOffset), endOffset - document.getLineStartOffset(document.getLineNumber(endOffset)))
+            location.range = Range(startPosition, endPosition)
+        } else {
+            val caretOffset = editor.caretModel.offset
+            val caretLine = document.getLineNumber(caretOffset)
+            val caretColumn = caretOffset - document.getLineStartOffset(caretLine)
+            val caretPosition = Position(caretLine, caretColumn)
+            location.range = Range(caretPosition, caretPosition)
+        }
+
+        return location
+    }
+
+    private fun chatEdit(command: String) {
+        val scope = CoroutineScope(Dispatchers.IO)
+        scope.launch {
+            val server = project?.serviceOrNull<ConnectionService>()?.getServerAsync() ?: return@launch
+            if (location == null) {
+                return@launch
+            }
+            val param = ChatEditParams(
+                location = location!!,
+                command = command
+            )
+            server.chatFeature.chatEdit(params = param)
+        }
     }
 
     override fun getText(): String {
@@ -55,12 +109,30 @@ class InlineChatIntentionAction : BaseIntentionAction() {
 
     private fun addInputToEditor(editor: Editor, offset: Int) {
         val inlayModel = editor.inlayModel
-        inlayRender = InlineChatInlayRenderer(editor, this::onClose)
+        inlayRender = InlineChatInlayRenderer(editor, this::onClose, this::onInputSubmit)
         inlay = inlayModel.addBlockElement(offset, true, true, 0, inlayRender!!)
-        patchDeleteEvent(editor)
     }
 
-    private fun patchDeleteEvent(editor: Editor) {
+    private fun onClose() {
+        inlay?.dispose()
+    }
+
+    private fun onInputSubmit(value: String) {
+        println("Input value: $value")
+        chatEdit(command = value)
+    }
+}
+
+class InlineChatInlayRenderer(private val editor: Editor, private val onClose: () -> Unit, private val onSubmit: (value: String) -> Unit) :
+    EditorCustomElementRenderer {
+    private val inlineChatComponent = InlineChatComponent(onClose = this::removeComponent, onSubmit = onSubmit)
+    private var targetRegion: Rectangle? = null
+
+    init {
+        setupEvent()
+    }
+
+    private fun setupEvent() {
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(object : KeyEventDispatcher {
             override fun dispatchKeyEvent(e: KeyEvent): Boolean {
                 if (e.id == KeyEvent.KEY_PRESSED && (e.keyCode == KeyEvent.VK_BACK_SPACE || e.keyCode == KeyEvent.VK_DELETE)) {
@@ -70,20 +142,15 @@ class InlineChatIntentionAction : BaseIntentionAction() {
                         return true
                     }
                 }
+                if (e.id == KeyEvent.KEY_PRESSED && e.keyCode == KeyEvent.VK_ESCAPE) {
+                    // Handle escape
+                    removeComponent()
+                    return true
+                }
                 return false
             }
         })
     }
-
-    private fun onClose() {
-        inlay?.dispose()
-    }
-}
-
-class InlineChatInlayRenderer(private val editor: Editor, private val onClose: () -> Unit) :
-    EditorCustomElementRenderer {
-    private val inlineChatComponent = InlineChatComponent(onClose = this::removeComponent)
-    private var targetRegion: Rectangle? = null
 
     override fun calcWidthInPixels(inlay: Inlay<*>): Int {
         return inlineChatComponent.preferredSize.width
@@ -114,17 +181,15 @@ class InlineChatInlayRenderer(private val editor: Editor, private val onClose: (
     }
 
     private fun removeComponent() {
-        if (inlineChatComponent.parent != null) {
-            editor.contentComponent.remove(inlineChatComponent)
-            editor.contentComponent.repaint();
-            onClose()
-        }
+        editor.contentComponent.remove(inlineChatComponent)
+        editor.contentComponent.repaint();
+        onClose()
     }
 }
 
-class InlineChatComponent(private val onClose: () -> Unit) : JPanel() {
+class InlineChatComponent(private val onClose: () -> Unit, private val onSubmit: (value: String) -> Unit) : JPanel() {
     private val closeButton = createCloseButton()
-    private val inlineInput = InlineInputComponent(onSubmit = this::handleSubmit)
+    private val inlineInput = InlineInputComponent(onSubmit = this::handleSubmit, onCancel = this::handleClose)
 
     override fun isOpaque(): Boolean {
         return false;
@@ -138,32 +203,28 @@ class InlineChatComponent(private val onClose: () -> Unit) : JPanel() {
         layout = BorderLayout()
         putClientProperty(UIUtil.HIDE_EDITOR_FROM_DATA_CONTEXT_PROPERTY, true)
 
-        // Create main content panel with horizontal layout
         val contentPanel = JPanel(BorderLayout())
         contentPanel.add(inlineInput, BorderLayout.CENTER)
         contentPanel.add(closeButton, BorderLayout.EAST)
         contentPanel.border = BorderFactory.createEmptyBorder(6, 6, 6, 6)
 
-        // Add the content panel to the main panel
         add(contentPanel, BorderLayout.CENTER)
 
-        // Set overall panel properties
         border = BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(getTheme().defaultBackground, 3, true),
             BorderFactory.createEmptyBorder(4, 8, 4, 8)
         )
 
-        // Set an appropriate size
         minimumSize = Dimension(200, 40)
         preferredSize = Dimension(800, 60)
     }
 
-    private fun handleClose(com: JComponent): Unit {
+    private fun handleClose(): Unit {
         onClose()
     }
 
     private fun createCloseButton(): JLabel {
-        val closeButton = IconLabelButton(AllIcons.Actions.Close) { handleClose(it) }
+        val closeButton = IconLabelButton(AllIcons.Actions.Close) { handleClose() }
         closeButton.toolTipText = "Close Tabby inline chat"
         closeButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
         closeButton.border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
@@ -172,6 +233,7 @@ class InlineChatComponent(private val onClose: () -> Unit) : JPanel() {
 
     private fun handleSubmit(value: String) {
         onClose()
+        onSubmit(value)
     }
 
     override fun requestFocus() {
@@ -179,7 +241,7 @@ class InlineChatComponent(private val onClose: () -> Unit) : JPanel() {
     }
 }
 
-class InlineInputComponent(private var onSubmit: (value: String) -> Unit) : JPanel() {
+class InlineInputComponent(private var onSubmit: (value: String) -> Unit, private var onCancel: () -> Unit) : JPanel() {
     private val textArea: JTextArea = createTextArea()
     private val submitButton: JLabel = createSubmitButton()
     private val historyButton: JLabel = createHistoryButton()
@@ -214,32 +276,36 @@ class InlineInputComponent(private var onSubmit: (value: String) -> Unit) : JPan
         val textArea = JBTextArea().apply {
             font = Font(font.family, font.style, 14)
         }
-        textArea.lineWrap = true
-        textArea.wrapStyleWord = true
+        textArea.lineWrap = false
         textArea.rows = 1
         textArea.columns = 30
         textArea.emptyText.text = "Enter the command to editing"
-        textArea.autoscrolls = true
-        textArea.border = BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        textArea.border = BorderFactory.createEmptyBorder(6, 4, 4, 4)
         // To prevent keystrokes(backspace, delete) being handled by the host editor, https://intellij-support.jetbrains.com/hc/en-us/community/posts/360010505760-Issues-embedding-editor-in-block-inlay
         textArea.putClientProperty(UIUtil.HIDE_EDITOR_FROM_DATA_CONTEXT_PROPERTY, true)
         textArea.addKeyListener(object : KeyListener {
             override fun keyPressed(e: KeyEvent) {
-                println("textarea keyPressed")
+//                println("textarea keyPressed")
             }
 
             override fun keyReleased(e: KeyEvent) {
-                println("textarea keyReleased")
-
                 if (e.keyCode == KeyEvent.VK_BACK_SPACE || e.keyCode == KeyEvent.VK_DELETE) {
                     // Handle backspace and delete
                     e.consume()
                 }
+
+                if (e.keyCode == KeyEvent.VK_ENTER) {
+                    handleConfirm()
+                }
+
+                if (e.keyCode == KeyEvent.VK_ESCAPE) {
+                    // Handle escape
+                    textArea.text = ""
+                    onCancel()
+                }
             }
 
             override fun keyTyped(e: KeyEvent) {
-                //
-                println("textarea keyTyped")
 
             }
         })
@@ -323,17 +389,5 @@ class InlineInputComponent(private var onSubmit: (value: String) -> Unit) : JPan
         historyButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
         historyButton.border = BorderFactory.createEmptyBorder(4, 8, 4, 8)
         return historyButton
-    }
-
-    private fun showListPopover(anchor: Component, items: List<String>, onSelect: (String) -> Unit) {
-        val popupStep = object : BaseListPopupStep<String>("Select a Command", items) {
-            override fun onChosen(selectedValue: String, finalChoice: Boolean): PopupStep<*>? {
-                onSelect(selectedValue)
-                return FINAL_CHOICE
-            }
-        }
-
-        val popup = JBPopupFactory.getInstance().createListPopup(popupStep)
-        popup.showUnderneathOf(anchor)
     }
 }
