@@ -6,7 +6,6 @@ import type {
   FileRange,
   GetChangesParams
 } from 'tabby-chat-panel'
-
 import {
   ContextInfo,
   ContextSource,
@@ -23,7 +22,8 @@ import {
   MARKDOWN_SOURCE_REGEX,
   PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
-  PLACEHOLDER_SYMBOL_REGEX
+  PLACEHOLDER_SYMBOL_REGEX,
+  PLACEHOLDER_THINK_REGEX,
 } from '../constants/regex'
 import {
   convertContextBlockToPlaceholder,
@@ -204,43 +204,60 @@ export function replaceAtMentionPlaceHolder(value: string) {
  * @returns
  */
 export function encodeMentionPlaceHolder(value: string): string {
-  let newValue = value
-  let match
-  while ((match = PLACEHOLDER_FILE_REGEX.exec(value)) !== null) {
+  let newValue = value;
+
+  // Process file placeholders.
+  let match;
+  while ((match = PLACEHOLDER_FILE_REGEX.exec(newValue)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
         `[[file:${encodeURIComponent(match[1])}]]`
-      )
+      );
     } catch (error) {
-      continue
+      continue;
     }
   }
-  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(value)) !== null) {
+  // Process symbol placeholders.
+  while ((match = PLACEHOLDER_SYMBOL_REGEX.exec(newValue)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
         `[[symbol:${encodeURIComponent(match[1])}]]`
-      )
+      );
     } catch (error) {
-      continue
+      continue;
     }
   }
-
-  // encode the contextCommand placeholder
-  while ((match = PLACEHOLDER_COMMAND_REGEX.exec(value)) !== null) {
+  // Process context command placeholders.
+  while ((match = PLACEHOLDER_COMMAND_REGEX.exec(newValue)) !== null) {
     try {
       newValue = newValue.replace(
         match[0],
         `[[contextCommand:"${encodeURIComponent(match[1])}"]]`
-      )
+      );
     } catch (error) {
-      continue
+      continue;
     }
   }
 
-  return newValue
+  // Process <think> placeholders similar to other placeholders.
+  while ((match = PLACEHOLDER_THINK_REGEX.exec(newValue)) !== null) {
+    try {
+      newValue = newValue.replace(
+        match[0],
+        `[[think:${encodeURIComponent(match[1])}]]\n`
+      );
+    } catch (error) {
+      continue;
+    }
+  }
+
+
+  return newValue;
 }
+
+
 
 export function formatThreadTime(time: string, prefix: string) {
   const targetTime = moment(time)
