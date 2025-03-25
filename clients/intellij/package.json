@@ -3,6 +3,6 @@
   "private": true,
   "devDependencies": {
     "tabby-agent": "workspace:*",
-    "tabby-threads": "workspace:*"
+    "tabby-chat-panel": "workspace:*"
   }
 }
