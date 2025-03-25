@@ -410,15 +410,15 @@ function ThinkPlaceholder({ content }: { content: string }): JSX.Element {
     <details
       open
       className={`
-        my-4 w-full rounded-md border p-3 text-sm 
-        border-gray-300 bg-white text-gray-800
+        my-4 w-full rounded-md border border-gray-300 bg-white 
+        p-3 text-sm text-gray-800
         dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-100
       `}
     >
       <summary
         className={`
-          cursor-pointer list-none font-semibold outline-none 
-          text-gray-600 dark:text-gray-300
+          cursor-pointer list-none font-semibold text-gray-600 
+          outline-none dark:text-gray-300
         `}
       >
         Thinking
