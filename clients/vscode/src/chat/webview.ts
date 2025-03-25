@@ -509,60 +509,33 @@ export class ChatWebview extends EventEmitter {
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
         const maxResults = params.limit || 50;
         const searchQuery = params.query?.trim();
-        if (!searchQuery) {
-          const openTabs = window.tabGroups.all
-            .flatMap((group) => group.tabs)
-            .filter((tab) => tab.input && (tab.input as TabInputText).uri);
-          const openTabItems = openTabs.map((tab) =>
-            localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider),
-          );
+        const res: ListFileItem[] = [];
+        let openTabs = window.tabGroups.all
+          .flatMap((group) => group.tabs)
+          .filter((tab) => tab.input && (tab.input as TabInputText).uri)
+          .map((tab) => (tab.input as TabInputText).uri);
 
-          const targetCount = 5;
+        openTabs = openTabs.filter((uri, idx) => openTabs.indexOf(uri) === idx);
 
-          const uniqueItems = new Map();
-          openTabItems.forEach((item) => {
-            const key = JSON.stringify(item.filepath);
-            uniqueItems.set(key, item);
-          });
+        res.push(...openTabs.map((uri) => localUriToListFileItem(uri, this.gitProvider, "openedInEditor")));
 
-          if (uniqueItems.size < targetCount) {
-            const additionalCount = targetCount * 2;
-            const files = await this.findFiles("**/*", { maxResults: additionalCount });
-            const fileItems = files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
-
-            for (const item of fileItems) {
-              const key = JSON.stringify(item.filepath);
-              if (!uniqueItems.has(key) && uniqueItems.size < targetCount) {
-                uniqueItems.set(key, item);
-              }
-            }
-
-            const combined = Array.from(uniqueItems.values());
-            return combined.slice(0, targetCount);
-          }
-
-          const uniqueOpenTabs = Array.from(uniqueItems.values());
-          return uniqueOpenTabs.slice(0, targetCount);
-        }
-
+        const globPattern = caseInsensitivePattern(searchQuery);
         try {
-          // For search queries, limit results to 10
-          const effectiveMaxResults = Math.min(maxResults, 10);
-          const globPattern = caseInsensitivePattern(searchQuery);
-          const files = await this.findFiles(globPattern, { maxResults: effectiveMaxResults });
-
-          const uniqueItems = new Map();
-          files.forEach((uri) => {
-            const item = localUriToListFileItem(uri, this.gitProvider);
-            const key = JSON.stringify(item.filepath);
-            uniqueItems.set(key, item);
+          let files = await this.findFiles(globPattern, {
+            maxResults: maxResults,
+            excludes: openTabs.map((uri) => uri.fsPath),
           });
-
-          return Array.from(uniqueItems.values());
+          files = files.filter(
+            (uri, idx) => files.indexOf(uri) === idx && !openTabs.some((tabUri) => tabUri.fsPath === uri.fsPath),
+          );
+          this.logger.debug(`Found ${files.length} files matching pattern "${globPattern}"`);
+          res.push(...files.map((uri) => localUriToListFileItem(uri, this.gitProvider, "searchResult")));
         } catch (error) {
           this.logger.warn("Failed to find files:", error);
           return [];
         }
+
+        return res;
       },
 
       readFileContent: async (info: FileRange): Promise<string | null> => {
