@@ -158,6 +158,11 @@
         "icon": "$(history)",
         "enablement": "tabby.chatSidePanelStatus === 'ready'",
         "category": "Tabby"
+      },
+      {
+        "command": "tabby.toggleLanguageInlineCompletion",
+        "title": "Toggle Language Inline Completion",
+        "category": "Tabby"
       }
     ],
     "submenus": [
@@ -372,6 +377,14 @@
                   "Automatic trigger when you stop typing",
                   "Manual trigger by pressing `Alt + \\`"
                 ]
+              },
+              "inlineCompletion.disabledLanguages": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": [],
+                "description": "List of language IDs for which code completion should be disabled. Use the 'Toggle Single Language Inline Completion' command to easily enable or disable completion for the current language."
               },
               "chatEdit.history": {
                 "type": "integer",

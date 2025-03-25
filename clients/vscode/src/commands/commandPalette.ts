@@ -4,8 +4,6 @@ import { Client } from "../lsp/client";
 import { Config } from "../Config";
 import { isBrowser } from "../env";
 
-const MENU_ITEM_INDENT_SPACING = "      ";
-
 interface CommandPaletteItem extends QuickPickItem {
   command?: string | Command | (() => void | Promise<void>);
   picked?: boolean;
@@ -24,13 +22,7 @@ export class CommandPalette {
 
     // Status section
     const status = this.client.status.current?.status;
-    items.push(
-      {
-        label: "status",
-        kind: QuickPickItemKind.Separator,
-      },
-      this.itemForStatus(),
-    );
+    items.push(this.itemForStatus());
 
     this.client.status.on("didChange", () => {
       items[1] = this.itemForStatus();
@@ -40,23 +32,30 @@ export class CommandPalette {
     // Features section
     const validStatuses = ["ready", "readyForAutoTrigger", "readyForManualTrigger"];
     if (status !== undefined && validStatuses.includes(status)) {
-      const iconPath = this.config.inlineCompletionTriggerMode === "automatic" ? new ThemeIcon("check") : undefined;
-      const labelPrefix = iconPath ? "" : MENU_ITEM_INDENT_SPACING;
+      const isAutomatic = this.config.inlineCompletionTriggerMode === "automatic";
 
-      items.push(
-        {
-          label: "enable/disable features",
-          kind: QuickPickItemKind.Separator,
-        },
-        {
-          label: labelPrefix + "Code Completion",
-          detail: MENU_ITEM_INDENT_SPACING + "Toggle between automatic and manual completion mode",
-          picked: this.config.inlineCompletionTriggerMode === "automatic",
-          command: "tabby.toggleInlineCompletionTriggerMode",
-          iconPath: iconPath,
+      const currentLanguageId = window.activeTextEditor?.document.languageId;
+      const isLanguageDisabled = currentLanguageId ? this.config.disabledLanguages.includes(currentLanguageId) : false;
+
+      items.push({
+        label: (isAutomatic ? "Disable" : "Enable") + " completions",
+        picked: isAutomatic,
+        command: "tabby.toggleInlineCompletionTriggerMode",
+        alwaysShow: true,
+      });
+
+      if (currentLanguageId) {
+        items.push({
+          label: (isLanguageDisabled ? "Enable" : "Disable") + ` completions for ${currentLanguageId}`,
+          picked: !isLanguageDisabled,
+          command: {
+            title: "triggerLanguageInlineCompletion",
+            command: "tabby.toggleLanguageInlineCompletion",
+            arguments: [currentLanguageId],
+          },
           alwaysShow: true,
-        },
-      );
+        });
+      }
     }
 
     // Chat section
@@ -139,7 +138,7 @@ export class CommandPalette {
   }
 
   private itemForStatus(): CommandPaletteItem {
-    const STATUS_PREFIX = MENU_ITEM_INDENT_SPACING + "Status: ";
+    const STATUS_PREFIX = "Status: ";
     const languageClientState = this.client.languageClient.state;
     switch (languageClientState) {
       case LanguageClientState.Stopped:

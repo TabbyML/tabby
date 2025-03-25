@@ -63,6 +63,13 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
       return null;
     }
 
+    // Skip if the current language is disabled
+    const currentLanguage = document.languageId;
+    if (this.config.disabledLanguages.includes(currentLanguage)) {
+      this.logger.debug(`Skipping completion for disabled language: ${currentLanguage}`);
+      return null;
+    }
+
     // Skip when trigger automatically and text selected
     if (
       context.triggerKind === InlineCompletionTriggerKind.Automatic &&
