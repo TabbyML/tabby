@@ -206,6 +206,12 @@ export interface ListFileItem {
    * The filepath of the file.
    */
   filepath: Filepath
+
+  /**
+   * Type of the file, it could be a tab or a file from workspace, if the file didn't pass the type, it will be default from the workspace.
+   * The type is used to determine whether the file is opened in the editor or not.
+   */
+  type?: 'tab' | 'workspace'
 }
 
 /**
