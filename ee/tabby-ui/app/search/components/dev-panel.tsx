@@ -66,6 +66,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
               src={value}
               style={{ fontSize: '0.75rem' }}
               collapseStringsAfterLength={120}
+              displayDataTypes={false}
             />
           </ScrollArea>
         ) : null}
