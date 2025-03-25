@@ -20,9 +20,9 @@ importers:
       tabby-agent:
         specifier: workspace:*
         version: link:../tabby-agent
-      tabby-threads:
+      tabby-chat-panel:
         specifier: workspace:*
-        version: link:../tabby-threads
+        version: link:../tabby-chat-panel
 
   clients/intellij:
     devDependencies:

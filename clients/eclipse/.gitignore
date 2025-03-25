@@ -1,4 +1,4 @@
 dist
 node_modules
 plugin/tabby-agent
-plugin/chat-panel/create-thread-from-iframe.js
+plugin/chat-panel/tabby-chat-panel.min.js
