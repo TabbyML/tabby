@@ -174,7 +174,7 @@ export function MessageMarkdown({
     // Add think placeholders to the matches.
     findMatches(
       MARKDOWN_THINK_REGEX,
-      ThinkPlaceholder,
+      ThinkBlock,
       (match: RegExpExecArray) => ({
         content: decodeURIComponent(match[1])
       })
@@ -405,7 +405,7 @@ export function ErrorMessageBlock({
   )
 }
 
-function ThinkPlaceholder({ content }: { content: string }): JSX.Element {
+function ThinkBlock({ content }: { content: string }): JSX.Element {
   return (
     <details
       open
