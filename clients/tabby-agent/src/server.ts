@@ -44,6 +44,7 @@ import { CompletionProvider } from "./codeCompletion";
 import { ChatFeature } from "./chat";
 import { ChatEditProvider } from "./chat/inlineEdit";
 import { CommitMessageGenerator } from "./chat/generateCommitMessage";
+import { BranchNameGenerator } from "./chat/generateBranchName";
 import { StatusProvider } from "./status";
 import { CommandProvider } from "./command";
 import { name as serverName, version as serverVersion } from "../package.json";
@@ -85,6 +86,11 @@ export class Server {
   private readonly chatFeature = new ChatFeature(this.tabbyApiClient);
   private readonly chatEditProvider = new ChatEditProvider(this.configurations, this.tabbyApiClient, this.documents);
   private readonly commitMessageGenerator = new CommitMessageGenerator(
+    this.configurations,
+    this.tabbyApiClient,
+    this.gitContextProvider,
+  );
+  private readonly branchNameGenerator = new BranchNameGenerator(
     this.configurations,
     this.tabbyApiClient,
     this.gitContextProvider,
@@ -193,6 +199,7 @@ export class Server {
       this.chatFeature,
       this.chatEditProvider,
       this.commitMessageGenerator,
+      this.branchNameGenerator,
       this.smartApplyFeature,
       this.statusProvider,
       this.commandProvider,

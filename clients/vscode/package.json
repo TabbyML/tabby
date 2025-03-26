@@ -121,6 +121,12 @@
         "icon": "$(sparkle)"
       },
       {
+        "command": "tabby.chat.generateBranchName",
+        "title": "Create Branch with Suggestions",
+        "category": "Tabby",
+        "icon": "$(git-branch)"
+      },
+      {
         "command": "tabby.chat.edit.start",
         "title": "Start Inline Editing",
         "category": "Tabby"
@@ -233,6 +239,10 @@
           "when": "false"
         },
         {
+          "command": "tabby.chat.generateBranchName",
+          "when": "tabby.chatEnabled"
+        },
+        {
           "command": "tabby.chat.edit.start",
           "when": "tabby.chatEnabled"
         },
@@ -260,6 +270,11 @@
           "command": "tabby.chat.generateCommitMessage",
           "when": "tabby.chatEnabled",
           "group": "navigation@-1"
+        },
+        {
+          "command": "tabby.chat.generateBranchName",
+          "when": "tabby.chatEnabled",
+          "group": "navigation@-2"
         }
       ],
       "view/title": [

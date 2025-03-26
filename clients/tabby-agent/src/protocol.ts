@@ -637,6 +637,39 @@ export type GenerateCommitMessageResult = {
 };
 
 /**
+ * [Tabby] GenerateBranchName Request(↩️)
+ *
+ * This method is sent from the client to the server to generate a branch name for a git repository.
+ * - method: `tabby/chat/generateBranchName`
+ * - params: {@link GenerateBranchNameParams}
+ * - result: {@link GenerateBranchNameResult} | null
+ * - error: {@link ChatFeatureNotAvailableError}
+ */
+export namespace GenerateBranchNameRequest {
+  export const method = "tabby/chat/generateBranchName";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<
+    GenerateBranchNameParams,
+    GenerateBranchNameResult | null,
+    void,
+    ChatFeatureNotAvailableError,
+    void
+  >(method);
+}
+
+export type GenerateBranchNameParams = {
+  /**
+   * The root URI of the git repository.
+   */
+  repository: URI;
+  input: string;
+};
+
+export type GenerateBranchNameResult = {
+  branchNames: string[];
+};
+
+/**
  * [Tabby] Telemetry Event Notification(➡️)
  *
  * This method is sent from the client to the server for telemetry purposes.

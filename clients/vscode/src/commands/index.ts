@@ -28,6 +28,7 @@ import { showOutputPanel } from "../logger";
 import { InlineEditController } from "../inline-edit";
 import { CommandPalette } from "./commandPalette";
 import { ConnectToServerWidget } from "./connectToServer";
+import { BranchQuickPick } from "../inline-edit/branchQuickPick";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -423,6 +424,81 @@ export class Commands {
           );
           if (result && selectedRepo.inputBox) {
             selectedRepo.inputBox.value = result.commitMessage;
+          }
+        },
+      );
+    },
+    "chat.generateBranchName": async (repository?: Repository) => {
+      let selectedRepo = repository;
+      if (!selectedRepo) {
+        const repos = this.gitProvider.getRepositories() ?? [];
+        if (repos.length < 1) {
+          window.showInformationMessage("No Git repositories found.");
+          return;
+        }
+        if (repos.length == 1) {
+          selectedRepo = repos[0];
+        } else {
+          const selected = await window.showQuickPick(
+            repos
+              .map((repo) => {
+                const repoRoot = repo.rootUri.fsPath;
+                return {
+                  label: path.basename(repoRoot),
+                  detail: repoRoot,
+                  iconPath: new ThemeIcon("repo"),
+                  picked: repo.ui.selected,
+                  alwaysShow: true,
+                  value: repo,
+                };
+              })
+              .sort((a, b) => {
+                if (a.detail.startsWith(b.detail)) {
+                  return 1;
+                } else if (b.detail.startsWith(a.detail)) {
+                  return -1;
+                } else {
+                  return a.label.localeCompare(b.label);
+                }
+              }),
+            { placeHolder: "Select a Git repository" },
+          );
+          selectedRepo = selected?.value;
+        }
+      }
+      if (!selectedRepo) {
+        return;
+      }
+
+      window.withProgress(
+        {
+          location: ProgressLocation.Notification,
+          title: "Getting branch name suggestions...",
+          cancellable: true,
+        },
+        async (_, token) => {
+          const branchQuickPick = new BranchQuickPick(this.client, selectedRepo.rootUri.toString(), token);
+
+          const branchName = await branchQuickPick.start();
+          if (branchName) {
+            try {
+              if (typeof selectedRepo.createBranch !== "function") {
+                const freshRepo = this.gitProvider.getRepository(selectedRepo.rootUri);
+                if (freshRepo && typeof freshRepo.createBranch === "function") {
+                  await freshRepo.createBranch(branchName, true);
+                  window.showInformationMessage(`Created branch: ${branchName}`);
+                } else {
+                  throw new Error("Repository does not support branch creation");
+                }
+              } else {
+                await selectedRepo.createBranch(branchName, true);
+                window.showInformationMessage(`Created branch: ${branchName}`);
+              }
+            } catch (error) {
+              window.showErrorMessage(
+                `Failed to create branch: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
           }
         },
       );
