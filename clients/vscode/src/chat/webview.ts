@@ -518,11 +518,14 @@ export class ChatWebview extends EventEmitter {
         openTabs = openTabs.filter((uri, idx) => openTabs.indexOf(uri) === idx);
 
         res.push(...openTabs.map((uri) => localUriToListFileItem(uri, this.gitProvider, "openedInEditor")));
+        if (res.length > maxResults) {
+          return res.slice(0, maxResults);
+        }
 
         const globPattern = caseInsensitivePattern(searchQuery);
         try {
           let files = await this.findFiles(globPattern, {
-            maxResults: maxResults,
+            maxResults: maxResults - res.length,
             excludes: openTabs.map((uri) => uri.fsPath),
           });
           files = files.filter(
@@ -532,9 +535,7 @@ export class ChatWebview extends EventEmitter {
           res.push(...files.map((uri) => localUriToListFileItem(uri, this.gitProvider, "searchResult")));
         } catch (error) {
           this.logger.warn("Failed to find files:", error);
-          return [];
         }
-
         return res;
       },
 
