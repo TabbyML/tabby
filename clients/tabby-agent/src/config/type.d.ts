@@ -104,6 +104,10 @@ export type ConfigData = {
       promptTemplate: string;
       responseMatcher: string;
     };
+    generateBranchName: {
+      maxDiffLength: number;
+      promptTemplate: string;
+    };
     smartApplyLineRange: {
       promptTemplate: string;
     };

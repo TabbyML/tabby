@@ -122,7 +122,7 @@
       },
       {
         "command": "tabby.chat.generateBranchName",
-        "title": "Generate Branch Name",
+        "title": "Create Branch with Suggestions",
         "category": "Tabby",
         "icon": "$(git-branch)"
       },
@@ -234,7 +234,8 @@
           "when": "false"
         },
         {
-          "command": "tabby.chat.generateBranchName"
+          "command": "tabby.chat.generateBranchName",
+          "when": "tabby.chatEnabled"
         },
         {
           "command": "tabby.chat.edit.start",

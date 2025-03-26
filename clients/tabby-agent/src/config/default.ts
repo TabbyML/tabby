@@ -8,7 +8,7 @@ import generateSmartApplyPrompt from "../chat/prompts/generate-smart-apply.md";
 import provideSmartApplyLineRangePrompt from "../chat/prompts/provide-smart-apply-line-range.md";
 import includeFileContextList from "../chat/prompts/include-file-context-list.md";
 import includeFileContextItem from "../chat/prompts/include-file-context-item.md";
-
+import generateBranchNamePrompt from "../chat/prompts/generate-branch-name.md";
 export const defaultConfigData: ConfigData = {
   server: {
     endpoint: "http://localhost:8080",
@@ -104,6 +104,10 @@ export const defaultConfigData: ConfigData = {
       promptTemplate: generateCommitMessagePrompt,
       responseMatcher:
         /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\S+\))?:.+(?=\s*\1)/gis.toString(),
+    },
+    generateBranchName: {
+      maxDiffLength: 3600,
+      promptTemplate: generateBranchNamePrompt,
     },
     smartApplyLineRange: {
       promptTemplate: provideSmartApplyLineRangePrompt,

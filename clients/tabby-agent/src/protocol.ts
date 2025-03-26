@@ -662,10 +662,11 @@ export type GenerateBranchNameParams = {
    * The root URI of the git repository.
    */
   repository: URI;
+  input: string;
 };
 
 export type GenerateBranchNameResult = {
-  branchName: string;
+  branchNames: string[];
 };
 
 /**

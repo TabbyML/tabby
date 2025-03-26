@@ -50,7 +50,7 @@ export class BranchNameGenerator implements Feature {
     this.mutexAbortController = new AbortController();
     token.onCancellationRequested(() => this.mutexAbortController?.abort());
 
-    const { repository } = params;
+    const { repository, input } = params;
     let diffResult: GitDiffResult | undefined | null = undefined;
     diffResult = await this.gitContextProvider.diff({ repository, cached: true }, token);
     if (
@@ -58,7 +58,6 @@ export class BranchNameGenerator implements Feature {
       (typeof diffResult.diff === "string" && isBlank(diffResult.diff)) ||
       (Array.isArray(diffResult.diff) && isBlank(diffResult.diff.join("")))
     ) {
-      // Use uncached diff if cached diff is empty
       diffResult = await this.gitContextProvider.diff({ repository, cached: false }, token);
     }
 
@@ -67,12 +66,15 @@ export class BranchNameGenerator implements Feature {
     }
 
     const config = this.configurations.getMergedConfig();
-    const { maxDiffLength } = config.chat.generateCommitMessage; // Reuse same maxDiffLength from commit message
-    const promptTemplate =
-      "Generate a concise git branch name based on these changes that follows kebab case format (lowercase words connected by hyphens):\n\n{{diff}}";
-    const responseMatcher = "^[a-z0-9][a-z0-9-]*[a-z0-9]$"; // Match kebab case format
+    const { maxDiffLength, promptTemplate } = config.chat.generateBranchName;
 
-    // select diffs from the list to generate a prompt under the prompt size limit
+    let userPrompt = promptTemplate;
+    if (input && input.trim() && userPrompt.includes("{{input}}")) {
+      userPrompt = userPrompt.replace(/{{input}}/g, input.trim());
+    }
+
+    const responseMatcher = "^[a-z0-9][a-z0-9-]*[a-z0-9]$";
+
     const diff = diffResult.diff;
     let splitDiffs: string[];
     if (typeof diff === "string") {
@@ -82,12 +84,12 @@ export class BranchNameGenerator implements Feature {
     }
     let selectedDiff = "";
     for (const item of splitDiffs) {
-      if (selectedDiff.length + item.length < maxDiffLength) {
-        selectedDiff += item + "\n";
+      if (selectedDiff.length + item.length > maxDiffLength) {
+        break;
       }
+      selectedDiff += item + "\n";
     }
     if (isBlank(selectedDiff)) {
-      // This may happen when all separated diffs are larger than the limit.
       if (typeof diff === "string") {
         selectedDiff = diff.substring(0, maxDiffLength);
       } else {
@@ -101,7 +103,7 @@ export class BranchNameGenerator implements Feature {
     const messages: { role: "user"; content: string }[] = [
       {
         role: "user",
-        content: promptTemplate.replace("{{diff}}", selectedDiff),
+        content: userPrompt.replace("{{diff}}", selectedDiff),
       },
     ];
     const readableStream = await this.tabbyApiClient.fetchChatStream(
@@ -118,14 +120,44 @@ export class BranchNameGenerator implements Feature {
 
     const responseMessage = await parseChatResponse(readableStream);
     const matcherReg = stringToRegExp(responseMatcher);
-    const match = matcherReg.exec(responseMessage);
 
-    const branchName = match
-      ? match[0]
-      : responseMessage
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "");
-    return { branchName };
+    let branchNames = responseMessage
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        const match = matcherReg.exec(line);
+        return match
+          ? match[0]
+          : line
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "");
+      })
+      .filter((branchName) => branchName.length > 0)
+      .slice(0, 5);
+
+    if (input && input.trim()) {
+      const inputPrefix = input.trim().toLowerCase();
+
+      const matchingBranches = branchNames.filter((name) => name.startsWith(inputPrefix));
+
+      if (matchingBranches.length === 0) {
+        branchNames = branchNames.map((name) => {
+          if (inputPrefix.endsWith("-") && name.startsWith("-")) {
+            return inputPrefix + name.substring(1);
+          }
+          return inputPrefix + (inputPrefix.endsWith("-") || name.startsWith("-") ? "" : "-") + name;
+        });
+      } else {
+        branchNames = matchingBranches;
+      }
+    }
+
+    while (branchNames.length < 3 && branchNames.length > 0) {
+      branchNames.push(branchNames[0] + "-alt");
+    }
+
+    return { branchNames };
   }
 }

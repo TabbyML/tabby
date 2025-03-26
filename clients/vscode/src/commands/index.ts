@@ -24,10 +24,11 @@ import { ChatSidePanelProvider } from "../chat/sidePanel";
 import { createChatPanel } from "../chat/chatPanel";
 import { getEditorContext } from "../chat/context";
 import { GitProvider, Repository } from "../git/GitProvider";
-import { getLogger, showOutputPanel } from "../logger";
+import { showOutputPanel } from "../logger";
 import { InlineEditController } from "../inline-edit";
 import { CommandPalette } from "./commandPalette";
 import { ConnectToServerWidget } from "./connectToServer";
+import { BranchQuickPick } from "../inline-edit/branchQuickPick";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -453,20 +454,26 @@ export class Commands {
       if (!selectedRepo) {
         return;
       }
+
       window.withProgress(
         {
           location: ProgressLocation.Notification,
-          title: "Generating branch name...",
+          title: "Getting branch name suggestions...",
           cancellable: true,
         },
         async (_, token) => {
-          const result = await this.client.chat.generateBranchName(
-            { repository: selectedRepo.rootUri.toString() },
-            token,
-          );
-          if (result) {
-            // TODO: testing
-            getLogger().info("Generated branch name:", result.branchName);
+          const branchQuickPick = new BranchQuickPick(this.client, selectedRepo.rootUri.toString(), token);
+
+          const branchName = await branchQuickPick.start();
+          if (branchName) {
+            try {
+              await selectedRepo.createBranch(branchName, true);
+              window.showInformationMessage(`Created branch: ${branchName}`);
+            } catch (error) {
+              window.showErrorMessage(
+                `Failed to create branch: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
           }
         },
       );
