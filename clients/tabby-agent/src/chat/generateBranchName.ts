@@ -119,9 +119,16 @@ export class BranchNameGenerator implements Feature {
     }
 
     const responseMessage = await parseChatResponse(readableStream);
+
+    let branchNamesContent = responseMessage;
+    const branchNamesMatch = /<BRANCHNAMES>([\s\S]*?)<\/BRANCHNAMES>/i.exec(responseMessage);
+    if (branchNamesMatch && branchNamesMatch[1]) {
+      branchNamesContent = branchNamesMatch[1].trim();
+    }
+
     const matcherReg = stringToRegExp(responseMatcher);
 
-    let branchNames = responseMessage
+    let branchNames = branchNamesContent
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.length > 0)

@@ -467,8 +467,18 @@ export class Commands {
           const branchName = await branchQuickPick.start();
           if (branchName) {
             try {
-              await selectedRepo.createBranch(branchName, true);
-              window.showInformationMessage(`Created branch: ${branchName}`);
+              if (typeof selectedRepo.createBranch !== "function") {
+                const freshRepo = this.gitProvider.getRepository(selectedRepo.rootUri);
+                if (freshRepo && typeof freshRepo.createBranch === "function") {
+                  await freshRepo.createBranch(branchName, true);
+                  window.showInformationMessage(`Created branch: ${branchName}`);
+                } else {
+                  throw new Error("Repository does not support branch creation");
+                }
+              } else {
+                await selectedRepo.createBranch(branchName, true);
+                window.showInformationMessage(`Created branch: ${branchName}`);
+              }
             } catch (error) {
               window.showErrorMessage(
                 `Failed to create branch: ${error instanceof Error ? error.message : String(error)}`,
