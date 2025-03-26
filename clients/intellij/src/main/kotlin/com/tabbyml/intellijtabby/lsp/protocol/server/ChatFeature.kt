@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture
 
 @JsonSegment("tabby/chat")
 interface ChatFeature {
-  @JsonRequest
+  @JsonRequest("edit")
   fun chatEdit(params: ChatEditParams): CompletableFuture<String>
 
   @JsonRequest

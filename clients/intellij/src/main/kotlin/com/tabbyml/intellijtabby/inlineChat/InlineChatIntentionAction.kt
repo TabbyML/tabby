@@ -66,19 +66,18 @@ class InlineChatIntentionAction : BaseIntentionAction() {
         location.uri = fileUri
         val selectionModel = editor.selectionModel
         val document = editor.document
+        val caretOffset = editor.caretModel.offset
+        var startOffset = caretOffset
+        var endOffset = caretOffset
         if (selectionModel.hasSelection()) {
-            val startOffset = selectionModel.selectionStart
-            val endOffset = selectionModel.selectionEnd
-            val startPosition = Position(document.getLineNumber(startOffset), startOffset - document.getLineStartOffset(document.getLineNumber(startOffset)))
-            val endPosition = Position(document.getLineNumber(endOffset), endOffset - document.getLineStartOffset(document.getLineNumber(endOffset)))
-            location.range = Range(startPosition, endPosition)
-        } else {
-            val caretOffset = editor.caretModel.offset
-            val caretLine = document.getLineNumber(caretOffset)
-            val caretColumn = caretOffset - document.getLineStartOffset(caretLine)
-            val caretPosition = Position(caretLine, caretColumn)
-            location.range = Range(caretPosition, caretPosition)
+            startOffset = selectionModel.selectionStart
+            endOffset = selectionModel.selectionEnd
         }
+        val startPosition = Position(document.getLineNumber(startOffset), 0)
+        val endChar = endOffset - document.getLineStartOffset(document.getLineNumber(endOffset))
+        val endLine = if (endChar == 0)  document.getLineNumber(endOffset) else document.getLineNumber(endOffset) + 1
+        val endPosition = Position(endLine, endChar)
+        location.range = Range(startPosition, endPosition)
 
         return location
     }
@@ -94,6 +93,7 @@ class InlineChatIntentionAction : BaseIntentionAction() {
                 location = location!!,
                 command = command
             )
+            println("Chat edit params: $param")
             server.chatFeature.chatEdit(params = param)
         }
     }

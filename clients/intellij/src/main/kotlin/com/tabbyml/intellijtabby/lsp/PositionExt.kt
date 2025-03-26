@@ -10,5 +10,11 @@ fun positionInDocument(document: Document, offset: Int): Position {
 }
 
 fun offsetInDocument(document: Document, position: Position): Int {
+  if (position.line < 0) {
+    return position.character
+  }
+  if (position.line >= document.lineCount) {
+    return document.getLineEndOffset(document.lineCount - 1)
+  }
   return document.getLineStartOffset(position.line) + position.character
 }
