@@ -22,7 +22,7 @@ import {
   HoverCardContent,
   HoverCardTrigger
 } from '@/components/ui/hover-card'
-import { cn, resolveFileNameForDisplay } from '@/lib/utils'
+import { cn, isAttachmentCommitDoc, isAttachmentIssueDoc, isAttachmentPullDoc, resolveFileNameForDisplay } from '@/lib/utils'
 import { isNil } from 'lodash-es'
 import { DocDetailView } from '../message-markdown/doc-detail-view'
 
@@ -68,9 +68,9 @@ export function ReadingRepoStepper({
 
   return (
     <Accordion collapsible type="single">
-      <AccordionItem value="readingRepo">
+      <AccordionItem value="readingRepo" className='border-none'>
         <AccordionTrigger className="w-full py-2 pr-2">
-          <div className="flex flex-1 items-center justify-between pr-2">
+          <div className="flex whitespace-nowrap flex-nowrap flex-1 items-center justify-between pr-2">
             <div className="flex flex-1 items-center gap-2">
               <IconCode className="mr-2 h-5 w-5 shrink-0" />
               <span>Look into</span>
@@ -162,7 +162,7 @@ export function ReadingRepoStepper({
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {docs?.map((x, index) => {
                       const _key =
-                        x.__typename === 'MessageAttachmentCommitDoc'
+                        isAttachmentCommitDoc(x)
                           ? x.sha
                           : x.link
                       return (
@@ -299,9 +299,9 @@ function ContextItem({
 // todo public component
 // Issue, PR, Commit
 function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
-  const isIssue = doc.__typename === 'MessageAttachmentIssueDoc'
-  const isPR = doc.__typename === 'MessageAttachmentPullDoc'
-  const isCommit = doc.__typename === 'MessageAttachmentCommitDoc'
+  const isIssue = isAttachmentIssueDoc(doc)
+  const isPR = isAttachmentPullDoc(doc)
+  const isCommit = isAttachmentCommitDoc(doc)
 
   const docName = isCommit
     ? `${doc.sha.slice(0, 7)}`

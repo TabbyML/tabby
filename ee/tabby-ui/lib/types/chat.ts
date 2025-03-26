@@ -55,7 +55,7 @@ export type Context = FileContext
 
 export interface UserMessage {
   id: string
-  message: string
+  content: string
 
   // Client side context - displayed in user message
   selectContext?: Context
@@ -65,6 +65,8 @@ export interface UserMessage {
 
   // Client side active selection context - displayed in assistant message
   activeContext?: Context
+
+  // codeSourceId?: string
 }
 
 export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {
@@ -73,7 +75,7 @@ export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {
 
 export interface AssistantMessage {
   id: string
-  message: string
+  content: string
   error?: string
   attachment?: {
     clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
@@ -85,6 +87,7 @@ export interface AssistantMessage {
   isReadingCode?: boolean
   isReadingFileList?: boolean
   isReadingDocs?: boolean
+  codeSourceId?: Maybe<string>
 }
 
 export interface QuestionAnswerPair {

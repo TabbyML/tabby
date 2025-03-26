@@ -96,8 +96,8 @@ interface ChatProps extends React.ComponentProps<'div'> {
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
   onApplyInEditor?:
-    | ((content: string) => void)
-    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
+  | ((content: string) => void)
+  | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onLookupSymbol?: (
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
@@ -203,7 +203,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           if (message.role === Role.User) {
             currentPair.user = {
               id: message.id,
-              message: message.content,
+              content: message.content,
+              // todo do not format here?
               relevantContext: message.attachment.clientCode?.map(x => {
                 return {
                   kind: 'file',
@@ -216,12 +217,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             }
           } else if (x.node.role === Role.Assistant) {
             if (!currentPair.assistant) {
-              currentPair.assistant = {
-                id: message.id,
-                message: message.content,
-                relevant_code: message.attachment.code
-              }
-
+              currentPair.assistant = x.node
               if (!!currentPair.user && !!currentPair.assistant) {
                 pairs.push(currentPair as QuestionAnswerPair)
                 currentPair = {}
@@ -322,7 +318,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             },
             assistant: {
               id: newAssistantMessgaeid,
-              message: '',
+              content: '',
               error: undefined
             }
           }
@@ -370,7 +366,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       })
 
       const inputContent = convertTextToTiptapContent(
-        convertContextBlockToPlaceholder(userMessage.message)
+        convertContextBlockToPlaceholder(userMessage.content)
       )
       setInput({
         type: 'doc',
@@ -444,10 +440,67 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         const nextAssistantMessage: AssistantMessage = {
           ...assisatntMessage,
           id: answer.assistantMessageId || assisatntMessage?.id || nanoid(),
-          message: answer.content,
+          content: answer.content,
           error: undefined,
-          relevant_code: answer.attachmentsCode?.map(o => o.code) ?? []
         }
+
+        // update assiatant message status
+        if ('isReadingCode' in answer) {
+          nextAssistantMessage.isReadingCode = answer.isReadingCode
+        }
+        if ('isReadingFileList' in answer) {
+          nextAssistantMessage.isReadingFileList = answer.isReadingFileList
+        }
+        if ('isReadingDocs' in answer) {
+          nextAssistantMessage.isReadingDocs = answer.isReadingDocs
+        }
+        // update expose steps
+        nextAssistantMessage.readingCode = answer?.readingCode
+        // get and format scores from streaming answer
+        if (!nextAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
+          nextAssistantMessage.attachment = {
+            clientCode: null,
+            doc: nextAssistantMessage.attachment?.doc || null,
+            code:
+              answer.attachmentsCode.map(hit => ({
+                ...hit.code,
+                extra: {
+                  scores: hit.scores
+                }
+              })) || null
+          }
+        }
+
+        // get and format scores from streaming answer
+        if (!nextAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
+          nextAssistantMessage.attachment = {
+            clientCode: null,
+            doc:
+              answer.attachmentsDoc.map(hit => ({
+                ...hit.doc,
+                extra: {
+                  score: hit.score
+                }
+              })) || null,
+            code: nextAssistantMessage.attachment?.code || null
+          }
+        }
+
+        if (
+          !nextAssistantMessage.attachment?.codeFileList &&
+          answer?.attachmentsFileList?.codeFileList?.length
+        ) {
+          nextAssistantMessage.attachment = {
+            clientCode: null,
+            doc: nextAssistantMessage.attachment?.doc || null,
+            codeFileList: {
+              fileList: answer.attachmentsFileList.codeFileList,
+              truncated: answer.attachmentsFileList.truncated
+            },
+            code: nextAssistantMessage.attachment?.code || null
+          }
+        }
+
         // merge assistantMessage
         return [
           ...prev.slice(0, prev.length - 1),
@@ -501,7 +554,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
               assistant: {
                 ...lastQaPairs.assistant,
                 id: lastQaPairs.assistant?.id || nanoid(),
-                message: lastQaPairs.assistant?.message ?? '',
+                content: lastQaPairs.assistant?.content ?? '',
                 error: formatThreadRunErrorMessage(error)
               }
             }
@@ -540,20 +593,20 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           startLine: o.range?.start
         }))
 
-      const content = userMessage.message
+      const content = userMessage.content
       const docQuery: InputMaybe<DocQueryInput> = selectedRepoId
         ? {
-            content,
-            sourceIds: [selectedRepoId],
-            searchPublic: false
-          }
+          content,
+          sourceIds: [selectedRepoId],
+          searchPublic: false
+        }
         : null
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
-            content,
-            sourceId: selectedRepoId,
-            filepath: attachmentCode?.[0]?.filepath
-          }
+          content,
+          sourceId: selectedRepoId,
+          filepath: attachmentCode?.[0]?.filepath
+        }
         : null
 
       return [
@@ -581,20 +634,19 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           const language = userMessage?.selectContext?.filepath
             ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
             : ''
-          selectCodeSnippet = `\n${'```'}${language}\n${
-            selectCodeContextContent ?? ''
-          }\n${'```'}\n`
+          selectCodeSnippet = `\n${'```'}${language}\n${selectCodeContextContent ?? ''
+            }\n${'```'}\n`
         }
 
         // processing placeholder like contextCommand, file, symbol, etc.
-        userMessage.message = await processingPlaceholder(userMessage.message, {
+        userMessage.content = await processingPlaceholder(userMessage.content, {
           getChanges,
           readFileContent
         })
 
         const newUserMessage: UserMessage = {
           ...userMessage,
-          message: userMessage.message + selectCodeSnippet,
+          content: userMessage.content + selectCodeSnippet,
           // If no id is provided, set a fallback id.
           id: userMessage.id ?? nanoid(),
           selectContext: userMessage.selectContext,
@@ -602,7 +654,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             enableActiveSelection && activeSelection
               ? activeSelection
               : undefined,
-          relevantContext: [...(userMessage.relevantContext || [])]
+          relevantContext: [...(userMessage.relevantContext || [])],
         }
 
         const nextQaPairs = [
@@ -612,8 +664,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             // For placeholder, and it also conveniently handles streaming responses and displays reference context.
             assistant: {
               id: nanoid(),
-              message: '',
-              error: undefined
+              content: '',
+              error: undefined,
+              codeSourceId: selectedRepoId,
             }
           }
         ]
@@ -635,7 +688,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     const handleExecuteCommand = useLatest(async (command: ChatCommand) => {
       const prompt = getPromptForChatCommand(command)
       sendUserChat({
-        message: prompt,
+        content: prompt,
         selectContext: activeSelection ?? undefined
       })
     })
@@ -646,7 +699,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
 
     const handleSubmit = async (value: string) => {
       sendUserChat({
-        message: value,
+        content: value,
         relevantContext
       })
 

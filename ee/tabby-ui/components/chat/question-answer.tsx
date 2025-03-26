@@ -40,6 +40,8 @@ import { Skeleton } from '../ui/skeleton'
 import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat-context'
 import { CodeReferences } from './code-references'
+import { CodeRangeLabel } from '../code-range-label'
+import { ReadingRepoStepper } from './reading-repo-stepper'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
@@ -131,8 +133,8 @@ function UserMessageCard(props: { message: UserMessage }) {
   }
 
   const processedContent = useMemo(() => {
-    return convertContextBlockToPlaceholder(message.message)
-  }, [message.message])
+    return convertContextBlockToPlaceholder(message.content)
+  }, [message.content])
 
   return (
     <div
@@ -181,12 +183,7 @@ function UserMessageCard(props: { message: UserMessage }) {
               <IconFile className="h-3 w-3" />
               <p className="flex-1 truncate pr-1">
                 <span>{selectCode.filepath}</span>
-                {message.selectContext?.range?.start && (
-                  <span>:{message.selectContext?.range.start}</span>
-                )}
-                {selectCode.isMultiLine && (
-                  <span>-{message.selectContext?.range?.end}</span>
-                )}
+                <CodeRangeLabel range={message.selectContext.range} />
               </p>
             </div>
           )}
@@ -256,8 +253,14 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     openInEditor,
     openExternal,
     supportsOnApplyInEditorV2,
-    runShell
+    runShell,
+    repos
   } = React.useContext(ChatContext)
+  const targetRepo = useMemo(() => {
+    return repos?.find(x => x.sourceId === message?.codeSourceId)
+  }, [repos, message?.codeSourceId])
+
+
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
   const serverCode: Array<Context> = React.useMemo(() => {
@@ -375,21 +378,33 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       </div>
 
       <div className="w-full flex-1 space-y-2 overflow-hidden px-1">
-        <CodeReferences
-          contexts={serverCode}
-          clientContexts={clientCode}
-          onContextClick={onContextClick}
-          showExternalLink={isInEditor}
-          supportsOpenInEditor={!!openInEditor}
-          showClientCodeIcon={!isInEditor}
-          highlightIndex={relevantCodeHighlightIndex}
-        />
-        {isLoading && !message?.message ? (
+        {!!targetRepo ? (
+          <ReadingRepoStepper
+            codeSourceId={targetRepo.sourceId}
+            readingCode={message.readingCode}
+            isReadingCode={message.isReadingCode}
+            isReadingDocs={message.isReadingDocs}
+            isReadingFileList={message.isReadingFileList}
+            clientCodeContexts={clientCode}
+            serverCodeContexts={serverCode}
+          />
+        ) : (
+          <CodeReferences
+            contexts={serverCode}
+            clientContexts={clientCode}
+            onContextClick={onContextClick}
+            showExternalLink={isInEditor}
+            supportsOpenInEditor={!!openInEditor}
+            showClientCodeIcon={!isInEditor}
+            highlightIndex={relevantCodeHighlightIndex}
+          />
+        )}
+        {isLoading && !message?.content ? (
           <MessagePendingIndicator />
         ) : (
           <>
             <MessageMarkdown
-              message={message.message}
+              message={message.content}
               onApplyInEditor={onApplyInEditor}
               onCopyContent={onCopyContent}
               attachmentClientCode={attachmentClientCode}
@@ -445,8 +460,8 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
   } = React.useContext(ChatContext)
   const { message, userMessageId, enableRegenerating, attachmentCode } = props
   const copyContent = useMemo(() => {
-    return getCopyContent(message.message, attachmentCode)
-  }, [message.message, attachmentCode])
+    return getCopyContent(message.content, attachmentCode)
+  }, [message.content, attachmentCode])
 
   return (
     <ChatMessageActionsWrapper>
