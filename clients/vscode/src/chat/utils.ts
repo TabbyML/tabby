@@ -169,9 +169,14 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   return null;
 }
 
-export function localUriToListFileItem(uri: Uri, gitProvider: GitProvider): ListFileItem {
+export function localUriToListFileItem(
+  uri: Uri,
+  gitProvider: GitProvider,
+  source: "openedInEditor" | "searchResult" = "searchResult",
+): ListFileItem {
   return {
     filepath: localUriToChatPanelFilepath(uri, gitProvider),
+    source,
   };
 }
 

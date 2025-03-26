@@ -509,40 +509,34 @@ export class ChatWebview extends EventEmitter {
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
         const maxResults = params.limit || 50;
         const searchQuery = params.query?.trim();
+        const res: ListFileItem[] = [];
+        let openTabs = window.tabGroups.all
+          .flatMap((group) => group.tabs)
+          .filter((tab) => tab.input && (tab.input as TabInputText).uri)
+          .map((tab) => (tab.input as TabInputText).uri);
 
-        if (!searchQuery) {
-          const openTabs = window.tabGroups.all
-            .flatMap((group) => group.tabs)
-            .filter((tab) => tab.input && (tab.input as TabInputText).uri);
+        openTabs = openTabs.filter((uri, idx) => openTabs.indexOf(uri) === idx);
 
-          const openTabItems = openTabs.map((tab) =>
-            localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider),
-          );
-
-          // If we have less than 5 open tabs, fetch additional files to make total = 5
-          if (openTabs.length < 5) {
-            const additionalCount = 5 - openTabs.length;
-            this.logger.info(`Found ${openTabs.length} open tabs, fetching ${additionalCount} more files`);
-            const files = await this.findFiles("**/*", { maxResults: additionalCount });
-            this.logger.info(`Found ${files.length} additional files`);
-            const fileItems = files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
-            return [...openTabItems, ...fileItems];
-          }
-
-          this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
-          return openTabItems;
+        res.push(...openTabs.map((uri) => localUriToListFileItem(uri, this.gitProvider, "openedInEditor")));
+        if (res.length > maxResults) {
+          return res.slice(0, maxResults);
         }
 
+        const globPattern = caseInsensitivePattern(searchQuery);
         try {
-          const globPattern = caseInsensitivePattern(searchQuery);
-          this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
-          const files = await this.findFiles(globPattern, { maxResults });
-          this.logger.info(`Found ${files.length} files.`);
-          return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
+          let files = await this.findFiles(globPattern, {
+            maxResults: maxResults - res.length,
+            excludes: openTabs.map((uri) => uri.fsPath),
+          });
+          files = files.filter(
+            (uri, idx) => files.indexOf(uri) === idx && !openTabs.some((tabUri) => tabUri.fsPath === uri.fsPath),
+          );
+          this.logger.debug(`Found ${files.length} files matching pattern "${globPattern}"`);
+          res.push(...files.map((uri) => localUriToListFileItem(uri, this.gitProvider, "searchResult")));
         } catch (error) {
           this.logger.warn("Failed to find files:", error);
-          return [];
         }
+        return res;
       },
 
       readFileContent: async (info: FileRange): Promise<string | null> => {
