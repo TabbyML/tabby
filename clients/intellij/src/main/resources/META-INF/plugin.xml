@@ -68,6 +68,7 @@
         </intentionAction>
 
         <codeInsight.lineMarkerProvider implementationClass="com.tabbyml.intellijtabby.inlineChat.GutterIconProvider"/>
+        <codeInsight.inlayProvider language=" " implementationClass="com.tabbyml.intellijtabby.inlineChat.CodeLensInlayHintsProvider" />
     </extensions>
 
     <actions>

@@ -62,6 +62,9 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
           inlineCompletion = InlineCompletionCapabilities(
             dynamicRegistration = true,
           ),
+          codeLensCapabilities = CodeLensCapabilities(
+            true,
+          ),
         ),
         workspace = WorkspaceClientCapabilities().apply {
           workspaceFolders = true
@@ -259,7 +262,6 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     val future = CompletableFuture<ApplyWorkspaceEditResponse>()
     invokeLater {
       try {
-        println(params.toString())
         val edit = params.edit
         runWriteCommandAction(project) {
           edit.changes?.forEach { (uri, edits) ->
@@ -268,7 +270,6 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
             edits.forEach { textEdit ->
               val startOffset = offsetInDocument(document, textEdit.range.start).coerceIn(0, document.textLength)
               val endOffset = offsetInDocument(document, textEdit.range.end).coerceIn(0, document.textLength)
-              println("startOffset: $startOffset, endOffset: $endOffset, newText: ${textEdit.newText}")
               document.replaceString(startOffset, endOffset, textEdit.newText)
             }
           }
