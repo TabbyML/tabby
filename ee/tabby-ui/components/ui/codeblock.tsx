@@ -84,6 +84,7 @@ const commonShells = [
   'powershell',
   'pwsh',
   'shell'
+  // add more common shells here
 ]
 
 export const generateRandomString = (length: number, lowercase = false) => {
