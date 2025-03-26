@@ -167,7 +167,7 @@
       },
       {
         "command": "tabby.toggleLanguageInlineCompletion",
-        "title": "Toggle Language Inline Completion",
+        "title": "Enable/Disable Inline Completion for Current Language",
         "category": "Tabby"
       }
     ],

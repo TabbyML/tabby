@@ -18,27 +18,68 @@ export class CommandPalette {
   show() {
     const quickPick: QuickPick<CommandPaletteItem> = window.createQuickPick();
     quickPick.title = "Tabby Command Palette";
-    const items: CommandPaletteItem[] = [];
-
-    // Status section
-    const status = this.client.status.current?.status;
-    items.push(this.itemForStatus());
+    quickPick.items = this.buildMenuItems();
 
     this.client.status.on("didChange", () => {
-      items[1] = this.itemForStatus();
-      quickPick.items = items;
+      quickPick.items = this.buildMenuItems();
     });
 
-    // Features section
-    const validStatuses = ["ready", "readyForAutoTrigger", "readyForManualTrigger"];
-    if (status !== undefined && validStatuses.includes(status)) {
+    quickPick.onDidAccept(async () => {
+      quickPick.hide();
+      const command = quickPick.activeItems[0]?.command;
+      if (command) {
+        if (typeof command === "string") {
+          await commands.executeCommand(command);
+        } else if (typeof command === "function") {
+          await command();
+        } else if (command.arguments) {
+          await commands.executeCommand(command.command, ...command.arguments);
+        } else {
+          await commands.executeCommand(command.command);
+        }
+      }
+    });
+    quickPick.show();
+  }
+
+  private buildMenuItems(): CommandPaletteItem[] {
+    const items: CommandPaletteItem[] = [];
+    const status = this.client.status.current?.status;
+
+    // Status section
+    items.push({
+      label: "status",
+      kind: QuickPickItemKind.Separator,
+    });
+    items.push(this.itemForStatus());
+
+    // Chat section
+    items.push({
+      label: "chat",
+      kind: QuickPickItemKind.Separator,
+    });
+    if (this.client.chat.isAvailable) {
+      items.push({
+        label: "Chat",
+        command: "tabby.chatView.focus",
+        iconPath: new ThemeIcon("comment"),
+      });
+    }
+
+    // Completion section
+    items.push({
+      label: "code completion",
+      kind: QuickPickItemKind.Separator,
+    });
+    const invalidStatuses = ["connecting", "unauthorized", "disconnected"];
+    if (status !== undefined && !invalidStatuses.includes(status)) {
       const isAutomatic = this.config.inlineCompletionTriggerMode === "automatic";
 
       const currentLanguageId = window.activeTextEditor?.document.languageId;
       const isLanguageDisabled = currentLanguageId ? this.config.disabledLanguages.includes(currentLanguageId) : false;
 
       items.push({
-        label: (isAutomatic ? "Disable" : "Enable") + " completions",
+        label: (isAutomatic ? "Disable" : "Enable") + " auto completions",
         picked: isAutomatic,
         command: "tabby.toggleInlineCompletionTriggerMode",
         alwaysShow: true,
@@ -49,22 +90,13 @@ export class CommandPalette {
           label: (isLanguageDisabled ? "Enable" : "Disable") + ` completions for ${currentLanguageId}`,
           picked: !isLanguageDisabled,
           command: {
-            title: "triggerLanguageInlineCompletion",
+            title: "toggleLanguageInlineCompletion",
             command: "tabby.toggleLanguageInlineCompletion",
             arguments: [currentLanguageId],
           },
           alwaysShow: true,
         });
       }
-    }
-
-    // Chat section
-    if (this.client.chat.isAvailable) {
-      items.push({
-        label: "Chat",
-        command: "tabby.chatView.focus",
-        iconPath: new ThemeIcon("comment"),
-      });
     }
 
     // Settings section
@@ -118,23 +150,7 @@ export class CommandPalette {
       },
     );
 
-    quickPick.items = items;
-    quickPick.onDidAccept(async () => {
-      quickPick.hide();
-      const command = quickPick.activeItems[0]?.command;
-      if (command) {
-        if (typeof command === "string") {
-          await commands.executeCommand(command);
-        } else if (typeof command === "function") {
-          await command();
-        } else if (command.arguments) {
-          await commands.executeCommand(command.command, ...command.arguments);
-        } else {
-          await commands.executeCommand(command.command);
-        }
-      }
-    });
-    quickPick.show();
+    return items;
   }
 
   private itemForStatus(): CommandPaletteItem {
