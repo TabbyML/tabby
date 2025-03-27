@@ -15,6 +15,7 @@
 		path /oauth/*
 		path /avatar/*
 		path /integrations/github/*
+		path /background-jobs/*
 
 		path /swagger-ui
 		path /swagger-ui/*

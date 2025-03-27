@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
 import moment from 'moment'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
+import fetcher from '@/lib/tabby/fetcher'
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import {
@@ -30,12 +32,25 @@ export default function JobRunDetail() {
     pause: !id
   })
 
+  const { data: logs, isLoading } = useSWR(
+    id ? `/background-jobs/${id}/logs` : null,
+    (url: string) => {
+      return fetcher(url, {
+        responseFormatter: res => {
+          return res.text()
+        },
+        errorHandler: response => {
+          throw new Error(response?.statusText.toString() || 'Unhealth')
+        }
+      })
+    }
+  )
+
   const currentNode = data?.jobRuns?.edges?.[0]?.node
 
   const stateLabel = getLabelByJobRun(currentNode)
   const isPending =
-    (stateLabel === 'Pending' || stateLabel === 'Running') &&
-    !currentNode?.stdout
+    (stateLabel === 'Pending' || stateLabel === 'Running') && !logs
 
   const handleBackNavigation = () => {
     if (typeof window !== 'undefined' && window.history.length <= 1) {
@@ -122,7 +137,7 @@ export default function JobRunDetail() {
                 )}
               </div>
               <div className="flex flex-1 flex-col">
-                <StdoutView value={currentNode?.stdout} pending={isPending} />
+                <StdoutView value={logs} pending={isPending} />
               </div>
             </>
           )}
