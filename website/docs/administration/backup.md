@@ -46,3 +46,15 @@ Tabby stores all event logs in the `~/.tabby/events` directory. These events, st
 2023-12-05.json 2023-12-20.json 2024-01-27.json 2024-02-08.json 2024-02-19.json 2024-03-03.json
 2023-12-07.json 2023-12-22.json 2024-01-30.json 2024-02-09.json 2024-02-20.json 2024-03-05.json
 ```
+
+## Background Job Logs Backup
+
+Starting with version v0.27.0, Tabby saves all background job logs in the `~/.tabby/ee/background-jobs` directory.
+To display the logs in the management UI, it is essential to back up this directory.
+
+```
+% ls ~/.tabby/ee/background-jobs
+
+264     266     269     271     273     275     277     279     40      42      44      46      48      50      53
+265     268     270     272     274     276     278     280     41      43      45      47      49      52      54
+```
