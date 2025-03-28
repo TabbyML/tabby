@@ -53,7 +53,7 @@ Starting with version v0.27.0, Tabby saves all background job logs in the `~/.ta
 To display the logs in the management UI, it is essential to back up this directory.
 
 ```
-% ls ~/.tabby/ee/background-jobs
+% ls ~/.tabby/ee/jobs
 
 DGJ7Xw  JGODZw  L1Pp41  nwY59w
 ```
