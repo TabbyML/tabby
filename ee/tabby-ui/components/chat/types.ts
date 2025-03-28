@@ -81,6 +81,7 @@ export interface SourceItem {
   icon: ReactNode
   command?: string
   description?: string
+  rightIcon?: ReactNode
 }
 
 export interface CategoryItem {
