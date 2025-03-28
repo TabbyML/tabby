@@ -5,7 +5,6 @@ import {
   QuickPickItem,
   QuickPickItemButtonEvent,
   QuickPickItemKind,
-  TabInputText,
   TextEditor,
   ThemeIcon,
   Uri,
@@ -17,7 +16,7 @@ import { ChatEditCommand, ChatEditFileContext } from "tabby-agent";
 import { Deferred, InlineEditParseResult, parseUserCommand, replaceLastOccurrence } from "./util";
 import { Client } from "../lsp/client";
 import { Location } from "vscode-languageclient";
-import { caseInsensitivePattern, findFiles } from "../findFiles";
+import { listFiles } from "../findFiles";
 import { wrapCancelableFunction } from "../cancelableFunction";
 
 export interface InlineEditCommand {
@@ -335,69 +334,41 @@ export class FileSelectionQuickPick {
     }
   }
 
-  private async searchFileList(query: string) {
-    if (!this.workspaceFolder) {
-      return [];
-    }
-    const globPattern = caseInsensitivePattern(query);
-    const fileList = await this.findFiles(globPattern, { maxResults: this.maxSearchFileResult });
-    return fileList;
-  }
-
-  private findFiles = wrapCancelableFunction(
-    findFiles,
-    (args) => args[1]?.token,
-    (args, token) => [args[0], { ...args[1], token }] as Parameters<typeof findFiles>,
+  private listFiles = wrapCancelableFunction(
+    listFiles,
+    (args) => args[2],
+    (args, token) => {
+      args[2] = token;
+      return args;
+    },
   );
 
-  private addFilesToList(files: Uri[], list: FileSelectionQuickPickItem[]) {
-    files.forEach((item) => {
-      const label = workspace.asRelativePath(item);
-      const file = list.find((i) => i.label === label);
-      if (file === undefined) {
-        list.push({
-          label: label,
-          uri: item.toString(),
-        });
-      }
+  private async fetchFileList(query: string): Promise<FileSelectionQuickPickItem[]> {
+    const files = await this.listFiles(query, this.maxSearchFileResult);
+
+    const convertToQuickPickItem = (item: { uri: Uri; isOpenedInEditor: boolean }): FileSelectionQuickPickItem => ({
+      label: workspace.asRelativePath(item.uri),
+      uri: item.uri.toString(),
     });
-    return list;
-  }
 
-  private getOpenEditor() {
-    const list: FileSelectionQuickPickItem[] = [];
-
-    if (this.editor) {
-      const path = workspace.asRelativePath(this.editor.document.uri);
-      list.push({
-        label: path,
-        uri: this.editor.document.uri.toString(),
-      });
-    }
-
-    return this.addFilesToList(getOpenTabsUri(), list);
-  }
-
-  private async fetchFileList(query: string) {
-    const list: FileSelectionQuickPickItem[] = [];
-
-    list.push(...this.getOpenEditor());
-
-    if (list.length > 0) {
-      list.push({
-        label: "",
+    const result: FileSelectionQuickPickItem[] = [
+      {
+        label: "opened files",
         uri: "",
         kind: QuickPickItemKind.Separator,
-        alwaysShow: true,
-      });
-    }
-    const fileList = await this.searchFileList(query);
-    return this.addFilesToList(fileList, list);
+      },
+    ];
+
+    result.push(...files.filter((item) => item.isOpenedInEditor).map(convertToQuickPickItem));
+
+    result.push({
+      label: "search results",
+      uri: "",
+      kind: QuickPickItemKind.Separator,
+    });
+
+    result.push(...files.filter((item) => !item.isOpenedInEditor).map(convertToQuickPickItem));
+
+    return result;
   }
 }
-
-const getOpenTabsUri = (): Uri[] => {
-  return window.tabGroups.all
-    .flatMap((group) => group.tabs.map((tab) => (tab.input instanceof TabInputText ? tab.input.uri : null)))
-    .filter((item): item is Uri => item !== null);
-};
