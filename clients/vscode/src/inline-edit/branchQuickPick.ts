@@ -8,7 +8,6 @@ interface BranchQuickPickItem extends QuickPickItem {
   name: string;
 }
 
-// 简化缓存条目，移除过期时间
 interface CacheEntry {
   items: BranchQuickPickItem[];
 }
