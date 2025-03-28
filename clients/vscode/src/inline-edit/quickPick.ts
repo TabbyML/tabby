@@ -5,7 +5,6 @@ import {
   QuickPickItem,
   QuickPickItemButtonEvent,
   QuickPickItemKind,
-  TextEditor,
   ThemeIcon,
   Uri,
   window,
@@ -40,11 +39,8 @@ export class UserCommandQuickpick {
   constructor(
     private client: Client,
     private config: Config,
-    private editor: TextEditor,
     private editLocation: Location,
-  ) {
-    this.editLocation = editLocation;
-  }
+  ) {}
 
   start() {
     this.quickPick.title = "Enter the command for editing (type @ to include file)";
@@ -74,7 +70,7 @@ export class UserCommandQuickpick {
   }
 
   private async openFilePick() {
-    this.filePick = new FileSelectionQuickPick(this.editor);
+    this.filePick = new FileSelectionQuickPick();
     const file = await this.filePick.start();
     this.quickPick.show();
     if (file) {
@@ -289,12 +285,6 @@ export class FileSelectionQuickPick {
   quickPick = window.createQuickPick<FileSelectionQuickPickItem>();
   private maxSearchFileResult = 30;
   private resultDeffer = new Deferred<FileSelectionResult | undefined>();
-
-  constructor(private editor: TextEditor) {}
-
-  private get workspaceFolder() {
-    return workspace.getWorkspaceFolder(this.editor.document.uri);
-  }
 
   start() {
     this.quickPick.title = "Enter file name to search";
