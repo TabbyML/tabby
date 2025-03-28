@@ -16,7 +16,11 @@ use axum::{
 use juniper::ID;
 use juniper_axum::{graphiql, playground};
 use tabby_common::api::server_setting::ServerSetting;
-use tabby_schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator};
+use tabby_schema::{
+    auth::AuthenticationService, create_schema, job::JobService, Schema, ServiceLocator,
+};
+use tower::util::ServiceExt;
+use tower_http::services::ServeFile;
 use tracing::{error, warn};
 
 use self::hub::HubState;
@@ -34,12 +38,21 @@ pub fn create(
 ) -> (Router, Router) {
     let schema = Arc::new(create_schema());
 
+    let protected_api = Router::new()
+        .route(
+            "/background-jobs/:id/logs",
+            routing::get(background_job_logs).with_state(ctx.job()),
+        )
+        // Add other endpoints that need authentication here
+        .layer(from_fn_with_state(ctx.auth(), require_login_middleware));
+
     let api = api.route(
         "/v1beta/server_setting",
         routing::get(server_setting).with_state(ctx.clone()),
     );
 
     let api = api
+        .merge(protected_api)
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
         // 1. /v1/*
         // 2. /v1beta/*
@@ -172,5 +185,22 @@ impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
         };
 
         Self { claims, locator }
+    }
+}
+
+async fn background_job_logs(
+    State(state): State<Arc<dyn JobService>>,
+    Path(id): Path<ID>,
+    request: Request<Body>,
+) -> Result<Response<Body>, StatusCode> {
+    let log_file_path = state
+        .log_file_path(&id)
+        .await
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let serve_file = ServeFile::new(log_file_path);
+    match serve_file.oneshot(request).await {
+        Ok(response) => Ok(response.into_response()),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
