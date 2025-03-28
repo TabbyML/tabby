@@ -48,7 +48,7 @@ data class TextDocumentClientCapabilities(
   val synchronization: SynchronizationCapabilities? = null,
   val completion: CompletionCapabilities? = null,
   val inlineCompletion: InlineCompletionCapabilities? = null,
-  var codeLensCapabilities: CodeLensCapabilities ? = null,
+  var codeLens: CodeLensCapabilities ? = null,
 )
 
 data class InlineCompletionCapabilities(

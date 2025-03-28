@@ -62,7 +62,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
           inlineCompletion = InlineCompletionCapabilities(
             dynamicRegistration = true,
           ),
-          codeLensCapabilities = CodeLensCapabilities(
+          codeLens = CodeLensCapabilities(
             true,
           ),
         ),
