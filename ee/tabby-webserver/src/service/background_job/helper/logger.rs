@@ -2,6 +2,7 @@ use std::{fs::File, io::Write};
 
 use anyhow::Result;
 use tabby_db::DbConn;
+use tabby_schema::AsID;
 use tracing::warn;
 
 use crate::path::background_jobs_dir;
@@ -37,7 +38,7 @@ struct DbTarget {
 
 impl DbTarget {
     fn new(db: DbConn, id: i64) -> Result<(Self, tokio::task::JoinHandle<()>)> {
-        let job_dir = background_jobs_dir().join(format!("{}", id));
+        let job_dir = background_jobs_dir().join(id.as_id().to_string());
         std::fs::create_dir_all(&job_dir)?;
         let stdout_path = job_dir.join("stdout.log");
         let file = File::create(&stdout_path)?;

@@ -71,7 +71,7 @@ impl JobService for JobControllerImpl {
         for job in jobs.iter_mut() {
             if job.stdout.is_empty() {
                 // it is possible that the job is starting to run and the stdout is not yet available
-                if let Ok(stdout) = self.read_job_stdout(job.id.as_rowid()?).await {
+                if let Ok(stdout) = self.read_job_stdout(job.id.clone().to_string()).await {
                     job.stdout = stdout;
                 }
             }
@@ -92,7 +92,7 @@ impl JobService for JobControllerImpl {
 
         if job_run.stdout.is_empty() {
             // it is possible that the job is starting to run and the stdout is not yet available
-            if let Ok(stdout) = self.read_job_stdout(job_run.id.as_rowid()?).await {
+            if let Ok(stdout) = self.read_job_stdout(job_run.id.to_string()).await {
                 job_run.stdout = stdout;
             }
         }
@@ -114,10 +114,8 @@ impl JobService for JobControllerImpl {
 }
 
 impl JobControllerImpl {
-    async fn read_job_stdout(&self, id: i64) -> Result<String> {
-        let log_file = background_jobs_dir()
-            .join(format!("{}", id))
-            .join("stdout.log");
+    async fn read_job_stdout(&self, id: String) -> Result<String> {
+        let log_file = background_jobs_dir().join(id).join("stdout.log");
 
         if log_file.exists() {
             match read_to_string(log_file).await {
