@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
 import moment from 'moment'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
+import fetcher from '@/lib/tabby/fetcher'
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import {
@@ -24,18 +26,31 @@ export default function JobRunDetail() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
-  const [{ data, error, fetching }, reexecuteQuery] = useQuery({
+  const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listJobRuns,
     variables: { ids: [id as string] },
     pause: !id
   })
 
+  const { data: logs, mutate } = useSWR(
+    id ? `/background-jobs/${id}/logs` : null,
+    (url: string) => {
+      return fetcher(url, {
+        responseFormatter: res => {
+          return res.text()
+        },
+        errorHandler: response => {
+          throw new Error(response?.statusText.toString())
+        }
+      })
+    }
+  )
+
   const currentNode = data?.jobRuns?.edges?.[0]?.node
 
   const stateLabel = getLabelByJobRun(currentNode)
   const isPending =
-    (stateLabel === 'Pending' || stateLabel === 'Running') &&
-    !currentNode?.stdout
+    (stateLabel === 'Pending' || stateLabel === 'Running') && !logs
 
   const handleBackNavigation = () => {
     if (typeof window !== 'undefined' && window.history.length <= 1) {
@@ -50,6 +65,7 @@ export default function JobRunDetail() {
     if (currentNode?.createdAt && !currentNode?.finishedAt) {
       timer = window.setTimeout(() => {
         reexecuteQuery()
+        mutate()
       }, 5000)
     }
 
@@ -122,7 +138,7 @@ export default function JobRunDetail() {
                 )}
               </div>
               <div className="flex flex-1 flex-col">
-                <StdoutView value={currentNode?.stdout} pending={isPending} />
+                <StdoutView value={logs} pending={isPending} />
               </div>
             </>
           )}

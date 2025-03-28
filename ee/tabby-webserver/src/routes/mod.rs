@@ -8,7 +8,7 @@ use std::sync::Arc;
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{Request, StatusCode},
+    http::{header, Request, StatusCode},
     middleware::{from_fn_with_state, Next},
     response::{IntoResponse, Response},
     routing, Extension, Json, Router,
@@ -16,7 +16,11 @@ use axum::{
 use juniper::ID;
 use juniper_axum::{graphiql, playground};
 use tabby_common::api::server_setting::ServerSetting;
-use tabby_schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator};
+use tabby_schema::{
+    auth::AuthenticationService, create_schema, job::JobService, Schema, ServiceLocator,
+};
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
 use tracing::{error, warn};
 
 use self::hub::HubState;
@@ -34,12 +38,21 @@ pub fn create(
 ) -> (Router, Router) {
     let schema = Arc::new(create_schema());
 
+    let protected_api = Router::new()
+        .route(
+            "/background-jobs/:id/logs",
+            routing::get(background_job_logs).with_state(ctx.job()),
+        )
+        // Add other endpoints that need authentication here
+        .layer(from_fn_with_state(ctx.auth(), require_login_middleware));
+
     let api = api.route(
         "/v1beta/server_setting",
         routing::get(server_setting).with_state(ctx.clone()),
     );
 
     let api = api
+        .merge(protected_api)
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
         // 1. /v1/*
         // 2. /v1beta/*
@@ -173,4 +186,34 @@ impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
 
         Self { claims, locator }
     }
+}
+
+async fn background_job_logs(
+    State(state): State<Arc<dyn JobService>>,
+    Path(id): Path<ID>,
+) -> Result<Response<Body>, StatusCode> {
+    let log_file_path = state
+        .log_file_path(&id)
+        .await
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let file = match File::open(&log_file_path).await {
+        Ok(file) => file,
+        Err(_) => return Err(StatusCode::NOT_FOUND),
+    };
+
+    // Create a stream from the file
+    let stream = ReaderStream::new(file);
+    let body = Body::from_stream(stream);
+
+    // Build the response with appropriate headers
+    let mime = mime_guess::from_path(&log_file_path).first_or_octet_stream();
+
+    let response = Response::builder()
+        .header(header::CONTENT_TYPE, mime.as_ref())
+        .header(header::CONTENT_DISPOSITION, "inline")
+        .body(body)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(response)
 }
