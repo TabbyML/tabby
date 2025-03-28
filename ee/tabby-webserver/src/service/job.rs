@@ -98,10 +98,7 @@ impl JobService for JobControllerImpl {
     }
 
     async fn log_file_path(&self, id: &ID) -> Option<PathBuf> {
-        let id = id.as_rowid().ok()?;
-
-        // First check if the job exists
-        match self.db.get_job_run(id).await {
+        match self.db.get_job_run(id.as_rowid().ok()?).await {
             Some(_) => {
                 let job_dir_path = background_jobs_dir()
                     .join(format!("{}", id))

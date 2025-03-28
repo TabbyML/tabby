@@ -8,7 +8,7 @@ use std::sync::Arc;
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{header, Request, StatusCode},
+    http::{Request, StatusCode},
     middleware::{from_fn_with_state, Next},
     response::{IntoResponse, Response},
     routing, Extension, Json, Router,
@@ -19,8 +19,8 @@ use tabby_common::api::server_setting::ServerSetting;
 use tabby_schema::{
     auth::AuthenticationService, create_schema, job::JobService, Schema, ServiceLocator,
 };
-use tokio::fs::File;
-use tokio_util::io::ReaderStream;
+use tower::util::ServiceExt;
+use tower_http::services::ServeFile;
 use tracing::{error, warn};
 
 use self::hub::HubState;
@@ -191,29 +191,16 @@ impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
 async fn background_job_logs(
     State(state): State<Arc<dyn JobService>>,
     Path(id): Path<ID>,
+    request: Request<Body>,
 ) -> Result<Response<Body>, StatusCode> {
     let log_file_path = state
         .log_file_path(&id)
         .await
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    let file = match File::open(&log_file_path).await {
-        Ok(file) => file,
-        Err(_) => return Err(StatusCode::NOT_FOUND),
-    };
-
-    // Create a stream from the file
-    let stream = ReaderStream::new(file);
-    let body = Body::from_stream(stream);
-
-    // Build the response with appropriate headers
-    let mime = mime_guess::from_path(&log_file_path).first_or_octet_stream();
-
-    let response = Response::builder()
-        .header(header::CONTENT_TYPE, mime.as_ref())
-        .header(header::CONTENT_DISPOSITION, "inline")
-        .body(body)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    Ok(response)
+    let serve_file = ServeFile::new(log_file_path);
+    match serve_file.oneshot(request).await {
+        Ok(response) => Ok(response.into_response()),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
