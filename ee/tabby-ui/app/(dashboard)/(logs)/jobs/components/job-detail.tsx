@@ -26,13 +26,13 @@ export default function JobRunDetail() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
-  const [{ data, error, fetching }, reexecuteQuery] = useQuery({
+  const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listJobRuns,
     variables: { ids: [id as string] },
     pause: !id
   })
 
-  const { data: logs, isLoading } = useSWR(
+  const { data: logs, mutate } = useSWR(
     id ? `/background-jobs/${id}/logs` : null,
     (url: string) => {
       return fetcher(url, {
@@ -40,7 +40,7 @@ export default function JobRunDetail() {
           return res.text()
         },
         errorHandler: response => {
-          throw new Error(response?.statusText.toString() || 'Unhealth')
+          throw new Error(response?.statusText.toString())
         }
       })
     }
@@ -65,6 +65,7 @@ export default function JobRunDetail() {
     if (currentNode?.createdAt && !currentNode?.finishedAt) {
       timer = window.setTimeout(() => {
         reexecuteQuery()
+        mutate()
       }, 5000)
     }
 
