@@ -624,6 +624,46 @@ export const listPageSections = graphql(/* GraphQL */ `
               fileList
               truncated
             }
+            doc {
+              __typename
+              ... on AttachmentWebDoc {
+                title
+                link
+                content
+              }
+              ... on AttachmentIssueDoc {
+                title
+                link
+                author {
+                  id
+                  email
+                  name
+                }
+                body
+                closed
+              }
+              ... on AttachmentPullDoc {
+                title
+                link
+                author {
+                  id
+                  email
+                  name
+                }
+                body
+                merged
+              }
+              ... on AttachmentCommitDoc {
+                sha
+                message
+                author {
+                  id
+                  email
+                  name
+                }
+                authorAt
+              }
+            }
           }
         }
         cursor

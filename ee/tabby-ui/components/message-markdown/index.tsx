@@ -1,4 +1,4 @@
-import { ReactNode, useContext, useMemo, useState } from 'react'
+import { Fragment, ReactNode, useContext, useMemo, useState } from 'react'
 import { compact, isNil } from 'lodash-es'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -20,6 +20,7 @@ import {
   convertToFilepath,
   encodeMentionPlaceHolder,
   getRangeFromAttachmentCode,
+  isAttachmentCommitDoc,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import {
@@ -306,11 +307,15 @@ export function MessageMarkdown({
         components={{
           p({ children }) {
             return (
-              // FIXME
               <p className="mb-2 last:mb-0">
                 {children.map((child, index) =>
                   typeof child === 'string' ? (
-                    processMessagePlaceholder(child)
+                    child.split('\n').map((line, i) => (
+                      <Fragment key={i}>
+                        {i > 0 && <br />}
+                        {processMessagePlaceholder(line)}
+                      </Fragment>
+                    ))
                   ) : (
                     <span key={index}>{child}</span>
                   )
@@ -588,10 +593,9 @@ function RelevantDocumentBadge({
   relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
-  const link =
-    relevantDocument.__typename === 'MessageAttachmentCommitDoc'
-      ? undefined
-      : relevantDocument.link
+  const link = isAttachmentCommitDoc(relevantDocument)
+    ? undefined
+    : relevantDocument.link
 
   return (
     <HoverCard openDelay={100} closeDelay={100}>

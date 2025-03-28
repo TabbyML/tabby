@@ -16,15 +16,14 @@ import {
 import './prompt-form.css'
 
 import { EditorState } from '@tiptap/pm/state'
-import { isEqual, uniqBy } from 'lodash-es'
+import { uniqBy } from 'lodash-es'
 import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
 
 import { NEWLINE_CHARACTER } from '@/lib/constants'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import { updateSelectedModel } from '@/lib/stores/chat-store'
-import { FileContext } from '@/lib/types'
-import { cn, convertEditorContext } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconArrowRight, IconAtSign } from '@/components/ui/icons'
 
@@ -36,11 +35,7 @@ import {
   MentionListProps,
   PromptFormMentionExtension
 } from './form-editor/mention'
-import {
-  fileItemToSourceItem,
-  getMention,
-  isSameFileContext
-} from './form-editor/utils'
+import { fileItemToSourceItem, getMention } from './form-editor/utils'
 import { EditorMentionData, PromptFormRef, PromptProps } from './types'
 
 /**
@@ -212,29 +207,6 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
         },
         onUpdate(props) {
           onUpdate?.(props)
-
-          if (!props.transaction.docChanged) {
-            return
-          }
-
-          // deal with mention diff
-          const { editor } = props
-          // get current mentions
-          const currentMentions: EditorMentionData[] = getMention(editor)
-
-          // detect changes
-          const added = currentMentions.filter(
-            c => !prevMentionsRef.current.some(p => isEqual(p, c))
-          )
-          const removed = prevMentionsRef.current.filter(
-            p => !currentMentions.some(c => isEqual(p, c))
-          )
-
-          if (added.length > 0 || removed.length > 0) {
-            onMentionUpdate({ added, removed })
-          }
-          // update snapshoot
-          prevMentionsRef.current = currentMentions
         }
       },
       [listFileInWorkspace, getChanges]
@@ -286,71 +258,6 @@ const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
       }),
       [editor, input]
     )
-
-    /**
-     * This function compares the current mentions in the editor with the relevant context
-     * and updates the context accordingly.
-     * It adds new mentions and removes mentions that are no longer present in the editor.
-     * Only mentions that refer to the whole file are considered.
-     */
-    const updateMentionContext = useLatest(
-      async ({
-        added,
-        removed
-      }: {
-        added: EditorMentionData[]
-        removed: EditorMentionData[]
-      }) => {
-        if (!readFileContent || !editor) return
-
-        let prevContext: FileContext[] = relevantContext
-        let updatedContext = [...prevContext]
-        for (const ctx of removed) {
-          if (ctx.category === 'command') continue
-
-          updatedContext = updatedContext.filter(
-            prevCtx =>
-              !isSameFileContext(
-                prevCtx,
-                convertEditorContext({
-                  kind: 'file',
-                  content: '',
-                  ...ctx.fileItem
-                })
-              )
-          )
-        }
-
-        for (const ctx of added) {
-          if (ctx.category === 'command') continue
-
-          const content = await readFileContent({
-            filepath: ctx.fileItem.filepath,
-            range: ctx.category === 'symbol' ? ctx.fileItem.range : undefined
-          })
-          updatedContext.push(
-            convertEditorContext({
-              kind: 'file',
-              content: content || '',
-              filepath: ctx.fileItem.filepath,
-              range: ctx.category === 'symbol' ? ctx.fileItem.range : undefined
-            })
-          )
-        }
-
-        setRelevantContext(updatedContext)
-      }
-    )
-
-    const onMentionUpdate = ({
-      added,
-      removed
-    }: {
-      added: EditorMentionData[]
-      removed: EditorMentionData[]
-    }) => {
-      updateMentionContext.current({ added, removed })
-    }
 
     return (
       <div className={cn('relative flex flex-col', className)} {...props}>

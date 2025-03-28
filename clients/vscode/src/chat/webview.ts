@@ -15,7 +15,6 @@ import {
   ProgressLocation,
   Location,
   LocationLink,
-  TabInputText,
   SymbolInformation,
   DocumentSymbol,
 } from "vscode";
@@ -55,10 +54,9 @@ import {
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
-  localUriToListFileItem,
   vscodeRangeToChatPanelLineRange,
 } from "./utils";
-import { caseInsensitivePattern, findFiles } from "../findFiles";
+import { listFiles } from "../findFiles";
 import { wrapCancelableFunction } from "../cancelableFunction";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
@@ -507,40 +505,16 @@ export class ChatWebview extends EventEmitter {
       },
 
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
-        const maxResults = params.limit || 50;
-        const searchQuery = params.query?.trim();
-
-        if (!searchQuery) {
-          const openTabs = window.tabGroups.all
-            .flatMap((group) => group.tabs)
-            .filter((tab) => tab.input && (tab.input as TabInputText).uri);
-
-          const openTabItems = openTabs.map((tab) =>
-            localUriToListFileItem((tab.input as TabInputText).uri, this.gitProvider),
-          );
-
-          // If we have less than 5 open tabs, fetch additional files to make total = 5
-          if (openTabs.length < 5) {
-            const additionalCount = 5 - openTabs.length;
-            this.logger.info(`Found ${openTabs.length} open tabs, fetching ${additionalCount} more files`);
-            const files = await this.findFiles("**/*", { maxResults: additionalCount });
-            this.logger.info(`Found ${files.length} additional files`);
-            const fileItems = files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
-            return [...openTabItems, ...fileItems];
-          }
-
-          this.logger.info(`No query provided, listing ${openTabs.length} opened editors.`);
-          return openTabItems;
-        }
-
         try {
-          const globPattern = caseInsensitivePattern(searchQuery);
-          this.logger.info(`Searching files with pattern: ${globPattern}, limit: ${maxResults}`);
-          const files = await this.findFiles(globPattern, { maxResults });
-          this.logger.info(`Found ${files.length} files.`);
-          return files.map((uri) => localUriToListFileItem(uri, this.gitProvider));
+          const files = await this.listFiles(params.query, params.limit);
+          return files.map((item) => {
+            return {
+              filepath: localUriToChatPanelFilepath(item.uri, this.gitProvider),
+              source: item.isOpenedInEditor ? "openedInEditor" : "searchResult",
+            };
+          });
         } catch (error) {
-          this.logger.warn("Failed to find files:", error);
+          this.logger.warn("Failed to list files:", error);
           return [];
         }
       },
@@ -992,10 +966,13 @@ export class ChatWebview extends EventEmitter {
     await this.notifyActiveEditorSelectionChange(editor);
   }, 100);
 
-  private findFiles = wrapCancelableFunction(
-    findFiles,
-    (args) => args[1]?.token,
-    (args, token) => [args[0], { ...args[1], token }] as Parameters<typeof findFiles>,
+  private listFiles = wrapCancelableFunction(
+    listFiles,
+    (args) => args[2],
+    (args, token) => {
+      args[2] = token;
+      return args;
+    },
   );
 
   private getColorThemeString() {

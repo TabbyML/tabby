@@ -121,6 +121,12 @@
         "icon": "$(sparkle)"
       },
       {
+        "command": "tabby.chat.generateBranchName",
+        "title": "Create Branch with Suggestions",
+        "category": "Tabby",
+        "icon": "$(git-branch)"
+      },
+      {
         "command": "tabby.chat.edit.start",
         "title": "Start Inline Editing",
         "category": "Tabby"
@@ -157,6 +163,11 @@
         "title": "Chat History",
         "icon": "$(history)",
         "enablement": "tabby.chatSidePanelStatus === 'ready'",
+        "category": "Tabby"
+      },
+      {
+        "command": "tabby.toggleLanguageInlineCompletion",
+        "title": "Enable/Disable Inline Completion for Current Language",
         "category": "Tabby"
       }
     ],
@@ -228,6 +239,10 @@
           "when": "false"
         },
         {
+          "command": "tabby.chat.generateBranchName",
+          "when": "tabby.chatEnabled"
+        },
+        {
           "command": "tabby.chat.edit.start",
           "when": "tabby.chatEnabled"
         },
@@ -255,6 +270,11 @@
           "command": "tabby.chat.generateCommitMessage",
           "when": "tabby.chatEnabled",
           "group": "navigation@-1"
+        },
+        {
+          "command": "tabby.chat.generateBranchName",
+          "when": "tabby.chatEnabled",
+          "group": "navigation@-2"
         }
       ],
       "view/title": [
@@ -372,6 +392,14 @@
                   "Automatic trigger when you stop typing",
                   "Manual trigger by pressing `Alt + \\`"
                 ]
+              },
+              "inlineCompletion.disabledLanguages": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": [],
+                "description": "List of language IDs for which code completion should be disabled. Use the 'Toggle Single Language Inline Completion' command to easily enable or disable completion for the current language."
               },
               "chatEdit.history": {
                 "type": "integer",

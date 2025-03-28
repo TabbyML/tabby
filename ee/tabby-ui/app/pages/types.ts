@@ -6,6 +6,7 @@ import {
   Maybe,
   MessageCodeSearchHit
 } from '@/lib/gql/generates/graphql'
+import { AttachmentDocItem } from '@/lib/types'
 
 export type PageItem = ListPagesQuery['pages']['edges'][0]['node']
 export type SectionItem = Omit<
@@ -20,5 +21,6 @@ export type SectionItem = Omit<
       }
     >
     codeFileList?: Maybe<AttachmentCodeFileList>
+    doc?: Maybe<AttachmentDocItem[]>
   }
 }

@@ -96,7 +96,8 @@ export function ReadingDocStepper({
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {webResources.map((x, index) => {
                       const _key =
-                        x.__typename === 'MessageAttachmentCommitDoc'
+                        x.__typename === 'MessageAttachmentCommitDoc' ||
+                        x.__typename === 'AttachmentCommitDoc'
                           ? x.sha
                           : x.link
                       return (

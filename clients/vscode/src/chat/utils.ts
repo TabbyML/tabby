@@ -1,13 +1,6 @@
 import path from "path";
 import { TextEditor, Position as VSCodePosition, Range as VSCodeRange, Uri, workspace } from "vscode";
-import type {
-  Filepath,
-  Position as ChatPanelPosition,
-  LineRange,
-  PositionRange,
-  Location,
-  ListFileItem,
-} from "tabby-chat-panel";
+import type { Filepath, Position as ChatPanelPosition, LineRange, PositionRange, Location } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 
@@ -167,12 +160,6 @@ export function chatPanelLocationToVSCodeRange(location: Location | undefined): 
   }
   logger.warn(`Invalid location params.`, location);
   return null;
-}
-
-export function localUriToListFileItem(uri: Uri, gitProvider: GitProvider): ListFileItem {
-  return {
-    filepath: localUriToChatPanelFilepath(uri, gitProvider),
-  };
 }
 
 // Notebook cell uri conversion

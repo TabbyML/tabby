@@ -73,6 +73,9 @@ export class StatusBarItem {
           case "ready":
           case "readyForAutoTrigger": {
             if (this.checkIfVSCodeInlineCompletionEnabled()) {
+              if (this.checkIfCurrentLanguageDisabled()) {
+                return;
+              }
               this.setColorNormal();
               this.setIcon(iconAutomatic);
               this.setTooltip(statusInfo.tooltip);
@@ -81,6 +84,9 @@ export class StatusBarItem {
           }
           case "readyForManualTrigger": {
             if (this.checkIfVSCodeInlineCompletionEnabled()) {
+              if (this.checkIfCurrentLanguageDisabled()) {
+                return;
+              }
               this.setColorNormal();
               this.setIcon(iconManual);
               this.setTooltip(statusInfo.tooltip);
@@ -104,6 +110,18 @@ export class StatusBarItem {
         break;
       }
     }
+  }
+
+  private checkIfCurrentLanguageDisabled(): boolean {
+    const currentLanguageId = window.activeTextEditor?.document.languageId;
+    const isLanguageDisabled = currentLanguageId ? this.config.disabledLanguages.includes(currentLanguageId) : false;
+    if (!isLanguageDisabled) {
+      return false;
+    }
+    this.setColorNormal();
+    this.setIcon(iconDisabled);
+    this.setTooltip(`Tabby: disabled for ${currentLanguageId} files`);
+    return true;
   }
 
   private checkIfVSCodeInlineCompletionEnabled() {

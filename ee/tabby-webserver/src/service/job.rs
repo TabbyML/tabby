@@ -7,6 +7,7 @@ use tabby_schema::{
     AsID, AsRowid, Result,
 };
 use tokio::fs::read_to_string;
+use tracing::warn;
 
 use super::graphql_pagination_to_filter;
 use crate::{path::background_jobs_dir, service::background_job::BackgroundJobEvent};
@@ -114,41 +115,18 @@ impl JobService for JobControllerImpl {
 
 impl JobControllerImpl {
     async fn read_job_stdout(&self, id: i64) -> Result<String> {
-        let mut log_files = background_jobs_dir()
+        let log_file = background_jobs_dir()
             .join(format!("{}", id))
-            .read_dir()
-            .context("Failed to read log directory")?
-            .filter_map(|entry| {
-                entry.ok().and_then(|entry| {
-                    let path = entry.path();
-                    if path.is_file()
-                        && path
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .starts_with("stdout")
-                    {
-                        Some(path)
-                    } else {
-                        None
-                    }
-                })
-            })
-            .collect::<Vec<_>>();
+            .join("stdout.log");
 
-        if !log_files.is_empty() {
-            log_files.sort();
-            let mut stdout = String::new();
-            for log_file in log_files {
-                stdout = format!(
-                    "{}{}",
-                    stdout,
-                    read_to_string(log_file)
-                        .await
-                        .context("Failed to read log file")?
-                );
+        if log_file.exists() {
+            match read_to_string(log_file).await {
+                Ok(stdout) => Ok(stdout),
+                Err(err) => {
+                    warn!("Failed to read log file: {:?}", err);
+                    Ok(String::new())
+                }
             }
-            Ok(stdout.trim().to_string())
         } else {
             Ok(String::new())
         }

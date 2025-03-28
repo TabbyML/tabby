@@ -1,5 +1,4 @@
 import typescript from "@rollup/plugin-typescript";
-import resolve from "@rollup/plugin-node-resolve";
 import { defineConfig } from "rollup";
 
 export default defineConfig([{
@@ -27,22 +26,4 @@ export default defineConfig([{
     }),
   ],
   external: ["@quilted/events", "@preact/signals"],
-}, {
-  input: "exports/create-thread-from-iframe.ts",
-  output: {
-    dir: "dist",
-    format: "iife",
-    entryFileNames: "iife/[name].js",
-    name: "TabbyThreads",
-  },
-  treeshake: true,
-  plugins: [
-    resolve({
-      browser: true,
-    }),
-    typescript({
-      tsconfig: "./tsconfig.json",
-      noEmitOnError: true,
-    }),
-  ],
 }]);

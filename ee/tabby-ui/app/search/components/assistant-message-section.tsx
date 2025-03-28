@@ -27,6 +27,7 @@ import {
   getMentionsFromText,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
+  isAttachmentCommitDoc,
   isDocSourceContext
 } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -126,7 +127,7 @@ export function AssistantMessageSection({
     const docCitations =
       answer.attachment?.doc
         ?.map((doc, idx) => {
-          if (doc.__typename === 'MessageAttachmentCommitDoc') {
+          if (isAttachmentCommitDoc(doc)) {
             return `[${idx + 1}] ${doc.sha}`
           } else {
             return `[${idx + 1}] ${doc.link}`
