@@ -61,6 +61,7 @@ impl ExtendedOpenAIConfig {
             "mistral/chat" => {
                 request.presence_penalty = None;
                 request.user = None;
+                request.stream_options = None;
             }
             "openai/chat" => {
                 request = process_request_openai(request);
