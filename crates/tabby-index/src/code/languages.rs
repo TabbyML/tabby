@@ -59,7 +59,7 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
-           (
+            (
                 "kotlin",
                 TagsConfigurationSync(
                     TagsConfiguration::new(
