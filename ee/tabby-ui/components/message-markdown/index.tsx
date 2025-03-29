@@ -46,7 +46,8 @@ import {
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
-  MARKDOWN_SYMBOL_REGEX
+  MARKDOWN_SYMBOL_REGEX,
+  MARKDOWN_THINK_REGEX
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
@@ -170,6 +171,15 @@ export function MessageMarkdown({
         })
       }
     }
+
+    // Add think placeholders to the matches.
+    findMatches(
+      MARKDOWN_THINK_REGEX,
+      ThinkBlock,
+      (match: RegExpExecArray) => ({
+        content: decodeURIComponent(match[1])
+      })
+    )
 
     findMatches(
       MARKDOWN_CITATION_REGEX,
@@ -394,6 +404,29 @@ export function ErrorMessageBlock({
     >
       {errorMessage}
     </MemoizedReactMarkdown>
+  )
+}
+
+function ThinkBlock({ content }: { content: string }): JSX.Element {
+  return (
+    <details
+      open
+      className={`
+        my-4 w-full rounded-md border border-gray-300 bg-white 
+        p-3 text-sm text-gray-800
+        dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-100
+      `}
+    >
+      <summary
+        className={`
+          cursor-pointer list-none font-semibold text-gray-600 
+          outline-none dark:text-gray-300
+        `}
+      >
+        Thinking
+      </summary>
+      <div className="mt-2 whitespace-pre-wrap leading-relaxed">{content}</div>
+    </details>
   )
 }
 
