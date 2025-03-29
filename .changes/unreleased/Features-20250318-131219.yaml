@@ -1,3 +1,0 @@
-kind: Features
-body: Add security option to hide password login in frontend. When enabled, the password login can be revealed by appending the URL search parameter `passwordSignIn=true`.
-time: 2025-03-18T13:12:19.547444+08:00
