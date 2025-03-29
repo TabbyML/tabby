@@ -63,6 +63,13 @@
                 anchor="right"
                 icon="com.tabbyml.intellijtabby.Icons.Chat"
                 factoryClass="com.tabbyml.intellijtabby.widgets.ChatToolWindowFactory"/>
+        <intentionAction>
+            <className>com.tabbyml.intellijtabby.inlineChat.InlineChatIntentionAction</className>
+        </intentionAction>
+
+        <codeInsight.lineMarkerProvider implementationClass="com.tabbyml.intellijtabby.inlineChat.GutterIconProvider"/>
+       <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatCodeVisionProvider" />
+        <highlightingPassFactory implementation="com.tabbyml.intellijtabby.inlineChat.DiffHighlighterRegister" />
     </extensions>
 
     <actions>
@@ -165,6 +172,12 @@
 
         <group id="Tabby.EditorContext" popup="true" text="Tabby">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <action id="Tabby.InlineChat" class="com.tabbyml.intellijtabby.inlineChat.InlineChatAction"
+                    text="Open Tabby Inline Chat"
+                    description="Open a inline chat widget to chat with Tabby to modify your code.">
+                <keyboard-shortcut first-keystroke="ctrl I" keymap="$default"/>
+            </action>
+            <separator/>
             <action id="Tabby.Chat.AddSelectionToChat"
                     class="com.tabbyml.intellijtabby.actions.chat.AddSelectionToChat"
                     text="Add Selection to Chat"
