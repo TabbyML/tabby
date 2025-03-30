@@ -5,8 +5,6 @@ import {
   QuickPickItem,
   QuickPickItemButtonEvent,
   QuickPickItemKind,
-  TabInputText,
-  TextEditor,
   ThemeIcon,
   Uri,
   window,
@@ -15,13 +13,14 @@ import {
   SymbolInformation,
   SymbolKind,
   DocumentSymbol,
+  TabInputText,
 } from "vscode";
 import { Config } from "../Config";
 import { ChatEditCommand, ChatEditFileContext } from "tabby-agent";
 import { Deferred, InlineEditParseResult, parseUserCommand, replaceLastOccurrence } from "./util";
 import { Client } from "../lsp/client";
 import { Location } from "vscode-languageclient";
-import { caseInsensitivePattern, findFiles } from "../findFiles";
+import { listFiles } from "../findFiles";
 
 export interface InlineEditCommand {
   command: string;
@@ -51,16 +50,10 @@ export class UserCommandQuickpick {
   constructor(
     private client: Client,
     private config: Config,
-    private editor: TextEditor,
     private editLocation: Location,
-  ) {
-    this.editLocation = editLocation;
-  }
+  ) {}
 
   start() {
-    // Create a new deferred object for each start call
-    this.resultDeffer = new Deferred<InlineEditCommand | undefined>();
-
     this.quickPick.title = "Enter the command for editing (type @ to include file or symbol)";
     this.quickPick.matchOnDescription = true;
     this.quickPick.onDidChangeValue(() => this.handleValueChange());
@@ -253,16 +246,16 @@ export class UserCommandQuickpick {
 
     // Always search for files, even when there's no query
     // Use a default pattern when no query is provided
-    const globPattern = query ? caseInsensitivePattern(query) : "**/*";
-    const fileList = await findFiles(globPattern, { maxResults });
+    // const globPattern = query ? caseInsensitivePattern(query) : "**/*";
+    const fileList = await listFiles(query, maxResults);
 
     // Create items for search results
-    const fileItems = fileList.map((uri) => {
-      const uriString = uri.toString();
+    const fileItems = fileList.map((fileItem) => {
+      const uriString = fileItem.uri.toString();
       const isOpenInEditor = openTabsUriStrings.includes(uriString);
 
       return {
-        label: `$(file) ${workspace.asRelativePath(uri)}`,
+        label: `$(file) ${workspace.asRelativePath(fileItem.uri)}`,
         description: isOpenInEditor ? "Open in editor" : undefined,
         buttons: isOpenInEditor ? [{ iconPath: new ThemeIcon("edit") }] : undefined,
         uri: uriString,
@@ -299,7 +292,7 @@ export class UserCommandQuickpick {
   }
 
   private async openSymbolPick() {
-    this.symbolPick = new SymbolSelectionQuickPick(this.editor);
+    this.symbolPick = new SymbolSelectionQuickPick();
     const symbol = await this.symbolPick.start();
     this.quickPick.show();
     if (symbol) {
@@ -630,8 +623,6 @@ export class SymbolSelectionQuickPick {
   quickPick = window.createQuickPick<SymbolSelectionQuickPickItem>();
   private resultDeferred = new Deferred<SymbolSelectionResult | undefined>();
 
-  constructor(private editor: TextEditor) {}
-
   start() {
     this.quickPick.title = "Enter symbol name to search";
     this.quickPick.placeholder = "Type to filter symbols in the current file";
@@ -682,7 +673,7 @@ export class SymbolSelectionQuickPick {
       const rawDocumentSymbols =
         (await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
           "vscode.executeDocumentSymbolProvider",
-          this.editor.document.uri,
+          window.activeTextEditor?.document.uri,
         )) || [];
 
       // Convert DocumentSymbol[] to SymbolInformation[] if needed
@@ -724,9 +715,9 @@ export class SymbolSelectionQuickPick {
     const result: SymbolInformation[] = [];
 
     // Check if we have DocumentSymbol[] or SymbolInformation[]
-    if (symbols.length > 0 && symbols[0] && "children" in symbols[0]) {
+    if (symbols.length > 0 && symbols[0] && "children" in symbols[0] && window.activeTextEditor) {
       // We have DocumentSymbol[], need to flatten
-      this.flattenDocumentSymbols(symbols as DocumentSymbol[], "", this.editor.document.uri, result);
+      this.flattenDocumentSymbols(symbols as DocumentSymbol[], "", window.activeTextEditor.document.uri, result);
     } else if (symbols.length > 0) {
       // We already have SymbolInformation[]
       result.push(...(symbols as SymbolInformation[]));
@@ -831,9 +822,10 @@ export class SymbolSelectionQuickPick {
     // Remove duplicates
     const uniqueSymbols = this.removeDuplicateSymbols(symbols);
 
-    if (!query) {
-      return uniqueSymbols.slice(0, 50); // Limit to 20 symbols when no query
+    if (!query || !window.activeTextEditor) {
+      return uniqueSymbols.slice(0, 50);
     }
+    const editor = window.activeTextEditor;
 
     const lowerQuery = query.toLowerCase();
     const filtered = uniqueSymbols.filter((s) => s.name.toLowerCase().includes(lowerQuery));
@@ -853,8 +845,8 @@ export class SymbolSelectionQuickPick {
         if (bName.startsWith(lowerQuery) && !aName.startsWith(lowerQuery)) return 1;
 
         // Current file symbols first
-        const aIsCurrentFile = a.location.uri.toString() === this.editor.document.uri.toString();
-        const bIsCurrentFile = b.location.uri.toString() === this.editor.document.uri.toString();
+        const aIsCurrentFile = a.location.uri.toString() === editor.document.uri.toString();
+        const bIsCurrentFile = b.location.uri.toString() === editor.document.uri.toString();
         if (aIsCurrentFile && !bIsCurrentFile) return -1;
         if (bIsCurrentFile && !aIsCurrentFile) return 1;
 

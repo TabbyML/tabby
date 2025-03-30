@@ -39,7 +39,7 @@ export class InlineEditController {
   }
 
   private async showQuickPick(): Promise<InlineEditCommand | undefined> {
-    const quickPick = new UserCommandQuickpick(this.client, this.config, this.editor, this.editLocation);
+    const quickPick = new UserCommandQuickpick(this.client, this.config, this.editLocation);
     return await quickPick.start();
   }
 

@@ -10,10 +10,12 @@ import {
   GlobPattern,
   RelativePattern,
   Uri,
+  TabInputText,
   WorkspaceFolder,
   CancellationToken,
   CancellationTokenSource,
   workspace,
+  window,
 } from "vscode";
 import path from "path";
 import { wrapCancelableFunction } from "./cancelableFunction";
@@ -236,21 +238,121 @@ export async function findFiles(
   }
 }
 
-export function escapeGlobPattern(query: string): string {
-  // escape special glob characters: * ? [ ] { } ( ) ! @
-  return query.replace(/[*?[\]{}()!@]/g, "\\$&");
+export function sortFiles(files: Uri[], query: string): Uri[] {
+  const matchString = query.toLowerCase().split("*")[0] as string;
+  const getScore = (uri: Uri) => {
+    const basename = path.basename(uri.fsPath).toLowerCase();
+    if (basename.startsWith(matchString)) {
+      return 2;
+    }
+    if (basename.includes(matchString)) {
+      return 1;
+    }
+    return 0;
+  };
+  return files.sort((uriA, uriB) => {
+    const scoreA = getScore(uriA);
+    const scoreB = getScore(uriB);
+    if (scoreA > scoreB) {
+      return -1;
+    }
+    if (scoreA < scoreB) {
+      return 1;
+    }
+    return uriA.fsPath.localeCompare(uriB.fsPath);
+  });
 }
 
-export function caseInsensitivePattern(query: string) {
+export function buildGlobPattern(query: string): GlobPattern {
   const caseInsensitivePattern = query
     .split("")
     .map((char) => {
       if (char.toLowerCase() !== char.toUpperCase()) {
         return `{${char.toLowerCase()},${char.toUpperCase()}}`;
       }
-      return escapeGlobPattern(char);
+      // escape special glob characters: ? [ ] { } ( ) ! @
+      return char.replace(/[?[\]{}()!@]/g, "\\$&");
     })
     .join("");
 
-  return `**/${caseInsensitivePattern}*`;
+  return `**/*${caseInsensitivePattern}*{,/*}`;
+}
+
+// `listFiles` will check the opened editors first, then use `findFiles` to search for files until the limit.
+export async function listFiles(
+  query: string,
+  limit?: number | undefined,
+  token?: CancellationToken | undefined,
+): Promise<
+  {
+    uri: Uri;
+    isOpenedInEditor: boolean;
+  }[]
+> {
+  const maxResults = limit ?? 30;
+  const queryString = query.trim().toLowerCase();
+
+  const allEditorUris = window.tabGroups.all
+    .flatMap((group) => group.tabs)
+    .filter((tab) => tab.input && (tab.input as TabInputText).uri)
+    .map((tab) => (tab.input as TabInputText).uri);
+
+  const editorUris = sortFiles(
+    allEditorUris
+      // deduplicate
+      .filter((uri, idx) => allEditorUris.findIndex((item) => item.fsPath === uri.fsPath) === idx)
+      // filter by search query
+      .filter((uri) => uri.fsPath.toLowerCase().includes(queryString)),
+    queryString,
+  )
+    // move the active editor to the top
+    .sort((uriA, uriB) => {
+      const activeEditorUri = window.activeTextEditor?.document.uri;
+      if (activeEditorUri) {
+        if (uriA.fsPath === activeEditorUri.fsPath) return -1;
+        if (uriB.fsPath === activeEditorUri.fsPath) return 1;
+      }
+      return 0;
+    });
+
+  const result = editorUris.map((uri) => {
+    return {
+      uri,
+      isOpenedInEditor: true,
+    };
+  });
+  if (result.length >= maxResults) {
+    return result.slice(0, maxResults);
+  }
+
+  const globPattern = buildGlobPattern(queryString);
+  try {
+    const foundFiles = await findFiles(globPattern, {
+      maxResults: maxResults - editorUris.length,
+      excludes: editorUris.map((uri) => uri.fsPath),
+      token,
+    });
+    const searchResult = sortFiles(
+      foundFiles.filter(
+        (uri, idx) =>
+          foundFiles.findIndex((item) => item.fsPath === uri.fsPath) === idx &&
+          !editorUris.some((exisingUri) => exisingUri.fsPath === uri.fsPath),
+      ),
+      queryString,
+    );
+
+    logger.debug(`Found ${searchResult.length} files matching pattern "${globPattern}"`);
+    result.push(
+      ...searchResult.map((uri) => {
+        return {
+          uri,
+          isOpenedInEditor: false,
+        };
+      }),
+    );
+  } catch (error) {
+    logger.debug("Failed to find files:", error);
+  }
+
+  return result;
 }

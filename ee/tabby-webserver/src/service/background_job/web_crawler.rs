@@ -43,42 +43,37 @@ impl WebCrawlerJob {
         let mut num_docs = 0;
 
         // attempt to fetch the LLMS file using crawler_llms.
-        match crawler_llms(&self.url).await {
-            Ok(docs) => {
-                logkit::info!(
-                    "Fetched and split llms-full.txt successfully. Indexing {} sections.",
-                    docs.len()
-                );
-                // Index each section separately.
-                for doc in docs {
-                    let source_doc = StructuredDoc {
-                        source_id: self.source_id.clone(),
-                        fields: StructuredDocFields::Web(StructuredDocWebFields {
-                            title: doc.metadata.title.unwrap_or_default(),
-                            link: doc.url,
-                            body: doc.markdown,
-                        }),
-                    };
+        if let Ok(docs) = crawler_llms(&self.url).await {
+            logkit::info!(
+                "Fetched and split llms-full.txt successfully. Indexing {} sections.",
+                docs.len()
+            );
+            // Index each section separately.
+            for doc in docs {
+                let source_doc = StructuredDoc {
+                    source_id: self.source_id.clone(),
+                    fields: StructuredDocFields::Web(StructuredDocWebFields {
+                        title: doc.metadata.title.unwrap_or_default(),
+                        link: doc.url,
+                        body: doc.markdown,
+                    }),
+                };
 
-                    if indexer
-                        .presync(&StructuredDocState {
-                            id: source_doc.id().to_string(),
-                            updated_at: Utc::now(),
-                            deleted: false,
-                        })
-                        .await
-                    {
-                        indexer.sync(source_doc).await;
-                        num_docs += 1;
-                    }
+                if indexer
+                    .presync(&StructuredDocState {
+                        id: source_doc.id().to_string(),
+                        updated_at: Utc::now(),
+                        deleted: false,
+                    })
+                    .await
+                {
+                    indexer.sync(source_doc).await;
+                    num_docs += 1;
                 }
-                indexer.commit();
-                logkit::info!("Indexed {} documents from '{}'", num_docs, self.url);
-                return Ok(());
             }
-            Err(_) => {
-                logkit::info!("/llms-full.txt is not available");
-            }
+            indexer.commit();
+            logkit::info!("Indexed {} documents from '{}'", num_docs, self.url);
+            return Ok(());
         }
 
         // if no LLMS file was found, use the regular crawl_pipeline.
