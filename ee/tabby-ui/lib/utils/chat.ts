@@ -9,13 +9,13 @@ import {
 } from '@/lib/gql/generates/graphql'
 import type { MentionAttributes } from '@/lib/types'
 
+import { MARKDOWN_CUSTOM_TAGS } from '../constants'
 import {
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
   PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
-  PLACEHOLDER_SYMBOL_REGEX,
-  PLACEHOLDER_THINK_REGEX
+  PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
 import { convertContextBlockToLabelName } from './markdown'
 
@@ -228,17 +228,6 @@ export function encodeMentionPlaceHolder(value: string): string {
     }
   }
 
-  while ((match = PLACEHOLDER_THINK_REGEX.exec(newValue)) !== null) {
-    try {
-      newValue = newValue.replace(
-        match[0],
-        `[[think:${encodeURIComponent(match[1])}]]\n`
-      )
-    } catch (error) {
-      continue
-    }
-  }
-
   return newValue
 }
 
@@ -312,4 +301,42 @@ export function getTitleFromMessages(
     title = title.slice(0, options?.maxLength)
   }
   return title
+}
+
+/**
+ * Format markdown strings to ensure that closing tags adhere to specified newline rules
+ * @param inputString
+ * @returns formatted markdown string
+ */
+export function formatMarkdownCustomTags(inputString: string): string {
+  const tagPattern = MARKDOWN_CUSTOM_TAGS.map(tag =>
+    tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  ).join('|')
+  const regex = new RegExp(`(<(${tagPattern})>.*?</\\2>)`, 'gs')
+
+  // Adjust the newline characters for matched closing tags
+  function adjustNewlines(match: string): string {
+    const startTagMatch = match.match(new RegExp(`<(${tagPattern})>`))
+    const endTagMatch = match.match(new RegExp(`</(${tagPattern})>`))
+
+    if (!startTagMatch || !endTagMatch) {
+      return match
+    }
+
+    const startTag = startTagMatch[0]
+    const endTag = endTagMatch[0]
+
+    const content = match
+      .slice(startTag.length, match.length - endTag.length)
+      .trim()
+
+    // One newline character before and after the start tag
+    const formattedStart = `\n${startTag}\n`
+    // Two newline characters before the end tag, and one after
+    const formattedEnd = `\n\n${endTag}\n`
+
+    return `${formattedStart}${content}${formattedEnd}`
+  }
+
+  return inputString.replace(regex, adjustNewlines)
 }
