@@ -44,7 +44,7 @@ tasks {
 
   intellijPlatform {
     pluginConfiguration {
-      version.set("1.13.0-rc.0")
+      version.set("1.13.0-rc.1")
       changeNotes.set(provider {
         changelog.renderItem(
           changelog.getLatest(),
