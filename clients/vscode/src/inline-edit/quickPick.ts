@@ -10,6 +10,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import path from "path";
 import { listSymbols } from "../findSymbols";
 import { Config } from "../Config";
 import { ChatEditCommand, ChatEditFileContext } from "tabby-agent";
@@ -41,19 +42,47 @@ const wrappedListFiles = wrapCancelableFunction(
   },
 );
 
-const getFileItems = async (query: string, maxResults = 20): Promise<FileSelectionQuickPickItem[]> => {
+const getFileItems = async (query: string, maxResults: number): Promise<FileSelectionQuickPickItem[]> => {
   const fileList = await wrappedListFiles(query, maxResults);
-  const fileItems = fileList.map((fileItem) => {
-    const uriString = fileItem.uri.toString();
+  const fileItems: FileSelectionQuickPickItem[] = fileList.map((fileItem) => {
+    const relativePath = workspace.asRelativePath(fileItem.uri);
+    const basename = path.basename(fileItem.uri.fsPath);
+    const dirname = path.dirname(relativePath);
     return {
-      label: `$(file) ${workspace.asRelativePath(fileItem.uri)}`,
-      description: fileItem.isOpenedInEditor ? "Open in editor" : undefined,
-      buttons: fileItem.isOpenedInEditor ? [{ iconPath: new ThemeIcon("edit") }] : undefined,
-      uri: uriString,
+      label: `$(file) ${basename}`,
+      description: dirname === "." ? "" : dirname,
+      alwaysShow: true,
+      referer: relativePath,
+      uri: fileItem.uri.toString(),
+      isOpenedInEditor: fileItem.isOpenedInEditor,
     };
   });
+  const activeFilesIndex = fileItems.findIndex((item) => item.isOpenedInEditor);
+  if (activeFilesIndex != -1) {
+    fileItems.splice(activeFilesIndex, 0, {
+      label: `active files`,
+      kind: QuickPickItemKind.Separator,
+      referer: "",
+      uri: "",
+      isOpenedInEditor: true,
+    });
+  }
+  const searchResultsIndex = fileItems.findIndex((item) => !item.isOpenedInEditor);
+  if (searchResultsIndex != -1) {
+    fileItems.splice(searchResultsIndex, 0, {
+      label: `search results`,
+      kind: QuickPickItemKind.Separator,
+      referer: "",
+      uri: "",
+      isOpenedInEditor: false,
+    });
+  }
   return fileItems;
 };
+
+interface ContextQuickPickItem extends QuickPickItem {
+  type: undefined | "file" | "symbol";
+}
 
 export class UserCommandQuickpick {
   quickPick = window.createQuickPick<CommandQuickPickItem>();
@@ -63,9 +92,8 @@ export class UserCommandQuickpick {
   private lastInputValue = "";
   private filePick: FileSelectionQuickPick | undefined;
   private symbolPick: SymbolSelectionQuickPick | undefined;
-  private fileContextLabelToUriMap = new Map<string, Omit<ChatEditFileContext, "referrer">>();
-  private directFileSelected = false;
   private showingContextPicker = false;
+  private referenceMap = new Map<string, Omit<ChatEditFileContext, "referrer">>();
 
   constructor(
     private client: Client,
@@ -104,23 +132,29 @@ export class UserCommandQuickpick {
   }
 
   private async showContextPicker() {
-    const contextPicker = window.createQuickPick<QuickPickItem & { type?: string; uri?: string }>();
+    const contextPicker = window.createQuickPick<ContextQuickPickItem | FileSelectionQuickPickItem>();
     contextPicker.title = "Select context or file";
+    contextPicker.buttons = [QuickInputButtons.Back];
+    contextPicker.ignoreFocusOut = true;
+    // Quick pick items are always sorted by label. issue: https://github.com/microsoft/vscode/issues/73904
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (contextPicker as any).sortByLabel = false;
 
-    const contextTypeItems: (QuickPickItem & { type?: string })[] = [
-      { label: "$(folder) File", description: "Reference a file in the workspace", type: "file" },
-      { label: "$(symbol-class) Symbol", description: "Reference a symbol in the current file", type: "symbol" },
-      { label: "", kind: QuickPickItemKind.Separator },
+    const contextTypeItems: ContextQuickPickItem[] = [
+      { label: "context", kind: QuickPickItemKind.Separator, type: undefined },
+      { label: "$(folder) Files $(chevron-right)", type: "file" },
+      { label: "$(symbol-class) Symbols $(chevron-right)", type: "symbol" },
     ];
 
     contextPicker.busy = true;
-    const fileItems = await getFileItems("", 20);
+    const fileItemsMaxResult = 20;
+    const fileItems = await getFileItems("", fileItemsMaxResult);
     contextPicker.items = [...contextTypeItems, ...fileItems];
     contextPicker.busy = false;
     contextPicker.onDidChangeValue(async (value) => {
       if (value) {
         contextPicker.busy = true;
-        const filteredFileItems = await getFileItems(value, 20);
+        const filteredFileItems = await getFileItems(value, fileItemsMaxResult);
         contextPicker.items = [...contextTypeItems, ...filteredFileItems];
         contextPicker.busy = false;
       } else {
@@ -128,32 +162,10 @@ export class UserCommandQuickpick {
       }
     });
 
-    const deferred = new Deferred<{ type?: "file" | "symbol"; uri?: string; label?: string } | undefined>();
+    const deferred = new Deferred<ContextQuickPickItem | FileSelectionQuickPickItem | undefined>();
 
     contextPicker.onDidAccept(() => {
-      const selected = contextPicker.selectedItems[0];
-
-      if (selected?.type === "file") {
-        deferred.resolve({ type: "file" });
-      } else if (selected?.type === "symbol") {
-        deferred.resolve({ type: "symbol" });
-      } else if (selected?.uri) {
-        const uri = selected.uri;
-        const label = selected.label.replace(/^\$\(file\) /, "");
-
-        const newValue = this.inputParseResult.mentionQuery + `${label} `;
-        this.updateQuickPickList();
-        this.updateQuickPickValue(newValue);
-        this.fileContextLabelToUriMap.set(label, {
-          uri: uri,
-          range: undefined,
-        });
-        this.directFileSelected = true;
-        deferred.resolve(undefined);
-      } else {
-        deferred.resolve(undefined);
-      }
-
+      deferred.resolve(contextPicker.selectedItems[0]);
       contextPicker.hide();
     });
 
@@ -162,17 +174,28 @@ export class UserCommandQuickpick {
       contextPicker.dispose();
     });
 
+    contextPicker.onDidTriggerButton((e: QuickInputButton) => {
+      if (e === QuickInputButtons.Back) {
+        contextPicker.hide();
+      }
+    });
+
     contextPicker.show();
 
     const result = await deferred.promise;
 
-    this.quickPick.show();
-
-    if (result?.type === "file") {
-      await this.openFilePick();
-    } else if (result?.type === "symbol") {
-      await this.openSymbolPick();
+    if (result && "type" in result) {
+      if (result.type === "file") {
+        await this.openFilePick();
+      } else if (result.type === "symbol") {
+        await this.openSymbolPick();
+      }
+    } else if (result && "uri" in result) {
+      this.quickPick.show();
+      this.updateQuickPickValue(this.quickPick.value + `${result.referer} `);
+      this.referenceMap.set(result.referer, { uri: result.uri });
     } else {
+      this.quickPick.show();
       if (this.quickPick.value.endsWith("@")) {
         this.updateQuickPickValue(replaceLastOccurrence(this.quickPick.value, "@", ""));
       }
@@ -184,8 +207,8 @@ export class UserCommandQuickpick {
     const file = await this.filePick.start();
     this.quickPick.show();
     if (file) {
-      this.updateQuickPickValue(this.quickPick.value + `${file.label} `);
-      this.fileContextLabelToUriMap.set(file.label, { uri: file.uri });
+      this.updateQuickPickValue(this.quickPick.value + `${file.referer} `);
+      this.referenceMap.set(file.referer, { uri: file.uri });
     } else {
       this.updateQuickPickValue(replaceLastOccurrence(this.quickPick.value, "@", ""));
     }
@@ -197,8 +220,8 @@ export class UserCommandQuickpick {
     const symbol = await this.symbolPick.start();
     this.quickPick.show();
     if (symbol) {
-      this.updateQuickPickValue(this.quickPick.value + `${symbol.label} `);
-      this.fileContextLabelToUriMap.set(symbol.label, { uri: symbol.uri, range: symbol.range });
+      this.updateQuickPickValue(this.quickPick.value + `${symbol.referer} `);
+      this.referenceMap.set(symbol.referer, { uri: symbol.uri, range: symbol.range });
     } else {
       this.updateQuickPickValue(replaceLastOccurrence(this.quickPick.value, "@", ""));
     }
@@ -230,29 +253,31 @@ export class UserCommandQuickpick {
 
   private getCommandList(input: string) {
     const list: (QuickPickItem & { value: string })[] = [];
+    list.push({
+      label: "commands",
+      value: "",
+      kind: QuickPickItemKind.Separator,
+    });
     list.push(
       ...this.suggestedCommand.map((item) => ({
         label: item.label,
         value: item.command,
-        iconPath: item.source === "preset" ? new ThemeIcon("run") : new ThemeIcon("spark"),
-        description: item.source === "preset" ? item.command : "Suggested",
+        iconPath: new ThemeIcon("sparkle"),
+        description: item.source === "preset" ? item.command : "",
       })),
     );
-    if (list.length > 0) {
-      list.push({
-        label: "",
-        value: "",
-        kind: QuickPickItemKind.Separator,
-        alwaysShow: true,
-      });
-    }
+    list.push({
+      label: "history",
+      value: "",
+      kind: QuickPickItemKind.Separator,
+    });
     const recentlyCommandToAdd = this.getCommandHistory().filter((item) => !list.find((i) => i.value === item.command));
     recentlyCommandToAdd.forEach((command) => {
       if (command.context) {
         command.context.forEach((context) => {
-          if (!this.fileContextLabelToUriMap.has(context.referrer)) {
+          if (!this.referenceMap.has(context.referrer)) {
             // this context maybe outdated
-            this.fileContextLabelToUriMap.set(context.referrer, {
+            this.referenceMap.set(context.referrer, {
               uri: context.uri,
               range: context.range,
             });
@@ -265,7 +290,6 @@ export class UserCommandQuickpick {
         label: item.command,
         value: item.command,
         iconPath: new ThemeIcon("history"),
-        description: "History",
         buttons: [
           {
             iconPath: new ThemeIcon("edit"),
@@ -291,7 +315,6 @@ export class UserCommandQuickpick {
 
   private handleAccept() {
     const command = this.quickPick.selectedItems[0]?.value || this.quickPick.value;
-    this.directFileSelected = false;
     this.acceptCommand(command);
   }
 
@@ -355,8 +378,8 @@ export class UserCommandQuickpick {
       command,
       context: uniqueMentionTexts
         .map<ChatEditFileContext | undefined>((item) => {
-          if (this.fileContextLabelToUriMap.has(item)) {
-            const contextInfo = this.fileContextLabelToUriMap.get(item);
+          if (this.referenceMap.has(item)) {
+            const contextInfo = this.referenceMap.get(item);
             if (contextInfo) {
               return {
                 uri: contextInfo.uri,
@@ -379,10 +402,7 @@ export class UserCommandQuickpick {
   private handleHidden() {
     this.fetchingSuggestedCommandCancellationTokenSource.cancel();
     const inFileOrSymbolSelection = this.filePick !== undefined || this.symbolPick !== undefined;
-    const fileDirectlySelected = this.directFileSelected;
-    const aboutToShowContextPicker = this.showingContextPicker;
-
-    if (!inFileOrSymbolSelection && !fileDirectlySelected && !aboutToShowContextPicker) {
+    if (!inFileOrSymbolSelection && !this.showingContextPicker) {
       this.resultDeferred.resolve(undefined);
     }
     this.showingContextPicker = false;
@@ -411,17 +431,14 @@ export class UserCommandQuickpick {
 
 interface FileSelectionQuickPickItem extends QuickPickItem {
   uri: string;
-}
-
-interface FileSelectionResult {
-  uri: string;
-  label: string;
+  referer: string;
+  isOpenedInEditor: boolean;
 }
 
 export class FileSelectionQuickPick {
   quickPick = window.createQuickPick<FileSelectionQuickPickItem>();
-  private maxSearchFileResult = 30;
-  private resultDeferred = new Deferred<FileSelectionResult | undefined>();
+  private maxSearchFileResult = 50;
+  private resultDeferred = new Deferred<FileSelectionQuickPickItem | undefined>();
 
   start() {
     this.quickPick.title = "Enter file name to search";
@@ -446,13 +463,7 @@ export class FileSelectionQuickPick {
   }
 
   private handleAccept() {
-    const selection = this.quickPick.selectedItems[0];
-    if (selection) {
-      const label = selection.label.replace(/^\$\(file\) /, "");
-      this.resultDeferred.resolve({ label, uri: selection.uri });
-    } else {
-      this.resultDeferred.resolve(undefined);
-    }
+    this.resultDeferred.resolve(this.quickPick.selectedItems[0]);
   }
 
   private handleHidden() {
@@ -468,22 +479,16 @@ export class FileSelectionQuickPick {
 
 interface SymbolSelectionQuickPickItem extends QuickPickItem {
   uri: string;
-  range?: Range;
-}
-
-interface SymbolSelectionResult {
-  uri: string;
-  label: string;
+  referer: string;
   range?: Range;
 }
 
 export class SymbolSelectionQuickPick {
   quickPick = window.createQuickPick<SymbolSelectionQuickPickItem>();
-  private resultDeferred = new Deferred<SymbolSelectionResult | undefined>();
+  private resultDeferred = new Deferred<SymbolSelectionQuickPickItem | undefined>();
 
   start() {
     this.quickPick.title = "Enter symbol name to search";
-    this.quickPick.placeholder = "Type to filter symbols in the current file";
     this.quickPick.buttons = [QuickInputButtons.Back];
     this.quickPick.ignoreFocusOut = true;
     this.quickPick.onDidChangeValue((e) => this.updateSymbolList(e));
@@ -503,16 +508,7 @@ export class SymbolSelectionQuickPick {
   }
 
   private handleAccept() {
-    const selection = this.quickPick.selectedItems[0];
-    this.resultDeferred.resolve(
-      selection
-        ? {
-            label: selection.label,
-            uri: selection.uri,
-            range: selection.range,
-          }
-        : undefined,
-    );
+    this.resultDeferred.resolve(this.quickPick.selectedItems[0]);
   }
 
   private handleHidden() {
@@ -541,9 +537,11 @@ export class SymbolSelectionQuickPick {
         (symbol) =>
           ({
             label: symbol.name,
-            description: symbol.containerName || "",
+            description: symbol.containerName,
             iconPath: symbol.kindIcon,
             uri: symbol.location.uri.toString(),
+            referer: symbol.name.replace(/\s/g, "_").replace(/@/g, ""),
+            // FIXME(icycode): extract type conversion utils
             range: symbol.location.range
               ? {
                   start: {
