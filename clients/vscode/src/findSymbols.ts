@@ -166,7 +166,6 @@ function getSymbolIcon(kind: SymbolKind): ThemeIcon {
  * Filters and sorts symbols based on the query
  */
 function filterSymbols(symbols: SymbolInformation[], query: string, maxResults: number): SymbolInformation[] {
-  // Remove duplicates
   const uniqueSymbols = removeDuplicateSymbols(symbols);
 
   if (!query || !window.activeTextEditor) {
@@ -176,28 +175,18 @@ function filterSymbols(symbols: SymbolInformation[], query: string, maxResults: 
 
   const lowerQuery = query.toLowerCase();
   const filtered = uniqueSymbols.filter((s) => s.name.toLowerCase().includes(lowerQuery));
-
-  // Sort by match quality
   return filtered
     .sort((a, b) => {
       const aName = a.name.toLowerCase();
       const bName = b.name.toLowerCase();
-
-      // Exact match
       if (aName === lowerQuery && bName !== lowerQuery) return -1;
       if (bName === lowerQuery && aName !== lowerQuery) return 1;
-
-      // Starts with query
       if (aName.startsWith(lowerQuery) && !bName.startsWith(lowerQuery)) return -1;
       if (bName.startsWith(lowerQuery) && !aName.startsWith(lowerQuery)) return 1;
-
-      // Current file symbols first
       const aIsCurrentFile = a.location.uri.toString() === editor.document.uri.toString();
       const bIsCurrentFile = b.location.uri.toString() === editor.document.uri.toString();
       if (aIsCurrentFile && !bIsCurrentFile) return -1;
       if (bIsCurrentFile && !aIsCurrentFile) return 1;
-
-      // Shorter name is better
       return a.name.length - b.name.length;
     })
     .slice(0, maxResults);
