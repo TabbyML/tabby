@@ -540,7 +540,7 @@ export class SymbolSelectionQuickPick {
             description: symbol.containerName,
             iconPath: symbol.kindIcon,
             uri: symbol.location.uri.toString(),
-            referer: symbol.name.replace(/\s/g, "_").replace("@", ""),
+            referer: symbol.name.replace(/\s/g, "_").replace(/@/g, ""),
             // FIXME(icycode): extract type conversion utils
             range: symbol.location.range
               ? {
