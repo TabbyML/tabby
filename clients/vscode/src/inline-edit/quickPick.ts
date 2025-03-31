@@ -5,16 +5,12 @@ import {
   QuickPickItem,
   QuickPickItemButtonEvent,
   QuickPickItemKind,
+  Range,
   ThemeIcon,
-  Uri,
   window,
   workspace,
-  commands,
-  SymbolInformation,
-  SymbolKind,
-  DocumentSymbol,
-  TabInputText,
 } from "vscode";
+import { listSymbols } from "../findSymbols";
 import { Config } from "../Config";
 import { ChatEditCommand, ChatEditFileContext } from "tabby-agent";
 import { Deferred, InlineEditParseResult, parseUserCommand, replaceLastOccurrence } from "./util";
@@ -30,6 +26,24 @@ export interface InlineEditCommand {
 interface CommandQuickPickItem extends QuickPickItem {
   value: string;
 }
+
+/**
+ * Helper method to get file items with consistent formatting
+ * This is used by both context picker and file selection picker
+ */
+const getFileItems = async (query: string, maxResults = 20): Promise<(QuickPickItem & { uri?: string })[]> => {
+  const fileList = await listFiles(query, maxResults);
+  const fileItems = fileList.map((fileItem) => {
+    const uriString = fileItem.uri.toString();
+    return {
+      label: `$(file) ${workspace.asRelativePath(fileItem.uri)}`,
+      description: fileItem.isOpenedInEditor ? "Open in editor" : undefined,
+      buttons: fileItem.isOpenedInEditor ? [{ iconPath: new ThemeIcon("edit") }] : undefined,
+      uri: uriString,
+    };
+  });
+  return fileItems;
+};
 
 export class UserCommandQuickpick {
   quickPick = window.createQuickPick<CommandQuickPickItem>();
@@ -101,11 +115,9 @@ export class UserCommandQuickpick {
     const mentionText = currentValue.substring(currentValue.lastIndexOf("@") + 1).trim();
 
     if (mentionText.toLowerCase() === "file") {
-      // User typed "@file", open the file picker directly
       await this.openFilePick();
       return;
     } else if (mentionText.toLowerCase() === "symbol") {
-      // User typed "@symbol", open the symbol picker directly
       await this.openSymbolPick();
       return;
     }
@@ -126,7 +138,7 @@ export class UserCommandQuickpick {
     contextPicker.busy = true;
 
     // Add default file list (open tabs and workspace files)
-    const fileItems = await UserCommandQuickpick.getFileItems("");
+    const fileItems = await getFileItems("");
 
     // Set initial items
     contextPicker.items = [...contextTypeItems, ...fileItems];
@@ -139,7 +151,7 @@ export class UserCommandQuickpick {
         contextPicker.busy = true;
 
         // Get filtered file items
-        const filteredFileItems = await UserCommandQuickpick.getFileItems(value);
+        const filteredFileItems = await getFileItems(value);
 
         // Update items
         contextPicker.items = [...contextTypeItems, ...filteredFileItems];
@@ -227,54 +239,6 @@ export class UserCommandQuickpick {
     }
   }
 
-  /**
-   * Helper method to get file items with consistent formatting
-   * This is used by both context picker and file selection picker
-   */
-  static async getFileItems(query: string, maxResults = 20): Promise<(QuickPickItem & { uri?: string })[]> {
-    // Get open tabs first
-    const openTabs = getOpenTabsUri();
-    const openTabsUriStrings = openTabs.map((uri) => uri.toString());
-
-    // Create items for open tabs
-    const openTabItems = openTabs.map((uri) => ({
-      label: `$(file) ${workspace.asRelativePath(uri)}`,
-      description: "Open in editor",
-      buttons: [{ iconPath: new ThemeIcon("edit") }],
-      uri: uri.toString(),
-    }));
-
-    // Always search for files, even when there's no query
-    // Use a default pattern when no query is provided
-    // const globPattern = query ? caseInsensitivePattern(query) : "**/*";
-    const fileList = await listFiles(query, maxResults);
-
-    // Create items for search results
-    const fileItems = fileList.map((fileItem) => {
-      const uriString = fileItem.uri.toString();
-      const isOpenInEditor = openTabsUriStrings.includes(uriString);
-
-      return {
-        label: `$(file) ${workspace.asRelativePath(fileItem.uri)}`,
-        description: isOpenInEditor ? "Open in editor" : undefined,
-        buttons: isOpenInEditor ? [{ iconPath: new ThemeIcon("edit") }] : undefined,
-        uri: uriString,
-      };
-    });
-
-    // Filter out duplicates
-    const seen = new Set(openTabsUriStrings);
-    const uniqueFileItems = fileItems.filter((item) => {
-      if (!item.uri || seen.has(item.uri)) {
-        return false;
-      }
-      seen.add(item.uri);
-      return true;
-    });
-
-    return [...openTabItems, ...uniqueFileItems];
-  }
-
   private async openFilePick() {
     this.filePick = new FileSelectionQuickPick();
     const file = await this.filePick.start();
@@ -282,10 +246,8 @@ export class UserCommandQuickpick {
     if (file) {
       this.updateQuickPickValue(this.quickPick.value + `${file.label} `);
       this.fileContextLabelToUriMap.set(file.label, { uri: file.uri });
-      // Update the quick pick list to show the command with the file name
       this.updateQuickPickList();
     } else {
-      // remove `@` when user select no file
       this.updateQuickPickValue(replaceLastOccurrence(this.quickPick.value, "@", ""));
     }
     this.filePick = undefined;
@@ -588,7 +550,7 @@ export class FileSelectionQuickPick {
 
   private async fetchFileList(query: string): Promise<FileSelectionQuickPickItem[]> {
     // Use the shared static getFileItems method from UserCommandQuickpick
-    const fileItems = await UserCommandQuickpick.getFileItems(query, this.maxSearchFileResult);
+    const fileItems = await getFileItems(query, this.maxSearchFileResult);
 
     // Convert to FileSelectionQuickPickItem
     return fileItems.map((item: QuickPickItem & { uri?: string }) => ({
@@ -602,21 +564,15 @@ export class FileSelectionQuickPick {
   }
 }
 
-const getOpenTabsUri = (): Uri[] => {
-  return window.tabGroups.all
-    .flatMap((group) => group.tabs.map((tab) => (tab.input instanceof TabInputText ? tab.input.uri : null)))
-    .filter((item): item is Uri => item !== null);
-};
-
 interface SymbolSelectionQuickPickItem extends QuickPickItem {
   uri: string;
-  range?: { start: { line: number; character: number }; end: { line: number; character: number } };
+  range?: Range;
 }
 
 interface SymbolSelectionResult {
   uri: string;
   label: string;
-  range?: { start: { line: number; character: number }; end: { line: number; character: number } };
+  range?: Range;
 }
 
 export class SymbolSelectionQuickPick {
@@ -668,203 +624,38 @@ export class SymbolSelectionQuickPick {
   }
 
   private async fetchSymbolList(query: string): Promise<SymbolSelectionQuickPickItem[]> {
+    if (!window.activeTextEditor) {
+      return [];
+    }
     try {
-      // Get document symbols from the current file
-      const rawDocumentSymbols =
-        (await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
-          "vscode.executeDocumentSymbolProvider",
-          window.activeTextEditor?.document.uri,
-        )) || [];
+      // Use the listSymbols function from findSymbols.ts
+      const symbols = await listSymbols(window.activeTextEditor.document.uri, query, 50);
 
-      // Convert DocumentSymbol[] to SymbolInformation[] if needed
-      const documentSymbols = this.convertToSymbolInformation(rawDocumentSymbols);
-
-      // Get workspace symbols if query is provided
-      const workspaceSymbols = query
-        ? (await commands.executeCommand<SymbolInformation[]>("vscode.executeWorkspaceSymbolProvider", query)) || []
-        : [];
-
-      // Combine and filter symbols
-      const allSymbols = [...documentSymbols, ...workspaceSymbols];
-      const filteredSymbols = this.filterSymbols(allSymbols, query);
-
-      // Convert to QuickPickItems with appropriate icons
-      return filteredSymbols.map((symbol) => ({
-        label: symbol.name,
-        description: this.getSymbolDescription(symbol),
-        iconPath: this.getSymbolIcon(symbol.kind),
-        uri: symbol.location.uri.toString(),
-        range: {
-          start: {
-            line: symbol.location.range.start.line,
-            character: symbol.location.range.start.character,
-          },
-          end: {
-            line: symbol.location.range.end.line,
-            character: symbol.location.range.end.character,
-          },
-        },
-      }));
+      // Convert to QuickPickItems
+      return symbols.map(
+        (symbol) =>
+          ({
+            label: symbol.name,
+            description: symbol.containerName || "",
+            iconPath: symbol.kindIcon,
+            uri: symbol.location.uri.toString(),
+            range: symbol.location.range
+              ? {
+                  start: {
+                    line: symbol.location.range.start.line,
+                    character: symbol.location.range.start.character,
+                  },
+                  end: {
+                    line: symbol.location.range.end.line,
+                    character: symbol.location.range.end.character,
+                  },
+                }
+              : undefined,
+          }) as SymbolSelectionQuickPickItem,
+      );
     } catch (error) {
       // Error handling silently
       return [];
     }
-  }
-
-  private convertToSymbolInformation(symbols: (DocumentSymbol | SymbolInformation)[]): SymbolInformation[] {
-    const result: SymbolInformation[] = [];
-
-    // Check if we have DocumentSymbol[] or SymbolInformation[]
-    if (symbols.length > 0 && symbols[0] && "children" in symbols[0] && window.activeTextEditor) {
-      // We have DocumentSymbol[], need to flatten
-      this.flattenDocumentSymbols(symbols as DocumentSymbol[], "", window.activeTextEditor.document.uri, result);
-    } else if (symbols.length > 0) {
-      // We already have SymbolInformation[]
-      result.push(...(symbols as SymbolInformation[]));
-    }
-
-    return result;
-  }
-
-  private flattenDocumentSymbols(
-    symbols: DocumentSymbol[],
-    containerName: string,
-    uri: Uri,
-    result: SymbolInformation[],
-  ): void {
-    for (const symbol of symbols) {
-      const fullName = containerName ? `${containerName}.${symbol.name}` : symbol.name;
-
-      // Create a SymbolInformation from DocumentSymbol
-      result.push({
-        name: symbol.name,
-        kind: symbol.kind,
-        containerName: containerName,
-        location: {
-          uri: uri,
-          range: symbol.range,
-        },
-      } as SymbolInformation);
-
-      // Process children recursively
-      if (symbol.children && symbol.children.length > 0) {
-        this.flattenDocumentSymbols(symbol.children, fullName, uri, result);
-      }
-    }
-  }
-
-  private getSymbolDescription(symbol: SymbolInformation): string {
-    const containerName = symbol.containerName ? `${symbol.containerName}` : "";
-    const fileName = workspace.asRelativePath(symbol.location.uri);
-
-    return containerName ? `${containerName} (${fileName})` : fileName;
-  }
-
-  private getSymbolIcon(kind: SymbolKind): ThemeIcon {
-    // Map symbol kinds to appropriate theme icons
-    switch (kind) {
-      case SymbolKind.File:
-        return new ThemeIcon("file");
-      case SymbolKind.Module:
-        return new ThemeIcon("package");
-      case SymbolKind.Namespace:
-        return new ThemeIcon("symbol-namespace");
-      case SymbolKind.Class:
-        return new ThemeIcon("symbol-class");
-      case SymbolKind.Method:
-        return new ThemeIcon("symbol-method");
-      case SymbolKind.Property:
-        return new ThemeIcon("symbol-property");
-      case SymbolKind.Field:
-        return new ThemeIcon("symbol-field");
-      case SymbolKind.Constructor:
-        return new ThemeIcon("symbol-constructor");
-      case SymbolKind.Enum:
-        return new ThemeIcon("symbol-enum");
-      case SymbolKind.Interface:
-        return new ThemeIcon("symbol-interface");
-      case SymbolKind.Function:
-        return new ThemeIcon("symbol-method");
-      case SymbolKind.Variable:
-        return new ThemeIcon("symbol-variable");
-      case SymbolKind.Constant:
-        return new ThemeIcon("symbol-constant");
-      case SymbolKind.String:
-        return new ThemeIcon("symbol-string");
-      case SymbolKind.Number:
-        return new ThemeIcon("symbol-number");
-      case SymbolKind.Boolean:
-        return new ThemeIcon("symbol-boolean");
-      case SymbolKind.Array:
-        return new ThemeIcon("symbol-array");
-      case SymbolKind.Object:
-        return new ThemeIcon("symbol-object");
-      case SymbolKind.Key:
-        return new ThemeIcon("symbol-key");
-      case SymbolKind.Null:
-        return new ThemeIcon("symbol-null");
-      case SymbolKind.EnumMember:
-        return new ThemeIcon("symbol-enum-member");
-      case SymbolKind.Struct:
-        return new ThemeIcon("symbol-struct");
-      case SymbolKind.Event:
-        return new ThemeIcon("symbol-event");
-      case SymbolKind.Operator:
-        return new ThemeIcon("symbol-operator");
-      case SymbolKind.TypeParameter:
-        return new ThemeIcon("symbol-parameter");
-      default:
-        return new ThemeIcon("symbol-misc");
-    }
-  }
-
-  private filterSymbols(symbols: SymbolInformation[], query: string): SymbolInformation[] {
-    // Remove duplicates
-    const uniqueSymbols = this.removeDuplicateSymbols(symbols);
-
-    if (!query || !window.activeTextEditor) {
-      return uniqueSymbols.slice(0, 50);
-    }
-    const editor = window.activeTextEditor;
-
-    const lowerQuery = query.toLowerCase();
-    const filtered = uniqueSymbols.filter((s) => s.name.toLowerCase().includes(lowerQuery));
-
-    // Sort by match quality
-    return filtered
-      .sort((a, b) => {
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-
-        // Exact match
-        if (aName === lowerQuery && bName !== lowerQuery) return -1;
-        if (bName === lowerQuery && aName !== lowerQuery) return 1;
-
-        // Starts with query
-        if (aName.startsWith(lowerQuery) && !bName.startsWith(lowerQuery)) return -1;
-        if (bName.startsWith(lowerQuery) && !aName.startsWith(lowerQuery)) return 1;
-
-        // Current file symbols first
-        const aIsCurrentFile = a.location.uri.toString() === editor.document.uri.toString();
-        const bIsCurrentFile = b.location.uri.toString() === editor.document.uri.toString();
-        if (aIsCurrentFile && !bIsCurrentFile) return -1;
-        if (bIsCurrentFile && !aIsCurrentFile) return 1;
-
-        // Shorter name is better
-        return a.name.length - b.name.length;
-      })
-      .slice(0, 50); // Limit to 20 results
-  }
-
-  private removeDuplicateSymbols(symbols: SymbolInformation[]): SymbolInformation[] {
-    const seen = new Set<string>();
-    return symbols.filter((symbol) => {
-      const key = `${symbol.name}-${symbol.containerName}-${symbol.location.uri.toString()}`;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
   }
 }
