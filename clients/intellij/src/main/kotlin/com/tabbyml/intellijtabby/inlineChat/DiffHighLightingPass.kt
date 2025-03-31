@@ -12,6 +12,7 @@ import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProgressIndicator
@@ -22,11 +23,9 @@ import com.tabbyml.intellijtabby.lsp.ConnectionService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.jsonPrimitive
 import org.eclipse.lsp4j.CodeLens
 import org.eclipse.lsp4j.CodeLensParams
 import org.eclipse.lsp4j.TextDocumentIdentifier
-import org.jetbrains.kotlin.idea.gradleTooling.get
 import java.awt.Color
 import java.awt.Font
 import java.util.concurrent.CompletableFuture
@@ -58,7 +57,7 @@ class DiffHighlightingPassFactory : TextEditorHighlightingPassFactory {
 }
 
 class DiffHighLightingPass(project: Project, document: Document, val editor: Editor) :
-    TextEditorHighlightingPass(project, document) {
+    TextEditorHighlightingPass(project, document, true) {
 
     private var lenses = emptyList<CodeLens>()
     private val file = FileDocumentManager.getInstance().getFile(myDocument)
@@ -66,17 +65,19 @@ class DiffHighLightingPass(project: Project, document: Document, val editor: Edi
 
     override fun doCollectInformation(progress: ProgressIndicator) {
         colorsScheme = EditorColorsManager.getInstance().globalScheme
+        val headerColor = Color(64f/255, 166f/255, 1f, 0.5f)
+        val insertColor = Color((155f / 255), 185f / 255, 85f / 255, 0.2f)
         val lineAttribuitesMap = mapOf<String, TextAttributes>(
             "header" to TextAttributes(
                 null,
-                colorsScheme?.getColor(EditorColors.DOCUMENTATION_COLOR),
+                headerColor,
                 null,
                 null,
                 0
             ),
             "footer" to TextAttributes(
                 null,
-                colorsScheme?.getColor(EditorColors.DOCUMENTATION_COLOR),
+                headerColor,
                 null,
                 null,
                 0
@@ -90,7 +91,7 @@ class DiffHighLightingPass(project: Project, document: Document, val editor: Edi
             ),
             "comments" to TextAttributes(
                 null,
-                colorsScheme?.getColor(EditorColors.READONLY_BACKGROUND_COLOR),
+                colorsScheme?.getColor(EditorColors.DOCUMENTATION_COLOR),
                 null,
                 null,
                 Font.ITALIC
@@ -102,49 +103,53 @@ class DiffHighLightingPass(project: Project, document: Document, val editor: Edi
                 null,
                 0
             ),
-            "inProgress" to TextAttributes(null, colorsScheme?.getColor(EditorColors.ADDED_LINES_COLOR), null, null, 0),
+            "inProgress" to TextAttributes(null, insertColor, null, null, 0),
             "unchanged" to TextAttributes(null, null, null, null, 0),
-            "inserted" to TextAttributes(null, colorsScheme?.getColor(EditorColors.ADDED_LINES_COLOR), null, null, 0),
-            "deleted" to TextAttributes(null, colorsScheme?.getColor(EditorColors.DELETED_LINES_COLOR), null, null, 0),
-            )
+            "inserted" to TextAttributes(null, insertColor, null, null, 0),
+            "deleted" to TextAttributes(null, Color(1f, 0f, 0f, 0.2f), null, null, 0),
+        )
+
+        val textAttributesMap = mapOf<String, TextAttributes>(
+            "inserted" to TextAttributes(null, Color(156f / 255, 204f / 255, 44f / 255, 0.2f), null, null, 0),
+            "deleted" to TextAttributes(
+                null,
+                Color(1f, 0f, 0f, 0.2f),
+                null,
+                null,
+                0
+            ),
+        )
         val uri = file?.url ?: return
         lenses = getCodeLenses(myProject, uri).get() ?: emptyList()
         for (lens in lenses) {
             if ((lens.data as JsonObject?)?.get("type")?.asString != "previewChanges") continue
             val range = lens.range
-            val startOffset = myDocument.getLineStartOffset(range.start.line)
-            val endOffset = myDocument.getLineEndOffset(range.end.line)
+            val startOffset = myDocument.getLineStartOffset(range.start.line) + range.start.character
+            val lineType = (lens.data as JsonObject?)?.get("line")?.asString
+            var endOffset = myDocument.getLineStartOffset(range.end.line) + range.end.character
+            if (lineType != null) {
+                endOffset = myDocument.getLineStartOffset(range.end.line + 1)
+            }
             val textRange = TextRange(startOffset, endOffset)
-
-            // Create the inlay presentation for the CodeLens
-            val lineType = (lens.data as JsonObject?)?.get("line")?.asString ?: continue
-//            val textType = (lens.data as JsonObject?)?.get("text")?.asString
-            val attributes = lineAttribuitesMap.get(lineType) ?: continue
+            var attributes = TextAttributes(null, null, null, null, 0)
+            if (lineType != null) {
+                attributes = lineAttribuitesMap.get(lineType) ?: continue
+            }
+            val textType = (lens.data as JsonObject?)?.get("text")?.asString
+            if (textType != null) {
+                attributes = textAttributesMap.get(textType) ?: continue
+            }
             val builder = HighlightInfo.newHighlightInfo(HighlightInfoType.INFORMATION)
                 .range(textRange)
                 .textAttributes(attributes)
-                .descriptionAndTooltip("diff line")
+                .descriptionAndTooltip("Tabby inline diff")
                 .severity(HighlightSeverity.TEXT_ATTRIBUTES)
             val highlight = builder.create() ?: continue
             myHighlights.add(highlight)
-
-            invokeLater {
-                if (editor.isDisposed) return@invokeLater
-                editor.markupModel.addLineHighlighter(range.start.line, range.end.line, attributes)
-            }
         }
     }
 
-    private fun addLineHighlighter(lenses: List<CodeLens>) {
-    }
-
-    private val textAttributesMap = mapOf<String, TextAttributes>(
-        "inserted" to TextAttributes(null, colorsScheme?.getColor(EditorColors.ADDED_LINES_COLOR), null, null, 0),
-        "deleted" to TextAttributes(null, colorsScheme?.getColor(EditorColors.DELETED_LINES_COLOR), null, null, 0),
-    )
-
     override fun doApplyInformationToEditor() {
-        // Apply highlighting information to the editor
         UpdateHighlightersUtil.setHighlightersToEditor(
             myProject, myDocument, 0, myDocument.textLength,
             myHighlights, colorsScheme, id

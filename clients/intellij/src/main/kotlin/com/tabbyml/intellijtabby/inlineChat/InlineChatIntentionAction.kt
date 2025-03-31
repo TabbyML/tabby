@@ -37,6 +37,7 @@ class InlineChatIntentionAction : BaseIntentionAction() {
     private var inlayRender: InlineChatInlayRenderer? = null
     private var project: Project? = null
     private var location: Location? = null
+    private var editor: Editor? = null
     override fun getFamilyName(): String {
         return "Tabby"
     }
@@ -47,13 +48,14 @@ class InlineChatIntentionAction : BaseIntentionAction() {
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         this.project = project
+        this.editor = editor
         if (editor != null) {
             this.location = getCurrentLocation(editor = editor)
             addInputToEditor(editor = editor, offset = editor.caretModel.offset);
         }
 
         project.messageBus.connect().subscribe(LafManagerListener.TOPIC, LafManagerListener {
-                inlayRender?.repaint() // FIXME
+            inlayRender?.repaint() // FIXME
         })
     }
 
@@ -75,28 +77,13 @@ class InlineChatIntentionAction : BaseIntentionAction() {
         }
         val startPosition = Position(document.getLineNumber(startOffset), 0)
         val endChar = endOffset - document.getLineStartOffset(document.getLineNumber(endOffset))
-        val endLine = if (endChar == 0)  document.getLineNumber(endOffset) else document.getLineNumber(endOffset) + 1
+        val endLine = if (endChar == 0) document.getLineNumber(endOffset) else document.getLineNumber(endOffset) + 1
         val endPosition = Position(endLine, endChar)
         location.range = Range(startPosition, endPosition)
 
         return location
     }
 
-    private fun chatEdit(command: String) {
-        val scope = CoroutineScope(Dispatchers.IO)
-        scope.launch {
-            val server = project?.serviceOrNull<ConnectionService>()?.getServerAsync() ?: return@launch
-            if (location == null) {
-                return@launch
-            }
-            val param = ChatEditParams(
-                location = location!!,
-                command = command
-            )
-            println("Chat edit params: $param")
-            server.chatFeature.chatEdit(params = param)
-        }
-    }
 
     override fun getText(): String {
         return "Open Tabby inline chat";
@@ -118,12 +105,31 @@ class InlineChatIntentionAction : BaseIntentionAction() {
     }
 
     private fun onInputSubmit(value: String) {
-        println("Input value: $value")
         chatEdit(command = value)
+        editor?.selectionModel?.removeSelection()
+    }
+
+    private fun chatEdit(command: String) {
+        val scope = CoroutineScope(Dispatchers.IO)
+        scope.launch {
+            val server = project?.serviceOrNull<ConnectionService>()?.getServerAsync() ?: return@launch
+            if (location == null) {
+                return@launch
+            }
+            val param = ChatEditParams(
+                location = location!!,
+                command = command
+            )
+            server.chatFeature.chatEdit(params = param)
+        }
     }
 }
 
-class InlineChatInlayRenderer(private val editor: Editor, private val onClose: () -> Unit, private val onSubmit: (value: String) -> Unit) :
+class InlineChatInlayRenderer(
+    private val editor: Editor,
+    private val onClose: () -> Unit,
+    private val onSubmit: (value: String) -> Unit
+) :
     EditorCustomElementRenderer {
     private val inlineChatComponent = InlineChatComponent(onClose = this::removeComponent, onSubmit = onSubmit)
     private var targetRegion: Rectangle? = null
@@ -309,7 +315,7 @@ class InlineInputComponent(private var onSubmit: (value: String) -> Unit, privat
 
             }
         })
-        textArea.addFocusListener(object: FocusAdapter() {
+        textArea.addFocusListener(object : FocusAdapter() {
             override fun focusGained(e: FocusEvent) {
                 border = BorderFactory.createLineBorder(UIUtil.getFocusedBorderColor(), 2, true)
             }
@@ -384,7 +390,7 @@ class InlineInputComponent(private var onSubmit: (value: String) -> Unit, privat
     }
 
     private fun createHistoryButton(): JLabel {
-        val historyButton = IconLabelButton(AllIcons.Actions.SearchWithHistory) {handleOpenHistory()}
+        val historyButton = IconLabelButton(AllIcons.Actions.SearchWithHistory) { handleOpenHistory() }
         historyButton.toolTipText = "Select predefined / history Command"
         historyButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
         historyButton.border = BorderFactory.createEmptyBorder(4, 8, 4, 8)
