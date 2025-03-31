@@ -100,15 +100,20 @@ export function ReadingRepoStepper({
                 key='clientCode'
                 title='Read references'
                 isLoading={false}
+                triggerClassname='text-sm'
               >
-                {clientCodeContexts.map((ctx, index) => {
-                  return (
-                    <ContextItem
-                      key={`clientCode-${index}`}
-                      context={ctx}
-                    />
-                  )
-                })}
+                <div className='mb-3 mt-2'>
+                  <CodeContextList>
+                    {clientCodeContexts.map((ctx, index) => {
+                      return (
+                        <ContextItem
+                          key={`clientCode-${index}`}
+                          context={ctx}
+                        />
+                      )
+                    })}
+                  </CodeContextList>
+                </div>
               </StepItem>
             )}
             {readingCode?.fileList && (
@@ -116,6 +121,7 @@ export function ReadingRepoStepper({
                 key="fileList"
                 title="Read codebase structure ..."
                 isLoading={isReadingFileList}
+                triggerClassname='text-sm'
               >
                 {codeFileList?.fileList?.length ? (
                   // todo scrollarea
@@ -132,11 +138,12 @@ export function ReadingRepoStepper({
                 title="Search for relevant code snippets ..."
                 isLoading={isReadingCode}
                 defaultOpen={!isReadingCode}
+                triggerClassname='text-sm'
               >
                 {(!!clientCodeContexts?.length ||
                   !!serverCodeContexts?.length) && (
                     <div className="mb-3 mt-2">
-                      <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                      <CodeContextList>
                         {serverCodeContexts?.map((item, index) => {
                           return (
                             <ContextItem
@@ -146,7 +153,7 @@ export function ReadingRepoStepper({
                             />
                           )
                         })}
-                      </div>
+                      </CodeContextList>
                     </div>
                   )}
               </StepItem>
@@ -156,10 +163,11 @@ export function ReadingRepoStepper({
               title="Collect documents ..."
               isLastItem
               isLoading={isReadingDocs}
+              triggerClassname='text-sm'
             >
               {!!docs?.length && (
                 <div className="mb-3 mt-2 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <div className="text-sm border p-2 rounded">
                     {docs?.map((x, index) => {
                       const _key =
                         isAttachmentCommitDoc(x)
@@ -187,7 +195,17 @@ export function ReadingRepoStepper({
           </div>
         </AccordionContent>
       </AccordionItem>
-    </Accordion>
+    </Accordion >
+  )
+}
+
+function CodeContextList({ children }: { children: React.ReactNode }) {
+  if (!children) return null
+
+  return (
+    <div className='overflow-y-auto border rounded-lg p-2 space-y-2'>
+      {children}
+    </div>
   )
 }
 
@@ -233,7 +251,7 @@ function ContextItem({
     >
       <TooltipTrigger asChild>
         <div
-          className={cn('rounded-md border p-2', {
+          className={cn('rounded-md px-1 py-0.5', {
             'cursor-pointer hover:bg-accent': clickable,
             'cursor-default pointer-events-auto': !clickable,
             'bg-accent transition-all': isHighlighted
@@ -243,7 +261,7 @@ function ContextItem({
           <div className="flex items-center gap-1 overflow-hidden">
             <IconFile className="shrink-0" />
             <div className="flex-1 truncate" title={context.filepath}>
-              <span>{resolveFileNameForDisplay(context.filepath)}</span>
+              <span className='text-foreground'>{resolveFileNameForDisplay(context.filepath)}</span>
               {context.range ? (
                 <>
                   {context.range?.start && (

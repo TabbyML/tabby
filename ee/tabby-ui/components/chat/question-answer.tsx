@@ -20,8 +20,10 @@ import {
   buildCodeBrowserUrlForContext,
   cn,
   getFileLocationFromContext,
+  getMentionsFromText,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
+  getRangeTextFromAttachmentCode,
+  isDocSourceContext
 } from '@/lib/utils'
 import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
@@ -42,6 +44,7 @@ import { ChatContext } from './chat-context'
 import { CodeReferences } from './code-references'
 import { CodeRangeLabel } from '../code-range-label'
 import { ReadingRepoStepper } from './reading-repo-stepper'
+import { ContextSource } from '@/lib/gql/generates/graphql'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
@@ -356,6 +359,44 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     onContextClick(ctx, code.isClient)
   }
 
+  // const docSources: Array<Omit<ContextSource, 'id'>> = useMemo(() => {
+  //     if (!contextInfo?.sources || !userMessage?.content) return []
+  
+  //     const _sources = getMentionsFromText(
+  //       userMessage.content,
+  //       contextInfo?.sources
+  //     )
+  //     return _sources
+  //       .filter(x => isDocSourceContext(x.kind))
+  //       .map(x => ({
+  //         sourceId: x.id,
+  //         sourceKind: x.kind,
+  //         sourceName: x.label
+  //       }))
+  //   }, [contextInfo?.sources, userMessage?.content])
+
+  const messageAttachmentCodeLen =
+    (message.attachment?.clientCode?.length || 0) +
+    (message.attachment?.code?.length || 0)
+  const showFileListStep =
+    !!message.readingCode?.fileList ||
+    !!message.attachment?.codeFileList?.fileList?.length
+  const showCodeSnippetsStep =
+    message.readingCode?.snippet || !!messageAttachmentCodeLen
+
+  const showReadingCodeStep = !!message.codeSourceId
+  // todo
+  // const showReadingDocStep = !!docSources?.length
+
+  const showReadingDocStep = !!message?.attachment?.doc?.length
+
+  const messageAttachmentDocs = message?.attachment?.doc
+  const codebaseDocs = useMemo(() => {
+      return messageAttachmentDocs?.filter(
+        x => x.__typename !== 'MessageAttachmentWebDoc'
+      )
+    }, [messageAttachmentDocs])
+
   return (
     <div
       className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
@@ -381,12 +422,16 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         {!!targetRepo ? (
           <ReadingRepoStepper
             codeSourceId={targetRepo.sourceId}
-            readingCode={message.readingCode}
             isReadingCode={message.isReadingCode}
             isReadingDocs={message.isReadingDocs}
             isReadingFileList={message.isReadingFileList}
             clientCodeContexts={clientCode}
             serverCodeContexts={serverCode}
+            docs={codebaseDocs}
+            readingCode={{
+              fileList: showFileListStep,
+              snippet: showCodeSnippetsStep
+            }}
           />
         ) : (
           <CodeReferences
