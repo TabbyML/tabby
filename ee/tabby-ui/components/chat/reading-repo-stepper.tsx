@@ -166,8 +166,8 @@ export function ReadingRepoStepper({
               triggerClassname='text-sm'
             >
               {!!docs?.length && (
-                <div className="mb-3 mt-2 space-y-1">
-                  <div className="text-sm border p-2 rounded">
+                <div className="mb-3 mt-2">
+                  <div className="text-sm border p-2 rounded space-y-2">
                     {docs?.map((x, index) => {
                       const _key =
                         isAttachmentCommitDoc(x)
@@ -329,26 +329,26 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
   let icon: ReactNode = null
   if (isIssue) {
     icon = doc.closed ? (
-      <IconCheckCircled className="h-3 w-3" />
+      <IconCheckCircled />
     ) : (
-      <IconCircleDot className="h-3 w-3" />
+      <IconCircleDot />
     )
   }
   if (isPR) {
     icon = doc.merged ? (
-      <IconGitMerge className="h-3 w-3" />
+      <IconGitMerge />
     ) : (
-      <IconGitPullRequest className="h-3 w-3" />
+      <IconGitPullRequest />
     )
   }
   if (isCommit) {
-    icon = <IconGitCommit className="h-3 w-3" />
+    icon = <IconGitCommit />
   }
 
   return (
     <div
       className={cn(
-        'flex flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-semibold hover:text-foreground',
+        'flex flex-nowrap items-center gap-0.5 rounded-md hover:bg-accent px-1.5 py-0.5 font-semibold hover:text-accent-foreground',
         {
           'cursor-pointer': !!link
         }
