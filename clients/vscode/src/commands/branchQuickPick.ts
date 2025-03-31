@@ -22,7 +22,7 @@ export class BranchQuickPick {
     private readonly repository: string,
   ) {
     this.quickPick.title = "Enter name to create new branch";
-    this.quickPick.placeholder = "Type to filter branche names or create new";
+    this.quickPick.placeholder = "Type to filter branch names or create new";
     // Quick pick items are always sorted by label. issue: https://github.com/microsoft/vscode/issues/73904
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (this.quickPick as any).sortByLabel = false;
