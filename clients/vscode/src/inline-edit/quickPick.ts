@@ -67,10 +67,6 @@ export class UserCommandQuickpick {
   private directFileSelected = false;
   private showingContextPicker = false;
 
-  // Properties to store pending changes
-  private _pendingValue: string | undefined;
-  private _pendingFileContext: ({ label: string } & Omit<ChatEditFileContext, "referrer">) | undefined;
-
   constructor(
     private client: Client,
     private config: Config,
@@ -108,15 +104,6 @@ export class UserCommandQuickpick {
   }
 
   private async showContextPicker() {
-    const currentValue = this.quickPick.value;
-    const mentionText = currentValue.substring(currentValue.lastIndexOf("@") + 1).trim();
-    if (mentionText.toLowerCase() === "file") {
-      await this.openFilePick();
-      return;
-    } else if (mentionText.toLowerCase() === "symbol") {
-      await this.openSymbolPick();
-      return;
-    }
     const contextPicker = window.createQuickPick<QuickPickItem & { type?: string; uri?: string }>();
     contextPicker.title = "Select context or file";
 
@@ -154,13 +141,14 @@ export class UserCommandQuickpick {
         const uri = selected.uri;
         const label = selected.label.replace(/^\$\(file\) /, "");
 
-        const newValue = currentValue + `${label} `;
-
-        this._pendingValue = newValue;
-        this._pendingFileContext = { label, uri };
-
+        const newValue = this.inputParseResult.mentionQuery + `${label} `;
+        this.updateQuickPickList();
+        this.updateQuickPickValue(newValue);
+        this.fileContextLabelToUriMap.set(label, {
+          uri: uri,
+          range: undefined,
+        });
         this.directFileSelected = true;
-
         deferred.resolve(undefined);
       } else {
         deferred.resolve(undefined);
@@ -179,20 +167,6 @@ export class UserCommandQuickpick {
     const result = await deferred.promise;
 
     this.quickPick.show();
-
-    if (this._pendingValue) {
-      this.updateQuickPickValue(this._pendingValue);
-      if (this._pendingFileContext) {
-        this.fileContextLabelToUriMap.set(this._pendingFileContext.label, {
-          uri: this._pendingFileContext.uri,
-          range: this._pendingFileContext.range,
-        });
-      }
-      this._pendingValue = undefined;
-      this._pendingFileContext = undefined;
-
-      this.updateQuickPickList();
-    }
 
     if (result?.type === "file") {
       await this.openFilePick();

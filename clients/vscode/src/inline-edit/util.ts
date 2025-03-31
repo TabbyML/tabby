@@ -26,12 +26,6 @@ export interface InlineEditParseResult {
    * for `explain @file to me`, mentionQuery is `undefined`
    */
   mentionQuery?: string;
-  /**
-   * The type of the last mention query, if any
-   * This will be determined by the context or user selection, not by the syntax
-   * Both file and symbol mentions use the same @ prefix
-   */
-  mentionType?: MentionType;
 }
 
 export const parseUserCommand = (input: string): InlineEditParseResult => {
@@ -54,15 +48,12 @@ export const parseUserCommand = (input: string): InlineEditParseResult => {
   }
 
   let mentionQuery = undefined;
-  let mentionType = undefined;
   if (matches.length > 0) {
     const lastMatch = matches[matches.length - 1];
     if (lastMatch) {
       const endPos = lastMatch.index + lastMatch[0].length;
       if (endPos === input.length) {
         mentionQuery = lastMatch[1] || "";
-        // Default to File type, will be updated based on user selection
-        mentionType = MentionType.File;
       }
     }
   }
@@ -70,7 +61,6 @@ export const parseUserCommand = (input: string): InlineEditParseResult => {
   return {
     mentions,
     mentionQuery: mentionQuery !== undefined ? mentionQuery : undefined,
-    mentionType,
   };
 };
 

@@ -9,7 +9,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [],
       mentionQuery: undefined,
-      mentionType: undefined,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -20,7 +19,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [{ text: "file1", type: MentionType.File }],
       mentionQuery: "file1",
-      mentionType: MentionType.File,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -31,7 +29,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [],
       mentionQuery: "",
-      mentionType: MentionType.File,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -42,7 +39,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [],
       mentionQuery: "",
-      mentionType: MentionType.File,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -53,7 +49,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [],
       mentionQuery: undefined,
-      mentionType: undefined,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -64,7 +59,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [{ text: "file1", type: MentionType.File }],
       mentionQuery: "file1",
-      mentionType: MentionType.File,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -75,7 +69,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [{ text: "file1", type: MentionType.File }],
       mentionQuery: undefined,
-      mentionType: undefined,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -88,7 +81,6 @@ describe("parseInput", () => {
         { text: "file2", type: MentionType.File },
       ],
       mentionQuery: "file2",
-      mentionType: MentionType.File,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -101,7 +93,6 @@ describe("parseInput", () => {
         { text: "file2", type: MentionType.File },
       ],
       mentionQuery: undefined,
-      mentionType: undefined,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -114,7 +105,6 @@ describe("parseInput", () => {
         { text: "file2", type: MentionType.File },
       ],
       mentionQuery: undefined,
-      mentionType: undefined,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -127,7 +117,6 @@ describe("parseInput", () => {
         { text: "file2", type: MentionType.File },
       ],
       mentionQuery: undefined,
-      mentionType: undefined,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -141,7 +130,6 @@ describe("parseInput", () => {
         { text: "file3", type: MentionType.File },
       ],
       mentionQuery: "file3",
-      mentionType: MentionType.File,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -151,7 +139,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [{ text: "file3", type: MentionType.File }],
       mentionQuery: undefined,
-      mentionType: undefined,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
@@ -161,7 +148,6 @@ describe("parseInput", () => {
     const parseResult: InlineEditParseResult = {
       mentions: [{ text: "file3", type: MentionType.File }],
       mentionQuery: undefined,
-      mentionType: undefined,
     };
     expect(parseUserCommand(input)).to.deep.equal(parseResult);
   });
