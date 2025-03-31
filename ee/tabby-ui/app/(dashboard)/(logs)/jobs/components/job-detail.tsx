@@ -46,8 +46,10 @@ export default function JobRunDetail() {
     }
   )
 
+  
   const currentNode = data?.jobRuns?.edges?.[0]?.node
-
+  const finalLogs = currentNode?.stdout || logs
+  
   const stateLabel = getLabelByJobRun(currentNode)
   const isPending =
     (stateLabel === 'Pending' || stateLabel === 'Running') && !logs
@@ -63,9 +65,12 @@ export default function JobRunDetail() {
   React.useEffect(() => {
     let timer: number
     if (currentNode?.createdAt && !currentNode?.finishedAt) {
+      const hasStdout = !!currentNode?.stdout
       timer = window.setTimeout(() => {
         reexecuteQuery()
-        mutate()
+        if (!hasStdout) {
+          mutate()
+        }
       }, 5000)
     }
 
@@ -138,7 +143,7 @@ export default function JobRunDetail() {
                 )}
               </div>
               <div className="flex flex-1 flex-col">
-                <StdoutView value={logs} pending={isPending} />
+                <StdoutView value={finalLogs} pending={isPending} />
               </div>
             </>
           )}
