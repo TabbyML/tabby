@@ -65,8 +65,8 @@ export class UserCommandQuickpick {
   private filePick: FileSelectionQuickPick | undefined;
   private symbolPick: SymbolSelectionQuickPick | undefined;
   private fileContextLabelToUriMap = new Map<string, Omit<ChatEditFileContext, "referrer">>();
-  private directFileSelected = false; // Flag to indicate a file has been selected directly
-  private showingContextPicker = false; // Flag to indicate we're about to show the context picker
+  private directFileSelected = false;
+  private showingContextPicker = false;
 
   // Properties to store pending changes
   private _pendingValue: string | undefined;
@@ -101,14 +101,8 @@ export class UserCommandQuickpick {
   private handleValueChange() {
     const { mentionQuery } = this.inputParseResult;
     if (mentionQuery === "") {
-      // Set the flag to indicate we're about to show the context picker
       this.showingContextPicker = true;
-
-      // Instead of immediately showing the context picker, just hide the current quick pick
-      // This will prevent the handleHidden method from resolving the promise with undefined
       this.quickPick.hide();
-
-      // Then show the context picker in a separate async operation
       setTimeout(() => {
         this.showContextPicker();
       }, 0);
@@ -119,12 +113,8 @@ export class UserCommandQuickpick {
   }
 
   private async showContextPicker() {
-    // Get the current command value
     const currentValue = this.quickPick.value;
-
-    // First check if we should show the file picker or symbol picker directly
     const mentionText = currentValue.substring(currentValue.lastIndexOf("@") + 1).trim();
-
     if (mentionText.toLowerCase() === "file") {
       await this.openFilePick();
       return;
@@ -132,13 +122,9 @@ export class UserCommandQuickpick {
       await this.openSymbolPick();
       return;
     }
-
-    // Otherwise show the combined picker
-    // Create a combined quick pick that shows both context types and files
     const contextPicker = window.createQuickPick<QuickPickItem & { type?: string; uri?: string }>();
     contextPicker.title = "Select context or file";
 
-    // Add context type options with separators
     const contextTypeItems: (QuickPickItem & { type?: string })[] = [
       { label: "$(folder) File", description: "Reference a file in the workspace", type: "file" },
       { label: "$(symbol-class) Symbol", description: "Reference a symbol in the current file", type: "symbol" },
@@ -152,14 +138,10 @@ export class UserCommandQuickpick {
     contextPicker.onDidChangeValue(async (value) => {
       if (value) {
         contextPicker.busy = true;
-
         const filteredFileItems = await getFileItems(value, 20);
-
-        // Update items
         contextPicker.items = [...contextTypeItems, ...filteredFileItems];
         contextPicker.busy = false;
       } else {
-        // Reset to default items
         contextPicker.items = [...contextTypeItems, ...fileItems];
       }
     });
@@ -170,27 +152,20 @@ export class UserCommandQuickpick {
       const selected = contextPicker.selectedItems[0];
 
       if (selected?.type === "file") {
-        // User selected "File" option
         deferred.resolve({ type: "file" });
       } else if (selected?.type === "symbol") {
-        // User selected "Symbol" option
         deferred.resolve({ type: "symbol" });
       } else if (selected?.uri) {
-        // User selected a file directly
         const uri = selected.uri;
-        const label = selected.label.replace(/^\$\(file\) /, ""); // Remove the file icon prefix
+        const label = selected.label.replace(/^\$\(file\) /, "");
 
-        // Add the file to the input and context map
         const newValue = currentValue + `${label} `;
 
-        // Store the new value and file context for later use
         this._pendingValue = newValue;
         this._pendingFileContext = { label, uri };
 
-        // Set the flag to indicate a file has been selected directly
         this.directFileSelected = true;
 
-        // Return undefined to indicate we've handled the selection directly
         deferred.resolve(undefined);
       } else {
         deferred.resolve(undefined);
@@ -200,7 +175,6 @@ export class UserCommandQuickpick {
     });
 
     contextPicker.onDidHide(() => {
-      // Always resolve on hide to ensure we don't leave hanging promises
       deferred.resolve(undefined);
       contextPicker.dispose();
     });
@@ -209,10 +183,8 @@ export class UserCommandQuickpick {
 
     const result = await deferred.promise;
 
-    // Show the main quick pick again
     this.quickPick.show();
 
-    // Apply any pending changes
     if (this._pendingValue) {
       this.updateQuickPickValue(this._pendingValue);
       if (this._pendingFileContext) {
@@ -224,7 +196,6 @@ export class UserCommandQuickpick {
       this._pendingValue = undefined;
       this._pendingFileContext = undefined;
 
-      // Update the quick pick list to show the command with the file name
       this.updateQuickPickList();
     }
 
@@ -233,8 +204,6 @@ export class UserCommandQuickpick {
     } else if (result?.type === "symbol") {
       await this.openSymbolPick();
     } else {
-      // User cancelled or selected a file directly (already handled)
-      // If the @ is still there, remove it
       if (this.quickPick.value.endsWith("@")) {
         this.updateQuickPickValue(replaceLastOccurrence(this.quickPick.value, "@", ""));
       }
@@ -352,7 +321,6 @@ export class UserCommandQuickpick {
   }
 
   private handleAccept() {
-    // Get the command from the selected item or use the current value if no item is selected
     const command = this.quickPick.selectedItems[0]?.value || this.quickPick.value;
 
     // Reset the direct file selection flag
