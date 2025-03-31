@@ -8,6 +8,10 @@ import {
   ContextSourceKind
 } from '@/lib/gql/generates/graphql'
 import type { MentionAttributes } from '@/lib/types'
+import {
+  convertChangeItemsToContextContent,
+  hasChangesCommand
+} from '@/components/chat/git/utils'
 
 import {
   MARKDOWN_FILE_REGEX,
@@ -20,7 +24,6 @@ import {
   convertContextBlockToPlaceholder,
   formatObjectToMarkdownBlock
 } from './markdown'
-import { convertChangeItemsToContextContent, hasChangesCommand } from '@/components/chat/git/utils'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [
