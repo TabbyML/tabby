@@ -396,10 +396,10 @@ importers:
         version: 5.2.0
       esbuild-plugin-copy:
         specifier: ^2.1.1
-        version: 2.1.1(esbuild@0.19.12)
+        version: 2.1.1(esbuild@0.24.2)
       esbuild-plugin-polyfill-node:
         specifier: ^0.3.0
-        version: 0.3.0(esbuild@0.19.12)
+        version: 0.3.0(esbuild@0.24.2)
       eslint:
         specifier: ^8.55.0
         version: 8.57.0
@@ -799,9 +799,6 @@ importers:
       tippy.js:
         specifier: ^6.3.7
         version: 6.3.7
-      unist:
-        specifier: ^0.0.1
-        version: 0.0.1
       unist-util-visit:
         specifier: ^5.0.0
         version: 5.0.0
@@ -878,9 +875,6 @@ importers:
       '@types/seedrandom':
         specifier: ^3.0.8
         version: 3.0.8
-      '@types/unist':
-        specifier: ^3.0.3
-        version: 3.0.3
       '@typescript-eslint/eslint-plugin':
         specifier: ^7.4.0
         version: 7.4.0(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint@8.50.0)(typescript@5.8.2)
@@ -1465,6 +1459,10 @@ packages:
 
   '@babel/types@7.26.10':
     resolution: {integrity: sha512-emqcG3vHrpxUKTrxcblR36dcrcoRDvKmnL/dCL6ZsHaShW80qxCAcNhzQZrpeM765VzEos+xOi4s+r4IXzTwdQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/types@7.27.0':
+    resolution: {integrity: sha512-H45s8fVLYjbhFH62dIJ3WtmJ6RSPt/3DRO0ZcT2SUiYiQyz3BLVb9ADEnLl91m74aQPS3AzzeajZHYOalWe3bg==}
     engines: {node: '>=6.9.0'}
 
   '@clack/core@0.3.4':
@@ -10835,10 +10833,6 @@ packages:
   unist-util-visit@5.0.0:
     resolution: {integrity: sha512-MR04uvD+07cwl/yhVuVWAtw+3GOR/knlL55Nd/wAdblk27GCVt3lqpTivy/tkJcZoNPzTwS1Y+KMojlLDhoTzg==}
 
-  unist@0.0.1:
-    resolution: {integrity: sha512-bnzuF8b6d47WubA4a5yLqFbuZz/v/NS6eRwUIdOaDmsqzwTlyv8yS1g3M7ISdtBQrigPD3qKK87Cu7zhEfCF3A==}
-    deprecated: Use @types/unist instead
-
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
     engines: {node: '>= 10.0.0'}
@@ -12006,6 +12000,11 @@ snapshots:
       to-fast-properties: 2.0.0
 
   '@babel/types@7.26.10':
+    dependencies:
+      '@babel/helper-string-parser': 7.25.9
+      '@babel/helper-validator-identifier': 7.25.9
+
+  '@babel/types@7.27.0':
     dependencies:
       '@babel/helper-string-parser': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
@@ -16128,7 +16127,7 @@ snapshots:
 
   '@vue/compiler-core@3.4.27':
     dependencies:
-      '@babel/parser': 7.26.10
+      '@babel/parser': 7.27.0
       '@vue/shared': 3.4.27
       entities: 4.5.0
       estree-walker: 2.0.2
@@ -16141,7 +16140,7 @@ snapshots:
 
   '@vue/compiler-sfc@3.4.27':
     dependencies:
-      '@babel/parser': 7.26.10
+      '@babel/parser': 7.27.0
       '@vue/compiler-core': 3.4.27
       '@vue/compiler-dom': 3.4.27
       '@vue/compiler-ssr': 3.4.27
@@ -16990,7 +16989,7 @@ snapshots:
   code-red@1.0.4:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.0
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.7
       acorn: 8.14.1
       estree-walker: 3.0.3
       periscopic: 3.1.0
@@ -17713,11 +17712,11 @@ snapshots:
       is-date-object: 1.0.5
       is-symbol: 1.0.4
 
-  esbuild-plugin-copy@2.1.1(esbuild@0.19.12):
+  esbuild-plugin-copy@2.1.1(esbuild@0.24.2):
     dependencies:
       chalk: 4.1.2
       chokidar: 3.6.0
-      esbuild: 0.19.12
+      esbuild: 0.24.2
       fs-extra: 10.1.0
       globby: 11.1.0
 
@@ -17725,6 +17724,12 @@ snapshots:
     dependencies:
       '@jspm/core': 2.0.1
       esbuild: 0.19.12
+      import-meta-resolve: 3.1.1
+
+  esbuild-plugin-polyfill-node@0.3.0(esbuild@0.24.2):
+    dependencies:
+      '@jspm/core': 2.0.1
+      esbuild: 0.24.2
       import-meta-resolve: 3.1.1
 
   esbuild@0.19.11:
@@ -21976,7 +21981,7 @@ snapshots:
       remark-parse: 10.0.2
       remark-rehype: 10.1.0
       space-separated-tokens: 2.0.2
-      style-to-object: 0.4.4
+      style-to-object: 0.4.2
       unified: 10.1.2
       unist-util-visit: 4.1.2
       vfile: 5.3.7
@@ -22922,7 +22927,7 @@ snapshots:
       '@ampproject/remapping': 2.3.0
       '@jridgewell/sourcemap-codec': 1.5.0
       '@jridgewell/trace-mapping': 0.3.25
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.7
       acorn: 8.14.1
       aria-query: 5.3.2
       axobject-query: 4.1.0
@@ -23580,8 +23585,6 @@ snapshots:
       '@types/unist': 3.0.3
       unist-util-is: 6.0.0
       unist-util-visit-parents: 6.0.1
-
-  unist@0.0.1: {}
 
   universalify@2.0.1: {}
 
