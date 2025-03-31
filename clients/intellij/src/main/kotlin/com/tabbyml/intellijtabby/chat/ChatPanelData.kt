@@ -60,6 +60,7 @@ sealed class ChatCommand {
     const val FIX = "fix"
     const val GENERATE_DOCS = "generate-docs"
     const val GENERATE_TESTS = "generate-tests"
+    const val CODE_REVIEW = "code-review"
   }
 }
 
