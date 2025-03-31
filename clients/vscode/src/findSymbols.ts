@@ -39,7 +39,7 @@ export async function listSymbols(uri: Uri, query: string, limit?: number): Prom
       name: symbol.name,
       kind: symbol.kind,
       location: symbol.location,
-      kindIcon: getSymbolIcon(symbol.kind),
+      kindIcon: new ThemeIcon(symbolIconMap.get(symbol.kind) ?? "symbol-misc"),
       containerName: symbol.containerName,
     }));
   } catch (error) {
@@ -92,64 +92,35 @@ function flattenDocumentSymbols(
 }
 
 /**
- * Maps symbol kinds to appropriate theme icons
+ * Maps symbol kinds to appropriate theme icons name
  */
-function getSymbolIcon(kind: SymbolKind): ThemeIcon {
-  switch (kind) {
-    case SymbolKind.File:
-      return new ThemeIcon("file");
-    case SymbolKind.Module:
-      return new ThemeIcon("package");
-    case SymbolKind.Namespace:
-      return new ThemeIcon("symbol-namespace");
-    case SymbolKind.Class:
-      return new ThemeIcon("symbol-class");
-    case SymbolKind.Method:
-      return new ThemeIcon("symbol-method");
-    case SymbolKind.Property:
-      return new ThemeIcon("symbol-property");
-    case SymbolKind.Field:
-      return new ThemeIcon("symbol-field");
-    case SymbolKind.Constructor:
-      return new ThemeIcon("symbol-constructor");
-    case SymbolKind.Enum:
-      return new ThemeIcon("symbol-enum");
-    case SymbolKind.Interface:
-      return new ThemeIcon("symbol-interface");
-    case SymbolKind.Function:
-      return new ThemeIcon("symbol-method");
-    case SymbolKind.Variable:
-      return new ThemeIcon("symbol-variable");
-    case SymbolKind.Constant:
-      return new ThemeIcon("symbol-constant");
-    case SymbolKind.String:
-      return new ThemeIcon("symbol-string");
-    case SymbolKind.Number:
-      return new ThemeIcon("symbol-number");
-    case SymbolKind.Boolean:
-      return new ThemeIcon("symbol-boolean");
-    case SymbolKind.Array:
-      return new ThemeIcon("symbol-array");
-    case SymbolKind.Object:
-      return new ThemeIcon("symbol-object");
-    case SymbolKind.Key:
-      return new ThemeIcon("symbol-key");
-    case SymbolKind.Null:
-      return new ThemeIcon("symbol-null");
-    case SymbolKind.EnumMember:
-      return new ThemeIcon("symbol-enum-member");
-    case SymbolKind.Struct:
-      return new ThemeIcon("symbol-struct");
-    case SymbolKind.Event:
-      return new ThemeIcon("symbol-event");
-    case SymbolKind.Operator:
-      return new ThemeIcon("symbol-operator");
-    case SymbolKind.TypeParameter:
-      return new ThemeIcon("symbol-parameter");
-    default:
-      return new ThemeIcon("symbol-misc");
-  }
-}
+const symbolIconMap = new Map<SymbolKind, string>([
+  [SymbolKind.File, "file"],
+  [SymbolKind.Module, "package"],
+  [SymbolKind.Namespace, "symbol-namespace"],
+  [SymbolKind.Class, "symbol-class"],
+  [SymbolKind.Method, "symbol-method"],
+  [SymbolKind.Property, "symbol-property"],
+  [SymbolKind.Field, "symbol-field"],
+  [SymbolKind.Constructor, "symbol-constructor"],
+  [SymbolKind.Enum, "symbol-enum"],
+  [SymbolKind.Interface, "symbol-interface"],
+  [SymbolKind.Function, "symbol-method"],
+  [SymbolKind.Variable, "symbol-variable"],
+  [SymbolKind.Constant, "symbol-constant"],
+  [SymbolKind.String, "symbol-string"],
+  [SymbolKind.Number, "symbol-number"],
+  [SymbolKind.Boolean, "symbol-boolean"],
+  [SymbolKind.Array, "symbol-array"],
+  [SymbolKind.Object, "symbol-object"],
+  [SymbolKind.Key, "symbol-key"],
+  [SymbolKind.Null, "symbol-null"],
+  [SymbolKind.EnumMember, "symbol-enum-member"],
+  [SymbolKind.Struct, "symbol-struct"],
+  [SymbolKind.Event, "symbol-event"],
+  [SymbolKind.Operator, "symbol-operator"],
+  [SymbolKind.TypeParameter, "symbol-parameter"],
+]);
 
 /**
  * Filters and sorts symbols based on the query
