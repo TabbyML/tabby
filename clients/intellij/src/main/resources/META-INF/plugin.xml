@@ -186,6 +186,11 @@
                     text="Fix"
                     description="Fix the selected code using Tabby chat.">
             </action>
+            <action id="Tabby.Chat.CodeReview"
+                    class="com.tabbyml.intellijtabby.actions.chat.CodeReview"
+                    text="Code Review"
+                    description="Review the selected code using Tabby chat.">
+            </action>
             <action id="Tabby.Chat.GenerateDocs"
                     class="com.tabbyml.intellijtabby.actions.chat.GenerateDocs"
                     text="Generate Docs"

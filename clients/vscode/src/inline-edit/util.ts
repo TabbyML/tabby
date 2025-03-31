@@ -1,11 +1,27 @@
+export enum MentionType {
+  File = "file",
+  Symbol = "symbol",
+}
+
+export interface Mention {
+  /**
+   * The text of the mention (without the @ prefix)
+   */
+  text: string;
+  /**
+   * The type of the mention
+   */
+  type: MentionType;
+}
+
 export interface InlineEditParseResult {
   /**
    * mentions, start with '@'
    */
-  mentions?: string[];
+  mentions?: Mention[];
   /**
    * last mention in the end of user commnad.
-   * for `explain @`, mentionQuery is `''`,  we can trigger file pick
+   * for `explain @`, mentionQuery is `''`,  we can trigger pick
    * for `explain @file`, mentionQuery is `file`,  we know user is editing the mention
    * for `explain @file to me`, mentionQuery is `undefined`
    */
@@ -13,15 +29,20 @@ export interface InlineEditParseResult {
 }
 
 export const parseUserCommand = (input: string): InlineEditParseResult => {
-  const mentions: string[] = [];
+  const mentions: Mention[] = [];
+  // Match @text (both file and symbol mentions use the same @ prefix)
   const regex = /(?<=\s|^)@(\S*)/g;
   let match;
   const matches = [];
 
   while ((match = regex.exec(input)) !== null) {
-    const file = match[1];
-    if (file) {
-      mentions.push(file);
+    const text = match[1];
+    if (text) {
+      mentions.push({
+        text,
+        // Default to File type, will be updated when the mention is resolved
+        type: MentionType.File,
+      });
     }
     matches.push(match);
   }
@@ -52,20 +73,3 @@ export const replaceLastOccurrence = (str: string, substrToReplace: string, repl
 
   return str.substring(0, lastIndex) + replacementStr + str.substring(lastIndex + substrToReplace.length);
 };
-
-export const noop = () => {
-  //
-};
-
-export class Deferred<T> {
-  public resolve: (value: T | PromiseLike<T>) => void = noop;
-  public reject: (err?: unknown) => void = noop;
-  public readonly promise: Promise<T>;
-
-  constructor() {
-    this.promise = new Promise<T>((resolve, reject) => {
-      this.resolve = resolve;
-      this.reject = reject;
-    });
-  }
-}

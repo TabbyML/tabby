@@ -15,7 +15,6 @@ import {
   ProgressLocation,
   Location,
   LocationLink,
-  TabInputText,
   SymbolInformation,
   DocumentSymbol,
 } from "vscode";
@@ -55,10 +54,9 @@ import {
   vscodeRangeToChatPanelPositionRange,
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
-  localUriToListFileItem,
   vscodeRangeToChatPanelLineRange,
 } from "./utils";
-import { caseInsensitivePattern, findFiles } from "../findFiles";
+import { listFiles } from "../findFiles";
 import { wrapCancelableFunction } from "../cancelableFunction";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
@@ -507,36 +505,18 @@ export class ChatWebview extends EventEmitter {
       },
 
       listFileInWorkspace: async (params: ListFilesInWorkspaceParams): Promise<ListFileItem[]> => {
-        const maxResults = params.limit || 50;
-        const searchQuery = params.query?.trim();
-        const res: ListFileItem[] = [];
-        let openTabs = window.tabGroups.all
-          .flatMap((group) => group.tabs)
-          .filter((tab) => tab.input && (tab.input as TabInputText).uri)
-          .map((tab) => (tab.input as TabInputText).uri);
-
-        openTabs = openTabs.filter((uri, idx) => openTabs.indexOf(uri) === idx);
-
-        res.push(...openTabs.map((uri) => localUriToListFileItem(uri, this.gitProvider, "openedInEditor")));
-        if (res.length > maxResults) {
-          return res.slice(0, maxResults);
-        }
-
-        const globPattern = caseInsensitivePattern(searchQuery);
         try {
-          let files = await this.findFiles(globPattern, {
-            maxResults: maxResults - res.length,
-            excludes: openTabs.map((uri) => uri.fsPath),
+          const files = await this.listFiles(params.query, params.limit);
+          return files.map((item) => {
+            return {
+              filepath: localUriToChatPanelFilepath(item.uri, this.gitProvider),
+              source: item.isOpenedInEditor ? "openedInEditor" : "searchResult",
+            };
           });
-          files = files.filter(
-            (uri, idx) => files.indexOf(uri) === idx && !openTabs.some((tabUri) => tabUri.fsPath === uri.fsPath),
-          );
-          this.logger.debug(`Found ${files.length} files matching pattern "${globPattern}"`);
-          res.push(...files.map((uri) => localUriToListFileItem(uri, this.gitProvider, "searchResult")));
         } catch (error) {
-          this.logger.warn("Failed to find files:", error);
+          this.logger.warn("Failed to list files:", error);
+          return [];
         }
-        return res;
       },
 
       readFileContent: async (info: FileRange): Promise<string | null> => {
@@ -986,10 +966,13 @@ export class ChatWebview extends EventEmitter {
     await this.notifyActiveEditorSelectionChange(editor);
   }, 100);
 
-  private findFiles = wrapCancelableFunction(
-    findFiles,
-    (args) => args[1]?.token,
-    (args, token) => [args[0], { ...args[1], token }] as Parameters<typeof findFiles>,
+  private listFiles = wrapCancelableFunction(
+    listFiles,
+    (args) => args[2],
+    (args, token) => {
+      args[2] = token;
+      return args;
+    },
   );
 
   private getColorThemeString() {

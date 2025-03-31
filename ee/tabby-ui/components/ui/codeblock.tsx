@@ -71,6 +71,22 @@ export const programmingLanguages: languageMap = {
   // add more file extensions here, make sure the key is same as language prop in CodeBlock.tsx component
 }
 
+const commonShells = [
+  'sh',
+  'bash',
+  'zsh',
+  'fish',
+  'csh',
+  'tcsh',
+  'ksh',
+  'dash',
+  'cmd',
+  'powershell',
+  'pwsh',
+  'shell'
+  // add more common shells here
+]
+
 export const generateRandomString = (length: number, lowercase = false) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXY3456789' // excluding similar looking characters like Z, 2, I, 1, O, 0
   let result = ''
@@ -102,7 +118,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
     }
 
     const onRunCommand = () => {
-      if (runShell && language === 'bash') {
+      if (runShell && commonShells.includes(language.toLowerCase())) {
         runShell(value)
       }
     }
@@ -115,7 +131,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
         <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
           <span className="text-xs lowercase">{language}</span>
           <div className="flex items-center space-x-1">
-            {runShell && language === 'bash' && (
+            {runShell && commonShells.includes(language.toLowerCase()) && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -152,7 +168,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
             )}
             {supportsOnApplyInEditorV2 &&
               onApplyInEditor &&
-              !(runShell && language === 'bash') && (
+              !(runShell && commonShells.includes(language.toLowerCase())) && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -175,24 +191,25 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                   </TooltipContent>
                 </Tooltip>
               )}
-            {onApplyInEditor && !(runShell && language === 'bash') && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                    onClick={() => onApplyInEditor(value, undefined)}
-                  >
-                    <IconApplyInEditor />
-                    <span className="sr-only">Apply in Editor</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="m-0">Apply in Editor</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
+            {onApplyInEditor &&
+              !(runShell && commonShells.includes(language.toLowerCase())) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                      onClick={() => onApplyInEditor(value, undefined)}
+                    >
+                      <IconApplyInEditor />
+                      <span className="sr-only">Apply in Editor</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="m-0">Apply in Editor</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

@@ -170,6 +170,12 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
     }
   }
 
+  fun codeReviewSelectedText() {
+    BackgroundTaskUtil.executeOnPooledThread(this) {
+      chatPanelExecuteCommand(ChatCommand.CODE_REVIEW)
+    }
+  }
+
   fun generateDocsForSelectedText() {
     BackgroundTaskUtil.executeOnPooledThread(this) {
       chatPanelExecuteCommand(ChatCommand.GENERATE_DOCS)
