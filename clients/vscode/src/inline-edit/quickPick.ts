@@ -1,5 +1,4 @@
 import {
-  CancellationToken,
   CancellationTokenSource,
   QuickInputButton,
   QuickInputButtons,
@@ -89,8 +88,6 @@ export class UserCommandQuickpick {
     this.quickPick.show();
     this.quickPick.ignoreFocusOut = true;
     this.provideEditCommands();
-
-    // Return a promise that will be resolved when the user accepts a command
     return this.resultDeferred.promise;
   }
 
@@ -103,9 +100,7 @@ export class UserCommandQuickpick {
     if (mentionQuery === "") {
       this.showingContextPicker = true;
       this.quickPick.hide();
-      setTimeout(() => {
-        this.showContextPicker();
-      }, 0);
+      this.showContextPicker();
     } else {
       this.updateQuickPickList();
       this.updateQuickPickValue(this.quickPick.value);
@@ -322,10 +317,7 @@ export class UserCommandQuickpick {
 
   private handleAccept() {
     const command = this.quickPick.selectedItems[0]?.value || this.quickPick.value;
-
-    // Reset the direct file selection flag
     this.directFileSelected = false;
-
     this.acceptCommand(command);
   }
 
@@ -475,14 +467,13 @@ export class FileSelectionQuickPick {
 
   private async updateFileList(val: string) {
     this.quickPick.busy = true;
-    this.quickPick.items = await getFileItems(val);
+    this.quickPick.items = await getFileItems(val, this.maxSearchFileResult);
     this.quickPick.busy = false;
   }
 
   private handleAccept() {
     const selection = this.quickPick.selectedItems[0];
     if (selection) {
-      // Remove the file icon prefix from the label, consistent with UserCommandQuickpick
       const label = selection.label.replace(/^\$\(file\) /, "");
       this.resultDeferred.resolve({ label, uri: selection.uri });
     } else {
