@@ -1,4 +1,5 @@
 import {
+  CancellationToken,
   CancellationTokenSource,
   QuickInputButton,
   QuickInputButtons,
@@ -17,6 +18,7 @@ import { Deferred, InlineEditParseResult, parseUserCommand, replaceLastOccurrenc
 import { Client } from "../lsp/client";
 import { Location } from "vscode-languageclient";
 import { listFiles } from "../findFiles";
+import { wrapCancelableFunction } from "../cancelableFunction";
 
 export interface InlineEditCommand {
   command: string;
@@ -31,8 +33,17 @@ interface CommandQuickPickItem extends QuickPickItem {
  * Helper method to get file items with consistent formatting
  * This is used by both context picker and file selection picker
  */
-const getFileItems = async (query: string, maxResults = 20): Promise<(QuickPickItem & { uri?: string })[]> => {
-  const fileList = await listFiles(query, maxResults);
+const wrappedListFiles = wrapCancelableFunction(
+  listFiles,
+  (args) => args[2],
+  (args, token) => {
+    args[2] = token;
+    return args;
+  },
+);
+
+const getFileItems = async (query: string, maxResults = 20): Promise<FileSelectionQuickPickItem[]> => {
+  const fileList = await wrappedListFiles(query, maxResults);
   const fileItems = fileList.map((fileItem) => {
     const uriString = fileItem.uri.toString();
     return {
@@ -134,24 +145,15 @@ export class UserCommandQuickpick {
       { label: "", kind: QuickPickItemKind.Separator },
     ];
 
-    // Show loading indicator while fetching initial items
     contextPicker.busy = true;
-
-    // Add default file list (open tabs and workspace files)
-    const fileItems = await getFileItems("");
-
-    // Set initial items
+    const fileItems = await getFileItems("", 20);
     contextPicker.items = [...contextTypeItems, ...fileItems];
     contextPicker.busy = false;
-
-    // Allow filtering
     contextPicker.onDidChangeValue(async (value) => {
       if (value) {
-        // Show loading indicator
         contextPicker.busy = true;
 
-        // Get filtered file items
-        const filteredFileItems = await getFileItems(value);
+        const filteredFileItems = await getFileItems(value, 20);
 
         // Update items
         contextPicker.items = [...contextTypeItems, ...filteredFileItems];
@@ -246,7 +248,6 @@ export class UserCommandQuickpick {
     if (file) {
       this.updateQuickPickValue(this.quickPick.value + `${file.label} `);
       this.fileContextLabelToUriMap.set(file.label, { uri: file.uri });
-      this.updateQuickPickList();
     } else {
       this.updateQuickPickValue(replaceLastOccurrence(this.quickPick.value, "@", ""));
     }
@@ -260,10 +261,7 @@ export class UserCommandQuickpick {
     if (symbol) {
       this.updateQuickPickValue(this.quickPick.value + `${symbol.label} `);
       this.fileContextLabelToUriMap.set(symbol.label, { uri: symbol.uri, range: symbol.range });
-      // Update the quick pick list to show the command with the symbol name
-      this.updateQuickPickList();
     } else {
-      // remove `@` when user select no symbol
       this.updateQuickPickValue(replaceLastOccurrence(this.quickPick.value, "@", ""));
     }
     this.symbolPick = undefined;
@@ -273,7 +271,6 @@ export class UserCommandQuickpick {
     const lastQuickPickValue = this.lastInputValue;
     const lastMentionQuery = parseUserCommand(lastQuickPickValue).mentionQuery;
     const currentMentionQuery = parseUserCommand(value).mentionQuery;
-
     // remove whole `@file` part when user start delete on the last `@file`
     if (
       lastMentionQuery !== undefined &&
@@ -284,7 +281,6 @@ export class UserCommandQuickpick {
     } else {
       this.quickPick.value = value;
     }
-
     this.lastInputValue = this.quickPick.value;
   }
 
@@ -448,24 +444,13 @@ export class UserCommandQuickpick {
 
   private handleHidden() {
     this.fetchingSuggestedCommandCancellationTokenSource.cancel();
-
-    // Check if we're in the middle of a file or symbol selection
     const inFileOrSymbolSelection = this.filePick !== undefined || this.symbolPick !== undefined;
-
-    // Check if a file has been directly selected
     const fileDirectlySelected = this.directFileSelected;
-
-    // Check if we're about to show the context picker
     const aboutToShowContextPicker = this.showingContextPicker;
 
-    // Only resolve with undefined if we're not in the middle of a file or symbol selection,
-    // a file hasn't been directly selected, and we're not about to show the context picker
     if (!inFileOrSymbolSelection && !fileDirectlySelected && !aboutToShowContextPicker) {
       this.resultDeferred.resolve(undefined);
     }
-    // Otherwise, don't resolve here, let the accept handler resolve with the command
-
-    // Reset the flag
     this.showingContextPicker = false;
   }
 
@@ -522,8 +507,7 @@ export class FileSelectionQuickPick {
 
   private async updateFileList(val: string) {
     this.quickPick.busy = true;
-    const fileList = await this.fetchFileList(val);
-    this.quickPick.items = fileList;
+    this.quickPick.items = await getFileItems(val);
     this.quickPick.busy = false;
   }
 
@@ -546,21 +530,6 @@ export class FileSelectionQuickPick {
     if (e === QuickInputButtons.Back) {
       this.quickPick.hide();
     }
-  }
-
-  private async fetchFileList(query: string): Promise<FileSelectionQuickPickItem[]> {
-    // Use the shared static getFileItems method from UserCommandQuickpick
-    const fileItems = await getFileItems(query, this.maxSearchFileResult);
-
-    // Convert to FileSelectionQuickPickItem
-    return fileItems.map((item: QuickPickItem & { uri?: string }) => ({
-      label: item.label,
-      description: item.description,
-      buttons: item.buttons,
-      uri: item.uri || "",
-      kind: item.kind,
-      alwaysShow: item.alwaysShow,
-    })) as FileSelectionQuickPickItem[];
   }
 }
 
@@ -623,15 +592,18 @@ export class SymbolSelectionQuickPick {
     }
   }
 
+  private listSymbols = wrapCancelableFunction(
+    listSymbols,
+    () => undefined,
+    (args) => args,
+  );
+
   private async fetchSymbolList(query: string): Promise<SymbolSelectionQuickPickItem[]> {
     if (!window.activeTextEditor) {
       return [];
     }
     try {
-      // Use the listSymbols function from findSymbols.ts
-      const symbols = await listSymbols(window.activeTextEditor.document.uri, query, 50);
-
-      // Convert to QuickPickItems
+      const symbols = await this.listSymbols(window.activeTextEditor.document.uri, query, 50);
       return symbols.map(
         (symbol) =>
           ({
@@ -654,7 +626,6 @@ export class SymbolSelectionQuickPick {
           }) as SymbolSelectionQuickPickItem,
       );
     } catch (error) {
-      // Error handling silently
       return [];
     }
   }
