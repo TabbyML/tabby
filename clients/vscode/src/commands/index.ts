@@ -485,28 +485,17 @@ export class Commands {
         return;
       }
 
-      window.withProgress(
-        {
-          location: ProgressLocation.Notification,
-          title: "Getting branch name suggestions...",
-          cancellable: true,
-        },
-        async (_, token) => {
-          const branchQuickPick = new BranchQuickPick(this.client, selectedRepo.rootUri.toString(), token);
+      const branchQuickPick = new BranchQuickPick(this.client, selectedRepo.rootUri.toString());
 
-          const branchName = await branchQuickPick.start();
-          if (branchName) {
-            try {
-              await selectedRepo.createBranch(branchName, true);
-              window.showInformationMessage(`Created branch: ${branchName}`);
-            } catch (error) {
-              window.showErrorMessage(
-                `Failed to create branch: ${error instanceof Error ? error.message : String(error)}`,
-              );
-            }
-          }
-        },
-      );
+      const branchName = await branchQuickPick.start();
+      if (branchName) {
+        try {
+          await selectedRepo.createBranch(branchName, true);
+          window.showInformationMessage(`Created branch: ${branchName}`);
+        } catch (error) {
+          window.showErrorMessage(`Failed to create branch: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
     },
   };
 }
