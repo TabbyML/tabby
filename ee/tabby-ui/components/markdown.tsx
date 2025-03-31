@@ -11,7 +11,7 @@ type CustomTag =
   | (typeof CUSTOM_HTML_INLINE_TAGS)[number]
 
 type ExtendedOptions = Omit<Options, 'components'> & {
-  components: Components & {
+  components?: Components & {
     // for custom html tags rendering
     [Tag in CustomTag]?: ElementType
   }
