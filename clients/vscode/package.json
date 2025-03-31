@@ -236,7 +236,7 @@
         },
         {
           "command": "tabby.chat.generateCommitMessage",
-          "when": "tabby.chatEnabled"
+          "when": "false"
         },
         {
           "command": "tabby.chat.generateBranchName",
