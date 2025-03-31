@@ -239,9 +239,22 @@ export async function findFiles(
 }
 
 export function sortFiles(files: Uri[], query: string): Uri[] {
-  const matchString = query.toLowerCase().split("*")[0] as string;
-  const getScore = (uri: Uri) => {
-    const basename = path.basename(uri.fsPath).toLowerCase();
+  const matchString = query.toLowerCase().split("*").filter(Boolean)[0];
+  if (!matchString) {
+    return files.toSorted((uriA, uriB) => {
+      const basenameA = path.basename(uriA.fsPath).toLowerCase();
+      const basenameB = path.basename(uriB.fsPath).toLowerCase();
+      return basenameA.localeCompare(basenameB);
+    });
+  }
+
+  const getScore = (basename: string) => {
+    if (basename == matchString) {
+      return 4;
+    }
+    if (basename.split(".").includes(matchString)) {
+      return 3;
+    }
     if (basename.startsWith(matchString)) {
       return 2;
     }
@@ -250,16 +263,23 @@ export function sortFiles(files: Uri[], query: string): Uri[] {
     }
     return 0;
   };
-  return files.sort((uriA, uriB) => {
-    const scoreA = getScore(uriA);
-    const scoreB = getScore(uriB);
+  return files.toSorted((uriA, uriB) => {
+    const basenameA = path.basename(uriA.fsPath).toLowerCase();
+    const basenameB = path.basename(uriB.fsPath).toLowerCase();
+    const scoreA = getScore(basenameA);
+    const scoreB = getScore(basenameB);
     if (scoreA > scoreB) {
       return -1;
     }
     if (scoreA < scoreB) {
       return 1;
     }
-    return uriA.fsPath.localeCompare(uriB.fsPath);
+    if (basenameA == basenameB) {
+      const dirnameA = path.dirname(uriA.fsPath).toLowerCase();
+      const dirnameB = path.dirname(uriB.fsPath).toLowerCase();
+      return dirnameA.localeCompare(dirnameB);
+    }
+    return basenameA.localeCompare(basenameB);
   });
 }
 
@@ -275,7 +295,7 @@ export function buildGlobPattern(query: string): GlobPattern {
     })
     .join("");
 
-  return `**/*${caseInsensitivePattern}*{,/*}`;
+  return `**/*${caseInsensitivePattern}{*,*/*}`;
 }
 
 // `listFiles` will check the opened editors first, then use `findFiles` to search for files until the limit.
