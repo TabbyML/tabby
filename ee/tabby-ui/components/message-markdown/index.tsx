@@ -1,5 +1,7 @@
 import { Fragment, ReactNode, useContext, useMemo, useState } from 'react'
 import { compact, isNil } from 'lodash-es'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
@@ -19,6 +21,7 @@ import {
   convertFromFilepath,
   convertToFilepath,
   encodeMentionPlaceHolder,
+  formatMarkdownCustomTags,
   getRangeFromAttachmentCode,
   isAttachmentCommitDoc,
   resolveFileNameForDisplay
@@ -41,19 +44,20 @@ import {
   SymbolInfo
 } from 'tabby-chat-panel/index'
 
+import { MARKDOWN_CUSTOM_TAGS } from '@/lib/constants'
 import {
   MARKDOWN_CITATION_REGEX,
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
-  MARKDOWN_SYMBOL_REGEX,
-  MARKDOWN_THINK_REGEX
+  MARKDOWN_SYMBOL_REGEX
 } from '@/lib/constants/regex'
 
 import { Mention } from '../mention-tag'
 import { IconFile, IconFileText } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 import { CodeElement } from './code'
+import { customStripTagsPlugin } from './custom-strip-tags-plugin'
 import { DocDetailView } from './doc-detail-view'
 import { MessageMarkdownContext } from './markdown-context'
 
@@ -171,15 +175,6 @@ export function MessageMarkdown({
       }
     }
 
-    // Add think placeholders to the matches.
-    findMatches(
-      MARKDOWN_THINK_REGEX,
-      ThinkBlock,
-      (match: RegExpExecArray) => ({
-        content: decodeURIComponent(match[1])
-      })
-    )
-
     findMatches(
       MARKDOWN_CITATION_REGEX,
       CitationTag,
@@ -282,7 +277,8 @@ export function MessageMarkdown({
   }
 
   const encodedMessage = useMemo(() => {
-    return encodeMentionPlaceHolder(message)
+    const _message = formatMarkdownCustomTags(message)
+    return encodeMentionPlaceHolder(_message)
   }, [message])
 
   return (
@@ -312,7 +308,24 @@ export function MessageMarkdown({
           className
         )}
         remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[
+          customStripTagsPlugin,
+          rehypeRaw,
+          [
+            rehypeSanitize,
+            {
+              ...defaultSchema,
+              tagNames: [
+                ...(defaultSchema.tagNames ?? []),
+                ...MARKDOWN_CUSTOM_TAGS
+              ]
+            }
+          ]
+        ]}
         components={{
+          think: ({ children }) => {
+            return <ThinkBlock>{children}</ThinkBlock>
+          },
           p({ children }) {
             return (
               <p className="mb-2 last:mb-0">
@@ -405,7 +418,7 @@ export function ErrorMessageBlock({
   )
 }
 
-function ThinkBlock({ content }: { content: string }): JSX.Element {
+function ThinkBlock({ children }: { children: ReactNode }): JSX.Element {
   return (
     <details
       open
@@ -423,7 +436,7 @@ function ThinkBlock({ content }: { content: string }): JSX.Element {
       >
         Thinking
       </summary>
-      <div className="mt-2 whitespace-pre-wrap leading-relaxed">{content}</div>
+      <div className="mt-2 whitespace-pre-wrap leading-relaxed">{children}</div>
     </details>
   )
 }

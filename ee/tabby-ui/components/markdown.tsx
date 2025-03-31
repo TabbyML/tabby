@@ -1,11 +1,22 @@
-import { FC, memo } from 'react'
-import ReactMarkdown, { Options } from 'react-markdown'
+import { ElementType, FC, memo } from 'react'
+import ReactMarkdown, { Components, Options } from 'react-markdown'
 
-const Markdown = (props: Options) => (
-  <ReactMarkdown linkTarget="_blank" {...props} />
+import { MARKDOWN_CUSTOM_TAGS } from '@/lib/constants'
+
+type ExtendedOptions = Omit<Options, 'components'> & {
+  components: Components & {
+    // for custom html tags rendering
+    [Tag in (typeof MARKDOWN_CUSTOM_TAGS)[number]]?: ElementType
+  }
+}
+
+const Markdown = ({ className, ...props }: ExtendedOptions) => (
+  <div className={className}>
+    <ReactMarkdown {...props} />
+  </div>
 )
 
-export const MemoizedReactMarkdown: FC<Options> = memo(
+export const MemoizedReactMarkdown: FC<ExtendedOptions> = memo(
   Markdown,
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&

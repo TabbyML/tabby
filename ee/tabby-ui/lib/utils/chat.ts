@@ -9,13 +9,13 @@ import {
 } from '@/lib/gql/generates/graphql'
 import type { MentionAttributes } from '@/lib/types'
 
+import { MARKDOWN_CUSTOM_TAGS } from '../constants'
 import {
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
   PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
-  PLACEHOLDER_SYMBOL_REGEX,
-  PLACEHOLDER_THINK_REGEX
+  PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
 import {
   convertContextBlockToPlaceholder,
@@ -226,17 +226,6 @@ export function encodeMentionPlaceHolder(value: string): string {
       newValue = newValue.replace(
         match[0],
         `[[contextCommand:"${encodeURIComponent(match[1])}"]]`
-      )
-    } catch (error) {
-      continue
-    }
-  }
-
-  while ((match = PLACEHOLDER_THINK_REGEX.exec(newValue)) !== null) {
-    try {
-      newValue = newValue.replace(
-        match[0],
-        `[[think:${encodeURIComponent(match[1])}]]\n`
       )
     } catch (error) {
       continue
