@@ -20,13 +20,12 @@ import {
   buildCodeBrowserUrlForContext,
   cn,
   getFileLocationFromContext,
-  getMentionsFromText,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode,
-  isDocSourceContext
+  getRangeTextFromAttachmentCode
 } from '@/lib/utils'
 import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
+import { CodeRangeLabel } from '../code-range-label'
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
 import { Button } from '../ui/button'
@@ -42,9 +41,7 @@ import { Skeleton } from '../ui/skeleton'
 import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat-context'
 import { CodeReferences } from './code-references'
-import { CodeRangeLabel } from '../code-range-label'
 import { ReadingRepoStepper } from './reading-repo-stepper'
-import { ContextSource } from '@/lib/gql/generates/graphql'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
@@ -263,7 +260,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     return repos?.find(x => x.sourceId === message?.codeSourceId)
   }, [repos, message?.codeSourceId])
 
-
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
   const serverCode: Array<Context> = React.useMemo(() => {
@@ -361,7 +357,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   // const docSources: Array<Omit<ContextSource, 'id'>> = useMemo(() => {
   //     if (!contextInfo?.sources || !userMessage?.content) return []
-  
+
   //     const _sources = getMentionsFromText(
   //       userMessage.content,
   //       contextInfo?.sources
@@ -392,10 +388,10 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   const messageAttachmentDocs = message?.attachment?.doc
   const codebaseDocs = useMemo(() => {
-      return messageAttachmentDocs?.filter(
-        x => x.__typename !== 'MessageAttachmentWebDoc'
-      )
-    }, [messageAttachmentDocs])
+    return messageAttachmentDocs?.filter(
+      x => x.__typename !== 'MessageAttachmentWebDoc'
+    )
+  }, [messageAttachmentDocs])
 
   return (
     <div

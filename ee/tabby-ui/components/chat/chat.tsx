@@ -96,8 +96,8 @@ interface ChatProps extends React.ComponentProps<'div'> {
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
   onApplyInEditor?:
-  | ((content: string) => void)
-  | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
   onLookupSymbol?: (
     symbol: string,
     hints?: LookupSymbolHint[] | undefined
@@ -441,7 +441,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           ...assisatntMessage,
           id: answer.assistantMessageId || assisatntMessage?.id || nanoid(),
           content: answer.content,
-          error: undefined,
+          error: undefined
         }
 
         // update assiatant message status
@@ -457,7 +457,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         // update expose steps
         nextAssistantMessage.readingCode = answer?.readingCode
         // get and format scores from streaming answer
-        if (!nextAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
+        if (
+          !nextAssistantMessage.attachment?.code &&
+          !!answer.attachmentsCode
+        ) {
           nextAssistantMessage.attachment = {
             clientCode: null,
             doc: nextAssistantMessage.attachment?.doc || null,
@@ -596,17 +599,17 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       const content = userMessage.content
       const docQuery: InputMaybe<DocQueryInput> = selectedRepoId
         ? {
-          content,
-          sourceIds: [selectedRepoId],
-          searchPublic: false
-        }
+            content,
+            sourceIds: [selectedRepoId],
+            searchPublic: false
+          }
         : null
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
-          content,
-          sourceId: selectedRepoId,
-          filepath: attachmentCode?.[0]?.filepath
-        }
+            content,
+            sourceId: selectedRepoId,
+            filepath: attachmentCode?.[0]?.filepath
+          }
         : null
 
       return [
@@ -634,8 +637,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           const language = userMessage?.selectContext?.filepath
             ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
             : ''
-          selectCodeSnippet = `\n${'```'}${language}\n${selectCodeContextContent ?? ''
-            }\n${'```'}\n`
+          selectCodeSnippet = `\n${'```'}${language}\n${
+            selectCodeContextContent ?? ''
+          }\n${'```'}\n`
         }
 
         // processing placeholder like contextCommand, file, symbol, etc.
@@ -654,7 +658,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             enableActiveSelection && activeSelection
               ? activeSelection
               : undefined,
-          relevantContext: [...(userMessage.relevantContext || [])],
+          relevantContext: [...(userMessage.relevantContext || [])]
         }
 
         const nextQaPairs = [
@@ -666,7 +670,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
               id: nanoid(),
               content: '',
               error: undefined,
-              codeSourceId: selectedRepoId,
+              codeSourceId: selectedRepoId
             }
           }
         ]

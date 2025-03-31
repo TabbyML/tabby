@@ -1,4 +1,5 @@
 import { ReactNode, useContext, useMemo, useState } from 'react'
+import { isNil } from 'lodash-es'
 
 import {
   Maybe,
@@ -6,26 +7,46 @@ import {
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
-
-import { SourceIcon } from '../source-icon'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion'
-import { IconCheckCircled, IconCircleDot, IconCode, IconExternalLink, IconFile, IconFileSearch2, IconGitCommit, IconGitMerge, IconGitPullRequest, IconListTree } from '../ui/icons'
-import { ChatContext } from './chat-context'
-import { StepItem } from './imtermediate-step'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
+  cn,
+  isAttachmentCommitDoc,
+  isAttachmentIssueDoc,
+  isAttachmentPullDoc,
+  resolveFileNameForDisplay
+} from '@/lib/utils'
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger
 } from '@/components/ui/hover-card'
-import { cn, isAttachmentCommitDoc, isAttachmentIssueDoc, isAttachmentPullDoc, resolveFileNameForDisplay } from '@/lib/utils'
-import { isNil } from 'lodash-es'
-import { DocDetailView } from '../message-markdown/doc-detail-view'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 
+import { DocDetailView } from '../message-markdown/doc-detail-view'
+import { SourceIcon } from '../source-icon'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from '../ui/accordion'
+import {
+  IconCheckCircled,
+  IconCircleDot,
+  IconCode,
+  IconExternalLink,
+  IconFile,
+  IconFileSearch2,
+  IconGitCommit,
+  IconGitMerge,
+  IconGitPullRequest,
+  IconListTree
+} from '../ui/icons'
+import { ChatContext } from './chat-context'
+import { StepItem } from './imtermediate-step'
 
 interface ReadingRepoStepperProps {
   supportsOpenInEditor?: boolean
@@ -68,9 +89,9 @@ export function ReadingRepoStepper({
 
   return (
     <Accordion collapsible type="single">
-      <AccordionItem value="readingRepo" className='border-none'>
+      <AccordionItem value="readingRepo" className="border-none">
         <AccordionTrigger className="w-full py-2 pr-2">
-          <div className="flex whitespace-nowrap flex-nowrap flex-1 items-center justify-between pr-2">
+          <div className="flex flex-1 flex-nowrap items-center justify-between whitespace-nowrap pr-2">
             <div className="flex flex-1 items-center gap-2">
               <IconCode className="mr-2 h-5 w-5 shrink-0" />
               <span>Look into</span>
@@ -93,16 +114,16 @@ export function ReadingRepoStepper({
             </div>
           </div>
         </AccordionTrigger>
-        <AccordionContent className='pb-0'>
-          <div className='space-y-2 text-xs text-muted-foreground'>
+        <AccordionContent className="pb-0">
+          <div className="space-y-2 text-xs text-muted-foreground">
             {!!clientCodeContexts?.length && (
               <StepItem
-                key='clientCode'
-                title='Read references'
+                key="clientCode"
+                title="Read references"
                 isLoading={false}
-                triggerClassname='text-sm'
+                triggerClassname="text-sm"
               >
-                <div className='mb-3 mt-2'>
+                <div className="mb-3 mt-2">
                   <CodeContextList>
                     {clientCodeContexts.map((ctx, index) => {
                       return (
@@ -121,7 +142,7 @@ export function ReadingRepoStepper({
                 key="fileList"
                 title="Read codebase structure ..."
                 isLoading={isReadingFileList}
-                triggerClassname='text-sm'
+                triggerClassname="text-sm"
               >
                 {codeFileList?.fileList?.length ? (
                   // todo scrollarea
@@ -138,24 +159,24 @@ export function ReadingRepoStepper({
                 title="Search for relevant code snippets ..."
                 isLoading={isReadingCode}
                 defaultOpen={!isReadingCode}
-                triggerClassname='text-sm'
+                triggerClassname="text-sm"
               >
                 {(!!clientCodeContexts?.length ||
                   !!serverCodeContexts?.length) && (
-                    <div className="mb-3 mt-2">
-                      <CodeContextList>
-                        {serverCodeContexts?.map((item, index) => {
-                          return (
-                            <ContextItem
-                              key={`serverCode-${index}`}
-                              context={item}
-                              onContextClick={ctx => onContextClick?.(ctx, true)}
-                            />
-                          )
-                        })}
-                      </CodeContextList>
-                    </div>
-                  )}
+                  <div className="mb-3 mt-2">
+                    <CodeContextList>
+                      {serverCodeContexts?.map((item, index) => {
+                        return (
+                          <ContextItem
+                            key={`serverCode-${index}`}
+                            context={item}
+                            onContextClick={ctx => onContextClick?.(ctx, true)}
+                          />
+                        )
+                      })}
+                    </CodeContextList>
+                  </div>
+                )}
               </StepItem>
             )}
             <StepItem
@@ -163,16 +184,13 @@ export function ReadingRepoStepper({
               title="Collect documents ..."
               isLastItem
               isLoading={isReadingDocs}
-              triggerClassname='text-sm'
+              triggerClassname="text-sm"
             >
               {!!docs?.length && (
                 <div className="mb-3 mt-2">
-                  <div className="text-sm border p-2 rounded space-y-2">
+                  <div className="space-y-2 rounded border p-2 text-sm">
                     {docs?.map((x, index) => {
-                      const _key =
-                        isAttachmentCommitDoc(x)
-                          ? x.sha
-                          : x.link
+                      const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
                       return (
                         <div key={`${_key}_${index}`}>
                           <HoverCard openDelay={100} closeDelay={100}>
@@ -180,9 +198,7 @@ export function ReadingRepoStepper({
                               <CodebaseDocView doc={x} />
                             </HoverCardTrigger>
                             <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-                              <DocDetailView
-                                relevantDocument={x}
-                              />
+                              <DocDetailView relevantDocument={x} />
                             </HoverCardContent>
                           </HoverCard>
                         </div>
@@ -195,7 +211,7 @@ export function ReadingRepoStepper({
           </div>
         </AccordionContent>
       </AccordionItem>
-    </Accordion >
+    </Accordion>
   )
 }
 
@@ -203,7 +219,7 @@ function CodeContextList({ children }: { children: React.ReactNode }) {
   if (!children) return null
 
   return (
-    <div className='overflow-y-auto border rounded-lg p-2 space-y-2'>
+    <div className="space-y-2 overflow-y-auto rounded-lg border p-2">
       {children}
     </div>
   )
@@ -261,7 +277,9 @@ function ContextItem({
           <div className="flex items-center gap-1 overflow-hidden">
             <IconFile className="shrink-0" />
             <div className="flex-1 truncate" title={context.filepath}>
-              <span className='text-foreground'>{resolveFileNameForDisplay(context.filepath)}</span>
+              <span className="text-foreground">
+                {resolveFileNameForDisplay(context.filepath)}
+              </span>
               {context.range ? (
                 <>
                   {context.range?.start && (
@@ -328,18 +346,10 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
 
   let icon: ReactNode = null
   if (isIssue) {
-    icon = doc.closed ? (
-      <IconCheckCircled />
-    ) : (
-      <IconCircleDot />
-    )
+    icon = doc.closed ? <IconCheckCircled /> : <IconCircleDot />
   }
   if (isPR) {
-    icon = doc.merged ? (
-      <IconGitMerge />
-    ) : (
-      <IconGitPullRequest />
-    )
+    icon = doc.merged ? <IconGitMerge /> : <IconGitPullRequest />
   }
   if (isCommit) {
     icon = <IconGitCommit />
@@ -348,7 +358,7 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
   return (
     <div
       className={cn(
-        'flex flex-nowrap items-center gap-0.5 rounded-md hover:bg-accent px-1.5 py-0.5 font-semibold hover:text-accent-foreground',
+        'flex flex-nowrap items-center gap-0.5 rounded-md px-1.5 py-0.5 font-semibold hover:bg-accent hover:text-accent-foreground',
         {
           'cursor-pointer': !!link
         }

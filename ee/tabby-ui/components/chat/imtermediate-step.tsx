@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react'
 
+import { cn } from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -7,7 +8,6 @@ import {
   AccordionTrigger
 } from '@/components/ui/accordion'
 import { IconCheckFull, IconSpinner } from '@/components/ui/icons'
-import { cn } from '@/lib/utils'
 
 export function StepItem({
   isLoading,
@@ -51,7 +51,10 @@ export function StepItem({
             <div className="absolute left-2 top-5 block h-full w-0.5 shrink-0 translate-x-px rounded-full bg-muted"></div>
           )}
           <AccordionTrigger
-            className={cn("group w-full gap-2 rounded-lg py-1 pl-0.5 pr-2 !no-underline hover:bg-muted/70", triggerClassname)}
+            className={cn(
+              'group w-full gap-2 rounded-lg py-1 pl-0.5 pr-2 !no-underline hover:bg-muted/70',
+              triggerClassname
+            )}
             showChevron={!!children}
           >
             <div className="flex flex-1 items-center gap-4">
