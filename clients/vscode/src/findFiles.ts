@@ -241,7 +241,7 @@ export async function findFiles(
 export function sortFiles(files: Uri[], query: string): Uri[] {
   const matchString = query.toLowerCase().split("*").filter(Boolean)[0];
   if (!matchString) {
-    return files.sort((uriA, uriB) => {
+    return files.toSorted((uriA, uriB) => {
       const basenameA = path.basename(uriA.fsPath).toLowerCase();
       const basenameB = path.basename(uriB.fsPath).toLowerCase();
       return basenameA.localeCompare(basenameB);
@@ -263,7 +263,7 @@ export function sortFiles(files: Uri[], query: string): Uri[] {
     }
     return 0;
   };
-  return files.sort((uriA, uriB) => {
+  return files.toSorted((uriA, uriB) => {
     const basenameA = path.basename(uriA.fsPath).toLowerCase();
     const basenameB = path.basename(uriB.fsPath).toLowerCase();
     const scoreA = getScore(basenameA);
