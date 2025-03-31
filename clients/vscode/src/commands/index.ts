@@ -28,7 +28,7 @@ import { showOutputPanel } from "../logger";
 import { InlineEditController } from "../inline-edit";
 import { CommandPalette } from "./commandPalette";
 import { ConnectToServerWidget } from "./connectToServer";
-import { BranchQuickPick } from "../git/branchQuickPick";
+import { BranchQuickPick } from "./branchQuickPick";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
