@@ -277,8 +277,8 @@ export function MessageMarkdown({
   }
 
   const encodedMessage = useMemo(() => {
-    const _message = formatMarkdownCustomTags(message)
-    return encodeMentionPlaceHolder(_message)
+    const formatedMessage = formatMarkdownCustomTags(message)
+    return encodeMentionPlaceHolder(formatedMessage)
   }, [message])
 
   return (
