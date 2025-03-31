@@ -25,21 +25,16 @@ export async function listSymbols(uri: Uri, query: string, limit?: number): Prom
   try {
     const maxResults = limit ?? 50;
     const queryString = query.trim().toLowerCase();
-
-    // Get document symbols from the specified file
     const rawDocumentSymbols =
       (await commands.executeCommand<DocumentSymbol[] | SymbolInformation[]>(
         "vscode.executeDocumentSymbolProvider",
         uri,
       )) || [];
 
-    // Convert DocumentSymbol[] to SymbolInformation[] if needed
     const documentSymbols = convertToSymbolInformation(rawDocumentSymbols);
 
-    // Filter symbols from the current file only
     const filteredSymbols = filterSymbols(documentSymbols, queryString, maxResults);
 
-    // Convert to result format with appropriate icons
     return filteredSymbols.map((symbol) => ({
       name: symbol.name,
       kind: symbol.kind,
@@ -59,12 +54,9 @@ export async function listSymbols(uri: Uri, query: string, limit?: number): Prom
 function convertToSymbolInformation(symbols: (DocumentSymbol | SymbolInformation)[]): SymbolInformation[] {
   const result: SymbolInformation[] = [];
 
-  // Check if we have DocumentSymbol[] or SymbolInformation[]
   if (symbols.length > 0 && symbols[0] && "children" in symbols[0] && window.activeTextEditor) {
-    // We have DocumentSymbol[], need to flatten
     flattenDocumentSymbols(symbols as DocumentSymbol[], "", window.activeTextEditor.document.uri, result);
   } else if (symbols.length > 0) {
-    // We already have SymbolInformation[]
     result.push(...(symbols as SymbolInformation[]));
   }
 
@@ -83,7 +75,6 @@ function flattenDocumentSymbols(
   for (const symbol of symbols) {
     const fullName = containerName ? `${containerName}.${symbol.name}` : symbol.name;
 
-    // Create a SymbolInformation from DocumentSymbol
     result.push({
       name: symbol.name,
       kind: symbol.kind,
@@ -94,7 +85,6 @@ function flattenDocumentSymbols(
       },
     } as SymbolInformation);
 
-    // Process children recursively
     if (symbol.children && symbol.children.length > 0) {
       flattenDocumentSymbols(symbol.children, fullName, uri, result);
     }
@@ -105,7 +95,6 @@ function flattenDocumentSymbols(
  * Maps symbol kinds to appropriate theme icons
  */
 function getSymbolIcon(kind: SymbolKind): ThemeIcon {
-  // Map symbol kinds to appropriate theme icons
   switch (kind) {
     case SymbolKind.File:
       return new ThemeIcon("file");
