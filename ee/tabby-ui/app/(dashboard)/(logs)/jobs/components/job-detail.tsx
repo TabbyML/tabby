@@ -46,10 +46,9 @@ export default function JobRunDetail() {
     }
   )
 
-  
   const currentNode = data?.jobRuns?.edges?.[0]?.node
   const finalLogs = currentNode?.stdout || logs
-  
+
   const stateLabel = getLabelByJobRun(currentNode)
   const isPending =
     (stateLabel === 'Pending' || stateLabel === 'Running') && !logs
