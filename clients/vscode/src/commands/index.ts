@@ -24,7 +24,7 @@ import { ChatSidePanelProvider } from "../chat/sidePanel";
 import { createChatPanel } from "../chat/chatPanel";
 import { getEditorContext } from "../chat/context";
 import { GitProvider, Repository } from "../git/GitProvider";
-import { getLogger, showOutputPanel } from "../logger";
+import { showOutputPanel } from "../logger";
 import { InlineEditController } from "../inline-edit";
 import { CommandPalette } from "./commandPalette";
 import { ConnectToServerWidget } from "./connectToServer";
@@ -426,14 +426,12 @@ export class Commands {
           if (result && selectedRepo.inputBox) {
             selectedRepo.inputBox.value = result.commitMessage;
 
-            if (this.gitProvider.isApiAvailable()) {
-              const repo = this.gitProvider.getRepository(selectedRepo.rootUri);
-              if (repo && repo.state && repo.state.HEAD) {
-                const currentBranch = repo.state.HEAD.name;
-                // FIXME(Sma1lboy): let LLM model decide should we create a new branch or not
-                if (currentBranch === "main" || currentBranch === "master") {
-                  commands.executeCommand("tabby.chat.generateBranchName", selectedRepo);
-                }
+            const repo = this.gitProvider.getRepository(selectedRepo.rootUri);
+            if (repo && repo.state && repo.state.HEAD) {
+              const currentBranch = repo.state.HEAD.name;
+              // FIXME(Sma1lboy): let LLM model decide should we create a new branch or not
+              if (currentBranch === "main" || currentBranch === "master") {
+                commands.executeCommand("tabby.chat.generateBranchName", selectedRepo);
               }
             }
           }
