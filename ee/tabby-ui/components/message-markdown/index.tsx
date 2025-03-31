@@ -1,5 +1,5 @@
 import { Fragment, ReactNode, useContext, useMemo, useState } from 'react'
-import { compact, isNil } from 'lodash-es'
+import { compact, flatten, isNil } from 'lodash-es'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
@@ -21,7 +21,7 @@ import {
   convertFromFilepath,
   convertToFilepath,
   encodeMentionPlaceHolder,
-  formatMarkdownCustomTags,
+  formatCustomHTMLBlockTags,
   getRangeFromAttachmentCode,
   isAttachmentCommitDoc,
   resolveFileNameForDisplay
@@ -44,7 +44,10 @@ import {
   SymbolInfo
 } from 'tabby-chat-panel/index'
 
-import { MARKDOWN_CUSTOM_TAGS } from '@/lib/constants'
+import {
+  CUSTOM_HTML_BLOCK_TAGS,
+  CUSTOM_HTML_INLINE_TAGS
+} from '@/lib/constants'
 import {
   MARKDOWN_CITATION_REGEX,
   MARKDOWN_COMMAND_REGEX,
@@ -277,8 +280,11 @@ export function MessageMarkdown({
   }
 
   const encodedMessage = useMemo(() => {
-    const formatedMessage = formatMarkdownCustomTags(message)
-    return encodeMentionPlaceHolder(formatedMessage)
+    const formattedMessage = formatCustomHTMLBlockTags(
+      message,
+      CUSTOM_HTML_BLOCK_TAGS as unknown as string[]
+    )
+    return encodeMentionPlaceHolder(formattedMessage)
   }, [message])
 
   return (
@@ -309,16 +315,25 @@ export function MessageMarkdown({
         )}
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[
-          customStripTagsPlugin,
+          [
+            customStripTagsPlugin,
+            {
+              tagNames: flatten([
+                CUSTOM_HTML_BLOCK_TAGS,
+                CUSTOM_HTML_INLINE_TAGS
+              ])
+            }
+          ],
           rehypeRaw,
           [
             rehypeSanitize,
             {
               ...defaultSchema,
-              tagNames: [
-                ...(defaultSchema.tagNames ?? []),
-                ...MARKDOWN_CUSTOM_TAGS
-              ]
+              tagNames: flatten([
+                defaultSchema.tagNames,
+                CUSTOM_HTML_BLOCK_TAGS,
+                CUSTOM_HTML_INLINE_TAGS
+              ])
             }
           ]
         ]}

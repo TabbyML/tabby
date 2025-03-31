@@ -1,12 +1,19 @@
 import { ElementType, FC, memo } from 'react'
 import ReactMarkdown, { Components, Options } from 'react-markdown'
 
-import { MARKDOWN_CUSTOM_TAGS } from '@/lib/constants'
+import {
+  CUSTOM_HTML_BLOCK_TAGS,
+  CUSTOM_HTML_INLINE_TAGS
+} from '@/lib/constants'
+
+type CustomTag =
+  | (typeof CUSTOM_HTML_BLOCK_TAGS)[number]
+  | (typeof CUSTOM_HTML_INLINE_TAGS)[number]
 
 type ExtendedOptions = Omit<Options, 'components'> & {
   components: Components & {
     // for custom html tags rendering
-    [Tag in (typeof MARKDOWN_CUSTOM_TAGS)[number]]?: ElementType
+    [Tag in CustomTag]?: ElementType
   }
 }
 
