@@ -103,10 +103,9 @@ impl JobService for JobControllerImpl {
                 let job_dir_path = background_jobs_dir()
                     .join(format!("{}", id))
                     .join("stdout.log");
-                if job_dir_path.exists() {
-                    return Some(job_dir_path);
-                } else {
-                    return None;
+                match tokio::fs::metadata(&job_dir_path).await {
+                    Ok(_) => return Some(job_dir_path),
+                    Err(_) => return None,
                 }
             }
             None => None, // Job not found
