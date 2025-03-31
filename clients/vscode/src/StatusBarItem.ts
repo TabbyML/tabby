@@ -32,6 +32,7 @@ export class StatusBarItem {
     this.client.languageClient.onDidChangeState(() => this.update());
     this.client.status.on("didChange", () => this.update());
     this.config.on("updated", () => this.update());
+    window.onDidChangeActiveTextEditor(() => this.update());
   }
 
   registerInContext(context: ExtensionContext) {
