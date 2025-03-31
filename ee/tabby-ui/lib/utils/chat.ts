@@ -284,23 +284,9 @@ export function getTitleFromMessages(
       }
     })
     .replace(PLACEHOLDER_COMMAND_REGEX, value => {
-      const command = value.slice(19, -3)
+      const command = value.slice(18, -3)
       return `@${command}`
     })
-    .replace(PLACEHOLDER_SYMBOL_REGEX, value => {
-      try {
-        const content = JSON.parse(value.slice(9, -2))
-        return `@${content.label}`
-      } catch (e) {
-        return ''
-      }
-    })
-    .replace(PLACEHOLDER_COMMAND_REGEX, value => {
-      const command = value.slice(19, -3)
-      return `@${command}`
-    })
-    .trim()
-
     .trim()
   let title = cleanedLine
   if (options?.maxLength) {
