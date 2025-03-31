@@ -9,7 +9,6 @@ import {
 } from '@/lib/gql/generates/graphql'
 import type { MentionAttributes } from '@/lib/types'
 
-import { MARKDOWN_CUSTOM_TAGS } from '../constants'
 import {
   MARKDOWN_FILE_REGEX,
   MARKDOWN_SOURCE_REGEX,
@@ -308,10 +307,13 @@ export function getTitleFromMessages(
  * @param inputString
  * @returns formatted markdown string
  */
-export function formatMarkdownCustomTags(inputString: string): string {
-  const tagPattern = MARKDOWN_CUSTOM_TAGS.map(tag =>
-    tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  ).join('|')
+export function formatCustomHTMLBlockTags(
+  inputString: string,
+  tagNames: string[]
+): string {
+  const tagPattern = tagNames
+    .map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')
   const regex = new RegExp(`(<(${tagPattern})>.*?</\\2>)`, 'gs')
 
   // Adjust the newline characters for matched closing tags

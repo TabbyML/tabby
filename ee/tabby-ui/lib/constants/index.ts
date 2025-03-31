@@ -14,4 +14,5 @@ export const ERROR_CODE_NOT_FOUND = 'NOT_FOUND'
 
 export const NEWLINE_CHARACTER = '\n'
 
-export const MARKDOWN_CUSTOM_TAGS = ['think'] as const
+export const CUSTOM_HTML_BLOCK_TAGS = ['think'] as const
+export const CUSTOM_HTML_INLINE_TAGS = [] as const
