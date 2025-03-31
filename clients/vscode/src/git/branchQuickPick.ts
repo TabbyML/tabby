@@ -1,5 +1,5 @@
 import { QuickPickItem, window, QuickPickItemKind, CancellationTokenSource, ThemeIcon } from "vscode";
-import { Deferred } from "./util";
+import { Deferred } from "../deferred";
 import { Client } from "../lsp/client";
 import { CancellationToken } from "vscode-languageclient";
 import { getLogger } from "../logger";
@@ -11,6 +11,8 @@ interface BranchQuickPickItem extends QuickPickItem {
 interface CacheEntry {
   items: BranchQuickPickItem[];
 }
+
+const logger = getLogger("BranchQuickPick");
 
 export class BranchQuickPick {
   quickPick = window.createQuickPick<BranchQuickPickItem>();
@@ -91,20 +93,19 @@ export class BranchQuickPick {
 
         const branchItems = uniqueBranches.map((name) => ({
           label: name,
-          description: "Generated branch name",
           name: name,
-          iconPath: new ThemeIcon("git-branch"),
+          iconPath: new ThemeIcon("sparkle"),
         }));
 
         this.setCachedItems(cacheKey, branchItems);
-        getLogger().info("Cached branch names for key:", cacheKey);
+        logger.info("Cached branch names for key:", cacheKey);
 
         this.items = branchItems;
         this.updateBranchList(this.quickPick.value);
       }
     } catch (error) {
       if (!(error instanceof Error && error.name === "CancellationError")) {
-        console.error("Error generating branch names:", error);
+        logger.error("Error generating branch names:", error);
       }
     } finally {
       this.isGenerating = false;
@@ -115,9 +116,12 @@ export class BranchQuickPick {
   }
 
   private setupQuickPick() {
-    this.quickPick.title = "Enter branch name";
-    this.quickPick.placeholder = "Type to filter branches or create new";
+    this.quickPick.title = "Enter name to create new branch";
+    this.quickPick.placeholder = "Type to filter branche names or create new";
     this.quickPick.matchOnDescription = true;
+    // Quick pick items are always sorted by label. issue: https://github.com/microsoft/vscode/issues/73904
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.quickPick as any).sortByLabel = false;
     this.quickPick.items = this.getBranchList("");
 
     this.quickPick.onDidChangeValue((value) => {
@@ -192,18 +196,18 @@ export class BranchQuickPick {
 
     if (query) {
       list.push({
-        label: `Create branch "${query}"`,
+        label: `${query}`,
         name: query,
         iconPath: new ThemeIcon("add"),
         alwaysShow: true,
       });
-
-      list.push({
-        label: "",
-        name: "",
-        kind: QuickPickItemKind.Separator,
-      });
     }
+
+    list.push({
+      label: "suggested names",
+      name: "",
+      kind: QuickPickItemKind.Separator,
+    });
 
     const lowerQuery = query.toLowerCase();
     const filteredBranches = this.items.filter((item) => {

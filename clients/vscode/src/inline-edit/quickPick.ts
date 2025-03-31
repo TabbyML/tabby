@@ -11,14 +11,15 @@ import {
   workspace,
 } from "vscode";
 import path from "path";
+import { ChatEditCommand, ChatEditFileContext } from "tabby-agent";
 import { listSymbols } from "../findSymbols";
 import { Config } from "../Config";
-import { ChatEditCommand, ChatEditFileContext } from "tabby-agent";
-import { Deferred, InlineEditParseResult, parseUserCommand, replaceLastOccurrence } from "./util";
+import { Deferred } from "../deferred";
 import { Client } from "../lsp/client";
 import { Location } from "vscode-languageclient";
 import { listFiles } from "../findFiles";
 import { wrapCancelableFunction } from "../cancelableFunction";
+import { InlineEditParseResult, parseUserCommand, replaceLastOccurrence } from "./util";
 
 export interface InlineEditCommand {
   command: string;
