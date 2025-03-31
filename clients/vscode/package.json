@@ -270,11 +270,6 @@
           "command": "tabby.chat.generateCommitMessage",
           "when": "tabby.chatEnabled",
           "group": "navigation@-1"
-        },
-        {
-          "command": "tabby.chat.generateBranchName",
-          "when": "tabby.chatEnabled",
-          "group": "navigation@-2"
         }
       ],
       "view/title": [
