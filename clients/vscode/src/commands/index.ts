@@ -28,7 +28,7 @@ import { showOutputPanel } from "../logger";
 import { InlineEditController } from "../inline-edit";
 import { CommandPalette } from "./commandPalette";
 import { ConnectToServerWidget } from "./connectToServer";
-import { BranchQuickPick } from "../inline-edit/branchQuickPick";
+import { BranchQuickPick } from "./branchQuickPick";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -368,8 +368,11 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
-    "chat.generateCommitMessage": async (repository?: Repository) => {
-      let selectedRepo = repository;
+    "chat.generateCommitMessage": async (repository?: { rootUri?: Uri }) => {
+      let selectedRepo: Repository | undefined = undefined;
+      if (repository && repository.rootUri) {
+        selectedRepo = this.gitProvider.getRepository(repository.rootUri);
+      }
       if (!selectedRepo) {
         const repos = this.gitProvider.getRepositories() ?? [];
         if (repos.length < 1) {
@@ -426,9 +429,8 @@ export class Commands {
           if (result && selectedRepo.inputBox) {
             selectedRepo.inputBox.value = result.commitMessage;
 
-            const repo = this.gitProvider.getRepository(selectedRepo.rootUri);
-            if (repo && repo.state && repo.state.HEAD) {
-              const currentBranch = repo.state.HEAD.name;
+            if (selectedRepo.state.HEAD) {
+              const currentBranch = selectedRepo.state.HEAD.name;
               // FIXME(Sma1lboy): let LLM model decide should we create a new branch or not
               if (currentBranch === "main" || currentBranch === "master") {
                 commands.executeCommand("tabby.chat.generateBranchName", selectedRepo);
@@ -438,8 +440,11 @@ export class Commands {
         },
       );
     },
-    "chat.generateBranchName": async (repository?: Repository) => {
-      let selectedRepo = repository;
+    "chat.generateBranchName": async (repository?: { rootUri?: Uri }) => {
+      let selectedRepo: Repository | undefined = undefined;
+      if (repository && repository.rootUri) {
+        selectedRepo = this.gitProvider.getRepository(repository.rootUri);
+      }
       if (!selectedRepo) {
         const repos = this.gitProvider.getRepositories() ?? [];
         if (repos.length < 1) {
@@ -480,38 +485,17 @@ export class Commands {
         return;
       }
 
-      window.withProgress(
-        {
-          location: ProgressLocation.Notification,
-          title: "Getting branch name suggestions...",
-          cancellable: true,
-        },
-        async (_, token) => {
-          const branchQuickPick = new BranchQuickPick(this.client, selectedRepo.rootUri.toString(), token);
+      const branchQuickPick = new BranchQuickPick(this.client, selectedRepo.rootUri.toString());
 
-          const branchName = await branchQuickPick.start();
-          if (branchName) {
-            try {
-              if (typeof selectedRepo.createBranch !== "function") {
-                const freshRepo = this.gitProvider.getRepository(selectedRepo.rootUri);
-                if (freshRepo && typeof freshRepo.createBranch === "function") {
-                  await freshRepo.createBranch(branchName, true);
-                  window.showInformationMessage(`Created branch: ${branchName}`);
-                } else {
-                  throw new Error("Repository does not support branch creation");
-                }
-              } else {
-                await selectedRepo.createBranch(branchName, true);
-                window.showInformationMessage(`Created branch: ${branchName}`);
-              }
-            } catch (error) {
-              window.showErrorMessage(
-                `Failed to create branch: ${error instanceof Error ? error.message : String(error)}`,
-              );
-            }
-          }
-        },
-      );
+      const branchName = await branchQuickPick.start();
+      if (branchName) {
+        try {
+          await selectedRepo.createBranch(branchName, true);
+          window.showInformationMessage(`Created branch: ${branchName}`);
+        } catch (error) {
+          window.showErrorMessage(`Failed to create branch: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
     },
   };
 }
