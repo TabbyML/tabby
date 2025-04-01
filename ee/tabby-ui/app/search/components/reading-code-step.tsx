@@ -157,6 +157,7 @@ export function ReadingCodeStepper({
                 title="Read codebase structure ..."
                 isLoading={isReadingFileList}
                 isLastItem={lastItem === 'fileList'}
+                defaultOpen={!!codeFileList?.fileList?.length}
               >
                 {codeFileList?.fileList?.length ? (
                   <Sheet>
@@ -192,7 +193,8 @@ export function ReadingCodeStepper({
                 key="snippet"
                 title="Search for relevant code snippets ..."
                 isLoading={isReadingCode}
-                defaultOpen={!isReadingCode}
+                defaultOpen={!!clientCodeContexts?.length ||
+                  !!serverCodeContexts?.length}
                 isLastItem={lastItem === 'snippet'}
               >
                 {(!!clientCodeContexts?.length ||
@@ -231,6 +233,7 @@ export function ReadingCodeStepper({
                 title="Collect documents ..."
                 isLastItem={lastItem === 'docs'}
                 isLoading={isReadingDocs}
+                defaultOpen={!!docs?.length}
               >
                 {!!docs?.length && (
                   <div className="mb-3 mt-2 space-y-1">

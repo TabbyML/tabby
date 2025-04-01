@@ -88,15 +88,15 @@ export function ReadingRepoStepper({
   }, [repos, codeSourceId])
 
   return (
-    <Accordion collapsible type="single">
-      <AccordionItem value="readingRepo" className="border-none">
+    <Accordion defaultValue='readingRepo' collapsible type="single">
+      <AccordionItem value="readingRepo" className='border-none'>
         <AccordionTrigger className="w-full py-2 pr-2">
-          <div className="flex flex-1 flex-nowrap items-center justify-between whitespace-nowrap pr-2">
-            <div className="flex flex-1 items-center gap-2">
+          <div className="truncate flex whitespace-nowrap flex-nowrap flex-1 items-center justify-between pr-2 gap-0.5">
+            <div className="flex flex-1 items-center gap-2 overflow-x-hidden">
               <IconCode className="mr-2 h-5 w-5 shrink-0" />
               <span>Look into</span>
               {!!targetRepo && (
-                <div className="inline-flex cursor-pointer items-center gap-0.5 font-medium">
+                <div className="inline-flex cursor-pointer items-center gap-0.5 font-medium truncate">
                   <SourceIcon
                     kind={targetRepo.sourceKind}
                     className="h-3.5 w-3.5 shrink-0"
@@ -105,7 +105,7 @@ export function ReadingRepoStepper({
                 </div>
               )}
             </div>
-            <div>
+            <div className='shrink-0'>
               {totalContextLength ? (
                 <div className="text-sm text-muted-foreground">
                   {totalContextLength} sources
@@ -121,7 +121,8 @@ export function ReadingRepoStepper({
                 key="clientCode"
                 title="Read references"
                 isLoading={false}
-                triggerClassname="text-sm"
+                triggerClassname='text-sm'
+                defaultOpen
               >
                 <div className="mb-3 mt-2">
                   <CodeContextList>
@@ -142,7 +143,8 @@ export function ReadingRepoStepper({
                 key="fileList"
                 title="Read codebase structure ..."
                 isLoading={isReadingFileList}
-                triggerClassname="text-sm"
+                triggerClassname='text-sm'
+                defaultOpen={!!codeFileList?.fileList?.length}
               >
                 {codeFileList?.fileList?.length ? (
                   // todo scrollarea
@@ -158,8 +160,9 @@ export function ReadingRepoStepper({
                 key="snippet"
                 title="Search for relevant code snippets ..."
                 isLoading={isReadingCode}
-                defaultOpen={!isReadingCode}
-                triggerClassname="text-sm"
+                // defaultOpen={!isReadingCode}
+                defaultOpen={!!serverCodeContexts?.length}
+                triggerClassname='text-sm'
               >
                 {(!!clientCodeContexts?.length ||
                   !!serverCodeContexts?.length) && (
@@ -184,11 +187,12 @@ export function ReadingRepoStepper({
               title="Collect documents ..."
               isLastItem
               isLoading={isReadingDocs}
-              triggerClassname="text-sm"
+              triggerClassname='text-sm'
+              defaultOpen={!!docs?.length}
             >
               {!!docs?.length && (
                 <div className="mb-3 mt-2">
-                  <div className="space-y-2 rounded border p-2 text-sm">
+                  <div className="text-sm pl-2 space-y-2">
                     {docs?.map((x, index) => {
                       const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
                       return (
@@ -197,8 +201,10 @@ export function ReadingRepoStepper({
                             <HoverCardTrigger>
                               <CodebaseDocView doc={x} />
                             </HoverCardTrigger>
-                            <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-                              <DocDetailView relevantDocument={x} />
+                            <HoverCardContent className="w-[50vw] sm:w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+                              <DocDetailView
+                                relevantDocument={x}
+                              />
                             </HoverCardContent>
                           </HoverCard>
                         </div>
@@ -219,7 +225,7 @@ function CodeContextList({ children }: { children: React.ReactNode }) {
   if (!children) return null
 
   return (
-    <div className="space-y-2 overflow-y-auto rounded-lg border p-2">
+    <div className='overflow-y-auto pl-2 space-y-2'>
       {children}
     </div>
   )
@@ -274,12 +280,10 @@ function ContextItem({
           })}
           onClick={e => clickable && onContextClick?.(context)}
         >
-          <div className="flex items-center gap-1 overflow-hidden">
+          <div className="flex items-center gap-1 overflow-hidden text-foreground">
             <IconFile className="shrink-0" />
             <div className="flex-1 truncate" title={context.filepath}>
-              <span className="text-foreground">
-                {resolveFileNameForDisplay(context.filepath)}
-              </span>
+              <span>{resolveFileNameForDisplay(context.filepath)}</span>
               {context.range ? (
                 <>
                   {context.range?.start && (
@@ -332,16 +336,14 @@ function ContextItem({
   )
 }
 
-// todo public component
 // Issue, PR, Commit
 function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
   const isIssue = isAttachmentIssueDoc(doc)
   const isPR = isAttachmentPullDoc(doc)
   const isCommit = isAttachmentCommitDoc(doc)
-
   const docName = isCommit
-    ? `${doc.sha.slice(0, 7)}`
-    : `#${doc.link.split('/').pop()}`
+    ? `Commit-${doc.sha.slice(0, 7)}`
+    : doc.title
   const link = isCommit ? undefined : doc.link
 
   let icon: ReactNode = null
@@ -358,7 +360,7 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
   return (
     <div
       className={cn(
-        'flex flex-nowrap items-center gap-0.5 rounded-md px-1.5 py-0.5 font-semibold hover:bg-accent hover:text-accent-foreground',
+        'flex flex-nowrap items-center gap-1 text-foreground rounded-md hover:bg-accent px-1.5 py-0.5 font-semibold hover:text-accent-foreground',
         {
           'cursor-pointer': !!link
         }
@@ -369,8 +371,10 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
         }
       }}
     >
-      {icon}
-      <span>{docName}</span>
+      <span className='shrink-0'>
+        {icon}
+      </span>
+      <span className='truncate whitespace-nowrap'>{docName}</span>
     </div>
   )
 }

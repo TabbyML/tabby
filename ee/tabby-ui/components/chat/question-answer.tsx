@@ -21,7 +21,7 @@ import {
   cn,
   getFileLocationFromContext,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
+  getRangeTextFromAttachmentCode,
 } from '@/lib/utils'
 import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
@@ -42,6 +42,8 @@ import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat-context'
 import { CodeReferences } from './code-references'
 import { ReadingRepoStepper } from './reading-repo-stepper'
+// todo doc?
+import { ContextSource } from '@/lib/gql/generates/graphql'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
@@ -414,7 +416,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         />
       </div>
 
-      <div className="w-full flex-1 space-y-2 overflow-hidden px-1">
+      <div className="w-full flex-1 space-y-2 overflow-hidden px-1 mb-1">
         {!!targetRepo ? (
           <ReadingRepoStepper
             codeSourceId={targetRepo.sourceId}

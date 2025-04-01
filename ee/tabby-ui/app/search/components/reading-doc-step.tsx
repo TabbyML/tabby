@@ -90,6 +90,7 @@ export function ReadingDocStepper({
               title="Collect documents ..."
               isLastItem
               isLoading={isReadingDocs}
+              defaultOpen={!!webResources?.length}
             >
               {!!webResources?.length && (
                 <div className="mb-3 mt-2">
