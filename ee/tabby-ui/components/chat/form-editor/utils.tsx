@@ -4,10 +4,12 @@ import { FileBox, SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import {
+  MARKDOWN_SOURCE_REGEX,
   PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX
 } from '@/lib/constants/regex'
+import { ContextSource } from '@/lib/gql/generates/graphql'
 import { FileContext } from '@/lib/types'
 import {
   convertFromFilepath,
@@ -103,7 +105,14 @@ export function getFilepathStringByChatPanelFilePath(
   return 'filepath' in filepath ? filepath.filepath : filepath.uri
 }
 
-export function convertTextToTiptapContent(text: string): JSONContent[] {
+/**
+ * convert doc mention
+ * If there are dev doc mentions, convert to doc name
+ */
+export function convertTextToTiptapContent(
+  text: string,
+  sources: ContextSource[]
+): JSONContent[] {
   const nodes: JSONContent[] = []
   let lastIndex = 0
   text.replace(PLACEHOLDER_FILE_REGEX, (match, filepath, offset) => {
@@ -178,6 +187,27 @@ export function convertTextToTiptapContent(text: string): JSONContent[] {
           command: command.trim(),
           label: command.trim()
         }
+      })
+    }
+
+    lastIndex = offset + match.length
+    return match
+  })
+
+  text.replace(MARKDOWN_SOURCE_REGEX, (match, sourceId, offset) => {
+    if (offset > lastIndex) {
+      nodes.push({
+        type: 'text',
+        text: text.slice(lastIndex, offset)
+      })
+    }
+    const source = sourceId
+      ? sources.find(x => x.sourceId === sourceId)
+      : undefined
+    if (source) {
+      nodes.push({
+        type: 'text',
+        text: source.sourceName
       })
     }
 

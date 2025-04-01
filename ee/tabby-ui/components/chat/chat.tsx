@@ -324,7 +324,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       })
 
       const inputContent = convertTextToTiptapContent(
-        convertContextBlockToPlaceholder(userMessage.content)
+        convertContextBlockToPlaceholder(userMessage.content),
+        contextInfoData?.contextInfo?.sources ?? []
       )
       setInput({
         type: 'doc',
