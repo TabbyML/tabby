@@ -608,7 +608,7 @@ function RelevantDocumentBadge({
           )}
           onClick={() => {
             if (link) {
-              window.open(link)
+              onLinkClick?.(link)
             }
           }}
         >

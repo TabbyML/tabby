@@ -150,9 +150,15 @@ export function ReadingRepoStepper({
                 defaultOpen={!!codeFileList?.fileList?.length}
               >
                 {codeFileList?.fileList?.length ? (
-                  <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
-                    <IconListTree className="h-3 w-3" />
+                  <div className="mb-3 ml-2 mt-2 flex flex-nowrap items-center gap-2 whitespace-nowrap rounded-md px-1 py-0.5 text-sm font-semibold text-foreground hover:bg-accent">
+                    <IconListTree className="shrink-0" />
                     <span>{codeFileList.fileList.length} items</span>
+                    {!!codeFileList.truncated && (
+                      <span className="ml-2 truncate text-muted-foreground">
+                        File list truncated. (Maximum number of items has been
+                        reached)
+                      </span>
+                    )}
                   </div>
                 ) : null}
               </StepItem>

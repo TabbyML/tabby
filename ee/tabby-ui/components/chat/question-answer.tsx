@@ -415,6 +415,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             isReadingFileList={message.isReadingFileList}
             clientCodeContexts={clientCode}
             serverCodeContexts={serverCode}
+            codeFileList={message.attachment?.codeFileList}
             docs={codebaseDocs}
             readingCode={{
               fileList: showFileListStep,
