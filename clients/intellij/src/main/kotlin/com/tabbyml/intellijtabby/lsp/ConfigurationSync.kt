@@ -12,6 +12,7 @@ import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import com.tabbyml.intellijtabby.settings.KeymapSettings
 import com.tabbyml.intellijtabby.settings.SettingsService
 import com.tabbyml.intellijtabby.settings.SettingsState
+import java.util.Base64
 
 class ConfigurationSync(private val project: Project) : Disposable {
   private val messageBusConnection = project.messageBus.connect()
@@ -42,6 +43,23 @@ class ConfigurationSync(private val project: Project) : Disposable {
       keymapSettings?.getCurrentKeymapStyle(),
     )
     return buildClientProvidedConfig(cached)
+  }
+  private fun getProxyUrl(): String? {
+      val proxySettings = com.intellij.util.net.HttpConfigurable.getInstance()
+      return if (proxySettings.USE_HTTP_PROXY) {
+          "http://${proxySettings.PROXY_HOST}:${proxySettings.PROXY_PORT}"
+      } else {
+          null
+      }
+  }
+
+  private fun getProxyAuthorization(): String? {
+      val proxySettings = com.intellij.util.net.HttpConfigurable.getInstance()
+      return if (!proxySettings.proxyLogin.isNullOrEmpty() && !proxySettings.plainProxyPassword.isNullOrEmpty()) {
+          "Basic " + Base64.getEncoder().encodeToString("${proxySettings.proxyLogin}:${proxySettings.plainProxyPassword}".toByteArray())
+      } else {
+          null
+      }
   }
 
   fun startSync(server: LanguageServer) {
@@ -74,10 +92,16 @@ class ConfigurationSync(private val project: Project) : Disposable {
   private fun buildClientProvidedConfig(data: SettingsData): ClientProvidedConfig {
     val settings = data.settings
     val keymap = data.keymap
+    val proxyUrl = getProxyUrl()
+    val proxyAuthorization = getProxyAuthorization()
     return ClientProvidedConfig(
       server = ClientProvidedConfig.ServerConfig(
         endpoint = settings.serverEndpoint,
         token = settings.serverToken,
+      ),
+      proxy = ClientProvidedConfig.ProxyConfig(
+              url = proxyUrl,
+              authorization = proxyAuthorization,
       ),
       inlineCompletion = ClientProvidedConfig.InlineCompletionConfig(
         triggerMode = when (settings.completionTriggerMode) {
