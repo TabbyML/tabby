@@ -352,7 +352,7 @@ function CodebaseDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
   return (
     <div
       className={cn(
-        'flex flex-nowrap items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground',
+        'flex flex-nowrap items-center gap-2 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground',
         {
           'cursor-pointer': !!link
         }

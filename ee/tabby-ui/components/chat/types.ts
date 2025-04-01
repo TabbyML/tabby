@@ -16,6 +16,7 @@ import type {
   LookupSymbolHint,
   SymbolInfo
 } from 'tabby-chat-panel'
+
 import type { QuestionAnswerPair, SessionState } from '@/lib/types'
 
 export interface ChatProps extends React.ComponentProps<'div'> {

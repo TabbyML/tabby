@@ -209,9 +209,11 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       }
     }
 
-    const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
-      query: contextInfoQuery
-    })
+    const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery(
+      {
+        query: contextInfoQuery
+      }
+    )
 
     // fetch indexed repos
     const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
@@ -550,17 +552,17 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       const content = userMessage.content
       const docQuery: InputMaybe<DocQueryInput> = selectedRepoId
         ? {
-          content,
-          sourceIds: [selectedRepoId],
-          searchPublic: false
-        }
+            content,
+            sourceIds: [selectedRepoId],
+            searchPublic: false
+          }
         : null
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
-          content,
-          sourceId: selectedRepoId,
-          filepath: attachmentCode?.[0]?.filepath
-        }
+            content,
+            sourceId: selectedRepoId,
+            filepath: attachmentCode?.[0]?.filepath
+          }
         : null
 
       return [
@@ -588,8 +590,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           const language = userMessage?.selectContext?.filepath
             ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
             : ''
-          selectCodeSnippet = `\n${'```'}${language}\n${selectCodeContextContent ?? ''
-            }\n${'```'}\n`
+          selectCodeSnippet = `\n${'```'}${language}\n${
+            selectCodeContextContent ?? ''
+          }\n${'```'}\n`
         }
 
         // processing placeholder like contextCommand, file, symbol, etc.

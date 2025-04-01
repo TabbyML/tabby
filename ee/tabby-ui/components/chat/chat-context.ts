@@ -12,7 +12,10 @@ import type {
   SymbolInfo
 } from 'tabby-chat-panel'
 
-import { ContextInfo, RepositorySourceListQuery } from '@/lib/gql/generates/graphql'
+import {
+  ContextInfo,
+  RepositorySourceListQuery
+} from '@/lib/gql/generates/graphql'
 import { Context, MessageActionType, QuestionAnswerPair } from '@/lib/types'
 
 import { PromptFormRef } from './types'

@@ -93,10 +93,7 @@ export function ReadingDocStepper({
               {!!webResources?.length && (
                 <div className="mb-3 mt-2 space-y-2">
                   {webResources.map((x, index) => {
-                    const _key =
-                      isAttachmentCommitDoc(x)
-                        ? x.sha
-                        : x.link
+                    const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
                     return (
                       <div key={`${_key}_${index}`}>
                         <HoverCard openDelay={100} closeDelay={100}>
@@ -108,7 +105,7 @@ export function ReadingDocStepper({
                               <WebDocSummaryView doc={x} />
                             </div>
                           </HoverCardTrigger>
-                          <HoverCardContent className="w-[60vw] sm:w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+                          <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
                             <DocDetailView relevantDocument={x} />
                           </HoverCardContent>
                         </HoverCard>
@@ -131,13 +128,12 @@ function WebDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
   const sourceUrl = doc ? new URL(doc.link) : null
 
   return (
-    <div className="flex flex-nowrap items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground">
-      <SiteFavicon
-        hostname={sourceUrl!.hostname}
-        className="m-0 shrink-0"
-      />
-      <span className='flex-1 truncate text-foreground'>{doc.title}</span>
-      <span className="m-0 text-muted-foreground shrink-0 ml-1">{sourceUrl!.hostname}</span>
+    <div className="flex flex-nowrap items-center gap-2 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground">
+      <SiteFavicon hostname={sourceUrl!.hostname} className="m-0 shrink-0" />
+      <span className="flex-1 truncate text-foreground">{doc.title}</span>
+      <span className="m-0 ml-1 shrink-0 text-muted-foreground">
+        {sourceUrl!.hostname}
+      </span>
     </div>
   )
 }

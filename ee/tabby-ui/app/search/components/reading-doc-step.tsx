@@ -5,6 +5,7 @@ import { Maybe } from 'graphql/jsutils/Maybe'
 
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
+import { isAttachmentCommitDoc } from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -26,7 +27,6 @@ import { SiteFavicon } from '@/components/site-favicon'
 
 import { StepItem } from './intermediate-step'
 import { SearchContext } from './search-context'
-import { isAttachmentCommitDoc } from '@/lib/utils'
 
 interface ReadingDocStepperProps {
   isReadingDocs: boolean | undefined
@@ -97,10 +97,7 @@ export function ReadingDocStepper({
                 <div className="mb-3 mt-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {webResources.map((x, index) => {
-                      const _key =
-                        isAttachmentCommitDoc(x)
-                          ? x.sha
-                          : x.link
+                      const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
                       return (
                         <div key={`${_key}_${index}`}>
                           <HoverCard openDelay={100} closeDelay={100}>

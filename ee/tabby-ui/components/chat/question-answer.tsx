@@ -7,6 +7,7 @@ import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
+import { ContextSource } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -44,9 +45,8 @@ import { Skeleton } from '../ui/skeleton'
 import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat-context'
 import { CodeReferences } from './code-references'
-import { ReadingRepoStepper } from './reading-repo-stepper'
-import { ContextSource } from '@/lib/gql/generates/graphql'
 import { ReadingDocStepper } from './reading-doc-stepper'
+import { ReadingRepoStepper } from './reading-repo-stepper'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
@@ -346,15 +346,11 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   const messageAttachmentDocs = message?.attachment?.doc
   // pulls / issues / commits
   const codebaseDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(
-      x => !isAttachmentWebDoc(x)
-    )
+    return messageAttachmentDocs?.filter(x => !isAttachmentWebDoc(x))
   }, [messageAttachmentDocs])
   // web docs
   const webDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(
-      x => isAttachmentWebDoc(x)
-    )
+    return messageAttachmentDocs?.filter(x => isAttachmentWebDoc(x))
   }, [messageAttachmentDocs])
 
   // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
