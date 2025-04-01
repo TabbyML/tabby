@@ -199,7 +199,7 @@ export function ReadingRepoStepper({
                         <div key={`${_key}_${index}`}>
                           <HoverCard openDelay={100} closeDelay={100}>
                             <HoverCardTrigger>
-                              <CodebaseDocView doc={x} />
+                              <CodebaseDocSummaryView doc={x} />
                             </HoverCardTrigger>
                             <HoverCardContent className="w-[50vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
                               <DocDetailView relevantDocument={x} />
@@ -331,7 +331,7 @@ function ContextItem({
 }
 
 // Issue, PR, Commit
-function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
+function CodebaseDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
   const isIssue = isAttachmentIssueDoc(doc)
   const isPR = isAttachmentPullDoc(doc)
   const isCommit = isAttachmentCommitDoc(doc)

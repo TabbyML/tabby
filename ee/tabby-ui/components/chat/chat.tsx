@@ -8,22 +8,7 @@ import {
   some,
   uniqWith
 } from 'lodash-es'
-import type {
-  ChangeItem,
-  ChatCommand,
-  EditorContext,
-  EditorFileContext,
-  FileLocation,
-  FileRange,
-  GetChangesParams,
-  GitRepository,
-  ListFileItem,
-  ListFilesInWorkspaceParams,
-  ListSymbolItem,
-  ListSymbolsParams,
-  LookupSymbolHint,
-  SymbolInfo
-} from 'tabby-chat-panel'
+import type { ChatCommand, EditorContext } from 'tabby-chat-panel'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
@@ -44,6 +29,7 @@ import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
 import {
+  contextInfoQuery,
   listThreadMessages,
   repositorySourceListQuery
 } from '@/lib/tabby/query'
@@ -54,7 +40,6 @@ import {
   FileContext,
   MessageActionType,
   QuestionAnswerPair,
-  SessionState,
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
@@ -80,45 +65,7 @@ import './git/utils'
 
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
-import { ChatRef, PromptFormRef } from './types'
-
-interface ChatProps extends React.ComponentProps<'div'> {
-  threadId: string | undefined
-  setThreadId: React.Dispatch<React.SetStateAction<string | undefined>>
-  api?: string
-  initialMessages?: QuestionAnswerPair[]
-  onLoaded?: () => void
-  onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
-  container?: HTMLDivElement
-  docQuery?: boolean
-  generateRelevantQuestions?: boolean
-  welcomeMessage?: string
-  promptFormClassname?: string
-  onCopyContent?: (value: string) => void
-  onApplyInEditor?:
-    | ((content: string) => void)
-    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
-  onLookupSymbol?: (
-    symbol: string,
-    hints?: LookupSymbolHint[] | undefined
-  ) => Promise<SymbolInfo | null>
-  openInEditor: (target: FileLocation) => Promise<boolean>
-  openExternal: (url: string) => Promise<void>
-  chatInputRef: React.RefObject<PromptFormRef>
-  supportsOnApplyInEditorV2: boolean
-  readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
-  getActiveEditorSelection?: () => Promise<EditorFileContext | null>
-  fetchSessionState?: () => Promise<SessionState | null>
-  storeSessionState?: (state: Partial<SessionState>) => Promise<void>
-  listFileInWorkspace?: (
-    params: ListFilesInWorkspaceParams
-  ) => Promise<ListFileItem[]>
-  listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
-  readFileContent?: (info: FileRange) => Promise<string | null>
-  setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
-  runShell?: (command: string) => Promise<void>
-  getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
-}
+import { ChatProps, ChatRef } from './types'
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(
   (
@@ -261,6 +208,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         storeSessionState?.({ input: p.editor.getJSON() })
       }
     }
+
+    const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+      query: contextInfoQuery
+    })
 
     // fetch indexed repos
     const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
@@ -599,17 +550,17 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       const content = userMessage.content
       const docQuery: InputMaybe<DocQueryInput> = selectedRepoId
         ? {
-            content,
-            sourceIds: [selectedRepoId],
-            searchPublic: false
-          }
+          content,
+          sourceIds: [selectedRepoId],
+          searchPublic: false
+        }
         : null
       const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
         ? {
-            content,
-            sourceId: selectedRepoId,
-            filepath: attachmentCode?.[0]?.filepath
-          }
+          content,
+          sourceId: selectedRepoId,
+          filepath: attachmentCode?.[0]?.filepath
+        }
         : null
 
       return [
@@ -637,9 +588,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           const language = userMessage?.selectContext?.filepath
             ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
             : ''
-          selectCodeSnippet = `\n${'```'}${language}\n${
-            selectCodeContextContent ?? ''
-          }\n${'```'}\n`
+          selectCodeSnippet = `\n${'```'}${language}\n${selectCodeContextContent ?? ''
+            }\n${'```'}\n`
         }
 
         // processing placeholder like contextCommand, file, symbol, etc.
@@ -877,7 +827,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           readFileContent,
           listSymbols,
           runShell,
-          getChanges
+          getChanges,
+          contextInfo: contextInfoData?.contextInfo,
+          fetchingContextInfo: fetchingContextInfo
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>
