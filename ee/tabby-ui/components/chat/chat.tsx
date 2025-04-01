@@ -63,6 +63,8 @@ import { convertTextToTiptapContent } from './form-editor/utils'
 
 import './git/utils'
 
+import { Maybe } from 'graphql/jsutils/Maybe'
+
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
 import { ChatProps, ChatRef } from './types'
@@ -151,7 +153,6 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             currentPair.user = {
               id: message.id,
               content: message.content,
-              // todo do not format here?
               relevantContext: message.attachment.clientCode?.map(x => {
                 return {
                   kind: 'file',
@@ -270,6 +271,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
               id: newUserMessageId
             },
             assistant: {
+              codeSourceId: qaPair.assistant.codeSourceId,
               id: newAssistantMessgaeid,
               content: '',
               error: undefined
@@ -279,7 +281,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         setQaPairs(nextQaPairs)
 
         const [createMessageInput, threadRunOptions] =
-          await generateRequestPayload(qaPair.user)
+          await generateRequestPayload(
+            qaPair.user,
+            qaPair.assistant.codeSourceId
+          )
 
         return regenerate({
           threadId,
@@ -528,7 +533,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     }, [error])
 
     const generateRequestPayload = async (
-      userMessage: UserMessage
+      userMessage: UserMessage,
+      codeSourceId: Maybe<string> | undefined
     ): Promise<[CreateMessageInput, ThreadRunOptionsInput]> => {
       const hasUsableActiveContext =
         enableActiveSelection && !!userMessage.activeContext
@@ -550,17 +556,17 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         }))
 
       const content = userMessage.content
-      const docQuery: InputMaybe<DocQueryInput> = selectedRepoId
+      const docQuery: InputMaybe<DocQueryInput> = codeSourceId
         ? {
             content,
-            sourceIds: [selectedRepoId],
+            sourceIds: [codeSourceId],
             searchPublic: false
           }
         : null
-      const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
+      const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
         ? {
             content,
-            sourceId: selectedRepoId,
+            sourceId: codeSourceId,
             filepath: attachmentCode?.[0]?.filepath
           }
         : null
@@ -633,7 +639,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           qaPairs: nextQaPairs
         })
 
-        const payload = await generateRequestPayload(newUserMessage)
+        const payload = await generateRequestPayload(
+          newUserMessage,
+          selectedRepoId
+        )
         sendUserMessage(...payload)
       }
     )
