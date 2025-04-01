@@ -119,7 +119,12 @@ export function ReadingDocStepper({
                             </div>
                           </HoverCardTrigger>
                           <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
-                            <DocDetailView relevantDocument={x} />
+                            <DocDetailView
+                              relevantDocument={x}
+                              onLinkClick={url => {
+                                openExternal(url)
+                              }}
+                            />
                           </HoverCardContent>
                         </HoverCard>
                       </div>

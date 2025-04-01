@@ -345,6 +345,9 @@ export function AssistantMessageSection({
               fetchingContextInfo={fetchingContextInfo}
               canWrapLongLines={!isLoading}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
+              onLinkClick={url => {
+                window.open(url)
+              }}
             />
             {/* if isEditing, do not display error message block */}
             {message.error && <ErrorMessageBlock error={message.error} />}

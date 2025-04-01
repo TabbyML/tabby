@@ -380,6 +380,10 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     onContextClick(ctx, code.isClient)
   }
 
+  const onLinkClick = (url: string) => {
+    openExternal(url)
+  }
+
   return (
     <div
       className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
@@ -398,6 +402,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           userMessageId={userMessageId}
           enableRegenerating={enableRegenerating}
           attachmentCode={attachmentServerCode}
+          // todo regenerate
         />
       </div>
 
@@ -449,7 +454,9 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onCopyContent={onCopyContent}
               attachmentClientCode={attachmentClientCode}
               attachmentCode={attachmentServerCode}
+              attachmentDocs={messageAttachmentDocs}
               onCodeCitationClick={onCodeCitationClick}
+              onLinkClick={onLinkClick}
               canWrapLongLines={!isLoading}
               onLookupSymbol={onLookupSymbol}
               openInEditor={openInEditor}

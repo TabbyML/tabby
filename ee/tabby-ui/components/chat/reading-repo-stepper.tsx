@@ -205,7 +205,10 @@ export function ReadingRepoStepper({
                               />
                             </HoverCardTrigger>
                             <HoverCardContent className="w-[50vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
-                              <DocDetailView relevantDocument={x} />
+                              <DocDetailView
+                                relevantDocument={x}
+                                onLinkClick={openExternal}
+                              />
                             </HoverCardContent>
                           </HoverCard>
                         </div>

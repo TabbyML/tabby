@@ -251,6 +251,9 @@ export function ReadingCodeStepper({
                                 <DocDetailView
                                   enableDeveloperMode={enableDeveloperMode}
                                   relevantDocument={x}
+                                  onLinkClick={url => {
+                                    window.open(url)
+                                  }}
                                 />
                               </HoverCardContent>
                             </HoverCard>
