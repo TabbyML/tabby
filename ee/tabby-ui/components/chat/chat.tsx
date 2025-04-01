@@ -866,7 +866,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
               onSubmit={handleSubmit}
               // FIXME(jueliang) remove mb
               className={cn(
-                'fixed inset-x-0 bottom-0 mb-4',
+                'fixed inset-x-0 bottom-0 z-40 mb-4',
                 promptFormClassname
               )}
               stop={onStop}
