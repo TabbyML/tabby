@@ -51,7 +51,10 @@ export function StepItem({
             <div className="absolute left-2 top-5 block h-full w-0.5 shrink-0 translate-x-px rounded-full bg-muted"></div>
           )}
           <AccordionTrigger
-            className={cn("group w-full gap-2 rounded-lg py-1 pl-0.5 pr-2 !no-underline hover:bg-accent/70", triggerClassname)}
+            className={cn(
+              'group w-full gap-2 rounded-lg py-1 pl-0.5 pr-2 !no-underline hover:bg-accent/70',
+              triggerClassname
+            )}
             showChevron={!!children}
           >
             <div className="flex flex-1 items-center gap-4 overflow-x-hidden">
@@ -62,7 +65,7 @@ export function StepItem({
                   <IconCheckFull className="h-4 w-4" />
                 )}
               </div>
-              <span className='truncate'>{title}</span>
+              <span className="truncate">{title}</span>
             </div>
           </AccordionTrigger>
           {!!children && (

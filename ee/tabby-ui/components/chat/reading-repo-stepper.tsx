@@ -88,15 +88,15 @@ export function ReadingRepoStepper({
   }, [repos, codeSourceId])
 
   return (
-    <Accordion defaultValue='readingRepo' collapsible type="single">
-      <AccordionItem value="readingRepo" className='border-none'>
+    <Accordion defaultValue="readingRepo" collapsible type="single">
+      <AccordionItem value="readingRepo" className="border-none">
         <AccordionTrigger className="w-full py-2 pr-2">
-          <div className="truncate flex whitespace-nowrap flex-nowrap flex-1 items-center justify-between pr-2 gap-0.5">
+          <div className="flex flex-1 flex-nowrap items-center justify-between gap-0.5 truncate whitespace-nowrap pr-2">
             <div className="flex flex-1 items-center gap-2 overflow-x-hidden">
               <IconCode className="mr-2 h-5 w-5 shrink-0" />
               <span>Look into</span>
               {!!targetRepo && (
-                <div className="inline-flex cursor-pointer items-center gap-0.5 font-medium truncate">
+                <div className="inline-flex cursor-pointer items-center gap-0.5 truncate font-medium">
                   <SourceIcon
                     kind={targetRepo.sourceKind}
                     className="h-3.5 w-3.5 shrink-0"
@@ -105,7 +105,7 @@ export function ReadingRepoStepper({
                 </div>
               )}
             </div>
-            <div className='shrink-0'>
+            <div className="shrink-0">
               {totalContextLength ? (
                 <div className="text-sm text-muted-foreground">
                   {totalContextLength} sources
@@ -121,7 +121,7 @@ export function ReadingRepoStepper({
                 key="clientCode"
                 title="Read references"
                 isLoading={false}
-                triggerClassname='text-sm'
+                triggerClassname="text-sm"
                 defaultOpen
               >
                 <div className="mb-3 mt-2">
@@ -143,7 +143,7 @@ export function ReadingRepoStepper({
                 key="fileList"
                 title="Read codebase structure ..."
                 isLoading={isReadingFileList}
-                triggerClassname='text-sm'
+                triggerClassname="text-sm"
                 defaultOpen={!!codeFileList?.fileList?.length}
               >
                 {codeFileList?.fileList?.length ? (
@@ -162,7 +162,7 @@ export function ReadingRepoStepper({
                 isLoading={isReadingCode}
                 // defaultOpen={!isReadingCode}
                 defaultOpen={!!serverCodeContexts?.length}
-                triggerClassname='text-sm'
+                triggerClassname="text-sm"
               >
                 {(!!clientCodeContexts?.length ||
                   !!serverCodeContexts?.length) && (
@@ -187,12 +187,12 @@ export function ReadingRepoStepper({
               title="Collect documents ..."
               isLastItem
               isLoading={isReadingDocs}
-              triggerClassname='text-sm'
+              triggerClassname="text-sm"
               defaultOpen={!!docs?.length}
             >
               {!!docs?.length && (
                 <div className="mb-3 mt-2">
-                  <div className="text-sm pl-2 space-y-2">
+                  <div className="space-y-2 pl-2 text-sm">
                     {docs?.map((x, index) => {
                       const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
                       return (
@@ -201,10 +201,8 @@ export function ReadingRepoStepper({
                             <HoverCardTrigger>
                               <CodebaseDocView doc={x} />
                             </HoverCardTrigger>
-                            <HoverCardContent className="w-[50vw] sm:w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-                              <DocDetailView
-                                relevantDocument={x}
-                              />
+                            <HoverCardContent className="w-[50vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
+                              <DocDetailView relevantDocument={x} />
                             </HoverCardContent>
                           </HoverCard>
                         </div>
@@ -224,11 +222,7 @@ export function ReadingRepoStepper({
 function CodeContextList({ children }: { children: React.ReactNode }) {
   if (!children) return null
 
-  return (
-    <div className='overflow-y-auto pl-2 space-y-2'>
-      {children}
-    </div>
-  )
+  return <div className="space-y-2 overflow-y-auto pl-2">{children}</div>
 }
 
 function ContextItem({
@@ -341,9 +335,7 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
   const isIssue = isAttachmentIssueDoc(doc)
   const isPR = isAttachmentPullDoc(doc)
   const isCommit = isAttachmentCommitDoc(doc)
-  const docName = isCommit
-    ? `Commit-${doc.sha.slice(0, 7)}`
-    : doc.title
+  const docName = isCommit ? `Commit-${doc.sha.slice(0, 7)}` : doc.title
   const link = isCommit ? undefined : doc.link
 
   let icon: ReactNode = null
@@ -360,7 +352,7 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
   return (
     <div
       className={cn(
-        'flex flex-nowrap items-center gap-1 text-foreground rounded-md hover:bg-accent px-1.5 py-0.5 font-semibold hover:text-accent-foreground',
+        'flex flex-nowrap items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground',
         {
           'cursor-pointer': !!link
         }
@@ -371,10 +363,8 @@ function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
         }
       }}
     >
-      <span className='shrink-0'>
-        {icon}
-      </span>
-      <span className='truncate whitespace-nowrap'>{docName}</span>
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate whitespace-nowrap">{docName}</span>
     </div>
   )
 }

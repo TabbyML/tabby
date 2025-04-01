@@ -193,8 +193,9 @@ export function ReadingCodeStepper({
                 key="snippet"
                 title="Search for relevant code snippets ..."
                 isLoading={isReadingCode}
-                defaultOpen={!!clientCodeContexts?.length ||
-                  !!serverCodeContexts?.length}
+                defaultOpen={
+                  !!clientCodeContexts?.length || !!serverCodeContexts?.length
+                }
                 isLastItem={lastItem === 'snippet'}
               >
                 {(!!clientCodeContexts?.length ||
