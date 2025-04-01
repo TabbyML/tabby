@@ -587,7 +587,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       ]
     }
     const handleSendUserChat = useLatest(
-      async (userMessage: UserMessageWithOptionalId) => {
+      async (
+        userMessage: UserMessageWithOptionalId,
+        codeSourceId?: Maybe<string>
+      ) => {
         if (isLoading) return
 
         let selectCodeSnippet = ''
@@ -629,7 +632,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
               id: nanoid(),
               content: '',
               error: undefined,
-              codeSourceId: selectedRepoId
+              codeSourceId
             }
           }
         ]
@@ -641,22 +644,28 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
 
         const payload = await generateRequestPayload(
           newUserMessage,
-          selectedRepoId
+          codeSourceId
         )
         sendUserMessage(...payload)
       }
     )
 
-    const sendUserChat = (userMessage: UserMessageWithOptionalId) => {
-      return handleSendUserChat.current?.(userMessage)
+    const sendUserChat = (
+      userMessage: UserMessageWithOptionalId,
+      codeSourceId: Maybe<string> | undefined
+    ) => {
+      return handleSendUserChat.current?.(userMessage, codeSourceId)
     }
 
     const handleExecuteCommand = useLatest(async (command: ChatCommand) => {
       const prompt = getPromptForChatCommand(command)
-      sendUserChat({
-        content: prompt,
-        selectContext: activeSelection ?? undefined
-      })
+      sendUserChat(
+        {
+          content: prompt,
+          selectContext: activeSelection ?? undefined
+        },
+        selectedRepoId
+      )
     })
 
     const executeCommand = async (command: ChatCommand) => {
@@ -664,10 +673,13 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     }
 
     const handleSubmit = async (value: string) => {
-      sendUserChat({
-        content: value,
-        relevantContext
-      })
+      sendUserChat(
+        {
+          content: value,
+          relevantContext
+        },
+        selectedRepoId
+      )
 
       setRelevantContext([])
     }
