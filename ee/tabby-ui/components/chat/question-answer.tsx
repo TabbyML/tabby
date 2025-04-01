@@ -114,8 +114,12 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { openInEditor, supportsOnApplyInEditorV2 } =
-    React.useContext(ChatContext)
+  const {
+    openInEditor,
+    supportsOnApplyInEditorV2,
+    contextInfo,
+    fetchingContextInfo
+  } = React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -175,6 +179,8 @@ function UserMessageCard(props: { message: UserMessage }) {
             canWrapLongLines
             supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             openInEditor={openInEditor}
+            contextInfo={contextInfo}
+            fetchingContextInfo={fetchingContextInfo}
           />
 
           {selectCode && message.selectContext && (
