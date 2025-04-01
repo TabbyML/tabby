@@ -156,12 +156,14 @@ input CreatePageRunInput {
   titlePrompt: String!
   docQuery: DocQueryInput = null
   codeQuery: CodeQueryInput = null
+  debugOption: PageRunDebugOptionInput = null
 }
 
 input CreatePageSectionRunInput {
   pageId: ID!
   titlePrompt: String!
   docQuery: DocQueryInput = null
+  debugOption: PageRunDebugOptionInput = null
 }
 
 input CreateThreadAndRunInput {
@@ -211,6 +213,10 @@ input MessageAttachmentInput {
 
 input NetworkSettingInput {
   externalUrl: String!
+}
+
+input PageRunDebugOptionInput {
+  returnChatCompletionRequest: Boolean! = false
 }
 
 input PasswordChangeInput {
@@ -845,6 +851,7 @@ type PageConnection {
 
 type PageContentCompleted {
   id: ID!
+  debugData: PageRunDebugData
 }
 
 type PageContentDelta {
@@ -855,6 +862,7 @@ type PageCreated {
   id: ID!
   authorId: ID!
   title: String!
+  debugData: PageRunDebugData
 }
 
 type PageEdge {
@@ -869,6 +877,11 @@ type PageInfo {
   endCursor: String
 }
 
+type PageRunDebugData {
+  "Messages sent to LLM to generate the response."
+  chatCompletionMessages: [ChatCompletionMessage!]!
+}
+
 type PageSection {
   id: ID!
   pageId: ID!
@@ -878,6 +891,7 @@ type PageSection {
   attachments: SectionAttachment!
   createdAt: DateTime!
   updatedAt: DateTime!
+  debugData: PageRunDebugData
 }
 
 type PageSectionAttachmentCode {
@@ -897,6 +911,7 @@ type PageSectionAttachmentDoc {
 
 type PageSectionContentCompleted {
   id: ID!
+  debugData: PageRunDebugData
 }
 
 type PageSectionContentDelta {
@@ -906,6 +921,7 @@ type PageSectionContentDelta {
 
 type PageSectionsCreated {
   sections: [PageSection!]!
+  debugData: PageRunDebugData
 }
 
 type PresetDocumentConnection {

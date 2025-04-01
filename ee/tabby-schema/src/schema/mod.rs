@@ -293,7 +293,7 @@ impl From<ChatCompletionRequestMessage> for ChatCompletionMessage {
                     _ => "".into(),
                 },
             },
-            ChatCompletionRequestMessage::Tool(x) => ChatCompletionMessage {
+            ChatCompletionRequestMessage::Tool(_x) => ChatCompletionMessage {
                 role: "tool".into(),
                 content: "".into(),
             },
@@ -304,7 +304,7 @@ impl From<ChatCompletionRequestMessage> for ChatCompletionMessage {
                     _ => "".into(),
                 },
             },
-            ChatCompletionRequestMessage::Function(x) => ChatCompletionMessage {
+            ChatCompletionRequestMessage::Function(_x) => ChatCompletionMessage {
                 role: "function".into(),
                 content: "".into(),
             },
