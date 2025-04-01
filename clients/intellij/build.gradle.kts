@@ -73,7 +73,7 @@ tasks {
 
   register("buildDependencies") {
     exec {
-      commandLine("pnpm.cmd", "turbo", "build")
+      commandLine("pnpm", "turbo", "build")
     }
   }
 
