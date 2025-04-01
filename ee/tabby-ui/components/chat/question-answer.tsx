@@ -415,6 +415,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               fileList: showFileListStep,
               snippet: showCodeSnippetsStep
             }}
+            onContextClick={onContextClick}
+            openExternal={openExternal}
           />
         ) : (
           <CodeReferences
@@ -433,6 +435,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             docQueryResources={docQuerySources}
             isReadingDocs={message.isReadingDocs}
             webResources={webDocs}
+            openExternal={openExternal}
           />
         )}
 

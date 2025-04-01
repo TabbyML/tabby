@@ -4,7 +4,7 @@ import { Maybe } from 'graphql/jsutils/Maybe'
 
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
-import { isAttachmentCommitDoc, isAttachmentWebDoc } from '@/lib/utils'
+import { isAttachmentWebDoc } from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -30,14 +30,25 @@ interface ReadingDocStepperProps {
   isReadingDocs: boolean | undefined
   sourceIds?: string[]
   className?: string
-  webResources?: Maybe<AttachmentDocItem[]> | undefined
+  webResources?:
+    | Maybe<
+        Array<
+          Extract<
+            AttachmentDocItem,
+            { __typename: 'MessageAttachmentWebDoc' | 'AttachmentWebDoc' }
+          >
+        >
+      >
+    | undefined
   docQueryResources: Omit<ContextSource, 'id'>[] | undefined
+  openExternal: (url: string) => Promise<void>
 }
 
 export function ReadingDocStepper({
   isReadingDocs,
   webResources,
-  docQueryResources
+  docQueryResources,
+  openExternal
 }: ReadingDocStepperProps) {
   const resultLen = webResources?.length
 
@@ -93,14 +104,16 @@ export function ReadingDocStepper({
               {!!webResources?.length && (
                 <div className="mb-3 mt-2 space-y-2">
                   {webResources.map((x, index) => {
-                    const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
+                    const _key = x.link
                     return (
                       <div key={`${_key}_${index}`}>
                         <HoverCard openDelay={100} closeDelay={100}>
                           <HoverCardTrigger>
                             <div
                               className="group cursor-pointer pl-2"
-                              onClick={() => window.open(_key)}
+                              onClick={() => {
+                                openExternal(x.link)
+                              }}
                             >
                               <WebDocSummaryView doc={x} />
                             </div>

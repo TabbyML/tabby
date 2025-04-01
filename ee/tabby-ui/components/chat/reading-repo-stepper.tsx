@@ -58,11 +58,12 @@ interface ReadingRepoStepperProps {
   serverCodeContexts: RelevantCodeContext[]
   clientCodeContexts: RelevantCodeContext[]
   codeFileList?: Maybe<MessageAttachmentCodeFileList>
-  docs?: Maybe<AttachmentDocItem[]> | undefined
+  docs?: Maybe<Array<AttachmentDocItem>> | undefined
   onContextClick?: (
     context: RelevantCodeContext,
     isInWorkspace?: boolean
   ) => void
+  openExternal: (url: string) => Promise<void>
 }
 
 export function ReadingRepoStepper({
@@ -75,7 +76,8 @@ export function ReadingRepoStepper({
   isReadingCode,
   isReadingDocs,
   isReadingFileList,
-  onContextClick
+  onContextClick,
+  openExternal
 }: ReadingRepoStepperProps) {
   const { repos } = useContext(ChatContext)
   const totalContextLength =
@@ -128,9 +130,10 @@ export function ReadingRepoStepper({
                   <CodeContextList>
                     {clientCodeContexts.map((ctx, index) => {
                       return (
-                        <ContextItem
+                        <CodeSummaryView
                           key={`clientCode-${index}`}
                           context={ctx}
+                          onContextClick={ctx => onContextClick?.(ctx, true)}
                         />
                       )
                     })}
@@ -147,7 +150,6 @@ export function ReadingRepoStepper({
                 defaultOpen={!!codeFileList?.fileList?.length}
               >
                 {codeFileList?.fileList?.length ? (
-                  // todo scrollarea
                   <div className="mb-3 mt-2 flex cursor-pointer flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold hover:text-foreground">
                     <IconListTree className="h-3 w-3" />
                     <span>{codeFileList.fileList.length} items</span>
@@ -160,20 +162,18 @@ export function ReadingRepoStepper({
                 key="snippet"
                 title="Search for relevant code snippets ..."
                 isLoading={isReadingCode}
-                // defaultOpen={!isReadingCode}
                 defaultOpen={!!serverCodeContexts?.length}
                 triggerClassname="text-sm"
               >
-                {(!!clientCodeContexts?.length ||
-                  !!serverCodeContexts?.length) && (
+                {!!serverCodeContexts?.length && (
                   <div className="mb-3 mt-2">
                     <CodeContextList>
                       {serverCodeContexts?.map((item, index) => {
                         return (
-                          <ContextItem
+                          <CodeSummaryView
                             key={`serverCode-${index}`}
                             context={item}
-                            onContextClick={ctx => onContextClick?.(ctx, true)}
+                            onContextClick={ctx => onContextClick?.(ctx, false)}
                           />
                         )
                       })}
@@ -199,7 +199,10 @@ export function ReadingRepoStepper({
                         <div key={`${_key}_${index}`}>
                           <HoverCard openDelay={100} closeDelay={100}>
                             <HoverCardTrigger>
-                              <CodebaseDocSummaryView doc={x} />
+                              <CodebaseDocSummaryView
+                                doc={x}
+                                openExternal={openExternal}
+                              />
                             </HoverCardTrigger>
                             <HoverCardContent className="w-[50vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
                               <DocDetailView relevantDocument={x} />
@@ -225,15 +228,14 @@ function CodeContextList({ children }: { children: React.ReactNode }) {
   return <div className="space-y-2 overflow-y-auto pl-2">{children}</div>
 }
 
-function ContextItem({
+function CodeSummaryView({
   context,
   clickable = true,
   onContextClick,
   enableTooltip,
   onTooltipClick,
   showExternalLinkIcon,
-  showClientCodeIcon,
-  isHighlighted
+  showClientCodeIcon
 }: {
   context: RelevantCodeContext
   clickable?: boolean
@@ -242,7 +244,6 @@ function ContextItem({
   onTooltipClick?: () => void
   showExternalLinkIcon?: boolean
   showClientCodeIcon?: boolean
-  isHighlighted?: boolean
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const isMultiLine =
@@ -267,16 +268,18 @@ function ContextItem({
     >
       <TooltipTrigger asChild>
         <div
-          className={cn('rounded-md px-1 py-0.5', {
+          className={cn('rounded-md px-1 py-0.5 text-foreground', {
             'cursor-pointer hover:bg-accent': clickable,
-            'cursor-default pointer-events-auto': !clickable,
-            'bg-accent transition-all': isHighlighted
+            'cursor-default pointer-events-auto': !clickable
           })}
           onClick={e => clickable && onContextClick?.(context)}
         >
-          <div className="flex items-center gap-1 overflow-hidden text-foreground">
+          <div className="flex items-center gap-2 overflow-hidden text-foreground">
             <IconFile className="shrink-0" />
-            <div className="flex-1 truncate" title={context.filepath}>
+            <div
+              className="flex-1 truncate font-semibold"
+              title={context.filepath}
+            >
               <span>{resolveFileNameForDisplay(context.filepath)}</span>
               {context.range ? (
                 <>
@@ -292,7 +295,7 @@ function ContextItem({
                   )}
                 </>
               ) : null}
-              <span className="ml-2 text-xs text-muted-foreground">{path}</span>
+              <span className="ml-2 text-muted-foreground">{path}</span>
             </div>
             {showClientCodeIcon && (
               <IconFileSearch2 className="shrink-0 text-muted-foreground" />
@@ -331,7 +334,13 @@ function ContextItem({
 }
 
 // Issue, PR, Commit
-function CodebaseDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
+function CodebaseDocSummaryView({
+  doc,
+  openExternal
+}: {
+  doc: AttachmentDocItem
+  openExternal: (url: string) => Promise<void>
+}) {
   const isIssue = isAttachmentIssueDoc(doc)
   const isPR = isAttachmentPullDoc(doc)
   const isCommit = isAttachmentCommitDoc(doc)
@@ -359,7 +368,7 @@ function CodebaseDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
       )}
       onClick={() => {
         if (link) {
-          window.open(link)
+          openExternal(link)
         }
       }}
     >
