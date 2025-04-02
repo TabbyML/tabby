@@ -121,7 +121,7 @@ export function ReadingRepoStepper({
             {!!clientCodeContexts?.length && (
               <StepItem
                 key="clientCode"
-                title="Read references"
+                title="Read code ..."
                 isLoading={false}
                 triggerClassname="text-sm"
                 defaultOpen
