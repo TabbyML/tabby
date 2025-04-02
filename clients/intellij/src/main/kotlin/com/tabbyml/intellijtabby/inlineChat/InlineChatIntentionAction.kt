@@ -43,6 +43,9 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
+        val inlineChatService = project.serviceOrNull<InlineChatService>() ?: return
+        if (inlineChatService.inlineChatEditing) return
+        inlineChatService.inlineChatEditing = true
         this.project = project
         this.editor = editor
         if (editor != null) {
@@ -72,6 +75,8 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
 
     private fun onClose() {
         inlay?.dispose()
+        val inlineChatService = project?.serviceOrNull<InlineChatService>() ?: return
+        inlineChatService.inlineChatEditing = false
     }
 
     private fun onInputSubmit(value: String) {

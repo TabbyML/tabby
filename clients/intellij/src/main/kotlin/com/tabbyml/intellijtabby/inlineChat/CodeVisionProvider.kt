@@ -7,9 +7,8 @@ import com.intellij.codeInsight.codeVision.ui.model.TextCodeVisionEntry
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.actionSystem.ex.ActionUtil
-import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.keymap.KeymapUtil
@@ -19,8 +18,6 @@ import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
 import javax.swing.Icon
-
-val ContextLocationKey = DataKey.create<Location>("INLINE_CHAT_LOCATION_KEY")
 
 abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware {
     override val defaultAnchor: CodeVisionAnchorKind = CodeVisionAnchorKind.Top
@@ -32,7 +29,7 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
     abstract val actionId: String
     abstract val icon: Icon
     override val name: String = "Inline Chat Code Vision Provider"
-    private var location: Location? = null
+
 
     override fun precomputeOnUiThread(editor: Editor): Any {
         return Any()
@@ -40,14 +37,15 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
 
     override fun computeCodeVision(editor: Editor, uiData: Any): CodeVisionState {
         val project = editor.project ?: return READY_EMPTY
+        val inlineChatService = project.serviceOrNull<InlineChatService>() ?: return READY_EMPTY
         val document = editor.document
         val virtualFile = FileDocumentManager.getInstance()
             .getFile(editor.document)
         val uri = virtualFile?.url ?: return READY_EMPTY
         val codeLenses = getCodeLenses(project, uri).get() ?: return READY_EMPTY
         val codelens = codeLenses.firstOrNull() { it.command != null && (it.command?.arguments?.firstOrNull() as JsonObject?)?.get("action")?.asString == action } ?: return READY_EMPTY
-        print("code lens $action: $codelens")
-        location = Location(uri, Range(Position(codelens.range.start.line, codelens.range.start.character), Position(codelens.range.end.line, codelens.range.end.character)))
+        inlineChatService.inlineChatEditing = true
+        inlineChatService.location = Location(uri, Range(Position(codelens.range.start.line, codelens.range.start.character), Position(codelens.range.end.line, codelens.range.end.character)))
         val prefixRegex = Regex("""^\$\(.*?\)""")
         val title = codelens.command.title.replace(prefixRegex, "") + " (${KeymapUtil.getFirstKeyboardShortcutText(getAction())})"
         val startOffset = document.getLineStartOffset(codelens.range.start.line) + codelens.range.start.character
@@ -62,8 +60,8 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
 
     override fun handleClick(editor: Editor, textRange: TextRange, entry: CodeVisionEntry) {
         val editorDataContext = DataManager.getInstance().getDataContext(editor.component)
-        val dataContext = SimpleDataContext.builder().setParent(editorDataContext).add(ContextLocationKey, location).build()
-        ActionUtil.invokeAction(getAction(), dataContext, "", null, null)
+//        val dataContext = SimpleDataContext.builder().setParent(editorDataContext).add(ContextLocationKey, location).build()
+        ActionUtil.invokeAction(getAction(), editorDataContext, "", null, null)
     }
 
     private fun getAction() = ActionManager.getInstance().getAction(actionId)
