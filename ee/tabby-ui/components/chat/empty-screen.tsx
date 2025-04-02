@@ -1,10 +1,11 @@
-import { Dispatch, SetStateAction, useMemo } from 'react'
+import { Dispatch, SetStateAction, useContext, useMemo } from 'react'
 import { useQuery } from 'urql'
 
 import { listMyThreads } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { IconArrowRight } from '@/components/ui/icons'
 
+import { ChatContext } from './chat-context'
 import { ThreadItem } from './thread-item'
 
 const exampleMessages = [
@@ -29,6 +30,7 @@ export function EmptyScreen({
   setShowHistory: Dispatch<SetStateAction<boolean>>
   onSelectThread: (threadId: string) => void
 }) {
+  const { contextInfo, fetchingContextInfo } = useContext(ChatContext)
   const welcomeMsg = welcomeMessage || 'Welcome'
   const [{ data }] = useQuery({
     query: listMyThreads,
@@ -79,7 +81,8 @@ export function EmptyScreen({
                   key={x.node.id}
                   data={x}
                   onNavigate={onNavigateToThread}
-                  sources={undefined}
+                  sources={contextInfo?.sources}
+                  fetchingSources={fetchingContextInfo}
                 />
               )
             })}

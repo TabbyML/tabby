@@ -1,12 +1,61 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import type { Content, Editor, EditorEvents } from '@tiptap/react'
 import type {
+  ChangeItem,
   ChatCommand,
   EditorContext,
+  EditorFileContext,
+  FileLocation,
+  FileRange,
+  GetChangesParams,
+  GitRepository,
   ListFileItem,
-  ListSymbolItem
+  ListFilesInWorkspaceParams,
+  ListSymbolItem,
+  ListSymbolsParams,
+  LookupSymbolHint,
+  SymbolInfo
 } from 'tabby-chat-panel'
 
+import type { QuestionAnswerPair, SessionState } from '@/lib/types'
+
+export interface ChatProps extends React.ComponentProps<'div'> {
+  threadId: string | undefined
+  setThreadId: React.Dispatch<React.SetStateAction<string | undefined>>
+  api?: string
+  initialMessages?: QuestionAnswerPair[]
+  onLoaded?: () => void
+  onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
+  container?: HTMLDivElement
+  docQuery?: boolean
+  generateRelevantQuestions?: boolean
+  welcomeMessage?: string
+  promptFormClassname?: string
+  onCopyContent?: (value: string) => void
+  onApplyInEditor?:
+    | ((content: string) => void)
+    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
+  onLookupSymbol?: (
+    symbol: string,
+    hints?: LookupSymbolHint[] | undefined
+  ) => Promise<SymbolInfo | null>
+  openInEditor: (target: FileLocation) => Promise<boolean>
+  openExternal: (url: string) => Promise<void>
+  chatInputRef: React.RefObject<PromptFormRef>
+  supportsOnApplyInEditorV2: boolean
+  readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
+  getActiveEditorSelection?: () => Promise<EditorFileContext | null>
+  fetchSessionState?: () => Promise<SessionState | null>
+  storeSessionState?: (state: Partial<SessionState>) => Promise<void>
+  listFileInWorkspace?: (
+    params: ListFilesInWorkspaceParams
+  ) => Promise<ListFileItem[]>
+  listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
+  readFileContent?: (info: FileRange) => Promise<string | null>
+  setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
+  runShell?: (command: string) => Promise<void>
+  getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
+}
 export interface ChatRef {
   executeCommand: (command: ChatCommand) => Promise<void>
   stop: () => void

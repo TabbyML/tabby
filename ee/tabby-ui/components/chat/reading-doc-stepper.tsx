@@ -1,11 +1,10 @@
 'use client'
 
-import { useContext } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
-import { isAttachmentCommitDoc } from '@/lib/utils'
+import { isAttachmentWebDoc } from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -25,24 +24,33 @@ import {
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
 
-import { StepItem } from './intermediate-step'
-import { SearchContext } from './search-context'
+import { StepItem } from './imtermediate-step'
 
 interface ReadingDocStepperProps {
   isReadingDocs: boolean | undefined
   sourceIds?: string[]
   className?: string
-  webResources?: Maybe<AttachmentDocItem[]> | undefined
+  webResources?:
+    | Maybe<
+        Array<
+          Extract<
+            AttachmentDocItem,
+            { __typename: 'MessageAttachmentWebDoc' | 'AttachmentWebDoc' }
+          >
+        >
+      >
+    | undefined
   docQueryResources: Omit<ContextSource, 'id'>[] | undefined
+  openExternal: (url: string) => Promise<void>
 }
 
 export function ReadingDocStepper({
   isReadingDocs,
   webResources,
-  docQueryResources
+  docQueryResources,
+  openExternal
 }: ReadingDocStepperProps) {
   const resultLen = webResources?.length
-  const { enableDeveloperMode } = useContext(SearchContext)
 
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
@@ -94,35 +102,34 @@ export function ReadingDocStepper({
               defaultOpen={!!webResources?.length}
             >
               {!!webResources?.length && (
-                <div className="mb-3 mt-2">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {webResources.map((x, index) => {
-                      const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
-                      return (
-                        <div key={`${_key}_${index}`}>
-                          <HoverCard openDelay={100} closeDelay={100}>
-                            <HoverCardTrigger>
-                              <div
-                                className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
-                                onClick={() => window.open(_key)}
-                              >
-                                <DocItem doc={x} />
-                              </div>
-                            </HoverCardTrigger>
-                            <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-                              <DocDetailView
-                                enableDeveloperMode={enableDeveloperMode}
-                                relevantDocument={x}
-                                onLinkClick={url => {
-                                  window.open(url)
-                                }}
-                              />
-                            </HoverCardContent>
-                          </HoverCard>
-                        </div>
-                      )
-                    })}
-                  </div>
+                <div className="mb-3 mt-2 space-y-2">
+                  {webResources.map((x, index) => {
+                    const _key = x.link
+                    return (
+                      <div key={`${_key}_${index}`}>
+                        <HoverCard openDelay={100} closeDelay={100}>
+                          <HoverCardTrigger>
+                            <div
+                              className="group cursor-pointer pl-2"
+                              onClick={() => {
+                                openExternal(x.link)
+                              }}
+                            >
+                              <WebDocSummaryView doc={x} />
+                            </div>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
+                            <DocDetailView
+                              relevantDocument={x}
+                              onLinkClick={url => {
+                                openExternal(url)
+                              }}
+                            />
+                          </HoverCardContent>
+                        </HoverCard>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </StepItem>
@@ -133,18 +140,18 @@ export function ReadingDocStepper({
   )
 }
 
-function DocItem({ doc }: { doc: AttachmentDocItem }) {
-  if (doc.__typename !== 'MessageAttachmentWebDoc') return null
+function WebDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
+  if (!isAttachmentWebDoc(doc)) return null
 
   const sourceUrl = doc ? new URL(doc.link) : null
 
   return (
-    <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground group-hover:text-foreground">
-      <SiteFavicon
-        hostname={sourceUrl!.hostname}
-        className="m-0 mr-1 leading-none"
-      />
-      <p className="m-0 leading-none">{sourceUrl!.hostname}</p>
+    <div className="flex flex-nowrap items-center gap-2 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground">
+      <SiteFavicon hostname={sourceUrl!.hostname} className="m-0 shrink-0" />
+      <span className="flex-1 truncate text-foreground">{doc.title}</span>
+      <span className="m-0 ml-1 shrink-0 text-muted-foreground">
+        {sourceUrl!.hostname}
+      </span>
     </div>
   )
 }

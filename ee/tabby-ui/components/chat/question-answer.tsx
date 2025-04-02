@@ -7,6 +7,7 @@ import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
+import { ContextSource } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -20,11 +21,15 @@ import {
   buildCodeBrowserUrlForContext,
   cn,
   getFileLocationFromContext,
+  getMentionsFromText,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
+  getRangeTextFromAttachmentCode,
+  isAttachmentWebDoc,
+  isDocSourceContext
 } from '@/lib/utils'
 import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
+import { CodeRangeLabel } from '../code-range-label'
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
 import { Button } from '../ui/button'
@@ -40,6 +45,8 @@ import { Skeleton } from '../ui/skeleton'
 import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat-context'
 import { CodeReferences } from './code-references'
+import { ReadingDocStepper } from './reading-doc-stepper'
+import { ReadingRepoStepper } from './reading-repo-stepper'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
@@ -107,8 +114,12 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { openInEditor, supportsOnApplyInEditorV2 } =
-    React.useContext(ChatContext)
+  const {
+    openInEditor,
+    supportsOnApplyInEditorV2,
+    contextInfo,
+    fetchingContextInfo
+  } = React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -131,8 +142,8 @@ function UserMessageCard(props: { message: UserMessage }) {
   }
 
   const processedContent = useMemo(() => {
-    return convertContextBlockToPlaceholder(message.message)
-  }, [message.message])
+    return convertContextBlockToPlaceholder(message.content)
+  }, [message.content])
 
   return (
     <div
@@ -168,6 +179,8 @@ function UserMessageCard(props: { message: UserMessage }) {
             canWrapLongLines
             supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             openInEditor={openInEditor}
+            contextInfo={contextInfo}
+            fetchingContextInfo={fetchingContextInfo}
           />
 
           {selectCode && message.selectContext && (
@@ -181,12 +194,7 @@ function UserMessageCard(props: { message: UserMessage }) {
               <IconFile className="h-3 w-3" />
               <p className="flex-1 truncate pr-1">
                 <span>{selectCode.filepath}</span>
-                {message.selectContext?.range?.start && (
-                  <span>:{message.selectContext?.range.start}</span>
-                )}
-                {selectCode.isMultiLine && (
-                  <span>-{message.selectContext?.range?.end}</span>
-                )}
+                <CodeRangeLabel range={message.selectContext.range} />
               </p>
             </div>
           )}
@@ -256,22 +264,9 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     openInEditor,
     openExternal,
     supportsOnApplyInEditorV2,
-    runShell
+    runShell,
+    contextInfo
   } = React.useContext(ChatContext)
-  const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
-    React.useState<number | undefined>(undefined)
-  const serverCode: Array<Context> = React.useMemo(() => {
-    return (
-      message?.relevant_code?.map(code => ({
-        kind: 'file',
-        range: getRangeFromAttachmentCode(code),
-        filepath: code.filepath,
-        content: code.content,
-        gitUrl: code.gitUrl,
-        commit: code.commit ?? undefined
-      })) ?? []
-    )
-  }, [message?.relevant_code])
 
   const clientCode: Array<Context> = React.useMemo(() => {
     return uniqWith(
@@ -283,7 +278,18 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     )
   }, [userMessage.activeContext, userMessage.relevantContext])
 
-  const attachmentDocsLen = 0
+  const serverCode: Array<Context> = React.useMemo(() => {
+    return (
+      message?.attachment?.code?.map(code => ({
+        kind: 'file',
+        range: getRangeFromAttachmentCode(code),
+        filepath: code.filepath,
+        content: code.content,
+        gitUrl: code.gitUrl,
+        commit: code.commit ?? undefined
+      })) ?? []
+    )
+  }, [message?.attachment?.code])
 
   const attachmentClientCode: Array<
     Omit<AttachmentCodeItem, '__typename' | 'startLine' | 'gitUrl'> & {
@@ -304,7 +310,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     return formattedAttachmentClientCode
   }, [clientCode])
 
-  const attachmentCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
+  const attachmentServerCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
     useMemo(() => {
       const formattedServerAttachmentCode =
         serverCode?.map(o => ({
@@ -318,13 +324,40 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       return compact([...formattedServerAttachmentCode])
     }, [serverCode])
 
-  const onCodeCitationMouseEnter = (index: number) => {
-    setRelevantCodeHighlightIndex(index - 1 - (attachmentDocsLen || 0))
-  }
+  const docQuerySources: Array<Omit<ContextSource, 'id'>> = useMemo(() => {
+    if (!contextInfo?.sources || !userMessage?.content) return []
 
-  const onCodeCitationMouseLeave = (index: number) => {
-    setRelevantCodeHighlightIndex(undefined)
-  }
+    const _sources = getMentionsFromText(
+      userMessage.content,
+      contextInfo?.sources
+    )
+    return _sources
+      .filter(x => isDocSourceContext(x.kind))
+      .map(x => ({
+        sourceId: x.id,
+        sourceKind: x.kind,
+        sourceName: x.label
+      }))
+  }, [contextInfo?.sources, userMessage?.content])
+
+  const messageAttachmentCodeLen =
+    (message.attachment?.clientCode?.length || 0) +
+    (message.attachment?.code?.length || 0)
+  const showFileListStep =
+    !!message.readingCode?.fileList ||
+    !!message.attachment?.codeFileList?.fileList?.length
+  const showCodeSnippetsStep =
+    message.readingCode?.snippet || !!messageAttachmentCodeLen
+
+  const messageAttachmentDocs = message?.attachment?.doc
+  // pulls / issues / commits
+  const codebaseDocs = useMemo(() => {
+    return messageAttachmentDocs?.filter(x => !isAttachmentWebDoc(x))
+  }, [messageAttachmentDocs])
+  // web docs
+  const webDocs = useMemo(() => {
+    return messageAttachmentDocs?.filter(x => isAttachmentWebDoc(x))
+  }, [messageAttachmentDocs])
 
   // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
   const isInEditor = !!onApplyInEditor
@@ -353,6 +386,10 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     onContextClick(ctx, code.isClient)
   }
 
+  const onLinkClick = (url: string) => {
+    openExternal(url)
+  }
+
   return (
     <div
       className={cn('group relative mb-4 flex flex-col items-start gap-y-2')}
@@ -370,33 +407,63 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           message={message}
           userMessageId={userMessageId}
           enableRegenerating={enableRegenerating}
-          attachmentCode={attachmentCode}
+          attachmentCode={attachmentServerCode}
+          // todo regenerate
         />
       </div>
 
-      <div className="w-full flex-1 space-y-2 overflow-hidden px-1">
-        <CodeReferences
-          contexts={serverCode}
-          clientContexts={clientCode}
-          onContextClick={onContextClick}
-          showExternalLink={isInEditor}
-          supportsOpenInEditor={!!openInEditor}
-          showClientCodeIcon={!isInEditor}
-          highlightIndex={relevantCodeHighlightIndex}
-        />
-        {isLoading && !message?.message ? (
+      <div className="mb-1 w-full flex-1 space-y-2 overflow-hidden px-1">
+        {!!message.codeSourceId ? (
+          <ReadingRepoStepper
+            codeSourceId={message.codeSourceId}
+            isReadingCode={message.isReadingCode}
+            isReadingDocs={message.isReadingDocs}
+            isReadingFileList={message.isReadingFileList}
+            clientCodeContexts={clientCode}
+            serverCodeContexts={serverCode}
+            codeFileList={message.attachment?.codeFileList}
+            docs={codebaseDocs}
+            readingCode={{
+              fileList: showFileListStep,
+              snippet: showCodeSnippetsStep
+            }}
+            onContextClick={onContextClick}
+            openExternal={openExternal}
+          />
+        ) : (
+          <CodeReferences
+            contexts={serverCode}
+            clientContexts={clientCode}
+            onContextClick={onContextClick}
+            showExternalLink={isInEditor}
+            supportsOpenInEditor={!!openInEditor}
+            showClientCodeIcon={!isInEditor}
+          />
+        )}
+
+        {/* todo get contextinfo, not just repos */}
+        {!!docQuerySources?.length && (
+          <ReadingDocStepper
+            docQueryResources={docQuerySources}
+            isReadingDocs={message.isReadingDocs}
+            webResources={webDocs}
+            openExternal={openExternal}
+          />
+        )}
+
+        {isLoading && !message?.content ? (
           <MessagePendingIndicator />
         ) : (
           <>
             <MessageMarkdown
-              message={message.message}
+              message={message.content}
               onApplyInEditor={onApplyInEditor}
               onCopyContent={onCopyContent}
               attachmentClientCode={attachmentClientCode}
-              attachmentCode={attachmentCode}
+              attachmentCode={attachmentServerCode}
+              attachmentDocs={messageAttachmentDocs}
               onCodeCitationClick={onCodeCitationClick}
-              onCodeCitationMouseEnter={onCodeCitationMouseEnter}
-              onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+              onLinkClick={onLinkClick}
               canWrapLongLines={!isLoading}
               onLookupSymbol={onLookupSymbol}
               openInEditor={openInEditor}
@@ -445,8 +512,8 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
   } = React.useContext(ChatContext)
   const { message, userMessageId, enableRegenerating, attachmentCode } = props
   const copyContent = useMemo(() => {
-    return getCopyContent(message.message, attachmentCode)
-  }, [message.message, attachmentCode])
+    return getCopyContent(message.content, attachmentCode)
+  }, [message.content, attachmentCode])
 
   return (
     <ChatMessageActionsWrapper>

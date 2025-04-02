@@ -12,7 +12,10 @@ import type {
   SymbolInfo
 } from 'tabby-chat-panel'
 
-import { RepositorySourceListQuery } from '@/lib/gql/generates/graphql'
+import {
+  ContextInfo,
+  RepositorySourceListQuery
+} from '@/lib/gql/generates/graphql'
 import { Context, MessageActionType, QuestionAnswerPair } from '@/lib/types'
 
 import { PromptFormRef } from './types'
@@ -56,6 +59,8 @@ export type ChatContextValue = {
   repos: RepositorySourceListQuery['repositoryList'] | undefined
   fetchingRepos: boolean
   runShell?: (command: string) => Promise<void>
+  contextInfo: ContextInfo | undefined
+  fetchingContextInfo: boolean
 }
 
 export const ChatContext = createContext<ChatContextValue>(

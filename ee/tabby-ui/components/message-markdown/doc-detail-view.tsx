@@ -26,10 +26,12 @@ import { UserAvatar } from '../user-avatar'
 
 export function DocDetailView({
   relevantDocument,
-  enableDeveloperMode
+  enableDeveloperMode,
+  onLinkClick
 }: {
   relevantDocument: AttachmentDocItem
   enableDeveloperMode?: boolean
+  onLinkClick?: (url: string) => void
 }) {
   const isIssue = isAttachmentIssueDoc(relevantDocument)
   const isPR = isAttachmentPullDoc(relevantDocument)
@@ -72,7 +74,7 @@ export function DocDetailView({
           })}
           onClick={() => {
             if (link) {
-              window.open(link)
+              onLinkClick?.(link)
             }
           }}
         >

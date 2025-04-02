@@ -8,28 +8,14 @@ import {
   some,
   uniqWith
 } from 'lodash-es'
-import type {
-  ChangeItem,
-  ChatCommand,
-  EditorContext,
-  EditorFileContext,
-  FileLocation,
-  FileRange,
-  GetChangesParams,
-  GitRepository,
-  ListFileItem,
-  ListFilesInWorkspaceParams,
-  ListSymbolItem,
-  ListSymbolsParams,
-  LookupSymbolHint,
-  SymbolInfo
-} from 'tabby-chat-panel'
+import type { ChatCommand, EditorContext } from 'tabby-chat-panel'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import {
   CodeQueryInput,
   CreateMessageInput,
+  DocQueryInput,
   InputMaybe,
   ListThreadMessagesQuery,
   MessageAttachmentCodeInput,
@@ -43,6 +29,7 @@ import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
 import {
+  contextInfoQuery,
   listThreadMessages,
   repositorySourceListQuery
 } from '@/lib/tabby/query'
@@ -53,7 +40,6 @@ import {
   FileContext,
   MessageActionType,
   QuestionAnswerPair,
-  SessionState,
   UserMessage,
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
@@ -77,47 +63,11 @@ import { convertTextToTiptapContent } from './form-editor/utils'
 
 import './git/utils'
 
+import { Maybe } from 'graphql/jsutils/Maybe'
+
 import { QuestionAnswerList } from './question-answer'
 import { QaPairSkeleton } from './skeletion'
-import { ChatRef, PromptFormRef } from './types'
-
-interface ChatProps extends React.ComponentProps<'div'> {
-  threadId: string | undefined
-  setThreadId: React.Dispatch<React.SetStateAction<string | undefined>>
-  api?: string
-  initialMessages?: QuestionAnswerPair[]
-  onLoaded?: () => void
-  onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
-  container?: HTMLDivElement
-  docQuery?: boolean
-  generateRelevantQuestions?: boolean
-  welcomeMessage?: string
-  promptFormClassname?: string
-  onCopyContent?: (value: string) => void
-  onApplyInEditor?:
-    | ((content: string) => void)
-    | ((content: string, opts?: { languageId: string; smart: boolean }) => void)
-  onLookupSymbol?: (
-    symbol: string,
-    hints?: LookupSymbolHint[] | undefined
-  ) => Promise<SymbolInfo | null>
-  openInEditor: (target: FileLocation) => Promise<boolean>
-  openExternal: (url: string) => Promise<void>
-  chatInputRef: React.RefObject<PromptFormRef>
-  supportsOnApplyInEditorV2: boolean
-  readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
-  getActiveEditorSelection?: () => Promise<EditorFileContext | null>
-  fetchSessionState?: () => Promise<SessionState | null>
-  storeSessionState?: (state: Partial<SessionState>) => Promise<void>
-  listFileInWorkspace?: (
-    params: ListFilesInWorkspaceParams
-  ) => Promise<ListFileItem[]>
-  listSymbols?: (param: ListSymbolsParams) => Promise<ListSymbolItem[]>
-  readFileContent?: (info: FileRange) => Promise<string | null>
-  setShowHistory: React.Dispatch<React.SetStateAction<boolean>>
-  runShell?: (command: string) => Promise<void>
-  getChanges?: (params: GetChangesParams) => Promise<ChangeItem[]>
-}
+import { ChatProps, ChatRef } from './types'
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(
   (
@@ -202,7 +152,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           if (message.role === Role.User) {
             currentPair.user = {
               id: message.id,
-              message: message.content,
+              content: message.content,
               relevantContext: message.attachment.clientCode?.map(x => {
                 return {
                   kind: 'file',
@@ -215,12 +165,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             }
           } else if (x.node.role === Role.Assistant) {
             if (!currentPair.assistant) {
-              currentPair.assistant = {
-                id: message.id,
-                message: message.content,
-                relevant_code: message.attachment.code
-              }
-
+              currentPair.assistant = x.node
               if (!!currentPair.user && !!currentPair.assistant) {
                 pairs.push(currentPair as QuestionAnswerPair)
                 currentPair = {}
@@ -264,6 +209,12 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         storeSessionState?.({ input: p.editor.getJSON() })
       }
     }
+
+    const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery(
+      {
+        query: contextInfoQuery
+      }
+    )
 
     // fetch indexed repos
     const [{ data: repositoryListData, fetching: fetchingRepos }] = useQuery({
@@ -320,8 +271,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
               id: newUserMessageId
             },
             assistant: {
+              codeSourceId: qaPair.assistant.codeSourceId,
               id: newAssistantMessgaeid,
-              message: '',
+              content: '',
               error: undefined
             }
           }
@@ -329,7 +281,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         setQaPairs(nextQaPairs)
 
         const [createMessageInput, threadRunOptions] =
-          await generateRequestPayload(qaPair.user)
+          await generateRequestPayload(
+            qaPair.user,
+            qaPair.assistant.codeSourceId
+          )
 
         return regenerate({
           threadId,
@@ -369,7 +324,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       })
 
       const inputContent = convertTextToTiptapContent(
-        convertContextBlockToPlaceholder(userMessage.message)
+        convertContextBlockToPlaceholder(userMessage.content),
+        contextInfoData?.contextInfo?.sources ?? []
       )
       setInput({
         type: 'doc',
@@ -443,10 +399,70 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         const nextAssistantMessage: AssistantMessage = {
           ...assisatntMessage,
           id: answer.assistantMessageId || assisatntMessage?.id || nanoid(),
-          message: answer.content,
-          error: undefined,
-          relevant_code: answer.attachmentsCode?.map(o => o.code) ?? []
+          content: answer.content,
+          error: undefined
         }
+
+        // update assiatant message status
+        if ('isReadingCode' in answer) {
+          nextAssistantMessage.isReadingCode = answer.isReadingCode
+        }
+        if ('isReadingFileList' in answer) {
+          nextAssistantMessage.isReadingFileList = answer.isReadingFileList
+        }
+        if ('isReadingDocs' in answer) {
+          nextAssistantMessage.isReadingDocs = answer.isReadingDocs
+        }
+        // update expose steps
+        nextAssistantMessage.readingCode = answer?.readingCode
+        // get and format scores from streaming answer
+        if (
+          !nextAssistantMessage.attachment?.code &&
+          !!answer.attachmentsCode
+        ) {
+          nextAssistantMessage.attachment = {
+            clientCode: null,
+            doc: nextAssistantMessage.attachment?.doc || null,
+            code:
+              answer.attachmentsCode.map(hit => ({
+                ...hit.code,
+                extra: {
+                  scores: hit.scores
+                }
+              })) || null
+          }
+        }
+
+        // get and format scores from streaming answer
+        if (!nextAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
+          nextAssistantMessage.attachment = {
+            clientCode: null,
+            doc:
+              answer.attachmentsDoc.map(hit => ({
+                ...hit.doc,
+                extra: {
+                  score: hit.score
+                }
+              })) || null,
+            code: nextAssistantMessage.attachment?.code || null
+          }
+        }
+
+        if (
+          !nextAssistantMessage.attachment?.codeFileList &&
+          answer?.attachmentsFileList?.codeFileList?.length
+        ) {
+          nextAssistantMessage.attachment = {
+            clientCode: null,
+            doc: nextAssistantMessage.attachment?.doc || null,
+            codeFileList: {
+              fileList: answer.attachmentsFileList.codeFileList,
+              truncated: answer.attachmentsFileList.truncated
+            },
+            code: nextAssistantMessage.attachment?.code || null
+          }
+        }
+
         // merge assistantMessage
         return [
           ...prev.slice(0, prev.length - 1),
@@ -500,7 +516,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
               assistant: {
                 ...lastQaPairs.assistant,
                 id: lastQaPairs.assistant?.id || nanoid(),
-                message: lastQaPairs.assistant?.message ?? '',
+                content: lastQaPairs.assistant?.content ?? '',
                 error: formatThreadRunErrorMessage(error)
               }
             }
@@ -518,7 +534,8 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     }, [error])
 
     const generateRequestPayload = async (
-      userMessage: UserMessage
+      userMessage: UserMessage,
+      codeSourceId: Maybe<string> | undefined
     ): Promise<[CreateMessageInput, ThreadRunOptionsInput]> => {
       const hasUsableActiveContext =
         enableActiveSelection && !!userMessage.activeContext
@@ -539,11 +556,18 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           startLine: o.range?.start
         }))
 
-      const content = userMessage.message
-      const codeQuery: InputMaybe<CodeQueryInput> = selectedRepoId
+      const content = userMessage.content
+      const docQuery: InputMaybe<DocQueryInput> = codeSourceId
         ? {
             content,
-            sourceId: selectedRepoId,
+            sourceIds: [codeSourceId],
+            searchPublic: false
+          }
+        : null
+      const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
+        ? {
+            content,
+            sourceId: codeSourceId,
             filepath: attachmentCode?.[0]?.filepath
           }
         : null
@@ -556,15 +580,18 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           }
         },
         {
-          docQuery: docQuery ? { content, searchPublic: false } : null,
-          generateRelevantQuestions: !!generateRelevantQuestions,
+          docQuery,
           codeQuery,
+          generateRelevantQuestions: !!generateRelevantQuestions,
           modelName: selectedModel
         }
       ]
     }
     const handleSendUserChat = useLatest(
-      async (userMessage: UserMessageWithOptionalId) => {
+      async (
+        userMessage: UserMessageWithOptionalId,
+        codeSourceId?: Maybe<string>
+      ) => {
         if (isLoading) return
 
         let selectCodeSnippet = ''
@@ -579,14 +606,14 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         }
 
         // processing placeholder like contextCommand, file, symbol, etc.
-        userMessage.message = await processingPlaceholder(userMessage.message, {
+        userMessage.content = await processingPlaceholder(userMessage.content, {
           getChanges,
           readFileContent
         })
 
         const newUserMessage: UserMessage = {
           ...userMessage,
-          message: userMessage.message + selectCodeSnippet,
+          content: userMessage.content + selectCodeSnippet,
           // If no id is provided, set a fallback id.
           id: userMessage.id ?? nanoid(),
           selectContext: userMessage.selectContext,
@@ -604,8 +631,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
             // For placeholder, and it also conveniently handles streaming responses and displays reference context.
             assistant: {
               id: nanoid(),
-              message: '',
-              error: undefined
+              content: '',
+              error: undefined,
+              codeSourceId
             }
           }
         ]
@@ -615,21 +643,30 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           qaPairs: nextQaPairs
         })
 
-        const payload = await generateRequestPayload(newUserMessage)
+        const payload = await generateRequestPayload(
+          newUserMessage,
+          codeSourceId
+        )
         sendUserMessage(...payload)
       }
     )
 
-    const sendUserChat = (userMessage: UserMessageWithOptionalId) => {
-      return handleSendUserChat.current?.(userMessage)
+    const sendUserChat = (
+      userMessage: UserMessageWithOptionalId,
+      codeSourceId: Maybe<string> | undefined
+    ) => {
+      return handleSendUserChat.current?.(userMessage, codeSourceId)
     }
 
     const handleExecuteCommand = useLatest(async (command: ChatCommand) => {
       const prompt = getPromptForChatCommand(command)
-      sendUserChat({
-        message: prompt,
-        selectContext: activeSelection ?? undefined
-      })
+      sendUserChat(
+        {
+          content: prompt,
+          selectContext: activeSelection ?? undefined
+        },
+        selectedRepoId
+      )
     })
 
     const executeCommand = async (command: ChatCommand) => {
@@ -637,10 +674,13 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     }
 
     const handleSubmit = async (value: string) => {
-      sendUserChat({
-        message: value,
-        relevantContext
-      })
+      sendUserChat(
+        {
+          content: value,
+          relevantContext
+        },
+        selectedRepoId
+      )
 
       setRelevantContext([])
     }
@@ -812,7 +852,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
           readFileContent,
           listSymbols,
           runShell,
-          getChanges
+          getChanges,
+          contextInfo: contextInfoData?.contextInfo,
+          fetchingContextInfo: fetchingContextInfo
         }}
       >
         <div className="flex justify-center overflow-x-hidden" {...props}>
@@ -846,7 +888,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
               onSubmit={handleSubmit}
               // FIXME(jueliang) remove mb
               className={cn(
-                'fixed inset-x-0 bottom-0 mb-4',
+                'fixed inset-x-0 bottom-0 z-40 mb-4',
                 promptFormClassname
               )}
               stop={onStop}

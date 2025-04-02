@@ -5,9 +5,12 @@ import {
   ContextSourceKind,
   CreatePageRunSubscription,
   CreateThreadRunSubscription,
-  MessageAttachmentCode,
+  Maybe,
+  MessageAttachmentClientCode,
+  MessageAttachmentCodeFileList,
   MessageCodeSearchHit,
-  MessageDocSearchHit
+  MessageDocSearchHit,
+  ThreadAssistantMessageReadingCode
 } from '../gql/generates/graphql'
 import { ArrayElementType } from './common'
 
@@ -52,7 +55,7 @@ export type Context = FileContext
 
 export interface UserMessage {
   id: string
-  message: string
+  content: string
 
   // Client side context - displayed in user message
   selectContext?: Context
@@ -62,6 +65,8 @@ export interface UserMessage {
 
   // Client side active selection context - displayed in assistant message
   activeContext?: Context
+
+  // codeSourceId?: string
 }
 
 export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {
@@ -70,9 +75,19 @@ export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {
 
 export interface AssistantMessage {
   id: string
-  message: string
+  content: string
   error?: string
-  relevant_code?: MessageAttachmentCode[]
+  attachment?: {
+    clientCode?: Maybe<Array<MessageAttachmentClientCode>> | undefined
+    code: Maybe<Array<AttachmentCodeItem>> | undefined
+    doc: Maybe<Array<AttachmentDocItem>> | undefined
+    codeFileList?: Maybe<MessageAttachmentCodeFileList>
+  }
+  readingCode?: ThreadAssistantMessageReadingCode
+  isReadingCode?: boolean
+  isReadingFileList?: boolean
+  isReadingDocs?: boolean
+  codeSourceId?: Maybe<string>
 }
 
 export interface QuestionAnswerPair {

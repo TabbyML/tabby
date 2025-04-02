@@ -2,7 +2,11 @@ import { useMemo, useState } from 'react'
 import { useQuery } from 'urql'
 
 import { useMutation } from '@/lib/tabby/gql'
-import { deleteThreadMutation, listMyThreads } from '@/lib/tabby/query'
+import {
+  contextInfoQuery,
+  deleteThreadMutation,
+  listMyThreads
+} from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { CardContent } from '@/components/ui/card'
 import { IconFileSearch, IconSpinner } from '@/components/ui/icons'
@@ -21,6 +25,9 @@ export function HistoryView({
   onNavigate,
   onDeleted
 }: HistoryViewProps) {
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
+  })
   const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
   const [{ data, fetching }] = useQuery({
     query: listMyThreads,
@@ -66,7 +73,7 @@ export function HistoryView({
   }
 
   return (
-    <div className="editor-bg fixed inset-0 z-10 overflow-hidden px-[16px] pt-4 md:pt-10">
+    <div className="editor-bg fixed inset-0 z-50 overflow-hidden px-[16px] pt-4 md:pt-10">
       <div className="mx-auto h-full max-w-5xl overflow-y-auto pb-8">
         <div className="editor-bg sticky top-0 flex items-center justify-between pb-3">
           <span className="text-lg font-semibold">History</span>
@@ -97,7 +104,8 @@ export function HistoryView({
                     <ThreadItem
                       key={thread.node.id}
                       data={thread}
-                      sources={undefined}
+                      sources={contextInfoData?.contextInfo?.sources}
+                      fetchingSources={fetchingContextInfo}
                       onNavigate={onNavigateToThread}
                       onDeleteThread={onDeleteThread}
                     />

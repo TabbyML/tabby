@@ -86,8 +86,7 @@ export interface MessageMarkdownProps {
   ) => Promise<SymbolInfo | null>
   openInEditor?: (target: FileLocation) => void
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
-  onCodeCitationMouseEnter?: (index: number) => void
-  onCodeCitationMouseLeave?: (index: number) => void
+  onLinkClick?: (url: string) => void
   contextInfo?: ContextInfo
   fetchingContextInfo?: boolean
   className?: string
@@ -282,8 +281,7 @@ export function MessageMarkdown({
         onCopyContent,
         onApplyInEditor,
         onCodeCitationClick: rest.onCodeCitationClick,
-        onCodeCitationMouseEnter: rest.onCodeCitationMouseEnter,
-        onCodeCitationMouseLeave: rest.onCodeCitationMouseLeave,
+        onLinkClick: rest.onLinkClick,
         contextInfo,
         fetchingContextInfo: !!fetchingContextInfo,
         canWrapLongLines: !!canWrapLongLines,
@@ -593,6 +591,7 @@ function RelevantDocumentBadge({
   relevantDocument: AttachmentDocItem
   citationIndex: number
 }) {
+  const { onLinkClick } = useContext(MessageMarkdownContext)
   const link = isAttachmentCommitDoc(relevantDocument)
     ? undefined
     : relevantDocument.link
@@ -609,15 +608,18 @@ function RelevantDocumentBadge({
           )}
           onClick={() => {
             if (link) {
-              window.open(link)
+              onLinkClick?.(link)
             }
           }}
         >
           {citationIndex}
         </span>
       </HoverCardTrigger>
-      <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-        <DocDetailView relevantDocument={relevantDocument} />
+      <HoverCardContent className="w-[70vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
+        <DocDetailView
+          relevantDocument={relevantDocument}
+          onLinkClick={onLinkClick}
+        />
       </HoverCardContent>
     </HoverCard>
   )
@@ -630,11 +632,7 @@ function RelevantCodeBadge({
   relevantCode: AttachmentCodeItem
   citationIndex: number
 }) {
-  const {
-    onCodeCitationClick,
-    onCodeCitationMouseEnter,
-    onCodeCitationMouseLeave
-  } = useContext(MessageMarkdownContext)
+  const { onCodeCitationClick } = useContext(MessageMarkdownContext)
 
   const context: RelevantCodeContext = useMemo(() => {
     return {
@@ -679,18 +677,12 @@ function RelevantCodeBadge({
           onClick={() => {
             onCodeCitationClick?.(relevantCode)
           }}
-          onMouseEnter={() => {
-            onCodeCitationMouseEnter?.(citationIndex)
-          }}
-          onMouseLeave={() => {
-            onCodeCitationMouseLeave?.(citationIndex)
-          }}
         >
           {citationIndex}
         </span>
       </HoverCardTrigger>
       <HoverCardContent
-        className="max-w-[90vw] overflow-x-hidden bg-background py-2 text-sm text-foreground dark:border-muted-foreground/60 md:py-4 lg:w-96"
+        className="w-[70vw] overflow-x-hidden bg-background py-2 text-sm text-foreground dark:border-muted-foreground/60 sm:w-auto sm:max-w-[90vw] md:py-4 lg:w-96"
         collisionPadding={8}
       >
         <div

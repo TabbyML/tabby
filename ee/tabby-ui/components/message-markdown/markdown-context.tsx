@@ -11,8 +11,7 @@ export type MessageMarkdownContextValue = {
     opts?: { languageId: string; smart: boolean }
   ) => void
   onCodeCitationClick?: (code: AttachmentCodeItem) => void
-  onCodeCitationMouseEnter?: (index: number) => void
-  onCodeCitationMouseLeave?: (index: number) => void
+  onLinkClick?: (url: string) => void
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
   canWrapLongLines: boolean

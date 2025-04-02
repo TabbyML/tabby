@@ -89,7 +89,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
 
     const slugWithThreadId = useMemo(() => {
       if (!threadId) return ''
-      const content = qaPairs[0]?.user.message
+      const content = qaPairs[0]?.user.content
       if (!content) return threadId
 
       const title = getTitleFromMessages([], content, {
@@ -98,7 +98,7 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
       const slug = slugify(title)
       const slugWithThreadId = compact([slug, threadId]).join('-')
       return slugWithThreadId
-    }, [qaPairs[0]?.user.message, threadId])
+    }, [qaPairs[0]?.user.content, threadId])
 
     const setThreadPersisted = useMutation(setThreadPersistedMutation, {
       onError(err) {
