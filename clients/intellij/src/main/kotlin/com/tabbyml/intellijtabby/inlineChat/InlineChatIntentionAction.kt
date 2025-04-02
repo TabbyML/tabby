@@ -11,10 +11,8 @@ import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.markup.TextAttributes
-import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.popup.PopupStep
-import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.psi.PsiFile
 import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.UIUtil
@@ -29,10 +27,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.Location
-import org.eclipse.lsp4j.Position
-import org.eclipse.lsp4j.Range
 
-class InlineChatIntentionAction : BaseIntentionAction() {
+class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
     private var inlay: Inlay<InlineChatInlayRenderer>? = null
     private var inlayRender: InlineChatInlayRenderer? = null
     private var project: Project? = null
@@ -58,32 +54,6 @@ class InlineChatIntentionAction : BaseIntentionAction() {
             inlayRender?.repaint() // FIXME
         })
     }
-
-    private fun getCurrentLocation(editor: Editor): Location {
-        val file = editor.document.let {
-            FileDocumentManager.getInstance().getFile(it)
-        }
-        val fileUri = file?.let { "file://${it.path}" }
-        val location = Location()
-        location.uri = fileUri
-        val selectionModel = editor.selectionModel
-        val document = editor.document
-        val caretOffset = editor.caretModel.offset
-        var startOffset = caretOffset
-        var endOffset = caretOffset
-        if (selectionModel.hasSelection()) {
-            startOffset = selectionModel.selectionStart
-            endOffset = selectionModel.selectionEnd
-        }
-        val startPosition = Position(document.getLineNumber(startOffset), 0)
-        val endChar = endOffset - document.getLineStartOffset(document.getLineNumber(endOffset))
-        val endLine = if (endChar == 0) document.getLineNumber(endOffset) else document.getLineNumber(endOffset) + 1
-        val endPosition = Position(endLine, endChar)
-        location.range = Range(startPosition, endPosition)
-
-        return location
-    }
-
 
     override fun getText(): String {
         return "Open Tabby inline chat";
@@ -116,6 +86,7 @@ class InlineChatIntentionAction : BaseIntentionAction() {
             if (location == null) {
                 return@launch
             }
+            println("chat edit $location")
             val param = ChatEditParams(
                 location = location!!,
                 command = command
@@ -327,7 +298,6 @@ class InlineInputComponent(private var onSubmit: (value: String) -> Unit, privat
         return textArea
     }
 
-    // Request focus for the text area
     override fun requestFocus() {
         textArea.requestFocus()
     }

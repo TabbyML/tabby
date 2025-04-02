@@ -1,34 +1,38 @@
 package com.tabbyml.intellijtabby.inlineChat
 
+import com.google.gson.JsonObject
 import com.intellij.codeInsight.codeVision.*
 import com.intellij.codeInsight.codeVision.CodeVisionState.Companion.READY_EMPTY
-import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
+import com.intellij.codeInsight.codeVision.ui.model.TextCodeVisionEntry
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.components.serviceOrNull
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.ide.DataManager
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DataKey
+import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.keymap.KeymapUtil
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiDocumentManager
-import com.tabbyml.intellijtabby.lsp.ConnectionService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import org.eclipse.lsp4j.CodeLens
-import org.eclipse.lsp4j.CodeLensParams
-import org.eclipse.lsp4j.TextDocumentIdentifier
-import java.util.concurrent.CompletableFuture
+import org.eclipse.lsp4j.Location
+import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.Range
+import javax.swing.Icon
 
+val ContextLocationKey = DataKey.create<Location>("INLINE_CHAT_LOCATION_KEY")
 
-class InlineChatCodeVisionProvider : CodeVisionProvider<Any> {
-    private val logger = Logger.getInstance(InlineChatCodeVisionProvider::class.java)
-
-    private val scope = CoroutineScope(Dispatchers.IO)
+abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware {
     override val defaultAnchor: CodeVisionAnchorKind = CodeVisionAnchorKind.Top
-    override val id: String = "InlineChatCodeVisionProvider"
+    // provider id
+    abstract override val id: String
+    // action name
+    abstract val action: String
+    // execute action id
+    abstract val actionId: String
+    abstract val icon: Icon
     override val name: String = "Inline Chat Code Vision Provider"
-    override val relativeOrderings: List<CodeVisionRelativeOrdering> = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingFirst)
+    private var location: Location? = null
 
     override fun precomputeOnUiThread(editor: Editor): Any {
         return Any()
@@ -41,37 +45,44 @@ class InlineChatCodeVisionProvider : CodeVisionProvider<Any> {
             .getFile(editor.document)
         val uri = virtualFile?.url ?: return READY_EMPTY
         val codeLenses = getCodeLenses(project, uri).get() ?: return READY_EMPTY
-        println("Code lenses: $codeLenses")
-//                && (it.command?.arguments?.firstOrNull() as? Map<*, *>)?.get("action") != null
-        val lenses: List<Pair<TextRange, CodeVisionEntry>> = codeLenses.filter { it.command != null  }.mapIndexed { index, it ->
-            val startOffset = document.getLineStartOffset(it.range.start.line) + it.range.start.character
-            val endOffset = document.getLineStartOffset(it.range.end.line) + it.range.end.character
-            val title = it.command.title
-            val entry =
-                ClickableTextCodeVisionEntry(title, id, { _, _ -> }, AllIcons.Actions.Close, "", "", emptyList())
-            val textRange = TextRange(startOffset + index, startOffset + index + 1)
-            textRange to entry
-        }
-        println("lenses: $lenses")
-        return CodeVisionState.Ready(lenses)
+        val codelens = codeLenses.firstOrNull() { it.command != null && (it.command?.arguments?.firstOrNull() as JsonObject?)?.get("action")?.asString == action } ?: return READY_EMPTY
+        print("code lens $action: $codelens")
+        location = Location(uri, Range(Position(codelens.range.start.line, codelens.range.start.character), Position(codelens.range.end.line, codelens.range.end.character)))
+        val prefixRegex = Regex("""^\$\(.*?\)""")
+        val title = codelens.command.title.replace(prefixRegex, "") + " (${KeymapUtil.getFirstKeyboardShortcutText(getAction())})"
+        val startOffset = document.getLineStartOffset(codelens.range.start.line) + codelens.range.start.character
+        val endOffset = document.getLineStartOffset(codelens.range.end.line) + codelens.range.end.character
+        val entry =
+            TextCodeVisionEntry(title, id, icon)
+        val textRange = TextRange(startOffset, endOffset)
+        textRange to entry
+        // CodeVisionProvider can only display one entry for each line
+        return CodeVisionState.Ready(listOf(textRange to entry))
     }
 
-    private fun getCodeLenses(project: Project, uri: String): CompletableFuture<List<CodeLens>?> {
-        val params = CodeLensParams(TextDocumentIdentifier(uri))
-        return CompletableFuture<List<CodeLens>?>().also { future ->
-            scope.launch {
-                try {
-                    val server = project.serviceOrNull<ConnectionService>()?.getServerAsync() ?: run {
-                        future.complete(null)
-                        return@launch
-                    }
-                    val result = server.textDocumentFeature.codeLens(params)
-                    future.complete(result.get())
-                } catch (e: Exception) {
-                    future.completeExceptionally(e)
-                }
-            }
-        }
+    override fun handleClick(editor: Editor, textRange: TextRange, entry: CodeVisionEntry) {
+        val editorDataContext = DataManager.getInstance().getDataContext(editor.component)
+        val dataContext = SimpleDataContext.builder().setParent(editorDataContext).add(ContextLocationKey, location).build()
+        ActionUtil.invokeAction(getAction(), dataContext, "", null, null)
     }
 
+    private fun getAction() = ActionManager.getInstance().getAction(actionId)
+}
+
+class InlineChatAcceptCodeVisionProvider : InlineChatCodeVisionProvider() {
+    override val id: String = "Tabby.InlineChat.Accept"
+    override val action: String = "accept"
+    override val actionId: String = "Tabby.InlineChat.Resolve.Accept"
+    override val icon: Icon = AllIcons.Actions.Checked
+    override val relativeOrderings: List<CodeVisionRelativeOrdering> =
+        listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingBefore("Tabby.InlineChat.Discard"))
+}
+
+class InlineChatDiscardCodeVisionProvider : InlineChatCodeVisionProvider() {
+    override val id: String = "Tabby.InlineChat.Discard"
+    override val action: String = "discard"
+    override val actionId: String = "Tabby.InlineChat.Resolve.Discard"
+    override val icon: Icon = AllIcons.Actions.Close
+    override val relativeOrderings: List<CodeVisionRelativeOrdering> =
+        emptyList()
 }
