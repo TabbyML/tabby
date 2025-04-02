@@ -19,10 +19,11 @@ use tabby_schema::{
     context::ContextService,
     page::{
         CreatePageRunInput, CreatePageSectionRunInput, MoveSectionDirection, Page, PageCompleted,
-        PageContentCompleted, PageContentDelta, PageCreated, PageRunDebugData,
+        PageContentCompleted, PageContentDebugData, PageContentDelta, PageCreated,
         PageRunDebugOptionInput, PageRunItem, PageRunStream, PageSection,
         PageSectionAttachmentCode, PageSectionAttachmentCodeFileList, PageSectionAttachmentDoc,
-        PageSectionContentCompleted, PageSectionContentDelta, PageSectionsCreated, PageService,
+        PageSectionContentCompleted, PageSectionContentDebugData, PageSectionContentDelta,
+        PageSectionDebugData, PageSectionsCreated, PageService, PageTitleDebugData,
         SectionAttachment, SectionRunItem, SectionRunStream, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
@@ -181,8 +182,8 @@ impl PageService for PageServiceImpl {
         let s = stream! {
             let mut section_from_db = section_from_db(auth.clone(), section).await;
             if debug {
-                section_from_db.debug_data = section_title_debug_messages.map(|messages| PageRunDebugData {
-                    chat_completion_messages: messages,
+                section_from_db.debug_data = section_title_debug_messages.map(|messages| PageSectionDebugData {
+                    generate_section_titles_messages: messages,
                 });
             }
             yield Ok(SectionRunItem::PageSectionCreated(section_from_db));
@@ -389,8 +390,8 @@ impl PageServiceImpl {
                 id: page_id.clone(),
                 author_id: author_id.clone(),
                 title: page_title.clone(),
-                debug_data: title_debug_messages.map(|messages| PageRunDebugData {
-                    chat_completion_messages: messages,
+                debug_data: title_debug_messages.map(|messages| PageTitleDebugData {
+                    generate_page_title_messages: messages,
                 }),
             }));
 
@@ -414,8 +415,8 @@ impl PageServiceImpl {
             yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
                 sections: page_sections.clone(),
 
-                debug_data: section_titles_debug_messages.map(|messages| PageRunDebugData {
-                    chat_completion_messages: messages,
+                debug_data: section_titles_debug_messages.map(|messages| PageSectionDebugData {
+                    generate_section_titles_messages: messages,
                 }),
             }));
 
@@ -439,8 +440,8 @@ impl PageServiceImpl {
             yield Ok(PageRunItem::PageContentCompleted(PageContentCompleted {
                 id: page_id.clone(),
 
-                debug_data: content_debug_messages.map(|messages| PageRunDebugData {
-                    chat_completion_messages: messages,
+                debug_data: content_debug_messages.map(|messages| PageContentDebugData {
+                    generate_page_content_messages: messages,
                 }),
             }));
 
@@ -780,8 +781,8 @@ async fn generate_section_with_attachments(
         yield Ok(SectionRunItem::PageSectionContentCompleted(PageSectionContentCompleted {
             id: section_id.as_id(),
 
-            debug_data: debug_messages.map(|messages| PageRunDebugData {
-                chat_completion_messages: messages,
+            debug_data: debug_messages.map(|messages| PageSectionContentDebugData {
+                generate_section_content_messages: messages,
             }),
         }));
     };
