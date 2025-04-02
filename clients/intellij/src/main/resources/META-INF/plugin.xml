@@ -66,9 +66,9 @@
         <intentionAction>
             <className>com.tabbyml.intellijtabby.inlineChat.InlineChatIntentionAction</className>
         </intentionAction>
-
         <codeInsight.lineMarkerProvider implementationClass="com.tabbyml.intellijtabby.inlineChat.GutterIconProvider"/>
-       <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatCodeVisionProvider" />
+        <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatAcceptCodeVisionProvider" />
+        <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatDiscardCodeVisionProvider" />
         <highlightingPassFactory implementation="com.tabbyml.intellijtabby.inlineChat.DiffHighlighterRegister" />
     </extensions>
 
@@ -260,6 +260,20 @@
                 class="com.tabbyml.intellijtabby.actions.GenerateCommitMessage"
                 text="Generate Commit Message"
                 description="Generate a commit message based on the changes in the current Git repository.">
+        </action>
+
+        <action id="Tabby.InlineChat.Resolve.Accept"
+                class="com.tabbyml.intellijtabby.inlineChat.InlineChatAcceptAction"
+                text="Accept Inline Chat"
+                description="Accept the inline chat suggestion.">
+            <keyboard-shortcut first-keystroke="ctrl ENTER" keymap="$default"/>
+        </action>
+
+        <action id="Tabby.InlineChat.Resolve.Discard"
+                class="com.tabbyml.intellijtabby.inlineChat.InlineChatDiscardAction"
+                text="Discard Inline Chat"
+                description="Discard the inline chat suggestion.">
+            <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
         </action>
     </actions>
 </idea-plugin>

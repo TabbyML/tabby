@@ -7,28 +7,18 @@ import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
 import com.intellij.lang.annotation.HighlightSeverity
-import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColorsManager
-import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
-import com.tabbyml.intellijtabby.lsp.ConnectionService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.CodeLens
-import org.eclipse.lsp4j.CodeLensParams
-import org.eclipse.lsp4j.TextDocumentIdentifier
-import java.awt.Color
-import java.awt.Font
-import java.util.concurrent.CompletableFuture
+import java.awt.*
 
 class DiffHighlighterRegister : TextEditorHighlightingPassFactoryRegistrar {
     override fun registerHighlightingPassFactory(register: TextEditorHighlightingPassRegistrar, project: Project) {
@@ -41,33 +31,27 @@ class DiffHighlighterRegister : TextEditorHighlightingPassFactoryRegistrar {
 
 class DiffHighlightingPassFactory : TextEditorHighlightingPassFactory {
     override fun createHighlightingPass(file: PsiFile, editor: Editor): TextEditorHighlightingPass? {
-        // You can add conditions to determine if the pass should be created
-        if (!file.isValid || !shouldCreateHighlightingPass(file, editor)) {
+        if (!file.isValid) {
             return null
         }
-
         return DiffHighLightingPass(file.project, editor.document, editor)
-    }
-
-    private fun shouldCreateHighlightingPass(file: PsiFile, editor: Editor): Boolean {
-        // Your logic to determine if the pass should be created
-        // For example, check file type
-        return true
     }
 }
 
 class DiffHighLightingPass(project: Project, document: Document, val editor: Editor) :
-    TextEditorHighlightingPass(project, document, true) {
+    TextEditorHighlightingPass(project, document, true), DumbAware {
 
     private var lenses = emptyList<CodeLens>()
     private val file = FileDocumentManager.getInstance().getFile(myDocument)
-    private val myHighlights = mutableListOf<HighlightInfo>()
+    private val highlights = mutableListOf<HighlightInfo>()
+    private var lineAttributesMap = emptyMap<String, TextAttributes>()
+    private var textAttributesMap = emptyMap<String, TextAttributes>()
 
-    override fun doCollectInformation(progress: ProgressIndicator) {
+    init {
         colorsScheme = EditorColorsManager.getInstance().globalScheme
-        val headerColor = Color(64f/255, 166f/255, 1f, 0.5f)
+        val headerColor = Color(64f / 255, 166f / 255, 1f, 0.5f)
         val insertColor = Color((155f / 255), 185f / 255, 85f / 255, 0.2f)
-        val lineAttribuitesMap = mapOf<String, TextAttributes>(
+        lineAttributesMap = mapOf<String, TextAttributes>(
             "header" to TextAttributes(
                 null,
                 headerColor,
@@ -109,7 +93,7 @@ class DiffHighLightingPass(project: Project, document: Document, val editor: Edi
             "deleted" to TextAttributes(null, Color(1f, 0f, 0f, 0.2f), null, null, 0),
         )
 
-        val textAttributesMap = mapOf<String, TextAttributes>(
+        textAttributesMap = mapOf<String, TextAttributes>(
             "inserted" to TextAttributes(null, Color(156f / 255, 204f / 255, 44f / 255, 0.2f), null, null, 0),
             "deleted" to TextAttributes(
                 null,
@@ -119,6 +103,9 @@ class DiffHighLightingPass(project: Project, document: Document, val editor: Edi
                 0
             ),
         )
+    }
+
+    override fun doCollectInformation(progress: ProgressIndicator) {
         val uri = file?.url ?: return
         lenses = getCodeLenses(myProject, uri).get() ?: emptyList()
         for (lens in lenses) {
@@ -133,7 +120,7 @@ class DiffHighLightingPass(project: Project, document: Document, val editor: Edi
             val textRange = TextRange(startOffset, endOffset)
             var attributes = TextAttributes(null, null, null, null, 0)
             if (lineType != null) {
-                attributes = lineAttribuitesMap.get(lineType) ?: continue
+                attributes = lineAttributesMap.get(lineType) ?: continue
             }
             val textType = (lens.data as JsonObject?)?.get("text")?.asString
             if (textType != null) {
@@ -145,34 +132,14 @@ class DiffHighLightingPass(project: Project, document: Document, val editor: Edi
                 .descriptionAndTooltip("Tabby inline diff")
                 .severity(HighlightSeverity.TEXT_ATTRIBUTES)
             val highlight = builder.create() ?: continue
-            myHighlights.add(highlight)
+            highlights.add(highlight)
         }
     }
 
     override fun doApplyInformationToEditor() {
         UpdateHighlightersUtil.setHighlightersToEditor(
             myProject, myDocument, 0, myDocument.textLength,
-            myHighlights, colorsScheme, id
+            highlights, colorsScheme, id
         )
-    }
-
-    private val scope = CoroutineScope(Dispatchers.IO)
-
-    private fun getCodeLenses(project: Project, uri: String): CompletableFuture<List<CodeLens>?> {
-        val params = CodeLensParams(TextDocumentIdentifier(uri))
-        return CompletableFuture<List<CodeLens>?>().also { future ->
-            scope.launch {
-                try {
-                    val server = project.serviceOrNull<ConnectionService>()?.getServerAsync() ?: run {
-                        future.complete(null)
-                        return@launch
-                    }
-                    val result = server.textDocumentFeature.codeLens(params)
-                    future.complete(result.get())
-                } catch (e: Exception) {
-                    future.completeExceptionally(e)
-                }
-            }
-        }
     }
 }

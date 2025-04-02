@@ -370,3 +370,8 @@ data class ChatEditFileContext(
   val uri: String,
   val range: Range,
 )
+
+data class ChatEditResolveParams(
+  val location: Location,
+  var action: String,
+)

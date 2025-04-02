@@ -1,0 +1,55 @@
+package com.tabbyml.intellijtabby.inlineChat
+
+import com.intellij.openapi.components.serviceOrNull
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.Project
+import com.tabbyml.intellijtabby.lsp.ConnectionService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.eclipse.lsp4j.*
+import java.util.concurrent.CompletableFuture
+
+fun getCurrentLocation(editor: Editor): Location {
+    val file = editor.document.let {
+        FileDocumentManager.getInstance().getFile(it)
+    }
+    val fileUri = file?.let { "file://${it.path}" }
+    val location = Location()
+    location.uri = fileUri
+    val selectionModel = editor.selectionModel
+    val document = editor.document
+    val caretOffset = editor.caretModel.offset
+    var startOffset = caretOffset
+    var endOffset = caretOffset
+    if (selectionModel.hasSelection()) {
+        startOffset = selectionModel.selectionStart
+        endOffset = selectionModel.selectionEnd
+    }
+    val startPosition = Position(document.getLineNumber(startOffset), 0)
+    val endChar = endOffset - document.getLineStartOffset(document.getLineNumber(endOffset))
+    val endLine = if (endChar == 0) document.getLineNumber(endOffset) else document.getLineNumber(endOffset) + 1
+    val endPosition = Position(endLine, 0)
+    location.range = Range(startPosition, endPosition)
+    return location
+}
+
+fun getCodeLenses(project: Project, uri: String): CompletableFuture<List<CodeLens>?> {
+    val scope = CoroutineScope(Dispatchers.IO)
+    val params = CodeLensParams(TextDocumentIdentifier(uri))
+    return CompletableFuture<List<CodeLens>?>().also { future ->
+        scope.launch {
+            try {
+                val server = project.serviceOrNull<ConnectionService>()?.getServerAsync() ?: run {
+                    future.complete(null)
+                    return@launch
+                }
+                val result = server.textDocumentFeature.codeLens(params)
+                future.complete(result.get())
+            } catch (e: Exception) {
+                future.completeExceptionally(e)
+            }
+        }
+    }
+}
