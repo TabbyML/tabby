@@ -375,3 +375,7 @@ data class ChatEditResolveParams(
   val location: Location,
   var action: String,
 )
+
+data class ChatEditCommandParams(var location: Location)
+
+data class ChatEditCommand(var label: String, var command: String, var source: String = "preset" )

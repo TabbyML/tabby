@@ -172,7 +172,7 @@
 
         <group id="Tabby.EditorContext" popup="true" text="Tabby">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <action id="Tabby.InlineChat" class="com.tabbyml.intellijtabby.inlineChat.InlineChatAction"
+            <action id="Tabby.InlineChat.Open" class="com.tabbyml.intellijtabby.inlineChat.InlineChatAction"
                     text="Open Tabby Inline Chat"
                     description="Open a inline chat widget to chat with Tabby to modify your code.">
                 <keyboard-shortcut first-keystroke="ctrl I" keymap="$default"/>

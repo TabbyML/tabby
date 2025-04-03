@@ -21,18 +21,19 @@ import java.awt.event.*
 import javax.swing.*
 import com.intellij.ui.components.IconLabelButton
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.popup.JBPopupListener
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.ChatEditParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.Location
+import org.eclipse.lsp4j.Range
 
 class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
     private var inlay: Inlay<InlineChatInlayRenderer>? = null
     private var inlayRender: InlineChatInlayRenderer? = null
     private var project: Project? = null
-    private var location: Location? = null
     private var editor: Editor? = null
     override fun getFamilyName(): String {
         return "Tabby"
@@ -49,8 +50,8 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
         this.project = project
         this.editor = editor
         if (editor != null) {
-            this.location = getCurrentLocation(editor = editor)
-            addInputToEditor(editor = editor, offset = editor.caretModel.offset);
+            inlineChatService.location = getCurrentLocation(editor = editor)
+            addInputToEditor(project, editor, editor.caretModel.offset);
         }
 
         project.messageBus.connect().subscribe(LafManagerListener.TOPIC, LafManagerListener {
@@ -67,9 +68,9 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
         return IntentionPreviewInfo.EMPTY
     }
 
-    private fun addInputToEditor(editor: Editor, offset: Int) {
+    private fun addInputToEditor(project: Project, editor: Editor, offset: Int) {
         val inlayModel = editor.inlayModel
-        inlayRender = InlineChatInlayRenderer(editor, this::onClose, this::onInputSubmit)
+        inlayRender = InlineChatInlayRenderer(project, editor, this::onClose, this::onInputSubmit)
         inlay = inlayModel.addBlockElement(offset, true, true, 0, inlayRender!!)
     }
 
@@ -82,18 +83,17 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
     private fun onInputSubmit(value: String) {
         chatEdit(command = value)
         editor?.selectionModel?.removeSelection()
+        project?.serviceOrNull<CommandHistory>()?.addCommand(value)
     }
 
     private fun chatEdit(command: String) {
         val scope = CoroutineScope(Dispatchers.IO)
+        val inlineChatService = project?.serviceOrNull<InlineChatService>() ?: return
         scope.launch {
             val server = project?.serviceOrNull<ConnectionService>()?.getServerAsync() ?: return@launch
-            if (location == null) {
-                return@launch
-            }
-            println("chat edit $location")
+            val location = inlineChatService.location ?: return@launch
             val param = ChatEditParams(
-                location = location!!,
+                location = location,
                 command = command
             )
             server.chatFeature.chatEdit(params = param)
@@ -102,12 +102,13 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
 }
 
 class InlineChatInlayRenderer(
+    private val project: Project,
     private val editor: Editor,
     private val onClose: () -> Unit,
     private val onSubmit: (value: String) -> Unit
 ) :
     EditorCustomElementRenderer {
-    private val inlineChatComponent = InlineChatComponent(onClose = this::removeComponent, onSubmit = onSubmit)
+    private val inlineChatComponent = InlineChatComponent(project, this::removeComponent, onSubmit)
     private var targetRegion: Rectangle? = null
 
     init {
@@ -169,9 +170,9 @@ class InlineChatInlayRenderer(
     }
 }
 
-class InlineChatComponent(private val onClose: () -> Unit, private val onSubmit: (value: String) -> Unit) : JPanel() {
+class InlineChatComponent(private val project: Project, private val onClose: () -> Unit, private val onSubmit: (value: String) -> Unit) : JPanel() {
     private val closeButton = createCloseButton()
-    private val inlineInput = InlineInputComponent(onSubmit = this::handleSubmit, onCancel = this::handleClose)
+    private val inlineInput = InlineInputComponent(project, this::handleSubmit, this::handleClose)
 
     override fun isOpaque(): Boolean {
         return false;
@@ -223,7 +224,12 @@ class InlineChatComponent(private val onClose: () -> Unit, private val onSubmit:
     }
 }
 
-class InlineInputComponent(private var onSubmit: (value: String) -> Unit, private var onCancel: () -> Unit) : JPanel() {
+data class PickItem(var label: String, var value: String, var icon: Icon, var description: String?, val canDelete: Boolean)
+data class ChatEditFileContext(val referrer: String, val uri: String, val range: Range)
+data class InlineEditCommand(val command: String, val context: List<ChatEditFileContext>?)
+
+class InlineInputComponent(private var project: Project, private var onSubmit: (value: String) -> Unit, private var onCancel: () -> Unit) : JPanel() {
+    private val history: CommandHistory? = project.serviceOrNull<CommandHistory>()
     private val textArea: JTextArea = createTextArea()
     private val submitButton: JLabel = createSubmitButton()
     private val historyButton: JLabel = createHistoryButton()
@@ -320,9 +326,17 @@ class InlineInputComponent(private var onSubmit: (value: String) -> Unit, privat
         return submitButton
     }
 
+    private fun createHistoryButton(): JLabel {
+        val historyButton = IconLabelButton(AllIcons.Actions.SearchWithHistory) { handleOpenHistory() }
+        historyButton.toolTipText = "Select suggested / history Command"
+        historyButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        historyButton.border = BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        return historyButton
+    }
+
     private fun handleOpenHistory() {
-        val historyItems = listOf("History command 1", "History command 2", "/doc")
-        val popup = JBPopupFactory.getInstance().createPopupChooserBuilder(historyItems)
+        val commandItems = getCommandList()
+        val popup = JBPopupFactory.getInstance().createPopupChooserBuilder<PickItem>(commandItems)
             .setRenderer(object : DefaultListCellRenderer() {
                 override fun getListCellRendererComponent(
                     list: JList<*>?,
@@ -331,19 +345,31 @@ class InlineInputComponent(private var onSubmit: (value: String) -> Unit, privat
                     isSelected: Boolean,
                     cellHasFocus: Boolean
                 ): Component {
+                    if (value !is PickItem) {
+                        return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+                    }
                     val panel = JPanel(BorderLayout())
                     panel.preferredSize = Dimension(730, 20)
-
-                    val label = JLabel(value.toString())
+                    val label = JLabel(value.label)
+                    val desc = JLabel(value.description)
                     label.border = BorderFactory.createEmptyBorder(0, 10, 0, 10)
-
-                    val deleteButton = IconLabelButton(AllIcons.Actions.Close) {
-                        // Handle delete action here in a real implementation
+                    panel.add(JLabel(value.icon), BorderLayout.WEST)
+                    val contentPanel = JPanel(BorderLayout())
+                    contentPanel.add(label, BorderLayout.WEST)
+                    desc.foreground = UIUtil.getContextHelpForeground()
+                    contentPanel.add(desc, BorderLayout.CENTER)
+                    contentPanel.isOpaque = false
+                    panel.add(contentPanel, BorderLayout.CENTER)
+                    if (value.canDelete) {
+                        val deleteButton = IconLabelButton(AllIcons.Actions.Close) {
+                            history?.deleteCommand(value.value)
+                            handleOpenHistory()
+                        }
+                        deleteButton.toolTipText = "Delete this command from history"
+//                        deleteButton.cursor =  Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                        deleteButton.border = BorderFactory.createEmptyBorder(0, 5, 0, 5)
+                        panel.add(deleteButton, BorderLayout.EAST)
                     }
-                    deleteButton.border = BorderFactory.createEmptyBorder(0, 5, 0, 5)
-
-                    panel.add(label, BorderLayout.CENTER)
-                    panel.add(deleteButton, BorderLayout.EAST)
 
                     if (isSelected) {
                         panel.background = UIUtil.getListSelectionBackground(true)
@@ -357,18 +383,25 @@ class InlineInputComponent(private var onSubmit: (value: String) -> Unit, privat
                 }
             })
             .setItemChosenCallback { selectedValue ->
-                textArea.text = selectedValue
+                textArea.text = selectedValue.value
             }
             .createPopup()
 
         popup.showUnderneathOf(this)
     }
 
-    private fun createHistoryButton(): JLabel {
-        val historyButton = IconLabelButton(AllIcons.Actions.SearchWithHistory) { handleOpenHistory() }
-        historyButton.toolTipText = "Select predefined / history Command"
-        historyButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        historyButton.border = BorderFactory.createEmptyBorder(4, 8, 4, 8)
-        return historyButton
+    private fun getHistoryCommand(): List<InlineEditCommand> {
+        return history?.getHistory()?.map {
+            InlineEditCommand(it, null)
+        } ?: emptyList()
+    }
+
+    private fun getCommandList(): List<PickItem> {
+        val location = project.serviceOrNull<InlineChatService>()?.location ?: return emptyList()
+        val suggestedItems = getSuggestedCommands(project, location).get()?.map { PickItem(label = it.label, value = it.command, icon = AllIcons.Debugger.ThreadRunning, description = it.command, canDelete = false) } ?: emptyList()
+        val historyItems = getHistoryCommand().filter {historyCommand -> suggestedItems.find { it.value == historyCommand.command.replace("\n", "") } == null }.map {
+            PickItem(label = it.command.replace("\n", ""), value = it.command.replace("\n", ""), icon = AllIcons.Vcs.History, description = null, canDelete = true)
+        }
+        return suggestedItems + historyItems
     }
 }
