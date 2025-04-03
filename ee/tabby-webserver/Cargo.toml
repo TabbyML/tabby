@@ -41,6 +41,8 @@ tarpc = { version = "0.33.0", features = ["serde-transport"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs"] }
 tokio-tungstenite = "0.21"
+tower-http = { workspace = true, features = ["fs"] }
+tower ={ workspace = true }
 tracing.workspace = true
 url = { workspace = true }
 urlencoding = "2.1.3"
