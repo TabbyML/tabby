@@ -5,6 +5,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.tabbyml.intellijtabby.lsp.ConnectionService
+import com.tabbyml.intellijtabby.lsp.protocol.ChatEditCommand
+import com.tabbyml.intellijtabby.lsp.protocol.ChatEditCommandParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,6 +48,25 @@ fun getCodeLenses(project: Project, uri: String): CompletableFuture<List<CodeLen
                     return@launch
                 }
                 val result = server.textDocumentFeature.codeLens(params)
+                future.complete(result.get())
+            } catch (e: Exception) {
+                future.completeExceptionally(e)
+            }
+        }
+    }
+}
+
+fun getSuggestedCommands(project: Project, location: Location): CompletableFuture<List<ChatEditCommand>?> {
+    val scope = CoroutineScope(Dispatchers.IO)
+    val params = ChatEditCommandParams(location)
+    return CompletableFuture<List<ChatEditCommand>?>().also { future ->
+        scope.launch {
+            try {
+                val server = project.serviceOrNull<ConnectionService>()?.getServerAsync() ?: run {
+                    future.complete(null)
+                    return@launch
+                }
+                val result = server.chatFeature.editCommand(params)
                 future.complete(result.get())
             } catch (e: Exception) {
                 future.completeExceptionally(e)
