@@ -19,16 +19,17 @@ use tabby_schema::{
     context::ContextService,
     page::{
         CreatePageRunInput, CreatePageSectionRunInput, MoveSectionDirection, Page, PageCompleted,
-        PageContentCompleted, PageContentDelta, PageCreated, PageRunItem, PageRunStream,
-        PageSection, PageSectionAttachmentCode, PageSectionAttachmentCodeFileList,
-        PageSectionAttachmentDoc, PageSectionContentCompleted, PageSectionContentDelta,
-        PageSectionsCreated, PageService, SectionAttachment, SectionRunItem, SectionRunStream,
-        ThreadToPageRunStream,
+        PageContentCompleted, PageContentDebugData, PageContentDelta, PageCreated,
+        PageRunDebugOptionInput, PageRunItem, PageRunStream, PageSection,
+        PageSectionAttachmentCode, PageSectionAttachmentCodeFileList, PageSectionAttachmentDoc,
+        PageSectionContentCompleted, PageSectionContentDebugData, PageSectionContentDelta,
+        PageSectionDebugData, PageSectionsCreated, PageService, PageTitleDebugData,
+        SectionAttachment, SectionRunItem, SectionRunStream, ThreadToPageRunStream,
     },
     policy::AccessPolicy,
     retrieval::{AttachmentCodeFileList, AttachmentDocHit},
     thread::{CodeQueryInput, DocQueryInput, Message, ThreadService},
-    AsID, AsRowid, CoreError, Result,
+    AsID, AsRowid, ChatCompletionMessage, CoreError, Result,
 };
 use tracing::error;
 
@@ -91,8 +92,16 @@ impl PageService for PageServiceImpl {
             .list_thread_messages(thread_id, None, None, None, None)
             .await?;
 
-        self.page_run(policy, author_id, None, None, None, Some(&thread_messages))
-            .await
+        self.page_run(
+            policy,
+            author_id,
+            None,
+            None,
+            None,
+            Some(&thread_messages),
+            None,
+        )
+        .await
     }
 
     async fn create_run(
@@ -108,6 +117,7 @@ impl PageService for PageServiceImpl {
             input.code_query.as_ref(),
             input.doc_query.as_ref(),
             None,
+            input.debug_option.as_ref(),
         )
         .await
     }
@@ -133,7 +143,13 @@ impl PageService for PageServiceImpl {
         let code_source_id = page.code_source_id.clone();
         let doc_query = input.doc_query.clone();
 
-        let new_section_title = generate_page_sections(
+        let debug = input
+            .debug_option
+            .as_ref()
+            .map(|x| x.return_chat_completion_request)
+            .unwrap_or_else(|| false);
+        let (new_section_title, section_title_debug_messages) = generate_page_sections(
+            debug,
             1,
             self.chat.clone(),
             self.context.clone(),
@@ -143,10 +159,11 @@ impl PageService for PageServiceImpl {
             &existing_page_sections,
             None,
         )
-        .await?
-        .first()
-        .ok_or_else(|| CoreError::Other(anyhow!("failed to generate section title")))?
-        .to_owned();
+        .await?;
+        let new_section_title = new_section_title
+            .into_iter()
+            .next()
+            .ok_or_else(|| anyhow!("Failed to generate section title"))?;
 
         let section = self
             .db
@@ -163,9 +180,16 @@ impl PageService for PageServiceImpl {
         let auth = self.auth.clone();
 
         let s = stream! {
-            yield Ok(SectionRunItem::PageSectionCreated(section_from_db(auth.clone(), section).await));
+            let mut section_from_db = section_from_db(auth.clone(), section).await;
+            if debug {
+                section_from_db.debug_data = section_title_debug_messages.map(|messages| PageSectionDebugData {
+                    generate_section_titles_messages: messages,
+                });
+            }
+            yield Ok(SectionRunItem::PageSectionCreated(section_from_db));
 
             let mut attachments_stream = generate_section_with_attachments(
+                debug,
                 policy,
                 section_id,
                 new_section_title,
@@ -316,6 +340,7 @@ impl PageServiceImpl {
         code_query: Option<&CodeQueryInput>,
         doc_query: Option<&DocQueryInput>,
         thread_messages: Option<&[Message]>,
+        debug_option: Option<&PageRunDebugOptionInput>,
     ) -> Result<PageRunStream> {
         let code_source_id = if let Some(code_query) = code_query {
             get_source_id(self.context.clone(), policy, code_query).await
@@ -336,8 +361,18 @@ impl PageServiceImpl {
             .await?
             .as_id();
 
-        let page_title = self
-            .generate_page_title(policy, &page_id, title_prompt, thread_messages.as_deref())
+        let debug = debug_option
+            .map(|x| x.return_chat_completion_request)
+            .unwrap_or_else(|| false);
+
+        let (page_title, title_debug_messages) = self
+            .generate_page_title(
+                debug,
+                policy,
+                &page_id,
+                title_prompt,
+                thread_messages.as_deref(),
+            )
             .await?;
 
         let db = self.db.clone();
@@ -355,9 +390,13 @@ impl PageServiceImpl {
                 id: page_id.clone(),
                 author_id: author_id.clone(),
                 title: page_title.clone(),
+                debug_data: title_debug_messages.map(|messages| PageTitleDebugData {
+                    generate_page_title_messages: messages,
+                }),
             }));
 
-            let page_section_titles = generate_page_sections(
+            let (page_section_titles, section_titles_debug_messages) = generate_page_sections(
+                debug,
                 3,
                 chat.clone(),
                 context.clone(),
@@ -375,9 +414,14 @@ impl PageServiceImpl {
 
             yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
                 sections: page_sections.clone(),
+
+                debug_data: section_titles_debug_messages.map(|messages| PageSectionDebugData {
+                    generate_section_titles_messages: messages,
+                }),
             }));
 
-            let content_stream = generate_page_content(
+            let (content_stream, content_debug_messages) = generate_page_content(
+                debug,
                 chat.clone(),
                 context.clone(),
                 &policy,
@@ -395,6 +439,10 @@ impl PageServiceImpl {
 
             yield Ok(PageRunItem::PageContentCompleted(PageContentCompleted {
                 id: page_id.clone(),
+
+                debug_data: content_debug_messages.map(|messages| PageContentDebugData {
+                    generate_page_content_messages: messages,
+                }),
             }));
 
             for (i, section) in page_sections.iter().enumerate() {
@@ -404,6 +452,7 @@ impl PageServiceImpl {
                 let existed_sections = sections_from_db(auth.clone(), sections_in_db).await.into_iter().take(i).collect::<Vec<_>>();
 
                 let attachments_stream = generate_section_with_attachments(
+                    debug,
                     policy.clone(),
                     section.id.as_rowid()?,
                     section.title.clone(),
@@ -457,11 +506,12 @@ impl PageServiceImpl {
 
     async fn generate_page_title(
         &self,
+        debug: bool,
         policy: &AccessPolicy,
         page_id: &ID,
         title_prompt: Option<&str>,
         thread_messages: Option<&[Message]>,
-    ) -> Result<String> {
+    ) -> Result<(String, Option<Vec<ChatCompletionMessage>>)> {
         let messages = build_chat_messages(
             self.context.clone(),
             policy,
@@ -471,13 +521,19 @@ impl PageServiceImpl {
         )
         .await?;
 
+        let debug_messages: Option<Vec<ChatCompletionMessage>> = if debug {
+            Some(messages.clone().into_iter().map(Into::into).collect())
+        } else {
+            None
+        };
+
         let title = request_llm_with_message(self.chat.clone(), messages).await?;
         let title = trim_title(title.as_str());
 
         self.db
             .update_page_title(page_id.as_rowid()?, title)
             .await?;
-        Ok(title.to_owned())
+        Ok((title.to_owned(), debug_messages))
     }
 }
 
@@ -527,6 +583,8 @@ async fn section_from_db(
             code_file_list,
             doc: doc.unwrap_or_default(),
         },
+
+        debug_data: None,
     }
 }
 
@@ -557,13 +615,17 @@ async fn build_chat_messages(
 }
 
 async fn generate_page_content(
+    debug: bool,
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
     page_title: &str,
     page_section_titles: &[String],
     thread_messages: Option<&[Message]>,
-) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
+) -> Result<(
+    BoxStream<'static, tabby_schema::Result<String>>,
+    Option<Vec<ChatCompletionMessage>>,
+)> {
     let messages = build_chat_messages(
         context,
         policy,
@@ -573,10 +635,20 @@ async fn generate_page_content(
     )
     .await?;
 
-    Ok(request_llm_stream(chat.clone(), messages).await)
+    let debug_messages: Option<Vec<ChatCompletionMessage>> = if debug {
+        Some(messages.clone().into_iter().map(Into::into).collect())
+    } else {
+        None
+    };
+
+    Ok((
+        request_llm_stream(chat.clone(), messages).await,
+        debug_messages,
+    ))
 }
 
 async fn generate_section_with_attachments(
+    debug: bool,
     policy: AccessPolicy,
     section_id: i64,
     section_title: String,
@@ -685,7 +757,8 @@ async fn generate_section_with_attachments(
         }
 
         // Generate section content
-        let content_stream = generate_page_section_content(
+        let (content_stream, debug_messages) = generate_page_section_content(
+            debug,
             chat.clone(),
             context.clone(),
             &policy,
@@ -707,6 +780,10 @@ async fn generate_section_with_attachments(
 
         yield Ok(SectionRunItem::PageSectionContentCompleted(PageSectionContentCompleted {
             id: section_id.as_id(),
+
+            debug_data: debug_messages.map(|messages| PageSectionContentDebugData {
+                generate_section_content_messages: messages,
+            }),
         }));
     };
 
@@ -714,6 +791,7 @@ async fn generate_section_with_attachments(
 }
 
 pub async fn generate_page_sections(
+    debug: bool,
     count: usize,
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
@@ -722,7 +800,7 @@ pub async fn generate_page_sections(
     page_title: &str,
     page_sections: &[PageSection],
     thread_messages: Option<&[Message]>,
-) -> anyhow::Result<Vec<String>> {
+) -> anyhow::Result<(Vec<String>, Option<Vec<ChatCompletionMessage>>)> {
     let messages = build_chat_messages(
         context,
         policy,
@@ -732,14 +810,24 @@ pub async fn generate_page_sections(
     )
     .await?;
 
+    let debug_messages: Option<Vec<ChatCompletionMessage>> = if debug {
+        Some(messages.clone().into_iter().map(Into::into).collect())
+    } else {
+        None
+    };
+
     let titles = request_llm_with_message(chat.clone(), messages).await?;
-    Ok(transform_line_items(&titles)
-        .into_iter()
-        .map(|x| trim_title(x.as_str()).to_owned())
-        .collect())
+    Ok((
+        transform_line_items(&titles)
+            .into_iter()
+            .map(|x| trim_title(x.as_str()).to_owned())
+            .collect(),
+        debug_messages,
+    ))
 }
 
 pub async fn generate_page_section_content(
+    debug: bool,
     chat: Arc<dyn ChatCompletionStream>,
     context: Arc<dyn ContextService>,
     policy: &AccessPolicy,
@@ -748,7 +836,10 @@ pub async fn generate_page_section_content(
     page_sections: &[PageSection],
     new_section_title: &str,
     new_section_attachment: &SectionAttachment,
-) -> tabby_schema::Result<BoxStream<'static, tabby_schema::Result<String>>> {
+) -> Result<(
+    BoxStream<'static, tabby_schema::Result<String>>,
+    Option<Vec<ChatCompletionMessage>>,
+)> {
     let messages = build_chat_messages(
         context,
         policy,
@@ -758,7 +849,16 @@ pub async fn generate_page_section_content(
     )
     .await?;
 
-    Ok(request_llm_stream(chat.clone(), messages).await)
+    let debug_messages: Option<Vec<ChatCompletionMessage>> = if debug {
+        Some(messages.clone().into_iter().map(Into::into).collect())
+    } else {
+        None
+    };
+
+    Ok((
+        request_llm_stream(chat.clone(), messages).await,
+        debug_messages,
+    ))
 }
 
 #[cfg(test)]

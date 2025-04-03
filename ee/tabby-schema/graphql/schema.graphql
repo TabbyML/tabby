@@ -156,12 +156,14 @@ input CreatePageRunInput {
   titlePrompt: String!
   docQuery: DocQueryInput = null
   codeQuery: CodeQueryInput = null
+  debugOption: PageRunDebugOptionInput = null
 }
 
 input CreatePageSectionRunInput {
   pageId: ID!
   titlePrompt: String!
   docQuery: DocQueryInput = null
+  debugOption: PageSectionRunDebugOptionInput = null
 }
 
 input CreateThreadAndRunInput {
@@ -211,6 +213,14 @@ input MessageAttachmentInput {
 
 input NetworkSettingInput {
   externalUrl: String!
+}
+
+input PageRunDebugOptionInput {
+  returnChatCompletionRequest: Boolean! = false
+}
+
+input PageSectionRunDebugOptionInput {
+  returnChatCompletionRequest: Boolean! = false
 }
 
 input PasswordChangeInput {
@@ -845,6 +855,12 @@ type PageConnection {
 
 type PageContentCompleted {
   id: ID!
+  debugData: PageContentDebugData
+}
+
+type PageContentDebugData {
+  "Messages sent to LLM to generate the response."
+  generatePageContentMessages: [ChatCompletionMessage!]!
 }
 
 type PageContentDelta {
@@ -855,6 +871,7 @@ type PageCreated {
   id: ID!
   authorId: ID!
   title: String!
+  debugData: PageTitleDebugData
 }
 
 type PageEdge {
@@ -878,6 +895,7 @@ type PageSection {
   attachments: SectionAttachment!
   createdAt: DateTime!
   updatedAt: DateTime!
+  debugData: PageSectionDebugData
 }
 
 type PageSectionAttachmentCode {
@@ -897,6 +915,12 @@ type PageSectionAttachmentDoc {
 
 type PageSectionContentCompleted {
   id: ID!
+  debugData: PageSectionContentDebugData
+}
+
+type PageSectionContentDebugData {
+  "Messages sent to LLM to generate the response."
+  generateSectionContentMessages: [ChatCompletionMessage!]!
 }
 
 type PageSectionContentDelta {
@@ -904,8 +928,19 @@ type PageSectionContentDelta {
   delta: String!
 }
 
+type PageSectionDebugData {
+  "Messages sent to LLM to generate the page section titles."
+  generateSectionTitlesMessages: [ChatCompletionMessage!]!
+}
+
 type PageSectionsCreated {
   sections: [PageSection!]!
+  debugData: PageSectionDebugData
+}
+
+type PageTitleDebugData {
+  "Messages sent to LLM to generate the page title."
+  generatePageTitleMessages: [ChatCompletionMessage!]!
 }
 
 type PresetDocumentConnection {

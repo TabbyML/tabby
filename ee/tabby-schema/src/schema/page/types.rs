@@ -8,7 +8,7 @@ use crate::{
         AttachmentCode, AttachmentCodeFileList, AttachmentCodeHit, AttachmentDoc, AttachmentDocHit,
     },
     thread::{CodeQueryInput, DocQueryInput, MessageAttachment},
-    Context,
+    ChatCompletionMessage, Context,
 };
 
 #[derive(GraphQLObject)]
@@ -52,6 +52,8 @@ pub struct PageSection {
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+
+    pub debug_data: Option<PageSectionDebugData>,
 }
 
 impl NodeType for PageSection {
@@ -108,6 +110,12 @@ pub struct UpdatePageSectionContentInput {
     pub content: String,
 }
 
+#[derive(GraphQLInputObject, Default)]
+pub struct PageRunDebugOptionInput {
+    #[graphql(default)]
+    pub return_chat_completion_request: bool,
+}
+
 #[derive(GraphQLInputObject, Validate)]
 pub struct CreatePageRunInput {
     pub title_prompt: String,
@@ -119,6 +127,15 @@ pub struct CreatePageRunInput {
     #[validate(nested)]
     #[graphql(default)]
     pub code_query: Option<CodeQueryInput>,
+
+    #[graphql(default)]
+    pub debug_option: Option<PageRunDebugOptionInput>,
+}
+
+#[derive(GraphQLInputObject, Default)]
+pub struct PageSectionRunDebugOptionInput {
+    #[graphql(default)]
+    pub return_chat_completion_request: bool,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -129,6 +146,9 @@ pub struct CreatePageSectionRunInput {
     #[validate(nested)]
     #[graphql(default)]
     pub doc_query: Option<DocQueryInput>,
+
+    #[graphql(default)]
+    pub debug_option: Option<PageSectionRunDebugOptionInput>,
 }
 
 #[derive(GraphQLEnum)]
@@ -137,17 +157,33 @@ pub enum MoveSectionDirection {
     Down,
 }
 
+#[derive(GraphQLObject, Clone)]
+pub struct PageTitleDebugData {
+    /// Messages sent to LLM to generate the page title.
+    pub generate_page_title_messages: Vec<ChatCompletionMessage>,
+}
+
 #[derive(GraphQLObject)]
 pub struct PageCreated {
     pub id: ID,
     pub author_id: ID,
     pub title: String,
+
+    pub debug_data: Option<PageTitleDebugData>,
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct PageSectionDebugData {
+    /// Messages sent to LLM to generate the page section titles.
+    pub generate_section_titles_messages: Vec<ChatCompletionMessage>,
 }
 
 #[derive(GraphQLObject, Clone)]
 #[graphql(context = Context)]
 pub struct PageSectionsCreated {
     pub sections: Vec<PageSection>,
+
+    pub debug_data: Option<PageSectionDebugData>,
 }
 
 #[derive(GraphQLObject)]
@@ -226,9 +262,17 @@ pub struct PageContentDelta {
     pub delta: String,
 }
 
+#[derive(GraphQLObject, Clone)]
+pub struct PageContentDebugData {
+    /// Messages sent to LLM to generate the response.
+    pub generate_page_content_messages: Vec<ChatCompletionMessage>,
+}
+
 #[derive(GraphQLObject)]
 pub struct PageContentCompleted {
     pub id: ID,
+
+    pub debug_data: Option<PageContentDebugData>,
 }
 
 #[derive(GraphQLObject)]
@@ -237,9 +281,17 @@ pub struct PageSectionContentDelta {
     pub delta: String,
 }
 
+#[derive(GraphQLObject, Clone)]
+pub struct PageSectionContentDebugData {
+    /// Messages sent to LLM to generate the response.
+    pub generate_section_content_messages: Vec<ChatCompletionMessage>,
+}
+
 #[derive(GraphQLObject)]
 pub struct PageSectionContentCompleted {
     pub id: ID,
+
+    pub debug_data: Option<PageSectionContentDebugData>,
 }
 
 #[derive(GraphQLObject)]
