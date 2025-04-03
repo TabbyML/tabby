@@ -298,17 +298,24 @@ export function Search() {
 
   const valueForDev = useMemo(() => {
     if (currentMessageForDev) {
-      return pick(currentMessageForDev?.attachment, 'doc', 'code')
+      return {
+        debugData: currentMessageForDev?.debugData ?? null,
+        ...pick(currentMessageForDev?.attachment, 'doc', 'code')
+      }
     }
     return {
       answers: messages
         .filter(o => o.role === Role.Assistant)
-        .map(o => pick(o, 'doc', 'code'))
+        .map(o => ({
+          debugData: o.debugData ?? null,
+          ...pick(o, 'doc', 'code')
+        }))
     }
   }, [
     messageIdForDev,
     currentMessageForDev?.attachment?.code,
-    currentMessageForDev?.attachment?.doc
+    currentMessageForDev?.attachment?.doc,
+    currentMessageForDev?.debugData
   ])
 
   const qaPairs = useMemo(() => {
@@ -485,6 +492,9 @@ export function Search() {
     // update expose steps
     currentAssistantMessage.readingCode = answer?.readingCode
 
+    // debug data
+    currentAssistantMessage.debugData = answer?.debugData
+
     // update message pair ids
     const newUserMessageId = answer.userMessageId
     const newAssistantMessageId = answer.assistantMessageId
@@ -595,7 +605,12 @@ export function Search() {
         generateRelevantQuestions: true,
         codeQuery,
         docQuery,
-        modelName: ctx?.modelName
+        modelName: ctx?.modelName,
+        debugOptions: enableDeveloperMode?.value
+          ? {
+              returnChatCompletionRequest: true
+            }
+          : undefined
       }
     )
   }
@@ -669,7 +684,12 @@ export function Search() {
         generateRelevantQuestions: true,
         codeQuery,
         docQuery,
-        modelName: selectedModel
+        modelName: selectedModel,
+        debugOptions: enableDeveloperMode?.value
+          ? {
+              returnChatCompletionRequest: true
+            }
+          : undefined
       }
     })
   }
