@@ -15,20 +15,22 @@ interface DevPanelProps {
   onToggleFullScreen: (fullScreen: boolean) => void
   value: object | undefined
   onClose: () => void
+  scrollOnUpdate?: boolean
 }
 
 export const DevPanel: React.FC<DevPanelProps> = ({
   value,
   isFullScreen,
   onToggleFullScreen,
-  onClose
+  onClose,
+  scrollOnUpdate = true
 }) => {
   const [enableDeveloperMode] = useEnableDeveloperMode()
   const { theme } = useCurrentTheme()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (value) {
+    if (value && scrollOnUpdate) {
       scrollAreaRef.current?.scrollTo({
         top: 0,
         behavior: 'smooth'
@@ -66,6 +68,8 @@ export const DevPanel: React.FC<DevPanelProps> = ({
               src={value}
               style={{ fontSize: '0.75rem' }}
               collapseStringsAfterLength={120}
+              displayObjectSize={false}
+              displayDataTypes={false}
             />
           </ScrollArea>
         ) : null}

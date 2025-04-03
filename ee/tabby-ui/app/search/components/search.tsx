@@ -80,12 +80,12 @@ import {
 } from '@/components/ui/tooltip'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import { DevPanel } from '@/components/dev-panel'
 import LoadingWrapper from '@/components/loading-wrapper'
 import NotFoundPage from '@/components/not-found-page'
 import TextAreaSearch from '@/components/textarea-search'
 
 import { AssistantMessageSection } from './assistant-message-section'
-import { DevPanel } from './dev-panel'
 import { Header } from './header'
 import { MessagesSkeleton } from './messages-skeleton'
 import { SearchContext } from './search-context'

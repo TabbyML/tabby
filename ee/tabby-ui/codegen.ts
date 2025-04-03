@@ -10,6 +10,12 @@ const config: CodegenConfig = {
     "lib/gql/generates/": {
       preset: "client",
       plugins: []
+    },
+    "lib/gql/generates/schema.json": {
+      plugins: ['introspection'],
+      config: {
+        minify: true
+      }
     }
   },
   hooks: { afterAllFileWrite: ['prettier --write'] }

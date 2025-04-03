@@ -18,6 +18,8 @@ import {
   useMutation as useUrqlMutation
 } from 'urql'
 
+import schema from '@/lib/gql/generates/schema.json'
+
 import {
   DeleteUserGroupMembershipMutationVariables,
   GitRepositoriesQueryVariables,
@@ -124,6 +126,7 @@ const client = new Client({
   requestPolicy: 'cache-and-network',
   exchanges: [
     cacheExchange({
+      schema,
       keys: {
         CompletionStats: () => null,
         ServerInfo: () => null,
@@ -139,7 +142,14 @@ const client = new Client({
         MessageAttachmentCode: () => null,
         MessageAttachmentDoc: () => null,
         NetworkSetting: () => null,
-        ContextInfo: () => null
+        ContextInfo: () => null,
+        PageCreated: () => null,
+        PageContentCompleted: () => null,
+        PageSectionsCreated: () => null,
+        PageSectionContentCompleted: () => null,
+        PageSectionAttachmentCode: () => null,
+        PageSectionAttachmentDoc: () => null,
+        SectionAttachment: () => null
       },
       resolvers: {
         Query: {

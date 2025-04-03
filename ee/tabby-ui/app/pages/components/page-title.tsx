@@ -23,7 +23,7 @@ interface Props {
 }
 
 export function PageTitle({ page, onUpdate, isGeneratingPageTitle }: Props) {
-  const { mode, isLoading, isPageOwner } = useContext(PageContext)
+  const { mode, isLoading } = useContext(PageContext)
   const [showForm, setShowForm] = useState(false)
 
   const updatePageTitle = useMutation(updatePageTitleMutation)
