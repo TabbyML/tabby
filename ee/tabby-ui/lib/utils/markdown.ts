@@ -84,6 +84,7 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
         nextNode.position.start.line - node.position.end.line === 1
 
       let finalCommandText = ''
+      let shouldProcessNode = true
 
       // processing differet type of context
       switch (metas['label']) {
@@ -92,21 +93,37 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
           break
         case 'file':
           if (metas['object']) {
-            const fileObject = JSON.parse(metas['object'].replace(/\\"/g, '"'))
-            finalCommandText = `[[file:${JSON.stringify(fileObject)}]]`
+            try {
+              const fileObject = JSON.parse(
+                metas['object'].replace(/\\"/g, '"').replace(/\\/g, '/')
+              )
+              finalCommandText = `[[file:${JSON.stringify(fileObject)}]]`
+            } catch (error) {
+              shouldProcessNode = false
+              newChildren.push(node)
+            }
           }
           break
         case 'symbol':
           if (metas['object']) {
-            const symbolObject = JSON.parse(
-              metas['object'].replace(/\\"/g, '"')
-            )
-            finalCommandText = `[[symbol:${JSON.stringify(symbolObject)}]]`
+            try {
+              const symbolObject = JSON.parse(
+                metas['object'].replace(/\\"/g, '"').replace(/\\/g, '/')
+              )
+              finalCommandText = `[[symbol:${JSON.stringify(symbolObject)}]]`
+            } catch (error) {
+              shouldProcessNode = false
+              newChildren.push(node)
+            }
           }
           break
         default:
           newChildren.push(node)
           continue
+      }
+
+      if (!shouldProcessNode) {
+        continue
       }
 
       if (
