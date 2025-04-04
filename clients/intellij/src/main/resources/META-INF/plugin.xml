@@ -39,6 +39,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.tabbyml.intellijtabby.events.StartupActivity"/>
+        <postStartupActivity implementation="com.tabbyml.intellijtabby.inlineChat.SelectionGutterIconManager" />
         <editorFactoryListener implementation="com.tabbyml.intellijtabby.events.EditorFactoryListener"/>
         <statusBarWidgetFactory id="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"
                                 implementation="com.tabbyml.intellijtabby.widgets.StatusBarWidgetFactory"/>
@@ -66,7 +67,6 @@
         <intentionAction>
             <className>com.tabbyml.intellijtabby.inlineChat.InlineChatIntentionAction</className>
         </intentionAction>
-        <codeInsight.lineMarkerProvider implementationClass="com.tabbyml.intellijtabby.inlineChat.GutterIconProvider" language=""/>
         <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatAcceptCodeVisionProvider" />
         <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatDiscardCodeVisionProvider" />
         <highlightingPassFactory implementation="com.tabbyml.intellijtabby.inlineChat.DiffHighlighterRegister" />
