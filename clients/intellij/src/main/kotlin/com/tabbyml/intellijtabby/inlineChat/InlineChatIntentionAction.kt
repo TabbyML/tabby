@@ -21,13 +21,11 @@ import java.awt.event.*
 import javax.swing.*
 import com.intellij.ui.components.IconLabelButton
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.ui.popup.JBPopupListener
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.ChatEditParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.Range
 
 class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
@@ -50,10 +48,12 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
         this.project = project
         this.editor = editor
         if (editor != null) {
-            inlineChatService.location = getCurrentLocation(editor = editor)
-            addInputToEditor(project, editor, editor.caretModel.offset);
+            val locationInfo = getCurrentLocation(editor = editor)
+            inlineChatService.location = locationInfo.location
+            addInputToEditor(project, editor, locationInfo.startOffset);
         }
 
+        // listen for theme change
         project.messageBus.connect().subscribe(LafManagerListener.TOPIC, LafManagerListener {
             inlayRender?.repaint() // FIXME
         })
@@ -64,7 +64,6 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
     }
 
     override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo {
-        // Return a custom preview or EMPTY to indicate no preview
         return IntentionPreviewInfo.EMPTY
     }
 
@@ -108,32 +107,30 @@ class InlineChatInlayRenderer(
     private val onSubmit: (value: String) -> Unit
 ) :
     EditorCustomElementRenderer {
-    private val inlineChatComponent = InlineChatComponent(project, this::removeComponent, onSubmit)
+    private val inlineChatComponent = InlineChatComponent(project, this::handleClose, onSubmit)
     private var targetRegion: Rectangle? = null
+    private var disposed = false
 
-    init {
-        setupEvent()
-    }
-
-    private fun setupEvent() {
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(object : KeyEventDispatcher {
-            override fun dispatchKeyEvent(e: KeyEvent): Boolean {
-                if (e.id == KeyEvent.KEY_PRESSED && (e.keyCode == KeyEvent.VK_BACK_SPACE || e.keyCode == KeyEvent.VK_DELETE)) {
-                    // Handle backspace and delete
-                    if (e.component is JBTextArea) {
-                        // Return true to consume the event (prevent default handling)
-                        return true
-                    }
-                }
-                if (e.id == KeyEvent.KEY_PRESSED && e.keyCode == KeyEvent.VK_ESCAPE) {
-                    // Handle escape
-                    removeComponent()
+    private val keyEventHandler = object : KeyEventDispatcher {
+        override fun dispatchKeyEvent(e: KeyEvent): Boolean {
+            if (e.id == KeyEvent.KEY_PRESSED && (e.keyCode == KeyEvent.VK_BACK_SPACE || e.keyCode == KeyEvent.VK_DELETE)) {
+                if (e.component is JBTextArea) {
+                    // Return true to consume the event (prevent default handling)
                     return true
                 }
-                return false
             }
-        })
+            if (e.id == KeyEvent.KEY_PRESSED && e.keyCode == KeyEvent.VK_ESCAPE) {
+                handleClose()
+                return true
+            }
+            return false
+        }
     }
+
+    init {
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(keyEventHandler)
+    }
+
 
     override fun calcWidthInPixels(inlay: Inlay<*>): Int {
         return inlineChatComponent.preferredSize.width
@@ -144,6 +141,9 @@ class InlineChatInlayRenderer(
     }
 
     override fun paint(inlay: Inlay<*>, g: Graphics, targetRegion: Rectangle, textAttributes: TextAttributes) {
+        if (disposed) {
+            return
+        }
         if (this.targetRegion == null) {
             this.targetRegion = targetRegion
         }
@@ -163,14 +163,29 @@ class InlineChatInlayRenderer(
         inlineChatComponent.repaint()
     }
 
-    private fun removeComponent() {
+    private fun handleClose() {
+        this.dispose()
+        onClose()
+    }
+
+
+    private fun dispose() {
+        if (disposed) {
+            return
+        }
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(keyEventHandler)
+        inlineChatComponent.parent?.remove(inlineChatComponent)
         editor.contentComponent.remove(inlineChatComponent)
         editor.contentComponent.repaint();
-        onClose()
+        this.disposed = true
     }
 }
 
-class InlineChatComponent(private val project: Project, private val onClose: () -> Unit, private val onSubmit: (value: String) -> Unit) : JPanel() {
+class InlineChatComponent(
+    private val project: Project,
+    private val onClose: () -> Unit,
+    private val onSubmit: (value: String) -> Unit
+) : JPanel() {
     private val closeButton = createCloseButton()
     private val inlineInput = InlineInputComponent(project, this::handleSubmit, this::handleClose)
 
@@ -224,15 +239,19 @@ class InlineChatComponent(private val project: Project, private val onClose: () 
     }
 }
 
-data class PickItem(var label: String, var value: String, var icon: Icon, var description: String?, val canDelete: Boolean)
 data class ChatEditFileContext(val referrer: String, val uri: String, val range: Range)
 data class InlineEditCommand(val command: String, val context: List<ChatEditFileContext>?)
 
-class InlineInputComponent(private var project: Project, private var onSubmit: (value: String) -> Unit, private var onCancel: () -> Unit) : JPanel() {
+class InlineInputComponent(
+    private var project: Project,
+    private var onSubmit: (value: String) -> Unit,
+    private var onCancel: () -> Unit
+) : JPanel() {
     private val history: CommandHistory? = project.serviceOrNull<CommandHistory>()
     private val textArea: JTextArea = createTextArea()
     private val submitButton: JLabel = createSubmitButton()
     private val historyButton: JLabel = createHistoryButton()
+    private var commandListComponent: CommandListComponent? = null
 
     init {
         putClientProperty(UIUtil.HIDE_EDITOR_FROM_DATA_CONTEXT_PROPERTY, true)
@@ -249,7 +268,6 @@ class InlineInputComponent(private var project: Project, private var onSubmit: (
 
             override fun keyReleased(e: KeyEvent) {
                 if (e.keyCode == KeyEvent.VK_BACK_SPACE || e.keyCode == KeyEvent.VK_DELETE) {
-                    // Handle backspace and delete
                     e.consume()
                 }
             }
@@ -273,12 +291,11 @@ class InlineInputComponent(private var project: Project, private var onSubmit: (
         textArea.putClientProperty(UIUtil.HIDE_EDITOR_FROM_DATA_CONTEXT_PROPERTY, true)
         textArea.addKeyListener(object : KeyListener {
             override fun keyPressed(e: KeyEvent) {
-//                println("textarea keyPressed")
+                //
             }
 
             override fun keyReleased(e: KeyEvent) {
                 if (e.keyCode == KeyEvent.VK_BACK_SPACE || e.keyCode == KeyEvent.VK_DELETE) {
-                    // Handle backspace and delete
                     e.consume()
                 }
 
@@ -294,7 +311,7 @@ class InlineInputComponent(private var project: Project, private var onSubmit: (
             }
 
             override fun keyTyped(e: KeyEvent) {
-
+                //
             }
         })
         textArea.addFocusListener(object : FocusAdapter() {
@@ -314,7 +331,7 @@ class InlineInputComponent(private var project: Project, private var onSubmit: (
     }
 
     private fun handleConfirm() {
-        onSubmit(textArea.text)
+        onSubmit(textArea.text.trim())
         textArea.text = ""
     }
 
@@ -336,58 +353,22 @@ class InlineInputComponent(private var project: Project, private var onSubmit: (
 
     private fun handleOpenHistory() {
         val commandItems = getCommandList()
-        val popup = JBPopupFactory.getInstance().createPopupChooserBuilder<PickItem>(commandItems)
-            .setRenderer(object : DefaultListCellRenderer() {
-                override fun getListCellRendererComponent(
-                    list: JList<*>?,
-                    value: Any?,
-                    index: Int,
-                    isSelected: Boolean,
-                    cellHasFocus: Boolean
-                ): Component {
-                    if (value !is PickItem) {
-                        return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-                    }
-                    val panel = JPanel(BorderLayout())
-                    panel.preferredSize = Dimension(730, 20)
-                    val label = JLabel(value.label)
-                    val desc = JLabel(value.description)
-                    label.border = BorderFactory.createEmptyBorder(0, 10, 0, 10)
-                    panel.add(JLabel(value.icon), BorderLayout.WEST)
-                    val contentPanel = JPanel(BorderLayout())
-                    contentPanel.add(label, BorderLayout.WEST)
-                    desc.foreground = UIUtil.getContextHelpForeground()
-                    contentPanel.add(desc, BorderLayout.CENTER)
-                    contentPanel.isOpaque = false
-                    panel.add(contentPanel, BorderLayout.CENTER)
-                    if (value.canDelete) {
-                        val deleteButton = IconLabelButton(AllIcons.Actions.Close) {
-                            history?.deleteCommand(value.value)
-                            handleOpenHistory()
-                        }
-                        deleteButton.toolTipText = "Delete this command from history"
-//                        deleteButton.cursor =  Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                        deleteButton.border = BorderFactory.createEmptyBorder(0, 5, 0, 5)
-                        panel.add(deleteButton, BorderLayout.EAST)
-                    }
-
-                    if (isSelected) {
-                        panel.background = UIUtil.getListSelectionBackground(true)
-                        label.foreground = UIUtil.getListSelectionForeground(true)
-                    } else {
-                        panel.background = UIUtil.getListBackground()
-                        label.foreground = UIUtil.getListForeground()
-                    }
-
-                    return panel
-                }
-            })
-            .setItemChosenCallback { selectedValue ->
-                textArea.text = selectedValue.value
-            }
-            .createPopup()
-
+        commandListComponent = CommandListComponent("Select Command", commandItems, { textArea.text = it.value }, {
+            history?.deleteCommand(it.value)
+            refreshCommandList()
+        }, {
+            history?.clearHistory()
+            refreshCommandList()
+        })
+        val popup =
+            JBPopupFactory.getInstance().createComponentPopupBuilder(commandListComponent?.component!!, JPanel())
+                .createPopup()
         popup.showUnderneathOf(this)
+    }
+
+    private fun refreshCommandList() {
+        val commandItems = getCommandList()
+        commandListComponent?.setData(commandItems)
     }
 
     private fun getHistoryCommand(): List<InlineEditCommand> {
@@ -396,11 +377,32 @@ class InlineInputComponent(private var project: Project, private var onSubmit: (
         } ?: emptyList()
     }
 
-    private fun getCommandList(): List<PickItem> {
+    private fun getCommandList(): List<CommandListItem> {
         val location = project.serviceOrNull<InlineChatService>()?.location ?: return emptyList()
-        val suggestedItems = getSuggestedCommands(project, location).get()?.map { PickItem(label = it.label, value = it.command, icon = AllIcons.Debugger.ThreadRunning, description = it.command, canDelete = false) } ?: emptyList()
-        val historyItems = getHistoryCommand().filter {historyCommand -> suggestedItems.find { it.value == historyCommand.command.replace("\n", "") } == null }.map {
-            PickItem(label = it.command.replace("\n", ""), value = it.command.replace("\n", ""), icon = AllIcons.Vcs.History, description = null, canDelete = true)
+        val suggestedItems = getSuggestedCommands(project, location).get()?.map {
+            CommandListItem(
+                label = it.label,
+                value = it.command,
+                icon = AllIcons.Debugger.ThreadRunning,
+                description = it.command,
+                canDelete = false
+            )
+        } ?: emptyList()
+        val historyItems = getHistoryCommand().filter { historyCommand ->
+            suggestedItems.find {
+                it.value == historyCommand.command.replace(
+                    "\n",
+                    ""
+                )
+            } == null
+        }.map {
+            CommandListItem(
+                label = it.command.replace("\n", ""),
+                value = it.command.replace("\n", ""),
+                icon = AllIcons.Vcs.History,
+                description = null,
+                canDelete = true
+            )
         }
         return suggestedItems + historyItems
     }
