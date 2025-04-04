@@ -23,8 +23,8 @@ import java.awt.*
 class DiffHighlighterRegister : TextEditorHighlightingPassFactoryRegistrar {
     override fun registerHighlightingPassFactory(register: TextEditorHighlightingPassRegistrar, project: Project) {
         register.registerTextEditorHighlightingPass(
-            DiffHighlightingPassFactory(), TextEditorHighlightingPassRegistrar.Anchor.LAST,
-            Pass.UPDATE_ALL, false, false
+            DiffHighlightingPassFactory(), TextEditorHighlightingPassRegistrar.Anchor.FIRST,
+            Pass.EXTERNAL_TOOLS, false, false
         )
     }
 }

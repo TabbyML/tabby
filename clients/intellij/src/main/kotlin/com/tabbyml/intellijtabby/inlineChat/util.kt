@@ -13,7 +13,9 @@ import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.*
 import java.util.concurrent.CompletableFuture
 
-fun getCurrentLocation(editor: Editor): Location {
+data class LocationInfo(val location: Location, val startOffset: Int)
+
+fun getCurrentLocation(editor: Editor): LocationInfo {
     val file = editor.document.let {
         FileDocumentManager.getInstance().getFile(it)
     }
@@ -34,7 +36,7 @@ fun getCurrentLocation(editor: Editor): Location {
     val endLine = if (endChar == 0) document.getLineNumber(endOffset) else document.getLineNumber(endOffset) + 1
     val endPosition = Position(endLine, 0)
     location.range = Range(startPosition, endPosition)
-    return location
+    return LocationInfo(location, startOffset)
 }
 
 fun getCodeLenses(project: Project, uri: String): CompletableFuture<List<CodeLens>?> {
