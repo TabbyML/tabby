@@ -30,7 +30,6 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
     abstract val icon: Icon
     override val name: String = "Inline Chat Code Vision Provider"
 
-
     override fun precomputeOnUiThread(editor: Editor): Any {
         return Any()
     }
@@ -60,7 +59,6 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
 
     override fun handleClick(editor: Editor, textRange: TextRange, entry: CodeVisionEntry) {
         val editorDataContext = DataManager.getInstance().getDataContext(editor.component)
-//        val dataContext = SimpleDataContext.builder().setParent(editorDataContext).add(ContextLocationKey, location).build()
         ActionUtil.invokeAction(getAction(), editorDataContext, "", null, null)
     }
 

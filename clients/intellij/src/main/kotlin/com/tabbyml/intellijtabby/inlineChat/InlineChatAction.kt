@@ -5,13 +5,14 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.DumbAwareAction
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.ChatEditResolveParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class InlineChatAction : AnAction(), DumbAware {
+class InlineChatAction : DumbAwareAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getRequiredData(CommonDataKeys.EDITOR)
         val project = e.project ?: return
@@ -19,7 +20,7 @@ class InlineChatAction : AnAction(), DumbAware {
     }
 }
 
-class InlineChatAcceptAction : AnAction(), DumbAware {
+class InlineChatAcceptAction : DumbAwareAction() {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -34,7 +35,7 @@ class InlineChatAcceptAction : AnAction(), DumbAware {
     }
 }
 
-class InlineChatDiscardAction : AnAction(), DumbAware {
+class InlineChatDiscardAction : DumbAwareAction() {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun actionPerformed(e: AnActionEvent) {

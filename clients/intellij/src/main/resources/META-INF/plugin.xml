@@ -266,14 +266,14 @@
                 class="com.tabbyml.intellijtabby.inlineChat.InlineChatAcceptAction"
                 text="Accept Inline Chat"
                 description="Accept the inline chat suggestion.">
-            <keyboard-shortcut first-keystroke="ctrl ENTER" keymap="$default"/>
+            <keyboard-shortcut first-keystroke="ctrl shift D" keymap="$default"/>
         </action>
 
         <action id="Tabby.InlineChat.Resolve.Discard"
                 class="com.tabbyml.intellijtabby.inlineChat.InlineChatDiscardAction"
                 text="Discard Inline Chat"
                 description="Discard the inline chat suggestion.">
-            <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
+            <keyboard-shortcut first-keystroke="ctrl ESCAPE" keymap="$default"/>
         </action>
     </actions>
 </idea-plugin>
