@@ -4,6 +4,8 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
@@ -59,6 +61,9 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
           synchronization = SynchronizationCapabilities(),
           inlineCompletion = InlineCompletionCapabilities(
             dynamicRegistration = true,
+          ),
+          codeLens = CodeLensCapabilities(
+            true,
           ),
         ),
         workspace = WorkspaceClientCapabilities().apply {
@@ -251,6 +256,31 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     return CompletableFuture<List<WorkspaceFolder>>().apply {
       complete(getWorkspaceFolders())
     }
+  }
+
+  override fun applyEdit(params: ApplyWorkspaceEditParams): CompletableFuture<ApplyWorkspaceEditResponse> {
+    val future = CompletableFuture<ApplyWorkspaceEditResponse>()
+    invokeLater {
+      try {
+        val edit = params.edit
+        runWriteCommandAction(project) {
+          edit.changes?.forEach { (uri, edits) ->
+            val virtualFile = project.findVirtualFile(uri) ?: return@forEach
+            val document = project.findDocument(virtualFile) ?: return@forEach
+            edits.forEach { textEdit ->
+              val startOffset = offsetInDocument(document, textEdit.range.start).coerceIn(0, document.textLength)
+              val endOffset = offsetInDocument(document, textEdit.range.end).coerceIn(0, document.textLength)
+              document.replaceString(startOffset, endOffset, textEdit.newText)
+            }
+          }
+        }
+        future.complete(ApplyWorkspaceEditResponse(true))
+      } catch (e: Exception) {
+        logger.warn("Failed to apply workspace edit", e)
+        future.complete(ApplyWorkspaceEditResponse(false).apply { failureReason = "Failed to apply workspace edit ${e.message}" })
+      }
+    }
+    return future
   }
 
   override fun showMessageRequest(params: ShowMessageRequestParams): CompletableFuture<MessageActionItem?> {

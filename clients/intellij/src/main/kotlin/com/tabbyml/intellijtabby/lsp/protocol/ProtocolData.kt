@@ -48,6 +48,7 @@ data class TextDocumentClientCapabilities(
   val synchronization: SynchronizationCapabilities? = null,
   val completion: CompletionCapabilities? = null,
   val inlineCompletion: InlineCompletionCapabilities? = null,
+  var codeLens: CodeLensCapabilities ? = null,
 )
 
 data class InlineCompletionCapabilities(
@@ -356,3 +357,25 @@ data class GenerateCommitMessageParams(
 data class GenerateCommitMessageResult(
   val commitMessage: String,
 )
+
+data class ChatEditParams(
+  val location: Location,
+  val command: String,
+  val format: String = "previewChanges",
+  val context: List<ChatEditFileContext>? = null,
+)
+
+data class ChatEditFileContext(
+  val referrer: String,
+  val uri: String,
+  val range: Range,
+)
+
+data class ChatEditResolveParams(
+  val location: Location,
+  var action: String,
+)
+
+data class ChatEditCommandParams(var location: Location)
+
+data class ChatEditCommand(var label: String, var command: String, var source: String = "preset" )
