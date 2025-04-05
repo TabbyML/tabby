@@ -351,6 +351,17 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn delete_page_sections_without_content(&self, page_id: i64) -> Result<()> {
+        query!(
+            "DELETE FROM page_sections WHERE page_id = ? AND COALESCE(content, '') = ''",
+            page_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn delete_page_section(&self, id: i64) -> Result<()> {
         query!("DELETE FROM page_sections WHERE id = ?", id,)
             .execute(&self.pool)
