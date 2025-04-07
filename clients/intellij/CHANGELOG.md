@@ -1,3 +1,11 @@
+## 1.13.0
+
+### Features
+
+- **Chat**:
+  - Requires Tabby Server 0.27.0 or later.
+  - You can now select code in the editor and use the `Code Review` option from the context menu to review your code and add comments using Tabby Chat.
+
 ## 1.12.0
 
 ### Features
