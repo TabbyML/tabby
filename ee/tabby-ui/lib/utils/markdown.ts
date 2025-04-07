@@ -1,7 +1,6 @@
 import { Parent, Root, RootContent } from 'mdast'
 import { remark } from 'remark'
-import remarkStringify from 'remark-stringify'
-import { Options } from 'remark-stringify'
+import remarkStringify, { Options } from 'remark-stringify'
 
 const REMARK_STRINGIFY_OPTIONS: Options = {
   bullet: '*',
@@ -13,12 +12,11 @@ const REMARK_STRINGIFY_OPTIONS: Options = {
     placeholder: (node: PlaceholderNode) => {
       return node.value
     }
-  } as any 
+  } as any
 }
 
 function createRemarkProcessor() {
-  return remark()
-    .use(remarkStringify, REMARK_STRINGIFY_OPTIONS)
+  return remark().use(remarkStringify, REMARK_STRINGIFY_OPTIONS)
 }
 
 /**
@@ -30,7 +28,6 @@ export function customAstToString(ast: Root): string {
   const processor = createRemarkProcessor()
   return processor.stringify(ast).trim()
 }
-
 
 /**
  * Process code blocks with labels and convert them to placeholders
@@ -71,12 +68,16 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
       switch (metas['label']) {
         case 'changes':
           finalCommandText = 'contextCommand:changes'
-          placeholderNode = createPlaceholderNode(`[[contextCommand:${finalCommandText}]]`) as unknown as RootContent
+          placeholderNode = createPlaceholderNode(
+            `[[contextCommand:${finalCommandText}]]`
+          ) as unknown as RootContent
           break
         case 'file':
           if (metas['object']) {
             try {
-              placeholderNode = createPlaceholderNode(`[[file:${metas['object']}]]`) as unknown as RootContent
+              placeholderNode = createPlaceholderNode(
+                `[[file:${metas['object']}]]`
+              ) as unknown as RootContent
               if (!placeholderNode) {
                 shouldProcessNode = false
                 newChildren.push(node)
@@ -90,7 +91,9 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
         case 'symbol':
           if (metas['object']) {
             try {
-              placeholderNode = createPlaceholderNode(`[[symbol:${metas['object']}]]`) as unknown as RootContent
+              placeholderNode = createPlaceholderNode(
+                `[[symbol:${metas['object']}]]`
+              ) as unknown as RootContent
               if (!placeholderNode) {
                 shouldProcessNode = false
                 newChildren.push(node)
@@ -201,19 +204,15 @@ export function formatObjectToMarkdownBlock(
         } as RootContent
       ]
     }
-    
+
     const processor = createRemarkProcessor()
-    
+
     const res = '\n' + processor.stringify(codeNode).trim() + '\n'
-    return res;
+    return res
   } catch (error) {
     return `\n*Error formatting ${label}*\n`
   }
 }
-
-
-
-
 
 export interface PlaceholderNode extends Node {
   type: 'placeholder'
@@ -223,6 +222,6 @@ export interface PlaceholderNode extends Node {
 export function createPlaceholderNode(value: string): PlaceholderNode {
   return {
     type: 'placeholder',
-    value: value,
+    value: value
   } as PlaceholderNode
 }

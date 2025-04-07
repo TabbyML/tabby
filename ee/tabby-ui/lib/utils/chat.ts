@@ -25,7 +25,10 @@ import {
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
-import { convertContextBlockToPlaceholder, formatObjectToMarkdownBlock } from './markdown'
+import {
+  convertContextBlockToPlaceholder,
+  formatObjectToMarkdownBlock
+} from './markdown'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [
@@ -326,7 +329,7 @@ export async function processingPlaceholder(
 ): Promise<string> {
   let processedMessage = message
   if (hasChangesCommand(processedMessage) && options.getChanges) {
-    try { 
+    try {
       const changes = await options.getChanges({})
       const gitChanges = convertChangeItemsToContextContent(changes)
       processedMessage = processedMessage.replaceAll(
@@ -380,7 +383,11 @@ export async function processingPlaceholder(
         })
         let replacement = ''
         if (content) {
-          replacement = formatObjectToMarkdownBlock('symbol', symbolInfo, content)
+          replacement = formatObjectToMarkdownBlock(
+            'symbol',
+            symbolInfo,
+            content
+          )
         }
         processedMessage = processedMessage.replace(match[0], replacement)
         tempMessage = tempMessage.replace(match[0], replacement)
