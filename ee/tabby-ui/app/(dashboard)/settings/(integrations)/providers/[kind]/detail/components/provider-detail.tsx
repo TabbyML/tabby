@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
@@ -179,6 +180,21 @@ const ActiveRepoTable: React.FC<{
       return res?.data
     }
   }
+
+  useSWR(
+    ['refresh_repos', page],
+    ([, p]) => {
+      fetchRepositoriesSequentially(p).then(res =>
+        setActiveRepositoriesResult(res)
+      )
+    },
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateOnMount: false,
+      refreshInterval: 10 * 1000
+    }
+  )
 
   const [activeRepositoriesResult, setActiveRepositoriesResult] =
     React.useState<QueryResponseData<typeof listIntegratedRepositories>>()
