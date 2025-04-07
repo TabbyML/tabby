@@ -6,7 +6,7 @@ describe("Config: generateCommitMessage.responseMatcher", () => {
   // Test parameters
   const responseMatcher = defaultConfigData.chat.generateCommitMessage.responseMatcher;
   const regExp = stringToRegExp(responseMatcher);
-  
+
   // Helper function for reusing test logic
   function testResponseMatch(testCase: string, input: string, expectedMatch: string) {
     it(testCase, () => {
@@ -22,9 +22,9 @@ describe("Config: generateCommitMessage.responseMatcher", () => {
   testResponseMatch(
     "test for extracting conventional commit message from simple response",
     "Based on the diff, I would suggest the following commit message:\n\nfeat(core): add new feature\n",
-    "feat(core): add new feature"
+    "feat(core): add new feature",
   );
-  
+
   // Core functionality: Handle commit messages in code blocks
   testResponseMatch(
     "test for handling responses with code blocks",
@@ -35,7 +35,7 @@ fix(auth): resolve user authentication timeout issue
 \`\`\`
 
 This commit message follows the conventional format with a 'fix' type and 'auth' scope.`,
-    "fix(auth): resolve user authentication timeout issue"
+    "fix(auth): resolve user authentication timeout issue",
   );
 
   // Bug fix: Handle commit messages with double quotes
@@ -46,7 +46,7 @@ This commit message follows the conventional format with a 'fix' type and 'auth'
 "docs(readme): update installation instructions"
 
 This commit message follows the conventional format and accurately describes the changes made to the documentation.`,
-    "docs(readme): update installation instructions"
+    "docs(readme): update installation instructions",
   );
 
   // Bug fix: Handle commit messages with single quotes and backticks
@@ -55,7 +55,7 @@ This commit message follows the conventional format and accurately describes the
     `Here are some commit message options:
 'chore(build): update dependencies'
 \`test(components): add unit tests for login form\``,
-    "chore(build): update dependencies"
+    "chore(build): update dependencies",
   );
 
   // Bug fix: Handle responses with markdown images
@@ -69,6 +69,6 @@ Based on the diff, I suggest the following commit message:
 feat(ui): improve button design and layout
 
 [Diagram]: https://example.com/diagram-ref.png`,
-    "feat(ui): improve button design and layout"
+    "feat(ui): improve button design and layout",
   );
-}); 
+});
