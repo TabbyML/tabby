@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react'
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
+import { Filepath } from 'tabby-chat-panel/index'
 
 import {
   MARKDOWN_COMMAND_REGEX,
@@ -20,6 +21,8 @@ import {
   IconGitHub,
   IconGitLab
 } from '@/components/ui/icons'
+
+import { getFilepathStringByChatPanelFilePath } from './chat/form-editor/utils'
 
 export function Mention({
   kind,
@@ -108,8 +111,10 @@ export function ThreadTitleWithMentions({
       textPart = textPart.replace(MARKDOWN_FILE_REGEX, (match, content) => {
         try {
           if (content.startsWith('{') && content.endsWith('}')) {
-            const fileInfo = JSON.parse(content)
-            const filename = resolveFileNameForDisplay(fileInfo.filepath)
+            const fileInfo = JSON.parse(content) as Filepath
+            const filepathString =
+              getFilepathStringByChatPanelFilePath(fileInfo)
+            const filename = resolveFileNameForDisplay(filepathString)
             return `@${filename}`
           }
           // Otherwise just use the content as is
@@ -127,7 +132,10 @@ export function ThreadTitleWithMentions({
             if (symbolInfo.label) {
               return `@${symbolInfo.label}`
             }
-            const filename = resolveFileNameForDisplay(symbolInfo.filepath)
+            const filepathString = getFilepathStringByChatPanelFilePath(
+              symbolInfo.filepath
+            )
+            const filename = resolveFileNameForDisplay(filepathString)
             const range = symbolInfo.range
               ? `:${symbolInfo.range.start}-${symbolInfo.range.end}`
               : ''
@@ -143,6 +151,7 @@ export function ThreadTitleWithMentions({
         return `@${cmdPart.replace(/"/g, '')}`
       })
     })
+
     return finalContent
   }, [sources, message])
   return <div className={cn(className)}>{contentWithTags}</div>
