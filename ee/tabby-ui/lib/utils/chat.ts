@@ -25,7 +25,10 @@ import {
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
-import { convertContextBlockToPlaceholder } from './markdown'
+import {
+  convertContextBlockToPlaceholder,
+  formatObjectToMarkdownBlock
+} from './markdown'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [
@@ -354,8 +357,7 @@ export async function processingPlaceholder(
         })
         let replacement = ''
         if (content) {
-          const fileInfoJSON = JSON.stringify(fileInfo).replace(/"/g, '\\"')
-          replacement = `\n\`\`\`context label='file' object='${fileInfoJSON}'\n${content}\n\`\`\`\n`
+          replacement = formatObjectToMarkdownBlock('file', fileInfo, content)
         }
         processedMessage = processedMessage.replace(match[0], replacement)
         tempMessage = tempMessage.replace(match[0], replacement)
@@ -381,8 +383,11 @@ export async function processingPlaceholder(
         })
         let replacement = ''
         if (content) {
-          const symbolInfoJSON = JSON.stringify(symbolInfo).replace(/"/g, '\\"')
-          replacement = `\n\`\`\`context label='symbol' object='${symbolInfoJSON}'\n${content}\n\`\`\`\n`
+          replacement = formatObjectToMarkdownBlock(
+            'symbol',
+            symbolInfo,
+            content
+          )
         }
         processedMessage = processedMessage.replace(match[0], replacement)
         tempMessage = tempMessage.replace(match[0], replacement)
