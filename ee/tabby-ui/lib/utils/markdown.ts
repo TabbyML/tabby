@@ -1,9 +1,23 @@
 import { Parent, Root, RootContent } from 'mdast'
 import { remark } from 'remark'
 import remarkStringify from 'remark-stringify'
+import { Options } from 'remark-stringify'
+
+const REMARK_STRINGIFY_OPTIONS: Options = {
+  bullet: '*',
+  emphasis: '*',
+  fences: true,
+  listItemIndent: 'one',
+  tightDefinitions: true
+}
+
+
+function createRemarkProcessor() {
+  return remark().use(remarkStringify, REMARK_STRINGIFY_OPTIONS)
+}
 
 /**
- * Custom stringification of AST to preserve special patterns
+ * Custom stringification of AST using remarkStringify
  * @param ast AST to stringify
  * @returns Plain string representation
  */
@@ -27,8 +41,7 @@ function nodeToString(node: any): string {
     case 'text':
       return node.value
     default:
-      const processor = remark().use(remarkStringify)
-      return processor.stringify({ type: 'root', children: [node] }).trim()
+      return createRemarkProcessor().stringify({ type: 'root', children: [node] }).trim()
   }
 }
 
@@ -62,8 +75,7 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
     if (node.type === 'code' && node.meta) {
       node.meta?.split(' ').forEach(item => {
         const [key, rawValue] = item.split(/=(.+)/)
-        const value = rawValue?.replace(/^['"]|['"]$/g, '') || ''
-        metas[key] = value
+        metas[key] = rawValue
       })
     }
 
@@ -94,10 +106,11 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
         case 'file':
           if (metas['object']) {
             try {
-              const fileObject = JSON.parse(
-                metas['object'].replace(/\\"/g, '"').replace(/\\/g, '/')
-              )
-              finalCommandText = `[[file:${JSON.stringify(fileObject)}]]`
+              finalCommandText = formatPlaceholder('file', metas['object'])
+              if (!finalCommandText) {
+                shouldProcessNode = false
+                newChildren.push(node)
+              }
             } catch (error) {
               shouldProcessNode = false
               newChildren.push(node)
@@ -107,10 +120,11 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
         case 'symbol':
           if (metas['object']) {
             try {
-              const symbolObject = JSON.parse(
-                metas['object'].replace(/\\"/g, '"').replace(/\\/g, '/')
-              )
-              finalCommandText = `[[symbol:${JSON.stringify(symbolObject)}]]`
+              finalCommandText = formatPlaceholder('symbol', metas['object'])
+              if (!finalCommandText) {
+                shouldProcessNode = false
+                newChildren.push(node)
+              }
             } catch (error) {
               shouldProcessNode = false
               newChildren.push(node)
@@ -180,7 +194,7 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
 }
 
 export function processContextCommand(input: string): string {
-  const processor = remark()
+  const processor = createRemarkProcessor()
   const ast = processor.parse(input) as Root
   ast.children = processCodeBlocksWithLabel(ast)
   return customAstToString(ast)
@@ -188,4 +202,62 @@ export function processContextCommand(input: string): string {
 
 export function convertContextBlockToPlaceholder(input: string): string {
   return processContextCommand(input)
+}
+
+/**
+ * Format an object into a markdown code block with proper metadata
+ * @param label The label for the code block (e.g., 'file', 'symbol')
+ * @param obj The object to format
+ * @param content The content to include in the code block
+ * @returns A formatted markdown code block string
+ */
+export function formatObjectToMarkdownBlock(
+  label: string,
+  obj: any,
+  content: string
+): string {
+  try {
+    // Convert the object to a JSON string
+    const objJSON = JSON.stringify(obj)
+
+    const codeNode: Root = {
+      type: 'root',
+      children: [
+        {
+          type: 'code',
+          lang: 'context',
+          meta: `label=${label} object=${objJSON}`,
+          value: content
+        } as RootContent
+      ]
+    }
+    
+    const processor = createRemarkProcessor()
+    
+    const res = '\n' + processor.stringify(codeNode).trim() + '\n'
+    console.log('res', res)
+    return res;
+  } catch (error) {
+    console.error(`Error formatting ${label} to markdown block:`, error)
+    return `\n*Error formatting ${label}*\n`
+  }
+}
+
+
+
+/**
+ * Format a placeholder with proper backslash escaping
+ * @param type The type of placeholder (e.g., 'file', 'symbol')
+ * @param objStr The string representation of the object
+ * @returns The formatted placeholder text
+ */
+export function formatPlaceholder(type: string, objStr: string): string {
+  if (!objStr) return ''
+  
+  try {
+    return `[[${type}:${objStr}]]`
+  } catch (error) {
+    console.error(`Error formatting ${type} placeholder:`, error)
+    return ''
+  }
 }
