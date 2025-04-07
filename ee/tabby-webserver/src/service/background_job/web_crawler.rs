@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tabby_crawler::{crawl_pipeline, crawler_llms};
 use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocState,
-    StructuredDocWebFields,
+    StructuredDocWebFields, STRUCTURED_DOC_KIND_WEB,
 };
 use tabby_inference::Embedding;
 use tabby_schema::CoreError;
@@ -39,7 +39,7 @@ impl WebCrawlerJob {
     pub async fn run_impl(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         logkit::info!("Starting doc index pipeline for {}", self.url);
         let embedding = embedding.clone();
-        let indexer = StructuredDocIndexer::new(embedding.clone());
+        let indexer = StructuredDocIndexer::new(embedding.clone(), STRUCTURED_DOC_KIND_WEB);
         let mut num_docs = 0;
 
         // attempt to fetch the LLMS file using crawler_llms.

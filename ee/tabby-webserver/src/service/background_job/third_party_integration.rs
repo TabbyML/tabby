@@ -9,7 +9,10 @@ use juniper::ID;
 use pulls::{get_github_pull_doc, list_github_pull_states};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::CodeRepository;
-use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer, StructuredDocState};
+use tabby_index::public::{
+    CodeIndexer, StructuredDoc, StructuredDocIndexer, StructuredDocState,
+    STRUCTURED_DOC_KIND_ISSUE, STRUCTURED_DOC_KIND_PULL,
+};
 use tabby_inference::Embedding;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
@@ -172,7 +175,7 @@ impl SchedulerGithubGitlabJob {
         let mut count = 0;
         let mut num_updated = 0;
 
-        let index = StructuredDocIndexer::new(embedding);
+        let index = StructuredDocIndexer::new(embedding, STRUCTURED_DOC_KIND_PULL);
         while let Some((pull, state)) = pull_state_stream.next().await {
             count += 1;
             if count % 100 == 0 {
@@ -220,7 +223,7 @@ impl SchedulerGithubGitlabJob {
             }
         };
 
-        let index = StructuredDocIndexer::new(embedding);
+        let index = StructuredDocIndexer::new(embedding, STRUCTURED_DOC_KIND_ISSUE);
         stream! {
             let mut count = 0;
             let mut num_updated = 0;

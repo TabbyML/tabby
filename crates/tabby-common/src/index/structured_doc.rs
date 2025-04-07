@@ -31,4 +31,10 @@ pub mod fields {
         pub const AUTHOR_EMAIL: &str = "author_email";
         pub const AUTHOR_AT: &str = "author_at";
     }
+
+    pub mod page {
+        pub const ID: &str = "id";
+        pub const TITLE: &str = "title";
+        pub const CHUNK_CONTENT: &str = "chunk_text";
+    }
 }
