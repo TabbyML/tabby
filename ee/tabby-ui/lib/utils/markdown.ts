@@ -67,7 +67,7 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
 
       switch (metas['label']) {
         case 'changes':
-          finalCommandText = 'changes'
+          finalCommandText = '"changes"'
           placeholderNode = createPlaceholderNode(
             `[[contextCommand:${finalCommandText}]]`
           ) as unknown as RootContent
