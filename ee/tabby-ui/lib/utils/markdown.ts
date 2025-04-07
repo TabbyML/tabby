@@ -8,12 +8,18 @@ const REMARK_STRINGIFY_OPTIONS: Options = {
   emphasis: '*',
   fences: true,
   listItemIndent: 'one',
-  tightDefinitions: true
+  tightDefinitions: true,
+  handlers: {
+    placeholder: (node: PlaceholderNode) => {
+      console.log('placeholder node', node)
+      return node.value
+    }
+  } as any 
 }
 
-
 function createRemarkProcessor() {
-  return remark().use(remarkStringify, REMARK_STRINGIFY_OPTIONS)
+  return remark()
+    .use(remarkStringify, REMARK_STRINGIFY_OPTIONS)
 }
 
 /**
@@ -22,50 +28,14 @@ function createRemarkProcessor() {
  * @returns Plain string representation
  */
 export function customAstToString(ast: Root): string {
-  let result = ''
-  for (const node of ast.children) {
-    result += nodeToString(node) + '\n'
-  }
-  return result.trim()
+  const processor = createRemarkProcessor()
+  return processor.stringify(ast).trim()
 }
+
 
 /**
- * Convert a single node to string
- * @param node AST node
- * @returns String representation
+ * Process code blocks with labels and convert them to placeholders
  */
-function nodeToString(node: any): string {
-  switch (node.type) {
-    case 'paragraph':
-      return paragraphToString(node)
-    case 'text':
-      return node.value
-    default:
-      return createRemarkProcessor().stringify({ type: 'root', children: [node] }).trim()
-  }
-}
-
-/**
- * Convert paragraph node to string
- * @param node Paragraph node
- * @returns String representation
- */
-function paragraphToString(node: any): string {
-  return childrenToString(node)
-}
-
-/**
- * Process children of a node and join them
- * @param node Parent node
- * @returns Combined string of all children
- */
-function childrenToString(node: any): string {
-  if (!node.children || node.children.length === 0) {
-    return ''
-  }
-  return node.children.map((child: any) => nodeToString(child)).join('')
-}
-
 export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
   const newChildren: RootContent[] = []
   for (let i = 0; i < ast.children.length; i++) {
@@ -96,18 +66,19 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
         nextNode.position.start.line - node.position.end.line === 1
 
       let finalCommandText = ''
+      let placeholderNode: RootContent | null = null
       let shouldProcessNode = true
 
-      // processing differet type of context
       switch (metas['label']) {
         case 'changes':
-          finalCommandText = '[[contextCommand:"changes"]]'
+          finalCommandText = 'contextCommand:changes'
+          placeholderNode = createPlaceholderNode(`[[contextCommand:${finalCommandText}]]`) as unknown as RootContent
           break
         case 'file':
           if (metas['object']) {
             try {
-              finalCommandText = formatPlaceholder('file', metas['object'])
-              if (!finalCommandText) {
+              placeholderNode = createPlaceholderNode(`[[file:${metas['object']}]]`) as unknown as RootContent
+              if (!placeholderNode) {
                 shouldProcessNode = false
                 newChildren.push(node)
               }
@@ -120,8 +91,8 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
         case 'symbol':
           if (metas['object']) {
             try {
-              finalCommandText = formatPlaceholder('symbol', metas['object'])
-              if (!finalCommandText) {
+              placeholderNode = createPlaceholderNode(`[[symbol:${metas['object']}]]`) as unknown as RootContent
+              if (!placeholderNode) {
                 shouldProcessNode = false
                 newChildren.push(node)
               }
@@ -154,7 +125,7 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
           type: 'paragraph',
           children: [
             ...(prevNode.children || []),
-            { type: 'text', value: ` ${finalCommandText} ` },
+            placeholderNode || { type: 'text', value: ` ${finalCommandText} ` },
             ...(nextNode.children || [])
           ]
         } as RootContent)
@@ -167,7 +138,7 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
         newChildren.push({
           type: 'paragraph',
           children: [
-            { type: 'text', value: `${finalCommandText} ` },
+            placeholderNode || { type: 'text', value: `${finalCommandText} ` },
             ...(nextNode.children || [])
           ]
         } as RootContent)
@@ -176,14 +147,15 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
         prevNode.type === 'paragraph' &&
         isPrevNodeSameLine
       ) {
-        ;(prevNode.children || []).push({
-          type: 'text',
-          value: ` ${finalCommandText}`
-        })
+        ;(prevNode.children || []).push(
+          placeholderNode || { type: 'text', value: ` ${finalCommandText}` }
+        )
       } else {
         newChildren.push({
           type: 'paragraph',
-          children: [{ type: 'text', value: finalCommandText }]
+          children: [
+            placeholderNode || { type: 'text', value: finalCommandText }
+          ]
         } as RootContent)
       }
     } else {
@@ -217,7 +189,6 @@ export function formatObjectToMarkdownBlock(
   content: string
 ): string {
   try {
-    // Convert the object to a JSON string
     const objJSON = JSON.stringify(obj)
 
     const codeNode: Root = {
@@ -235,29 +206,24 @@ export function formatObjectToMarkdownBlock(
     const processor = createRemarkProcessor()
     
     const res = '\n' + processor.stringify(codeNode).trim() + '\n'
-    console.log('res', res)
     return res;
   } catch (error) {
-    console.error(`Error formatting ${label} to markdown block:`, error)
     return `\n*Error formatting ${label}*\n`
   }
 }
 
 
 
-/**
- * Format a placeholder with proper backslash escaping
- * @param type The type of placeholder (e.g., 'file', 'symbol')
- * @param objStr The string representation of the object
- * @returns The formatted placeholder text
- */
-export function formatPlaceholder(type: string, objStr: string): string {
-  if (!objStr) return ''
-  
-  try {
-    return `[[${type}:${objStr}]]`
-  } catch (error) {
-    console.error(`Error formatting ${type} placeholder:`, error)
-    return ''
-  }
+
+
+export interface PlaceholderNode extends Node {
+  type: 'placeholder'
+  value: string
+}
+
+export function createPlaceholderNode(value: string): PlaceholderNode {
+  return {
+    type: 'placeholder',
+    value: value,
+  } as PlaceholderNode
 }

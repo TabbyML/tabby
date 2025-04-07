@@ -130,6 +130,7 @@
     "swr": "^2.2.4",
     "tabby-chat-panel": "workspace:*",
     "tippy.js": "^6.3.7",
+    "unified": "^11.0.5",
     "urql": "^4.0.6",
     "use-local-storage": "^3.0.0",
     "wonka": "^6.3.4",
