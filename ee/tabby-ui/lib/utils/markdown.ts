@@ -254,8 +254,9 @@ export function shouldAddPrefixNewline(index: number, text: string): boolean {
   let i = index - 1
   while (i >= 0) {
     if (text[i] === '\n') return false
-    if (text[i] === '\r' && i + 1 < text.length && text[i + 1] === '\n')
+    if (text[i] === '\r' && i + 1 < text.length && text[i + 1] === '\n') {
       return false
+    }
 
     if (!/\s/.test(text[i])) return true
 
