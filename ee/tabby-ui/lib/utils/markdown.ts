@@ -65,7 +65,6 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
       let placeholderNode: RootContent | null = null
       let shouldProcessNode = true
 
-
       switch (metas['label']) {
         case 'changes':
           finalCommandText = '"changes"'
@@ -132,7 +131,11 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
             ...(nextNode.children || [])
           ],
           position: {
-            start: prevNode.position?.start || { line: 0, column: 0, offset: 0 },
+            start: prevNode.position?.start || {
+              line: 0,
+              column: 0,
+              offset: 0
+            },
             end: nextNode.position?.end || { line: 0, column: 0, offset: 0 }
           }
         } as RootContent)
@@ -162,7 +165,7 @@ export function processCodeBlocksWithLabel(ast: Root): RootContent[] {
           placeholderNode || { type: 'text', value: ` ${finalCommandText}` }
         )
         if (prevNode.position && node.position) {
-          prevNode.position.end = node.position.end;
+          prevNode.position.end = node.position.end
         }
       } else {
         newChildren.push({
@@ -204,8 +207,8 @@ export function formatObjectToMarkdownBlock(
   obj: any,
   content: string,
   options?: {
-    addPrefixNewline?: boolean;
-    addSuffixNewline?: boolean;
+    addPrefixNewline?: boolean
+    addSuffixNewline?: boolean
   }
 ): string {
   try {
@@ -226,14 +229,16 @@ export function formatObjectToMarkdownBlock(
 
     const processor = createRemarkProcessor()
     const formattedContent = processor.stringify(codeNode).trim()
-    
+
     const prefix = addPrefixNewline ? '\n' : ''
     const suffix = addSuffixNewline ? '\n' : ''
-    
+
     return `${prefix}${formattedContent}${suffix}`
   } catch (error) {
     const { addPrefixNewline = true, addSuffixNewline = true } = options || {}
-    return `${addPrefixNewline ? '\n' : ''}*Error formatting ${label}*${addSuffixNewline ? '\n' : ''}`
+    return `${addPrefixNewline ? '\n' : ''}*Error formatting ${label}*${
+      addSuffixNewline ? '\n' : ''
+    }`
   }
 }
 
@@ -249,7 +254,8 @@ export function shouldAddPrefixNewline(index: number, text: string): boolean {
   let i = index - 1
   while (i >= 0) {
     if (text[i] === '\n') return false
-    if (text[i] === '\r' && i + 1 < text.length && text[i + 1] === '\n') return false
+    if (text[i] === '\r' && i + 1 < text.length && text[i + 1] === '\n')
+      return false
 
     if (!/\s/.test(text[i])) return true
 
@@ -280,7 +286,6 @@ export function shouldAddSuffixNewline(index: number, text: string): boolean {
 
   return false
 }
-
 
 export interface PlaceholderNode extends Node {
   type: 'placeholder'
