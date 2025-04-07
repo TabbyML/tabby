@@ -142,9 +142,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   }
 
   const processedContent = useMemo(() => {
-   const afterConvert = convertContextBlockToPlaceholder(message.content)
-   console.log('afterConvert', afterConvert)
-   return afterConvert
+    return convertContextBlockToPlaceholder(message.content)
   }, [message.content])
 
   return (
