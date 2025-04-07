@@ -1,3 +1,27 @@
+## 1.26.0
+
+### Features
+
+- **Chat Panel**:
+
+  - Requires Tabby Server `0.27.0` or later.
+  - Added support for executing suggested shell scripts directly via a button in the code component, similar to the `Apply in Editor` feature.
+  - Added support for using `@changes` to include the current Git diff into the context.
+  - You can now select code in the editor and use the `Code Review` option from the context menu to review your code and add comments using Tabby Chat.
+  - Improved the UI for file and symbol context included by `@`.
+
+- **Code Completion**:
+
+  - Added support for disabling code completion for specific languages. This can be configured via the status bar item menu or in advanced settings.
+
+- **Inline Edit**:
+
+  - Added support for including symbols as context. Use `@` to trigger a quick pick and select `Symbols` to choose available items.
+
+- **Git Integration**:
+  - Improved the `Generate Commit Messages` command. After generating commit messages, if you are still on the `main` or `master` branch, Tabby will automatically prompt you to create a new branch with suggested branch names.
+  - Added a new `Create Branch with Suggestions` command, accessible from the command palette.
+
 ## 1.24.0
 
 ### Features
