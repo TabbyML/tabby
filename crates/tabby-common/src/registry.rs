@@ -40,10 +40,9 @@ fn models_json_file(registry: &str) -> PathBuf {
 }
 
 async fn load_remote_registry(registry: &str) -> Result<Vec<ModelInfo>> {
-    // Create a client with custom timeout.
-    // There have been instances where requests did not adhere to the default timeout,
-    // resulting in requests hanging indefinitely.
-    // Therefore, it's necessary to specify a custom timeout.
+    // Create an HTTP client with a custom timeout.
+    // This is necessary because the default timeout settings can sometimes cause requests to hang indefinitely.
+    // To prevent such issues, we specify a custom timeout duration.
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
