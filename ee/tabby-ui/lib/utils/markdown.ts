@@ -11,7 +11,6 @@ const REMARK_STRINGIFY_OPTIONS: Options = {
   tightDefinitions: true,
   handlers: {
     placeholder: (node: PlaceholderNode) => {
-      console.log('placeholder node', node)
       return node.value
     }
   } as any 
