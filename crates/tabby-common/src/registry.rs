@@ -40,15 +40,26 @@ fn models_json_file(registry: &str) -> PathBuf {
 }
 
 async fn load_remote_registry(registry: &str) -> Result<Vec<ModelInfo>> {
-    let model_info = reqwest::get(format!(
-        "https://raw.githubusercontent.com/{}/registry-tabby/main/models.json",
-        registry
-    ))
-    .await
-    .context("Failed to download")?
-    .json()
-    .await
-    .context("Failed to get JSON")?;
+    // Create an HTTP client with a custom timeout.
+    // This is necessary because the default timeout settings can sometimes cause requests to hang indefinitely.
+    // To prevent such issues, we specify a custom timeout duration.
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .context("Failed to build HTTP client")?;
+
+    let model_info = client
+        .get(format!(
+            "https://raw.githubusercontent.com/{}/registry-tabby/main/models.json",
+            registry
+        ))
+        .send()
+        .await
+        .context("Failed to download")?
+        .json()
+        .await
+        .context("Failed to get JSON")?;
+
     let dir = models_dir().join(registry);
     // We don't want to fail if the TabbyML directory already exists,
     // which is exactly, what `create_dir_all` will do, see
