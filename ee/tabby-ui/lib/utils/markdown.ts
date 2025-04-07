@@ -245,14 +245,17 @@ export function formatObjectToMarkdownBlock(
  */
 export function shouldAddPrefixNewline(index: number, text: string): boolean {
   if (index === 0) return false
-  
+
   let i = index - 1
   while (i >= 0) {
     if (text[i] === '\n') return false
+    if (text[i] === '\r' && i + 1 < text.length && text[i + 1] === '\n') return false
+
     if (!/\s/.test(text[i])) return true
+
     i--
   }
-  
+
   return false
 }
 
@@ -265,16 +268,19 @@ export function shouldAddPrefixNewline(index: number, text: string): boolean {
 export function shouldAddSuffixNewline(index: number, text: string): boolean {
   const len = text.length
   if (index >= len) return false
-  
+
   let i = index
   while (i < len) {
     if (text[i] === '\n') return false
+    if (text[i] === '\r' && i + 1 < len && text[i + 1] === '\n') return false
+
     if (!/\s/.test(text[i])) return true
     i++
   }
-  
+
   return false
 }
+
 
 export interface PlaceholderNode extends Node {
   type: 'placeholder'
