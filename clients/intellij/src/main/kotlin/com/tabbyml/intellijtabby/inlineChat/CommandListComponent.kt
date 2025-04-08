@@ -9,11 +9,7 @@ import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import java.awt.BorderLayout
-import java.awt.Component
-import java.awt.Cursor
-import java.awt.Dimension
-import java.awt.Rectangle
+import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.function.Consumer
@@ -219,7 +215,7 @@ class CustomListItemRenderer(private val getHoveredIndex: () -> Int) : JPanel(),
                 return null
             }
             val cellBounds = list.getCellBounds(index, index) ?: return null
-            val renderer = CustomListItemRenderer {index}
+            val renderer = CustomListItemRenderer { index }
             renderer.getListCellRendererComponent(list, item, index, true, false)
             val prefSize = renderer.preferredSize
             renderer.setBounds(0, 0, cellBounds.width, prefSize.height)

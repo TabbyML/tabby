@@ -173,7 +173,7 @@
         <group id="Tabby.EditorContext" popup="true" text="Tabby">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <action id="Tabby.InlineChat.Open" class="com.tabbyml.intellijtabby.inlineChat.InlineChatAction"
-                    text="Open Tabby Inline Chat"
+                    text="Open Tabby Inline Edit"
                     description="Open a inline chat widget to chat with Tabby to modify your code.">
                 <keyboard-shortcut first-keystroke="ctrl I" keymap="$default"/>
             </action>
@@ -264,15 +264,15 @@
 
         <action id="Tabby.InlineChat.Resolve.Accept"
                 class="com.tabbyml.intellijtabby.inlineChat.InlineChatAcceptAction"
-                text="Accept Inline Chat"
-                description="Accept the inline chat suggestion.">
+                text="Accept Inline Edit"
+                description="Accept the inline edit suggestion.">
             <keyboard-shortcut first-keystroke="ctrl shift D" keymap="$default"/>
         </action>
 
         <action id="Tabby.InlineChat.Resolve.Discard"
                 class="com.tabbyml.intellijtabby.inlineChat.InlineChatDiscardAction"
-                text="Discard Inline Chat"
-                description="Discard the inline chat suggestion.">
+                text="Discard Inline Edit"
+                description="Discard the inline edit suggestion.">
             <keyboard-shortcut first-keystroke="ctrl ESCAPE" keymap="$default"/>
         </action>
     </actions>

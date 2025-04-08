@@ -2,13 +2,13 @@ package com.tabbyml.intellijtabby.inlineChat
 
 import com.google.gson.JsonObject
 import com.intellij.codeHighlighting.*
-import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -18,7 +18,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.eclipse.lsp4j.CodeLens
-import java.awt.*
+import java.awt.Color
+import java.awt.Font
 
 class DiffHighlighterRegister : TextEditorHighlightingPassFactoryRegistrar {
     override fun registerHighlightingPassFactory(register: TextEditorHighlightingPassRegistrar, project: Project) {

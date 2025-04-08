@@ -2,15 +2,16 @@ package com.tabbyml.intellijtabby.inlineChat
 
 import com.intellij.openapi.components.*
 
-class CommandHistoryState: BaseState() {
+class CommandHistoryState : BaseState() {
     var history by list<String>()
 }
 
 @Service
 @State(
-    name = "com.tabbyml.intellijtabby.inlineChat.CommandHistory", storages = [Storage("intellij-tabby-command-history.xml")]
+    name = "com.tabbyml.intellijtabby.inlineChat.CommandHistory",
+    storages = [Storage("intellij-tabby-command-history.xml")]
 )
-class CommandHistory: SimplePersistentStateComponent<CommandHistoryState>(CommandHistoryState()) {
+class CommandHistory : SimplePersistentStateComponent<CommandHistoryState>(CommandHistoryState()) {
     private val maxHistorySize = 30
 
     fun getHistory(): List<String> {

@@ -21,10 +21,13 @@ import javax.swing.Icon
 
 abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware {
     override val defaultAnchor: CodeVisionAnchorKind = CodeVisionAnchorKind.Top
+
     // provider id
     abstract override val id: String
+
     // action name
     abstract val action: String
+
     // execute action id
     abstract val actionId: String
     abstract val icon: Icon
@@ -42,11 +45,22 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
             .getFile(editor.document)
         val uri = virtualFile?.url ?: return READY_EMPTY
         val codeLenses = getCodeLenses(project, uri).get() ?: return READY_EMPTY
-        val codelens = codeLenses.firstOrNull() { it.command != null && (it.command?.arguments?.firstOrNull() as JsonObject?)?.get("action")?.asString == action } ?: return READY_EMPTY
+        val codelens = codeLenses.firstOrNull() {
+            it.command != null && (it.command?.arguments?.firstOrNull() as JsonObject?)?.get("action")?.asString == action
+        } ?: return READY_EMPTY
         inlineChatService.inlineChatEditing = true
-        inlineChatService.location = Location(uri, Range(Position(codelens.range.start.line, codelens.range.start.character), Position(codelens.range.end.line, codelens.range.end.character)))
+        inlineChatService.location = Location(
+            uri,
+            Range(
+                Position(codelens.range.start.line, codelens.range.start.character),
+                Position(codelens.range.end.line, codelens.range.end.character)
+            )
+        )
         val prefixRegex = Regex("""^\$\(.*?\)""")
-        val title = codelens.command.title.replace(prefixRegex, "") + " (${KeymapUtil.getFirstKeyboardShortcutText(getAction())})"
+        val title = codelens.command.title.replace(
+            prefixRegex,
+            ""
+        ) + " (${KeymapUtil.getFirstKeyboardShortcutText(getAction())})"
         val startOffset = document.getLineStartOffset(codelens.range.start.line) + codelens.range.start.character
         val endOffset = document.getLineStartOffset(codelens.range.end.line) + codelens.range.end.character
         val entry =

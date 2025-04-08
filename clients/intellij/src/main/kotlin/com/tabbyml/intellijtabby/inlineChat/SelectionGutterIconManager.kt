@@ -120,7 +120,7 @@ class SelectionGutterIconManager : ProjectActivity {
 
                 override fun hashCode(): Int = javaClass.hashCode()
 
-                override fun getTooltipText(): String = "Open Tabby inline chat"
+                override fun getTooltipText(): String = "Open Tabby inline edit"
 
                 override fun getClickAction(): AnAction {
                     return InlineChatAction()

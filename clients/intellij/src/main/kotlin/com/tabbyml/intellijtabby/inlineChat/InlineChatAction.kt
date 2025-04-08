@@ -1,10 +1,8 @@
 package com.tabbyml.intellijtabby.inlineChat
 
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.serviceOrNull
-import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.ChatEditResolveParams

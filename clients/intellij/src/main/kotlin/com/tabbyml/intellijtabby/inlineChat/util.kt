@@ -2,7 +2,6 @@ package com.tabbyml.intellijtabby.inlineChat
 
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.ChatEditCommand
@@ -16,10 +15,7 @@ import java.util.concurrent.CompletableFuture
 data class LocationInfo(val location: Location, val startOffset: Int)
 
 fun getCurrentLocation(editor: Editor): LocationInfo {
-    val file = editor.document.let {
-        FileDocumentManager.getInstance().getFile(it)
-    }
-    val fileUri = file?.let { "file://${it.path}" }
+    val fileUri = editor.virtualFile.url
     val location = Location()
     location.uri = fileUri
     val selectionModel = editor.selectionModel

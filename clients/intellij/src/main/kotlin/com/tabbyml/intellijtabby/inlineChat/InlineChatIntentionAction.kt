@@ -1,6 +1,6 @@
 package com.tabbyml.intellijtabby.inlineChat
 
-import com.intellij.codeInsight.intention.impl.BaseIntentionAction;
+import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.icons.AllIcons
 import com.intellij.ide.ui.LafManagerListener
@@ -13,20 +13,26 @@ import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiFile
+import com.intellij.ui.components.IconLabelButton
 import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.UIUtil
-import java.awt.*
-import java.awt.event.*
-import javax.swing.*
-import com.intellij.ui.components.IconLabelButton
-import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.ChatEditParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.Range
+import java.awt.*
+import java.awt.event.FocusAdapter
+import java.awt.event.FocusEvent
+import java.awt.event.KeyEvent
+import java.awt.event.KeyListener
+import javax.swing.BorderFactory
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.JTextArea
 
 class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
     private var inlay: Inlay<InlineChatInlayRenderer>? = null
@@ -60,7 +66,7 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
     }
 
     override fun getText(): String {
-        return "Open Tabby inline chat";
+        return "Open Tabby inline edit";
     }
 
     override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo {
@@ -223,7 +229,7 @@ class InlineChatComponent(
 
     private fun createCloseButton(): JLabel {
         val closeButton = IconLabelButton(AllIcons.Actions.Close) { handleClose() }
-        closeButton.toolTipText = "Close Tabby inline chat"
+        closeButton.toolTipText = "Close Tabby inline edit"
         closeButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
         closeButton.border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
         return closeButton
@@ -336,7 +342,7 @@ class InlineInputComponent(
     }
 
     private fun createSubmitButton(): JLabel {
-        val submitButton = IconLabelButton(AllIcons.Actions.Commit) { handleConfirm() }
+        val submitButton = IconLabelButton(AllIcons.Chooser.Right) { handleConfirm() }
         submitButton.toolTipText = "Submit the command"
         submitButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
         submitButton.border = BorderFactory.createEmptyBorder(4, 8, 4, 8)
@@ -383,7 +389,7 @@ class InlineInputComponent(
             CommandListItem(
                 label = it.label,
                 value = it.command,
-                icon = AllIcons.Debugger.ThreadRunning,
+                icon = AllIcons.Actions.IntentionBulbGrey,
                 description = it.command,
                 canDelete = false
             )
