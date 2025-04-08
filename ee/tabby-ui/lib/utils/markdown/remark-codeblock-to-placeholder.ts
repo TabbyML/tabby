@@ -2,14 +2,18 @@
  * Transformer plugin for processing code blocks with labels and converting them to placeholders
  */
 
-import { Parent, Root, RootContent, Code } from 'mdast'
+import { Code, Parent, Root, RootContent } from 'mdast'
 import { Plugin } from 'unified'
+
 import { PlaceholderNode } from './remark-placeholder-parser'
 
 /**
  * Creates a placeholder node from a given type and object
  */
-export function createPlaceholderNode(placeholderType: string, obj: any): PlaceholderNode {
+export function createPlaceholderNode(
+  placeholderType: string,
+  obj: any
+): PlaceholderNode {
   return {
     type: 'placeholder',
     placeholderType: placeholderType,
@@ -22,9 +26,11 @@ export function createPlaceholderNode(placeholderType: string, obj: any): Placeh
 /**
  * Process metadata from code blocks and extract label and object information
  */
-export function parseCodeBlockMeta(meta: string | null | undefined): Record<string, string> {
+export function parseCodeBlockMeta(
+  meta: string | null | undefined
+): Record<string, string> {
   const metas: Record<string, string> = {}
-  
+
   if (meta) {
     meta.split(' ').forEach(item => {
       const [key, rawValue] = item.split(/=(.+)/)
@@ -33,14 +39,14 @@ export function parseCodeBlockMeta(meta: string | null | undefined): Record<stri
       }
     })
   }
-  
+
   return metas
 }
 
 /**
  * Remark plugin for processing code blocks with labels and converting them to placeholders
  */
-export const remarkCodeBlocksToPlaceholders: Plugin = function() {
+export const remarkCodeBlocksToPlaceholders: Plugin = function () {
   return function transformer(tree) {
     if (tree.type === 'root') {
       const root = tree as Root
@@ -58,20 +64,20 @@ function processCodeBlocksWithLabel(ast: Root): RootContent[] {
   const newChildren: RootContent[] = []
   for (let i = 0; i < ast.children.length; i++) {
     const node = ast.children[i]
-    
+
     if (node.type !== 'code') {
       newChildren.push(node)
       continue
     }
-    
+
     const codeNode = node as Code
     const metas = parseCodeBlockMeta(codeNode.meta)
-    
+
     if (!metas['label']) {
       newChildren.push(node)
       continue
     }
-    
+
     const prevNode = newChildren[newChildren.length - 1] as Parent | undefined
     const nextNode = ast.children[i + 1] as Parent | undefined
 

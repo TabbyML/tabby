@@ -1,8 +1,13 @@
 import { Root, RootContent } from 'mdast'
 import { remark } from 'remark'
 import remarkStringify, { Options } from 'remark-stringify'
-import { PlaceholderNode, placeholderToString, remarkPlaceholderParser } from './markdown/remark-placeholder-parser'
+
 import { remarkCodeBlocksToPlaceholders } from './markdown/remark-codeblock-to-placeholder'
+import {
+  PlaceholderNode,
+  placeholderToString,
+  remarkPlaceholderParser
+} from './markdown/remark-placeholder-parser'
 
 const REMARK_STRINGIFY_OPTIONS: Options = {
   bullet: '*',
@@ -14,7 +19,7 @@ const REMARK_STRINGIFY_OPTIONS: Options = {
     placeholder: (node: PlaceholderNode) => {
       // It's should create a formatted plugin for this, but for now, it's just a simple function
       return placeholderToString(node)
-    },
+    }
   } as any
 }
 
@@ -45,7 +50,6 @@ export function parseMarkdownWithContextCommands(input: string): string {
   const ast = processor.runSync(processor.parse(input)) as Root
   return customAstToString(ast)
 }
-
 
 /**
  * Convert context blocks in markdown to placeholder nodes (legacy function name)
