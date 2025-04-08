@@ -291,7 +291,7 @@ export function getTitleFromMessages(
       }
     })
     .replace(PLACEHOLDER_COMMAND_REGEX, value => {
-      const command = value.slice(17, -3)
+      const command = value.slice(17, -2)
       return `@${command}`
     })
     .trim()
