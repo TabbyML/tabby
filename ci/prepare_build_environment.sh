@@ -27,9 +27,13 @@ if [[ "$OSTYPE" == "linux"* ]]; then
     yum -y install openblas-devel perl-IPC-Cmd unzip openssl-devel
 
     # Install newer version of curl to support `--fail-with-body` on vulkan-sdk-install
-    curl -SLO https://mirror.city-fan.org/ftp/contrib/sysutils/Mirroring/curl-8.12.1-1.0.cf.rhel8.x86_64.rpm
-    curl -SLO https://mirror.city-fan.org/ftp/contrib/sysutils/Mirroring/libcurl-8.12.1-1.0.cf.rhel8.x86_64.rpm
-    rpm -Uvh curl-8.12.1-1.0.cf.rhel8.x86_64.rpm libcurl-8.12.1-1.0.cf.rhel8.x86_64.rpm
+    # The outdated release RPMs will be cleaned up from the city-fan.org mirror; therefore, we must first obtain the latest version.
+    base_url="https://mirror.city-fan.org/ftp/contrib/sysutils/Mirroring"
+    curl_rpm=$(curl -s $base_url/ | grep -oE 'curl-[0-9\.-]+\.cf\.rhel8\.x86_64\.rpm' | sort -V -u | tail -n 1)
+    libcurl_rpm=$(curl -s $base_url/ | grep -oE 'libcurl-[0-9\.-]+\.cf\.rhel8\.x86_64\.rpm' | sort -V -u | tail -n 1)
+    curl -SLO $base_url/$curl_rpm
+    curl -SLO $base_url/$libcurl_rpm
+    rpm -Uvh $curl_rpm $libcurl_rpm
 
     # Disable safe directory in docker
     git config --system --add safe.directory "*"
