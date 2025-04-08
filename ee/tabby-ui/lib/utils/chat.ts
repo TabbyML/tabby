@@ -14,6 +14,12 @@ import {
 } from '@/lib/gql/generates/graphql'
 import type { MentionAttributes } from '@/lib/types'
 import {
+  convertContextBlockToPlaceholder,
+  formatObjectToMarkdownBlock,
+  shouldAddPrefixNewline,
+  shouldAddSuffixNewline
+} from '@/lib/utils/markdown'
+import {
   convertChangeItemsToContextContent,
   hasChangesCommand
 } from '@/components/chat/git/utils'
@@ -25,10 +31,6 @@ import {
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX
 } from '../constants/regex'
-import {
-  convertContextBlockToPlaceholder,
-  formatObjectToMarkdownBlock
-} from './markdown'
 
 export const isCodeSourceContext = (kind: ContextSourceKind) => {
   return [
@@ -355,10 +357,21 @@ export async function processingPlaceholder(
           filepath: fileInfo,
           range: undefined
         })
+
         let replacement = ''
         if (content) {
-          replacement = formatObjectToMarkdownBlock('file', fileInfo, content)
+          const matchIndex = match.index
+          const matchEnd = matchIndex + match[0].length
+
+          replacement = formatObjectToMarkdownBlock('file', fileInfo, content, {
+            addPrefixNewline: shouldAddPrefixNewline(
+              matchIndex,
+              processedMessage
+            ),
+            addSuffixNewline: shouldAddSuffixNewline(matchEnd, processedMessage)
+          })
         }
+
         processedMessage = processedMessage.replace(match[0], replacement)
         tempMessage = tempMessage.replace(match[0], replacement)
         fileRegex.lastIndex = 0
@@ -381,14 +394,29 @@ export async function processingPlaceholder(
           filepath: symbolInfo.filepath,
           range: symbolInfo.range
         })
+
         let replacement = ''
         if (content) {
+          const matchIndex = match.index
+          const matchEnd = matchIndex + match[0].length
+
           replacement = formatObjectToMarkdownBlock(
             'symbol',
             symbolInfo,
-            content
+            content,
+            {
+              addPrefixNewline: shouldAddPrefixNewline(
+                matchIndex,
+                processedMessage
+              ),
+              addSuffixNewline: shouldAddSuffixNewline(
+                matchEnd,
+                processedMessage
+              )
+            }
           )
         }
+
         processedMessage = processedMessage.replace(match[0], replacement)
         tempMessage = tempMessage.replace(match[0], replacement)
         symbolRegex.lastIndex = 0
