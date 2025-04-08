@@ -10,8 +10,7 @@ describe('parsePlaceholder', () => {
     expect(result?.matchLength).toBe(text.length);
     expect(result?.placeholderNode.type).toBe('placeholder');
     expect(result?.placeholderNode.placeholderType).toBe('source');
-    expect(result?.placeholderNode.attributes.source).toBe('github');
-    expect(result?.placeholderNode.attributes.documentId).toBe('E12n3q');
+    expect(result?.placeholderNode.attributes.sourceId).toBe('github:E12n3q');
   });
 
   it('should parse file placeholder correctly', () => {
@@ -143,8 +142,7 @@ describe('transformPlaceholders', () => {
     expect(result.children[0].children[0].value).toBe('This is a ');
     expect(result.children[0].children[1].type).toBe('placeholder');
     expect(result.children[0].children[1].placeholderType).toBe('source');
-    expect(result.children[0].children[1].attributes.source).toBe('github');
-    expect(result.children[0].children[1].attributes.documentId).toBe('E12n3q');
+    expect(result.children[0].children[1].attributes.sourceId).toBe('github:E12n3q');
     expect(result.children[0].children[2].type).toBe('text');
     expect(result.children[0].children[2].value).toBe(' reference.');
   });

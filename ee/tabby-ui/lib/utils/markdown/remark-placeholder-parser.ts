@@ -43,7 +43,7 @@ export function parsePlaceholder(
         type: 'placeholder',
         placeholderType: 'undefined',
         attributes: {
-          content: content
+          content: text
         }
       },
       matchLength
@@ -55,21 +55,18 @@ export function parsePlaceholder(
 
   switch (prefix) {
     case 'source': {
-      const parts = content.split(':')
-      if (parts.length >= 3) {
+      if (!!restContent) {
         return {
           placeholderNode: {
             type: 'placeholder',
             placeholderType: 'source',
             attributes: {
-              source: parts[1],
-              documentId: parts[2]
+              sourceId: restContent
             }
           },
           matchLength
         }
       }
-      break
     }
     case 'file': {
       const value = restContent
@@ -111,13 +108,12 @@ export function parsePlaceholder(
       }
     }
     default: {
-      const parts = content.split(':')
       return {
         placeholderNode: {
           type: 'placeholder',
           placeholderType: 'undefined',
           attributes: {
-            content: 'undefined'
+            content: match[0]
           }
         },
         matchLength
@@ -201,7 +197,7 @@ export function placeholderToString(node: PlaceholderNode): string {
   switch (node.placeholderType) {
     case 'source':
       return formatPlaceholder(
-        `[[source:${node.attributes.source}:${node.attributes.documentId}]]`
+        `[[source:${node.attributes.sourceId}]]`
       )
     case 'file':
       return formatPlaceholder(`[[file:${node.attributes.object}]]`)
@@ -211,6 +207,6 @@ export function placeholderToString(node: PlaceholderNode): string {
       return formatPlaceholder(`[[contextCommand:${node.attributes.command}]]`)
     case 'undefined':
     default:
-      return 'cannotFindThePlaceholderType'
+      return node.attributes.content ?? ''
   }
 }
