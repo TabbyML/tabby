@@ -90,7 +90,7 @@ describe('parsePlaceholder', () => {
     expect(result?.matchLength).toBe(text.length);
     expect(result?.placeholderNode.type).toBe('placeholder');
     expect(result?.placeholderNode.placeholderType).toBe('undefined');
-    expect(result?.placeholderNode.attributes.content).toBe('simpleplaceholder');
+    expect(result?.placeholderNode.attributes.content).toBe('[[simpleplaceholder]]');
   });
 
   it('should handle unknown prefix correctly', () => {
@@ -101,7 +101,7 @@ describe('parsePlaceholder', () => {
     expect(result?.matchLength).toBe(text.length);
     expect(result?.placeholderNode.type).toBe('placeholder');
     expect(result?.placeholderNode.placeholderType).toBe('undefined');
-    expect(result?.placeholderNode.attributes.content).toBe('undefined');
+    expect(result?.placeholderNode.attributes.content).toBe('[[unknown:value]]');
   });
 
   it('should return null for invalid placeholder syntax', () => {
