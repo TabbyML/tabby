@@ -10,7 +10,7 @@ const REMARK_STRINGIFY_OPTIONS: Options = {
   tightDefinitions: true,
   handlers: {
     placeholder: (node: PlaceholderNode) => {
-      return node.value
+      return " "+ node.value + " "
     }
   } as any
 }
