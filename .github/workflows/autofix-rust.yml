@@ -41,9 +41,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.7
-        with:
-          version: "v0.10.0"
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Install cargo-machete
         uses: actions-rs/cargo@v1
