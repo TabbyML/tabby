@@ -99,7 +99,7 @@ function processCodeBlocksWithLabel(ast: Root): RootContent[] {
 
     switch (metas['label']) {
       case 'changes':
-        finalCommandText = '"changes"'
+        finalCommandText = 'changes'
         const objNode: PlaceholderNode = {
           type: 'placeholder',
           placeholderType: 'contextCommand',

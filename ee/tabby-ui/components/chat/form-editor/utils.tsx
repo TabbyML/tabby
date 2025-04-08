@@ -4,8 +4,6 @@ import { FileBox, SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
 
 import {
-  MARKDOWN_SOURCE_REGEX,
-  PLACEHOLDER_COMMAND_REGEX,
   PLACEHOLDER_FILE_REGEX,
   PLACEHOLDER_SYMBOL_REGEX
 } from '@/lib/constants/regex'
@@ -115,11 +113,14 @@ export function convertTextToTiptapContent(
 ): JSONContent[] {
   const nodes: JSONContent[] = []
   let lastIndex = 0
-  text.replace(PLACEHOLDER_FILE_REGEX, (match, filepath, offset) => {
-    const content = JSON.parse(filepath) as Filepath
-    const label = resolveFileNameForDisplay(
-      'uri' in content ? content.uri : content.filepath
-    )
+
+  // Single regex to match all placeholder types: [[type:content]]
+  const unifiedRegex = /\[\[(file|contextCommand|symbol|source):(.+?)\]\]/g
+  let match
+
+  while ((match = unifiedRegex.exec(text)) !== null) {
+    const [fullMatch, type, content] = match
+    const offset = match.index
 
     // Add text before the match as a text node
     if (offset > lastIndex) {
@@ -128,92 +129,75 @@ export function convertTextToTiptapContent(
         text: text.slice(lastIndex, offset)
       })
     }
+
     try {
-      // Add mention node
-      nodes.push({
-        type: 'mention',
-        attrs: {
-          category: 'file',
-          fileItem: {
-            filepath: JSON.parse(filepath)
-          },
-          label: label
+      // Handle each placeholder type
+      switch (type) {
+        case 'file': {
+          const fileData = JSON.parse(content) as Filepath
+          const label = resolveFileNameForDisplay(
+            'uri' in fileData ? fileData.uri : fileData.filepath
+          )
+
+          nodes.push({
+            type: 'mention',
+            attrs: {
+              category: 'file',
+              fileItem: {
+                filepath: fileData
+              },
+              label
+            }
+          })
+          break
         }
-      })
-    } catch (e) {}
 
-    lastIndex = offset + match.length
-    return match
-  })
+        case 'symbol': {
+          const symbolData = JSON.parse(content) as ListSymbolItem
+          const label = symbolData.label || ''
 
-  text.replace(PLACEHOLDER_SYMBOL_REGEX, (match, symbol, offset) => {
-    const content = JSON.parse(symbol) as ListSymbolItem
-
-    const label = content.label || ''
-    // Add text before the match as a text node
-    if (offset > lastIndex) {
-      nodes.push({
-        type: 'text',
-        text: text.slice(lastIndex, offset)
-      })
-    }
-    try {
-      // Add mention node
-      nodes.push({
-        type: 'mention',
-        attrs: {
-          category: 'symbol',
-          fileItem: content,
-          label: label
+          nodes.push({
+            type: 'mention',
+            attrs: {
+              category: 'symbol',
+              fileItem: symbolData,
+              label
+            }
+          })
+          break
         }
-      })
-    } catch (e) {}
-    lastIndex = offset + match.length
-    return match
-  })
 
-  text.replace(PLACEHOLDER_COMMAND_REGEX, (match, command, offset) => {
-    if (offset > lastIndex) {
-      nodes.push({
-        type: 'text',
-        text: text.slice(lastIndex, offset)
-      })
-    }
-    if (typeof command === 'string' && command.trim()) {
-      nodes.push({
-        type: 'mention',
-        attrs: {
-          category: 'command',
-          command: command.trim(),
-          label: command.trim()
+        case 'contextCommand': {
+          if (content && content.trim()) {
+            nodes.push({
+              type: 'mention',
+              attrs: {
+                category: 'command',
+                command: content.trim(),
+                label: content.trim()
+              }
+            })
+          }
+          break
         }
-      })
+
+        case 'source': {
+          const source = sources.find(x => x.sourceId === content)
+          if (source) {
+            nodes.push({
+              type: 'text',
+              text: source.sourceName
+            })
+          }
+          break
+        }
+      }
+    } catch (e) {
+      // If parsing fails, just continue
     }
 
-    lastIndex = offset + match.length
-    return match
-  })
-
-  text.replace(MARKDOWN_SOURCE_REGEX, (match, sourceId, offset) => {
-    if (offset > lastIndex) {
-      nodes.push({
-        type: 'text',
-        text: text.slice(lastIndex, offset)
-      })
-    }
-    const source = sourceId
-      ? sources.find(x => x.sourceId === sourceId)
-      : undefined
-    if (source) {
-      nodes.push({
-        type: 'text',
-        text: source.sourceName
-      })
-    }
-
-    lastIndex = offset + match.length
-    return match
-  })
+    lastIndex = offset + fullMatch.length
+  }
 
   // Add remaining text as a text node
   if (lastIndex < text.length) {
