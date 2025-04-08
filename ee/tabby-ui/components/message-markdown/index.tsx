@@ -1,5 +1,7 @@
 import { Fragment, ReactNode, useContext, useMemo, useState } from 'react'
-import { compact, isNil } from 'lodash-es'
+import { compact, flatten, isNil } from 'lodash-es'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
@@ -19,6 +21,7 @@ import {
   convertFromFilepath,
   convertToFilepath,
   encodeMentionPlaceHolder,
+  formatCustomHTMLBlockTags,
   getRangeFromAttachmentCode,
   isAttachmentCommitDoc,
   resolveFileNameForDisplay
@@ -42,6 +45,10 @@ import {
 } from 'tabby-chat-panel/index'
 
 import {
+  CUSTOM_HTML_BLOCK_TAGS,
+  CUSTOM_HTML_INLINE_TAGS
+} from '@/lib/constants'
+import {
   MARKDOWN_CITATION_REGEX,
   MARKDOWN_COMMAND_REGEX,
   MARKDOWN_FILE_REGEX,
@@ -53,6 +60,7 @@ import { Mention } from '../mention-tag'
 import { IconFile, IconFileText } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 import { CodeElement } from './code'
+import { customStripTagsPlugin } from './custom-strip-tags-plugin'
 import { DocDetailView } from './doc-detail-view'
 import { MessageMarkdownContext } from './markdown-context'
 
@@ -272,7 +280,11 @@ export function MessageMarkdown({
   }
 
   const encodedMessage = useMemo(() => {
-    return encodeMentionPlaceHolder(message)
+    const formattedMessage = formatCustomHTMLBlockTags(
+      message,
+      CUSTOM_HTML_BLOCK_TAGS as unknown as string[]
+    )
+    return encodeMentionPlaceHolder(formattedMessage)
   }, [message])
 
   return (
@@ -302,7 +314,33 @@ export function MessageMarkdown({
           className
         )}
         remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[
+          [
+            customStripTagsPlugin,
+            {
+              tagNames: flatten([
+                CUSTOM_HTML_BLOCK_TAGS,
+                CUSTOM_HTML_INLINE_TAGS
+              ])
+            }
+          ],
+          rehypeRaw,
+          [
+            rehypeSanitize,
+            {
+              ...defaultSchema,
+              tagNames: flatten([
+                defaultSchema.tagNames,
+                CUSTOM_HTML_BLOCK_TAGS,
+                CUSTOM_HTML_INLINE_TAGS
+              ])
+            }
+          ]
+        ]}
         components={{
+          think: ({ children }) => {
+            return <ThinkBlock>{children}</ThinkBlock>
+          },
           p({ children }) {
             return (
               <p className="mb-2 last:mb-0">
@@ -392,6 +430,29 @@ export function ErrorMessageBlock({
     >
       {errorMessage}
     </MemoizedReactMarkdown>
+  )
+}
+
+function ThinkBlock({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <details
+      open
+      className={`
+        my-4 w-full rounded-md border border-gray-300 bg-white 
+        p-3 text-sm text-gray-800
+        dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-100
+      `}
+    >
+      <summary
+        className={`
+          cursor-pointer list-none font-semibold text-gray-600 
+          outline-none dark:text-gray-300
+        `}
+      >
+        Thinking
+      </summary>
+      <div className="mt-2 whitespace-pre-wrap leading-relaxed">{children}</div>
+    </details>
   )
 }
 
