@@ -196,9 +196,7 @@ export function placeholderToString(node: PlaceholderNode): string {
   }
   switch (node.placeholderType) {
     case 'source':
-      return formatPlaceholder(
-        `[[source:${node.attributes.sourceId}]]`
-      )
+      return formatPlaceholder(`[[source:${node.attributes.sourceId}]]`)
     case 'file':
       return formatPlaceholder(`[[file:${node.attributes.object}]]`)
     case 'symbol':
