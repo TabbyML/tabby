@@ -60,6 +60,7 @@
     "@tiptap/starter-kit": "^2.6.6",
     "@tiptap/suggestion": "^2.10.4",
     "@types/mdast": "^4.0.4",
+    "@types/unist": "^3.0.3",
     "@uidotdev/usehooks": "^2.4.1",
     "@uiw/codemirror-extensions-langs": "^4.21.21",
     "@urql/core": "^4.2.3",

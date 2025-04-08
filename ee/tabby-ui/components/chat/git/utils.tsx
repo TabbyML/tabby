@@ -56,10 +56,10 @@ export function hasChangesCommand(text: string): boolean {
 }
 
 export function extractContextCommand(text: string): string | null {
-  const startIndex = text.indexOf('[[contextCommand:"')
+  const startIndex = text.indexOf('[[contextCommand:')
   if (startIndex === -1) return null
-  const commandStartIndex = startIndex + '[[contextCommand:"'.length
-  const commandEndIndex = text.indexOf('"]]', commandStartIndex)
+  const commandStartIndex = startIndex + '[[contextCommand:'.length
+  const commandEndIndex = text.indexOf(']]', commandStartIndex)
   if (commandEndIndex === -1) return null
   return text.slice(commandStartIndex, commandEndIndex)
 }

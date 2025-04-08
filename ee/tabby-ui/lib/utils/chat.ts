@@ -234,7 +234,7 @@ export function encodeMentionPlaceHolder(value: string): string {
     try {
       newValue = newValue.replace(
         match[0],
-        `[[contextCommand:"${encodeURIComponent(match[1])}"]]`
+        `[[contextCommand:${encodeURIComponent(match[1])}]]`
       )
     } catch (error) {
       continue
@@ -291,7 +291,7 @@ export function getTitleFromMessages(
       }
     })
     .replace(PLACEHOLDER_COMMAND_REGEX, value => {
-      const command = value.slice(18, -3)
+      const command = value.slice(17, -2)
       return `@${command}`
     })
     .trim()
@@ -321,12 +321,12 @@ export async function processingPlaceholder(
       const changes = await options.getChanges({})
       const gitChanges = convertChangeItemsToContextContent(changes)
       processedMessage = processedMessage.replaceAll(
-        /\[\[contextCommand:"changes"\]\]/g,
+        /\[\[contextCommand:changes\]\]/g,
         gitChanges
       )
     } catch (error) {
       processedMessage = processedMessage.replaceAll(
-        /\[\[contextCommand:"changes"\]\]/g,
+        /\[\[contextCommand:changes\]\]/g,
         ''
       )
     }
