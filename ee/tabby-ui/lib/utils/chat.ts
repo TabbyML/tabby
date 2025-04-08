@@ -1,6 +1,11 @@
 import { uniq } from 'lodash-es'
 import moment from 'moment'
-import type { ChangeItem, Filepath, FileRange, GetChangesParams } from 'tabby-chat-panel'
+import type {
+  ChangeItem,
+  Filepath,
+  FileRange,
+  GetChangesParams
+} from 'tabby-chat-panel'
 
 import {
   ContextInfo,
