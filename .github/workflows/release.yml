@@ -114,9 +114,7 @@ jobs:
         run: rustup default ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.7
-        with:
-          version: "v0.10.0"
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Cargo registry cache
         uses: actions/cache@v4
@@ -221,9 +219,7 @@ jobs:
         run: rustup default ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.7
-        with:
-          version: "v0.10.0"
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Cargo registry cache
         uses: actions/cache@v4
