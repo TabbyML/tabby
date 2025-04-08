@@ -79,7 +79,7 @@ export const PromptFormMentionExtension = Mention.extend({
     // If symbols can be mentioned later, the placeholder could be [[symbol:{label}]].
     switch (category) {
       case 'command':
-        return `[[contextCommand:"${node.attrs.command || 'default'}"]]`
+        return `[[contextCommand:${node.attrs.command || 'default'}]]`
       case 'symbol':
         return `[[symbol:${JSON.stringify(node.attrs.fileItem)}]]`
       case 'file':

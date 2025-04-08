@@ -567,7 +567,7 @@ function ContextCommandTag({
     if (!encodedCommand) return null
     try {
       const decodedCommand = decodeURIComponent(encodedCommand)
-      return JSON.parse(decodedCommand) as string
+      return decodedCommand
     } catch (e) {
       return null
     }
