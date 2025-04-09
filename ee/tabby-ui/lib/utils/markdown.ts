@@ -81,8 +81,12 @@ export function formatObjectToMarkdownBlock(
   }
 ): string {
   try {
-    const objJSON = JSON.stringify(obj)
     const { addPrefixNewline = true, addSuffixNewline = true } = options || {}
+    const metaObj = {
+      label: label,
+      object: obj
+    }
+    const metaJSON = JSON.stringify(metaObj)
 
     const codeNode: Root = {
       type: 'root',
@@ -90,7 +94,7 @@ export function formatObjectToMarkdownBlock(
         {
           type: 'code',
           lang: 'context',
-          meta: `label=${label} object=${objJSON}`,
+          meta: metaJSON,
           value: content
         } as RootContent
       ]

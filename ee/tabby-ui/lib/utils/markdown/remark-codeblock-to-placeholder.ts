@@ -12,7 +12,7 @@ import { PlaceholderNode } from './remark-placeholder-parser'
  */
 export function createPlaceholderNode(
   placeholderType: string,
-  obj: any
+  obj: string
 ): PlaceholderNode {
   return {
     type: 'placeholder',
@@ -28,101 +28,21 @@ export function createPlaceholderNode(
  */
 export function parseCodeBlockMeta(
   meta: string | null | undefined
-): Record<string, string> {
-  const metas: Record<string, string> = {}
+): Record<string, any> {
   if (!meta) {
-    return metas
+    return {}
   }
 
-  let i = 0
-  const len = meta.length
-
-  while (i < len) {
-    while (i < len && /\s/.test(meta[i])) {
-      i++
+  try {
+    const parsedMeta = JSON.parse(meta)
+    // Ensure the parsed result is an object, although JSON.parse usually returns one
+    if (typeof parsedMeta === 'object' && parsedMeta !== null) {
+      return parsedMeta
     }
-    if (i >= len) break
-
-    const keyStart = i
-    while (i < len && !/\s|=/.test(meta[i])) {
-      i++
-    }
-    const key = meta.substring(keyStart, i)
-
-    if (i >= len || meta[i] !== '=') {
-      // For this parser, we only care about key=value pairs.
-      while (i < len && !/\s/.test(meta[i])) {
-        i++
-      }
-      continue
-    }
-
-    i++
-
-    while (i < len && /\s/.test(meta[i])) {
-      i++
-    }
-    if (i >= len) {
-      break
-    }
-
-    const valueStart = i
-    let value = ''
-
-    const firstChar = meta[i]
-
-    if (firstChar === '"' || firstChar === "'") {
-      const quote = firstChar
-      i++
-      let valueContentStart = i
-      while (i < len) {
-        if (
-          meta[i] === quote &&
-          (i === valueContentStart || meta[i - 1] !== '\\')
-        ) {
-          break
-        }
-        i++
-      }
-      value = meta.substring(valueContentStart, i)
-      value = value.replace(`\\${quote}`, quote)
-
-      if (i < len && meta[i] === quote) {
-        i++
-      } else {
-        metas[key] = value
-        break
-      }
-    } else if (firstChar === '{') {
-      let braceDepth = 1
-      i++
-      while (i < len && braceDepth > 0) {
-        if (meta[i] === '{') {
-          braceDepth++
-        } else if (meta[i] === '}') {
-          braceDepth--
-        }
-        i++
-      }
-
-      if (braceDepth === 0) {
-        value = meta.substring(valueStart, i)
-      } else {
-        const fallbackEnd = meta.indexOf(' ', valueStart)
-        i = fallbackEnd === -1 ? len : fallbackEnd
-        value = meta.substring(valueStart, i)
-      }
-    } else {
-      while (i < len && !/\s/.test(meta[i])) {
-        i++
-      }
-      value = meta.substring(valueStart, i)
-    }
-
-    metas[key] = value
+    return {}
+  } catch (error) {
+    return {}
   }
-
-  return metas
 }
 
 /**
@@ -194,7 +114,7 @@ function processCodeBlocksWithLabel(ast: Root): RootContent[] {
           try {
             placeholderNode = createPlaceholderNode(
               'file',
-              metas['object']
+              JSON.stringify(metas['object'])
             ) as unknown as RootContent
             if (!placeholderNode) {
               shouldProcessNode = false
@@ -211,7 +131,7 @@ function processCodeBlocksWithLabel(ast: Root): RootContent[] {
           try {
             placeholderNode = createPlaceholderNode(
               'symbol',
-              metas['object']
+              JSON.stringify(metas['object'])
             ) as unknown as RootContent
             if (!placeholderNode) {
               shouldProcessNode = false
