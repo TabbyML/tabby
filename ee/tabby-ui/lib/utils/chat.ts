@@ -14,15 +14,12 @@ import {
 } from '@/lib/gql/generates/graphql'
 import type { MentionAttributes } from '@/lib/types'
 import {
+  convertChangeItemsToContextContent,
   convertContextBlockToPlaceholder,
   formatObjectToMarkdownBlock,
   shouldAddPrefixNewline,
   shouldAddSuffixNewline
 } from '@/lib/utils/markdown'
-import {
-  convertChangeItemsToContextContent,
-  hasChangesCommand
-} from '@/components/chat/git/utils'
 
 import {
   MARKDOWN_FILE_REGEX,
@@ -330,21 +327,46 @@ export async function processingPlaceholder(
   }
 ): Promise<string> {
   let processedMessage = message
-  if (hasChangesCommand(processedMessage) && options.getChanges) {
-    try {
-      const changes = await options.getChanges({})
-      const gitChanges = convertChangeItemsToContextContent(changes)
-      processedMessage = processedMessage.replaceAll(
-        /\[\[contextCommand:changes\]\]/g,
-        gitChanges
-      )
-    } catch (error) {
-      processedMessage = processedMessage.replaceAll(
-        /\[\[contextCommand:changes\]\]/g,
-        ''
-      )
+
+  // Process contextCommand placeholders
+  if (options.getChanges) {
+    const commandRegex = new RegExp(PLACEHOLDER_COMMAND_REGEX)
+    let match
+    let tempMessage = processedMessage
+    while ((match = commandRegex.exec(tempMessage)) !== null) {
+      const command = match[1]
+      if (command === 'changes') {
+        try {
+          const changes = await options.getChanges({})
+          const matchIndex = match.index
+          const matchEnd = matchIndex + match[0].length
+          const gitChanges = convertChangeItemsToContextContent(changes, {
+            addPrefixNewline: shouldAddPrefixNewline(
+              matchIndex,
+              processedMessage
+            ),
+            addSuffixNewline: shouldAddSuffixNewline(matchEnd, processedMessage)
+          })
+          processedMessage = processedMessage.replace(match[0], gitChanges)
+          tempMessage = tempMessage.replace(match[0], gitChanges)
+          commandRegex.lastIndex = 0 // Reset index after replacement
+        } catch (error) {
+          const errorMessage = '' // Replace with empty string on error
+          processedMessage = processedMessage.replace(match[0], errorMessage)
+          tempMessage = tempMessage.replace(match[0], errorMessage)
+          commandRegex.lastIndex = 0 // Reset index after replacement
+        }
+      } else {
+        // Handle other commands or leave them if not supported
+        // To prevent infinite loops on non-'changes' commands, ensure lastIndex advances
+        // If we just continue, exec might find the same match again.
+        // Simplest is to reset lastIndex, assuming replace happened or we want to skip.
+        commandRegex.lastIndex = 0
+      }
     }
   }
+
+  // Process file placeholders
   if (options.readFileContent) {
     const fileRegex = new RegExp(PLACEHOLDER_FILE_REGEX)
     let match
@@ -383,9 +405,10 @@ export async function processingPlaceholder(
       }
     }
 
+    // Process symbol placeholders
     const symbolRegex = new RegExp(PLACEHOLDER_SYMBOL_REGEX)
-    match = null
-    tempMessage = processedMessage
+    match = null // Reset match variable
+    tempMessage = processedMessage // Reset tempMessage for symbol processing
     while ((match = symbolRegex.exec(tempMessage)) !== null) {
       try {
         const symbolInfoStr = match[1]
