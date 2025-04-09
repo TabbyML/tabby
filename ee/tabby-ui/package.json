@@ -26,7 +26,6 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.23.0",
     "@curvenote/ansi-to-react": "^7.0.0",
-    "@graphql-codegen/introspection": "^4.0.3",
     "@hookform/resolvers": "^3.3.2",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "1.0.4",
