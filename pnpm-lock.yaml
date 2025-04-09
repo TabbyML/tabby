@@ -487,9 +487,6 @@ importers:
       '@curvenote/ansi-to-react':
         specifier: ^7.0.0
         version: 7.0.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      '@graphql-codegen/introspection':
-        specifier: ^4.0.3
-        version: 4.0.3(encoding@0.1.13)(graphql@16.8.1)
       '@hookform/resolvers':
         specifier: ^3.3.2
         version: 3.3.2(react-hook-form@7.48.2(react@18.2.0))
@@ -844,7 +841,7 @@ importers:
         version: 2.3.0
       '@tailwindcss/typography':
         specifier: ^0.5.9
-        version: 0.5.10(tailwindcss@3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2)))
+        version: 0.5.10(tailwindcss@3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2)))
       '@types/color':
         specifier: ^3.0.6
         version: 3.0.6
@@ -907,7 +904,7 @@ importers:
         version: 8.10.0(eslint@8.50.0)
       eslint-plugin-tailwindcss:
         specifier: ^3.12.0
-        version: 3.13.0(tailwindcss@3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2)))
+        version: 3.13.0(tailwindcss@3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2)))
       eslint-plugin-unused-imports:
         specifier: ^3.0.0
         version: 3.0.0(@typescript-eslint/eslint-plugin@7.4.0(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint@8.50.0)(typescript@5.8.2))(eslint@8.50.0)
@@ -937,10 +934,10 @@ importers:
         version: 1.14.0
       tailwindcss:
         specifier: ^3.3.1
-        version: 3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2))
+        version: 3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2))
       tailwindcss-animate:
         specifier: ^1.0.5
-        version: 1.0.7(tailwindcss@3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2)))
+        version: 1.0.7(tailwindcss@3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2)))
       typescript:
         specifier: ^5.6.3
         version: 5.8.2
@@ -2265,19 +2262,8 @@ packages:
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  '@graphql-codegen/introspection@4.0.3':
-    resolution: {integrity: sha512-4cHRG15Zu4MXMF4wTQmywNf4+fkDYv5lTbzraVfliDnB8rJKcaurQpRBi11KVuQUe24YTq/Cfk4uwewfNikWoA==}
-    peerDependencies:
-      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-
   '@graphql-codegen/plugin-helpers@5.0.1':
     resolution: {integrity: sha512-6L5sb9D8wptZhnhLLBcheSPU7Tg//DGWgc5tQBWX46KYTOTQHGqDpv50FxAJJOyFVJrveN9otWk9UT9/yfY4ww==}
-    peerDependencies:
-      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-
-  '@graphql-codegen/plugin-helpers@5.1.0':
-    resolution: {integrity: sha512-Y7cwEAkprbTKzVIe436TIw4w03jorsMruvCvu0HJkavaKMQbWY+lQ1RIuROgszDbxAyM35twB5/sUvYG5oW+yg==}
-    engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
@@ -2303,12 +2289,6 @@ packages:
 
   '@graphql-codegen/visitor-plugin-common@4.0.1':
     resolution: {integrity: sha512-Bi/1z0nHg4QMsAqAJhds+ForyLtk7A3HQOlkrZNm3xEkY7lcBzPtiOTLBtvziwopBsXUxqeSwVjOOFPLS5Yw1Q==}
-    peerDependencies:
-      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-
-  '@graphql-codegen/visitor-plugin-common@5.8.0':
-    resolution: {integrity: sha512-lC1E1Kmuzi3WZUlYlqB4fP6+CvbKH9J+haU1iWmgsBx5/sO2ROeXJG4Dmt8gP03bI2BwjiwV5WxCEMlyeuzLnA==}
-    engines: {node: '>=16'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
@@ -11606,7 +11586,7 @@ snapshots:
       '@babel/traverse': 7.23.5
       '@babel/types': 7.23.5
       convert-source-map: 2.0.0
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -11996,7 +11976,7 @@ snapshots:
       '@babel/helper-split-export-declaration': 7.22.6
       '@babel/parser': 7.23.5
       '@babel/types': 7.23.5
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -12723,7 +12703,7 @@ snapshots:
   '@eslint/eslintrc@2.1.2':
     dependencies:
       ajv: 6.12.6
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       espree: 9.6.1
       globals: 13.22.0
       ignore: 5.3.1
@@ -12880,16 +12860,6 @@ snapshots:
       - encoding
       - supports-color
 
-  '@graphql-codegen/introspection@4.0.3(encoding@0.1.13)(graphql@16.8.1)':
-    dependencies:
-      '@graphql-codegen/plugin-helpers': 5.1.0(graphql@16.8.1)
-      '@graphql-codegen/visitor-plugin-common': 5.8.0(encoding@0.1.13)(graphql@16.8.1)
-      graphql: 16.8.1
-      tslib: 2.6.2
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
-
   '@graphql-codegen/plugin-helpers@5.0.1(graphql@16.8.1)':
     dependencies:
       '@graphql-tools/utils': 10.0.8(graphql@16.8.1)
@@ -12899,16 +12869,6 @@ snapshots:
       import-from: 4.0.0
       lodash: 4.17.21
       tslib: 2.5.3
-
-  '@graphql-codegen/plugin-helpers@5.1.0(graphql@16.8.1)':
-    dependencies:
-      '@graphql-tools/utils': 10.0.8(graphql@16.8.1)
-      change-case-all: 1.0.15
-      common-tags: 1.8.2
-      graphql: 16.8.1
-      import-from: 4.0.0
-      lodash: 4.17.21
-      tslib: 2.6.2
 
   '@graphql-codegen/schema-ast@4.0.0(graphql@16.8.1)':
     dependencies:
@@ -12966,23 +12926,6 @@ snapshots:
       graphql-tag: 2.12.6(graphql@16.8.1)
       parse-filepath: 1.0.2
       tslib: 2.5.3
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
-
-  '@graphql-codegen/visitor-plugin-common@5.8.0(encoding@0.1.13)(graphql@16.8.1)':
-    dependencies:
-      '@graphql-codegen/plugin-helpers': 5.1.0(graphql@16.8.1)
-      '@graphql-tools/optimize': 2.0.0(graphql@16.8.1)
-      '@graphql-tools/relay-operation-optimizer': 7.0.0(encoding@0.1.13)(graphql@16.8.1)
-      '@graphql-tools/utils': 10.0.8(graphql@16.8.1)
-      auto-bind: 4.0.0
-      change-case-all: 1.0.15
-      dependency-graph: 0.11.0
-      graphql: 16.8.1
-      graphql-tag: 2.12.6(graphql@16.8.1)
-      parse-filepath: 1.0.2
-      tslib: 2.6.2
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -13170,7 +13113,7 @@ snapshots:
       '@types/json-stable-stringify': 1.0.36
       '@whatwg-node/fetch': 0.9.14
       chalk: 4.1.2
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       dotenv: 16.3.1
       graphql: 16.8.1
       graphql-request: 6.1.0(encoding@0.1.13)(graphql@16.8.1)
@@ -13258,7 +13201,7 @@ snapshots:
   '@humanwhocodes/config-array@0.11.11':
     dependencies:
       '@humanwhocodes/object-schema': 1.2.1
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -13342,7 +13285,7 @@ snapshots:
 
   '@jridgewell/source-map@0.3.6':
     dependencies:
-      '@jridgewell/gen-mapping': 0.3.5
+      '@jridgewell/gen-mapping': 0.3.8
       '@jridgewell/trace-mapping': 0.3.25
 
   '@jridgewell/sourcemap-codec@1.4.15': {}
@@ -13362,7 +13305,7 @@ snapshots:
   '@jridgewell/trace-mapping@0.3.9':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.4.15
+      '@jridgewell/sourcemap-codec': 1.5.0
 
   '@jsdevtools/ez-spawn@3.0.4':
     dependencies:
@@ -15129,13 +15072,13 @@ snapshots:
     dependencies:
       '@swc/counter': 0.1.3
 
-  '@tailwindcss/typography@0.5.10(tailwindcss@3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2)))':
+  '@tailwindcss/typography@0.5.10(tailwindcss@3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2)))':
     dependencies:
       lodash.castarray: 4.4.0
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       postcss-selector-parser: 6.0.10
-      tailwindcss: 3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2))
+      tailwindcss: 3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2))
 
   '@tiptap/core@2.10.4(@tiptap/pm@2.10.4)':
     dependencies:
@@ -15627,7 +15570,7 @@ snapshots:
       '@typescript-eslint/type-utils': 7.4.0(eslint@8.50.0)(typescript@5.8.2)
       '@typescript-eslint/utils': 7.4.0(eslint@8.50.0)(typescript@5.8.2)
       '@typescript-eslint/visitor-keys': 7.4.0
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       eslint: 8.50.0
       graphemer: 1.4.0
       ignore: 5.3.1
@@ -15644,7 +15587,7 @@ snapshots:
       '@typescript-eslint/scope-manager': 5.62.0
       '@typescript-eslint/types': 5.62.0
       '@typescript-eslint/typescript-estree': 5.62.0(typescript@5.8.2)
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       eslint: 8.50.0
     optionalDependencies:
       typescript: 5.8.2
@@ -15750,7 +15693,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/typescript-estree': 7.4.0(typescript@5.8.2)
       '@typescript-eslint/utils': 7.4.0(eslint@8.50.0)(typescript@5.8.2)
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       eslint: 8.50.0
       ts-api-utils: 1.3.0(typescript@5.8.2)
     optionalDependencies:
@@ -15770,7 +15713,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 5.62.0
       '@typescript-eslint/visitor-keys': 5.62.0
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       globby: 11.1.0
       is-glob: 4.0.3
       semver: 7.6.2
@@ -15844,7 +15787,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 7.4.0
       '@typescript-eslint/visitor-keys': 7.4.0
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
@@ -16366,7 +16309,7 @@ snapshots:
 
   agent-base@7.1.0:
     dependencies:
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
 
@@ -17368,6 +17311,10 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
+  debug@4.3.4:
+    dependencies:
+      ms: 2.1.2
+
   debug@4.3.4(supports-color@8.1.1):
     dependencies:
       ms: 2.1.2
@@ -17983,10 +17930,10 @@ snapshots:
 
   eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.28.1)(eslint@8.50.0):
     dependencies:
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       enhanced-resolve: 5.15.0
       eslint: 8.50.0
-      eslint-module-utils: 2.8.0(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.50.0)
+      eslint-module-utils: 2.8.0(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.28.1)(eslint@8.50.0))(eslint@8.50.0)
       eslint-plugin-import: 2.28.1(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-typescript@3.6.1)(eslint@8.50.0)
       fast-glob: 3.3.1
       get-tsconfig: 4.7.2
@@ -18002,7 +17949,7 @@ snapshots:
     dependencies:
       eslint: 9.3.0
 
-  eslint-module-utils@2.8.0(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.50.0):
+  eslint-module-utils@2.8.0(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.28.1)(eslint@8.50.0))(eslint@8.50.0):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -18061,7 +18008,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.50.0
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.0(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.50.0)
+      eslint-module-utils: 2.8.0(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@5.62.0(eslint@8.50.0)(typescript@5.8.2))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.28.1)(eslint@8.50.0))(eslint@8.50.0)
       has: 1.0.3
       is-core-module: 2.13.0
       is-glob: 4.0.3
@@ -18198,11 +18145,11 @@ snapshots:
       regexp-ast-analysis: 0.7.1
       scslre: 0.3.0
 
-  eslint-plugin-tailwindcss@3.13.0(tailwindcss@3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2))):
+  eslint-plugin-tailwindcss@3.13.0(tailwindcss@3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2))):
     dependencies:
       fast-glob: 3.3.1
       postcss: 8.4.31
-      tailwindcss: 3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2))
+      tailwindcss: 3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2))
 
   eslint-plugin-toml@0.11.0(eslint@9.3.0):
     dependencies:
@@ -18329,7 +18276,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.3
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       doctrine: 3.0.0
       escape-string-regexp: 4.0.0
       eslint-scope: 7.2.2
@@ -19221,7 +19168,7 @@ snapshots:
   http-proxy-agent@7.0.0:
     dependencies:
       agent-base: 7.1.0
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
 
@@ -19242,7 +19189,7 @@ snapshots:
   https-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.0
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
 
@@ -20574,7 +20521,7 @@ snapshots:
   micromark@3.2.0:
     dependencies:
       '@types/debug': 4.1.9
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       decode-named-character-reference: 1.0.2
       micromark-core-commonmark: 1.1.0
       micromark-factory-space: 1.1.0
@@ -20596,7 +20543,7 @@ snapshots:
   micromark@4.0.2:
     dependencies:
       '@types/debug': 4.1.9
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       decode-named-character-reference: 1.0.2
       devlop: 1.1.0
       micromark-core-commonmark: 2.0.3
@@ -21458,13 +21405,13 @@ snapshots:
       camelcase-css: 2.0.1
       postcss: 8.4.38
 
-  postcss-load-config@4.0.1(postcss@8.4.31)(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2)):
+  postcss-load-config@4.0.1(postcss@8.4.31)(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2)):
     dependencies:
       lilconfig: 2.1.0
       yaml: 2.3.4
     optionalDependencies:
       postcss: 8.4.31
-      ts-node: 10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2)
+      ts-node: 10.9.2(@types/node@17.0.45)(typescript@5.8.2)
 
   postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@20.12.12)(typescript@5.8.2)):
     dependencies:
@@ -23035,11 +22982,11 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.24.4
 
-  tailwindcss-animate@1.0.7(tailwindcss@3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2))):
+  tailwindcss-animate@1.0.7(tailwindcss@3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2))):
     dependencies:
-      tailwindcss: 3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2))
+      tailwindcss: 3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2))
 
-  tailwindcss@3.3.3(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2)):
+  tailwindcss@3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2)):
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
@@ -23058,7 +23005,7 @@ snapshots:
       postcss: 8.4.31
       postcss-import: 15.1.0(postcss@8.4.31)
       postcss-js: 4.0.1(postcss@8.4.31)
-      postcss-load-config: 4.0.1(postcss@8.4.31)(ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2))
+      postcss-load-config: 4.0.1(postcss@8.4.31)(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2))
       postcss-nested: 6.0.1(postcss@8.4.31)
       postcss-selector-parser: 6.0.13
       resolve: 1.22.8
@@ -23150,7 +23097,7 @@ snapshots:
   terser@5.31.0:
     dependencies:
       '@jridgewell/source-map': 0.3.6
-      acorn: 8.11.3
+      acorn: 8.14.1
       commander: 2.20.3
       source-map-support: 0.5.21
 
@@ -23259,27 +23206,6 @@ snapshots:
 
   ts-log@2.2.5: {}
 
-  ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@17.0.45)(typescript@5.8.2):
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.11
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.4
-      '@types/node': 17.0.45
-      acorn: 8.11.3
-      acorn-walk: 8.3.2
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 5.8.2
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-    optionalDependencies:
-      '@swc/core': 1.3.101(@swc/helpers@0.5.2)
-    optional: true
-
   ts-node@10.9.2(@swc/core@1.3.101(@swc/helpers@0.5.2))(@types/node@18.19.33)(typescript@5.3.3):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
@@ -23340,6 +23266,25 @@ snapshots:
       yn: 3.1.1
     optionalDependencies:
       '@swc/core': 1.3.101(@swc/helpers@0.5.2)
+    optional: true
+
+  ts-node@10.9.2(@types/node@17.0.45)(typescript@5.8.2):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.11
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 17.0.45
+      acorn: 8.14.1
+      acorn-walk: 8.3.2
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.2
+      make-error: 1.3.6
+      typescript: 5.8.2
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
     optional: true
 
   tsc-watch@6.2.0(typescript@5.3.3):
@@ -23858,7 +23803,7 @@ snapshots:
   vite-node@1.6.0(@types/node@17.0.45)(terser@5.31.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       pathe: 1.1.2
       picocolors: 1.0.1
       vite: 5.2.11(@types/node@17.0.45)(terser@5.31.0)
@@ -23918,7 +23863,7 @@ snapshots:
       '@vitest/utils': 1.6.0
       acorn-walk: 8.3.2
       chai: 4.4.1
-      debug: 4.3.4(supports-color@9.4.0)
+      debug: 4.3.4
       execa: 8.0.1
       local-pkg: 0.5.0
       magic-string: 0.30.10
