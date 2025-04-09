@@ -1,6 +1,7 @@
-import { Root, RootContent } from 'mdast'
+import { Root, RootContent, Text } from 'mdast'
 import { remark } from 'remark'
 import remarkStringify, { Options } from 'remark-stringify'
+import { ChangeItem } from 'tabby-chat-panel/index'
 
 import { remarkCodeBlocksToPlaceholders } from './markdown/remark-codeblock-to-placeholder'
 import {
@@ -19,6 +20,9 @@ const REMARK_STRINGIFY_OPTIONS: Options = {
     placeholder: (node: PlaceholderNode) => {
       // It's should create a formatted plugin for this, but for now, it's just a simple function
       return placeholderToString(node)
+    },
+    text: (node: Text) => {
+      return node.value
     }
   } as any
 }
@@ -78,8 +82,12 @@ export function formatObjectToMarkdownBlock(
   }
 ): string {
   try {
-    const objJSON = JSON.stringify(obj)
     const { addPrefixNewline = true, addSuffixNewline = true } = options || {}
+    const metaObj = {
+      label: label,
+      object: obj
+    }
+    const metaJSON = JSON.stringify(metaObj)
 
     const codeNode: Root = {
       type: 'root',
@@ -87,7 +95,7 @@ export function formatObjectToMarkdownBlock(
         {
           type: 'code',
           lang: 'context',
-          meta: `label=${label} object=${objJSON}`,
+          meta: metaJSON,
           value: content
         } as RootContent
       ]
@@ -106,6 +114,37 @@ export function formatObjectToMarkdownBlock(
       addSuffixNewline ? '\n' : ''
     }`
   }
+}
+
+export function convertChangeItemsToContextContent(
+  changes: ChangeItem[],
+  options?: { addPrefixNewline?: boolean; addSuffixNewline?: boolean }
+): string {
+  const content = changes.map(change => change.content).join('\\n')
+  const { addPrefixNewline = true, addSuffixNewline = true } = options || {}
+
+  const meta = {
+    label: 'changes'
+  }
+  const codeNode: Root = {
+    type: 'root',
+    children: [
+      {
+        type: 'code',
+        lang: 'context',
+        meta: JSON.stringify(meta),
+        value: content
+      } as RootContent
+    ]
+  }
+
+  const processor = createRemarkProcessor()
+  let formattedContent = processor.stringify(codeNode).trim()
+
+  const prefix = addPrefixNewline ? '\n' : ''
+  const suffix = addSuffixNewline ? '\n' : ''
+
+  return `${prefix}${formattedContent}${suffix}`
 }
 
 /**

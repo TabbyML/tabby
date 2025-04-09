@@ -12,7 +12,7 @@ import { PlaceholderNode } from './remark-placeholder-parser'
  */
 export function createPlaceholderNode(
   placeholderType: string,
-  obj: any
+  obj: string
 ): PlaceholderNode {
   return {
     type: 'placeholder',
@@ -28,19 +28,21 @@ export function createPlaceholderNode(
  */
 export function parseCodeBlockMeta(
   meta: string | null | undefined
-): Record<string, string> {
-  const metas: Record<string, string> = {}
-
-  if (meta) {
-    meta.split(' ').forEach(item => {
-      const [key, rawValue] = item.split(/=(.+)/)
-      if (key && rawValue) {
-        metas[key] = rawValue
-      }
-    })
+): Record<string, any> {
+  if (!meta) {
+    return {}
   }
 
-  return metas
+  try {
+    const parsedMeta = JSON.parse(meta)
+    // Ensure the parsed result is an object, although JSON.parse usually returns one
+    if (typeof parsedMeta === 'object' && parsedMeta !== null) {
+      return parsedMeta
+    }
+    return {}
+  } catch (error) {
+    return {}
+  }
 }
 
 /**
@@ -112,7 +114,7 @@ function processCodeBlocksWithLabel(ast: Root): RootContent[] {
           try {
             placeholderNode = createPlaceholderNode(
               'file',
-              metas['object']
+              JSON.stringify(metas['object'])
             ) as unknown as RootContent
             if (!placeholderNode) {
               shouldProcessNode = false
@@ -129,7 +131,7 @@ function processCodeBlocksWithLabel(ast: Root): RootContent[] {
           try {
             placeholderNode = createPlaceholderNode(
               'symbol',
-              metas['object']
+              JSON.stringify(metas['object'])
             ) as unknown as RootContent
             if (!placeholderNode) {
               shouldProcessNode = false
