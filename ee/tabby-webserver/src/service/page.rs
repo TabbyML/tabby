@@ -31,7 +31,6 @@ use tabby_schema::{
     thread::{CodeQueryInput, DocQueryInput, Message, MessageAttachmentDoc, ThreadService},
     AsID, AsRowid, ChatCompletionMessage, CoreError, Result,
 };
-
 use tracing::error;
 
 use super::{graphql_pagination_to_filter, retrieval::RetrievalService, utils::get_source_id};
