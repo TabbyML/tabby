@@ -1,4 +1,4 @@
-import { Root, RootContent } from 'mdast'
+import { Root, RootContent, Text } from 'mdast'
 import { remark } from 'remark'
 import remarkStringify, { Options } from 'remark-stringify'
 
@@ -19,6 +19,9 @@ const REMARK_STRINGIFY_OPTIONS: Options = {
     placeholder: (node: PlaceholderNode) => {
       // It's should create a formatted plugin for this, but for now, it's just a simple function
       return placeholderToString(node)
+    },
+    text: (node: Text) => {
+      return node.value
     }
   } as any
 }
