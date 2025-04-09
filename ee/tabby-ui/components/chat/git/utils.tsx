@@ -1,6 +1,5 @@
 import { ChangeItem } from 'tabby-chat-panel/index'
 
-import { PLACEHOLDER_COMMAND_REGEX } from '@/lib/constants/regex'
 import { nanoid } from '@/lib/utils'
 
 import { GitChange } from '../types'
