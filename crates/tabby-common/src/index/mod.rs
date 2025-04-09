@@ -225,6 +225,7 @@ impl IndexSchema {
         &self,
         corpus: &str,
         doc_id: &str,
+        kvs: &[(&str, &str)],
         updated_at: chrono::DateTime<chrono::Utc>,
     ) -> impl Query {
         let doc_id_query = TermQuery::new(
@@ -236,7 +237,7 @@ impl IndexSchema {
             updated_at.timestamp_nanos_opt().expect("valid timestamp"),
         );
 
-        BooleanQuery::new(vec![
+        let mut queries = vec![
             // Must match the corpus
             (Occur::Must, self.corpus_query(corpus)),
             // Must match the doc id
@@ -254,7 +255,22 @@ impl IndexSchema {
                 Occur::MustNot,
                 Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
             ),
-        ])
+        ];
+
+        queries.extend(
+            kvs.iter()
+                .map(|(field, value)| {
+                    let mut term = Term::from_field_json_path(self.field_attributes, field, false);
+                    term.append_type_and_str(value);
+                    (
+                        Occur::Must,
+                        Box::new(TermQuery::new(term, IndexRecordOption::Basic)) as Box<dyn Query>,
+                    )
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        BooleanQuery::new(queries)
     }
 
     /// Build a query to check if the document has failed chunks.

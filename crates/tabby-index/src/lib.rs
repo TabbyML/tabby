@@ -25,6 +25,8 @@ pub mod public {
             StructuredDoc, StructuredDocCommitFields, StructuredDocFields, StructuredDocIndexer,
             StructuredDocIssueFields, StructuredDocPageFields, StructuredDocPullDocumentFields,
             StructuredDocState, StructuredDocWebFields, KIND_COMMIT as STRUCTURED_DOC_KIND_COMMIT,
+            KIND_ISSUE as STRUCTURED_DOC_KIND_ISSUE, KIND_PAGE as STRUCTURED_DOC_KIND_PAGE,
+            KIND_PULL as STRUCTURED_DOC_KIND_PULL, KIND_WEB as STRUCTURED_DOC_KIND_WEB,
         },
     };
 

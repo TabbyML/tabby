@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use tabby_schema::{
-    context::{ContextInfo, ContextService, ContextSourceValue, WebContextSource},
+    context::{
+        ContextInfo, ContextService, ContextSourceValue, PageContextSource, WebContextSource,
+    },
     policy::AccessPolicy,
     repository::RepositoryService,
     web_documents::WebDocumentService,
@@ -55,6 +57,8 @@ impl ContextService for ContextServiceImpl {
             }
             sources = filtered_sources
         }
+
+        sources.push(PageContextSource.into());
 
         Ok(ContextInfo { sources })
     }

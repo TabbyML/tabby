@@ -11,7 +11,7 @@ use juniper::ID;
 use prompt_tools::{
     prompt_page_content, prompt_page_section_content, prompt_page_section_titles, prompt_page_title,
 };
-use tabby_common::config::PageConfig;
+use tabby_common::{api::structured_doc::DocSearchDocument, config::PageConfig};
 use tabby_db::{DbConn, PageSectionDAO};
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
@@ -28,9 +28,10 @@ use tabby_schema::{
     },
     policy::AccessPolicy,
     retrieval::{AttachmentCodeFileList, AttachmentDocHit},
-    thread::{CodeQueryInput, DocQueryInput, Message, ThreadService},
+    thread::{CodeQueryInput, DocQueryInput, Message, MessageAttachmentDoc, ThreadService},
     AsID, AsRowid, ChatCompletionMessage, CoreError, Result,
 };
+
 use tracing::error;
 
 use super::{graphql_pagination_to_filter, retrieval::RetrievalService, utils::get_source_id};
@@ -191,6 +192,7 @@ impl PageService for PageServiceImpl {
             let mut attachments_stream = generate_section_with_attachments(
                 debug,
                 policy,
+                &page_id.as_id(),
                 section_id,
                 new_section_title,
                 Some(new_section_prompt),
@@ -353,13 +355,16 @@ impl PageServiceImpl {
                     .map(ToOwned::to_owned)
             })
         };
-        let thread_messages = thread_messages.map(ToOwned::to_owned);
 
         let page_id = self
             .db
             .create_page(author_id.as_rowid()?, code_source_id.clone())
             .await?
             .as_id();
+
+        let thread_messages = thread_messages.map(|messages| {
+            filter_out_messages_doc_with_self_id(page_id.to_string().as_ref(), messages)
+        });
 
         let debug = debug_option
             .map(|x| x.return_chat_completion_request)
@@ -454,6 +459,7 @@ impl PageServiceImpl {
                 let attachments_stream = generate_section_with_attachments(
                     debug,
                     policy.clone(),
+                    &page_id,
                     section.id.as_rowid()?,
                     section.title.clone(),
                     None,
@@ -614,6 +620,32 @@ async fn build_chat_messages(
     Ok(messages)
 }
 
+fn filter_out_messages_doc_with_self_id(page_id: &str, messages: &[Message]) -> Vec<Message> {
+    messages
+        .iter()
+        .map(|message| {
+            let mut message_clone = message.clone();
+            // Filter out any attachment of type "Page" with id equal to page_id
+            message_clone.attachment.doc = message_clone
+                .attachment
+                .doc
+                .iter()
+                .filter(|doc| {
+                    // Keep docs that are not of type "Page" or have different id
+                    if let MessageAttachmentDoc::Page(doc) = doc {
+                        doc.id == page_id
+                    } else {
+                        false
+                    }
+                })
+                .cloned()
+                .collect();
+
+            message_clone
+        })
+        .collect()
+}
+
 async fn generate_page_content(
     debug: bool,
     chat: Arc<dyn ChatCompletionStream>,
@@ -650,6 +682,7 @@ async fn generate_page_content(
 async fn generate_section_with_attachments(
     debug: bool,
     policy: AccessPolicy,
+    page_id: &ID,
     section_id: i64,
     section_title: String,
     section_prompt: Option<String>,
@@ -667,6 +700,7 @@ async fn generate_section_with_attachments(
 ) -> Result<BoxStream<'static, Result<SectionRunItem>>> {
     let policy = policy.clone();
     let existing_sections = existing_sections.to_vec();
+    let page_id = page_id.to_string();
     let page_title = page_title.to_string();
     let thread_messages = thread_messages.map(ToOwned::to_owned);
     let context_info_helper = context.read(Some(&policy)).await?.helper();
@@ -732,6 +766,13 @@ async fn generate_section_with_attachments(
                 &context_info_helper,
                 &doc_query,
             ).await;
+            let hits = hits.iter().filter(|x| {
+                if let DocSearchDocument::Page(doc) = &x.doc {
+                    doc.id == page_id
+                } else {
+                    false
+                }
+            }).collect::<Vec<_>>();
 
             if !hits.is_empty() {
                 let hits = futures::future::join_all(hits.into_iter().map(|x| {

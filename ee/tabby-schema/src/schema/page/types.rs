@@ -11,7 +11,7 @@ use crate::{
     ChatCompletionMessage, Context,
 };
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Debug)]
 #[graphql(context = Context)]
 pub struct Page {
     pub id: ID,

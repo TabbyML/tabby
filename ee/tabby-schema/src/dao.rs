@@ -3,8 +3,8 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentCommitDoc,
-    AttachmentDoc, AttachmentIssueDoc, AttachmentPullDoc, AttachmentWebDoc, EmailSettingDAO,
-    IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
+    AttachmentDoc, AttachmentIssueDoc, AttachmentPageDoc, AttachmentPullDoc, AttachmentWebDoc,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
     OAuthCredentialDAO, PageDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
 };
 
@@ -316,6 +316,13 @@ pub fn from_thread_message_attachment_document(
                 author_at: commit.author_at,
             })
         }
+        AttachmentDoc::Page(page) => {
+            thread::MessageAttachmentDoc::Page(thread::MessageAttachmentPageDoc {
+                id: page.id,
+                title: page.title,
+                content: page.content,
+            })
+        }
     }
 }
 
@@ -356,6 +363,11 @@ impl From<&thread::MessageAttachmentDoc> for AttachmentDoc {
                     author_at: val.author_at,
                 })
             }
+            thread::MessageAttachmentDoc::Page(val) => AttachmentDoc::Page(AttachmentPageDoc {
+                id: val.id.clone(),
+                title: val.title.clone(),
+                content: val.content.clone(),
+            }),
         }
     }
 }
@@ -458,6 +470,11 @@ impl From<&retrieval::AttachmentDoc> for AttachmentDoc {
                     author_at: commit.author_at,
                 })
             }
+            retrieval::AttachmentDoc::Page(page) => AttachmentDoc::Page(AttachmentPageDoc {
+                id: page.id.clone(),
+                title: page.title.clone(),
+                content: page.content.clone(),
+            }),
         }
     }
 }

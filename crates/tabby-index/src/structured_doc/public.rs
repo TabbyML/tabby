@@ -13,6 +13,7 @@ pub use super::types::{
     page::PageDocument as StructuredDocPageFields,
     pull::PullDocument as StructuredDocPullDocumentFields,
     web::WebDocument as StructuredDocWebFields, StructuredDoc, StructuredDocFields, KIND_COMMIT,
+    KIND_ISSUE, KIND_PAGE, KIND_PULL, KIND_WEB,
 };
 use super::{create_structured_doc_builder, types::BuildStructuredDoc};
 use crate::{indexer::TantivyDocBuilder, Indexer};
@@ -38,13 +39,19 @@ pub struct StructuredDocState {
 pub struct StructuredDocIndexer {
     builder: TantivyDocBuilder<StructuredDoc>,
     indexer: Indexer,
+
+    kind: String,
 }
 
 impl StructuredDocIndexer {
-    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
+    pub fn new(embedding: Arc<dyn Embedding>, kind: &str) -> Self {
         let builder = create_structured_doc_builder(embedding);
         let indexer = Indexer::new(corpus::STRUCTURED_DOC);
-        Self { indexer, builder }
+        Self {
+            indexer,
+            builder,
+            kind: kind.to_string(),
+        }
     }
 
     // Runs pre-sync checks to determine if the document needs to be updated.
@@ -55,7 +62,10 @@ impl StructuredDocIndexer {
             return false;
         }
 
-        if self.indexer.is_indexed_after(&state.id, state.updated_at)
+        let attributes = vec![(StructuredDocIndexFields::KIND, self.kind.as_str())];
+        if self
+            .indexer
+            .is_indexed_after(&state.id, &attributes, state.updated_at)
             && !self.indexer.has_failed_chunks(&state.id)
         {
             return false;
