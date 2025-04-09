@@ -30,14 +30,96 @@ export function parseCodeBlockMeta(
   meta: string | null | undefined
 ): Record<string, string> {
   const metas: Record<string, string> = {}
+  if (!meta) {
+    return metas
+  }
 
-  if (meta) {
-    meta.split(' ').forEach(item => {
-      const [key, rawValue] = item.split(/=(.+)/)
-      if (key && rawValue) {
-        metas[key] = rawValue
+  let i = 0
+  const len = meta.length
+
+  while (i < len) {
+    while (i < len && /\s/.test(meta[i])) {
+      i++
+    }
+    if (i >= len) break
+
+    const keyStart = i
+    while (i < len && !/\s|=/.test(meta[i])) {
+      i++
+    }
+    const key = meta.substring(keyStart, i)
+
+    if (i >= len || meta[i] !== '=') {
+      // For this parser, we only care about key=value pairs.
+      while (i < len && !/\s/.test(meta[i])) {
+        i++
       }
-    })
+      continue
+    }
+
+    i++
+
+    while (i < len && /\s/.test(meta[i])) {
+      i++
+    }
+    if (i >= len) {
+      break
+    }
+
+    const valueStart = i
+    let value = ''
+
+    const firstChar = meta[i]
+
+    if (firstChar === '"' || firstChar === "'") {
+      const quote = firstChar
+      i++
+      let valueContentStart = i
+      while (i < len) {
+        if (
+          meta[i] === quote &&
+          (i === valueContentStart || meta[i - 1] !== '\\')
+        ) {
+          break
+        }
+        i++
+      }
+      value = meta.substring(valueContentStart, i)
+      value = value.replace(`\\${quote}`, quote)
+
+      if (i < len && meta[i] === quote) {
+        i++
+      } else {
+        metas[key] = value
+        break
+      }
+    } else if (firstChar === '{') {
+      let braceDepth = 1
+      i++
+      while (i < len && braceDepth > 0) {
+        if (meta[i] === '{') {
+          braceDepth++
+        } else if (meta[i] === '}') {
+          braceDepth--
+        }
+        i++
+      }
+
+      if (braceDepth === 0) {
+        value = meta.substring(valueStart, i)
+      } else {
+        const fallbackEnd = meta.indexOf(' ', valueStart)
+        i = fallbackEnd === -1 ? len : fallbackEnd
+        value = meta.substring(valueStart, i)
+      }
+    } else {
+      while (i < len && !/\s/.test(meta[i])) {
+        i++
+      }
+      value = meta.substring(valueStart, i)
+    }
+
+    metas[key] = value
   }
 
   return metas
