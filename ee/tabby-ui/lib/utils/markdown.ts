@@ -1,6 +1,7 @@
 import { Root, RootContent, Text } from 'mdast'
 import { remark } from 'remark'
 import remarkStringify, { Options } from 'remark-stringify'
+import { ChangeItem } from 'tabby-chat-panel/index'
 
 import { remarkCodeBlocksToPlaceholders } from './markdown/remark-codeblock-to-placeholder'
 import {
@@ -113,6 +114,37 @@ export function formatObjectToMarkdownBlock(
       addSuffixNewline ? '\n' : ''
     }`
   }
+}
+
+export function convertChangeItemsToContextContent(
+  changes: ChangeItem[],
+  options?: { addPrefixNewline?: boolean; addSuffixNewline?: boolean }
+): string {
+  const content = changes.map(change => change.content).join('\\n')
+  const { addPrefixNewline = true, addSuffixNewline = true } = options || {}
+
+  const meta = {
+    label: 'changes'
+  }
+  const codeNode: Root = {
+    type: 'root',
+    children: [
+      {
+        type: 'code',
+        lang: 'context',
+        meta: JSON.stringify(meta),
+        value: content
+      } as RootContent
+    ]
+  }
+
+  const processor = createRemarkProcessor()
+  let formattedContent = processor.stringify(codeNode).trim()
+
+  const prefix = addPrefixNewline ? '\n' : ''
+  const suffix = addSuffixNewline ? '\n' : ''
+
+  return `${prefix}${formattedContent}${suffix}`
 }
 
 /**
