@@ -21,6 +21,7 @@ import {
   getAttachmentDocContent,
   getRangeFromAttachmentCode,
   isAttachmentCommitDoc,
+  resolveDirectoryPath,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -325,8 +326,7 @@ function SourcePreviewCard({
   }
 
   if (isCode) {
-    const pathSegments = source.filepath.split('/')
-    const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+    const path = resolveDirectoryPath(source.filepath)
     const scores = source?.extra?.scores
     const showScores = enableDeveloperMode && !!scores
     return (
