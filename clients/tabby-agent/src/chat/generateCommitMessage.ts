@@ -1,7 +1,6 @@
 import type { Connection, CancellationToken } from "vscode-languageserver";
 import type { Feature } from "../feature";
 import type { Configurations } from "../config";
-import type { TabbyApiClient } from "../http/tabbyApiClient";
 import type { GitContextProvider } from "../git";
 import {
   ServerCapabilities,
@@ -13,13 +12,14 @@ import {
 } from "../protocol";
 import { isBlank, parseChatResponse, stringToRegExp } from "../utils/string";
 import { MutexAbortError } from "../utils/error";
+import { ChatFeature } from ".";
 
 export class CommitMessageGenerator implements Feature {
   private mutexAbortController: AbortController | undefined = undefined;
 
   constructor(
+    private readonly chat: ChatFeature,
     private readonly configurations: Configurations,
-    private readonly tabbyApiClient: TabbyApiClient,
     private readonly gitContextProvider: GitContextProvider,
   ) {}
 
@@ -34,7 +34,7 @@ export class CommitMessageGenerator implements Feature {
     params: GenerateCommitMessageParams,
     token: CancellationToken,
   ): Promise<GenerateCommitMessageResult | null> {
-    if (!this.tabbyApiClient.isChatApiAvailable()) {
+    if (!this.chat.isAvailable()) {
       throw {
         name: "ChatFeatureNotAvailableError",
         message: "Chat feature not available",
@@ -101,7 +101,7 @@ export class CommitMessageGenerator implements Feature {
         content: promptTemplate.replace("{{diff}}", selectedDiff),
       },
     ];
-    const readableStream = await this.tabbyApiClient.fetchChatStream(
+    const readableStream = await this.chat.tabbyApiClient.fetchChatStream(
       {
         messages,
         model: "",

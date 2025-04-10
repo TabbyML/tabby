@@ -23,14 +23,15 @@ import { getLogger } from "../logger";
 import { readResponseStream, showDocument, Edit } from "./utils";
 import { getSmartApplyRange } from "./smartRange";
 import { initMutexAbortController, mutexAbortController, resetMutexAbortController } from "./global";
+import { ChatFeature } from ".";
 
 const logger = getLogger("SmartApplyFeature");
 
 export class SmartApplyFeature implements Feature {
   private lspConnection: Connection | undefined = undefined;
   constructor(
+    private readonly chat: ChatFeature,
     private readonly configurations: Configurations,
-    private readonly tabbyApiClient: TabbyApiClient,
     private readonly documents: TextDocuments<TextDocument>,
   ) {}
 
@@ -60,6 +61,12 @@ export class SmartApplyFeature implements Feature {
       logger.debug("LSP connection lost.");
       return false;
     }
+    if (!this.chat.isAvailable()) {
+      throw {
+        name: "ChatFeatureNotAvailableError",
+        message: "Chat feature not available",
+      } as ChatFeatureNotAvailableError;
+    }
 
     if (mutexAbortController && !mutexAbortController.signal.aborted) {
       logger.warn("Another smart edit is already in progress");
@@ -75,10 +82,12 @@ export class SmartApplyFeature implements Feature {
     let applyRange = getSmartApplyRange(document, params.text);
     //if cannot find range, lets use backend LLMs
     if (!applyRange) {
-      if (!this.tabbyApiClient.isChatApiAvailable) {
-        return false;
-      }
-      applyRange = await provideSmartApplyLineRange(document, params.text, this.tabbyApiClient, this.configurations);
+      applyRange = await provideSmartApplyLineRange(
+        document,
+        params.text,
+        this.chat.tabbyApiClient,
+        this.configurations,
+      );
     }
 
     if (!applyRange) {
@@ -113,7 +122,7 @@ export class SmartApplyFeature implements Feature {
         applyRange.action === "insert" ? true : false,
         document,
         this.lspConnection,
-        this.tabbyApiClient,
+        this.chat.tabbyApiClient,
         this.configurations,
         mutexAbortController,
         () => {
@@ -139,12 +148,6 @@ async function provideSmartApplyLineRange(
 ): Promise<{ range: Range; action: "insert" | "replace" } | undefined> {
   if (!document) {
     return undefined;
-  }
-  if (!tabbyApiClient.isChatApiAvailable()) {
-    throw {
-      name: "ChatFeatureNotAvailableError",
-      message: "Chat feature not available",
-    } as ChatFeatureNotAvailableError;
   }
 
   const documentText = document
@@ -232,13 +235,6 @@ async function provideSmartApplyEditLLM(
   if (!lspConnection) {
     logger.warn("LSP connection failed");
     return false;
-  }
-
-  if (!tabbyApiClient.isChatApiAvailable()) {
-    throw {
-      name: "ChatFeatureNotAvailableError",
-      message: "Chat feature not available",
-    } as ChatFeatureNotAvailableError;
   }
 
   const config = configurations.getMergedConfig();
