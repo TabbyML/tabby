@@ -432,7 +432,9 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
   const ref = useRef<HTMLDivElement>(null)
   const filepathWithoutFilename = useMemo(() => {
     if (!data.filepath) return ''
-    return data.filepath ? data.filepath.split('/').slice(0, -1).join('/') : ''
+    const parts = data.filepath.split(/[\\/]/)
+    // shown as / for consistency
+    return parts.slice(0, -1).join('/')
   }, [data.filepath])
 
   useLayoutEffect(() => {
