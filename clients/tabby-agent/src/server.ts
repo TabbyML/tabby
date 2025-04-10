@@ -14,18 +14,6 @@ import {
   ServerCapabilities,
   ClientProvidedConfig,
   DataStoreRecords,
-  AgentServerInfoRequest,
-  AgentServerInfoSync,
-  ServerInfo,
-  AgentStatusRequest,
-  AgentStatusSync,
-  Status,
-  AgentIssuesRequest,
-  AgentIssuesSync,
-  IssueList,
-  AgentIssueDetailRequest,
-  IssueDetailParams,
-  IssueDetailResult,
 } from "./protocol";
 import { TextDocuments } from "./lsp/textDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -100,8 +88,6 @@ export class Server {
   private readonly statusProvider = new StatusProvider(this.dataStore, this.configurations, this.tabbyApiClient);
   private readonly commandProvider = new CommandProvider(this.chatEditProvider, this.statusProvider);
 
-  private clientCapabilities: ClientCapabilities | undefined;
-
   async listen() {
     await this.preInitialize();
     this.documents.listen(this.connection);
@@ -132,20 +118,6 @@ export class Server {
     this.connection.onExit(async () => {
       return this.exit();
     });
-
-    // FIXME(@icycodes): remove deprecated methods
-    this.connection.onRequest(AgentServerInfoRequest.type, async () => {
-      return this.getServerInfo();
-    });
-    this.connection.onRequest(AgentStatusRequest.type, async () => {
-      return this.getStatus();
-    });
-    this.connection.onRequest(AgentIssuesRequest.type, async () => {
-      return this.getIssues();
-    });
-    this.connection.onRequest(AgentIssueDetailRequest.type, async (params) => {
-      return this.getIssueDetail(params);
-    });
   }
 
   private async initialize(params: InitializeParams): Promise<InitializeResult> {
@@ -158,7 +130,6 @@ export class Server {
       params.capabilities,
       params.initializationOptions?.clientCapabilities ?? {},
     );
-    this.clientCapabilities = clientCapabilities;
 
     const clientProvidedConfig: ClientProvidedConfig = params.initializationOptions?.config ?? {};
     const dataStoreRecords: DataStoreRecords | undefined = params.initializationOptions?.dataStoreRecords;
@@ -235,25 +206,6 @@ export class Server {
     ].mapAsync((feature: Feature) => {
       return feature.initialized?.(this.connection);
     });
-
-    // FIXME(@icycodes): remove deprecated methods
-    if (this.clientCapabilities?.tabby?.agent) {
-      this.tabbyApiClient.on("statusUpdated", async () => {
-        this.connection.sendNotification(AgentServerInfoSync.type, { serverInfo: this.buildServerInfo() });
-
-        this.connection.sendNotification(AgentStatusSync.type, { status: this.buildAgentStatus() });
-
-        this.connection.sendNotification(AgentIssuesSync.type, { issues: this.buildAgentIssues().issues });
-      });
-
-      this.tabbyApiClient.on("isConnectingUpdated", async () => {
-        this.connection.sendNotification(AgentStatusSync.type, { status: this.buildAgentStatus() });
-      });
-
-      this.tabbyApiClient.on("hasCompletionResponseTimeIssueUpdated", async () => {
-        this.connection.sendNotification(AgentIssuesSync.type, { issues: this.buildAgentIssues().issues });
-      });
-    }
   }
 
   private async shutdown() {
@@ -268,66 +220,4 @@ export class Server {
   private exit() {
     return process.exit(0);
   }
-
-  // FIXME(@icycodes): remove adapters for deprecated methods
-  // adapters for deprecated methods
-  private async getServerInfo(): Promise<ServerInfo> {
-    return this.buildServerInfo();
-  }
-
-  private async getStatus(): Promise<Status> {
-    return this.buildAgentStatus();
-  }
-
-  private async getIssues(): Promise<IssueList> {
-    return this.buildAgentIssues();
-  }
-
-  private async getIssueDetail(params: IssueDetailParams): Promise<IssueDetailResult | null> {
-    if (params.name && this.tabbyApiClient.hasHelpMessage()) {
-      return {
-        name: params.name,
-        helpMessage: this.tabbyApiClient.getHelpMessage(params.helpMessageFormat),
-      };
-    }
-    return null;
-  }
-
-  private buildServerInfo(): ServerInfo {
-    return {
-      config: this.configurations.getMergedConfig().server,
-      health: this.tabbyApiClient.getServerHealth() || null,
-    };
-  }
-
-  private buildAgentStatus(): Status {
-    let agentStatus: Status = "notInitialized";
-    switch (this.tabbyApiClient.getStatus()) {
-      case "noConnection":
-        agentStatus = "disconnected";
-        break;
-      case "unauthorized":
-        agentStatus = "unauthorized";
-        break;
-      case "ready":
-        agentStatus = "ready";
-        break;
-    }
-
-    if (this.tabbyApiClient.isConnecting()) {
-      agentStatus = "notInitialized";
-    }
-    return agentStatus;
-  }
-
-  private buildAgentIssues(): IssueList {
-    if (this.tabbyApiClient.getStatus() === "noConnection") {
-      return { issues: ["connectionFailed"] };
-    } else if (this.tabbyApiClient.hasCompletionResponseTimeIssue()) {
-      return { issues: ["slowCompletionResponseTime"] };
-    } else {
-      return { issues: [] };
-    }
-  }
-  // end of adapters for deprecated methods
 }
