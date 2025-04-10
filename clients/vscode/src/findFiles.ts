@@ -29,7 +29,7 @@ const gitIgnorePatternsMap = new Map<string, string[]>();
 function gitIgnoreItemToExcludePatterns(item: string, prefix?: string | undefined): string[] {
   let pattern = item.trim();
   if (pattern.startsWith("#") || pattern.startsWith("!") || pattern.length === 0) {
-    return []
+    return [];
   }
   if (pattern.indexOf("/") === -1 || pattern.indexOf("/") === pattern.length - 1) {
     if (!pattern.startsWith("**/")) {
@@ -225,7 +225,7 @@ export async function findFiles(
             ...combinedExcludes,
             ...(gitIgnorePatternsMap.get(workspaceFolder.uri.toString()) ?? []),
           ]);
-          console.log(excludesPattern.length)
+          console.log(excludesPattern.length);
           logger.debug(
             `Executing search: ${JSON.stringify({ includePattern, excludesPattern, maxResults: options?.maxResults })}`,
           );
