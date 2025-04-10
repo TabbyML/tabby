@@ -225,7 +225,6 @@ export async function findFiles(
             ...combinedExcludes,
             ...(gitIgnorePatternsMap.get(workspaceFolder.uri.toString()) ?? []),
           ]);
-          console.log(excludesPattern.length);
           logger.debug(
             `Executing search: ${JSON.stringify({ includePattern, excludesPattern, maxResults: options?.maxResults })}`,
           );
