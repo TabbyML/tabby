@@ -39,6 +39,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Elixir](https://elixir-lang.org)
 * [OCaml](https://ocaml.org/)
 * [GDScript](https://gdscript.com/)
+* [Scala](https://www.scala-lang.org/)
 
 ## Languages Missing Certain Support
 
@@ -48,4 +49,3 @@ For an actual example of an issue or pull request adding the above support, plea
 | Haskell  |                    🚫                    |                       🚫                        |
 |  Julia   |                    🚫                    |                       🚫                        |
 |   Perl   |                    🚫                    |                       🚫                        |
-|  Scala   |                    🚫                    |                       🚫                        |

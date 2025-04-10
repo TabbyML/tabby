@@ -355,7 +355,44 @@ exts = ["sql"]
 
 [[config]]
 languages = ["scala"]
-exts = ["scala"]
+exts = ["scala", "sbt"]
+line_comment = "//"
+top_level_keywords = [
+    "abstract",
+    "case",
+    "class",
+    "def",
+    "do",
+    "else",
+    "enum",
+    "extends",
+    "final",
+    "for",
+    "given",
+    "if",
+    "implicit",
+    "import",
+    "lazy",
+    "match",
+    "new",
+    "object",
+    "override",
+    "package",
+    "private",
+    "protected",
+    "return",
+    "sealed",
+    "then",
+    "throw",
+    "trait",
+    "try",
+    "type",
+    "val",
+    "var",
+    "while",
+    "with",
+    "yield",
+]
 
 [[config]]
 languages = ["shellscript"]
