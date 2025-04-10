@@ -31,4 +31,7 @@ interface TextDocumentFeature {
 
   @JsonNotification
   fun willSave(params: WillSaveTextDocumentParams)
+
+  @JsonRequest
+  fun codeLens(params: CodeLensParams): CompletableFuture<List<CodeLens>?>
 }
