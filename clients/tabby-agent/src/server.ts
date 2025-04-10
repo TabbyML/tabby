@@ -72,20 +72,25 @@ export class Server {
     this.fileTracker,
   );
   private readonly chatFeature = new ChatFeature(this.tabbyApiClient);
-  private readonly chatEditProvider = new ChatEditProvider(this.configurations, this.tabbyApiClient, this.documents);
+  private readonly chatEditProvider = new ChatEditProvider(this.chatFeature, this.configurations, this.documents);
   private readonly commitMessageGenerator = new CommitMessageGenerator(
+    this.chatFeature,
     this.configurations,
-    this.tabbyApiClient,
     this.gitContextProvider,
   );
   private readonly branchNameGenerator = new BranchNameGenerator(
+    this.chatFeature,
     this.configurations,
-    this.tabbyApiClient,
     this.gitContextProvider,
   );
-  private readonly smartApplyFeature = new SmartApplyFeature(this.configurations, this.tabbyApiClient, this.documents);
+  private readonly smartApplyFeature = new SmartApplyFeature(this.chatFeature, this.configurations, this.documents);
 
-  private readonly statusProvider = new StatusProvider(this.dataStore, this.configurations, this.tabbyApiClient);
+  private readonly statusProvider = new StatusProvider(
+    this.dataStore,
+    this.configurations,
+    this.tabbyApiClient,
+    this.completionProvider,
+  );
   private readonly commandProvider = new CommandProvider(this.chatEditProvider, this.statusProvider);
 
   async listen() {

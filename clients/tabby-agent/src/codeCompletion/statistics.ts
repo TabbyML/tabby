@@ -1,16 +1,16 @@
 import { Univariate } from "stats-logscale";
 
-export type CompletionProviderStatsEntry = {
+export type CompletionTriggerEntry = {
   triggerMode: "auto" | "manual";
 };
 
-export type CompletionRequestStatsEntry = {
-  latency: number; // ms, NaN if timeout/canceled
-  canceled: boolean;
-  timeout: boolean;
+export type CompletionStatisticsEntry = {
+  latency?: number; // ms, undefined means no data, timeout or canceled
+  canceled?: boolean;
+  timeout?: boolean;
 };
 
-export class CompletionStats {
+export class CompletionStatisticsTracker {
   private autoCompletionCount = 0;
   private manualCompletionCount = 0;
 
@@ -20,7 +20,7 @@ export class CompletionStats {
   private completionRequestCanceledCount = 0;
   private completionRequestTimeoutCount = 0;
 
-  addProviderStatsEntry(value: CompletionProviderStatsEntry): void {
+  addTriggerEntry(value: CompletionTriggerEntry): void {
     const { triggerMode } = value;
     if (triggerMode === "auto") {
       this.autoCompletionCount += 1;
@@ -29,13 +29,13 @@ export class CompletionStats {
     }
   }
 
-  addRequestStatsEntry(value: CompletionRequestStatsEntry): void {
+  addStatisticsEntry(value: CompletionStatisticsEntry): void {
     const { canceled, timeout, latency } = value;
     if (canceled) {
       this.completionRequestCanceledCount += 1;
     } else if (timeout) {
       this.completionRequestTimeoutCount += 1;
-    } else {
+    } else if (latency !== undefined) {
       this.completionRequestLatencyStats.add(latency);
     }
   }
@@ -57,7 +57,7 @@ export class CompletionStats {
   }
 
   // stats for anonymous usage report
-  stats(): Record<string, any> {
+  report(): Record<string, any> {
     const eventCount = Object.fromEntries(
       Array.from(this.eventMap.entries()).map(([key, value]) => ["count_" + key, value]),
     );

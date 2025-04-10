@@ -63,7 +63,7 @@ export class AnonymousUsageLogger {
       }
     }
 
-    this.disabled = this.configurations.getMergedConfig().anonymousUsageTracking.disable;
+    this.disabled = config.anonymousUsageTracking.disable;
     this.logger.info("Anonymous usage tracking disabled: " + this.disabled);
     this.configurations.on("updated", (config: ConfigData) => {
       if (this.disabled !== config.anonymousUsageTracking.disable) {

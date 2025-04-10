@@ -3,7 +3,6 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import type { TextDocuments } from "../lsp/textDocuments";
 import type { Feature } from "../feature";
 import type { Configurations } from "../config";
-import type { TabbyApiClient } from "../http/tabbyApiClient";
 import {
   ChatEditToken,
   ChatEditRequest,
@@ -29,6 +28,7 @@ import { initMutexAbortController, mutexAbortController, resetMutexAbortControll
 import { readFile } from "fs-extra";
 import { getLogger } from "../logger";
 import { isBrowser } from "../env";
+import { ChatFeature } from ".";
 
 export class ChatEditProvider implements Feature {
   private logger = getLogger("ChatEditProvider");
@@ -37,8 +37,8 @@ export class ChatEditProvider implements Feature {
   private currentEdit: Edit | undefined = undefined;
 
   constructor(
+    private readonly chat: ChatFeature,
     private readonly configurations: Configurations,
-    private readonly tabbyApiClient: TabbyApiClient,
     private readonly documents: TextDocuments<TextDocument>,
   ) {}
 
@@ -151,7 +151,7 @@ export class ChatEditProvider implements Feature {
     if (!this.lspConnection) {
       return null;
     }
-    if (!this.tabbyApiClient.isChatApiAvailable()) {
+    if (!this.chat.isAvailable()) {
       throw {
         name: "ChatFeatureNotAvailableError",
         message: "Chat feature not available",
@@ -261,7 +261,7 @@ export class ChatEditProvider implements Feature {
     ];
     this.logger.debug(`messages: ${JSON.stringify(messages)}`);
 
-    const readableStream = await this.tabbyApiClient.fetchChatStream(
+    const readableStream = await this.chat.tabbyApiClient.fetchChatStream(
       {
         messages,
         model: "",

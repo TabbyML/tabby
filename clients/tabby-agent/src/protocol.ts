@@ -739,8 +739,9 @@ export type StatusInfo = {
     | "readyForAutoTrigger"
     | "readyForManualTrigger"
     | "fetching"
-    | "completionResponseSlow"
-    | "rateLimitExceeded";
+    | "codeCompletionNotAvailable"
+    | "rateLimitExceeded"
+    | "completionResponseSlow";
   tooltip?: string;
   /**
    * The health information of the server if available.
@@ -748,14 +749,14 @@ export type StatusInfo = {
   serverHealth?: Record<string, unknown>;
   /**
    * The action to take for this status.
-   * - `disconnected` or `completionResponseSlow` -> StatusShowHelpMessageCommand
+   * - `disconnected`, `codeCompletionNotAvailable`, `rateLimitExceeded` or `completionResponseSlow` -> StatusShowHelpMessageCommand
    * - others -> undefined
    */
   command?: StatusShowHelpMessageCommand | LspCommand;
   /**
    * The help message if available.
    * Only available when this status info is returned from {@link StatusRequest}, not provided in {@link StatusDidChangeNotification}.
-   * Only available when the status is `disconnected` or `completionResponseSlow`.
+   * Only available when the status is `disconnected`, `codeCompletionNotAvailable`, `rateLimitExceeded` or `completionResponseSlow`.
    */
   helpMessage?: string;
 };
