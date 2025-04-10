@@ -2,6 +2,7 @@
 
 import { HTMLAttributes, useMemo } from 'react'
 import { TabsContent } from '@radix-ui/react-tabs'
+import { AnimatePresence, motion } from 'framer-motion'
 import moment from 'moment'
 import useSWR from 'swr'
 import { useQuery } from 'urql'
@@ -135,18 +136,20 @@ function NotificationList({
 
   return (
     <div className="space-y-2">
-      {notifications?.map((item, index) => {
-        return (
-          <div key={item.id}>
-            <NotificationItem data={item} />
-            <Separator
-              className={cn('my-3', {
-                hidden: index === len - 1
-              })}
-            />
-          </div>
-        )
-      })}
+      <AnimatePresence>
+        {notifications?.map((item, index) => {
+          return (
+            <motion.div layout key={item.id}>
+              <NotificationItem data={item} />
+              <Separator
+                className={cn('my-3', {
+                  hidden: index === len - 1
+                })}
+              />
+            </motion.div>
+          )
+        })}
+      </AnimatePresence>
     </div>
   )
 }
@@ -171,6 +174,17 @@ function NotificationItem({ data }: NotificationItemProps) {
           'prose max-w-none break-words text-sm dark:prose-invert prose-p:my-1 prose-p:leading-relaxed',
           { 'unread-notification': !data.read }
         )}
+        components={{
+          a: props => (
+            <a
+              {...props}
+              onClick={e => {
+                onClickMarkRead()
+                props.onClick?.(e)
+              }}
+            />
+          )
+        }}
       >
         {data.content}
       </MemoizedReactMarkdown>
