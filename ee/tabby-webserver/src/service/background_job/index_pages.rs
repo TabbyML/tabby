@@ -22,7 +22,7 @@ impl Job for SyncPageIndexJob {
 
 impl SyncPageIndexJob {
     pub async fn cron(job: Arc<dyn JobService>) -> tabby_schema::Result<()> {
-        debug!("Syncing all github and gitlab repositories");
+        debug!("Syncing all pages");
 
         let _ = job
             .trigger(BackgroundJobEvent::SyncPagesIndex.to_command())
@@ -40,7 +40,7 @@ impl SyncPageIndexJob {
         let page_stream = match fetch_all_pages(page).await {
             Ok(s) => s,
             Err(e) => {
-                logkit::error!("Failed to fetch issues: {}", e);
+                logkit::error!("Failed to fetch pages: {}", e);
                 return Err(e);
             }
         };
