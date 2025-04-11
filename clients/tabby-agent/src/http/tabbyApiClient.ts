@@ -6,7 +6,6 @@ import type { AnonymousUsageLogger } from "../telemetry";
 import type { ConfigData } from "../config/type";
 import type { ProxyConfig } from "./proxy";
 import type { ClientInfo } from "../protocol";
-import type { CompletionStats } from "../codeCompletion/statistics";
 import { EventEmitter } from "events";
 import createClient from "openapi-fetch";
 import { v4 as uuid } from "uuid";
@@ -26,9 +25,7 @@ import {
   isUnauthorizedError,
   isCanceledError,
   isTimeoutError,
-  isRateLimitExceededError,
 } from "../utils/error";
-import { RequestStats } from "./statistics";
 
 export type TabbyApiClientStatus = "noConnection" | "unauthorized" | "ready";
 
@@ -45,11 +42,6 @@ export class TabbyApiClient extends EventEmitter {
 
   private status: TabbyApiClientStatus = "noConnection";
   private connecting: boolean = false;
-  private fetchingCompletion: boolean = false;
-
-  private readonly completionRequestStats = new RequestStats();
-  private completionResponseIssue: "highTimeoutRate" | "slowResponseTime" | undefined = undefined;
-  private rateLimitExceeded: boolean = false;
 
   private connectionErrorMessage: string | undefined = undefined;
   private serverHealth: TabbyApiComponents["schemas"]["HealthState"] | undefined = undefined;
@@ -57,7 +49,6 @@ export class TabbyApiClient extends EventEmitter {
   private healthCheckMutexAbortController: AbortController | undefined = undefined;
 
   private reconnectTimer: ReturnType<typeof setInterval> | undefined = undefined;
-
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined = undefined;
 
   constructor(
@@ -69,7 +60,6 @@ export class TabbyApiClient extends EventEmitter {
 
   async initialize(clientInfo: ClientInfo | undefined) {
     this.userAgentString = this.buildUserAgentString(clientInfo);
-    this.api = this.createApiClient();
     this.connect(); // no await
 
     this.configurations.on("updated", (config: ConfigData, oldConfig: ConfigData) => {
@@ -78,7 +68,6 @@ export class TabbyApiClient extends EventEmitter {
       );
       if (isServerConnectionChanged) {
         this.logger.debug("Server configurations updated, reconnecting...");
-        this.reset();
         this.connect(); // no await
       }
     });
@@ -87,7 +76,7 @@ export class TabbyApiClient extends EventEmitter {
     this.reconnectTimer = setInterval(async () => {
       if (this.status === "noConnection" || this.status === "unauthorized") {
         this.logger.debug("Trying to reconnect...");
-        await this.connect();
+        await this.connect({ skipReset: true });
       }
     }, reconnectInterval);
 
@@ -109,15 +98,6 @@ export class TabbyApiClient extends EventEmitter {
     }
   }
 
-  private reset() {
-    this.updateStatus("noConnection");
-    this.updateCompletionResponseIssue(undefined);
-    this.connectionErrorMessage = undefined;
-    this.serverHealth = undefined;
-    this.completionRequestStats.reset();
-    this.api = this.createApiClient();
-  }
-
   private buildUserAgentString(clientInfo: ClientInfo | undefined): string {
     const envInfo = isBrowser ? navigator?.userAgent : `Node.js/${process.version}`;
     const tabbyAgentInfo = `${agentName}/${agentVersion}`;
@@ -128,28 +108,6 @@ export class TabbyApiClient extends EventEmitter {
     const tabbyPluginVersion = clientInfo?.tabbyPlugin?.version;
     const tabbyPluginInfo = tabbyPluginName ? `${tabbyPluginName}/${tabbyPluginVersion}` : "";
     return `${envInfo} ${tabbyAgentInfo} ${ideInfo} ${tabbyPluginInfo}`.trim();
-  }
-
-  private createApiClient() {
-    const config = this.configurations.getMergedConfig();
-    const endpoint = config.server.endpoint;
-    this.endpoint = endpoint;
-    const auth = !isBlank(config.server.token) ? `Bearer ${config.server.token}` : undefined;
-    const proxyConfigs: ProxyConfig[] = [{ fromEnv: true }];
-    if (!isBlank(config.proxy.url)) {
-      proxyConfigs.unshift(config.proxy);
-    }
-    return createClient<TabbyApi>({
-      baseUrl: endpoint,
-      headers: {
-        Authorization: auth,
-        "User-Agent": this.userAgentString,
-        ...config.server.requestHeaders,
-      },
-      /** dispatcher do not exist in {@link RequestInit} in browser env. */
-      /* @ts-expect-error TS-2353 */
-      dispatcher: createProxyForUrl(endpoint, proxyConfigs),
-    });
   }
 
   private createTimeOutAbortSignal(): AbortSignal {
@@ -173,42 +131,8 @@ export class TabbyApiClient extends EventEmitter {
     }
   }
 
-  // FIXME(icycodes): move fetchingCompletion status to completion provider
-  private updateIsFetchingCompletion(isFetchingCompletion: boolean) {
-    if (this.fetchingCompletion != isFetchingCompletion) {
-      this.fetchingCompletion = isFetchingCompletion;
-      this.emit("isFetchingCompletionUpdated", isFetchingCompletion);
-    }
-  }
-
-  private updateCompletionResponseIssue(issue: "highTimeoutRate" | "slowResponseTime" | undefined) {
-    if (this.completionResponseIssue != issue) {
-      this.completionResponseIssue = issue;
-      if (issue) {
-        this.logger.info(`Completion response issue detected: ${issue}.`);
-      }
-      this.emit("hasCompletionResponseTimeIssueUpdated", !!issue);
-    }
-  }
-
-  private updateIsRateLimitExceeded(isRateLimitExceeded: boolean) {
-    if (this.rateLimitExceeded != isRateLimitExceeded) {
-      this.logger.debug(`updateIsRateLimitExceeded: ${isRateLimitExceeded}`);
-      this.rateLimitExceeded = isRateLimitExceeded;
-      this.emit("isRateLimitExceededUpdated", isRateLimitExceeded);
-    }
-  }
-
-  getCompletionRequestStats(): RequestStats {
-    return this.completionRequestStats;
-  }
-
   getStatus(): TabbyApiClientStatus {
     return this.status;
-  }
-
-  hasHelpMessage(): boolean {
-    return this.status === "noConnection" || this.completionResponseIssue !== undefined;
   }
 
   getHelpMessage(format?: "plaintext" | "markdown" | "html"): string | undefined {
@@ -219,45 +143,44 @@ export class TabbyApiClient extends EventEmitter {
       } else {
         return message;
       }
-    } else if (this.completionResponseIssue) {
-      return this.buildHelpMessage(format);
     }
-    return;
+    return undefined;
   }
 
   isConnecting(): boolean {
     return this.connecting;
   }
 
-  isFetchingCompletion(): boolean {
-    return this.fetchingCompletion;
-  }
-
-  hasCompletionResponseTimeIssue(): boolean {
-    return !!this.completionResponseIssue;
-  }
-
-  isRateLimitExceeded(): boolean {
-    return this.rateLimitExceeded;
-  }
-
   getServerHealth(): TabbyApiComponents["schemas"]["HealthState"] | undefined {
     return this.serverHealth;
   }
 
-  isCodeCompletionApiAvailable(): boolean {
-    const health = this.serverHealth;
-    return !!(health && health["model"]);
-  }
+  async connect(options: { skipReset?: boolean } = {}): Promise<void> {
+    if (!options.skipReset) {
+      this.connectionErrorMessage = undefined;
+      this.serverHealth = undefined;
+      this.updateStatus("noConnection");
 
-  isChatApiAvailable(): boolean {
-    const health = this.serverHealth;
-    return !!(health && health["chat_model"]);
-  }
+      const config = this.configurations.getMergedConfig();
+      const endpoint = config.server.endpoint;
+      this.endpoint = endpoint;
 
-  async connect(options: { reset?: boolean } = {}): Promise<void> {
-    if (options.reset) {
-      this.reset();
+      const auth = !isBlank(config.server.token) ? `Bearer ${config.server.token}` : undefined;
+      const proxyConfigs: ProxyConfig[] = [{ fromEnv: true }];
+      if (!isBlank(config.proxy.url)) {
+        proxyConfigs.unshift(config.proxy);
+      }
+      this.api = createClient<TabbyApi>({
+        baseUrl: endpoint,
+        headers: {
+          Authorization: auth,
+          "User-Agent": this.userAgentString,
+          ...config.server.requestHeaders,
+        },
+        /** dispatcher do not exist in {@link RequestInit} in browser env. */
+        /* @ts-expect-error TS-2353 */
+        dispatcher: createProxyForUrl(endpoint, proxyConfigs),
+      });
     }
     await this.healthCheck();
     if (this.status === "ready") {
@@ -276,8 +199,8 @@ export class TabbyApiClient extends EventEmitter {
     const background = options?.background;
 
     if (this.healthCheckMutexAbortController && !this.healthCheckMutexAbortController.signal.aborted) {
-      // if background check true, and there is a running check, ignore background check
       if (background) {
+        // there is a running check, skip background check
         return;
       }
       this.healthCheckMutexAbortController.abort(new MutexAbortError());
@@ -380,7 +303,12 @@ export class TabbyApiClient extends EventEmitter {
   async fetchCompletion(
     request: TabbyApiComponents["schemas"]["CompletionRequest"],
     signal?: AbortSignal,
-    stats?: CompletionStats,
+    // set to track latency, the properties in latencyStats object will be updated in this function
+    latencyStats?: {
+      latency?: number; // ms, undefined means no data, timeout or canceled
+      canceled?: boolean;
+      timeout?: boolean;
+    },
   ): Promise<TabbyApiComponents["schemas"]["CompletionResponse"]> {
     const requestId = uuid();
     const requestPath = "/v1/completions";
@@ -391,75 +319,45 @@ export class TabbyApiClient extends EventEmitter {
     };
 
     const requestStartedAt = performance.now();
-    const statsData = {
-      latency: NaN,
-      canceled: false,
-      timeout: false,
-      notAvailable: false,
-    };
-
     try {
       if (!this.api) {
         throw new Error("http client not initialized");
       }
       this.logger.debug(`Completion request: ${requestDescription}. [${requestId}]`);
       this.logger.trace(`Completion request body: [${requestId}]`, requestOptions.body);
-      this.updateIsFetchingCompletion(true);
       const response = await this.api.POST(requestPath, requestOptions);
-      this.updateIsFetchingCompletion(false);
       this.logger.debug(`Completion response status: ${response.response.status}. [${requestId}]`);
       if (response.error || !response.response.ok) {
         throw new HttpError(response.response);
       }
       this.logger.trace(`Completion response data: [${requestId}]`, response.data);
-      statsData.latency = performance.now() - requestStartedAt;
-      this.updateIsRateLimitExceeded(false);
+      if (latencyStats) {
+        latencyStats.latency = performance.now() - requestStartedAt;
+      }
       return response.data;
     } catch (error) {
-      this.updateIsFetchingCompletion(false);
       if (isCanceledError(error)) {
         this.logger.debug(`Completion request canceled. [${requestId}]`);
-        statsData.canceled = true;
+        if (latencyStats) {
+          latencyStats.canceled = true;
+        }
       } else if (isTimeoutError(error)) {
         this.logger.debug(`Completion request timed out. [${requestId}]`);
-        statsData.timeout = true;
+        if (latencyStats) {
+          latencyStats.timeout = true;
+        }
       } else if (isUnauthorizedError(error)) {
         this.logger.debug(`Completion request failed due to unauthorized. [${requestId}]`);
-        statsData.notAvailable = true;
-        this.updateIsRateLimitExceeded(false);
-        this.connect(); // schedule a reconnection
-      } else if (isRateLimitExceededError(error)) {
-        this.logger.debug(`Completion request failed due to rate limiting. [${requestId}]`);
-        statsData.notAvailable = true;
-        this.updateIsRateLimitExceeded(true);
+        this.healthCheck();
       } else {
         this.logger.error(`Completion request failed. [${requestId}]`, error);
-        statsData.notAvailable = true;
-        this.updateIsRateLimitExceeded(false);
-        this.connect(); // schedule a reconnection
-      }
-      throw error; // rethrow error
-    } finally {
-      if (!statsData.notAvailable) {
-        stats?.addRequestStatsEntry(statsData);
+        this.healthCheck();
       }
 
-      if (!statsData.notAvailable && !statsData.canceled) {
-        this.completionRequestStats.add(statsData.latency);
-        const statsResult = this.completionRequestStats.stats();
-        const checkResult = RequestStats.check(statsResult);
-        switch (checkResult) {
-          case "healthy":
-            this.updateCompletionResponseIssue(undefined);
-            break;
-          case "highTimeoutRate":
-            this.updateCompletionResponseIssue("highTimeoutRate");
-            break;
-          case "slowResponseTime":
-            this.updateCompletionResponseIssue("slowResponseTime");
-            break;
-        }
+      if (latencyStats) {
+        latencyStats.latency = undefined;
       }
+      throw error; // rethrow error
     }
   }
 
@@ -501,10 +399,10 @@ export class TabbyApiClient extends EventEmitter {
         this.logger.debug(`Chat request canceled. [${requestId}]`);
       } else if (isUnauthorizedError(error)) {
         this.logger.debug(`Chat request failed due to unauthorized. [${requestId}]`);
-        this.connect(); // schedule a reconnection
+        this.healthCheck();
       } else {
         this.logger.error(`Chat request failed. [${requestId}]`, error);
-        this.connect(); // schedule a reconnection
+        this.healthCheck();
       }
       throw error; // rethrow error
     }
@@ -513,7 +411,7 @@ export class TabbyApiClient extends EventEmitter {
   async postEvent(
     request: TabbyApiComponents["schemas"]["LogEventRequest"] & { select_kind?: "line" },
     signal?: AbortSignal,
-  ): Promise<boolean> {
+  ): Promise<void> {
     const requestId = uuid();
     const requestPath = "/v1/events";
     const requestDescription = `POST ${this.endpoint + requestPath}`;
@@ -540,86 +438,18 @@ export class TabbyApiClient extends EventEmitter {
         throw new HttpError(response.response);
       }
       this.logger.trace(`Event response data: [${requestId}]`, response.data);
-      return true;
     } catch (error) {
+      if (isCanceledError(error)) {
+        this.logger.debug(`Event request canceled. [${requestId}]`);
+      }
       if (isUnauthorizedError(error)) {
-        this.logger.debug(`Completion request failed due to unauthorized. [${requestId}]`);
+        this.logger.debug(`Event request failed due to unauthorized. [${requestId}]`);
+        this.healthCheck();
       } else {
         this.logger.error(`Event request failed. [${requestId}]`, error);
+        this.healthCheck();
       }
-      this.connect(); // schedule a reconnection
-      return false;
-    }
-  }
-
-  private buildHelpMessage(format?: "plaintext" | "markdown" | "html"): string | undefined {
-    const outputFormat = format ?? "plaintext";
-    let statsMessage = "";
-    if (this.completionResponseIssue == "slowResponseTime") {
-      const stats = this.completionRequestStats.stats().stats;
-      if (stats && stats["responses"] && stats["averageResponseTime"]) {
-        statsMessage = `The average response time of recent ${stats["responses"]} completion requests is ${Number(
-          stats["averageResponseTime"],
-        ).toFixed(0)}ms.<br/><br/>`;
-      }
-    }
-
-    if (this.completionResponseIssue == "highTimeoutRate") {
-      const stats = this.completionRequestStats.stats().stats;
-      if (stats && stats["total"] && stats["timeouts"]) {
-        statsMessage = `${stats["timeouts"]} of ${stats["total"]} completion requests timed out.<br/><br/>`;
-      }
-    }
-
-    let helpMessageForRunningLargeModelOnCPU = "";
-    const serverHealthState = this.serverHealth;
-    if (serverHealthState?.device === "cpu" && serverHealthState?.model?.match(/[0-9.]+B$/)) {
-      helpMessageForRunningLargeModelOnCPU +=
-        `Your Tabby server is running model <i>${serverHealthState?.model}</i> on CPU. ` +
-        "This model may be performing poorly due to its large parameter size, please consider trying smaller models or switch to GPU. " +
-        "You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/docs/'>online documentation</a>.<br/>";
-    }
-    let commonHelpMessage = "";
-    if (helpMessageForRunningLargeModelOnCPU.length == 0) {
-      commonHelpMessage += `<li>The running model <i>${
-        serverHealthState?.model ?? ""
-      }</i> may be performing poorly due to its large parameter size. `;
-      commonHelpMessage +=
-        "Please consider trying smaller models. You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/docs/'>online documentation</a>.</li>";
-    }
-    const host = new URL(this.endpoint ?? "http://localhost:8080").host;
-    if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("0.0.0.0"))) {
-      commonHelpMessage += "<li>A poor network connection. Please check your network and proxy settings.</li>";
-      commonHelpMessage += "<li>Server overload. Please contact your Tabby server administrator for assistance.</li>";
-    }
-    let helpMessage = "";
-    if (helpMessageForRunningLargeModelOnCPU.length > 0) {
-      helpMessage += helpMessageForRunningLargeModelOnCPU + "<br/>";
-      if (commonHelpMessage.length > 0) {
-        helpMessage += "Other possible causes of this issue: <br/><ul>" + commonHelpMessage + "</ul>";
-      }
-    } else {
-      // commonHelpMessage should not be empty here
-      helpMessage += "Possible causes of this issue: <br/><ul>" + commonHelpMessage + "</ul>";
-    }
-
-    if (outputFormat == "html") {
-      return statsMessage + helpMessage;
-    }
-    if (outputFormat == "markdown") {
-      return (statsMessage + helpMessage)
-        .replace(/<br\/>/g, " \n")
-        .replace(/<i>(.*?)<\/i>/g, "*$1*")
-        .replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/g, "[$2]($1)")
-        .replace(/<ul[^>]*>(.*?)<\/ul>/g, "$1")
-        .replace(/<li[^>]*>(.*?)<\/li>/g, "- $1 \n");
-    } else {
-      return (statsMessage + helpMessage)
-        .replace(/<br\/>/g, " \n")
-        .replace(/<i>(.*?)<\/i>/g, "$1")
-        .replace(/<a[^>]*>(.*?)<\/a>/g, "$1")
-        .replace(/<ul[^>]*>(.*?)<\/ul>/g, "$1")
-        .replace(/<li[^>]*>(.*?)<\/li>/g, "- $1 \n");
+      throw error; // rethrow error
     }
   }
 }
