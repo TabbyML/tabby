@@ -22,17 +22,18 @@ pub enum ContextSourceKind {
     Gitlab,
     Doc,
     Web,
+    Page,
 }
 
 #[graphql_interface]
-#[graphql(context = Context, for = [ProvidedRepository, GitRepository, ContextSourceValue, CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
+#[graphql(context = Context, for = [ProvidedRepository, GitRepository, ContextSourceValue, CustomWebDocument, PresetWebDocument, Repository, WebContextSource, PageContextSource])]
 pub trait ContextSourceId {
     /// Represents the source of the context, which is the value mapped to `source_id` in the index.
     fn source_id(&self) -> String;
 }
 
 #[derive(GraphQLInterface)]
-#[graphql(context = Context, impl = [ContextSourceIdValue], for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
+#[graphql(context = Context, impl = [ContextSourceIdValue], for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource, PageContextSource])]
 pub struct ContextSource {
     pub id: ID,
 
@@ -52,6 +53,7 @@ impl ContextSourceValue {
             ContextSourceValueEnum::CustomWebDocument(x) => x.source_id(),
             ContextSourceValueEnum::PresetWebDocument(x) => x.source_id(),
             ContextSourceValueEnum::WebContextSource(x) => x.source_id().into(),
+            ContextSourceValueEnum::PageContextSource(x) => x.source_id().into(),
         }
     }
 
@@ -61,6 +63,7 @@ impl ContextSourceValue {
             ContextSourceValueEnum::CustomWebDocument(x) => x.source_name().into(),
             ContextSourceValueEnum::PresetWebDocument(x) => x.source_name().into(),
             ContextSourceValueEnum::WebContextSource(x) => x.source_name().into(),
+            ContextSourceValueEnum::PageContextSource(x) => x.source_name().into(),
         }
     }
 }
@@ -85,6 +88,27 @@ impl WebContextSource {
 
     pub fn source_name(&self) -> &'static str {
         "Web"
+    }
+}
+
+pub struct PageContextSource;
+
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
+impl PageContextSource {
+    fn id(&self) -> ID {
+        ID::new("page".to_owned())
+    }
+
+    fn source_kind(&self) -> ContextSourceKind {
+        ContextSourceKind::Page
+    }
+
+    pub fn source_id(&self) -> &'static str {
+        "page"
+    }
+
+    pub fn source_name(&self) -> &'static str {
+        "Page"
     }
 }
 

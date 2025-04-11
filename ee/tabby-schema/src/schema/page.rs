@@ -1,4 +1,5 @@
 mod types;
+
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use juniper::ID;
@@ -12,6 +13,10 @@ pub type SectionRunStream = BoxStream<'static, Result<SectionRunItem>>;
 
 #[async_trait]
 pub trait PageService: Send + Sync {
+    fn source_id(&self) -> String {
+        "page".into()
+    }
+
     async fn convert_thread_to_page(
         &self,
         policy: &AccessPolicy,

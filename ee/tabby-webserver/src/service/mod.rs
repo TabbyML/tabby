@@ -153,6 +153,7 @@ impl ServerContext {
             repository.third_party(),
             integration.clone(),
             repository.clone(),
+            page.clone(),
             context.clone(),
             license.clone(),
             notification.clone(),
