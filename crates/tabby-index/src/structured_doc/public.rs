@@ -39,19 +39,13 @@ pub struct StructuredDocState {
 pub struct StructuredDocIndexer {
     builder: TantivyDocBuilder<StructuredDoc>,
     indexer: Indexer,
-
-    kind: String,
 }
 
 impl StructuredDocIndexer {
-    pub fn new(embedding: Arc<dyn Embedding>, kind: &str) -> Self {
+    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
         let builder = create_structured_doc_builder(embedding);
         let indexer = Indexer::new(corpus::STRUCTURED_DOC);
-        Self {
-            indexer,
-            builder,
-            kind: kind.to_string(),
-        }
+        Self { indexer, builder }
     }
 
     // Runs pre-sync checks to determine if the document needs to be updated.
@@ -62,10 +56,7 @@ impl StructuredDocIndexer {
             return false;
         }
 
-        let attributes = vec![(StructuredDocIndexFields::KIND, self.kind.as_str())];
-        if self
-            .indexer
-            .is_indexed_after(&state.id, &attributes, state.updated_at)
+        if self.indexer.is_indexed_after(&state.id, state.updated_at)
             && !self.indexer.has_failed_chunks(&state.id)
         {
             return false;

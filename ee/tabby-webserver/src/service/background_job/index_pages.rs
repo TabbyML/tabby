@@ -5,7 +5,7 @@ use futures::{stream::BoxStream, StreamExt};
 use serde::{Deserialize, Serialize};
 use tabby_index::public::{
     StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocPageFields,
-    StructuredDocState, STRUCTURED_DOC_KIND_PAGE,
+    StructuredDocState,
 };
 use tabby_inference::Embedding;
 use tabby_schema::{job::JobService, page::PageService};
@@ -45,7 +45,7 @@ impl SyncPageIndexJob {
             }
         };
 
-        let index = StructuredDocIndexer::new(embedding, STRUCTURED_DOC_KIND_PAGE);
+        let index = StructuredDocIndexer::new(embedding);
         stream! {
             let mut count = 0;
             let mut num_updated = 0;
@@ -73,23 +73,51 @@ async fn fetch_all_pages(
     page_service: Arc<dyn PageService>,
 ) -> tabby_schema::Result<BoxStream<'static, (StructuredDocState, StructuredDoc)>> {
     let s: BoxStream<(StructuredDocState, StructuredDoc)> = {
-        let pages = page_service.list(None, None, None, None, None).await?;
         let stream = stream! {
-            for page in pages {
-                let state = StructuredDocState {
-                    id: page.id.to_string(),
-                    updated_at: page.updated_at,
-                    deleted: false,
+            let page_size = 10;
+            let mut has_more = true;
+            let mut after_cursor: Option<String> = None;
+
+            while has_more {
+                let pages = match page_service.list(None, after_cursor.clone(), None, Some(page_size), None).await {
+                    Ok(pages) => pages,
+                    Err(e) => {
+                        logkit::error!("Failed to fetch pages: {}", e);
+                        break;
+                    }
                 };
-                let doc = StructuredDoc {
-                    source_id: page_service.source_id(),
-                    fields: StructuredDocFields::Page(StructuredDocPageFields {
-                        title: page.title.unwrap_or_default(),
+
+                if pages.is_empty() {
+                    break;
+                }
+
+                for page in pages.iter() {
+                    let state = StructuredDocState {
                         id: page.id.to_string(),
-                        content: page.content.unwrap_or_default(),
-                    }),
-                };
-                yield (state, doc);
+                        updated_at: page.updated_at,
+                        deleted: false,
+                    };
+                    let doc = StructuredDoc {
+                        source_id: page_service.source_id(),
+                        fields: StructuredDocFields::Page(StructuredDocPageFields {
+                            title: page.title.clone().unwrap_or_default(),
+                            // must add the prefix `page:` to the ID to ensure its uniqueness.
+                            id: format!("page:{}", page.id),
+                            content: page.content.clone().unwrap_or_default(),
+                        }),
+                    };
+                    yield (state, doc);
+                }
+
+                // If we got fewer pages than the requested page size, we've reached the end
+                if pages.len() < page_size {
+                    has_more = false;
+                } else {
+                    // Get the ID of the last page to use as the after cursor
+                    if let Some(last_page) = pages.last() {
+                        after_cursor = Some(last_page.id.to_string());
+                    }
+                }
             }
         };
         stream.boxed()

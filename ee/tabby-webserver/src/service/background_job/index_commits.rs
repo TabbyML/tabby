@@ -47,7 +47,7 @@ impl Drop for StopGuard {
 }
 
 async fn indexing(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
-    let indexer = StructuredDocIndexer::new(embedding, STRUCTURED_DOC_KIND_COMMIT);
+    let indexer = StructuredDocIndexer::new(embedding);
 
     let (commits, stop_tx) = stream_commits(repository.dir().to_string_lossy().to_string());
     let mut commits = pin!(commits);
@@ -90,7 +90,7 @@ async fn indexing(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
 }
 
 async fn garbage_collection(embedding: Arc<dyn Embedding>, source_id: &str) {
-    let indexer = StructuredDocIndexer::new(embedding, STRUCTURED_DOC_KIND_COMMIT);
+    let indexer = StructuredDocIndexer::new(embedding);
 
     let count = match indexer
         .count_doc(source_id, STRUCTURED_DOC_KIND_COMMIT)

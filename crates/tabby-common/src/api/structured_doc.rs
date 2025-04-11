@@ -273,11 +273,14 @@ impl FromTantivyDocument for DocSearchCommit {
 impl FromTantivyDocument for DocSearchPageDocument {
     fn from_tantivy_document(doc: &TantivyDocument, chunk: &TantivyDocument) -> Option<Self> {
         let schema = IndexSchema::instance();
+        // page id is prefixed with `page:` in the index to avoid collision with other docs,
+        // strip the prefix to retrieve the original ID, which we can then utilize for attachments.
         let id = get_json_text_field(
             doc,
             schema.field_attributes,
             structured_doc::fields::page::ID,
-        );
+        )
+        .strip_prefix("page:")?;
         let title = get_json_text_field(
             doc,
             schema.field_attributes,

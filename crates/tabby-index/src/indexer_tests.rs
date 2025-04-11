@@ -39,7 +39,7 @@ mod structured_doc_tests {
     use super::mock_embedding::MockEmbedding;
     use crate::{
         indexer::Indexer,
-        public::{StructuredDocState, STRUCTURED_DOC_KIND_ISSUE},
+        public::StructuredDocState,
         structured_doc::public::{
             StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
         },
@@ -57,7 +57,7 @@ mod structured_doc_tests {
         let id = "structured_doc_empty_embedding";
         let embedding = MockEmbedding::new(vec![], true);
         let embedding = Arc::new(embedding);
-        let indexer = StructuredDocIndexer::new(embedding.clone(), STRUCTURED_DOC_KIND_ISSUE);
+        let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
@@ -103,7 +103,7 @@ mod structured_doc_tests {
         let id = "structured_doc_with_embedding";
         let embedding = MockEmbedding::new(vec![1.0], false);
         let embedding = Arc::new(embedding);
-        let indexer = StructuredDocIndexer::new(embedding.clone(), STRUCTURED_DOC_KIND_ISSUE);
+        let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {
@@ -149,7 +149,7 @@ mod structured_doc_tests {
         let id = "structured_doc_has_attribute_field";
         let embedding = MockEmbedding::new(vec![1.0], false);
         let embedding = Arc::new(embedding);
-        let indexer = StructuredDocIndexer::new(embedding.clone(), STRUCTURED_DOC_KIND_ISSUE);
+        let indexer = StructuredDocIndexer::new(embedding.clone());
         let doc = StructuredDoc {
             source_id: "source".to_owned(),
             fields: StructuredDocFields::Issue(StructuredDocIssueFields {

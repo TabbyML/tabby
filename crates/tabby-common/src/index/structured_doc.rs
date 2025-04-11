@@ -33,8 +33,11 @@ pub mod fields {
     }
 
     pub mod page {
+        // === Doc level fields ===
         pub const ID: &str = "id";
         pub const TITLE: &str = "title";
+
+        // === Chunk level fields ===
         pub const CHUNK_CONTENT: &str = "chunk_text";
     }
 }

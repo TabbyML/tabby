@@ -357,14 +357,9 @@ impl Indexer {
         }
     }
 
-    pub fn is_indexed_after(
-        &self,
-        id: &str,
-        kvs: &[(&str, &str)],
-        time: chrono::DateTime<chrono::Utc>,
-    ) -> bool {
+    pub fn is_indexed_after(&self, id: &str, time: chrono::DateTime<chrono::Utc>) -> bool {
         let schema = IndexSchema::instance();
-        let query = schema.doc_indexed_after(&self.corpus, id, kvs, time);
+        let query = schema.doc_indexed_after(&self.corpus, id, time);
         let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
             return false;
         };
