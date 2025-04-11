@@ -24,11 +24,11 @@ import { getLogger } from "./logger";
 const logger = getLogger("FindFiles");
 
 // Map from workspace folder to gitignore patterns
-const gitIgnorePatternsMap = new Map<string, Set<string>>();
+const gitIgnorePatternsMap = new Map<string, string[]>();
 
 function gitIgnoreItemToExcludePatterns(item: string, prefix?: string | undefined): string[] {
   let pattern = item.trim();
-  if (pattern.length === 0) {
+  if (pattern.startsWith("#") || pattern.startsWith("!") || pattern.length === 0) {
     return [];
   }
   if (pattern.indexOf("/") === -1 || pattern.indexOf("/") === pattern.length - 1) {
@@ -41,8 +41,28 @@ function gitIgnoreItemToExcludePatterns(item: string, prefix?: string | undefine
   return [path.join(prefix ?? "", pattern), path.join(prefix ?? "", pattern, "/**")];
 }
 
+function joinPatterns(patterns: string[], maxLength = 32000 /* < 2 ^ 15 */): string {
+  let result = "";
+  for (const pattern of patterns) {
+    if (result.length + pattern.length + 3 >= maxLength) {
+      continue;
+    }
+    if (result.length > 0) {
+      result += ",";
+    }
+    result += pattern;
+  }
+  return `{${result}}`;
+}
+
+function addUniqueItem(arr: string[], item: string) {
+  if (!arr.includes(item)) {
+    arr.push(item);
+  }
+}
+
 async function updateGitIgnorePatterns(workspaceFolder: WorkspaceFolder, token?: CancellationToken | undefined) {
-  const patterns = new Set<string>();
+  const patterns: string[] = [];
   logger.debug(`Building gitignore patterns for workspace folder: ${workspaceFolder.uri.toString()}`);
 
   // Read parent gitignore files
@@ -57,9 +77,7 @@ async function updateGitIgnorePatterns(workspaceFolder: WorkspaceFolder, token?:
     try {
       const content = new TextDecoder().decode(await workspace.fs.readFile(gitignore));
       content.split(/\r?\n/).forEach((line) => {
-        if (!line.trim().startsWith("#")) {
-          gitIgnoreItemToExcludePatterns(line).forEach((pattern) => patterns.add(pattern));
-        }
+        gitIgnoreItemToExcludePatterns(line).forEach((pattern) => addUniqueItem(patterns, pattern));
       });
     } catch (error) {
       // ignore
@@ -76,37 +94,42 @@ async function updateGitIgnorePatterns(workspaceFolder: WorkspaceFolder, token?:
   // Read subdirectories gitignore files
   let ignoreFiles: Uri[] = [];
   try {
-    ignoreFiles = await workspace.findFiles(
-      new RelativePattern(workspaceFolder, "**/.gitignore"),
-      undefined,
-      undefined,
-      token,
-    );
+    ignoreFiles = (
+      await workspace.findFiles(
+        new RelativePattern(workspaceFolder, "**/.gitignore"),
+        joinPatterns(patterns),
+        undefined,
+        token,
+      )
+    ).sort((a, b) => {
+      const aDepth = a.path.split(path.sep).length;
+      const bDepth = b.path.split(path.sep).length;
+      if (aDepth != bDepth) {
+        return aDepth - bDepth;
+      }
+      return a.path.localeCompare(b.path);
+    });
   } catch (error) {
     // ignore
   }
 
-  await Promise.all(
-    ignoreFiles.map(async (ignoreFile) => {
-      if (token?.isCancellationRequested) {
-        return;
-      }
-      const prefix = path.relative(workspaceFolder.uri.path, path.dirname(ignoreFile.path));
-      try {
-        const content = new TextDecoder().decode(await workspace.fs.readFile(ignoreFile));
-        content.split(/\r?\n/).forEach((line) => {
-          if (!line.trim().startsWith("#")) {
-            gitIgnoreItemToExcludePatterns(line, prefix).forEach((pattern) => patterns.add(pattern));
-          }
-        });
-      } catch (error) {
-        // ignore
-      }
-    }),
-  );
+  for (const ignoreFile of ignoreFiles) {
+    if (token?.isCancellationRequested) {
+      return;
+    }
+    const prefix = path.relative(workspaceFolder.uri.path, path.dirname(ignoreFile.path));
+    try {
+      const content = new TextDecoder().decode(await workspace.fs.readFile(ignoreFile));
+      content.split(/\r?\n/).forEach((line) => {
+        gitIgnoreItemToExcludePatterns(line, prefix).forEach((pattern) => addUniqueItem(patterns, pattern));
+      });
+    } catch (error) {
+      // ignore
+    }
+  }
   // Update map
   logger.debug(
-    `Completed building git ignore patterns for workspace folder: ${workspaceFolder.uri.toString()}, git ignore patterns: ${JSON.stringify([...patterns])}`,
+    `Completed building git ignore patterns for workspace folder: ${workspaceFolder.uri.toString()}, git ignore patterns: ${JSON.stringify(patterns)}`,
   );
   gitIgnorePatternsMap.set(workspaceFolder.uri.toString(), patterns);
 }
@@ -148,10 +171,10 @@ export async function findFiles(
     token?: CancellationToken;
   },
 ): Promise<Uri[]> {
-  const combinedExcludes = new Set<string>();
+  const combinedExcludes: string[] = [];
   if (options?.excludes) {
     for (const exclude of options.excludes) {
-      combinedExcludes.add(exclude);
+      addUniqueItem(combinedExcludes, exclude);
     }
   }
   if (!options?.noUserSettings) {
@@ -161,12 +184,12 @@ export async function findFiles(
       (await workspace.getConfiguration("files", null).get("exclude")) ?? {};
     for (const pattern in { ...searchExclude, ...filesExclude }) {
       if (filesExclude[pattern]) {
-        combinedExcludes.add(pattern);
+        addUniqueItem(combinedExcludes, pattern);
       }
     }
   }
   if (options?.noIgnoreFiles) {
-    const excludesPattern = `{${[...combinedExcludes].join(",")}}`;
+    const excludesPattern = joinPatterns(combinedExcludes);
     logger.debug(
       `Executing search: ${JSON.stringify({ includePattern: pattern, excludesPattern, maxResults: options?.maxResults, token: options?.token })}`,
     );
@@ -198,12 +221,10 @@ export async function findFiles(
               return [];
             }
           }
-          const allExcludes = new Set([
+          const excludesPattern = joinPatterns([
             ...combinedExcludes,
             ...(gitIgnorePatternsMap.get(workspaceFolder.uri.toString()) ?? []),
           ]);
-          const sortedExcludes = [...allExcludes].sort((a, b) => a.length - b.length).slice(0, 1000); // Limit to 1000 patterns
-          const excludesPattern = `{${sortedExcludes.join(",")}}`;
           logger.debug(
             `Executing search: ${JSON.stringify({ includePattern, excludesPattern, maxResults: options?.maxResults })}`,
           );
