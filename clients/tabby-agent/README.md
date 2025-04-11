@@ -16,7 +16,7 @@ For collecting more context to enhance the completion quality or providing more 
 **Note**: For VSCode, IntelliJ Platform IDEs, and Vim/NeoVim, it is recommended to use the Tabby-provided extensions, which run the Tabby Agent underlying.
 
 - [VSCode](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
-- [IntelliJ Platform IDEs](https://plugins.jetbrains.com/plugin/22379-tabby/edit)
+- [IntelliJ Platform IDEs](https://plugins.jetbrains.com/plugin/22379-tabby)
 - [Vim/NeoVim](https://github.com/TabbyML/vim-tabby)
 
 The following guide is only for users who want to set up the tabby-agent as a language server manually.
@@ -72,11 +72,11 @@ command = "npx"
 args = ["tabby-agent", "--stdio"]
 
 # Add Tabby as the second language server for your specific languages
-[[languages]]
+[[language]]
 name = "typescript"
 language-servers = ["typescript-language-server", "tabby"]
 
-[[languages]]
+[[language]]
 name = "toml"
 language-servers = ["taplo", "tabby"]
 ```
