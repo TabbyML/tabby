@@ -6,6 +6,7 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
+use url::Url;
 
 use crate::{
     api::code::CodeSearchParams,
@@ -184,8 +185,18 @@ impl RepositoryConfig {
 
     pub fn resolve_dir(git_url: &str) -> PathBuf {
         if Self::resolve_is_local_dir(git_url) {
-            let path = git_url.strip_prefix("file://").unwrap();
-            path.into()
+            // Parse the URL and convert to a file path in a platform-aware way
+            let url = Url::parse(git_url)
+                .unwrap_or_else(|e| panic!("Invalid file:// URL: {}, error: {}", git_url, e));
+
+            url.to_file_path().unwrap_or_else(|_| {
+                panic!(
+                    "Failed to convert file URL to path: {}. \
+                     Please ensure the URL has a valid format for your platform (e.g., \
+                     'file:///C:/path' for Windows or 'file:///path' for Unix)",
+                    git_url
+                )
+            })
         } else {
             repositories_dir().join(Self::resolve_dir_name(git_url))
         }
@@ -490,6 +501,7 @@ impl CodeRepository {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
     use super::{sanitize_name, Config, RepositoryConfig};
 
@@ -537,6 +549,79 @@ mod tests {
         assert!(Config::validate_model_config(&config.model.chat).is_ok());
     }
 
+    #[test]
+    fn test_resolve_dir_handles_various_file_urls() {
+        use std::env;
+        use std::path::PathBuf;
+
+        // Detect current OS
+        let is_windows = cfg!(windows);
+
+        // Define various test cases for file:// URLs and their expected path suffixes
+        let test_cases = vec![
+            // Standard Unix-style file URL
+            (
+                "file:///home/user/project",
+                PathBuf::from("/home/user/project"),
+            ),
+            // Standard Windows-style file URL (forward slashes)
+            (
+                "file:///C:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // Lowercase drive letter (still valid on Windows)
+            (
+                "file:///c:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // File URL with trailing slash
+            (
+                "file:///C:/Users/test/project/",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // URL with encoded characters (e.g., spaces)
+            (
+                "file:///C:/Users/test/My%20Project",
+                PathBuf::from(r"C:\Users\test\My Project"),
+            ),
+            // File URL pointing to a .git repo
+            (
+                "file:///C:/Users/test/project.git",
+                PathBuf::from(r"C:\Users\test\project.git"),
+            ),
+            // Non-standard: multiple slashes (still accepted by url crate)
+            (
+                "file:////C:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // Non-standard: missing third slash (valid but discouraged)
+            (
+                "file://C:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+        ];
+
+        for (input, expected_suffix) in test_cases {
+            // Skip incompatible test cases based on platform
+            if is_windows && expected_suffix.starts_with("/") {
+                continue; // Skip Unix paths on Windows
+            }
+            if !is_windows && expected_suffix.to_string_lossy().contains(':') {
+                continue; // Skip Windows paths on Unix
+            }
+
+            let result = RepositoryConfig::resolve_dir(input);
+
+            // Only check that the resulting path ends with the expected suffix
+            assert!(
+                result.ends_with(&expected_suffix),
+                "Failed for input:\n  {}\nExpected suffix:\n  {:?}\nGot:\n  {:?}",
+                input,
+                expected_suffix,
+                result
+            );
+        }
+    }
     #[test]
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
