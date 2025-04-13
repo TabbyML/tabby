@@ -1,13 +1,15 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
+import { concat, unionWith } from 'lodash-es'
 import moment from 'moment'
-import useSWR from 'swr'
+import useSWRImmutable from 'swr/immutable'
 import { useQuery } from 'urql'
 
+import { useLatest } from '@/lib/hooks/use-latest'
 import fetcher from '@/lib/tabby/fetcher'
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
@@ -18,26 +20,62 @@ import {
   IconSpinner,
   IconStopWatch
 } from '@/components/ui/icons'
+import { LoadMoreIndicator } from '@/components/load-more-indicator'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { getJobDisplayName, getLabelByJobRun } from '../utils'
+
+interface LogChunk {
+  startByte: number
+  endByte: number
+  logs: string
+}
+
+const CHUNK_SIZE = 50 * 1000
 
 export default function JobRunDetail() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
+  const [chunks, setChunks] = useState<LogChunk[]>([])
+  const [loadedBytes, setLoadedBytes] = useState(-1)
+  const [totalBytes, setTotalBytes] = useState<number | undefined>()
+
   const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listJobRuns,
     variables: { ids: [id as string] },
     pause: !id
   })
-
-  const { data: logs, mutate } = useSWR(
-    id ? `/background-jobs/${id}/logs` : null,
-    (url: string) => {
+  const currentNode = data?.jobRuns?.edges?.[0]?.node
+  const endCursor = useRef<number | undefined>()
+  const shouldFetchLogs = !!id && !fetching && !currentNode?.stdout
+  const {
+    data: logsData,
+    mutate,
+    isLoading
+  } = useSWRImmutable(
+    id ? [`/background-jobs/${id}/logs`, loadedBytes + 1] : null,
+    ([url, start]) => {
       return fetcher(url, {
+        headers: {
+          Range: `bytes=${start}-${start + CHUNK_SIZE}`
+        },
         responseFormatter: res => {
-          return res.text()
+          const contentRange = res.headers.get('Content-Range')
+          if (!contentRange) return null
+          if (res.status === 206) {
+            const [range, total] = contentRange
+              .replace(/^bytes\s/, '')
+              .split('/')
+            const [start, end] = range?.split('-')
+            endCursor.current = parseInt(end)
+            return res.text().then(text => ({
+              logs: text,
+              totalBytes: parseInt(total),
+              startByte: parseInt(start),
+              endByte: parseInt(end)
+            }))
+          }
         },
         errorHandler: response => {
           throw new Error(response?.statusText.toString())
@@ -46,12 +84,30 @@ export default function JobRunDetail() {
     }
   )
 
-  const currentNode = data?.jobRuns?.edges?.[0]?.node
-  const finalLogs = currentNode?.stdout || logs
+  // join logs
+  useEffect(() => {
+    if (logsData) {
+      setChunks(prev => {
+        return unionWith(concat(prev, logsData), (x, y) => {
+          return x.startByte === y.startByte && x.endByte === y.endByte
+        })
+      })
+      setTotalBytes(logsData?.totalBytes ?? 0)
+    }
+  }, [logsData])
+
+  const finalLogs = useMemo(() => {
+    if (currentNode?.stdout) return currentNode?.stdout
+    const logs = chunks.reduce((sum, cur) => sum + cur.logs, '')
+    return processPartialLine(logs)
+  }, [currentNode?.stdout, chunks])
 
   const stateLabel = getLabelByJobRun(currentNode)
   const isPending =
-    (stateLabel === 'Pending' || stateLabel === 'Running') && !logs
+    (stateLabel === 'Pending' || stateLabel === 'Running') && !finalLogs
+
+  const isLoadedCompleted =
+    !!totalBytes && chunks[chunks.length - 1]?.endByte >= totalBytes - 1
 
   const handleBackNavigation = () => {
     if (typeof window !== 'undefined' && window.history.length <= 1) {
@@ -61,13 +117,24 @@ export default function JobRunDetail() {
     }
   }
 
+  const loadMore = useLatest(() => {
+    if (isLoading) return
+
+    if (endCursor.current) {
+      const nextCursor = endCursor.current
+      // setLoadedBytes to trigger fetch request
+      setTimeout(() => {
+        setLoadedBytes(nextCursor)
+      }, 100)
+    }
+  })
+
   React.useEffect(() => {
     let timer: number
     if (currentNode?.createdAt && !currentNode?.finishedAt) {
-      const hasStdout = !!currentNode?.stdout
       timer = window.setTimeout(() => {
         reexecuteQuery()
-        if (!hasStdout) {
+        if (isLoadedCompleted || !chunks.length) {
           mutate()
         }
       }, 5000)
@@ -78,7 +145,7 @@ export default function JobRunDetail() {
         clearInterval(timer)
       }
     }
-  }, [currentNode])
+  }, [currentNode, isLoadedCompleted, chunks?.length])
 
   return (
     <>
@@ -142,7 +209,23 @@ export default function JobRunDetail() {
                 )}
               </div>
               <div className="flex flex-1 flex-col">
-                <StdoutView value={finalLogs} pending={isPending} />
+                <StdoutView value={finalLogs} pending={isPending}>
+                  {shouldFetchLogs && !isLoadedCompleted && (
+                    <LoadMoreIndicator
+                      intersectionOptions={{
+                        trackVisibility: true,
+                        delay: 200,
+                        rootMargin: '100px 0px 0px 0px'
+                      }}
+                      onLoad={loadMore.current}
+                      isFetching={isLoading}
+                    >
+                      <div className="flex justify-center">
+                        <IconSpinner />
+                      </div>
+                    </LoadMoreIndicator>
+                  )}
+                </StdoutView>
               </div>
             </>
           )}
@@ -175,11 +258,24 @@ function StdoutView({
           <IconSpinner className="h-8 w-8" />
         </div>
       )}
-      {value && (
-        <pre className="whitespace-pre-wrap p-4">
-          <Ansi>{value}</Ansi>
-        </pre>
+      {!!value && (
+        <>
+          <pre className="whitespace-pre-wrap p-4">
+            <Ansi>{value}</Ansi>
+          </pre>
+          {children}
+        </>
       )}
     </div>
   )
+}
+
+function processPartialLine(logs: string) {
+  if (!logs) return logs
+
+  const lines = logs.split('\n')
+  const lastLine = lines[lines.length - 1]
+  const hasLineBreak = lastLine.endsWith('\n')
+
+  return hasLineBreak ? lines.join('\n') : lines.slice(0, -1).join('\n')
 }

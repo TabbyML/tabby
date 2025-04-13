@@ -22,9 +22,9 @@ const LoadMoreIndicatorRender: React.FC<React.PropsWithChildren<Props>> = ({
   const { ref, inView } = useInView(intersectionOptions)
   React.useEffect(() => {
     if (inView && !isFetching) {
-      onLoad?.()
+      onLoad()
     }
-  }, [inView])
+  }, [inView, isFetching])
 
   return (
     <div className={cn('w-full', className)} ref={ref}>
