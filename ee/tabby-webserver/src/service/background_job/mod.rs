@@ -5,6 +5,7 @@ mod helper;
 mod hourly;
 mod index_commits;
 mod index_garbage_collection;
+mod index_pages;
 mod license_check;
 mod third_party_integration;
 mod web_crawler;
@@ -18,6 +19,7 @@ use git::SchedulerGitJob;
 use helper::{CronStream, Job, JobLogger};
 use hourly::HourlyJob;
 use index_garbage_collection::IndexGarbageCollection;
+use index_pages::SyncPageIndexJob;
 use juniper::ID;
 use license_check::LicenseCheckJob;
 use serde::{Deserialize, Serialize};
@@ -30,6 +32,7 @@ use tabby_schema::{
     job::JobService,
     license::LicenseService,
     notification::{NotificationRecipient, NotificationService},
+    page::PageService,
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
     AsID,
 };
@@ -46,6 +49,7 @@ pub enum BackgroundJobEvent {
     SyncThirdPartyRepositories(ID),
     WebCrawler(WebCrawlerJob),
     IndexGarbageCollection,
+    SyncPagesIndex,
     Hourly,
     Daily,
 }
@@ -58,6 +62,7 @@ impl BackgroundJobEvent {
                 SchedulerGithubGitlabJob::NAME
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
+            BackgroundJobEvent::SyncPagesIndex => SyncPageIndexJob::NAME,
             BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
             BackgroundJobEvent::Hourly => HourlyJob::NAME,
@@ -75,6 +80,7 @@ fn background_job_notification_name(event: &BackgroundJobEvent) -> &str {
         BackgroundJobEvent::SchedulerGitRepository(_) => "Indexing Repository",
         BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => "Indexing Repository",
         BackgroundJobEvent::SyncThirdPartyRepositories(_) => "Loading Repository",
+        BackgroundJobEvent::SyncPagesIndex => "Pages Indexing",
         BackgroundJobEvent::WebCrawler(_) => "Web Indexing",
         BackgroundJobEvent::IndexGarbageCollection => "Garbage Collection",
         BackgroundJobEvent::Hourly => "Hourly",
@@ -115,6 +121,7 @@ pub async fn start(
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
     repository_service: Arc<dyn RepositoryService>,
+    page_service: Option<Arc<dyn PageService>>,
     context_service: Arc<dyn ContextService>,
     license_service: Arc<dyn LicenseService>,
     notification_service: Arc<dyn NotificationService>,
@@ -168,6 +175,18 @@ pub async fn start(
                             let job = SchedulerGithubGitlabJob::new(integration_id);
                             job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
+                        BackgroundJobEvent::SyncPagesIndex => {
+                            if let Some(page_service) = page_service.clone() {
+                                let job = SyncPageIndexJob;
+                                job.run(
+                                    page_service.clone(),
+                                    embedding.clone(),
+                                ).await
+                            } else {
+                                logkit::info!(exit_code = -1; "No page service available, skipping SyncPagesIndex job");
+                                Ok(())
+                            }
+                        }
                         BackgroundJobEvent::WebCrawler(job) => {
                             job.run(embedding.clone()).await
                         }
@@ -177,7 +196,7 @@ pub async fn start(
                         }
                         BackgroundJobEvent::Hourly => {
                             let job = HourlyJob;
-                            job.run(
+                            if let Err(e) = job.run(
                                 db.clone(),
                                 context_service.clone(),
                                 git_repository_service.clone(),
@@ -185,7 +204,15 @@ pub async fn start(
                                 integration_service.clone(),
                                 third_party_repository_service.clone(),
                                 repository_service.clone(),
-                            ).await
+                            ).await {
+                                logkit::warn!("Hourly job failed: {:?}", e);
+                            };
+
+                            if let Err(e) = SyncPageIndexJob::cron(job_service.clone()).await {
+                                logkit::warn!("Sync page index job failed: {:?}", e);
+                            };
+
+                            Ok(())
                         }
                         BackgroundJobEvent::Daily => {
                             let job = DailyJob;

@@ -24,6 +24,7 @@ enum ContextSourceKind {
   GITLAB
   DOC
   WEB
+  PAGE
 }
 
 enum Encryption {
@@ -412,6 +413,12 @@ type AttachmentIssueDoc {
   closed: Boolean!
 }
 
+type AttachmentPageDoc {
+  link: String!
+  title: String!
+  content: String!
+}
+
 type AttachmentPullDoc {
   title: String!
   link: String!
@@ -707,6 +714,12 @@ type MessageAttachmentIssueDoc {
   closed: Boolean!
 }
 
+type MessageAttachmentPageDoc {
+  link: String!
+  title: String!
+  content: String!
+}
+
 type MessageAttachmentPullDoc {
   title: String!
   link: String!
@@ -865,6 +878,13 @@ type PageContentDebugData {
 
 type PageContentDelta {
   delta: String!
+}
+
+type PageContextSource implements ContextSourceId & ContextSource {
+  id: ID!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
 }
 
 type PageCreated {
@@ -1278,9 +1298,9 @@ type WebContextSource implements ContextSourceId & ContextSource {
   sourceName: String!
 }
 
-union AttachmentDoc = AttachmentWebDoc | AttachmentIssueDoc | AttachmentPullDoc | AttachmentCommitDoc
+union AttachmentDoc = AttachmentWebDoc | AttachmentIssueDoc | AttachmentPullDoc | AttachmentCommitDoc | AttachmentPageDoc
 
-union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc | MessageAttachmentCommitDoc
+union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc | MessageAttachmentCommitDoc | MessageAttachmentPageDoc
 
 "Schema of page convert stream."
 union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionAttachmentDoc | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted

@@ -6,8 +6,8 @@ use crate::{
     interface::UserValue,
     thread::{
         MessageAttachmentCode, MessageAttachmentCodeFileList, MessageAttachmentCommitDoc,
-        MessageAttachmentDoc, MessageAttachmentIssueDoc, MessageAttachmentPullDoc,
-        MessageAttachmentWebDoc,
+        MessageAttachmentDoc, MessageAttachmentIssueDoc, MessageAttachmentPageDoc,
+        MessageAttachmentPullDoc, MessageAttachmentWebDoc,
     },
     Context,
 };
@@ -62,6 +62,7 @@ pub enum AttachmentDoc {
     Issue(AttachmentIssueDoc),
     Pull(AttachmentPullDoc),
     Commit(AttachmentCommitDoc),
+    Page(AttachmentPageDoc),
 }
 
 impl PartialEq for AttachmentDoc {
@@ -71,6 +72,7 @@ impl PartialEq for AttachmentDoc {
             (AttachmentDoc::Issue(a), AttachmentDoc::Issue(b)) => a.link == b.link,
             (AttachmentDoc::Pull(a), AttachmentDoc::Pull(b)) => a.link == b.link,
             (AttachmentDoc::Commit(a), AttachmentDoc::Commit(b)) => a.sha == b.sha,
+            (AttachmentDoc::Page(a), AttachmentDoc::Page(b)) => a.link == b.link,
             _ => false,
         }
     }
@@ -111,6 +113,14 @@ pub struct AttachmentCommitDoc {
     pub message: String,
     pub author: Option<UserValue>,
     pub author_at: DateTime<Utc>,
+}
+
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct AttachmentPageDoc {
+    pub link: String,
+    pub title: String,
+    pub content: String,
 }
 
 impl From<&MessageAttachmentCodeFileList> for AttachmentCodeFileList {
@@ -196,6 +206,7 @@ impl From<&MessageAttachmentDoc> for AttachmentDoc {
             MessageAttachmentDoc::Issue(doc) => AttachmentDoc::Issue(doc.into()),
             MessageAttachmentDoc::Pull(doc) => AttachmentDoc::Pull(doc.into()),
             MessageAttachmentDoc::Commit(doc) => AttachmentDoc::Commit(doc.into()),
+            MessageAttachmentDoc::Page(doc) => AttachmentDoc::Page(doc.into()),
         }
     }
 }
@@ -242,6 +253,16 @@ impl From<&MessageAttachmentCommitDoc> for AttachmentCommitDoc {
             message: val.message.clone(),
             author: val.author.clone(),
             author_at: val.author_at,
+        }
+    }
+}
+
+impl From<&MessageAttachmentPageDoc> for AttachmentPageDoc {
+    fn from(val: &MessageAttachmentPageDoc) -> Self {
+        Self {
+            link: val.link.clone(),
+            title: val.title.clone(),
+            content: val.content.clone(),
         }
     }
 }

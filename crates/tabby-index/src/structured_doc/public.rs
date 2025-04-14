@@ -10,6 +10,7 @@ use tabby_inference::Embedding;
 pub use super::types::{
     commit::CommitDocument as StructuredDocCommitFields,
     issue::IssueDocument as StructuredDocIssueFields,
+    page::PageDocument as StructuredDocPageFields,
     pull::PullDocument as StructuredDocPullDocumentFields,
     web::WebDocument as StructuredDocWebFields, StructuredDoc, StructuredDocFields, KIND_COMMIT,
 };

@@ -23,8 +23,8 @@ pub mod public {
         code::CodeIndexer,
         structured_doc::public::{
             StructuredDoc, StructuredDocCommitFields, StructuredDocFields, StructuredDocIndexer,
-            StructuredDocIssueFields, StructuredDocPullDocumentFields, StructuredDocState,
-            StructuredDocWebFields, KIND_COMMIT as STRUCTURED_DOC_KIND_COMMIT,
+            StructuredDocIssueFields, StructuredDocPageFields, StructuredDocPullDocumentFields,
+            StructuredDocState, StructuredDocWebFields, KIND_COMMIT as STRUCTURED_DOC_KIND_COMMIT,
         },
     };
 

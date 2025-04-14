@@ -160,6 +160,7 @@ pub enum MessageAttachmentDoc {
     Issue(MessageAttachmentIssueDoc),
     Pull(MessageAttachmentPullDoc),
     Commit(MessageAttachmentCommitDoc),
+    Page(MessageAttachmentPageDoc),
 }
 
 #[derive(GraphQLObject, Clone)]
@@ -199,6 +200,14 @@ pub struct MessageAttachmentCommitDoc {
     pub author_at: DateTime<Utc>,
 }
 
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct MessageAttachmentPageDoc {
+    pub link: String,
+    pub title: String,
+    pub content: String,
+}
+
 impl MessageAttachmentDoc {
     pub fn from_doc_search_document(doc: DocSearchDocument, author: Option<UserValue>) -> Self {
         match doc {
@@ -232,6 +241,11 @@ impl MessageAttachmentDoc {
                     author_at: commit.author_at,
                 })
             }
+            DocSearchDocument::Page(page) => MessageAttachmentDoc::Page(MessageAttachmentPageDoc {
+                link: page.link,
+                title: page.title,
+                content: page.content,
+            }),
         }
     }
 
@@ -241,6 +255,7 @@ impl MessageAttachmentDoc {
             MessageAttachmentDoc::Issue(issue) => issue.body.to_string(),
             MessageAttachmentDoc::Pull(pull) => pull.body.to_string(),
             MessageAttachmentDoc::Commit(commit) => commit.message.to_string(),
+            MessageAttachmentDoc::Page(page) => page.content.to_string(),
         }
     }
 }

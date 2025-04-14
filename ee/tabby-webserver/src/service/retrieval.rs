@@ -20,7 +20,8 @@ use tabby_schema::{
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
     retrieval::{
-        AttachmentCommitDoc, AttachmentDoc, AttachmentIssueDoc, AttachmentPullDoc, AttachmentWebDoc,
+        AttachmentCommitDoc, AttachmentDoc, AttachmentIssueDoc, AttachmentPageDoc,
+        AttachmentPullDoc, AttachmentWebDoc,
     },
     thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput},
     CoreError, Result,
@@ -333,6 +334,11 @@ pub async fn attachment_doc_from_search(
             author,
             author_at: commit.author_at,
         }),
+        DocSearchDocument::Page(page) => AttachmentDoc::Page(AttachmentPageDoc {
+            link: page.link,
+            title: page.title,
+            content: page.content,
+        }),
     }
 }
 
@@ -396,6 +402,11 @@ pub fn attachment_doc_from_db(
             message: commit.message,
             author,
             author_at: commit.author_at,
+        }),
+        tabby_db::AttachmentDoc::Page(page) => AttachmentDoc::Page(AttachmentPageDoc {
+            link: page.link,
+            title: page.title,
+            content: page.content,
         }),
     }
 }
@@ -497,6 +508,7 @@ mod tests {
             DocSearchDocument::Commit(commit_doc) => {
                 commit_doc.message.lines().next().unwrap_or(&commit_doc.sha)
             }
+            DocSearchDocument::Page(page_doc) => &page_doc.title,
         }
     }
 

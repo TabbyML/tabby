@@ -23,6 +23,7 @@ pub enum DocSearchDocument {
     Issue(DocSearchIssueDocument),
     Pull(DocSearchPullDocument),
     Commit(DocSearchCommit),
+    Page(DocSearchPageDocument),
 }
 
 #[derive(Error, Debug)]
@@ -87,6 +88,13 @@ pub struct DocSearchCommit {
     pub author_at: DateTime<Utc>,
 }
 
+#[derive(Clone)]
+pub struct DocSearchPageDocument {
+    pub link: String,
+    pub title: String,
+    pub content: String,
+}
+
 pub trait FromTantivyDocument {
     fn from_tantivy_document(doc: &TantivyDocument, chunk: &TantivyDocument) -> Option<Self>
     where
@@ -109,6 +117,8 @@ impl FromTantivyDocument for DocSearchDocument {
             "commit" => {
                 DocSearchCommit::from_tantivy_document(doc, chunk).map(DocSearchDocument::Commit)
             }
+            "page" => DocSearchPageDocument::from_tantivy_document(doc, chunk)
+                .map(DocSearchDocument::Page),
             _ => None,
         }
     }
@@ -256,6 +266,33 @@ impl FromTantivyDocument for DocSearchCommit {
             message,
             author_email,
             author_at,
+        })
+    }
+}
+
+impl FromTantivyDocument for DocSearchPageDocument {
+    fn from_tantivy_document(doc: &TantivyDocument, chunk: &TantivyDocument) -> Option<Self> {
+        let schema = IndexSchema::instance();
+        let link = get_json_text_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::page::LINK,
+        );
+        let title = get_json_text_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::page::TITLE,
+        );
+        let content = get_json_text_field(
+            chunk,
+            schema.field_chunk_attributes,
+            structured_doc::fields::page::CHUNK_CONTENT,
+        );
+
+        Some(Self {
+            link: link.into(),
+            title: title.into(),
+            content: content.into(),
         })
     }
 }
