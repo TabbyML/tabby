@@ -669,10 +669,10 @@ export const listPageSections = graphql(/* GraphQL */ `
                 authorAt
               }
               ... on AttachmentPageDoc {
-              link
-              title
-              content
-            }
+                link
+                title
+                content
+              }
             }
           }
         }
