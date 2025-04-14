@@ -104,6 +104,11 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
               }
               authorAt
             }
+            ... on MessageAttachmentPageDoc {
+              link
+              title
+              content
+            }
           }
           score
         }
@@ -204,6 +209,11 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
                 name
               }
               authorAt
+            }
+            ... on MessageAttachmentPageDoc {
+              link
+              title
+              content
             }
           }
           score
