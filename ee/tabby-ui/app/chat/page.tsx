@@ -74,8 +74,13 @@ export default function ChatPage() {
   const isInEditor = !!client || undefined
   const useMacOSKeyboardEventHandler = useRef<boolean>()
 
+  const navigateToChatView = () => {
+    setShowHistory(false)
+  }
+
   const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
+      navigateToChatView()
       chatRef.current.executeCommand(command)
     } else {
       setPendingCommand(command)
@@ -84,6 +89,7 @@ export default function ChatPage() {
 
   const addRelevantContext = async (ctx: EditorContext) => {
     if (chatRef.current) {
+      navigateToChatView()
       chatRef.current.addRelevantContext(ctx)
     } else {
       const newPendingRelevantContexts = [...pendingRelevantContexts]
@@ -109,7 +115,7 @@ export default function ChatPage() {
         break
       case 'new-chat':
         chatRef.current?.newChat()
-        setShowHistory(false)
+        navigateToChatView()
         break
       default:
         break
