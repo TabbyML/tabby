@@ -31,7 +31,7 @@ import {
 import { ExtendedCombinedError } from '@/lib/types'
 import { cn, isCodeSourceContext, nanoid } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { IconBug } from '@/components/ui/icons'
+import { IconBug, IconStop } from '@/components/ui/icons'
 import {
   ResizableHandle,
   ResizablePanel,
@@ -117,6 +117,7 @@ export function Page() {
   const devPanelRef = useRef<ImperativePanelHandle>(null)
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
+  const [stopGenerateVisible, setStopGenerateVisible] = useState(false)
 
   const pageIdFromURL = useMemo(() => {
     const regex = /^\/pages\/(.*)/
@@ -137,7 +138,21 @@ export function Page() {
     setPendingSectionIds(new Set())
     setCurrentSectionId(undefined)
     setPageCompleted(true)
+    setStopGenerateVisible(false)
   })
+
+  const onStopGenerating = () => {
+    stop.current()
+
+    if (isLoading) {
+      // remove empty sections
+      setSections(prev => {
+        if (!prev) return prev
+        return prev.filter(x => !!x.content)
+      })
+      setPendingSectionIds(new Set())
+    }
+  }
 
   const updateDebugData = (data: DebugData | undefined | null) => {
     if (!data) return
@@ -192,7 +207,6 @@ export function Page() {
   }
 
   const processPageRunItemStream = (data: PageRunItem) => {
-    // debugger
     switch (data.__typename) {
       case 'PageCreated': {
         setPageId(data.id)
@@ -208,6 +222,7 @@ export function Page() {
         })
         updateDebugData(data.debugData)
         setIsGeneratingPageTitle(false)
+        setStopGenerateVisible(true)
         updatePageURL(data)
         break
       }
@@ -374,6 +389,7 @@ export function Page() {
           ]
         })
         updateDebugData(data.debugData)
+        setStopGenerateVisible(true)
         break
       }
       case 'PageSectionContentDelta': {
@@ -1102,6 +1118,11 @@ export function Page() {
                                     key={`section_${section.id}`}
                                     exit={{ opacity: 0 }}
                                     className="space-y-2"
+                                    transition={
+                                      isLoading
+                                        ? { duration: 0 }
+                                        : { duration: 0.3 }
+                                    }
                                   >
                                     <SectionTitle
                                       className="pt-12 prose-p:leading-tight"
@@ -1147,7 +1168,31 @@ export function Page() {
                     )}
                   </div>
                 </ScrollArea>
-
+                {stopGenerateVisible && (
+                  <div className="fixed bottom-16 w-full">
+                    <div className="mx-auto grid grid-cols-4 gap-2 lg:max-w-5xl">
+                      <motion.div
+                        className="col-span-3 flex h-px justify-center overflow-y-visible"
+                        animate={{ opacity: 100, y: 0 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        transition={{
+                          ease: 'easeInOut',
+                          duration: 0.4,
+                          delay: 0.5
+                        }}
+                      >
+                        <Button
+                          onClick={onStopGenerating}
+                          variant="outline"
+                          className="gap-2 bg-background"
+                        >
+                          <IconStop />
+                          stop generating
+                        </Button>
+                      </motion.div>
+                    </div>
+                  </div>
+                )}
                 <ButtonScrollToBottom
                   className={cn(
                     '!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]'
