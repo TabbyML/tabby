@@ -180,6 +180,15 @@ impl PageService for PageServiceImpl {
         let auth = self.auth.clone();
 
         let s = stream! {
+            // Create a channel that will be closed when the client disconnects
+            let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+            let _cleanup_trigger = tx;
+            let db_cleanup = db.clone();
+            let _disconnect_guard = tokio::spawn(async move {
+                rx.await.unwrap_or_default();
+                let _ = db_cleanup.delete_page_sections_without_content(page_id).await;
+            });
+
             let mut section_from_db = section_from_db(auth.clone(), section).await;
             if debug {
                 section_from_db.debug_data = section_title_debug_messages.map(|messages| PageSectionDebugData {
@@ -384,8 +393,18 @@ impl PageServiceImpl {
         let config = self.config.clone();
         let auth = self.auth.clone();
         let doc_query = doc_query.map(ToOwned::to_owned);
+        let page_rowid = page_id.as_rowid()?;
 
         let s = stream! {
+            // Create a channel that will be closed when the client disconnects
+            let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+            let _cleanup_trigger = tx;
+            let db_cleanup = db.clone();
+            let _disconnect_guard = tokio::spawn(async move {
+                rx.await.unwrap_or_default();
+                let _ = db_cleanup.delete_page_sections_without_content(page_rowid).await;
+            });
+
             yield Ok(PageRunItem::PageCreated(PageCreated {
                 id: page_id.clone(),
                 author_id: author_id.clone(),
