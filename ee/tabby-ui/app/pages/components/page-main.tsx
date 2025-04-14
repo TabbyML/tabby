@@ -514,7 +514,7 @@ export function Page() {
           pageId,
           titlePrompt: title,
           docQuery: {
-            sourceIds: compact([page?.codeSourceId]),
+            sourceIds: compact([page?.codeSourceId, 'page']),
             content: title,
             searchPublic: true
           },
@@ -619,7 +619,7 @@ export function Page() {
               }
             : null,
           docQuery: {
-            sourceIds: compact([codeSourceId]),
+            sourceIds: compact([codeSourceId, 'page']),
             content: titlePrompt,
             searchPublic: true
           },

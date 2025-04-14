@@ -1037,7 +1037,7 @@ function getSourceInputs(
   if (ctx) {
     sourceIdsForDocQuery = uniq(
       // Compatible with existing user messages
-      compact([repositorySourceId, ctx?.codeSourceId].concat(ctx.docSourceIds))
+      compact([repositorySourceId, ctx?.codeSourceId, 'page'].concat(ctx.docSourceIds))
     )
     searchPublic = ctx.searchPublic ?? false
     sourceIdForCodeQuery = repositorySourceId || ctx.codeSourceId || undefined

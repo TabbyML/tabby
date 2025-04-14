@@ -10,6 +10,7 @@ import {
   getAttachmentDocContent,
   isAttachmentCommitDoc,
   isAttachmentIssueDoc,
+  isAttachmentPageDoc,
   isAttachmentPullDoc,
   isAttachmentWebDoc
 } from '@/lib/utils'
@@ -51,7 +52,7 @@ export function DocDetailView({
     relevantDocument.title
   )
   const sourceUrl = link ? new URL(link) : null
-  const author = isAttachmentWebDoc(relevantDocument)
+  const author = (isAttachmentWebDoc(relevantDocument) || isAttachmentPageDoc(relevantDocument))
     ? undefined
     : relevantDocument.author
   const score = relevantDocument?.extra?.score

@@ -465,6 +465,11 @@ export const listThreadMessages = graphql(/* GraphQL */ `
                 }
                 authorAt
               }
+              ... on MessageAttachmentPageDoc {
+                title
+                link
+                content
+              }
             }
             codeFileList {
               fileList
@@ -663,6 +668,11 @@ export const listPageSections = graphql(/* GraphQL */ `
                 }
                 authorAt
               }
+              ... on AttachmentPageDoc {
+              link
+              title
+              content
+            }
             }
           }
         }

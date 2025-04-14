@@ -121,6 +121,11 @@ export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
               }
               authorAt
             }
+            ... on AttachmentPageDoc {
+              link
+              title
+              content
+            }
           }
           score
         }
@@ -274,6 +279,11 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
               }
               authorAt
             }
+            ... on AttachmentPageDoc {
+              link
+              title
+              content
+            }
           }
           score
         }
@@ -382,6 +392,11 @@ export const createPageSectionRunSubscription = graphql(/* GraphQL */ `
                 name
               }
               authorAt
+            }
+            ... on AttachmentPageDoc {
+              link
+              title
+              content
             }
           }
           score
