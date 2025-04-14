@@ -13,7 +13,7 @@ use tokio::task::JoinHandle;
 use super::{build_tokens, BuildStructuredDoc};
 
 pub struct PageDocument {
-    pub id: String,
+    pub link: String,
     pub title: String,
     pub content: String,
 }
@@ -26,7 +26,7 @@ impl BuildStructuredDoc for PageDocument {
 
     async fn build_attributes(&self) -> serde_json::Value {
         json!({
-            fields::page::ID: self.id,
+            fields::page::LINK: self.link,
             fields::page::TITLE: self.title,
         })
     }

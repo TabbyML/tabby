@@ -318,7 +318,7 @@ pub fn from_thread_message_attachment_document(
         }
         AttachmentDoc::Page(page) => {
             thread::MessageAttachmentDoc::Page(thread::MessageAttachmentPageDoc {
-                id: page.id,
+                link: page.link,
                 title: page.title,
                 content: page.content,
             })
@@ -364,7 +364,7 @@ impl From<&thread::MessageAttachmentDoc> for AttachmentDoc {
                 })
             }
             thread::MessageAttachmentDoc::Page(val) => AttachmentDoc::Page(AttachmentPageDoc {
-                id: val.id.clone(),
+                link: val.link.clone(),
                 title: val.title.clone(),
                 content: val.content.clone(),
             }),
@@ -471,7 +471,7 @@ impl From<&retrieval::AttachmentDoc> for AttachmentDoc {
                 })
             }
             retrieval::AttachmentDoc::Page(page) => AttachmentDoc::Page(AttachmentPageDoc {
-                id: page.id.clone(),
+                link: page.link.clone(),
                 title: page.title.clone(),
                 content: page.content.clone(),
             }),

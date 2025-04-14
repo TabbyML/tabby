@@ -72,7 +72,7 @@ impl PartialEq for AttachmentDoc {
             (AttachmentDoc::Issue(a), AttachmentDoc::Issue(b)) => a.link == b.link,
             (AttachmentDoc::Pull(a), AttachmentDoc::Pull(b)) => a.link == b.link,
             (AttachmentDoc::Commit(a), AttachmentDoc::Commit(b)) => a.sha == b.sha,
-            (AttachmentDoc::Page(a), AttachmentDoc::Page(b)) => a.id == b.id,
+            (AttachmentDoc::Page(a), AttachmentDoc::Page(b)) => a.link == b.link,
             _ => false,
         }
     }
@@ -118,7 +118,7 @@ pub struct AttachmentCommitDoc {
 #[derive(GraphQLObject, Clone)]
 #[graphql(context = Context)]
 pub struct AttachmentPageDoc {
-    pub id: String,
+    pub link: String,
     pub title: String,
     pub content: String,
 }
@@ -260,7 +260,7 @@ impl From<&MessageAttachmentCommitDoc> for AttachmentCommitDoc {
 impl From<&MessageAttachmentPageDoc> for AttachmentPageDoc {
     fn from(val: &MessageAttachmentPageDoc) -> Self {
         Self {
-            id: val.id.clone(),
+            link: val.link.clone(),
             title: val.title.clone(),
             content: val.content.clone(),
         }

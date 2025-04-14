@@ -203,7 +203,7 @@ pub struct MessageAttachmentCommitDoc {
 #[derive(GraphQLObject, Clone)]
 #[graphql(context = Context)]
 pub struct MessageAttachmentPageDoc {
-    pub id: String,
+    pub link: String,
     pub title: String,
     pub content: String,
 }
@@ -242,7 +242,7 @@ impl MessageAttachmentDoc {
                 })
             }
             DocSearchDocument::Page(page) => MessageAttachmentDoc::Page(MessageAttachmentPageDoc {
-                id: page.id,
+                link: page.link,
                 title: page.title,
                 content: page.content,
             }),

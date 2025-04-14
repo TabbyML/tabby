@@ -632,7 +632,7 @@ fn filter_out_messages_doc_with_self_id(page_id: &str, messages: &[Message]) -> 
                 .filter(|doc| {
                     // Keep docs that are not of type "Page" or have different id
                     if let MessageAttachmentDoc::Page(doc) = doc {
-                        doc.id == page_id
+                        doc.link == page_id
                     } else {
                         false
                     }
@@ -767,9 +767,9 @@ async fn generate_section_with_attachments(
             ).await;
             let hits = hits.iter().filter(|x| {
                 if let DocSearchDocument::Page(doc) = &x.doc {
-                    doc.id == page_id
+                    doc.link != page_id
                 } else {
-                    false
+                    true
                 }
             }).collect::<Vec<_>>();
 

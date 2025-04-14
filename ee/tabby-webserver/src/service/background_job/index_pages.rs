@@ -101,8 +101,9 @@ async fn fetch_all_pages(
                         source_id: page_service.source_id(),
                         fields: StructuredDocFields::Page(StructuredDocPageFields {
                             title: page.title.clone().unwrap_or_default(),
-                            // must add the prefix `page:` to the ID to ensure its uniqueness.
-                            id: format!("page:{}", page.id),
+                            // must add the prefix `/pages/` to the ID to ensure its uniqueness.
+                            // and this can serve as the link to the page.
+                            link: format!("/pages/{}", page.id),
                             content: page.content.clone().unwrap_or_default(),
                         }),
                     };

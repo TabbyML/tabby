@@ -63,7 +63,7 @@ pub struct AttachmentCommitDoc {
 
 #[derive(Serialize, Deserialize)]
 pub struct AttachmentPageDoc {
-    pub id: String,
+    pub link: String,
     pub title: String,
     pub content: String,
 }

@@ -414,7 +414,7 @@ type AttachmentIssueDoc {
 }
 
 type AttachmentPageDoc {
-  id: String!
+  link: String!
   title: String!
   content: String!
 }
@@ -715,7 +715,7 @@ type MessageAttachmentIssueDoc {
 }
 
 type MessageAttachmentPageDoc {
-  id: String!
+  link: String!
   title: String!
   content: String!
 }

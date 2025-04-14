@@ -33,7 +33,7 @@ impl StructuredDoc {
             StructuredDocFields::Issue(issue) => &issue.link,
             StructuredDocFields::Pull(pull) => &pull.link,
             StructuredDocFields::Commit(commit) => &commit.sha,
-            StructuredDocFields::Page(page) => &page.id,
+            StructuredDocFields::Page(page) => &page.link,
         }
     }
 

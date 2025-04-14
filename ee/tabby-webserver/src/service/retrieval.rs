@@ -335,7 +335,7 @@ pub async fn attachment_doc_from_search(
             author_at: commit.author_at,
         }),
         DocSearchDocument::Page(page) => AttachmentDoc::Page(AttachmentPageDoc {
-            id: page.id,
+            link: page.link,
             title: page.title,
             content: page.content,
         }),
@@ -404,7 +404,7 @@ pub fn attachment_doc_from_db(
             author_at: commit.author_at,
         }),
         tabby_db::AttachmentDoc::Page(page) => AttachmentDoc::Page(AttachmentPageDoc {
-            id: page.id,
+            link: page.link,
             title: page.title,
             content: page.content,
         }),

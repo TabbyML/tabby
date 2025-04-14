@@ -34,7 +34,7 @@ pub mod fields {
 
     pub mod page {
         // === Doc level fields ===
-        pub const ID: &str = "id";
+        pub const LINK: &str = "link";
         pub const TITLE: &str = "title";
 
         // === Chunk level fields ===
