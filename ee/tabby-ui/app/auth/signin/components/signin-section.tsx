@@ -99,7 +99,8 @@ export default function SigninSection() {
           <h1 className="text-2xl font-semibold tracking-tight">Sign In</h1>
           {formVisible && (
             <p className="text-sm text-muted-foreground">
-              Enter credentials to login to your account
+              Enter {!passwordSigninVisible && enableLdapAuth ? 'LDAP' : ''}{' '}
+              credentials to login to your account
             </p>
           )}
         </div>
@@ -148,7 +149,7 @@ export default function SigninSection() {
         <div className="relative mt-4 flex w-[350px] items-center py-5">
           <div className="grow border-t "></div>
           <span className="mx-4 shrink text-sm text-muted-foreground">
-            Or Sign In with
+            {formVisible ? 'Or' : ''} Sign In with
           </span>
           <div className="grow border-t "></div>
         </div>
