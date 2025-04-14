@@ -78,6 +78,10 @@ export default function ChatPage() {
     setShowHistory(false)
   }
 
+  const navigateToHistoryView = () => {
+    setShowHistory(true)
+  }
+
   const executeCommand = (command: ChatCommand) => {
     if (chatRef.current) {
       navigateToChatView()
@@ -111,7 +115,7 @@ export default function ChatPage() {
   const navigate = async (view: ChatView) => {
     switch (view) {
       case 'history':
-        setShowHistory(true)
+        navigateToHistoryView()
         break
       case 'new-chat':
         chatRef.current?.newChat()
