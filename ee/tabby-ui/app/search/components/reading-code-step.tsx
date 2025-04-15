@@ -13,6 +13,7 @@ import {
   cn,
   isAttachmentCommitDoc,
   isCodeSourceContext,
+  resolveDirectoryPath,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import {
@@ -285,8 +286,7 @@ function CodeContextItem({
   onContextClick,
   enableDeveloperMode
 }: CodeContextItemProps) {
-  const pathSegments = context.filepath.split('/')
-  const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+  const path = resolveDirectoryPath(context.filepath)
 
   const fileName = useMemo(() => {
     return resolveFileNameForDisplay(context.filepath)
