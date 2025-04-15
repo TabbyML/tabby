@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { isNil } from 'lodash-es'
@@ -18,6 +19,7 @@ import {
 import { SiteFavicon } from '../site-favicon'
 import { Badge } from '../ui/badge'
 import {
+  IconBookOpen,
   IconCheckCircled,
   IconCircleDot,
   IconGitMerge,
@@ -37,6 +39,7 @@ export function DocDetailView({
   const isIssue = isAttachmentIssueDoc(relevantDocument)
   const isPR = isAttachmentPullDoc(relevantDocument)
   const isCommit = isAttachmentCommitDoc(relevantDocument)
+  const isPage = isAttachmentPageDoc(relevantDocument)
   const link = isCommit ? undefined : relevantDocument.link
   const title = isCommit ? (
     <span>
@@ -51,7 +54,15 @@ export function DocDetailView({
   ) : (
     relevantDocument.title
   )
-  const sourceUrl = link ? new URL(link) : null
+  const sourceUrl = useMemo(() => {
+    if (!link) return null
+    try {
+      return new URL(link, isPage ? window.location.origin : undefined)
+    } catch {
+      return null
+    }
+  }, [link, isPage])
+
   const author =
     isAttachmentWebDoc(relevantDocument) ||
     isAttachmentPageDoc(relevantDocument)
@@ -64,11 +75,20 @@ export function DocDetailView({
       <div className="flex w-full flex-col gap-y-1 text-sm">
         {!!sourceUrl && (
           <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-            <SiteFavicon
-              hostname={sourceUrl!.hostname}
-              className="m-0 mr-1 leading-none"
-            />
-            <p className="m-0 leading-none">{sourceUrl!.hostname}</p>
+            {isPage ? (
+              <>
+                <IconBookOpen className="m-0 mr-1 leading-none" />
+                <p className="m-0 leading-none">Pages</p>
+              </>
+            ) : (
+              <>
+                <SiteFavicon
+                  hostname={sourceUrl!.hostname}
+                  className="m-0 mr-1 leading-none"
+                />
+                <p className="m-0 leading-none">{sourceUrl!.hostname}</p>
+              </>
+            )}
           </div>
         )}
         <p

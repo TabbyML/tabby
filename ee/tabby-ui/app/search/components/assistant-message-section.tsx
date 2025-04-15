@@ -8,8 +8,10 @@ import Textarea from 'react-textarea-autosize'
 import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
+import { useEnableSearchPages } from '@/lib/experiment-flags'
 import {
   ContextSource,
+  ContextSourceKind,
   Maybe,
   MessageAttachmentClientCode
 } from '@/lib/gql/generates/graphql'
@@ -28,6 +30,10 @@ import {
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
   isAttachmentCommitDoc,
+  isAttachmentIssueDoc,
+  isAttachmentPageDoc,
+  isAttachmentPullDoc,
+  isAttachmentWebDoc,
   isDocSourceContext
 } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -93,24 +99,8 @@ export function AssistantMessageSection({
     onUpdateMessage,
     repositories
   } = useContext(SearchContext)
-
+  const [enableSearchPages] = useEnableSearchPages()
   const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
-
-  const docSources: Array<Omit<ContextSource, 'id'>> = useMemo(() => {
-    if (!contextInfo?.sources || !userMessage?.content) return []
-
-    const _sources = getMentionsFromText(
-      userMessage.content,
-      contextInfo?.sources
-    )
-    return _sources
-      .filter(x => isDocSourceContext(x.kind))
-      .map(x => ({
-        sourceId: x.id,
-        sourceKind: x.kind,
-        sourceName: x.label
-      }))
-  }, [contextInfo?.sources, userMessage?.content])
 
   const [isEditing, setIsEditing] = useState(false)
   const getCopyContent = (answer: ConversationMessage) => {
@@ -207,15 +197,52 @@ export function AssistantMessageSection({
 
   const codebaseDocs = useMemo(() => {
     return messageAttachmentDocs?.filter(
-      x => x.__typename !== 'MessageAttachmentWebDoc'
+      x =>
+        isAttachmentPullDoc(x) ||
+        isAttachmentIssueDoc(x) ||
+        isAttachmentCommitDoc(x)
     )
   }, [messageAttachmentDocs])
 
   const webDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(
-      x => x.__typename === 'MessageAttachmentWebDoc'
-    )
+    return messageAttachmentDocs?.filter(x => isAttachmentWebDoc(x))
   }, [messageAttachmentDocs])
+
+  const pages = useMemo(() => {
+    return messageAttachmentDocs?.filter(x => isAttachmentPageDoc(x))
+  }, [messageAttachmentDocs])
+
+  const docQuerySources: Array<Omit<ContextSource, 'id'>> = useMemo(() => {
+    if (!contextInfo?.sources || !userMessage?.content) return []
+
+    const _sources = getMentionsFromText(
+      userMessage.content,
+      contextInfo?.sources
+    )
+
+    const result = _sources
+      .filter(x => isDocSourceContext(x.kind))
+      .map(x => ({
+        sourceId: x.id,
+        sourceKind: x.kind,
+        sourceName: x.label
+      }))
+
+    if (enableSearchPages.value || pages?.length) {
+      result.unshift({
+        sourceId: 'page',
+        sourceKind: ContextSourceKind.Page,
+        sourceName: 'Pages'
+      })
+    }
+
+    return result
+  }, [
+    contextInfo?.sources,
+    userMessage?.content,
+    enableSearchPages.value,
+    pages?.length
+  ])
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
@@ -266,7 +293,7 @@ export function AssistantMessageSection({
     message.readingCode?.snippet || !!messageAttachmentCodeLen
 
   const showReadingCodeStep = !!message.codeSourceId
-  const showReadingDocStep = !!docSources?.length
+  const showReadingDocStep = !!docQuerySources?.length
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
@@ -304,7 +331,7 @@ export function AssistantMessageSection({
                 isReadingDocs={message.isReadingDocs}
                 codeSourceId={message.codeSourceId}
                 docQuery
-                docQueryResources={docSources}
+                docQueryResources={docQuerySources}
                 docs={codebaseDocs}
                 codeFileList={message.attachment?.codeFileList}
                 readingCode={{
@@ -316,9 +343,10 @@ export function AssistantMessageSection({
             )}
             {showReadingDocStep && (
               <ReadingDocStepper
-                docQueryResources={docSources}
+                docQuerySources={docQuerySources}
                 isReadingDocs={message.isReadingDocs}
-                webResources={webDocs}
+                webDocs={webDocs}
+                pages={pages}
               />
             )}
           </div>

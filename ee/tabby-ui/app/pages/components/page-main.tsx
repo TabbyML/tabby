@@ -9,7 +9,10 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
-import { useEnableDeveloperMode } from '@/lib/experiment-flags'
+import {
+  useEnableDeveloperMode,
+  useEnableSearchPages
+} from '@/lib/experiment-flags'
 import {
   CreatePageRunSubscription,
   CreatePageSectionRunSubscription,
@@ -82,6 +85,7 @@ export function Page() {
     query: contextInfoQuery
   })
   const [enableDeveloperMode] = useEnableDeveloperMode()
+  const [enableSearchPages] = useEnableSearchPages()
   const { updateUrlComponents, pathname, router } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
@@ -514,7 +518,10 @@ export function Page() {
           pageId,
           titlePrompt: title,
           docQuery: {
-            sourceIds: compact([page?.codeSourceId, 'page']),
+            sourceIds: compact([
+              page?.codeSourceId,
+              enableSearchPages.value ? 'page' : undefined
+            ]),
             content: title,
             searchPublic: false
           },
@@ -619,7 +626,10 @@ export function Page() {
               }
             : null,
           docQuery: {
-            sourceIds: compact([codeSourceId, 'page']),
+            sourceIds: compact([
+              codeSourceId,
+              enableSearchPages.value ? 'page' : undefined
+            ]),
             content: titlePrompt,
             searchPublic: false
           },
@@ -631,7 +641,6 @@ export function Page() {
         }
       })
       .subscribe(res => {
-        // console.log(res)
         if (res?.error) {
           setIsLoading(false)
           setError(res.error)

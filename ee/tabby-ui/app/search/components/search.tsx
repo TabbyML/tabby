@@ -18,7 +18,10 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
-import { useEnableDeveloperMode } from '@/lib/experiment-flags'
+import {
+  useEnableDeveloperMode,
+  useEnableSearchPages
+} from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
@@ -127,6 +130,7 @@ export function Search() {
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
   const [enableDeveloperMode] = useEnableDeveloperMode()
+  const [enableSearchPages] = useEnableSearchPages()
   const [threadId, setThreadId] = useState<string | undefined>()
   const threadIdFromURL = useMemo(() => {
     const regex = /^\/search\/(.*)/
@@ -557,7 +561,7 @@ export function Search() {
 
   const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(codeSourceIdInThread, ctx)
+      getSourceInputs(codeSourceIdInThread, enableSearchPages.value, ctx)
 
     const newUserMessageId = tempNanoId()
     const newAssistantMessageId = tempNanoId()
@@ -642,7 +646,11 @@ export function Search() {
     )
 
     const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
-      getSourceInputs(codeSourceId, getThreadRunContextsFromMentions(mentions))
+      getSourceInputs(
+        codeSourceId,
+        enableSearchPages.value,
+        getThreadRunContextsFromMentions(mentions)
+      )
 
     const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
       ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }
@@ -1028,6 +1036,7 @@ function ThreadMessagesErrorView({
 
 function getSourceInputs(
   repositorySourceId: string | undefined,
+  enableSearchPages: boolean,
   ctx: ThreadRunContexts | undefined
 ) {
   let sourceIdsForDocQuery: string[] = compact([repositorySourceId])
@@ -1038,7 +1047,11 @@ function getSourceInputs(
     sourceIdsForDocQuery = uniq(
       // Compatible with existing user messages
       compact(
-        [repositorySourceId, ctx?.codeSourceId, 'page'].concat(ctx.docSourceIds)
+        [
+          repositorySourceId,
+          ctx?.codeSourceId,
+          enableSearchPages ? 'page' : undefined
+        ].concat(ctx.docSourceIds)
       )
     )
     searchPublic = ctx.searchPublic ?? false
