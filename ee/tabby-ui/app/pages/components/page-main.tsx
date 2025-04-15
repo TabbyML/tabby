@@ -516,7 +516,7 @@ export function Page() {
           docQuery: {
             sourceIds: compact([page?.codeSourceId, 'page']),
             content: title,
-            searchPublic: true
+            searchPublic: false
           },
           debugOption: enableDeveloperMode?.value
             ? {
@@ -621,7 +621,7 @@ export function Page() {
           docQuery: {
             sourceIds: compact([codeSourceId, 'page']),
             content: titlePrompt,
-            searchPublic: true
+            searchPublic: false
           },
           debugOption: enableDeveloperMode?.value
             ? {
