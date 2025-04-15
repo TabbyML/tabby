@@ -45,6 +45,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.nextEditSuggestion.trigger",
+        "title": "Trigger Next Edit Suggestion",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.connectToServer",
         "title": "Connect to Server...",
         "category": "Tabby"
@@ -209,6 +214,9 @@
         {
           "command": "tabby.inlineCompletion.trigger",
           "when": "tabby.inlineCompletionTriggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
+        },
+        {
+          "command": "tabby.nextEditSuggestion.trigger"
         },
         {
           "command": "tabby.updateToken",

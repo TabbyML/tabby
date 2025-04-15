@@ -31,7 +31,7 @@ import {
   CompletionList as LspCompletionList,
   CompletionItem as LspCompletionItem,
   InlineCompletionRequest as LspInlineCompletionRequest,
-  InlineCompletionParams,
+  InlineCompletionParams as LspInlineCompletionParams,
   InlineCompletionList as LspInlineCompletionList,
   InlineCompletionItem as LspInlineCompletionItem,
   DeclarationParams,
@@ -340,6 +340,18 @@ export namespace InlineCompletionRequest {
     method,
   );
 }
+
+/**
+ * Extends the standard InlineCompletionParams to support additional features
+ * like next edit suggestions.
+ */
+export type InlineCompletionParams = LspInlineCompletionParams & {
+  /**
+   * The mode parameter for special completion types.
+   * This is for internal use in the tabby-agent and not used in the LSP protocol.
+   */
+  mode?: string;
+};
 
 export type InlineCompletionList = LspInlineCompletionList & {
   isIncomplete: boolean;

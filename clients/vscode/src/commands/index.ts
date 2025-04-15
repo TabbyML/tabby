@@ -191,6 +191,11 @@ export class Commands {
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
     },
+    "nextEditSuggestion.trigger": () => {
+      console.log("Triggering next edit suggestion");
+      // Call internal next edit suggestion implementation
+      this.inlineCompletionProvider.provideNextEditSuggestion();
+    },
     "inlineCompletion.accept": async () => {
       const editor = window.activeTextEditor;
       if (!editor) {

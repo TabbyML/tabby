@@ -51,6 +51,7 @@ import { CompletionStats } from "./statistics";
 import { CompletionContext, CompletionRequest } from "./contexts";
 import { CompletionSolution, CompletionItem } from "./solution";
 import { preCacheProcess, postCacheProcess } from "./postprocess";
+import { buildEditHistoryForRequest, EditHistoryTracker } from "./editHistory";
 import { getLogger } from "../logger";
 import { abortSignalFromAnyOf } from "../utils/signal";
 import { splitLines, extractNonReservedWordList } from "../utils/string";
@@ -64,6 +65,7 @@ export class CompletionProvider implements Feature {
   private readonly completionCache = new CompletionCache();
   private readonly completionDebounce = new CompletionDebounce();
   private readonly completionStats = new CompletionStats();
+  private readonly editHistoryTracker: EditHistoryTracker;
 
   private submitStatsTimer: ReturnType<typeof setInterval> | undefined = undefined;
 
@@ -85,7 +87,17 @@ export class CompletionProvider implements Feature {
     private readonly gitContextProvider: GitContextProvider,
     private readonly recentlyChangedCodeSearch: RecentlyChangedCodeSearch,
     private readonly fileTracker: FileTracker,
-  ) {}
+  ) {
+    // Initialize edit history tracker
+    getLogger("EditHistoryTracker").info("Initializing edit history tracker");
+    getLogger("docs").info("docs :" + JSON.stringify(this.documents.all()));
+    this.editHistoryTracker = new EditHistoryTracker(documents, configurations);
+
+    // Listen for configuration changes to update edit history settings
+    configurations.on("updated", () => {
+      this.editHistoryTracker.updateConfig(configurations);
+    });
+  }
 
   initialize(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities {
     this.lspConnection = connection;
@@ -211,9 +223,28 @@ export class CompletionProvider implements Feature {
     if (token.isCancellationRequested) {
       return null;
     }
+
     const abortController = new AbortController();
     token.onCancellationRequested(() => abortController.abort());
+
     try {
+      // Check if this is a next edit suggestion request
+      const config = this.configurations.getMergedConfig();
+      const isNextEditRequest =
+        config.completion.nextEditSuggestion?.enabled &&
+        params.context?.triggerKind === InlineCompletionTriggerKind.Invoked;
+
+      if (isNextEditRequest) {
+        this.logger.info("Providing next edit suggestion");
+        const response = await this.provideNextEditSuggestion(params, token, abortController.signal);
+        if (response) {
+          return response;
+        }
+        // Fall back to normal completion if next edit suggestion fails
+        this.logger.info("Next edit suggestion failed, falling back to normal completion");
+      }
+
+      // Standard inline completion flow
       const request = await this.inlineCompletionParamsToCompletionRequest(params, token);
       if (!request) {
         return null;
@@ -224,6 +255,121 @@ export class CompletionProvider implements Feature {
       }
       return this.toInlineCompletionList(response, params, request.additionalPrefixLength);
     } catch (error) {
+      return null;
+    }
+  }
+
+  private async provideNextEditSuggestion(
+    params: InlineCompletionParams,
+    token: CancellationToken,
+    signal?: AbortSignal,
+  ): Promise<InlineCompletionList | null> {
+    const document = this.documents.get(params.textDocument.uri);
+    if (!document) {
+      return null;
+    }
+
+    // Get edit history from tracker
+    const editHistory = this.editHistoryTracker.getEditHistory(document.uri, params.position);
+
+    if (!editHistory) {
+      this.logger.info("No edit history available for next edit suggestion");
+      return null;
+    }
+
+    // Create base request from parameters
+    const request = await this.textDocumentPositionParamsToCompletionRequest(params, token);
+    if (!request) {
+      return null;
+    }
+
+    // Add next edit suggestion specific fields
+    request.request.mode = "next_edit_suggestion";
+
+    // Convert editHistory from camelCase to snake_case for the API
+    // Similar to how segments is built in the provideCompletions method
+    const editHistoryForApi = buildEditHistoryForRequest(editHistory);
+
+    // Get the file path from document URI
+    const filepath = document.uri.split("/").pop();
+
+    // Create a request with segments containing edit_history
+    const modifiedRequest = {
+      ...request.request,
+      segments: CompletionContext.buildSegmentsForNextEditSuggestion(filepath, editHistoryForApi),
+    };
+
+    request.request = modifiedRequest as any;
+
+    try {
+      const config = this.configurations.getMergedConfig();
+      const temperature = config.completion.solution.temperature * 1.2;
+
+      const requestOptions = {
+        ...request.request,
+        temperature,
+        // stream: false,
+      };
+
+      // Log the request to help with debugging
+      this.logger.debug("Next edit suggestion request options: " + JSON.stringify(requestOptions));
+
+      getLogger("TabbyApiClient").info("Fetching next edit suggestion..." + JSON.stringify(requestOptions));
+      const response = await this.tabbyApiClient.fetchCompletion(requestOptions, signal, this.completionStats);
+      getLogger("TabbyApiClient").info("Received next edit suggestion response: " + JSON.stringify(response));
+      if (!response || !response.choices || response.choices.length === 0) {
+        return null;
+      }
+
+      // Create inline completion items from response
+      const items: InlineCompletionItem[] = response.choices.map((choice) => {
+        // Use edit_range if provided, otherwise use normal range
+        if (choice.edit_range) {
+          const range = {
+            start: {
+              line: choice.edit_range.start_line,
+              character: choice.edit_range.start_character,
+            },
+            end: {
+              line: choice.edit_range.end_line,
+              character: choice.edit_range.end_character,
+            },
+          };
+
+          return {
+            insertText: choice.text,
+            range,
+            data: {
+              eventId: {
+                completionId: response.id,
+                choiceIndex: choice.index,
+              },
+            },
+          };
+        } else {
+          // Fallback to standard inline completion item
+          return {
+            insertText: choice.text,
+            range: {
+              start: document.positionAt(params.position.character),
+              end: document.positionAt(params.position.character + choice.text.length),
+            },
+            data: {
+              eventId: {
+                completionId: response.id,
+                choiceIndex: choice.index,
+              },
+            },
+          };
+        }
+      });
+
+      return {
+        isIncomplete: false,
+        items,
+      };
+    } catch (error) {
+      this.logger.error("Error providing next edit suggestion", error);
       return null;
     }
   }

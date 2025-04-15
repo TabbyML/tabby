@@ -61,6 +61,11 @@ export const defaultConfigData: ConfigData = {
       maxTries: 6,
       temperature: 0.8,
     },
+    nextEditSuggestion: {
+      enabled: true,
+      maxEditsPerFile: 10,
+      maxDiffContextSize: 5000,
+    },
   },
   postprocess: {
     limitScope: {},

@@ -389,6 +389,7 @@ export class TabbyApiClient extends EventEmitter {
       body: request,
       signal: abortSignalFromAnyOf([signal, this.createTimeOutAbortSignal()]),
     };
+    getLogger("completion").info("requestOptions: " + JSON.stringify(requestOptions));
 
     const requestStartedAt = performance.now();
     const statsData = {

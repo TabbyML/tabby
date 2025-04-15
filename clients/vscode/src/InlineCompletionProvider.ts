@@ -10,8 +10,7 @@ import {
   Range,
   window,
 } from "vscode";
-import { InlineCompletionParams } from "vscode-languageclient";
-import { InlineCompletionRequest, InlineCompletionList, EventParams } from "tabby-agent";
+import { InlineCompletionRequest, InlineCompletionList, EventParams, InlineCompletionParams } from "tabby-agent";
 import { EventEmitter } from "events";
 import { getLogger } from "./logger";
 import { Client } from "./lsp/client";
@@ -39,6 +38,68 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
     this.config.on("updated", () => {
       this.triggerMode = this.config.inlineCompletionTriggerMode;
     });
+  }
+
+  /**
+   * Triggers a next edit suggestion by sending a request to the LSP server
+   */
+  public async provideNextEditSuggestion(): Promise<void> {
+    this.logger.debug("Function provideNextEditSuggestion called.");
+
+    const document = window.activeTextEditor?.document;
+    const position = window.activeTextEditor?.selection.active;
+
+    if (!document || !position) {
+      this.logger.debug("No active document or position found.");
+      return;
+    }
+
+    const params: InlineCompletionParams = {
+      context: {
+        triggerKind: InlineCompletionTriggerKind.Invoke,
+        selectedCompletionInfo: undefined,
+      },
+      textDocument: {
+        uri: document.uri.toString(),
+      },
+      position: {
+        line: position.line,
+        character: position.character,
+      },
+    };
+
+    try {
+      const request: Promise<InlineCompletionList | null> = this.client.languageClient.sendRequest(
+        InlineCompletionRequest.method,
+        params,
+      );
+      this.ongoing = request;
+      this.emit("didChangeLoading", true);
+
+      const result = await this.ongoing;
+      this.ongoing = null;
+      this.emit("didChangeLoading", false);
+
+      if (!result || result.items.length === 0) {
+        this.logger.debug("No next edit suggestions received.");
+        return;
+      }
+
+      this.logger.debug("Next edit suggestion received:", result);
+
+      window.showInformationMessage(`Next edit suggestion received with ${result.items.length} items`);
+
+      this.logger.debug("Inline completions shown successfully.");
+    } catch (error) {
+      if (this.ongoing) {
+        this.ongoing = null;
+        this.emit("didChangeLoading", false);
+      }
+      this.logger.error("Error requesting next edit suggestion:", error);
+
+      // Show error message to user for testing purposes
+      window.showErrorMessage(`Next edit suggestion failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   get isLoading(): boolean {
