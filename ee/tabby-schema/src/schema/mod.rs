@@ -48,8 +48,8 @@ use juniper::{
 use ldap3::result::LdapError;
 use notification::NotificationService;
 use page::{
-    CreatePageRunInput, CreatePageSectionRunInput, PageRunStream, SectionRunStream,
-    ThreadToPageRunStream, UpdatePageContentInput, UpdatePageSectionContentInput,
+    CreatePageRunInput, CreatePageSectionRunInput, CreateThreadToPageRunInput, PageRunStream,
+    SectionRunStream, ThreadToPageRunStream, UpdatePageContentInput, UpdatePageSectionContentInput,
     UpdatePageSectionTitleInput, UpdatePageTitleInput,
 };
 use repository::RepositoryGrepOutput;
@@ -1871,7 +1871,7 @@ impl Subscription {
     /// - a few sections based on the thread messages.
     async fn create_thread_to_page_run(
         ctx: &Context,
-        thread_id: ID,
+        input: CreateThreadToPageRunInput,
     ) -> Result<ThreadToPageRunStream> {
         let user = check_user(ctx).await?;
 
@@ -1882,7 +1882,7 @@ impl Subscription {
         };
 
         page_service
-            .convert_thread_to_page(&user.policy, &user.id, &thread_id)
+            .convert_thread_to_page(&user.policy, &user.id, &input)
             .await
     }
 
