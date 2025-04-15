@@ -39,6 +39,8 @@ export function getAttachmentDocContent(attachment: AttachmentDocItem) {
   switch (attachment.__typename) {
     case 'MessageAttachmentWebDoc':
     case 'AttachmentWebDoc':
+    case 'AttachmentPageDoc':
+    case 'MessageAttachmentPageDoc':
       return attachment.content
     case 'MessageAttachmentIssueDoc':
     case 'MessageAttachmentPullDoc':

@@ -1,4 +1,7 @@
+import DOMPurify from 'dompurify'
+import he from 'he'
 import { uniq } from 'lodash-es'
+import { marked } from 'marked'
 import moment from 'moment'
 import type {
   ChangeItem,
@@ -479,4 +482,19 @@ export function formatCustomHTMLBlockTags(
   }
 
   return inputString.replace(regex, adjustNewlines)
+}
+
+export const normalizedMarkdownText = (input: string, maxLen?: number) => {
+  const sanitizedHtml = DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: []
+  })
+  const parsed = marked.parse(sanitizedHtml) as string
+  const decoded = he.decode(parsed)
+  const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
+  if (maxLen && plainText.length > maxLen) {
+    return `${plainText.substring(0, maxLen)}...`
+  } else {
+    return plainText
+  }
 }

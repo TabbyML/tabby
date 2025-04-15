@@ -95,23 +95,34 @@ class ExperimentFlagFactory {
   }
 }
 
+// enableDeveloperMode
 const enableDeveloperModeFactory = new ExperimentFlagFactory(
   'enable_developer_mode',
   'Developer Mode',
-  'Enable the developer mode. The features involved include the Answer Engine.',
+  'Enable the developer mode. This feature involved include the Answer Engine and the Page.',
   false
 )
-
 export const EXP_enable_developer_mode =
   enableDeveloperModeFactory.defineGlobalVar()
 export const useEnableDeveloperMode = enableDeveloperModeFactory.defineHook()
 
+// enablePage
 const enablePageFactory = new ExperimentFlagFactory(
   'enable_page',
   'Page',
   'Enable Page. This feature allows you to convert threads to page.',
   false
 )
-
 export const EXP_enable_page = enablePageFactory.defineGlobalVar()
 export const useEnablePage = enablePageFactory.defineHook()
+
+// enableSearchPages
+const enableSearchPagesFactory = new ExperimentFlagFactory(
+  'enable_search_pages',
+  'Search Pages',
+  'Enable searching pages. This feature allows you to use pages as context in Answer Engine and chat side panel.',
+  false
+)
+export const EXP_enable_search_pages =
+  enableSearchPagesFactory.defineGlobalVar()
+export const useEnableSearchPages = enableSearchPagesFactory.defineHook()
