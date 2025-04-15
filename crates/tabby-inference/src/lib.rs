@@ -1,6 +1,6 @@
 //! Lays out the abstract definition of a text generation model, and utilities for encodings.
 mod chat;
-mod code;
+pub mod code;
 mod completion;
 mod decoding;
 mod embedding;

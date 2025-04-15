@@ -35,6 +35,7 @@ use crate::{
     to_local_config, Device,
 };
 
+// TODO: setup schemas for openapi.json here, for new nes
 #[derive(OpenApi)]
 #[openapi(
     info(title="Tabby Server",
@@ -63,6 +64,10 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completion::Snippet,
         completion::DebugOptions,
         completion::DebugData,
+        completion::EditHistory,
+        completion::CurrentVersion,
+        completion::CursorPosition,
+        completion::EditRange,
         health::HealthState,
         health::Version,
         api::server_setting::ServerSetting,

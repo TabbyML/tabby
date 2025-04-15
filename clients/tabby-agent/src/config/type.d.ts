@@ -68,6 +68,15 @@ export type ConfigData = {
       // The temperature for fetching the second and subsequent choices
       temperature: number;
     };
+    // Next edit suggestion settings
+    nextEditSuggestion?: {
+      // Whether next edit suggestion is enabled
+      enabled: boolean;
+      // Maximum number of edits to track per file
+      maxEditsPerFile: number;
+      // Maximum size of diff content to track (in characters)
+      maxDiffContextSize: number;
+    };
   };
   postprocess: {
     limitScope: any;
