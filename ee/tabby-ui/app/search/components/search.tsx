@@ -798,6 +798,7 @@ export function Search() {
               streamingDone={!isLoading}
               threadId={threadId}
               onConvertToPage={onConvertToPage}
+              onShare={onClickShare}
             />
             <LoadingWrapper
               loading={!isReady}

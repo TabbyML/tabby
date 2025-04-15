@@ -28,10 +28,13 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
+  IconBookOpen,
   IconChevronLeft,
   IconMore,
   IconPlus,
-  IconSpinner
+  IconShare,
+  IconSpinner,
+  IconTrash
 } from '@/components/ui/icons'
 import { ClientOnly } from '@/components/client-only'
 import { NotificationBox } from '@/components/notification-box'
@@ -46,13 +49,15 @@ type HeaderProps = {
   streamingDone?: boolean
   threadId?: string
   onConvertToPage?: () => void
+  onShare?: () => void
 }
 
 export function Header({
   threadIdFromURL,
   streamingDone,
   threadId,
-  onConvertToPage
+  onConvertToPage,
+  onShare
 }: HeaderProps) {
   const router = useRouter()
   const { isThreadOwner } = useContext(SearchContext)
@@ -115,7 +120,7 @@ export function Header({
             <IconPlus />
           </Button>
         )}
-        {streamingDone && isThreadOwner && threadId && (
+        {streamingDone && threadId && (
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button size="icon" variant="ghost">
@@ -123,26 +128,41 @@ export function Header({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {!!enablePage.value && (
+              {!!onShare && (
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"
-                  onSelect={e => onConvertToPage?.()}
+                  onSelect={e => onShare()}
                 >
-                  <span>Convert to page</span>
-                  <Badge
-                    variant="outline"
-                    className="h-3.5 border-secondary-foreground/60 px-1.5 text-[10px] text-secondary-foreground/60"
-                  >
-                    Beta
-                  </Badge>
+                  <IconShare />
+                  Share
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                className="cursor-pointer gap-2 !text-destructive"
-                onSelect={e => setDeleteAlertVisible(true)}
-              >
-                Delete
-              </DropdownMenuItem>
+              {isThreadOwner && (
+                <>
+                  {!!enablePage.value && (
+                    <DropdownMenuItem
+                      className="cursor-pointer gap-2"
+                      onSelect={e => onConvertToPage?.()}
+                    >
+                      <IconBookOpen />
+                      <span>Convert to page</span>
+                      <Badge
+                        variant="outline"
+                        className="h-3.5 border-secondary-foreground/60 px-1.5 text-[10px] text-secondary-foreground/60"
+                      >
+                        Beta
+                      </Badge>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 !text-destructive"
+                    onSelect={e => setDeleteAlertVisible(true)}
+                  >
+                    <IconTrash />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
