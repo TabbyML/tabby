@@ -133,7 +133,11 @@ export function SectionContent({
         case 'MessageAttachmentIssueDoc':
         case 'MessageAttachmentPullDoc':
         case 'AttachmentPullDoc': {
-          result.push(new URL(item.link).hostname)
+          try {
+            result.push(new URL(item.link).hostname)
+          } catch {
+            // ignore
+          }
           break
         }
       }

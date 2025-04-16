@@ -1,8 +1,8 @@
 import { graphql } from '@/lib/gql/generates'
 
 export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
-  subscription createThreadToPageRun($threadId: ID!) {
-    createThreadToPageRun(threadId: $threadId) {
+  subscription createThreadToPageRun($input: CreateThreadToPageRunInput!) {
+    createThreadToPageRun(input: $input) {
       __typename
       ... on PageCreated {
         id
@@ -78,6 +78,10 @@ export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
             embedding
           }
         }
+        debugData {
+          sourceId
+          query
+        }
       }
       ... on PageSectionAttachmentDoc {
         id
@@ -128,6 +132,10 @@ export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
             }
           }
           score
+        }
+        debugData {
+          sourceIds
+          query
         }
       }
       ... on PageSectionContentDelta {
@@ -236,6 +244,10 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
             embedding
           }
         }
+        debugData {
+          sourceId
+          query
+        }
       }
       ... on PageSectionAttachmentDoc {
         id
@@ -286,6 +298,10 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
             }
           }
           score
+        }
+        debugData {
+          sourceIds
+          query
         }
       }
       ... on PageSectionContentDelta {
@@ -350,6 +366,10 @@ export const createPageSectionRunSubscription = graphql(/* GraphQL */ `
             embedding
           }
         }
+        debugData {
+          sourceId
+          query
+        }
       }
       ... on PageSectionAttachmentDoc {
         id
@@ -400,6 +420,10 @@ export const createPageSectionRunSubscription = graphql(/* GraphQL */ `
             }
           }
           score
+        }
+        debugData {
+          sourceIds
+          query
         }
       }
       ... on PageSectionContentDelta {

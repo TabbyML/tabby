@@ -11,11 +11,27 @@ import { AttachmentDocItem } from '@/lib/types'
 
 export type PageItem = ListPagesQuery['pages']['edges'][0]['node']
 
+export type SectionDebugDataItem = {
+  attachmentCodeQuery?: {
+    sourceId: string
+    query: string
+  }
+  attachmentDocQuery?: {
+    sourceIds: string[]
+    query: string
+  }
+  generateSectionContentMessages?: ChatCompletionMessage[]
+}
+
 export type DebugData = {
   generatePageTitleMessages?: ChatCompletionMessage[]
   generatePageContentMessages?: ChatCompletionMessage[]
   generateSectionTitlesMessages?: ChatCompletionMessage[]
-  generateSectionContentMessages?: ChatCompletionMessage[]
+  sections?: Array<
+    {
+      id: string
+    } & SectionDebugDataItem
+  >
 }
 
 export type SectionItem = Omit<
