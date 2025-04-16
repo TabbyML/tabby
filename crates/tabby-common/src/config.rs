@@ -185,22 +185,18 @@ impl RepositoryConfig {
 
     pub fn resolve_dir(git_url: &str) -> PathBuf {
         if Self::resolve_is_local_dir(git_url) {
-            // Parse the URL and convert to a file path in a platform-aware way
-            let url = Url::parse(git_url)
-                .unwrap_or_else(|e| panic!("Invalid file:// URL: {}, error: {}", git_url, e));
-
-            url.to_file_path().unwrap_or_else(|_| {
-                panic!(
-                    "Failed to convert file URL to path: {}. \
-                     Please ensure the URL has a valid format for your platform (e.g., \
-                     'file:///C:/path' for Windows or 'file:///path' for Unix)",
-                    git_url
-                )
-            })
+            url::Url::parse(git_url)
+                .ok()
+                .and_then(|url| url.to_file_path().ok())
+                .unwrap_or_else(|| {
+                    let path = git_url.strip_prefix("file://").unwrap_or(git_url);
+                    PathBuf::from(path)
+                })
         } else {
             repositories_dir().join(Self::resolve_dir_name(git_url))
         }
     }
+
 
     pub fn resolve_dir_name(git_url: &str) -> String {
         sanitize_name(&Self::canonicalize_url(git_url))
