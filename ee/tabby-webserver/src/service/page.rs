@@ -977,7 +977,7 @@ mod tests {
                 FakeContextService, FakeDocSearch,
             },
             retrieval,
-            service::thread,
+            service::{setting, thread},
         };
 
         let db = DbConn::new_in_memory().await.unwrap();
@@ -1004,12 +1004,14 @@ mod tests {
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let repo_service = make_repository_service(db.clone()).await.unwrap();
         let auth = Arc::new(FakeAuthService::new(vec![]));
+        let settings = Arc::new(setting::create(db.clone()));
 
         let retrieval = Arc::new(retrieval::create(
             code.clone(),
             doc.clone(),
             serper,
             repo_service.clone(),
+            settings,
         ));
         let service = create(
             PageConfig::default(),

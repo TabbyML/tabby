@@ -438,7 +438,7 @@ mod tests {
         },
         event_logger::test_utils::MockEventLogger,
         retrieval,
-        service::{auth, UserSecuredExt},
+        service::{auth, setting, UserSecuredExt},
     };
 
     #[tokio::test]
@@ -699,7 +699,14 @@ mod tests {
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
         let repo = make_repository_service(db.clone()).await.unwrap();
-        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let settings = Arc::new(setting::create(db.clone()));
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo,
+            settings,
+        ));
         let logger = Arc::new(MockEventLogger {});
         let answer_service = Arc::new(answer::create(
             logger,
