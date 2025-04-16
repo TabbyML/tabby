@@ -515,16 +515,18 @@ async function applyQuickFixes(uri: Uri, range: Range): Promise<void> {
     (action) =>
       action.kind && action.kind.contains(CodeActionKind.QuickFix) && action.title.toLowerCase().includes("import"),
   );
-  quickFixActions.forEach(async (action) => {
+
+  if (quickFixActions.length === 1 && quickFixActions[0]) {
+    const firstAction = quickFixActions[0];
     try {
-      if (action.edit) {
-        await workspace.applyEdit(action.edit);
+      if (firstAction.edit) {
+        await workspace.applyEdit(firstAction.edit);
       }
-      if (action.command) {
-        await commands.executeCommand(action.command.command, action.command.arguments);
+      if (firstAction.command) {
+        await commands.executeCommand(firstAction.command.command, firstAction.command.arguments);
       }
     } catch (error) {
       // ignore errors
     }
-  });
+  }
 }
