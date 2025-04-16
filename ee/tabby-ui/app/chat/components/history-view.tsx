@@ -112,7 +112,11 @@ export function HistoryView({
                   )
                 })}
                 {!!pageInfo?.hasPreviousPage && (
-                  <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
+                  <LoadMoreIndicator
+                    onLoad={loadMore}
+                    isFetching={fetching}
+                    itemCount={data?.myThreads?.edges?.length ?? 0}
+                  >
                     <div className="flex justify-center">
                       <IconSpinner className="h-6 w-6" />
                     </div>
