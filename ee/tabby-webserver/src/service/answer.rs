@@ -348,7 +348,7 @@ mod tests {
     use crate::{
         event_logger::test_utils::MockEventLogger,
         retrieval,
-        service::{auth, UserSecuredExt},
+        service::{auth, setting, UserSecuredExt},
         utils::build_user_prompt,
     };
 
@@ -526,10 +526,17 @@ mod tests {
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
         let db = DbConn::new_in_memory().await.unwrap();
-        let repo = make_repository_service(db).await.unwrap();
+        let repo = make_repository_service(db.clone()).await.unwrap();
         let logger = Arc::new(MockEventLogger);
+        let settings = Arc::new(setting::create(db));
 
-        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo,
+            settings,
+        ));
         let service = AnswerService::new(logger, &config, auth, chat, retrieval, context);
 
         let attachment = MessageAttachment {
@@ -582,10 +589,17 @@ mod tests {
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
         let db = DbConn::new_in_memory().await.unwrap();
-        let repo = make_repository_service(db).await.unwrap();
+        let repo = make_repository_service(db.clone()).await.unwrap();
         let logger = Arc::new(MockEventLogger);
+        let settings = Arc::new(setting::create(db));
 
-        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo,
+            settings,
+        ));
         let service = AnswerService::new(logger, &config, auth, chat, retrieval, context);
 
         let attachment = MessageAttachment {
@@ -645,7 +659,14 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db.clone()).await.unwrap();
         let logger = Arc::new(MockEventLogger);
-        let retrieval = Arc::new(retrieval::create(code.clone(), doc.clone(), serper, repo));
+        let settings = Arc::new(setting::create(db.clone()));
+        let retrieval = Arc::new(retrieval::create(
+            code.clone(),
+            doc.clone(),
+            serper,
+            repo,
+            settings,
+        ));
         let service = Arc::new(AnswerService::new(
             logger, &config, auth, chat, retrieval, context,
         ));

@@ -9,7 +9,10 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { ERROR_CODE_NOT_FOUND, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
-import { useEnableDeveloperMode } from '@/lib/experiment-flags'
+import {
+  useEnableDeveloperMode,
+  useEnableSearchPages
+} from '@/lib/experiment-flags'
 import {
   CreatePageRunSubscription,
   CreatePageSectionRunSubscription,
@@ -54,7 +57,12 @@ import {
   movePageSectionPositionMutation
 } from '../lib/query'
 import { formatTime } from '../lib/utils'
-import { DebugData, PageItem, SectionItem } from '../types'
+import {
+  DebugData,
+  PageItem,
+  SectionDebugDataItem,
+  SectionItem
+} from '../types'
 import { ErrorView } from './error-view'
 import { Header } from './header'
 import { Navbar } from './nav-bar'
@@ -82,6 +90,7 @@ export function Page() {
     query: contextInfoQuery
   })
   const [enableDeveloperMode] = useEnableDeveloperMode()
+  const [enableSearchPages] = useEnableSearchPages()
   const { updateUrlComponents, pathname, router } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
@@ -170,20 +179,50 @@ export function Page() {
             ])
           )
         }
-      } else if ('generateSectionContentMessages' in data) {
-        return {
-          ...prev,
-          generateSectionContentMessages: compact(
-            flatten([
-              prev.generateSectionContentMessages,
-              data.generateSectionContentMessages
-            ])
-          )
-        }
       } else {
         return {
           ...prev,
           ...omit(data, '__typename')
+        }
+      }
+    })
+  }
+  const updateSectionDebugData = (
+    debugData: SectionDebugDataItem | null | undefined,
+    sectionId: string | undefined
+  ) => {
+    if (!debugData || !sectionId) return
+    setDebugData(prev => {
+      if (!prev) {
+        return {
+          sections: [
+            {
+              id: sectionId,
+              ...debugData
+            }
+          ]
+        }
+      }
+
+      const sections = prev.sections || []
+      let target = sections.find(s => s.id === sectionId)
+      if (target) {
+        return {
+          ...prev,
+          sections: sections.map(x => {
+            if (x.id === sectionId) {
+              return {
+                ...x,
+                ...debugData
+              }
+            }
+            return x
+          })
+        }
+      } else {
+        return {
+          ...prev,
+          sections: sections.concat([{ id: sectionId, ...debugData }])
         }
       }
     })
@@ -253,7 +292,6 @@ export function Page() {
         }))
         setPendingSectionIds(new Set(data.sections.map(x => x.id)))
         setSections(nextSections)
-
         updateDebugData(data.debugData)
         break
       }
@@ -298,6 +336,11 @@ export function Page() {
             return x
           })
         })
+        // group by id
+        const debugData: SectionDebugDataItem | undefined = data.debugData
+          ? { attachmentCodeQuery: data.debugData }
+          : undefined
+        updateSectionDebugData(debugData, data.id)
         break
       }
       case 'PageSectionAttachmentDoc': {
@@ -320,6 +363,12 @@ export function Page() {
             return x
           })
         })
+
+        // group by id
+        const debugData: SectionDebugDataItem | undefined = data.debugData
+          ? { attachmentDocQuery: data.debugData }
+          : undefined
+        updateSectionDebugData(debugData, data.id)
         break
       }
       case 'PageSectionContentDelta': {
@@ -350,7 +399,14 @@ export function Page() {
           return newSet
         })
 
-        updateDebugData(data.debugData)
+        // group by id
+        const debugData = data.debugData?.generateSectionContentMessages
+          ? {
+              generateSectionContentMessages:
+                data.debugData.generateSectionContentMessages
+            }
+          : undefined
+        updateSectionDebugData(debugData, data.id)
         break
       }
       case 'PageCompleted':
@@ -365,7 +421,7 @@ export function Page() {
     data: CreatePageSectionRunSubscription['createPageSectionRun']
   ) => {
     switch (data.__typename) {
-      case 'PageSection': {
+      case 'PageSectionCreated': {
         const { id, title, position } = data
         setCurrentSectionId(id)
         setPendingSectionIds(new Set([id]))
@@ -449,6 +505,11 @@ export function Page() {
             }
           })
         })
+        // group by id
+        const debugData: SectionDebugDataItem | undefined = data.debugData
+          ? { attachmentCodeQuery: data.debugData }
+          : undefined
+        updateSectionDebugData(debugData, data.id)
         break
       }
       case 'PageSectionAttachmentDoc': {
@@ -471,10 +532,24 @@ export function Page() {
             return x
           })
         })
+        // group by id
+        const debugData: SectionDebugDataItem | undefined = data.debugData
+          ? { attachmentDocQuery: data.debugData }
+          : undefined
+        updateSectionDebugData(debugData, data.id)
         break
       }
       case 'PageSectionContentCompleted': {
-        updateDebugData(data.debugData)
+        // group by id
+        const debugData: SectionDebugDataItem | undefined = data.debugData
+          ?.generateSectionContentMessages?.length
+          ? {
+              generateSectionContentMessages:
+                data.debugData.generateSectionContentMessages
+            }
+          : undefined
+        updateSectionDebugData(debugData, data.id)
+
         stop.current()
         break
       }
@@ -514,13 +589,17 @@ export function Page() {
           pageId,
           titlePrompt: title,
           docQuery: {
-            sourceIds: compact([page?.codeSourceId, 'page']),
+            sourceIds: compact([
+              page?.codeSourceId,
+              enableSearchPages.value ? 'page' : undefined
+            ]),
             content: title,
-            searchPublic: true
+            searchPublic: false
           },
           debugOption: enableDeveloperMode?.value
             ? {
-                returnChatCompletionRequest: true
+                returnChatCompletionRequest: true,
+                returnQueryRequest: true
               }
             : undefined
         }
@@ -563,7 +642,15 @@ export function Page() {
 
     const { unsubscribe } = client
       .subscription(createThreadToPageRunSubscription, {
-        threadId
+        input: {
+          threadId,
+          debugOption: enableDeveloperMode?.value
+            ? {
+                returnChatCompletionRequest: true,
+                returnQueryRequest: true
+              }
+            : undefined
+        }
       })
       .subscribe(res => {
         if (res?.error) {
@@ -619,19 +706,22 @@ export function Page() {
               }
             : null,
           docQuery: {
-            sourceIds: compact([codeSourceId, 'page']),
+            sourceIds: compact([
+              codeSourceId,
+              enableSearchPages.value ? 'page' : undefined
+            ]),
             content: titlePrompt,
-            searchPublic: true
+            searchPublic: false
           },
           debugOption: enableDeveloperMode?.value
             ? {
-                returnChatCompletionRequest: true
+                returnChatCompletionRequest: true,
+                returnQueryRequest: true
               }
             : undefined
         }
       })
       .subscribe(res => {
-        // console.log(res)
         if (res?.error) {
           setIsLoading(false)
           setError(res.error)

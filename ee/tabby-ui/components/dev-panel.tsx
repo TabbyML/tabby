@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
 
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
   const [enableDeveloperMode] = useEnableDeveloperMode()
   const { theme } = useCurrentTheme()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const { copyToClipboard } = useCopyToClipboard({ timeout: 0 })
 
   useEffect(() => {
     if (value && scrollOnUpdate) {
@@ -70,6 +72,11 @@ export const DevPanel: React.FC<DevPanelProps> = ({
               collapseStringsAfterLength={120}
               displayObjectSize={false}
               displayDataTypes={false}
+              enableClipboard={({ src }) => {
+                if (typeof src === 'string') {
+                  copyToClipboard(src)
+                }
+              }}
             />
           </ScrollArea>
         ) : null}

@@ -4,12 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
-import { concat, unionWith } from 'lodash-es'
+import { concat, sortBy, unionWith } from 'lodash-es'
 import moment from 'moment'
-import useSWRImmutable from 'swr/immutable'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
-import { useLatest } from '@/lib/hooks/use-latest'
 import fetcher from '@/lib/tabby/fetcher'
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
@@ -31,30 +30,31 @@ interface LogChunk {
   logs: string
 }
 
-const CHUNK_SIZE = 50 * 1000
+const CHUNK_SIZE = 20 * 1000
 
 export default function JobRunDetail() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
   const [chunks, setChunks] = useState<LogChunk[]>([])
-  const [loadedBytes, setLoadedBytes] = useState(-1)
-  const [totalBytes, setTotalBytes] = useState<number | undefined>()
-
-  const [{ data, fetching }, reexecuteQuery] = useQuery({
+  const cursor = useRef<number>(0)
+  const totalBytes = useRef<number>(0)
+  const [startBytes, setStartBytes] = useState(-1)
+  const fetchLogEndPoint = id ? `/background-jobs/${id}/logs` : null
+  const [{ data, fetching: fetchingJobNode }, reexecuteQuery] = useQuery({
     query: listJobRuns,
     variables: { ids: [id as string] },
     pause: !id
   })
   const currentNode = data?.jobRuns?.edges?.[0]?.node
-  const endCursor = useRef<number | undefined>()
-  const shouldFetchLogs = !!id && !fetching && !currentNode?.stdout
+  const shouldFetchLogs = !!id && !fetchingJobNode && !currentNode?.stdout
   const {
     data: logsData,
     mutate,
-    isLoading
-  } = useSWRImmutable(
-    id ? [`/background-jobs/${id}/logs`, loadedBytes + 1] : null,
+    isLoading: isLoadingLogs,
+    isValidating: isValidatingLogs
+  } = useSWR(
+    fetchLogEndPoint ? [fetchLogEndPoint, startBytes + 1] : null,
     ([url, start]) => {
       return fetcher(url, {
         headers: {
@@ -68,7 +68,7 @@ export default function JobRunDetail() {
               .replace(/^bytes\s/, '')
               .split('/')
             const [start, end] = range?.split('-')
-            endCursor.current = parseInt(end)
+            cursor.current = parseInt(end)
             return res.text().then(text => ({
               logs: text,
               totalBytes: parseInt(total),
@@ -81,18 +81,32 @@ export default function JobRunDetail() {
           throw new Error(response?.statusText.toString())
         }
       })
+    },
+    {
+      errorRetryCount: 1
     }
   )
+
+  const isFetchingLogs = isLoadingLogs || isValidatingLogs
 
   // join logs
   useEffect(() => {
     if (logsData) {
+      const newChunk: LogChunk = {
+        startByte: logsData.startByte,
+        endByte: logsData.endByte,
+        logs: logsData.logs
+      }
       setChunks(prev => {
-        return unionWith(concat(prev, logsData), (x, y) => {
-          return x.startByte === y.startByte && x.endByte === y.endByte
-        })
+        return sortBy(
+          unionWith(concat([newChunk], prev), (x, y) => {
+            return x.startByte === y.startByte
+          }),
+          'startByte'
+        )
       })
-      setTotalBytes(logsData?.totalBytes ?? 0)
+      totalBytes.current = logsData?.totalBytes ?? 0
+      // setTotalBytes(logsData?.totalBytes ?? 0)
     }
   }, [logsData])
 
@@ -107,7 +121,8 @@ export default function JobRunDetail() {
     (stateLabel === 'Pending' || stateLabel === 'Running') && !finalLogs
 
   const isLoadedCompleted =
-    !!totalBytes && chunks[chunks.length - 1]?.endByte >= totalBytes - 1
+    !!totalBytes.current &&
+    chunks[chunks.length - 1]?.endByte >= totalBytes.current - 1
 
   const handleBackNavigation = () => {
     if (typeof window !== 'undefined' && window.history.length <= 1) {
@@ -117,24 +132,20 @@ export default function JobRunDetail() {
     }
   }
 
-  const loadMore = useLatest(() => {
-    if (isLoading) return
-
-    if (endCursor.current) {
-      const nextCursor = endCursor.current
-      // setLoadedBytes to trigger fetch request
-      setTimeout(() => {
-        setLoadedBytes(nextCursor)
-      }, 100)
+  const handleLoadMore = () => {
+    if (isFetchingLogs) return
+    if (cursor.current && cursor.current + 1 < totalBytes.current) {
+      const nextCursor = cursor.current
+      setStartBytes(nextCursor)
     }
-  })
+  }
 
   React.useEffect(() => {
     let timer: number
     if (currentNode?.createdAt && !currentNode?.finishedAt) {
       timer = window.setTimeout(() => {
         reexecuteQuery()
-        if (isLoadedCompleted || !chunks.length) {
+        if (!isFetchingLogs && (isLoadedCompleted || !chunks.length)) {
           mutate()
         }
       }, 5000)
@@ -149,7 +160,7 @@ export default function JobRunDetail() {
 
   return (
     <>
-      {fetching ? (
+      {fetchingJobNode ? (
         <ListSkeleton />
       ) : (
         <div className="flex flex-1 flex-col items-stretch gap-2">
@@ -214,13 +225,14 @@ export default function JobRunDetail() {
                     <LoadMoreIndicator
                       intersectionOptions={{
                         trackVisibility: true,
-                        delay: 200,
-                        rootMargin: '100px 0px 0px 0px'
+                        delay: 100,
+                        rootMargin: '200px 0px 0px 0px'
                       }}
-                      onLoad={loadMore.current}
-                      isFetching={isLoading}
+                      itemCount={chunks.length}
+                      onLoad={handleLoadMore}
+                      isFetching={isFetchingLogs}
                     >
-                      <div className="flex justify-center">
+                      <div className="my-8 flex justify-center">
                         <IconSpinner />
                       </div>
                     </LoadMoreIndicator>

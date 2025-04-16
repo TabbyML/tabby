@@ -146,7 +146,8 @@ const client = new Client({
         PageSectionContentCompleted: () => null,
         PageSectionAttachmentCode: () => null,
         PageSectionAttachmentDoc: () => null,
-        SectionAttachment: () => null
+        SectionAttachment: () => null,
+        PageSectionCreated: () => null
       },
       resolvers: {
         Query: {

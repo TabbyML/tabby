@@ -76,7 +76,11 @@ export default function RepositoryProvidersPage() {
               )
             })}
             {!!pageInfo?.hasPreviousPage && (
-              <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
+              <LoadMoreIndicator
+                itemCount={edges.length}
+                onLoad={loadMore}
+                isFetching={fetching}
+              >
                 <FetchingSkeletion />
               </LoadMoreIndicator>
             )}

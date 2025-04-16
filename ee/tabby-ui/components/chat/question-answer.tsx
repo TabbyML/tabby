@@ -7,7 +7,8 @@ import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
-import { ContextSource } from '@/lib/gql/generates/graphql'
+import { useEnableSearchPages } from '@/lib/experiment-flags'
+import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -24,6 +25,10 @@ import {
   getMentionsFromText,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
+  isAttachmentCommitDoc,
+  isAttachmentIssueDoc,
+  isAttachmentPageDoc,
+  isAttachmentPullDoc,
   isAttachmentWebDoc,
   isDocSourceContext
 } from '@/lib/utils'
@@ -268,6 +273,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     contextInfo
   } = React.useContext(ChatContext)
 
+  const [enableSearchPages] = useEnableSearchPages()
+
   const clientCode: Array<Context> = React.useMemo(() => {
     return uniqWith(
       compact([
@@ -324,22 +331,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       return compact([...formattedServerAttachmentCode])
     }, [serverCode])
 
-  const docQuerySources: Array<Omit<ContextSource, 'id'>> = useMemo(() => {
-    if (!contextInfo?.sources || !userMessage?.content) return []
-
-    const _sources = getMentionsFromText(
-      userMessage.content,
-      contextInfo?.sources
-    )
-    return _sources
-      .filter(x => isDocSourceContext(x.kind))
-      .map(x => ({
-        sourceId: x.id,
-        sourceKind: x.kind,
-        sourceName: x.label
-      }))
-  }, [contextInfo?.sources, userMessage?.content])
-
   const messageAttachmentCodeLen =
     (message.attachment?.clientCode?.length || 0) +
     (message.attachment?.code?.length || 0)
@@ -352,12 +343,52 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   const messageAttachmentDocs = message?.attachment?.doc
   // pulls / issues / commits
   const codebaseDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(x => !isAttachmentWebDoc(x))
+    return messageAttachmentDocs?.filter(
+      x =>
+        isAttachmentPullDoc(x) ||
+        isAttachmentIssueDoc(x) ||
+        isAttachmentCommitDoc(x)
+    )
   }, [messageAttachmentDocs])
   // web docs
   const webDocs = useMemo(() => {
     return messageAttachmentDocs?.filter(x => isAttachmentWebDoc(x))
   }, [messageAttachmentDocs])
+  // pages
+  const pages = useMemo(() => {
+    return messageAttachmentDocs?.filter(x => isAttachmentPageDoc(x))
+  }, [messageAttachmentDocs])
+
+  const docQuerySources: Array<Omit<ContextSource, 'id'>> = useMemo(() => {
+    if (!contextInfo?.sources || !userMessage?.content) return []
+
+    const _sources = getMentionsFromText(
+      userMessage.content,
+      contextInfo?.sources
+    )
+    const result = _sources
+      .filter(x => isDocSourceContext(x.kind))
+      .map(x => ({
+        sourceId: x.id,
+        sourceKind: x.kind,
+        sourceName: x.label
+      }))
+
+    if (enableSearchPages.value || pages?.length) {
+      result.unshift({
+        sourceId: 'page',
+        sourceKind: ContextSourceKind.Page,
+        sourceName: 'Pages'
+      })
+    }
+
+    return result
+  }, [
+    contextInfo?.sources,
+    userMessage?.content,
+    enableSearchPages.value,
+    pages?.length
+  ])
 
   // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
   const isInEditor = !!onApplyInEditor
@@ -408,7 +439,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           userMessageId={userMessageId}
           enableRegenerating={enableRegenerating}
           attachmentCode={attachmentServerCode}
-          // todo regenerate
         />
       </div>
 
@@ -441,12 +471,12 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           />
         )}
 
-        {/* todo get contextinfo, not just repos */}
         {!!docQuerySources?.length && (
           <ReadingDocStepper
-            docQueryResources={docQuerySources}
+            docQuerySources={docQuerySources}
             isReadingDocs={message.isReadingDocs}
-            webResources={webDocs}
+            webDocs={webDocs}
+            pages={pages}
             openExternal={openExternal}
           />
         )}

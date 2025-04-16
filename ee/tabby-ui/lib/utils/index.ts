@@ -291,3 +291,29 @@ export function buildCodeBrowserUrlForContext(
 
   return url.toString()
 }
+
+export function resolveDirectoryPath(filepath: string): string {
+  if (!filepath) return ''
+  let url: URL
+  try {
+    url = new URL(filepath)
+  } catch (e) {
+    try {
+      url = new URL(filepath, 'file://')
+    } catch (e2) {
+      return ''
+    }
+  }
+
+  try {
+    const parts = url.pathname.split('/')
+    const relevantParts = parts[0] === '' ? parts.slice(1) : parts
+    const dirPath = relevantParts.slice(0, -1).join('/')
+    if (parts[0] === '' && relevantParts.length > 1) {
+      return '/' + dirPath
+    }
+    return dirPath
+  } catch (e) {
+    return ''
+  }
+}

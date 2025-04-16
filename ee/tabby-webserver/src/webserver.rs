@@ -112,6 +112,7 @@ impl Webserver {
             docsearch.clone(),
             serper,
             repository.clone(),
+            setting.clone(),
         ));
 
         let answer = chat.as_ref().map(|chat| {

@@ -12,7 +12,10 @@ import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
 import {
   cn,
   isAttachmentCommitDoc,
+  isAttachmentIssueDoc,
+  isAttachmentPullDoc,
   isCodeSourceContext,
+  resolveDirectoryPath,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import {
@@ -285,8 +288,7 @@ function CodeContextItem({
   onContextClick,
   enableDeveloperMode
 }: CodeContextItemProps) {
-  const pathSegments = context.filepath.split('/')
-  const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+  const path = resolveDirectoryPath(context.filepath)
 
   const fileName = useMemo(() => {
     return resolveFileNameForDisplay(context.filepath)
@@ -360,15 +362,9 @@ function CodeContextItem({
 
 // Issue, PR, Commit
 function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
-  const isIssue =
-    doc.__typename === 'MessageAttachmentIssueDoc' ||
-    doc.__typename === 'AttachmentIssueDoc'
-  const isPR =
-    doc.__typename === 'MessageAttachmentPullDoc' ||
-    doc.__typename === 'AttachmentPullDoc'
-  const isCommit =
-    doc.__typename === 'MessageAttachmentCommitDoc' ||
-    doc.__typename === 'AttachmentCommitDoc'
+  const isIssue = isAttachmentIssueDoc(doc)
+  const isPR = isAttachmentPullDoc(doc)
+  const isCommit = isAttachmentCommitDoc(doc)
 
   const docName = isCommit
     ? `${doc.sha.slice(0, 7)}`

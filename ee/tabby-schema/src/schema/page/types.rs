@@ -72,6 +72,23 @@ impl NodeType for PageSection {
     }
 }
 
+#[derive(GraphQLInputObject, Default)]
+pub struct ThreadToPageDebugOptionInput {
+    #[graphql(default)]
+    pub return_chat_completion_request: bool,
+
+    #[graphql(default)]
+    pub return_query_request: bool,
+}
+
+#[derive(GraphQLInputObject)]
+pub struct CreateThreadToPageRunInput {
+    pub thread_id: ID,
+
+    #[graphql(default)]
+    pub debug_option: Option<ThreadToPageDebugOptionInput>,
+}
+
 #[derive(GraphQLInputObject, Validate)]
 pub struct UpdatePageTitleInput {
     pub id: ID,
@@ -114,6 +131,9 @@ pub struct UpdatePageSectionContentInput {
 pub struct PageRunDebugOptionInput {
     #[graphql(default)]
     pub return_chat_completion_request: bool,
+
+    #[graphql(default)]
+    pub return_query_request: bool,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -132,10 +152,13 @@ pub struct CreatePageRunInput {
     pub debug_option: Option<PageRunDebugOptionInput>,
 }
 
-#[derive(GraphQLInputObject, Default)]
+#[derive(GraphQLInputObject, Default, Clone)]
 pub struct PageSectionRunDebugOptionInput {
     #[graphql(default)]
     pub return_chat_completion_request: bool,
+
+    #[graphql(default)]
+    pub return_query_request: bool,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -180,8 +203,36 @@ pub struct PageSectionDebugData {
 
 #[derive(GraphQLObject, Clone)]
 #[graphql(context = Context)]
+pub struct PageSectionCreated {
+    pub id: ID,
+    pub page_id: ID,
+    pub title: String,
+    pub position: i32,
+
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+
+    pub debug_data: Option<PageSectionDebugData>,
+}
+
+impl From<PageSection> for PageSectionCreated {
+    fn from(value: PageSection) -> Self {
+        Self {
+            id: value.id,
+            page_id: value.page_id,
+            title: value.title,
+            position: value.position,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            debug_data: None,
+        }
+    }
+}
+
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
 pub struct PageSectionsCreated {
-    pub sections: Vec<PageSection>,
+    pub sections: Vec<PageSectionCreated>,
 
     pub debug_data: Option<PageSectionDebugData>,
 }
@@ -196,13 +247,28 @@ pub struct PageSectionAttachmentCodeFileList {
 pub struct PageSectionAttachmentCode {
     pub id: ID,
     pub codes: Vec<AttachmentCodeHit>,
+
+    pub debug_data: Option<AttachmentCodeQueryDebugData>,
 }
 
+#[derive(GraphQLObject)]
+pub struct AttachmentCodeQueryDebugData {
+    pub source_id: String,
+    pub query: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct AttachmentDocQueryDebugData {
+    pub source_ids: Vec<String>,
+    pub query: String,
+}
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct PageSectionAttachmentDoc {
     pub id: ID,
     pub doc: Vec<AttachmentDocHit>,
+
+    pub debug_data: Option<AttachmentDocQueryDebugData>,
 }
 
 #[derive(GraphQLObject, Clone, Default)]
@@ -327,7 +393,7 @@ pub enum PageRunItem {
 #[derive(GraphQLUnion)]
 #[graphql(context = Context)]
 pub enum SectionRunItem {
-    PageSectionCreated(PageSection),
+    PageSectionCreated(PageSectionCreated),
 
     PageSectionAttachmentCodeFileList(PageSectionAttachmentCodeFileList),
     PageSectionAttachmentCode(PageSectionAttachmentCode),

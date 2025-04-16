@@ -1,10 +1,15 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
-import { isAttachmentWebDoc } from '@/lib/utils'
+import {
+  isAttachmentPageDoc,
+  isAttachmentWebDoc,
+  normalizedMarkdownText
+} from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -18,6 +23,7 @@ import {
 } from '@/components/ui/hover-card'
 import {
   IconBlocks,
+  IconBookOpen,
   IconEmojiBook,
   IconEmojiGlobe
 } from '@/components/ui/icons'
@@ -30,7 +36,7 @@ interface ReadingDocStepperProps {
   isReadingDocs: boolean | undefined
   sourceIds?: string[]
   className?: string
-  webResources?:
+  webDocs?:
     | Maybe<
         Array<
           Extract<
@@ -40,17 +46,34 @@ interface ReadingDocStepperProps {
         >
       >
     | undefined
-  docQueryResources: Omit<ContextSource, 'id'>[] | undefined
+  pages?:
+    | Maybe<
+        Array<
+          Extract<
+            AttachmentDocItem,
+            { __typename: 'MessageAttachmentPageDoc' | 'AttachmentPageDoc' }
+          >
+        >
+      >
+    | undefined
+  docQuerySources: Omit<ContextSource, 'id'>[] | undefined
   openExternal: (url: string) => Promise<void>
 }
 
 export function ReadingDocStepper({
   isReadingDocs,
-  webResources,
-  docQueryResources,
+  docQuerySources,
+  webDocs,
+  pages,
   openExternal
 }: ReadingDocStepperProps) {
-  const resultLen = webResources?.length
+  const hasMentionDocs =
+    !!docQuerySources &&
+    docQuerySources.filter(x => x.sourceKind !== ContextSourceKind.Page)
+      .length > 0
+  const webDocLen = webDocs?.length ?? 0
+  const pagesLen = pages?.length ?? 0
+  const totalLen = webDocLen + pagesLen
 
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
@@ -61,7 +84,7 @@ export function ReadingDocStepper({
               <IconBlocks className="mr-2 h-5 w-5 shrink-0" />
               <span className="shrink-0">Look into</span>
               <div className="flex flex-1 flex-nowrap gap-2 truncate">
-                {docQueryResources?.map(x => {
+                {docQuerySources?.map(x => {
                   return (
                     <div
                       className="flex items-center gap-1 rounded-lg border px-2 py-0 font-medium no-underline"
@@ -72,6 +95,8 @@ export function ReadingDocStepper({
                           className="h-3 w-3 shrink-0"
                           emojiClassName="text-sm"
                         />
+                      ) : x.sourceKind === ContextSourceKind.Page ? (
+                        <IconBookOpen className="h-3.5 w-3.5 shrink-0" />
                       ) : (
                         <IconEmojiBook
                           className="h-3 w-3 shrink-0"
@@ -85,9 +110,9 @@ export function ReadingDocStepper({
               </div>
             </div>
             <div className="shrink-0">
-              {resultLen ? (
+              {totalLen ? (
                 <div className="text-sm text-muted-foreground">
-                  {resultLen} sources
+                  {totalLen} sources
                 </div>
               ) : null}
             </div>
@@ -96,14 +121,52 @@ export function ReadingDocStepper({
         <AccordionContent className="pb-0">
           <div className="space-y-2 text-sm text-muted-foreground">
             <StepItem
+              title="Search pages ..."
+              isLastItem={!hasMentionDocs}
+              isLoading={isReadingDocs}
+              defaultOpen={!!pages?.length}
+            >
+              {!!pages?.length && (
+                <div className="mb-3 mt-2 space-y-2">
+                  {pages.map((x, index) => {
+                    const _key = x.link
+                    return (
+                      <div key={`${_key}_${index}`}>
+                        <HoverCard openDelay={100} closeDelay={100}>
+                          <HoverCardTrigger>
+                            <div
+                              className="group cursor-pointer pl-2"
+                              onClick={() => {
+                                openExternal(x.link)
+                              }}
+                            >
+                              <PageSummaryView doc={x} />
+                            </div>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
+                            <DocDetailView
+                              relevantDocument={x}
+                              onLinkClick={url => {
+                                openExternal(url)
+                              }}
+                            />
+                          </HoverCardContent>
+                        </HoverCard>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </StepItem>
+            <StepItem
               title="Collect documents ..."
               isLastItem
               isLoading={isReadingDocs}
-              defaultOpen={!!webResources?.length}
+              defaultOpen={!!webDocs?.length}
             >
-              {!!webResources?.length && (
+              {!!webDocs?.length && (
                 <div className="mb-3 mt-2 space-y-2">
-                  {webResources.map((x, index) => {
+                  {webDocs.map((x, index) => {
                     const _key = x.link
                     return (
                       <div key={`${_key}_${index}`}>
@@ -141,16 +204,37 @@ export function ReadingDocStepper({
 }
 
 function WebDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
-  if (!isAttachmentWebDoc(doc)) return null
+  const isWebDoc = isAttachmentWebDoc(doc)
+  const sourceUrl = useMemo(() => {
+    if (!isWebDoc) return null
+    try {
+      return doc ? new URL(doc.link) : null
+    } catch {
+      return null
+    }
+  }, [doc])
 
-  const sourceUrl = doc ? new URL(doc.link) : null
+  if (!isWebDoc || !sourceUrl) return null
 
   return (
     <div className="flex flex-nowrap items-center gap-2 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground">
-      <SiteFavicon hostname={sourceUrl!.hostname} className="m-0 shrink-0" />
+      <SiteFavicon hostname={sourceUrl.hostname} className="m-0 shrink-0" />
       <span className="flex-1 truncate text-foreground">{doc.title}</span>
       <span className="m-0 ml-1 shrink-0 text-muted-foreground">
-        {sourceUrl!.hostname}
+        {sourceUrl.hostname}
+      </span>
+    </div>
+  )
+}
+
+function PageSummaryView({ doc }: { doc: AttachmentDocItem }) {
+  if (!isAttachmentPageDoc(doc)) return null
+
+  return (
+    <div className="flex flex-nowrap items-center gap-2 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground">
+      <IconBookOpen className="h-3.5 w-3.5 shrink-0" />
+      <span className="flex-1 truncate text-foreground">
+        {normalizedMarkdownText(doc.title)}
       </span>
     </div>
   )
