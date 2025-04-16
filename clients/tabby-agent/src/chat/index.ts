@@ -46,7 +46,6 @@ export class ChatFeature extends EventEmitter implements Feature {
         try {
           this.featureRegistration = await connection.client.register(ChatFeatures.type);
         } catch (error) {
-          ``;
           // client may not support feature registration, ignore this error
         }
       }
