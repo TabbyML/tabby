@@ -33,6 +33,7 @@ import {
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons'
 
 import type { CategoryItem, CategoryMenu, FileItem, SourceItem } from '../types'
+import { formatFileDescription } from './helper'
 import {
   commandItemToSourceItem,
   createChangesCommand,
@@ -279,8 +280,19 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
 
         const results = await currentPromise
 
+        const processedResults = results.map(item => {
+          if (item.category === 'file' && item.fileItem) {
+            try {
+              const fileData = convertFromFilepath(item.fileItem.filepath)
+
+              item.description = formatFileDescription(fileData)
+            } catch (error) {}
+          }
+          return item
+        })
+
         if ((latestPromiseRef.current as any)?.isCurrent) {
-          setItems(results)
+          setItems(processedResults)
           setSelectedIndex(0)
           setIsLoading(false)
           if (isFirstShow) setIsFirstShow(false)
@@ -466,7 +478,7 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
           {data.description}
         </span>
       )}
-      {data.category === 'file' && (
+      {data.category === 'file' && !data.description && (
         <span className="flex-1 truncate text-xs text-muted-foreground">
           {filepathWithoutFilename}
         </span>
