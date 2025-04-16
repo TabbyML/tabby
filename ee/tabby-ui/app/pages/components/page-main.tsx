@@ -195,10 +195,12 @@ export function Page() {
     setDebugData(prev => {
       if (!prev) {
         return {
-          sections: [{
-            id: sectionId,
-            ...debugData
-          }]
+          sections: [
+            {
+              id: sectionId,
+              ...debugData
+            }
+          ]
         }
       }
 
@@ -400,9 +402,9 @@ export function Page() {
         // group by id
         const debugData = data.debugData?.generateSectionContentMessages
           ? {
-            generateSectionContentMessages:
-              data.debugData.generateSectionContentMessages
-          }
+              generateSectionContentMessages:
+                data.debugData.generateSectionContentMessages
+            }
           : undefined
         updateSectionDebugData(debugData, data.id)
         break
@@ -542,9 +544,9 @@ export function Page() {
         const debugData: SectionDebugDataItem | undefined = data.debugData
           ?.generateSectionContentMessages?.length
           ? {
-            generateSectionContentMessages:
-              data.debugData.generateSectionContentMessages
-          }
+              generateSectionContentMessages:
+                data.debugData.generateSectionContentMessages
+            }
           : undefined
         updateSectionDebugData(debugData, data.id)
 
@@ -596,9 +598,9 @@ export function Page() {
           },
           debugOption: enableDeveloperMode?.value
             ? {
-              returnChatCompletionRequest: true,
-              returnQueryRequest: true
-            }
+                returnChatCompletionRequest: true,
+                returnQueryRequest: true
+              }
             : undefined
         }
       })
@@ -644,9 +646,9 @@ export function Page() {
           threadId,
           debugOption: enableDeveloperMode?.value
             ? {
-              returnChatCompletionRequest: true,
-              returnQueryRequest: true
-            }
+                returnChatCompletionRequest: true,
+                returnQueryRequest: true
+              }
             : undefined
         }
       })
@@ -699,9 +701,9 @@ export function Page() {
           titlePrompt,
           codeQuery: codeSourceId
             ? {
-              sourceId: codeSourceId,
-              content: titlePrompt
-            }
+                sourceId: codeSourceId,
+                content: titlePrompt
+              }
             : null,
           docQuery: {
             sourceIds: compact([
@@ -713,9 +715,9 @@ export function Page() {
           },
           debugOption: enableDeveloperMode?.value
             ? {
-              returnChatCompletionRequest: true,
-              returnQueryRequest: true
-            }
+                returnChatCompletionRequest: true,
+                returnQueryRequest: true
+              }
             : undefined
         }
       })
@@ -1022,7 +1024,7 @@ export function Page() {
 
   const [isFetchingPageSections] = useDebounceValue(
     fetchingPageSections ||
-    pageSectionData?.pageSections?.pageInfo?.hasNextPage,
+      pageSectionData?.pageSections?.pageInfo?.hasNextPage,
     200
   )
 
