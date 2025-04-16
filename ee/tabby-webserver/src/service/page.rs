@@ -186,13 +186,7 @@ impl PageService for PageServiceImpl {
         let retrieval = self.retrieval.clone();
         let config = self.config.clone();
         let auth = self.auth.clone();
-        let debug_option = input
-            .debug_option
-            .as_ref()
-            .map(|x| PageSectionRunDebugOptionInput {
-                return_chat_completion_request: x.return_chat_completion_request,
-                return_query_request: x.return_query_request,
-            });
+        let debug_option = input.debug_option.clone();
 
         let s = stream! {
             // Create a channel that will be closed when the client disconnects

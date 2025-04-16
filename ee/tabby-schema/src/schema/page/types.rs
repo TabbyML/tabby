@@ -152,7 +152,7 @@ pub struct CreatePageRunInput {
     pub debug_option: Option<PageRunDebugOptionInput>,
 }
 
-#[derive(GraphQLInputObject, Default)]
+#[derive(GraphQLInputObject, Default, Clone)]
 pub struct PageSectionRunDebugOptionInput {
     #[graphql(default)]
     pub return_chat_completion_request: bool,
