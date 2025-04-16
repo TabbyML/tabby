@@ -182,6 +182,11 @@ input CreateThreadRunInput {
   options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false, modelName: null}
 }
 
+input CreateThreadToPageRunInput {
+  threadId: ID!
+  debugOption: ThreadToPageDebugOptionInput = null
+}
+
 input CreateUserGroupInput {
   "User group name, can only start with a lowercase letter, and contain characters, numbers, and `-` or `_`" name: String!
 }
@@ -218,10 +223,12 @@ input NetworkSettingInput {
 
 input PageRunDebugOptionInput {
   returnChatCompletionRequest: Boolean! = false
+  returnQueryRequest: Boolean! = false
 }
 
 input PageSectionRunDebugOptionInput {
   returnChatCompletionRequest: Boolean! = false
+  returnQueryRequest: Boolean! = false
 }
 
 input PasswordChangeInput {
@@ -266,6 +273,11 @@ input ThreadRunOptionsInput {
   codeQuery: CodeQueryInput = null
   generateRelevantQuestions: Boolean! = false
   debugOptions: ThreadRunDebugOptionsInput = null
+}
+
+input ThreadToPageDebugOptionInput {
+  returnChatCompletionRequest: Boolean! = false
+  returnQueryRequest: Boolean! = false
 }
 
 input UpdateIntegrationInput {
@@ -387,6 +399,11 @@ type AttachmentCodeHit {
   scores: AttachmentCodeScores!
 }
 
+type AttachmentCodeQueryDebugData {
+  sourceId: String!
+  query: String!
+}
+
 type AttachmentCodeScores {
   rrf: Float!
   bm25: Float!
@@ -403,6 +420,11 @@ type AttachmentCommitDoc {
 type AttachmentDocHit {
   doc: AttachmentDoc!
   score: Float!
+}
+
+type AttachmentDocQueryDebugData {
+  sourceIds: [String!]!
+  query: String!
 }
 
 type AttachmentIssueDoc {
@@ -921,6 +943,7 @@ type PageSection {
 type PageSectionAttachmentCode {
   id: ID!
   codes: [AttachmentCodeHit!]!
+  debugData: AttachmentCodeQueryDebugData
 }
 
 type PageSectionAttachmentCodeFileList {
@@ -931,6 +954,7 @@ type PageSectionAttachmentCodeFileList {
 type PageSectionAttachmentDoc {
   id: ID!
   doc: [AttachmentDocHit!]!
+  debugData: AttachmentDocQueryDebugData
 }
 
 type PageSectionContentCompleted {
@@ -1161,7 +1185,7 @@ type Subscription {
     - the page title and a summary of the content.
     - a few sections based on the thread messages.
   """
-  createThreadToPageRun(threadId: ID!): PageRunItem!
+  createThreadToPageRun(input: CreateThreadToPageRunInput!): PageRunItem!
   createPageSectionRun(input: CreatePageSectionRunInput!): SectionRunItem!
 }
 

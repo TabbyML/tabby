@@ -21,7 +21,7 @@ pub trait PageService: Send + Sync {
         &self,
         policy: &AccessPolicy,
         author_id: &ID,
-        thread_id: &ID,
+        input: &CreateThreadToPageRunInput,
     ) -> Result<ThreadToPageRunStream>;
 
     async fn create_run(

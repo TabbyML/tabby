@@ -72,6 +72,23 @@ impl NodeType for PageSection {
     }
 }
 
+#[derive(GraphQLInputObject, Default)]
+pub struct ThreadToPageDebugOptionInput {
+    #[graphql(default)]
+    pub return_chat_completion_request: bool,
+
+    #[graphql(default)]
+    pub return_query_request: bool,
+}
+
+#[derive(GraphQLInputObject)]
+pub struct CreateThreadToPageRunInput {
+    pub thread_id: ID,
+
+    #[graphql(default)]
+    pub debug_option: Option<ThreadToPageDebugOptionInput>,
+}
+
 #[derive(GraphQLInputObject, Validate)]
 pub struct UpdatePageTitleInput {
     pub id: ID,
@@ -114,6 +131,9 @@ pub struct UpdatePageSectionContentInput {
 pub struct PageRunDebugOptionInput {
     #[graphql(default)]
     pub return_chat_completion_request: bool,
+
+    #[graphql(default)]
+    pub return_query_request: bool,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -132,10 +152,13 @@ pub struct CreatePageRunInput {
     pub debug_option: Option<PageRunDebugOptionInput>,
 }
 
-#[derive(GraphQLInputObject, Default)]
+#[derive(GraphQLInputObject, Default, Clone)]
 pub struct PageSectionRunDebugOptionInput {
     #[graphql(default)]
     pub return_chat_completion_request: bool,
+
+    #[graphql(default)]
+    pub return_query_request: bool,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -196,13 +219,28 @@ pub struct PageSectionAttachmentCodeFileList {
 pub struct PageSectionAttachmentCode {
     pub id: ID,
     pub codes: Vec<AttachmentCodeHit>,
+
+    pub debug_data: Option<AttachmentCodeQueryDebugData>,
 }
 
+#[derive(GraphQLObject)]
+pub struct AttachmentCodeQueryDebugData {
+    pub source_id: String,
+    pub query: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct AttachmentDocQueryDebugData {
+    pub source_ids: Vec<String>,
+    pub query: String,
+}
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct PageSectionAttachmentDoc {
     pub id: ID,
     pub doc: Vec<AttachmentDocHit>,
+
+    pub debug_data: Option<AttachmentDocQueryDebugData>,
 }
 
 #[derive(GraphQLObject, Clone, Default)]
