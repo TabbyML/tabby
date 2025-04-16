@@ -17,6 +17,9 @@ pub struct AttachmentCodeFileList {
     pub truncated: bool,
 }
 
+/// AttachmentDoc represents a union of various document types.
+/// For backward compatibility, it is stored untagged in the database.
+/// Ensure that new document types have unique field names to avoid deserialization issues.
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)] // Mark the serde serialization format as untagged for backward compatibility: https://serde.rs/enum-representations.html#untagged
 pub enum AttachmentDoc {
@@ -63,7 +66,7 @@ pub struct AttachmentCommitDoc {
 
 #[derive(Serialize, Deserialize)]
 pub struct AttachmentPageDoc {
-    pub link: String,
+    pub page_link: String,
     pub title: String,
     pub content: String,
 }

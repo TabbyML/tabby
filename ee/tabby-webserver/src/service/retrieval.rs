@@ -404,7 +404,7 @@ pub fn attachment_doc_from_db(
             author_at: commit.author_at,
         }),
         tabby_db::AttachmentDoc::Page(page) => AttachmentDoc::Page(AttachmentPageDoc {
-            link: page.link,
+            link: page.page_link,
             title: page.title,
             content: page.content,
         }),
