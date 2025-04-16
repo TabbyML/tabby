@@ -972,13 +972,23 @@ type PageSectionContentDelta {
   delta: String!
 }
 
+type PageSectionCreated {
+  id: ID!
+  pageId: ID!
+  title: String!
+  position: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  debugData: PageSectionDebugData
+}
+
 type PageSectionDebugData {
   "Messages sent to LLM to generate the page section titles."
   generateSectionTitlesMessages: [ChatCompletionMessage!]!
 }
 
 type PageSectionsCreated {
-  sections: [PageSection!]!
+  sections: [PageSectionCreated!]!
   debugData: PageSectionDebugData
 }
 
@@ -1330,7 +1340,7 @@ union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc
 union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionAttachmentDoc | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted
 
 "Schema of page convert stream."
-union SectionRunItem = PageSection | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionAttachmentDoc | PageSectionContentDelta | PageSectionContentCompleted
+union SectionRunItem = PageSectionCreated | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionAttachmentDoc | PageSectionContentDelta | PageSectionContentCompleted
 
 """
   Schema of thread run stream.

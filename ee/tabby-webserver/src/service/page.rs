@@ -204,7 +204,7 @@ impl PageService for PageServiceImpl {
                     generate_section_titles_messages: messages,
                 });
             }
-            yield Ok(SectionRunItem::PageSectionCreated(section_from_db));
+            yield Ok(SectionRunItem::PageSectionCreated(section_from_db.into()));
 
             let mut attachments_stream = generate_section_with_attachments(
                 debug_option.as_ref(),
@@ -445,7 +445,7 @@ impl PageServiceImpl {
             let mut page_sections = Vec::new();
             for section_title in &page_section_titles {
                 let section = db.create_page_section(page_id.as_rowid()?, section_title).await?;
-                page_sections.push(section_from_db(auth.clone(), section).await);
+                page_sections.push(section_from_db(auth.clone(), section).await.into());
             }
 
             yield Ok(PageRunItem::PageSectionsCreated(PageSectionsCreated {
