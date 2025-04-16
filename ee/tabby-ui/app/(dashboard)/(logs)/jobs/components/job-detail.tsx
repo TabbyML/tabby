@@ -30,7 +30,7 @@ interface LogChunk {
   logs: string
 }
 
-const CHUNK_SIZE = 50 * 1000
+const CHUNK_SIZE = 20 * 1000
 
 export default function JobRunDetail() {
   const router = useRouter()
