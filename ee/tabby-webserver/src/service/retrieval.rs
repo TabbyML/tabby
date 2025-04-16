@@ -23,6 +23,7 @@ use tabby_schema::{
         AttachmentCommitDoc, AttachmentDoc, AttachmentIssueDoc, AttachmentPageDoc,
         AttachmentPullDoc, AttachmentWebDoc,
     },
+    setting::SettingService,
     thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput},
     CoreError, Result,
 };
@@ -33,6 +34,7 @@ pub struct RetrievalService {
     doc: Arc<dyn DocSearch>,
     serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
+    settings: Arc<dyn SettingService>,
 }
 
 impl RetrievalService {
@@ -41,12 +43,14 @@ impl RetrievalService {
         doc: Arc<dyn DocSearch>,
         serper: Option<Box<dyn DocSearch>>,
         repository: Arc<dyn RepositoryService>,
+        settings: Arc<dyn SettingService>,
     ) -> Self {
         Self {
             code,
             doc,
             serper,
             repository,
+            settings,
         }
     }
 
@@ -167,7 +171,18 @@ impl RetrievalService {
         // 1. Collect relevant docs from the tantivy doc search.
         if !source_ids.is_empty() {
             match self.doc.search(&source_ids, &content, 5).await {
-                Ok(docs) => hits.extend(docs.hits),
+                Ok(mut docs) => {
+                    // If the network settings are retrievable, we can prepend the external_url to the page link,
+                    // enabling it to be opened from our VSCode extension.
+                    if let Ok(settings) = self.settings.read_network_setting().await {
+                        for hit in docs.hits.iter_mut() {
+                            if let DocSearchDocument::Page(page) = &mut hit.doc {
+                                page.link = format!("{}{}", settings.external_url, page.link);
+                            }
+                        }
+                    }
+                    hits.extend(docs.hits)
+                }
                 Err(err) => {
                     if let DocSearchError::NotReady = err {
                         debug!("Doc search is not ready yet");
@@ -225,8 +240,9 @@ pub fn create(
     doc: Arc<dyn DocSearch>,
     serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
+    settings: Arc<dyn SettingService>,
 ) -> RetrievalService {
-    RetrievalService::new(code, doc, serper, repository)
+    RetrievalService::new(code, doc, serper, repository, settings)
 }
 
 /// Combine code snippets from search results rather than utilizing multiple hits:
@@ -459,6 +475,7 @@ mod tests {
     use crate::service::{
         access_policy::testutils::make_policy,
         answer::testutils::{make_repository_service, FakeCodeSearch, FakeDocSearch},
+        setting,
     };
 
     const TEST_SOURCE_ID: &str = "source-1";
@@ -546,8 +563,9 @@ mod tests {
         let doc = Arc::new(FakeDocSearch);
         let db = DbConn::new_in_memory().await.unwrap();
         let repo_service = make_repository_service(db.clone()).await.unwrap();
+        let settings = Arc::new(setting::create(db));
 
-        let service = RetrievalService::new(code, doc, None, repo_service);
+        let service = RetrievalService::new(code, doc, None, repo_service, settings);
 
         // Test Case 1: Basic code collection
         let input = make_code_query_input(Some(&test_repo.source_id), Some(&test_repo.git_url));
@@ -596,9 +614,10 @@ mod tests {
         let doc = Arc::new(FakeDocSearch);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let db = DbConn::new_in_memory().await.unwrap();
-        let repo = make_repository_service(db).await.unwrap();
+        let repo = make_repository_service(db.clone()).await.unwrap();
+        let settings = Arc::new(setting::create(db));
 
-        let service = RetrievalService::new(code.clone(), doc.clone(), serper, repo);
+        let service = RetrievalService::new(code.clone(), doc.clone(), serper, repo, settings);
 
         let context_info_helper = make_context_info_helper();
 
@@ -759,12 +778,14 @@ mod tests {
         let code = Arc::new(FakeCodeSearch);
         let doc = Arc::new(FakeDocSearch);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+        let settings = Arc::new(setting::create(db));
 
         let retrieval = Arc::new(create(
             code.clone(),
             doc.clone(),
             serper,
             repo_service.clone(),
+            settings,
         ));
 
         // Test repository lookup
