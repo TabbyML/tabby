@@ -193,7 +193,16 @@ export function Page() {
   ) => {
     if (!debugData || !sectionId) return
     setDebugData(prev => {
-      if (!prev) return prev
+      if (!prev) {
+        return {
+          sections: [
+            {
+              id: sectionId,
+              ...debugData
+            }
+          ]
+        }
+      }
 
       const sections = prev.sections || []
       let target = sections.find(s => s.id === sectionId)
@@ -412,7 +421,7 @@ export function Page() {
     data: CreatePageSectionRunSubscription['createPageSectionRun']
   ) => {
     switch (data.__typename) {
-      case 'PageSection': {
+      case 'PageSectionCreated': {
         const { id, title, position } = data
         setCurrentSectionId(id)
         setPendingSectionIds(new Set([id]))

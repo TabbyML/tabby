@@ -27,22 +27,6 @@ export const createThreadToPageRunSubscription = graphql(/* GraphQL */ `
           id
           position
           title
-          attachments {
-            code {
-              __typename
-              gitUrl
-              commit
-              filepath
-              language
-              content
-              startLine
-            }
-            codeFileList {
-              __typename
-              fileList
-              truncated
-            }
-          }
         }
         debugData {
           __typename
@@ -193,22 +177,6 @@ export const createPageRunSubscription = graphql(/* GraphQL */ `
           id
           position
           title
-          attachments {
-            code {
-              __typename
-              gitUrl
-              commit
-              filepath
-              language
-              content
-              startLine
-            }
-            codeFileList {
-              __typename
-              fileList
-              truncated
-            }
-          }
         }
         debugData {
           __typename
@@ -329,7 +297,7 @@ export const createPageSectionRunSubscription = graphql(/* GraphQL */ `
   subscription createPageSectionRun($input: CreatePageSectionRunInput!) {
     createPageSectionRun(input: $input) {
       __typename
-      ... on PageSection {
+      ... on PageSectionCreated {
         id
         title
         position
