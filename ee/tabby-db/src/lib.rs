@@ -32,6 +32,7 @@ mod access_policy;
 mod attachment;
 pub mod cache;
 mod email_setting;
+mod ingestion;
 mod integrations;
 mod invitations;
 mod job_runs;

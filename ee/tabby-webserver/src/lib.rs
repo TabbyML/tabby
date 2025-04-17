@@ -6,7 +6,7 @@ mod ldap;
 mod oauth;
 mod path;
 mod rate_limit;
-mod routes;
+pub mod routes;
 mod service;
 mod webserver;
 

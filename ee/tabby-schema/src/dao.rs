@@ -529,6 +529,7 @@ impl DbEnum for EventKind {
             EventKind::Select => "select",
             EventKind::View => "view",
             EventKind::Dismiss => "dismiss",
+            EventKind::Ingestion => "ingestion",
         }
     }
 
@@ -539,6 +540,7 @@ impl DbEnum for EventKind {
             "select" => Ok(EventKind::Select),
             "view" => Ok(EventKind::View),
             "dismiss" => Ok(EventKind::Dismiss),
+            "ingestion" => Ok(EventKind::Ingestion),
             _ => bail!("{s} is not a valid value for EventKind"),
         }
     }

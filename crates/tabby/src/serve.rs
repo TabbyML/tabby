@@ -52,7 +52,14 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::chat_completions_utoipa, routes::health, routes::setting),
+    paths(
+        routes::log_event,
+        routes::completions,
+        routes::chat_completions_utoipa,
+        routes::health,
+        routes::setting,
+        tabby_webserver::routes::ingestion::ingestion,
+    ),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -66,6 +73,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         health::HealthState,
         health::Version,
         api::server_setting::ServerSetting,
+        api::ingestion::IngestionRequest,
+        api::ingestion::IngestionResponse,
+        api::ingestion::IngestionStatus,
     )),
     modifiers(&SecurityAddon),
 )]

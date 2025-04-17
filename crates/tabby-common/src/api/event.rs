@@ -70,6 +70,11 @@ pub enum Event {
         user_agent: Option<String>,
     },
     ChatCompletion {},
+    Ingestion {
+        source: String,
+        id: String,
+        title: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -7,6 +7,7 @@ pub mod context;
 mod email;
 pub mod embedding;
 pub mod event_logger;
+mod ingestion;
 pub mod integration;
 pub mod job;
 mod license;
@@ -54,6 +55,7 @@ use tabby_schema::{
     auth::{AuthenticationService, UserSecured},
     context::ContextService,
     email::EmailService,
+    ingestion::IngestionService,
     integration::IntegrationService,
     interface::UserValue,
     is_demo_mode,
@@ -87,6 +89,7 @@ struct ServerContext {
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     user_event: Arc<dyn UserEventService>,
+    ingestion: Arc<dyn IngestionService>,
     job: Arc<dyn JobService>,
     web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
@@ -145,6 +148,7 @@ impl ServerContext {
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
         let notification = Arc::new(notification::create(db_conn.clone()));
+        let ingestion = Arc::new(ingestion::create(db_conn.clone()));
 
         background_job::start(
             db_conn.clone(),
@@ -175,6 +179,7 @@ impl ServerContext {
             repository,
             integration,
             user_event,
+            ingestion,
             job,
             logger,
             code,
@@ -328,6 +333,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn notification(&self) -> Arc<dyn tabby_schema::notification::NotificationService> {
         self.0.notification.clone()
+    }
+
+    fn ingestion(&self) -> Arc<dyn IngestionService> {
+        self.0.ingestion.clone()
     }
 
     fn job(&self) -> Arc<dyn JobService> {

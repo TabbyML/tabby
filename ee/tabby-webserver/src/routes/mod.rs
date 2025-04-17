@@ -1,4 +1,5 @@
 mod hub;
+pub mod ingestion;
 mod oauth;
 mod repositories;
 mod ui;
@@ -42,6 +43,13 @@ pub fn create(
         .route(
             "/background-jobs/{id}/logs",
             routing::get(background_job_logs).with_state(ctx.job()),
+        )
+        .route(
+            "/v1beta/ingestion",
+            routing::post(ingestion::ingestion).with_state(Arc::new(ingestion::IngestionState {
+                ingestion: ctx.ingestion(),
+                logger: ctx.logger(),
+            })),
         )
         // Add other endpoints that need authentication here
         .layer(from_fn_with_state(ctx.auth(), require_login_middleware));
