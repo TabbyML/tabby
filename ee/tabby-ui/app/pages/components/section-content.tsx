@@ -394,9 +394,9 @@ function SourcePreviewCard({
   if (isDoc) {
     return (
       <div className="flex items-start gap-2">
-        <div className="relative flex flex-1 cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
+        <div className="relative flex w-full cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
           <div
-            className="relative flex flex-col justify-between"
+            className="relative flex w-full flex-col justify-between"
             onClick={() => window.open(source.link)}
           >
             <DocPreviewCard source={source} />
