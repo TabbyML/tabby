@@ -126,8 +126,7 @@ export function SectionContent({
           result.push('code')
           break
         case 'AttachmentCodeFileList':
-          // result.push('codeFileList')
-          result.push('page')
+          result.push('codeFileList')
           break
         case 'MessageAttachmentCommitDoc':
         case 'AttachmentCommitDoc':
