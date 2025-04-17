@@ -82,46 +82,46 @@
 <title>ingested_documents</title>
 <polygon fill="none" stroke="black" points="65.38,-647.25 65.38,-669.75 188.38,-669.75 188.38,-647.25 65.38,-647.25"/>
 <text text-anchor="start" x="68.38" y="-654.45" font-family="Times,serif" font-weight="bold" font-size="14.00">ingested_documents</text>
-<polygon fill="none" stroke="black" points="65.38,-622.5 65.38,-647.25 100.25,-647.25 100.25,-622.5 65.38,-622.5"/>
-<text text-anchor="start" x="75.69" y="-630.95" font-family="Times,serif" font-size="14.00">🔑</text>
-<polygon fill="none" stroke="black" points="100.25,-622.5 100.25,-647.25 188.38,-647.25 188.38,-622.5 100.25,-622.5"/>
-<text text-anchor="start" x="139.06" y="-629.83" font-family="Times,serif" font-size="14.00">id</text>
-<polygon fill="none" stroke="black" points="65.38,-600 65.38,-622.5 100.25,-622.5 100.25,-600 65.38,-600"/>
-<text text-anchor="start" x="80.94" y="-606.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-600 100.25,-622.5 188.38,-622.5 188.38,-600 100.25,-600"/>
-<text text-anchor="start" x="126.69" y="-606.2" font-family="Times,serif" font-size="14.00">source</text>
-<polygon fill="none" stroke="black" points="65.38,-577.5 65.38,-600 100.25,-600 100.25,-577.5 65.38,-577.5"/>
-<text text-anchor="start" x="80.94" y="-583.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-577.5 100.25,-600 188.38,-600 188.38,-577.5 100.25,-577.5"/>
-<text text-anchor="start" x="125.94" y="-583.7" font-family="Times,serif" font-size="14.00">doc_id</text>
-<polygon fill="none" stroke="black" points="65.38,-555 65.38,-577.5 100.25,-577.5 100.25,-555 65.38,-555"/>
-<text text-anchor="start" x="80.94" y="-561.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-555 100.25,-577.5 188.38,-577.5 188.38,-555 100.25,-555"/>
-<text text-anchor="start" x="133.81" y="-561.2" font-family="Times,serif" font-size="14.00">link</text>
-<polygon fill="none" stroke="black" points="65.38,-532.5 65.38,-555 100.25,-555 100.25,-532.5 65.38,-532.5"/>
-<text text-anchor="start" x="80.94" y="-538.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-532.5 100.25,-555 188.38,-555 188.38,-532.5 100.25,-532.5"/>
-<text text-anchor="start" x="133.81" y="-538.7" font-family="Times,serif" font-size="14.00">title</text>
-<polygon fill="none" stroke="black" points="65.38,-510 65.38,-532.5 100.25,-532.5 100.25,-510 65.38,-510"/>
-<text text-anchor="start" x="80.94" y="-516.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-510 100.25,-532.5 188.38,-532.5 188.38,-510 100.25,-510"/>
-<text text-anchor="start" x="130.81" y="-516.2" font-family="Times,serif" font-size="14.00">body</text>
-<polygon fill="none" stroke="black" points="65.38,-487.5 65.38,-510 100.25,-510 100.25,-487.5 65.38,-487.5"/>
-<text text-anchor="start" x="80.94" y="-493.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-487.5 100.25,-510 188.38,-510 188.38,-487.5 100.25,-487.5"/>
-<text text-anchor="start" x="110.56" y="-493.7" font-family="Times,serif" font-size="14.00">index_status</text>
-<polygon fill="none" stroke="black" points="65.38,-465 65.38,-487.5 100.25,-487.5 100.25,-465 65.38,-465"/>
-<text text-anchor="start" x="80.94" y="-471.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-465 100.25,-487.5 188.38,-487.5 188.38,-465 100.25,-465"/>
-<text text-anchor="start" x="115.81" y="-471.2" font-family="Times,serif" font-size="14.00">expired_at</text>
-<polygon fill="none" stroke="black" points="65.38,-442.5 65.38,-465 100.25,-465 100.25,-442.5 65.38,-442.5"/>
-<text text-anchor="start" x="80.94" y="-448.7" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-442.5 100.25,-465 188.38,-465 188.38,-442.5 100.25,-442.5"/>
-<text text-anchor="start" x="116.56" y="-448.7" font-family="Times,serif" font-size="14.00">created_at</text>
-<polygon fill="none" stroke="black" points="65.38,-420 65.38,-442.5 100.25,-442.5 100.25,-420 65.38,-420"/>
-<text text-anchor="start" x="80.94" y="-426.2" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="100.25,-420 100.25,-442.5 188.38,-442.5 188.38,-420 100.25,-420"/>
-<text text-anchor="start" x="114.69" y="-426.2" font-family="Times,serif" font-size="14.00">updated_at</text>
+<polygon fill="none" stroke="black" points="65.38,-622.5 65.38,-647.25 104.38,-647.25 104.38,-622.5 65.38,-622.5"/>
+<text text-anchor="start" x="77.75" y="-630.95" font-family="Times,serif" font-size="14.00">🔑</text>
+<polygon fill="none" stroke="black" points="104.38,-622.5 104.38,-647.25 188.38,-647.25 188.38,-622.5 104.38,-622.5"/>
+<text text-anchor="start" x="141.12" y="-629.83" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="65.38,-600 65.38,-622.5 104.38,-622.5 104.38,-600 65.38,-600"/>
+<text text-anchor="start" x="83" y="-606.2" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-600 104.38,-622.5 188.38,-622.5 188.38,-600 104.38,-600"/>
+<text text-anchor="start" x="128.75" y="-606.2" font-family="Times,serif" font-size="14.00">source</text>
+<polygon fill="none" stroke="black" points="65.38,-577.5 65.38,-600 104.38,-600 104.38,-577.5 65.38,-577.5"/>
+<text text-anchor="start" x="83" y="-583.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-577.5 104.38,-600 188.38,-600 188.38,-577.5 104.38,-577.5"/>
+<text text-anchor="start" x="128" y="-583.7" font-family="Times,serif" font-size="14.00">doc_id</text>
+<polygon fill="none" stroke="black" points="65.38,-555 65.38,-577.5 104.38,-577.5 104.38,-555 65.38,-555"/>
+<text text-anchor="start" x="83" y="-561.2" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-555 104.38,-577.5 188.38,-577.5 188.38,-555 104.38,-555"/>
+<text text-anchor="start" x="135.88" y="-561.2" font-family="Times,serif" font-size="14.00">link</text>
+<polygon fill="none" stroke="black" points="65.38,-532.5 65.38,-555 104.38,-555 104.38,-532.5 65.38,-532.5"/>
+<text text-anchor="start" x="83" y="-538.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-532.5 104.38,-555 188.38,-555 188.38,-532.5 104.38,-532.5"/>
+<text text-anchor="start" x="135.88" y="-538.7" font-family="Times,serif" font-size="14.00">title</text>
+<polygon fill="none" stroke="black" points="65.38,-510 65.38,-532.5 104.38,-532.5 104.38,-510 65.38,-510"/>
+<text text-anchor="start" x="83" y="-516.2" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-510 104.38,-532.5 188.38,-532.5 188.38,-510 104.38,-510"/>
+<text text-anchor="start" x="132.88" y="-516.2" font-family="Times,serif" font-size="14.00">body</text>
+<polygon fill="none" stroke="black" points="65.38,-487.5 65.38,-510 104.38,-510 104.38,-487.5 65.38,-487.5"/>
+<text text-anchor="start" x="83" y="-493.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-487.5 104.38,-510 188.38,-510 188.38,-487.5 104.38,-487.5"/>
+<text text-anchor="start" x="131" y="-493.7" font-family="Times,serif" font-size="14.00">status</text>
+<polygon fill="none" stroke="black" points="65.38,-465 65.38,-487.5 104.38,-487.5 104.38,-465 65.38,-465"/>
+<text text-anchor="start" x="83" y="-471.2" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-465 104.38,-487.5 188.38,-487.5 188.38,-465 104.38,-465"/>
+<text text-anchor="start" x="117.88" y="-471.2" font-family="Times,serif" font-size="14.00">expired_at</text>
+<polygon fill="none" stroke="black" points="65.38,-442.5 65.38,-465 104.38,-465 104.38,-442.5 65.38,-442.5"/>
+<text text-anchor="start" x="83" y="-448.7" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-442.5 104.38,-465 188.38,-465 188.38,-442.5 104.38,-442.5"/>
+<text text-anchor="start" x="118.62" y="-448.7" font-family="Times,serif" font-size="14.00">created_at</text>
+<polygon fill="none" stroke="black" points="65.38,-420 65.38,-442.5 104.38,-442.5 104.38,-420 65.38,-420"/>
+<text text-anchor="start" x="83" y="-426.2" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="104.38,-420 104.38,-442.5 188.38,-442.5 188.38,-420 104.38,-420"/>
+<text text-anchor="start" x="116.75" y="-426.2" font-family="Times,serif" font-size="14.00">updated_at</text>
 </g>
 <!-- integrations -->
 <g id="node4" class="node">

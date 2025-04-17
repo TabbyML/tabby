@@ -1,4 +1,5 @@
 pub mod commit;
+pub mod ingested;
 pub mod issue;
 pub mod page;
 pub mod pull;
@@ -25,6 +26,7 @@ pub const KIND_ISSUE: &str = "issue";
 pub const KIND_PULL: &str = "pull";
 pub const KIND_COMMIT: &str = "commit";
 pub const KIND_PAGE: &str = "page";
+pub const KIND_INGESTED: &str = "ingested";
 
 impl StructuredDoc {
     pub fn id(&self) -> &str {
@@ -34,6 +36,7 @@ impl StructuredDoc {
             StructuredDocFields::Pull(pull) => &pull.link,
             StructuredDocFields::Commit(commit) => &commit.sha,
             StructuredDocFields::Page(page) => &page.link,
+            StructuredDocFields::Ingested(ingested) => &ingested.id,
         }
     }
 
@@ -44,6 +47,7 @@ impl StructuredDoc {
             StructuredDocFields::Pull(_) => KIND_PULL,
             StructuredDocFields::Commit(_) => KIND_COMMIT,
             StructuredDocFields::Page(_) => KIND_PAGE,
+            StructuredDocFields::Ingested(_) => KIND_INGESTED,
         }
     }
 }
@@ -74,6 +78,7 @@ pub enum StructuredDocFields {
     Pull(pull::PullDocument),
     Commit(commit::CommitDocument),
     Page(page::PageDocument),
+    Ingested(ingested::IngestedDocument),
 }
 
 #[async_trait]
@@ -85,6 +90,7 @@ impl BuildStructuredDoc for StructuredDoc {
             StructuredDocFields::Pull(doc) => doc.should_skip(),
             StructuredDocFields::Commit(doc) => doc.should_skip(),
             StructuredDocFields::Page(doc) => doc.should_skip(),
+            StructuredDocFields::Ingested(doc) => doc.should_skip(),
         }
     }
 
@@ -95,6 +101,7 @@ impl BuildStructuredDoc for StructuredDoc {
             StructuredDocFields::Pull(doc) => doc.build_attributes().await,
             StructuredDocFields::Commit(doc) => doc.build_attributes().await,
             StructuredDocFields::Page(doc) => doc.build_attributes().await,
+            StructuredDocFields::Ingested(doc) => doc.build_attributes().await,
         }
     }
 
@@ -108,6 +115,7 @@ impl BuildStructuredDoc for StructuredDoc {
             StructuredDocFields::Pull(doc) => doc.build_chunk_attributes(embedding).await,
             StructuredDocFields::Commit(doc) => doc.build_chunk_attributes(embedding).await,
             StructuredDocFields::Page(doc) => doc.build_chunk_attributes(embedding).await,
+            StructuredDocFields::Ingested(doc) => doc.build_chunk_attributes(embedding).await,
         }
     }
 }

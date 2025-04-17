@@ -156,6 +156,7 @@ impl ServerContext {
             repository.git(),
             repository.third_party(),
             integration.clone(),
+            ingestion.clone(),
             repository.clone(),
             page.clone(),
             context.clone(),

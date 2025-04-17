@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use sqlx::{query, FromRow};
+use tabby_db_macros::query_paged_as;
 
 use super::DbConn;
 
@@ -13,14 +14,14 @@ pub struct IngestedDocumentDAO {
     pub link: Option<String>,
     pub title: String,
     pub body: String,
-    pub index_status: IngestedDocumentStatus,
+    pub status: IngestedDocumentStatusDAO,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 #[derive(sqlx::Type)]
 #[sqlx(rename_all = "lowercase")]
-pub enum IngestedDocumentStatus {
+pub enum IngestedDocumentStatusDAO {
     Pending,
     Indexed,
     Failed,
@@ -28,6 +29,36 @@ pub enum IngestedDocumentStatus {
 
 /// db read/write operations for `job_runs` table
 impl DbConn {
+    pub async fn list_ingested_documents(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<IngestedDocumentDAO>> {
+        let docs = query_paged_as!(
+            IngestedDocumentDAO,
+            "ingested_documents",
+            [
+                "id",
+                "source",
+                "doc_id",
+                "expired_at",
+                "link",
+                "title",
+                "body",
+                "status" as "status: IngestedDocumentStatusDAO",
+                "created_at" as "created_at: DateTime<Utc>",
+                "updated_at" as "updated_at: DateTime<Utc>"
+            ],
+            limit,
+            skip_id,
+            backwards
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(docs)
+    }
     pub async fn insert_ingested_document(
         &self,
         source: &str,
@@ -40,7 +71,7 @@ impl DbConn {
         query!(
             r#"
             INSERT INTO ingested_documents (
-              source, doc_id, expired_at, link, title, body, index_status
+              source, doc_id, expired_at, link, title, body, status
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
             "#,
             source,
@@ -49,11 +80,27 @@ impl DbConn {
             link,
             title,
             body,
-            IngestedDocumentStatus::Pending,
+            IngestedDocumentStatusDAO::Pending,
         )
         .execute(&self.pool)
         .await?;
 
         Ok(())
+    }
+
+    pub async fn count_pending_ingested_documents(&self) -> Result<i32> {
+        let count = query!(
+            r#"
+            SELECT COUNT(1) as count
+            FROM ingested_documents
+            WHERE status = ?
+            "#,
+            IngestedDocumentStatusDAO::Pending,
+        )
+        .fetch_one(&self.pool)
+        .await?
+        .count;
+
+        Ok(count)
     }
 }

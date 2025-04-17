@@ -9,6 +9,7 @@ use cache::Cache;
 use cached::TimedSizedCache;
 use chrono::{DateTime, Utc};
 pub use email_setting::EmailSettingDAO;
+pub use ingestion::{IngestedDocumentDAO, IngestedDocumentStatusDAO};
 pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
