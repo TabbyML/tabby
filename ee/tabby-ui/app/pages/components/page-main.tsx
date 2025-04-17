@@ -136,8 +136,10 @@ export function Page() {
   }, [activePathname])
 
   const isNew = useMemo(() => {
+    if (!isPathnameInitialized) return false
+
     return activePathname === '/pages/new'
-  }, [activePathname])
+  }, [isPathnameInitialized])
 
   const unsubscribeFn = useRef<(() => void) | undefined>()
   const stop = useLatest(() => {
@@ -756,14 +758,12 @@ export function Page() {
       variables: {
         ids: [pageIdFromURL] as string[]
       },
-      pause: !pageIdFromURL
+      pause: !pageIdFromURL || isNew
     })
 
-  // do not
-  // todo if it is ready, do not setPage
   useEffect(() => {
     const _page = pagesData?.pages.edges?.[0]?.node
-    if (_page) {
+    if (_page && !isNew) {
       setPage(_page)
     }
   }, [pagesData])
@@ -782,7 +782,7 @@ export function Page() {
       first: PAGE_SIZE,
       after: afterCursor
     },
-    pause: !pageIdFromURL || isReady
+    pause: !pageIdFromURL || isReady || isNew
   })
 
   useEffect(() => {
@@ -818,13 +818,10 @@ export function Page() {
 
   const isPageOwner = useMemo(() => {
     if (!meData) return false
-    if (!pageIdFromURL) return true
+    if (!pageIdFromURL || !page?.authorId) return true
 
-    const page = pagesData?.pages.edges?.[0]
-    if (!page) return false
-
-    return meData.me.id === page.node.authorId
-  }, [meData, pagesData, pageIdFromURL])
+    return meData.me.id === page?.authorId
+  }, [meData, page?.authorId, pageIdFromURL])
 
   const repository = useMemo(() => {
     if (!page?.codeSourceId) return undefined
@@ -865,6 +862,13 @@ export function Page() {
       setIsPathnameInitialized(true)
     }
   }, [pathname])
+
+  // for refresh /pages/new
+  useEffect(() => {
+    if (isPathnameInitialized && !!page && activePathname === '/pages/new') {
+      window.location.reload()
+    }
+  }, [activePathname])
 
   useEffect(() => {
     const init = () => {
@@ -1045,7 +1049,7 @@ export function Page() {
     )
   }
 
-  if (!isReady && (isFetchingPageSections || pageSectionsStale)) {
+  if (!isNew && !isReady && (isFetchingPageSections || pageSectionsStale)) {
     return (
       <div>
         <Header />
