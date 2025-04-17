@@ -7,7 +7,6 @@ use tabby_schema::{
     ingestion::{IngestedDocument, IngestionService},
     CoreError, Result,
 };
-use urlencoding;
 
 use crate::service::graphql_pagination_to_filter;
 
@@ -45,7 +44,7 @@ impl IngestionService for IngestionServiceImpl {
         let expired_at = if let Some(ttl) = &ingestion.ttl {
             let ttl = parse_duration(ttl)
                 .context("Failed to parse TTL")
-                .map_err(|e| CoreError::Other(e))?;
+                .map_err(CoreError::Other)?;
             now.timestamp() + ttl.as_secs() as i64
         } else {
             now.timestamp() + TTL_DEFAULT_90_DAYS

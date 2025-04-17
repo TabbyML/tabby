@@ -1,6 +1,7 @@
-use crate::Result;
 use async_trait::async_trait;
 use tabby_common::api::ingestion::{IngestionRequest, IngestionResponse};
+
+use crate::Result;
 
 pub struct IngestedDocument {
     pub id: String,
