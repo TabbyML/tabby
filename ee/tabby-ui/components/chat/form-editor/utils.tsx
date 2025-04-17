@@ -1,4 +1,5 @@
 // utils.ts
+import { Pencil2Icon } from '@radix-ui/react-icons'
 import { Editor, JSONContent } from '@tiptap/core'
 import { FileBox, SquareFunction } from 'lucide-react'
 import { Filepath, ListSymbolItem } from 'tabby-chat-panel/index'
@@ -23,11 +24,21 @@ import { CommandItem, FileItem, SourceItem } from '../types'
  */
 export function fileItemToSourceItem(info: FileItem): SourceItem {
   const filepathString = convertFromFilepath(info.filepath).filepath
+  const fileSourceType =
+    'source' in info
+      ? info.source
+        ? info.source
+        : 'searchResult'
+      : 'searchResult'
   const source: Omit<SourceItem, 'id'> = {
     fileItem: info,
     name: resolveFileNameForDisplay(filepathString), // Extract the last segment of the path as the name
     filepath: filepathString,
     category: 'file',
+    rightIcon:
+      fileSourceType === 'searchResult' ? undefined : (
+        <Pencil2Icon className="h-3 w-3 text-muted-foreground" />
+      ),
     icon: <IconFile />
   }
   try {

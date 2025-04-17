@@ -208,37 +208,38 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
     const fetchOptions = useCallback(async () => {
       setIsLoading(true)
       let isCurrent = true
-
       try {
         const currentQuery = isFirstShow ? query : debouncedQuery
-
         if (latestPromiseRef.current) {
           ;(latestPromiseRef.current as any).isCurrent = false
         }
-
         const currentPromise = (async () => {
           let result: SourceItem[] = []
           if (shouldShowCategoryMenu) {
             const files =
               (await listFileInWorkspace?.({ query: currentQuery || '' })) || []
-
             if (currentQuery) {
-              // TODO(Sma1lboy): refactor this part as function if more context coimmand/category join
-              const changesCommand = getChanges
-                ? [commandItemToSourceItem(createChangesCommand())]
-                : []
-              const fileItems = files.map(fileItemToSourceItem)
-
-              if (
+              const changesCommand =
                 getChanges &&
                 createChangesCommand()
                   .name.toLowerCase()
                   .startsWith(currentQuery.toLowerCase())
-              ) {
-                result = [...changesCommand, ...fileItems]
-              } else {
-                result = fileItems
-              }
+                  ? [commandItemToSourceItem(createChangesCommand())]
+                  : []
+
+              const fileItems = files
+                .filter(
+                  file =>
+                    !currentQuery ||
+                    resolveFileNameForDisplay(
+                      convertFromFilepath(file.filepath).filepath
+                    )
+                      .toLowerCase()
+                      .startsWith(currentQuery.toLowerCase())
+                )
+                .map(fileItemToSourceItem)
+
+              result = [...changesCommand, ...fileItems]
             } else {
               // No query, show categories and top-level items
               result = [
@@ -264,7 +265,17 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
             if (mode === 'file') {
               const files =
                 (await listFileInWorkspace?.({ query: currentQuery })) || []
-              result = files.map(fileItemToSourceItem)
+              result = files
+                .filter(
+                  file =>
+                    !currentQuery ||
+                    resolveFileNameForDisplay(
+                      convertFromFilepath(file.filepath).filepath
+                    )
+                      .toLowerCase()
+                      .startsWith(currentQuery.toLowerCase())
+                )
+                .map(fileItemToSourceItem)
             } else {
               const symbols =
                 (await listSymbols?.({ query: currentQuery })) || []
@@ -273,12 +284,9 @@ export const MentionList = forwardRef<MentionListActions, MentionListProps>(
           }
           return result
         })()
-
         ;(currentPromise as any).isCurrent = true
         latestPromiseRef.current = currentPromise
-
         const results = await currentPromise
-
         if ((latestPromiseRef.current as any)?.isCurrent) {
           setItems(results)
           setSelectedIndex(0)
@@ -473,6 +481,12 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
       )}
       {data.category === 'category' && (
         <IconChevronRight className="h-4 w-4 text-muted-foreground" />
+      )}
+
+      {data.rightIcon && (
+        <span className="ml-auto flex shrink-0 items-center">
+          {data.rightIcon}
+        </span>
       )}
     </div>
   )
