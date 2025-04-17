@@ -266,20 +266,28 @@ export class CompletionProvider implements Feature {
   ): Promise<InlineCompletionList | null> {
     const document = this.documents.get(params.textDocument.uri);
     if (!document) {
+      this.logger.info("No document available for next edit suggestion");
       return null;
     }
 
+    this.logger.info(`Providing next edit suggestion for ${document.uri}`);
+
     // Get edit history from tracker
-    const editHistory = this.editHistoryTracker.getEditHistory(document.uri, params.position);
+    const editHistory = await this.editHistoryTracker.getEditHistory(document.uri, params.position);
 
     if (!editHistory) {
       this.logger.info("No edit history available for next edit suggestion");
       return null;
     }
 
+    this.logger.info(
+      `Got edit history for ${document.uri}, original code length: ${editHistory.originalCode.length}, current version length: ${editHistory.currentVersion.content.length}`,
+    );
+
     // Create base request from parameters
     const request = await this.textDocumentPositionParamsToCompletionRequest(params, token);
     if (!request) {
+      this.logger.info("Failed to create completion request for next edit suggestion");
       return null;
     }
 
@@ -289,9 +297,21 @@ export class CompletionProvider implements Feature {
     // Convert editHistory from camelCase to snake_case for the API
     // Similar to how segments is built in the provideCompletions method
     const editHistoryForApi = buildEditHistoryForRequest(editHistory);
+    if (!editHistoryForApi) {
+      this.logger.info("Failed to build edit history for API");
+      return null;
+    }
+    // Log the edit history being sent to the API
+    this.logger.info(
+      `Edit history for API - original_code length: ${editHistoryForApi.original_code.length}, current_version.content length: ${editHistoryForApi.current_version.content.length}`,
+    );
+    this.logger.info(
+      `Edit history diff snippet: ${editHistoryForApi.edits_diff.substring(0, 200)}${editHistoryForApi.edits_diff.length > 200 ? "..." : ""}`,
+    );
 
     // Get the file path from document URI
     const filepath = document.uri.split("/").pop();
+    this.logger.info(`File path for next edit suggestion: ${filepath}`);
 
     // Create a request with segments containing edit_history
     const modifiedRequest = {
@@ -316,6 +336,8 @@ export class CompletionProvider implements Feature {
 
       getLogger("TabbyApiClient").info("Fetching next edit suggestion..." + JSON.stringify(requestOptions));
       const response = await this.tabbyApiClient.fetchCompletion(requestOptions, signal, this.completionStats);
+      // TODO(Sma1lboy): add a timeout here, also have to update editHistoryTracker
+
       getLogger("TabbyApiClient").info("Received next edit suggestion response: " + JSON.stringify(response));
       if (!response || !response.choices || response.choices.length === 0) {
         return null;
@@ -363,6 +385,9 @@ export class CompletionProvider implements Feature {
           };
         }
       });
+
+      this.logger.info(`Successfully generated next edit suggestion, updating original content to current version`);
+      await this.editHistoryTracker.updateOriginalContentToCurrentVersion(document.uri, params.position);
 
       return {
         isIncomplete: false,
