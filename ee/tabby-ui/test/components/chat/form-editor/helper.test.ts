@@ -141,7 +141,7 @@ describe('formatFileDescription', () => {
       filepath: 'src/utils.ts',
       baseDir: '/project'
     }
-    expect(formatFileDescription(fileData)).toBe('src/utils.ts')
+    expect(formatFileDescription(fileData)).toBe('project - src/utils.ts')
   })
 
   test('should prioritize gitUrl over baseDir', () => {
