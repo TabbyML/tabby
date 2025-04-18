@@ -50,6 +50,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.acceptNESCompletion",
+        "title": "Accept Next Edit Suggestion",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.connectToServer",
         "title": "Connect to Server...",
         "category": "Tabby"
@@ -419,6 +424,11 @@
         "key": "alt+\\",
         "command": "tabby.inlineCompletion.trigger",
         "when": "tabby.inlineCompletionTriggerMode === 'manual' && editorTextFocus && !editorHasSelection && !inlineSuggestionsVisible"
+      },
+      {
+        "command": "tabby.acceptNESCompletion",
+        "key": "tab",
+        "when": "editorTextFocus && tabby.nesCompletionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
         "command": "tabby.inlineCompletion.accept",

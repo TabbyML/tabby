@@ -14,6 +14,7 @@ import { EditorOptionsFeature } from "./EditorOptionsFeature";
 import { GitProviderFeature } from "./GitProviderFeature";
 import { InitializationFeature } from "./InitializationFeature";
 import { InlineCompletionFeature } from "./InlineCompletionFeature";
+import { InlineNESCompletionFeature } from "./InlineNESCompletionFeature";
 import { LanguageSupportFeature } from "./LanguageSupportFeature";
 import { TelemetryFeature } from "./TelemetryFeature";
 import { WorkspaceFileSystemFeature } from "./WorkspaceFileSystemFeature";
@@ -24,6 +25,13 @@ import { getLogger, LogOutputChannel } from "../logger";
 import { WorkSpaceFeature } from "./WorkspaceFeature";
 import { FileTrackerFeature } from "./FileTrackFeature";
 import { isBrowser } from "../env";
+
+let outputChannelTransport: { log: (message: string) => void } | undefined;
+export function logToOutputChannel(message: string) {
+  if (outputChannelTransport) {
+    outputChannelTransport.log(message);
+  }
+}
 
 export function createClient(context: ExtensionContext, logger: LogOutputChannel): Client {
   const clientOptions: LanguageClientOptions = {
@@ -69,7 +77,7 @@ export class Client {
 
   constructor(
     private readonly context: ExtensionContext,
-    readonly languageClient: BaseLanguageClient,
+    public readonly languageClient: BaseLanguageClient,
   ) {
     this.status = new AgentStatusFeature(this.languageClient);
     this.agentConfig = new AgentConfigFeature(this.languageClient);
@@ -88,9 +96,17 @@ export class Client {
     this.languageClient.registerFeature(new LanguageSupportFeature(this.languageClient));
     this.languageClient.registerFeature(new WorkspaceFileSystemFeature(this.languageClient));
 
+    this.languageClient.registerFeature(new InlineNESCompletionFeature(this.languageClient));
+
     const codeLensMiddleware = new CodeLensMiddleware();
     this.languageClient.middleware.provideCodeLenses = (document, token, next) =>
       codeLensMiddleware.provideCodeLenses(document, token, next);
+
+    outputChannelTransport = {
+      log: (message: string) => {
+        this.languageClient.outputChannel.appendLine(message);
+      },
+    };
   }
 
   async start(): Promise<void> {

@@ -55,6 +55,12 @@ export class Commands {
     applyCallback: (callback: (() => void) | undefined) => {
       callback?.();
     },
+    acceptNESCompletion: () => {
+      console.log("acceptNESCompletion command triggered from Commands class");
+      if (this.inlineCompletionProvider) {
+        this.inlineCompletionProvider.acceptCurrentNESCompletion();
+      }
+    },
     toggleInlineCompletionTriggerMode: async (value: "automatic" | "manual" | undefined) => {
       let target = value;
       if (!target) {
@@ -194,7 +200,7 @@ export class Commands {
     "nextEditSuggestion.trigger": () => {
       console.log("Triggering next edit suggestion");
       // Call internal next edit suggestion implementation
-      this.inlineCompletionProvider.provideNextEditSuggestion();
+      this.inlineCompletionProvider.provideManuallyTriggerNextEditSuggestionTest();
     },
     "inlineCompletion.accept": async () => {
       const editor = window.activeTextEditor;
