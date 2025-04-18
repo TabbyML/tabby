@@ -63,6 +63,12 @@ export function formatFileDescription(fileData: {
     }
   }
 
+  // If this is a workspace file with baseDir, show the baseDir
+  if (fileData.baseDir) {
+    const baseDirName = fileData.baseDir.split('/').pop() || fileData.baseDir
+    return `${baseDirName} - ${fileData.filepath}`
+  }
+
   // For other files, just return the filepath
   return fileData.filepath
 }

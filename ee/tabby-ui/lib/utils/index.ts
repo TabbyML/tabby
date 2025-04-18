@@ -310,7 +310,7 @@ export function resolveDirectoryPath(filepath: string): string {
     const relevantParts = parts[0] === '' ? parts.slice(1) : parts
     const dirPath = relevantParts.slice(0, -1).join('/')
     if (parts[0] === '' && relevantParts.length > 1) {
-      return '/' + dirPath
+      return dirPath
     }
     return dirPath
   } catch (e) {
