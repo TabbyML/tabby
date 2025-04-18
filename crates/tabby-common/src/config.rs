@@ -6,7 +6,6 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use url::Url;
 
 use crate::{
     api::code::CodeSearchParams,
@@ -544,71 +543,51 @@ mod tests {
         );
         assert!(Config::validate_model_config(&config.model.chat).is_ok());
     }
-
     #[test]
-    fn test_resolve_dir_handles_various_file_urls() {
-        use std::env;
+    #[cfg(windows)]
+    fn test_resolve_dir_handles_various_file_urls_windows() {
         use std::path::PathBuf;
 
-        // Detect current OS
-        let is_windows = cfg!(windows);
-
-        // Define various test cases for file:// URLs and their expected path suffixes
         let test_cases = vec![
-            // Standard Unix-style file URL
-            (
-                "file:///home/user/project",
-                PathBuf::from("/home/user/project"),
-            ),
             // Standard Windows-style file URL (forward slashes)
             (
                 "file:///C:/Users/test/project",
                 PathBuf::from(r"C:\Users\test\project"),
             ),
-            // Lowercase drive letter (still valid on Windows)
+            // Lowercase drive letter
             (
                 "file:///c:/Users/test/project",
                 PathBuf::from(r"C:\Users\test\project"),
             ),
-            // File URL with trailing slash
+            // Trailing slash
             (
                 "file:///C:/Users/test/project/",
                 PathBuf::from(r"C:\Users\test\project"),
             ),
-            // URL with encoded characters (e.g., spaces)
+            // Encoded characters
             (
                 "file:///C:/Users/test/My%20Project",
                 PathBuf::from(r"C:\Users\test\My Project"),
             ),
-            // File URL pointing to a .git repo
+            // .git repo
             (
                 "file:///C:/Users/test/project.git",
                 PathBuf::from(r"C:\Users\test\project.git"),
             ),
-            // Non-standard: multiple slashes (still accepted by url crate)
+            // Multiple slashes
             (
                 "file:////C:/Users/test/project",
                 PathBuf::from(r"C:\Users\test\project"),
             ),
-            // Non-standard: missing third slash (valid but discouraged)
+            // original issue case
             (
-                "file://C:/Users/test/project",
-                PathBuf::from(r"C:\Users\test\project"),
+                "file://C:\\repos\\myproject",
+                PathBuf::from(r"C:\repos\myproject"),
             ),
         ];
 
         for (input, expected_suffix) in test_cases {
-            // Skip incompatible test cases based on platform
-            if is_windows && expected_suffix.starts_with("/") {
-                continue; // Skip Unix paths on Windows
-            }
-            if !is_windows && expected_suffix.to_string_lossy().contains(':') {
-                continue; // Skip Windows paths on Unix
-            }
-
             let result = RepositoryConfig::resolve_dir(input);
-
-            // Only check that the resulting path ends with the expected suffix
             assert!(
                 result.ends_with(&expected_suffix),
                 "Failed for input:\n  {}\nExpected suffix:\n  {:?}\nGot:\n  {:?}",
@@ -618,6 +597,48 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_resolve_dir_handles_various_file_urls_unix() {
+        use std::path::PathBuf;
+
+        let test_cases = vec![
+            // Standard Unix-style file URL
+            (
+                "file:///home/user/project",
+                PathBuf::from("/home/user/project"),
+            ),
+            // File URL with trailing slash
+            (
+                "file:///home/user/project/",
+                PathBuf::from("/home/user/project"),
+            ),
+            // File URL with encoded characters (e.g., spaces)
+            (
+                "file:///home/user/My%20Project",
+                PathBuf::from("/home/user/My Project"),
+            ),
+            // File URL pointing to a .git directory
+            (
+                "file:///home/user/project.git",
+                PathBuf::from("/home/user/project.git"),
+            ),
+        ];
+
+        for (input, expected_suffix) in test_cases {
+            let result = RepositoryConfig::resolve_dir(input);
+            assert!(
+                result.ends_with(&expected_suffix),
+                "Failed for input:\n  {}\nExpected suffix:\n  {:?}\nGot:\n  {:?}",
+                input,
+                expected_suffix,
+                result
+            );
+        }
+    }
+
+
     #[test]
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
