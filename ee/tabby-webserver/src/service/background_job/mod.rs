@@ -20,7 +20,7 @@ use git::SchedulerGitJob;
 use helper::{CronStream, Job, JobLogger};
 use hourly::HourlyJob;
 use index_garbage_collection::IndexGarbageCollection;
-use index_ingestion::IngestionJob;
+use index_ingestion::SyncIngestionIndexJob;
 use index_pages::SyncPageIndexJob;
 use juniper::ID;
 use license_check::LicenseCheckJob;
@@ -53,7 +53,7 @@ pub enum BackgroundJobEvent {
     SyncThirdPartyRepositories(ID),
     WebCrawler(WebCrawlerJob),
     IndexGarbageCollection,
-    Ingestion,
+    SyncIngestionIndex,
     SyncPagesIndex,
     Hourly,
     Daily,
@@ -70,7 +70,7 @@ impl BackgroundJobEvent {
             BackgroundJobEvent::SyncPagesIndex => SyncPageIndexJob::NAME,
             BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
-            BackgroundJobEvent::Ingestion => LicenseCheckJob::NAME,
+            BackgroundJobEvent::SyncIngestionIndex => SyncIngestionIndexJob::NAME,
             BackgroundJobEvent::Hourly => HourlyJob::NAME,
             BackgroundJobEvent::Daily => DailyJob::NAME,
         }
@@ -138,7 +138,7 @@ async fn background_job_notification_name(
                 format!("Indexing Web {}", doc.url)
             }
         }
-        BackgroundJobEvent::Ingestion => "Index Ingestion".into(),
+        BackgroundJobEvent::SyncIngestionIndex => "Ingestion Indexing".into(),
         BackgroundJobEvent::IndexGarbageCollection => "Index Garbage Collection".into(),
         BackgroundJobEvent::Hourly => "Hourly".into(),
         BackgroundJobEvent::Daily => "Daily".into(),
@@ -263,8 +263,8 @@ pub async fn start(
                             let job = IndexGarbageCollection;
                             job.run(repository_service.clone(), context_service.clone()).await
                         }
-                        BackgroundJobEvent::Ingestion => {
-                            let job = IngestionJob;
+                        BackgroundJobEvent::SyncIngestionIndex => {
+                            let job = SyncIngestionIndexJob;
                             job.run(
                                 ingestion_service.clone(),
                                 embedding.clone(),
@@ -319,7 +319,7 @@ pub async fn start(
                     }
                 }
                 Some(_) = ten_seconds.next() => {
-                    match IngestionJob::cron(job_service.clone(), ingestion_service.clone()).await {
+                    match SyncIngestionIndexJob::cron(job_service.clone(), ingestion_service.clone()).await {
                         Err(err) => warn!("Schedule ingestion job failed: {}", err),
                         Ok(true) => debug!("Ingestion job scheduled"),
                         Ok(false) => {},

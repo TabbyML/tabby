@@ -7,8 +7,6 @@ CREATE TABLE IF NOT EXISTS ingested_documents (
     -- User-provided document ID, unique within the same source
     doc_id TEXT NOT NULL,
 
-
-
     link TEXT,
     title TEXT NOT NULL,
     body TEXT NOT NULL,

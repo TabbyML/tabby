@@ -18,7 +18,7 @@ pub struct IngestedDocument {
     pub id: String,
     pub title: String,
     pub body: String,
-    pub link: String,
+    pub link: Option<String>,
 }
 
 #[async_trait]
@@ -28,16 +28,22 @@ impl BuildStructuredDoc for IngestedDocument {
     }
 
     async fn build_attributes(&self) -> serde_json::Value {
-        json!({
-            fields::page::LINK: self.link,
+        let mut attr = json!({
             fields::page::TITLE: self.title,
-        })
+        });
+        if let Some(link) = &self.link {
+            attr.as_object_mut()
+                .unwrap()
+                .insert(fields::page::LINK.to_string(), json!(link));
+        };
+
+        attr
     }
 
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
+    ) -> BoxStream<'life0, JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         let content = format!("{}\n\n{}", self.title, self.body);
 
         let chunks: Vec<_> = TextSplitter::new(2048)

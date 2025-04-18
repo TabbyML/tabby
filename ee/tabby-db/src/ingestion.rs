@@ -68,7 +68,7 @@ impl DbConn {
         title: &str,
         body: &str,
     ) -> Result<()> {
-        query!(
+        sqlx::query!(
             r#"
             INSERT INTO ingested_documents (
               source, doc_id, expired_at, link, title, body, status
@@ -102,5 +102,22 @@ impl DbConn {
         .count;
 
         Ok(count)
+    }
+
+    pub async fn mark_ingested_document_indexed(&self, source: &str, doc_id: &str) -> Result<()> {
+        sqlx::query!(
+            r#"
+            UPDATE ingested_documents
+            SET status = ?
+            WHERE source = ? AND doc_id = ?
+            "#,
+            IngestedDocumentStatusDAO::Indexed,
+            source,
+            doc_id,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 }

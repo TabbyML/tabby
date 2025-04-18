@@ -12,13 +12,13 @@ use tabby_schema::{ingestion::IngestionService, job::JobService};
 use super::{helper::Job, BackgroundJobEvent};
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct IngestionJob;
+pub struct SyncIngestionIndexJob;
 
-impl Job for IngestionJob {
-    const NAME: &'static str = "ingestion";
+impl Job for SyncIngestionIndexJob {
+    const NAME: &'static str = "ingestion_index_sync";
 }
 
-impl IngestionJob {
+impl SyncIngestionIndexJob {
     pub async fn cron(
         job: Arc<dyn JobService>,
         ingestion: Arc<dyn IngestionService>,
@@ -28,7 +28,7 @@ impl IngestionJob {
         }
 
         let _ = job
-            .trigger(BackgroundJobEvent::Ingestion.to_command())
+            .trigger(BackgroundJobEvent::SyncIngestionIndex.to_command())
             .await;
         Ok(true)
     }
@@ -40,33 +40,36 @@ impl IngestionJob {
     ) -> tabby_schema::Result<()> {
         logkit::info!("Starting ingestion job");
 
-        let docs_stream = match fetch_all_ingested_documents(ingestion).await {
+        let mut docs_stream = match fetch_all_ingested_documents(ingestion.clone()).await {
             Ok(s) => s,
             Err(e) => {
                 logkit::error!("Failed to fetch ingested documents: {}", e);
                 return Err(e);
             }
-        };
-
-        let index = StructuredDocIndexer::new(embedding);
-        stream! {
-            let mut count = 0;
-            let mut num_updated = 0;
-            for await doc in docs_stream {
-                if index.sync(doc).await {
-                    num_updated += 1
-                }
-                count += 1;
-                if count % 100 == 0 {
-                    logkit::info!("{} ingested documents seen, {} documents updated", count, num_updated);
-                };
-            }
-
-            logkit::info!("{} ingested documents seen, {} documents updated", count, num_updated);
-            index.commit();
         }
-        .count()
-        .await;
+        .chunks(100); // Commit and update db status after every 100 docs.
+
+        while let Some(docs) = docs_stream.next().await {
+            let index = StructuredDocIndexer::new(embedding.clone());
+            let ingestion = ingestion.clone();
+            stream! {
+                let mut ingested_updated = vec![];
+                let mut count = 0;
+                for ((source, id), doc) in docs.into_iter().inspect(|_| count += 1) {
+                    if index.sync(doc).await {
+                        ingested_updated.push((source.clone(), id.clone()));
+                    }
+                }
+
+                index.commit();
+                logkit::info!("{} ingested documents seen, {} documents updated", count, ingested_updated.len());
+                if let Err(e) = ingestion.mark_all_indexed(ingested_updated).await {
+                    logkit::error!("Failed to update ingestion status in database: {}", e);
+                }
+            }
+            .count()
+            .await;
+        }
 
         logkit::info!("Ingestion job completed");
 
@@ -78,8 +81,8 @@ impl IngestionJob {
 // because they are listed by Pending status, should always be indexed.
 async fn fetch_all_ingested_documents(
     ingestion_service: Arc<dyn IngestionService>,
-) -> tabby_schema::Result<BoxStream<'static, StructuredDoc>> {
-    let s: BoxStream<StructuredDoc> = {
+) -> tabby_schema::Result<BoxStream<'static, ((String, String), StructuredDoc)>> {
+    let s: BoxStream<((String, String), StructuredDoc)> = {
         let stream = stream! {
             let page_size = 10;
             let mut has_more = true;
@@ -103,13 +106,13 @@ async fn fetch_all_ingested_documents(
                         source_id: ingested.source.clone(),
                         fields: StructuredDocFields::Ingested(StructuredDocIngestedFields {
                             // Add the prefix `/ingested/` to the ID to ensure its uniqueness.
-                            id: format!("/ingested/{}/{}", ingested.source, ingested.id),
+                            id: format!("/ingested/{}", ingested.id),
                             title: ingested.title.clone(),
                             body: ingested.body.clone(),
-                            link: ingested.link.clone().unwrap_or_default(),
+                            link: ingested.link.clone(),
                         }),
                     };
-                    yield doc;
+                    yield ((ingested.source.clone(), ingested.id.clone()), doc);
                 }
 
                 // If we got fewer documents than the requested page size, we've reached the end

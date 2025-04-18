@@ -77,4 +77,14 @@ impl IngestionService for IngestionServiceImpl {
     async fn should_ingest(&self) -> Result<bool> {
         Ok(self.db.count_pending_ingested_documents().await? > 0)
     }
+
+    async fn mark_all_indexed(&self, sourced_ids: Vec<(String, String)>) -> Result<()> {
+        for (source, id) in sourced_ids {
+            self.db
+                .mark_ingested_document_indexed(&source, &id)
+                .await
+                .context("Failed to mark ingestion as indexed")?;
+        }
+        Ok(())
+    }
 }
