@@ -42,14 +42,31 @@ interface WindowStrategyConfig {
 }
 
 /**
+ * Uniquely identifies a code block within a file
+ */
+interface BlockIdentifier {
+  startLine: number;
+  endLine: number;
+}
+
+/**
+ * Represents a tracked code block with its edit history
+ */
+interface TrackedBlock {
+  originalContent: string;
+  edits: string[];
+  lastUpdated: number;
+}
+
+/**
  * Class responsible for tracking edit history for files
  */
 export class EditHistoryTracker {
   private readonly logger = getLogger("EditHistoryTracker");
   private fileContentCache: Map<string, string> = new Map();
-  private originalContentCache: Map<string, string> = new Map();
-  private editsQueue: Map<string, string[]> = new Map();
-  private maxEditsPerFile: number = 10;
+  // Map structure: uri -> blockKey -> TrackedBlock
+  private trackedBlocksCache: Map<string, Map<string, TrackedBlock>> = new Map();
+  private maxEditsPerBlock: number = 10;
   private maxDiffContextSize: number = 5000;
   private windowConfig: WindowStrategyConfig;
   private connection: Connection | null = null;
@@ -72,7 +89,8 @@ export class EditHistoryTracker {
 
     for (const document of documents.all()) {
       this.logger.info(`Initializing edit history for ${document.uri}`);
-      const initPromise = this.resetHistory(document);
+      this.trackedBlocksCache.set(document.uri, new Map());
+      const initPromise = Promise.resolve();
       this.initPromises.set(document.uri, initPromise);
     }
 
@@ -86,29 +104,10 @@ export class EditHistoryTracker {
   }
 
   /**
-   * Reset the history for a document, capturing the initial state
+   * Get a string key for a block identifier
    */
-  public async resetHistory(document: TextDocument): Promise<void> {
-    const uri = document.uri;
-    const content = document.getText();
-
-    this.logger.info(`Resetting edit history for ${uri}`);
-
-    const position = Position.create(0, 0);
-    try {
-      const contextWindow = await this.getSmartContextWindow(document, position);
-      this.logger.info(`Initialized context window with ${this.countLines(contextWindow)} lines for ${uri}`);
-
-      this.fileContentCache.set(uri, content);
-      this.originalContentCache.set(uri, contextWindow);
-
-      this.editsQueue.set(uri, []);
-    } catch (error) {
-      this.logger.error(`Failed to initialize context window for ${uri}: ${error}`, error);
-      this.fileContentCache.set(uri, content);
-      this.originalContentCache.set(uri, content);
-      this.editsQueue.set(uri, []);
-    }
+  private getBlockKey(block: BlockIdentifier): string {
+    return `${block.startLine}-${block.endLine}`;
   }
 
   /**
@@ -129,9 +128,11 @@ export class EditHistoryTracker {
     }
 
     if (oldContent === undefined) {
-      this.logger.info(`First time seeing file ${uri}, resetting history`);
-      const initPromise = this.resetHistory(document);
-      this.initPromises.set(uri, initPromise);
+      this.logger.info(`First time seeing file ${uri}, initializing cache`);
+      this.fileContentCache.set(uri, newContent);
+      if (!this.trackedBlocksCache.has(uri)) {
+        this.trackedBlocksCache.set(uri, new Map());
+      }
       return;
     }
 
@@ -139,42 +140,8 @@ export class EditHistoryTracker {
       return;
     }
 
-    let position: Position;
-    try {
-      position = this.findChangePosition(oldContent, newContent);
-      this.logger.info(`Using inferred cursor position for ${uri}: line=${position.line}, char=${position.character}`);
-    } catch (error) {
-      position = Position.create(0, 0);
-      this.logger.warn(`Failed to find change position for ${uri}, using fallback position`);
-    }
-
+    // Update file content cache
     this.fileContentCache.set(uri, newContent);
-
-    try {
-      const contextWindow = await this.getSmartContextWindow(document, position);
-
-      const originalContent = this.originalContentCache.get(uri) || "";
-      const unifiedDiff = this.generateUnifiedDiff(uri, originalContent, contextWindow);
-
-      if (!this.editsQueue.has(uri)) {
-        this.editsQueue.set(uri, []);
-      }
-
-      const fileEdits = this.editsQueue.get(uri)!;
-      if (fileEdits.length === 0 || fileEdits[fileEdits.length - 1] !== unifiedDiff) {
-        fileEdits.push(unifiedDiff);
-
-        if (fileEdits.length > this.maxEditsPerFile) {
-          fileEdits.shift();
-        }
-
-        this.logger.info(
-          `Tracked document change for ${uri}, context window size: ${this.countLines(contextWindow)} lines, edits queue size: ${fileEdits.length}`,
-        );
-      }
-    } catch (error) {
-      this.logger.error(`Failed to track document change for ${uri}: ${error}`, error);
-    }
   }
 
   /**
@@ -196,23 +163,56 @@ export class EditHistoryTracker {
       return undefined;
     }
 
-    const originalContent = this.originalContentCache.get(uri);
-    if (originalContent === undefined) {
-      this.logger.info(`No original content available for ${uri}, resetting history`);
-      const initPromise = this.resetHistory(document);
-      this.initPromises.set(uri, initPromise);
-      await initPromise;
-      return this.getEditHistory(uri, position);
-    }
-
     try {
+      // Get the current context window for the position
       const contextWindow = await this.getSmartContextWindow(document, position);
 
-      const latestDiff = this.getMostRecentDiff(uri);
+      // Identify the block
+      const blockId = await this.identifyCodeBlock(document, position);
+      const blockKey = this.getBlockKey(blockId);
+
+      // Get or create tracked block
+      let trackedBlockMap = this.trackedBlocksCache.get(uri);
+      if (!trackedBlockMap) {
+        trackedBlockMap = new Map();
+        this.trackedBlocksCache.set(uri, trackedBlockMap);
+      }
+
+      let trackedBlock = trackedBlockMap.get(blockKey);
+      if (!trackedBlock) {
+        // First time seeing this block, initialize it
+        trackedBlock = {
+          originalContent: contextWindow,
+          edits: [],
+          lastUpdated: Date.now(),
+        };
+        trackedBlockMap.set(blockKey, trackedBlock);
+        this.logger.info(`Initialized new tracked block at ${blockKey} for ${uri}`);
+      } else {
+        // Block exists, calculate diff
+        const unifiedDiff = this.generateUnifiedDiff(uri, trackedBlock.originalContent, contextWindow);
+
+        if (trackedBlock.edits.length === 0 || trackedBlock.edits[trackedBlock.edits.length - 1] !== unifiedDiff) {
+          trackedBlock.edits.push(unifiedDiff);
+          trackedBlock.lastUpdated = Date.now();
+
+          // Cap the edits array size
+          if (trackedBlock.edits.length > this.maxEditsPerBlock) {
+            trackedBlock.edits.shift();
+          }
+
+          this.logger.info(
+            `Updated tracked block at ${blockKey} for ${uri}, edits queue size: ${trackedBlock.edits.length}`,
+          );
+        }
+      }
+
+      // Get the most recent diff
+      const latestDiff = trackedBlock.edits.length > 0 ? trackedBlock.edits[trackedBlock.edits.length - 1] : "";
 
       const result: EditHistory = {
-        originalCode: originalContent,
-        editsDiff: latestDiff,
+        originalCode: trackedBlock.originalContent,
+        editsDiff: latestDiff || "",
         currentVersion: {
           content: contextWindow,
           cursorPosition: {
@@ -223,13 +223,45 @@ export class EditHistoryTracker {
       };
 
       this.logger.info(
-        `Generated edit history for ${uri} with context window size ${this.countLines(contextWindow)} lines`,
+        `Generated edit history for block ${blockKey} in ${uri} with context window size ${this.countLines(contextWindow)} lines`,
       );
       return result;
     } catch (error) {
       this.logger.error(`Failed to get edit history for ${uri}: ${error}`, error);
       return undefined;
     }
+  }
+
+  /**
+   * Identify the code block containing the position
+   */
+  private async identifyCodeBlock(document: TextDocument, position: Position): Promise<BlockIdentifier> {
+    if (this.windowConfig.useFoldingRanges && this.connection) {
+      try {
+        const foldingRanges = (await this.connection.sendRequest("textDocument/foldingRange", {
+          textDocument: { uri: document.uri },
+        })) as FoldingRange[];
+
+        if (foldingRanges && foldingRanges.length > 0) {
+          const containingRange = this.findSmallestContainingRange(foldingRanges, position);
+
+          if (containingRange) {
+            return {
+              startLine: containingRange.startLine,
+              endLine: containingRange.endLine,
+            };
+          }
+        }
+      } catch (error) {
+        this.logger.error(`Error getting folding ranges: ${error}`, error);
+      }
+    }
+
+    // Fallback to fixed window
+    return {
+      startLine: Math.max(0, position.line - this.windowConfig.defaultLinesAround),
+      endLine: position.line + this.windowConfig.defaultLinesAround,
+    };
   }
 
   /**
@@ -254,31 +286,32 @@ export class EditHistoryTracker {
     }
 
     try {
+      // Get the current context window
       const contextWindow = await this.getSmartContextWindow(document, position);
 
-      this.logger.info(`Updating original content to current version for ${uri}`);
-      this.logger.info(`Previous original content length: ${(this.originalContentCache.get(uri) || "").length}`);
-      this.logger.info(`New original content length: ${contextWindow.length}`);
+      // Identify the block
+      const blockId = await this.identifyCodeBlock(document, position);
+      const blockKey = this.getBlockKey(blockId);
 
-      this.originalContentCache.set(uri, contextWindow);
+      // Get or create tracked block map
+      let trackedBlockMap = this.trackedBlocksCache.get(uri);
+      if (!trackedBlockMap) {
+        trackedBlockMap = new Map();
+        this.trackedBlocksCache.set(uri, trackedBlockMap);
+      }
 
-      this.editsQueue.set(uri, []);
+      // Update the original content for this block
+      const trackedBlock = {
+        originalContent: contextWindow,
+        edits: [],
+        lastUpdated: Date.now(),
+      };
+      trackedBlockMap.set(blockKey, trackedBlock);
 
-      this.logger.info(`Successfully updated original content and cleared edits queue for ${uri}`);
+      this.logger.info(`Reset original content for block ${blockKey} in ${uri} to current version`);
     } catch (error) {
       this.logger.error(`Failed to update original content to current version for ${uri}: ${error}`, error);
     }
-  }
-
-  /**
-   * Get the most recent diff for a document
-   */
-  private getMostRecentDiff(uri: string): string {
-    const edits = this.editsQueue.get(uri);
-    if (!edits || edits.length === 0) {
-      return "";
-    }
-    return edits[edits.length - 1] || "";
   }
 
   /**
@@ -295,10 +328,6 @@ export class EditHistoryTracker {
       .slice(2)
       .join("\n");
 
-    this.logger.info(`Generated diff for ${filename} with size ${patch.length}`);
-    this.logger.info(`Diff content: \n${patch}`);
-    this.logger.info("oldContent:\n" + oldContent);
-    this.logger.info("newContent:\n" + newContent);
     if (patch.length > this.maxDiffContextSize) {
       this.logger.warn(`Diff for ${uri} exceeds max size (${patch.length} > ${this.maxDiffContextSize}), truncating`);
       return patch.substring(0, this.maxDiffContextSize);
@@ -517,7 +546,7 @@ export class EditHistoryTracker {
       maxDiffContextSize: 5000,
     };
 
-    this.maxEditsPerFile = nextEditConfig.maxEditsPerFile || 10;
+    this.maxEditsPerBlock = nextEditConfig.maxEditsPerFile || 10;
     this.maxDiffContextSize = nextEditConfig.maxDiffContextSize || 5000;
 
     this.windowConfig = {
@@ -531,7 +560,7 @@ export class EditHistoryTracker {
     this.logger.info(
       `Updated config: useFoldingRanges=${this.windowConfig.useFoldingRanges}, ` +
         `defaultLinesAround=${this.windowConfig.defaultLinesAround}, ` +
-        `maxEditsPerFile=${this.maxEditsPerFile}, ` +
+        `maxEditsPerBlock=${this.maxEditsPerBlock}, ` +
         `maxDiffContextSize=${this.maxDiffContextSize}`,
     );
   }
@@ -541,12 +570,10 @@ export class EditHistoryTracker {
    */
   public clearHistory(uri?: string): void {
     if (uri) {
-      this.editsQueue.delete(uri);
-      this.originalContentCache.delete(uri);
+      this.trackedBlocksCache.delete(uri);
       this.logger.info(`Cleared edit history for ${uri}`);
     } else {
-      this.editsQueue.clear();
-      this.originalContentCache.clear();
+      this.trackedBlocksCache.clear();
       this.logger.info("Cleared all edit history");
     }
   }

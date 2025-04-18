@@ -10,8 +10,8 @@ import type {
   NotebookCell,
   CompletionParams,
   CompletionOptions,
-  InlineCompletionParams,
   TextDocumentPositionParams,
+  InlineCompletionParams,
 } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import type { TextDocuments } from "../lsp/textDocuments";
@@ -33,6 +33,7 @@ import {
   CompletionList,
   CompletionItem as LspCompletionItem,
   InlineCompletionRequest,
+  InlineNESCompletionRequest,
   InlineCompletionList,
   InlineCompletionItem,
   TelemetryEventNotification,
@@ -75,8 +76,10 @@ export class CompletionProvider implements Feature {
   private completionFeatureOptions: CompletionOptions | undefined = undefined;
   private completionFeatureRegistration: Disposable | undefined = undefined;
   private inlineCompletionFeatureRegistration: Disposable | undefined = undefined;
+  private inlineNESCompletionFeatureRegistration: Disposable | undefined = undefined;
 
   private mutexAbortController: AbortController | undefined = undefined;
+  private nesMutexAbortController: AbortController | undefined = undefined;
 
   constructor(
     private readonly configurations: Configurations,
@@ -125,6 +128,9 @@ export class CompletionProvider implements Feature {
       connection.onRequest(InlineCompletionRequest.type, async (params, token) => {
         return this.provideInlineCompletion(params, token);
       });
+      connection.onRequest(InlineNESCompletionRequest.type, async (params, token) => {
+        return this.provideInlineNESCompletion(params, token);
+      });
       if (!clientCapabilities.textDocument?.inlineCompletion.dynamicRegistration) {
         serverCapabilities = {
           ...serverCapabilities,
@@ -168,11 +174,16 @@ export class CompletionProvider implements Feature {
       ) {
         this.inlineCompletionFeatureRegistration = await connection.client.register(InlineCompletionRequest.type);
       }
+      if (!this.inlineNESCompletionFeatureRegistration) {
+        this.inlineNESCompletionFeatureRegistration = await connection.client.register(InlineNESCompletionRequest.type);
+      }
     } else {
       this.completionFeatureRegistration?.dispose();
       this.completionFeatureRegistration = undefined;
       this.inlineCompletionFeatureRegistration?.dispose();
       this.inlineCompletionFeatureRegistration = undefined;
+      this.inlineNESCompletionFeatureRegistration?.dispose();
+      this.inlineNESCompletionFeatureRegistration = undefined;
     }
   }
 
@@ -228,22 +239,6 @@ export class CompletionProvider implements Feature {
     token.onCancellationRequested(() => abortController.abort());
 
     try {
-      // Check if this is a next edit suggestion request
-      const config = this.configurations.getMergedConfig();
-      const isNextEditRequest =
-        config.completion.nextEditSuggestion?.enabled &&
-        params.context?.triggerKind === InlineCompletionTriggerKind.Invoked;
-
-      if (isNextEditRequest) {
-        this.logger.info("Providing next edit suggestion");
-        const response = await this.provideNextEditSuggestion(params, token, abortController.signal);
-        if (response) {
-          return response;
-        }
-        // Fall back to normal completion if next edit suggestion fails
-        this.logger.info("Next edit suggestion failed, falling back to normal completion");
-      }
-
       // Standard inline completion flow
       const request = await this.inlineCompletionParamsToCompletionRequest(params, token);
       if (!request) {
@@ -255,6 +250,39 @@ export class CompletionProvider implements Feature {
       }
       return this.toInlineCompletionList(response, params, request.additionalPrefixLength);
     } catch (error) {
+      return null;
+    }
+  }
+
+  async provideInlineNESCompletion(
+    params: InlineCompletionParams,
+    token: CancellationToken,
+  ): Promise<InlineCompletionList | null> {
+    if (!this.tabbyApiClient.isCodeCompletionApiAvailable()) {
+      throw {
+        name: "CodeCompletionFeatureNotAvailableError",
+        message: "Code completion feature not available",
+      };
+    }
+    if (token.isCancellationRequested) {
+      return null;
+    }
+
+    const abortController = new AbortController();
+    token.onCancellationRequested(() => abortController.abort());
+
+    try {
+      this.logger.info("Handling dedicated NES completion request");
+      const config = this.configurations.getMergedConfig();
+      if (!config.completion.nextEditSuggestion?.enabled) {
+        this.logger.info("Not a NES request enabled, rejecting");
+        return null;
+      }
+
+      const response = await this.provideNextEditSuggestion(params, token, abortController.signal);
+      return response;
+    } catch (error) {
+      this.logger.error("Error in NES completion", error);
       return null;
     }
   }
@@ -305,9 +333,6 @@ export class CompletionProvider implements Feature {
     this.logger.info(
       `Edit history for API - original_code length: ${editHistoryForApi.original_code.length}, current_version.content length: ${editHistoryForApi.current_version.content.length}`,
     );
-    this.logger.info(
-      `Edit history diff snippet: ${editHistoryForApi.edits_diff.substring(0, 200)}${editHistoryForApi.edits_diff.length > 200 ? "..." : ""}`,
-    );
 
     // Get the file path from document URI
     const filepath = document.uri.split("/").pop();
@@ -328,16 +353,11 @@ export class CompletionProvider implements Feature {
       const requestOptions = {
         ...request.request,
         temperature,
-        // stream: false,
       };
 
-      // Log the request to help with debugging
-      this.logger.debug("Next edit suggestion request options: " + JSON.stringify(requestOptions));
-
-      getLogger("TabbyApiClient").info("Fetching next edit suggestion..." + JSON.stringify(requestOptions));
+      getLogger("TabbyApiClient").info("Fetching next edit suggestion..." + JSON.stringify(editHistoryForApi));
       const response = await this.tabbyApiClient.fetchCompletion(requestOptions, signal, this.completionStats);
       // TODO(Sma1lboy): add a timeout here, also have to update editHistoryTracker
-
       getLogger("TabbyApiClient").info("Received next edit suggestion response: " + JSON.stringify(response));
       if (!response || !response.choices || response.choices.length === 0) {
         return null;
@@ -548,7 +568,7 @@ export class CompletionProvider implements Feature {
 
     const config = this.configurations.getMergedConfig();
 
-    // Mutex Control
+    // Mutex Control for normal completions
     if (this.mutexAbortController && !this.mutexAbortController.signal.aborted) {
       this.mutexAbortController.abort(new MutexAbortError());
     }
