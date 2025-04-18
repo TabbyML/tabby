@@ -21,12 +21,17 @@ import {
   getAttachmentDocContent,
   getRangeFromAttachmentCode,
   isAttachmentCommitDoc,
+  isAttachmentIssueDoc,
+  isAttachmentPageDoc,
+  isAttachmentPullDoc,
+  isAttachmentWebDoc,
   resolveDirectoryPath,
   resolveFileNameForDisplay
 } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   IconArrowDown,
+  IconBookOpen,
   IconCheckCircled,
   IconCircleDot,
   IconCode,
@@ -126,6 +131,10 @@ export function SectionContent({
         case 'MessageAttachmentCommitDoc':
         case 'AttachmentCommitDoc':
           result.push('commit')
+          break
+        case 'AttachmentPageDoc':
+        case 'MessageAttachmentPageDoc':
+          result.push('page')
           break
         case 'AttachmentWebDoc':
         case 'MessageAttachmentWebDoc':
@@ -299,7 +308,8 @@ function SourcePreviewCard({
   const isDoc =
     source.__typename === 'AttachmentIssueDoc' ||
     source.__typename === 'AttachmentPullDoc' ||
-    source.__typename === 'AttachmentWebDoc'
+    source.__typename === 'AttachmentWebDoc' ||
+    source.__typename === 'AttachmentPageDoc'
   const isCommit = source.__typename === 'AttachmentCommitDoc'
 
   if (isCodeFileList) {
@@ -394,9 +404,9 @@ function SourcePreviewCard({
   if (isDoc) {
     return (
       <div className="flex items-start gap-2">
-        <div className="relative flex flex-1 cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
+        <div className="relative flex w-full cursor-pointer gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
           <div
-            className="relative flex flex-col justify-between"
+            className="relative flex w-full flex-col justify-between"
             onClick={() => window.open(source.link)}
           >
             <DocPreviewCard source={source} />
@@ -420,19 +430,29 @@ function SourcePreviewCard({
 }
 
 function DocPreviewCard({ source }: { source: AttachmentDocItem }) {
-  if (isAttachmentCommitDoc(source)) {
-    return null
-  }
+  const isCommit = isAttachmentCommitDoc(source)
+  const isIssue = isAttachmentIssueDoc(source)
+  const isPR = isAttachmentPullDoc(source)
+  const isWeb = isAttachmentWebDoc(source)
+  const isPage = isAttachmentPageDoc(source)
 
-  const { hostname } = new URL(source.link)
-  const isIssue = source.__typename === 'AttachmentIssueDoc'
-  const isPR = source.__typename === 'AttachmentPullDoc'
+  const hostname = useMemo(() => {
+    if (isCommit) return null
+    try {
+      return new URL(source.link).hostname
+    } catch {
+      return null
+    }
+  }, [source])
+
   const author =
-    source.__typename === 'AttachmentWebDoc'
+    isWeb || isPage
       ? undefined
       : (source as AttachmentPullDoc | AttachmentIssueDoc).author
 
   const showAvatar = (isIssue || isPR) && !!author
+
+  if (isCommit) return null
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-y-1">
@@ -462,12 +482,23 @@ function DocPreviewCard({ source }: { source: AttachmentDocItem }) {
       </div>
       <div className="flex items-center text-xs text-muted-foreground">
         <div className="flex w-full flex-1 items-center justify-between gap-1">
-          <div className="flex flex-1 items-center">
-            <SiteFavicon hostname={hostname} />
-            <p className="ml-1 truncate">
-              {hostname.replace('www.', '').split('/')[0]}
-            </p>
-          </div>
+          {isPage ? (
+            <div className="flex flex-1 items-center gap-1">
+              <IconBookOpen className="h-3.5 w-3.5" />
+              Pages
+            </div>
+          ) : (
+            <>
+              {!!hostname && (
+                <div className="flex flex-1 items-center">
+                  <SiteFavicon hostname={hostname} />
+                  <p className="ml-1 truncate">
+                    {hostname.replace('www.', '').split('/')[0]}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
           <div className="flex shrink-0 items-center gap-1">
             {isIssue && (
               <>
@@ -576,7 +607,7 @@ function SourceIconSummary({ hostnames }: { hostnames: string[] }) {
               key={hostname}
               className="bg-background group-hover:bg-transparent"
             >
-              <IconListTree className="h-4 w-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
+              <IconListTree className="h-3.5 w-3.5 rounded-full bg-primary p-0.5 text-primary-foreground" />
             </SourceIcon>
           )
         }
@@ -586,10 +617,7 @@ function SourceIconSummary({ hostnames }: { hostnames: string[] }) {
               key={hostname}
               className="bg-background group-hover:bg-transparent"
             >
-              {/* <IconCode className="h-3 w-3 p-0.5 rounded-full bg-primary text-primary-foreground" /> */}
-              <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full border bg-primary text-primary-foreground">
-                <IconCode strokeWidth={3} className="h-2.5 w-2.5" />
-              </div>
+              <IconCode className="h-3.5 w-3.5 rounded-full bg-primary p-0.5 text-primary-foreground" />
             </SourceIcon>
           )
         }
@@ -599,12 +627,21 @@ function SourceIconSummary({ hostnames }: { hostnames: string[] }) {
               key={hostname}
               className="bg-background group-hover:bg-transparent"
             >
-              <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full border bg-primary text-primary-foreground">
-                <IconGitCommit strokeWidth={3} className="h-2.5 w-2.5" />
-              </div>
+              <IconGitCommit className="h-3.5 w-3.5 rounded-full bg-primary p-0.5 text-primary-foreground" />
             </SourceIcon>
           )
         }
+        if (hostname === 'page') {
+          return (
+            <SourceIcon
+              key={hostname}
+              className="bg-background group-hover:bg-transparent"
+            >
+              <IconBookOpen className="h-3.5 w-3.5 rounded-full bg-primary p-[0.15rem] text-primary-foreground" />
+            </SourceIcon>
+          )
+        }
+
         return (
           <SourceIcon
             className="flex h-5 w-5 items-center justify-center bg-background p-0 group-hover:bg-transparent"
