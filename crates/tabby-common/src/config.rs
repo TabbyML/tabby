@@ -196,7 +196,6 @@ impl RepositoryConfig {
         }
     }
 
-
     pub fn resolve_dir_name(git_url: &str) -> String {
         sanitize_name(&Self::canonicalize_url(git_url))
     }
@@ -637,7 +636,6 @@ mod tests {
             );
         }
     }
-
 
     #[test]
     fn it_parses_local_dir() {
