@@ -1,7 +1,7 @@
 import type { Connection, CancellationToken } from "vscode-languageserver";
 import type { Feature } from "../feature";
 import type { Configurations } from "../config";
-import type { GitContextProvider } from "../git";
+import type { GitContextProvider } from "../contextProviders/git";
 import {
   ServerCapabilities,
   ChatFeatureNotAvailableError,

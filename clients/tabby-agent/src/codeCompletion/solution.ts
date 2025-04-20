@@ -1,233 +1,112 @@
 import { splitLines, isBlank } from "../utils/string";
 import type { components as TabbyApiComponents } from "tabby-openapi/compatible";
-import type { CompletionContext } from "./contexts";
+import type { CompletionContext, CompletionExtraContexts } from "./contexts";
+import { CompletionItem, CompletionList, InlineCompletionItem, InlineCompletionList } from "../protocol";
+import { CompletionItemKind } from "vscode-languageserver-protocol";
 
-export type InlineCompletionItem = {
-  insertText: string;
-  // Range of the text to be replaced when applying the completion.
-  // The range should be limited to the current line.
-  range: {
-    start: number;
-    end: number;
-  };
-  data?: {
-    eventId?: {
-      completionId: string;
-      choiceIndex: number;
-    };
-  };
-};
-
-export type InlineCompletionList = {
-  // If the request is automatic, we will only provide one item, in this case,
-  // `isIncomplete` will be `true`.
-  // For the same completion context, if the request is manual, we will try
-  // to provide multiple items, and `isIncomplete` will be `false`, whether the
-  // item list actually contains multiple items, or not.
-  isIncomplete: boolean;
-  items: InlineCompletionItem[];
-};
-
-export class CompletionItem {
-  // Shortcuts
-  readonly text: string; // `replacePrefix` trimmed from `fullText`.
-  readonly lines: string[]; // splitted lines of `text`.
-  readonly currentLine: string; // first item of `lines`
-  readonly isBlank: boolean; // whether the item is a blank line.
-
-  readonly processedText: string; // text to be inserted.
-  readonly processedRange: { start: number; end: number }; // range to be replaced.
+export class CompletionResultItem {
+  // redundant quick access for text
+  readonly lines: string[];
+  readonly currentLine: string;
 
   constructor(
-    // The context which the completion was generated for.
-    readonly context: CompletionContext,
-    // The full text of the completion.
-    readonly fullText: string,
-    // Prefix to replace, `text` must exactly start with `replacePrefix`.
-    readonly replacePrefix: string = "",
-    // Suffix to replace, in most case, `text` contains a subsequence of `replaceSuffix`.
-    readonly replaceSuffix: string = "",
-    // Extra event data
+    readonly text: string,
     readonly eventId?: {
       completionId: string;
       choiceIndex: number;
     },
   ) {
-    this.text = fullText.substring(replacePrefix.length);
     this.lines = splitLines(this.text);
     this.currentLine = this.lines[0] ?? "";
-    this.isBlank = isBlank(this.text);
+  }
 
-    // if with auto complete item, insert the completion item with the predicted text
-    let position = this.context.position;
-    this.processedText = this.fullText;
-
-    if (this.context.isWithCorrectAutoComplete()) {
-      position = this.context.insertPosition;
-      this.processedText = this.context.insertSeg + this.processedText;
+  toCompletionItem(context: CompletionContext): CompletionItem | undefined {
+    if (isBlank(this.text)) {
+      return undefined;
     }
 
-    this.processedRange = {
-      start: this.context.currentLinePrefix.endsWith(this.replacePrefix)
-        ? position - this.replacePrefix.length
-        : position,
-      end: this.context.currentLineSuffix.startsWith(this.replaceSuffix)
-        ? position + this.replaceSuffix.length
-        : position,
+    const document = context.document;
+    const position = context.position;
+    const linePrefix = document.getText({
+      start: { line: position.line, character: 0 },
+      end: position,
+    });
+    const wordPrefix = linePrefix.match(/(\w+)$/)?.[0] ?? "";
+    const insertText = context.selectedCompletionInsertion + this.text;
+
+    const insertLines = splitLines(insertText);
+    const firstLine = insertLines[0] || "";
+    const secondLine = insertLines[1] || "";
+    return {
+      label: wordPrefix + firstLine,
+      labelDetails: {
+        detail: secondLine,
+        description: "Tabby",
+      },
+      kind: CompletionItemKind.Text,
+      documentation: {
+        kind: "markdown",
+        value: `\`\`\`\n${linePrefix + insertText}\n\`\`\`\n ---\nSuggested by Tabby.`,
+      },
+      textEdit: {
+        newText: wordPrefix + insertText,
+        range: {
+          start: { line: position.line, character: position.character - wordPrefix.length },
+          end: { line: position.line, character: position.character + context.lineEndReplaceLength },
+        },
+      },
+      data: { eventId: this.eventId },
     };
   }
 
-  static createBlankItem(context: CompletionContext): CompletionItem {
-    return new CompletionItem(context, "");
-  }
-
-  static createFromResponse(
-    context: CompletionContext,
-    response: TabbyApiComponents["schemas"]["CompletionResponse"],
-    index: number = 0,
-  ): CompletionItem {
-    return new CompletionItem(context, response.choices[index]?.text ?? "", "", "", {
-      completionId: response.id,
-      choiceIndex: response.choices[index]?.index ?? index,
-    });
-  }
-
-  // Generate a CompletionItem based on this CompletionItem with modified `fullText`.
-  withFullText(fullText: string): CompletionItem {
-    return new CompletionItem(this.context, fullText, this.replacePrefix, this.replaceSuffix, this.eventId);
-  }
-
-  // Generate a CompletionItem based on this CompletionItem with modified `text`.
-  withText(text: string): CompletionItem {
-    return new CompletionItem(
-      this.context,
-      this.replacePrefix + text,
-      this.replacePrefix,
-      this.replaceSuffix,
-      this.eventId,
-    );
-  }
-
-  // Generate a CompletionItem based on this CompletionItem with modified `replaceSuffix`.
-  withSuffix(replaceSuffix: string): CompletionItem {
-    return new CompletionItem(this.context, this.fullText, this.replacePrefix, replaceSuffix, this.eventId);
-  }
-
-  // Generate a CompletionItem by trying to apply this CompletionItem to the new context.
-  withContext(context: CompletionContext): CompletionItem {
-    if (context.hash === this.context.hash) {
-      return new CompletionItem(context, this.fullText, this.replacePrefix, this.replaceSuffix, this.eventId);
-    } else {
-      return CompletionItem.createBlankItem(context);
+  toInlineCompletionItem(context: CompletionContext): InlineCompletionItem | undefined {
+    if (isBlank(this.text)) {
+      return undefined;
     }
-  }
 
-  // Generate a CompletionItem based on this CompletionItem.
-  // Simulate as if the user typed over the same text as the completion.
-  forward(chars: number): CompletionItem {
-    if (chars <= 0) return this;
-    const delta = this.text.substring(0, chars);
-
-    // Forward in the current line
-    if (chars < this.currentLine.length) {
-      return new CompletionItem(
-        this.context.forward(delta),
-        this.fullText,
-        this.replacePrefix + delta,
-        this.replaceSuffix,
-        this.eventId,
-      );
-    }
-    // Forward to next lines
-    const lastLineStart = delta.lastIndexOf("\n") + 1;
-    const lastLine = delta.substring(lastLineStart);
-    let whiteSpaces = lastLine.search(/\S/);
-    if (whiteSpaces < 0) {
-      whiteSpaces = lastLine.length;
-    }
-    const lastLineNonSpaceStart = lastLineStart + whiteSpaces;
-    const fullText = this.text.substring(lastLineNonSpaceStart);
-    const lastLineNonSpace = delta.substring(lastLineNonSpaceStart);
-    return new CompletionItem(
-      this.context.forward(delta),
-      fullText,
-      lastLineNonSpace,
-      this.replaceSuffix,
-      this.eventId,
-    );
-  }
-
-  isSameWith(other: CompletionItem): boolean {
-    return this.context.hash === other.context.hash && this.text === other.text;
-  }
-
-  toInlineCompletionItem(): InlineCompletionItem {
+    const position = context.position;
+    const insertText = context.selectedCompletionInsertion + this.text;
     return {
-      insertText: this.processedText,
-      range: this.processedRange,
+      insertText,
+      range: {
+        start: position,
+        end: { line: position.line, character: position.character + context.lineEndReplaceLength },
+      },
       data: { eventId: this.eventId },
     };
   }
 }
 
 export class CompletionSolution {
-  items: CompletionItem[] = [];
+  extraContext: CompletionExtraContexts = {};
   isCompleted: boolean = false;
+  items: CompletionResultItem[] = [];
 
-  constructor(
-    readonly context: CompletionContext,
-    items: CompletionItem[] = [],
-    isCompleted = false,
-  ) {
-    this.add(...items);
-    this.isCompleted = isCompleted;
-  }
-
-  static merge(base: CompletionSolution, addition: CompletionSolution): CompletionSolution {
-    if (base.context.hash === addition.context.hash) {
-      return new CompletionSolution(
-        base.context,
-        [...base.items, ...addition.items],
-        base.isCompleted || addition.isCompleted,
-      );
-    } else {
-      return base;
-    }
-  }
-
-  add(...items: CompletionItem[]): void {
-    this.items.push(
-      ...items
-        .map((item) => item.withContext(this.context))
-        .filter((item, index, arr) => {
-          return (
-            !item.isBlank &&
-            // deduplicate
-            arr.findIndex((i) => i.isSameWith(item)) === index &&
-            this.items.findIndex((i) => i.isSameWith(item)) === -1
-          );
-        }),
-    );
-  }
-
-  // Generate a CompletionSolution by trying to apply this CompletionSolution to the new context.
-  withContext(context: CompletionContext): CompletionSolution {
-    if (context.hash === this.context.hash) {
-      return new CompletionSolution(context, this.items, this.isCompleted);
-    } else {
-      return new CompletionSolution(context);
-    }
-  }
-
-  // Generate a CompletionSolution by replacing all items.
-  withItems(...items: CompletionItem[]): CompletionSolution {
-    return new CompletionSolution(this.context, items, this.isCompleted);
-  }
-
-  toInlineCompletionList(): InlineCompletionList {
+  toCompletionList(context: CompletionContext): CompletionList {
     return {
       isIncomplete: !this.isCompleted,
-      items: this.items.map((item) => item.toInlineCompletionItem()),
+      items: this.items
+        .map((item) => item.toCompletionItem(context))
+        .filter((item): item is CompletionItem => item !== undefined),
     };
   }
+
+  toInlineCompletionList(context: CompletionContext): InlineCompletionList {
+    return {
+      isIncomplete: !this.isCompleted,
+      items: this.items
+        .map((item) => item.toInlineCompletionItem(context))
+        .filter((item): item is InlineCompletionItem => item !== undefined),
+    };
+  }
+}
+
+export function createCompletionResultItemFromResponse(
+  response: TabbyApiComponents["schemas"]["CompletionResponse"],
+): CompletionResultItem {
+  const index = 0; // api always returns 0 or 1 choice
+  return new CompletionResultItem(response.choices[index]?.text ?? "", {
+    completionId: response.id,
+    choiceIndex: response.choices[index]?.index ?? index,
+  });
 }

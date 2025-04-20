@@ -1,5 +1,6 @@
 import { PostprocessFilter } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionContext } from "../contexts";
+import { CompletionResultItem } from "../solution";
 
 function isOnlySpaces(str: string | null | undefined): boolean {
   if (!str) return true;
@@ -42,8 +43,8 @@ function getLeadingSpaces(str: string): number {
  * particularly focusing on maintaining even space counts for proper alignment.
  */
 export function normalizeIndentation(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
-    const { context, lines } = item;
+  return (item: CompletionResultItem, context: CompletionContext): CompletionResultItem => {
+    const { lines } = item;
     if (
       !Array.isArray(lines) ||
       lines.length === 0 ||
@@ -78,6 +79,6 @@ export function normalizeIndentation(): PostprocessFilter {
       }
     }
 
-    return item.withText(normalizedLines.join(""));
+    return new CompletionResultItem(normalizedLines.join(""));
   };
 }

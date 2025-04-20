@@ -3,10 +3,10 @@ import * as path from "path";
 import * as fs from "fs-extra";
 import { parse as uriParse, serialize as uriSerialize } from "uri-js";
 import { CancellationToken } from "vscode-languageserver-protocol";
-import { GitRepositoryParams, GitRepository, GitDiffParams, GitDiffResult } from "../protocol";
-import { isBrowser } from "../env";
-import { getLogger } from "../logger";
-import "../utils/array";
+import { GitRepositoryParams, GitRepository, GitDiffParams, GitDiffResult } from "../../protocol";
+import { isBrowser } from "../../env";
+import { getLogger } from "../../logger";
+import "../../utils/array";
 
 export interface GitCommandRunner {
   getRepository(params: GitRepositoryParams, token?: CancellationToken): Promise<GitRepository | null>;

@@ -5,10 +5,9 @@ describe("postprocess", () => {
   describe("trimSpace", () => {
     const filter = trimSpace();
     it("should remove trailing space", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         let foo = new ║
       `;
-      context.language = "javascript";
       const completion = inline`
                       ├Foo(); ┤
         `;
@@ -19,10 +18,9 @@ describe("postprocess", () => {
     });
 
     it("should not remove trailing space if filling in line", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         let foo = sum(║baz)
       `;
-      context.language = "javascript";
       const completion = inline`
                       ├bar, ┤
       `;
@@ -31,10 +29,9 @@ describe("postprocess", () => {
     });
 
     it("should remove trailing space if filling in line with suffix starts with space", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         let foo = sum(║ baz)
       `;
-      context.language = "javascript";
       const completion = inline`
                       ├bar, ┤
       `;
@@ -45,12 +42,11 @@ describe("postprocess", () => {
     });
 
     it("should not remove leading space if current line is blank", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         function sum(a, b) {
         ║
         }
       `;
-      context.language = "javascript";
       const completion = inline`
         ├  return a + b;┤
       `;
@@ -59,10 +55,9 @@ describe("postprocess", () => {
     });
 
     it("should remove leading space if current line is not blank and ends with space", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         let foo = ║
       `;
-      context.language = "javascript";
       const completion = inline`
                   ├ sum(bar, baz);┤
       `;

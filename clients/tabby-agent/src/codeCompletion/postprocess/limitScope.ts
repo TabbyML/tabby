@@ -1,9 +1,14 @@
 import { PostprocessFilter } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
+import { CompletionContext, CompletionExtraContexts } from "../contexts";
 import { limitScopeByIndentation } from "./limitScopeByIndentation";
 
 export function limitScope(): PostprocessFilter {
-  return async (item: CompletionItem): Promise<CompletionItem> => {
-    return limitScopeByIndentation()(item);
+  return async (
+    item: CompletionResultItem,
+    context: CompletionContext,
+    extraContext: CompletionExtraContexts,
+  ): Promise<CompletionResultItem> => {
+    return limitScopeByIndentation()(item, context, extraContext);
   };
 }

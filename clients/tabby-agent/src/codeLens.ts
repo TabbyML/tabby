@@ -9,7 +9,7 @@ import {
   CodeLensParams,
 } from "vscode-languageserver";
 import { ClientCapabilities, ServerCapabilities, CodeLens, CodeLensType, ChangesPreviewLineType } from "./protocol";
-import { TextDocuments } from "./lsp/textDocuments";
+import { TextDocuments } from "./extensions/textDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getLogger } from "./logger";
 import { codeDiff } from "./utils/diff";

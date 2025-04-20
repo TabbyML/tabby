@@ -1,5 +1,5 @@
 import { PostprocessFilter, logger } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
 import { isBlank } from "../../utils/string";
 
 const repetitionTests = [
@@ -8,8 +8,7 @@ const repetitionTests = [
 ];
 
 export function removeLineEndsWithRepetition(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
-    const context = item.context;
+  return (item: CompletionResultItem): CompletionResultItem => {
     // only test last non-blank line
     const inputLines = item.lines;
     let index = inputLines.length - 1;
@@ -29,9 +28,9 @@ export function removeLineEndsWithRepetition(): PostprocessFilter {
           match,
         });
         if (index < 1) {
-          return CompletionItem.createBlankItem(context);
+          return new CompletionResultItem("");
         }
-        return item.withText(inputLines.slice(0, index).join("").trimEnd());
+        return new CompletionResultItem(inputLines.slice(0, index).join("").trimEnd());
       }
     }
     // no repetition found

@@ -1,21 +1,16 @@
 import * as Engine from "@orama/orama";
-import { Position, Range } from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { extractNonReservedWordList } from "../utils/string";
-import { isPositionBefore, isPositionAfter, unionRange, rangeInDocument } from "../utils/range";
+import type { Position, Range } from "vscode-languageserver";
+import type { DocumentRange } from "./utils/types";
+import { extractNonReservedWordList } from "./utils/string";
+import { isPositionBefore, isPositionAfter, unionRange, rangeInDocument } from "./utils/range";
 
-export interface DocumentRange {
-  document: TextDocument;
-  range: Range;
-}
-
-export interface CodeSnippet {
+export interface Chunk {
   // Which file does the snippet belongs to
-  filepath: string;
+  uri: string;
   // (Not Indexed) The offset of the snippet in the file
-  offset: number;
+  range: Range;
   // (Not Indexed) The full text of the snippet
-  fullText: string;
+  text: string;
   // The code language id of the snippet
   language: string;
   // The semantic symbols extracted from the snippet
@@ -31,10 +26,11 @@ export interface ChunkingConfig {
   overlapLines: number;
 }
 
-export interface CodeSearchHit {
-  snippet: CodeSnippet;
+export type CodeSearchResultItem = Chunk & {
   score: number;
-}
+};
+
+export type CodeSearchResult = CodeSearchResultItem[];
 
 export class CodeSearchEngine {
   constructor(private config: ChunkingConfig) {}
@@ -48,7 +44,7 @@ export class CodeSearchEngine {
     }
     this.db = await Engine.create({
       schema: {
-        filepath: "string",
+        uri: "string",
         language: "string",
         symbols: "string",
       },
@@ -62,7 +58,7 @@ export class CodeSearchEngine {
     return await Engine.count(this.db);
   }
 
-  private async insert(snippets: CodeSnippet[]): Promise<string[]> {
+  private async insert(snippets: Chunk[]): Promise<string[]> {
     if (!this.db) {
       await this.init();
     }
@@ -79,13 +75,13 @@ export class CodeSearchEngine {
     return await Engine.removeMultiple(this.db, ids);
   }
 
-  private async chunk(documentRange: DocumentRange): Promise<CodeSnippet[]> {
+  private async chunk(documentRange: DocumentRange): Promise<Chunk[]> {
     const document = documentRange.document;
     const range = rangeInDocument(documentRange.range, document);
     if (!range) {
       return [];
     }
-    const chunks: CodeSnippet[] = [];
+    const chunks: Chunk[] = [];
     let positionStart: Position = range.start;
     let positionEnd;
     do {
@@ -105,12 +101,13 @@ export class CodeSearchEngine {
         positionEnd = range.end;
       }
 
-      const text = document.getText({ start: positionStart, end: positionEnd });
+      const chunkRange = { start: positionStart, end: positionEnd };
+      const text = document.getText(chunkRange);
       if (text.trim().length > 0) {
         chunks.push({
-          filepath: document.uri,
-          offset: document.offsetAt(positionStart),
-          fullText: text,
+          uri: document.uri,
+          range: chunkRange,
+          text: text,
           language: document.languageId,
           symbols: extractNonReservedWordList(text),
         });
@@ -122,7 +119,7 @@ export class CodeSearchEngine {
     return chunks;
   }
 
-  getIndexed(): DocumentRange[] {
+  getIndexedDocumentRange(): DocumentRange[] {
     return this.indexedDocumentRanges;
   }
 
@@ -188,15 +185,15 @@ export class CodeSearchEngine {
       languagesFilter?: string[];
       limit?: number;
     },
-  ): Promise<CodeSearchHit[]> {
+  ): Promise<CodeSearchResult> {
     if (!this.db) {
       return [];
     }
-    const searchResult = await Engine.search<Engine.AnyOrama, CodeSnippet>(this.db, {
+    const searchResult = await Engine.search<Engine.AnyOrama, Chunk>(this.db, {
       term: query,
       properties: ["symbols"],
       where: {
-        filepath: options?.filepathsFilter,
+        uri: options?.filepathsFilter,
         language: options?.languagesFilter,
       },
       limit: options?.limit,
@@ -205,7 +202,7 @@ export class CodeSearchEngine {
       searchResult.hits
         // manual filtering
         .filter((hit) => {
-          if (options?.filepathsFilter && !options?.filepathsFilter.includes(hit.document["filepath"])) {
+          if (options?.filepathsFilter && !options?.filepathsFilter.includes(hit.document["uri"])) {
             return false;
           }
           if (options?.languagesFilter && !options?.languagesFilter.includes(hit.document["language"])) {
@@ -215,10 +212,11 @@ export class CodeSearchEngine {
         })
         .map((hit) => {
           return {
-            snippet: hit.document,
-            score: hit.score || 0,
+            ...hit.document,
+            score: hit.score ?? 0,
           };
         })
+        .sort((a, b) => b.score - a.score)
     );
   }
 }

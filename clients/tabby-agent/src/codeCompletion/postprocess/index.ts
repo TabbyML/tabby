@@ -1,5 +1,6 @@
-import type { CompletionItem } from "../solution";
 import type { ConfigData } from "../../config/type";
+import type { CompletionResultItem } from "../solution";
+import type { CompletionContext, CompletionExtraContexts } from "../contexts";
 import type { PostprocessFilter, PostprocessFilterFactory } from "./base";
 import "../../utils/array";
 import { removeRepetitiveBlocks } from "./removeRepetitiveBlocks";
@@ -12,42 +13,54 @@ import { trimSpace } from "./trimSpace";
 import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 import { dropDuplicated } from "./dropDuplicated";
 import { dropMinimum } from "./dropMinimum";
-import { calculateReplaceRange } from "./calculateReplaceRange";
 import { removeDuplicateSuffixLines } from "./removeDuplicateSuffixLines";
 import { normalizeIndentation } from "./normalizeIndentation";
 
-type ItemListFilter = (items: CompletionItem[]) => Promise<CompletionItem[]>;
+export interface ItemsWithContext {
+  items: CompletionResultItem[];
+  context: CompletionContext;
+  extraContext: CompletionExtraContexts;
+}
+type ItemsFilter = (params: ItemsWithContext) => Promise<ItemsWithContext>;
 
-function createListFilter(filterFactory: PostprocessFilterFactory, config: ConfigData["postprocess"]): ItemListFilter {
+function createListFilter(filterFactory: PostprocessFilterFactory, config: ConfigData["postprocess"]): ItemsFilter {
   const filter: PostprocessFilter = filterFactory(config);
-  return async (items: CompletionItem[]): Promise<CompletionItem[]> => {
-    return await items.mapAsync(filter);
+  return async (params: ItemsWithContext): Promise<ItemsWithContext> => {
+    const processed = await params.items.mapAsync(async (item) => {
+      return await filter(item, params.context, params.extraContext);
+    });
+    return { items: processed, context: params.context, extraContext: params.extraContext };
   };
 }
 
 export async function preCacheProcess(
-  items: CompletionItem[],
+  items: CompletionResultItem[],
+  context: CompletionContext,
+  extraContext: CompletionExtraContexts,
   config: ConfigData["postprocess"],
-): Promise<CompletionItem[]> {
-  const applyFilter = (filterFactory: PostprocessFilterFactory): ItemListFilter => {
+): Promise<CompletionResultItem[]> {
+  const applyFilter = (filterFactory: PostprocessFilterFactory): ItemsFilter => {
     return createListFilter(filterFactory, config);
   };
-  return Promise.resolve(items)
+  const result = await Promise.resolve({ items, context, extraContext })
     .then(applyFilter(trimMultiLineInSingleLineMode))
     .then(applyFilter(removeLineEndsWithRepetition))
     .then(applyFilter(dropDuplicated))
     .then(applyFilter(trimSpace))
     .then(applyFilter(dropMinimum));
+  return result.items;
 }
 
 export async function postCacheProcess(
-  items: CompletionItem[],
+  items: CompletionResultItem[],
+  context: CompletionContext,
+  extraContext: CompletionExtraContexts,
   config: ConfigData["postprocess"],
-): Promise<CompletionItem[]> {
-  const applyFilter = (filterFactory: PostprocessFilterFactory): ItemListFilter => {
+): Promise<CompletionResultItem[]> {
+  const applyFilter = (filterFactory: PostprocessFilterFactory): ItemsFilter => {
     return createListFilter(filterFactory, config);
   };
-  return Promise.resolve(items)
+  const result = await Promise.resolve({ items, context, extraContext })
     .then(applyFilter(removeRepetitiveBlocks))
     .then(applyFilter(removeRepetitiveLines))
     .then(applyFilter(limitScope))
@@ -57,6 +70,6 @@ export async function postCacheProcess(
     .then(applyFilter(dropDuplicated))
     .then(applyFilter(trimSpace))
     .then(applyFilter(removeDuplicateSuffixLines))
-    .then(applyFilter(dropMinimum))
-    .then(applyFilter(calculateReplaceRange));
+    .then(applyFilter(dropMinimum));
+  return result.items;
 }

@@ -1,10 +1,10 @@
 import { PostprocessFilter } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
+import { CompletionContext } from "../contexts";
 import { isBlank } from "../../utils/string";
 
 export function trimSpace(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
-    const context = item.context;
+  return (item: CompletionResultItem, context: CompletionContext): CompletionResultItem => {
     const { currentLinePrefix, currentLineSuffix } = context;
     let trimmedInput = item.text;
 
@@ -15,7 +15,7 @@ export function trimSpace(): PostprocessFilter {
       trimmedInput = trimmedInput.trimEnd();
     }
     if (trimmedInput !== item.text) {
-      return item.withText(trimmedInput);
+      return new CompletionResultItem(trimmedInput);
     }
     return item;
   };

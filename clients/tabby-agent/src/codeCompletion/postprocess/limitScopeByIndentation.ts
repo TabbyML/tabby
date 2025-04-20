@@ -1,6 +1,6 @@
 import { PostprocessFilter, logger } from "./base";
 import { CompletionContext } from "../contexts";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
 import { isBlank, getIndentationLevel, isBlockOpeningLine, isBlockClosingLine } from "../../utils/string";
 
 function parseIndentationContext(
@@ -77,9 +77,11 @@ function parseIndentationContext(
 }
 
 export function limitScopeByIndentation(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
-    const { context, lines: inputLines } = item;
+  return (item: CompletionResultItem, context: CompletionContext): CompletionResultItem => {
+    const { lines: inputLines } = item;
     const { prefixLines, suffixLines, currentLinePrefix } = context;
+    const language = context.document.languageId;
+
     const inputLinesForDetection = inputLines.map((line, index) => {
       return index === 0 ? currentLinePrefix + line : line;
     });
@@ -102,7 +104,7 @@ export function limitScopeByIndentation(): PostprocessFilter {
         }
         // If context allows, we should add the block closing line
         // For python, if previous line is blank, we don't include this line
-        if (indentContext.allowClosingLine && (context.language !== "python" || !isBlank(prevLine))) {
+        if (indentContext.allowClosingLine && (language !== "python" || !isBlank(prevLine))) {
           index++;
         }
         break;
@@ -117,7 +119,7 @@ export function limitScopeByIndentation(): PostprocessFilter {
         suffixLines,
         trimAtInputLine: index,
       });
-      return item.withText(inputLines.slice(0, index).join("").trimEnd());
+      return new CompletionResultItem(inputLines.slice(0, index).join("").trimEnd());
     }
     return item;
   };

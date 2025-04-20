@@ -1,9 +1,9 @@
 import { PostprocessFilter, logger } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
 import { isBlank, calcDistance } from "../../utils/string";
 
 export function removeRepetitiveLines(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
+  return (item: CompletionResultItem): CompletionResultItem => {
     const inputLines = item.lines;
     let repetitionCount = 0;
     const repetitionThreshold = 5;
@@ -36,7 +36,7 @@ export function removeRepetitiveLines(): PostprocessFilter {
         inputLines,
         repetitionCount,
       });
-      return item.withText(
+      return new CompletionResultItem(
         inputLines
           .slice(0, index + 1)
           .join("")

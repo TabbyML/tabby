@@ -1,4 +1,4 @@
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
 import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 
@@ -6,25 +6,23 @@ describe("postprocess", () => {
   describe("trimMultiLineInSingleLineMode", () => {
     const filter = trimMultiLineInSingleLineMode();
     it("should trim multiline completions, when the suffix have non-auto-closed chars in the current line.", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         let error = new Error("Something went wrong");
         console.log(║message);
       `;
-      context.language = "javascript";
       const completion = inline`
                     ├message);
         throw error;┤
       `;
-      const expected = CompletionItem.createBlankItem(context);
+      const expected = new CompletionResultItem("");
       await assertFilterResult(filter, context, completion, expected);
     });
 
     it("should trim multiline completions, when the suffix have non-auto-closed chars in the current line.", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         let error = new Error("Something went wrong");
         console.log(║message);
       `;
-      context.language = "javascript";
       const completion = inline`
                     ├error, message);
         throw error;┤
@@ -36,11 +34,10 @@ describe("postprocess", () => {
     });
 
     it("should allow singleline completions, when the suffix have non-auto-closed chars in the current line.", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         let error = new Error("Something went wrong");
         console.log(║message);
       `;
-      context.language = "javascript";
       const completion = inline`
                     ├error, ┤
       `;
@@ -49,10 +46,9 @@ describe("postprocess", () => {
     });
 
     it("should allow multiline completions, when the suffix only have auto-closed chars that will be replaced in the current line, such as `)]}`.", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         function findMax(arr) {║}
       `;
-      context.language = "javascript";
       const completion = inline`
                                ├
           let max = arr[0];

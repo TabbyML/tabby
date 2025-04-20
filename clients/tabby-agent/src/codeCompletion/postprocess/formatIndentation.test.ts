@@ -5,45 +5,42 @@ describe("postprocess", () => {
   describe("formatIndentation", () => {
     const filter = formatIndentation();
     it("should format indentation if first line of completion is over indented.", async () => {
-      const context = documentContext`
+      const context = documentContext`typescript
         function clamp(n: number, max: number, min: number): number {
           ║
         }
       `;
-      context.indentation = "  ";
-      context.language = "typescript";
+      const indentation = "  ";
       const completion = inline`
           ├  return Math.max(Math.min(n, max), min);┤
       `;
       const expected = inline`
           ├return Math.max(Math.min(n, max), min);┤
       `;
-      await assertFilterResult(filter, context, completion, expected);
+      await assertFilterResult(filter, { ...context, editorOptions: { indentation } }, completion, expected);
     });
 
     it("should format indentation if first line of completion is wrongly indented.", async () => {
-      const context = documentContext`
+      const context = documentContext`typescript
         function clamp(n: number, max: number, min: number): number {
         ║
         }
       `;
-      context.indentation = "    ";
-      context.language = "typescript";
+      const indentation = "    ";
       const completion = inline`
         ├  return Math.max(Math.min(n, max), min);┤
       `;
       const expected = inline`
         ├    return Math.max(Math.min(n, max), min);┤
       `;
-      await assertFilterResult(filter, context, completion, expected);
+      await assertFilterResult(filter, { ...context, editorOptions: { indentation } }, completion, expected);
     });
 
     it("should format indentation if completion lines is over indented.", async () => {
-      const context = documentContext`
+      const context = documentContext`python
         def findMax(arr):║
       `;
-      context.indentation = "  ";
-      context.language = "python";
+      const indentation = "  ";
       const completion = inline`
                          ├
             max = arr[0]
@@ -62,15 +59,14 @@ describe("postprocess", () => {
           return max
         }┤
       `;
-      await assertFilterResult(filter, context, completion, expected);
+      await assertFilterResult(filter, { ...context, editorOptions: { indentation } }, completion, expected);
     });
 
     it("should format indentation if completion lines is wrongly indented.", async () => {
-      const context = documentContext`
+      const context = documentContext`python
         def findMax(arr):║
       `;
-      context.indentation = "    ";
-      context.language = "python";
+      const indentation = "    ";
       const completion = inline`
                          ├
           max = arr[0]
@@ -89,15 +85,14 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      await assertFilterResult(filter, context, completion, expected);
+      await assertFilterResult(filter, { ...context, editorOptions: { indentation } }, completion, expected);
     });
 
     it("should keep it unchanged if it no indentation specified.", async () => {
-      const context = documentContext`
+      const context = documentContext`python
         def findMax(arr):║
       `;
-      context.indentation = undefined;
-      context.language = "python";
+      const indentation = undefined;
       const completion = inline`
                           ├
             max = arr[0]
@@ -108,18 +103,17 @@ describe("postprocess", () => {
         }┤
       `;
       const expected = completion;
-      await assertFilterResult(filter, context, completion, expected);
+      await assertFilterResult(filter, { ...context, editorOptions: indentation }, completion, expected);
     });
 
     it("should keep it unchanged if there is indentation in the context.", async () => {
-      const context = documentContext`
+      const context = documentContext`python
         def hello():
             return "world"
 
         def findMax(arr):║
       `;
-      context.indentation = "\t";
-      context.language = "python";
+      const indentation = "\t";
       const completion = inline`
                           ├
             max = arr[0]
@@ -130,15 +124,14 @@ describe("postprocess", () => {
         }┤
       `;
       const expected = completion;
-      await assertFilterResult(filter, context, completion, expected);
+      await assertFilterResult(filter, { ...context, editorOptions: { indentation } }, completion, expected);
     });
 
     it("should keep it unchanged if it is well indented.", async () => {
-      const context = documentContext`
+      const context = documentContext`python
         def findMax(arr):║
       `;
-      context.indentation = "    ";
-      context.language = "python";
+      const indentation = "    ";
       const completion = inline`
                           ├
             max = arr[0]
@@ -149,7 +142,7 @@ describe("postprocess", () => {
         }┤
       `;
       const expected = completion;
-      await assertFilterResult(filter, context, completion, expected);
+      await assertFilterResult(filter, { ...context, editorOptions: { indentation } }, completion, expected);
     });
   });
 });

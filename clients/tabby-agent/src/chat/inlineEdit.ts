@@ -1,6 +1,6 @@
 import type { Connection, CancellationToken, Range, URI } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import type { TextDocuments } from "../lsp/textDocuments";
+import type { TextDocuments } from "../extensions/textDocuments";
 import type { Feature } from "../feature";
 import type { Configurations } from "../config";
 import {

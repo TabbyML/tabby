@@ -1,5 +1,6 @@
 import { PostprocessFilter, logger } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
+import { CompletionContext } from "../contexts";
 import { isBlank, calcDistance } from "../../utils/string";
 
 function blockSplitter(_: string) {
@@ -10,9 +11,8 @@ function blockSplitter(_: string) {
 
 // FIXME: refactor this because it is very similar to `removeRepetitiveLines`
 export function removeRepetitiveBlocks(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
-    const context = item.context;
-    const inputBlocks = item.text.split(blockSplitter(context.language));
+  return (item: CompletionResultItem, context: CompletionContext): CompletionResultItem => {
+    const inputBlocks = item.text.split(blockSplitter(context.document.languageId));
     let repetitionCount = 0;
     const repetitionThreshold = 2;
     // skip last block, it maybe cut
@@ -44,7 +44,7 @@ export function removeRepetitiveBlocks(): PostprocessFilter {
         inputBlocks,
         repetitionCount,
       });
-      return item.withText(
+      return new CompletionResultItem(
         inputBlocks
           .slice(0, index + 1)
           .join("")
