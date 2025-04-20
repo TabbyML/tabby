@@ -10,3 +10,6 @@ __pycache__
 # ignore cargo flamegraph temp files
 flamegraph.svg
 cargo-flamegraph.stacks
+# for temp NES docs
+/docs
+

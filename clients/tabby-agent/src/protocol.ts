@@ -31,7 +31,6 @@ import {
   CompletionList as LspCompletionList,
   CompletionItem as LspCompletionItem,
   InlineCompletionRequest as LspInlineCompletionRequest,
-  InlineCompletionParams,
   InlineCompletionList as LspInlineCompletionList,
   InlineCompletionItem as LspInlineCompletionItem,
   DeclarationParams,
@@ -41,6 +40,7 @@ import {
   SemanticTokens,
   SemanticTokensLegend,
   WorkspaceEdit,
+  InlineCompletionParams,
 } from "vscode-languageserver-protocol";
 
 /**
@@ -354,6 +354,23 @@ export type InlineCompletionItem = LspInlineCompletionItem & {
     eventId?: CompletionEventId;
   };
 };
+
+/**
+ * [Tabby] Inline NES Completion Request(↩️)
+ *
+ * This method is sent from the client to the server to get next edit suggestion.
+ * - method: `tabby/inlineNESCompletion`
+ * - params: {@link InlineNESCompletionParams}
+ * - result: {@link InlineCompletionList} | null
+ * - error: {@link ChatFeatureNotAvailableError}
+ */
+export namespace InlineNESCompletionRequest {
+  export const method = "tabby/inlineNESCompletion";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<InlineCompletionParams, InlineCompletionList | null, never, void, void>(
+    method,
+  );
+}
 
 /**
  * [Tabby] Chat Edit Suggestion Command Request(↩️)

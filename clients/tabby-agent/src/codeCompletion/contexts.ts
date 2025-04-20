@@ -3,6 +3,7 @@ import type { ConfigData } from "../config/type";
 import path from "path";
 import hashObject from "object-hash";
 import { splitLines, isBlank, regOnlyAutoClosingCloseChars } from "../utils/string";
+import { EditHistory } from "./editHistory";
 
 export type CompletionRequest = {
   filepath: string;
@@ -30,6 +31,8 @@ export type CompletionRequest = {
     insertSeg?: string;
     currSeg?: string;
   };
+  mode?: "standard" | "next_edit_suggestion";
+  editHistory?: EditHistory;
 };
 
 export type Declaration = {
@@ -307,6 +310,24 @@ export class CompletionContext {
       relevant_snippets_from_changed_files: relevantSnippetsFromChangedFiles,
       relevant_snippets_from_recently_opened_files: snippetsOpenedFiles,
       clipboard,
+    };
+  }
+
+  /**
+   * Build segments object specifically for next edit suggestion mode
+   * Includes minimal segments with edit_history
+   * @param editHistory Converted edit history object in snake_case format
+   * @returns Segments object with edit_history
+   */
+  static buildSegmentsForNextEditSuggestion(
+    filepath: string | undefined,
+    editHistory: any,
+  ): TabbyApiComponents["schemas"]["Segments"] {
+    return {
+      prefix: "",
+      suffix: "",
+      filepath,
+      edit_history: editHistory,
     };
   }
 }

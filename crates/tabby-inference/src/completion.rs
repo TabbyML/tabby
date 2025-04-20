@@ -12,6 +12,9 @@ pub struct CompletionOptions {
 
     #[builder(default = "0.0")]
     pub presence_penalty: f32,
+
+    #[builder(default = "\"standard\".to_string()")]
+    pub mode: String,
 }
 
 #[async_trait]

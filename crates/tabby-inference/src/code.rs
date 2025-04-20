@@ -9,6 +9,9 @@ use crate::{
     clip_prompt, decoding::StopConditionFactory, CompletionOptionsBuilder, CompletionStream,
 };
 
+pub const DEFAULT_MODE: &str = "standard";
+pub const NEXT_EDIT_SUGGESTION_MODE: &str = "next_edit_suggestion";
+
 #[derive(Builder, Debug)]
 pub struct CodeGenerationOptions {
     #[builder(default = "1024")]
@@ -25,6 +28,9 @@ pub struct CodeGenerationOptions {
 
     #[builder(default = "None")]
     pub language: Option<&'static Language>,
+
+    #[builder(default = "String::from(DEFAULT_MODE)")]
+    pub mode: String,
 }
 
 /// CodeGeneration utilizes the CompletionStream to generate code completions.
@@ -71,10 +77,12 @@ impl CodeGeneration {
                 .max_decoding_tokens(options.max_decoding_tokens)
                 .sampling_temperature(options.sampling_temperature)
                 .seed(options.seed)
+                .mode(options.mode.clone())
                 .build()
                 .expect("Failed to build completion options");
 
             for await new_text in self.imp.generate(prompt, options).await {
+                // WARN: for regular fetch /completion, the stop_condition is used to stop some where by the keyword, it shoundn't happen in NES mode
                 let (should_stop, stop_length) = stop_condition.should_stop(&new_text);
                 text += &new_text;
                 if should_stop {

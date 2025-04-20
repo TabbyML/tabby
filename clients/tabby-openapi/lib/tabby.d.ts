@@ -95,34 +95,7 @@ export interface components {
             /** Format: int32 */
             index: number;
             text: string;
-        };
-        CodeSearchDocument: {
-            body: string;
-            filepath: string;
-            git_url: string;
-            language: string;
-            start_line: number;
-        };
-        CodeSearchHit: {
-            scores: components["schemas"]["CodeSearchScores"];
-            doc: components["schemas"]["CodeSearchDocument"];
-        };
-        CodeSearchQuery: {
-            git_url: string;
-            filepath?: string | null;
-            language?: string | null;
-            content: string;
-        };
-        CodeSearchScores: {
-            /**
-             * Format: float
-             * @description Reciprocal rank fusion score: https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html
-             */
-            rrf: number;
-            /** Format: float */
-            bm25: number;
-            /** Format: float */
-            embedding: number;
+            edit_range?: components["schemas"]["EditRange"] | null;
         };
         /** @example {
          *       "language": "python",
@@ -153,6 +126,9 @@ export interface components {
              * @description The seed used for randomly selecting tokens
              */
             seed?: number | null;
+            /** @description The mode for completion. Use 'standard' for normal code completions or 'next_edit_suggestion'
+             *     to predict the next edit the user will make. */
+            mode?: string;
         };
         /** @example {
          *       "choices": [
@@ -167,6 +143,25 @@ export interface components {
             id: string;
             choices: components["schemas"]["Choice"][];
             debug_data?: components["schemas"]["DebugData"] | null;
+        };
+        /** @description Current version of the code after all edits */
+        CurrentVersion: {
+            /** @description Current content after all edits */
+            content: string;
+            cursor_position: components["schemas"]["CursorPosition"];
+        };
+        /** @description Cursor position in the current version */
+        CursorPosition: {
+            /**
+             * Format: int32
+             * @description Line number (0-based)
+             */
+            line: number;
+            /**
+             * Format: int32
+             * @description Character position within the line (0-based)
+             */
+            character: number;
         };
         DebugData: {
             snippets?: components["schemas"]["Snippet"][] | null;
@@ -195,15 +190,36 @@ export interface components {
             /** @description Body of the snippet. */
             body: string;
         };
-        DocSearchDocument: {
-            title: string;
-            link: string;
-            snippet: string;
+        /** @description Contains information about edit history for next edit suggestion mode */
+        EditHistory: {
+            /** @description Original code content before edits */
+            original_code: string;
+            /** @description Unified git-style diff of all edits made to the file */
+            edits_diff: string;
+            current_version: components["schemas"]["CurrentVersion"];
         };
-        DocSearchHit: {
-            /** Format: float */
-            score: number;
-            doc: components["schemas"]["DocSearchDocument"];
+        /** @description Range information for next edit suggestion mode */
+        EditRange: {
+            /**
+             * Format: int32
+             * @description Start line of the edit (0-based)
+             */
+            start_line: number;
+            /**
+             * Format: int32
+             * @description Start character position within the line (0-based)
+             */
+            start_character: number;
+            /**
+             * Format: int32
+             * @description End line of the edit (0-based)
+             */
+            end_line: number;
+            /**
+             * Format: int32
+             * @description End character position within the line (0-based)
+             */
+            end_character: number;
         };
         HealthState: {
             model?: string | null;
@@ -257,10 +273,18 @@ export interface components {
              *
              *     Sorted in descending order of [Snippet::score]. */
             relevant_snippets_from_changed_files?: components["schemas"]["Snippet"][] | null;
-            /** @description The relevant code snippets extracted from recently opened files. These snippets are selected from candidates found within code chunks based on the last visited location. Current Active file is excluded from the search candidates. When provided with [Segments::relevant_snippets_from_changed_files], the snippets have already been deduplicated to ensure no duplication with entries in [Segments::relevant_snippets_from_changed_files]. */
+            /** @description The relevant code snippets extracted from recently opened files.
+             *     These snippets are selected from candidates found within code chunks
+             *     based on the last visited location.
+             *
+             *     Current Active file is excluded from the search candidates.
+             *     When provided with [Segments::relevant_snippets_from_changed_files], the snippets have
+             *     already been deduplicated to ensure no duplication with entries
+             *     in [Segments::relevant_snippets_from_changed_files]. */
             relevant_snippets_from_recently_opened_files?: components["schemas"]["Snippet"][] | null;
             /** @description Clipboard content when requesting code completion. */
             clipboard?: string | null;
+            edit_history?: components["schemas"]["EditHistory"] | null;
         };
         ServerSetting: {
             disable_client_side_telemetry: boolean;

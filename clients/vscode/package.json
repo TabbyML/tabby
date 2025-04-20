@@ -45,6 +45,16 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.nextEditSuggestion.trigger",
+        "title": "Trigger Next Edit Suggestion",
+        "category": "Tabby"
+      },
+      {
+        "command": "tabby.acceptNESCompletion",
+        "title": "Accept Next Edit Suggestion",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.connectToServer",
         "title": "Connect to Server...",
         "category": "Tabby"
@@ -209,6 +219,9 @@
         {
           "command": "tabby.inlineCompletion.trigger",
           "when": "tabby.inlineCompletionTriggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
+        },
+        {
+          "command": "tabby.nextEditSuggestion.trigger"
         },
         {
           "command": "tabby.updateToken",
@@ -411,6 +424,11 @@
         "key": "alt+\\",
         "command": "tabby.inlineCompletion.trigger",
         "when": "tabby.inlineCompletionTriggerMode === 'manual' && editorTextFocus && !editorHasSelection && !inlineSuggestionsVisible"
+      },
+      {
+        "command": "tabby.acceptNESCompletion",
+        "key": "tab",
+        "when": "editorTextFocus && tabby.nesCompletionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
         "command": "tabby.inlineCompletion.accept",
