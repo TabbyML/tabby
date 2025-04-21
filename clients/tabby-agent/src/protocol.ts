@@ -157,7 +157,7 @@ export type ClientCapabilities = LspClientCapabilities & {
 };
 
 export type ServerCapabilities = LspServerCapabilities & {
-  tabby?: any;
+  tabby?: Record<string, never>;
 };
 
 export namespace ChatFeatures {
