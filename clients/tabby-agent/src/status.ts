@@ -243,8 +243,7 @@ export class StatusProvider extends EventEmitter implements Feature {
             const ignored = this.dataStore.data.statusIgnoredIssues ?? [];
             if (!this.completionProvider.isAvailable()) {
               statusInfo = { status: "codeCompletionNotAvailable" };
-            }
-            if (this.completionProvider.isRateLimitExceeded()) {
+            } else if (this.completionProvider.isRateLimitExceeded()) {
               statusInfo = { status: "rateLimitExceeded" };
             } else if (
               this.completionProvider.getLatencyIssue() != undefined &&
