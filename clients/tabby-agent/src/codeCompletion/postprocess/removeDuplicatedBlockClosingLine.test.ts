@@ -5,12 +5,11 @@ describe("postprocess", () => {
   describe("removeDuplicatedBlockClosingLine", () => {
     const filter = removeDuplicatedBlockClosingLine();
     it("should remove duplicated block closing line.", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         function hello() {
           ║
         }
       `;
-      context.language = "javascript";
       const completion = inline`
           ├console.log("hello");
         }┤
@@ -23,7 +22,7 @@ describe("postprocess", () => {
     });
 
     it("should remove duplicated block closing line.", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         function check(condition) {
           if (!condition) {
             ║
@@ -32,7 +31,6 @@ describe("postprocess", () => {
           }
         }
       `;
-      context.language = "javascript";
       const completion = inline`
             ├throw new Error("check not passed");
           }┤
@@ -46,13 +44,12 @@ describe("postprocess", () => {
     });
 
     it("should not remove non-duplicated block closing line.", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         function check(condition) {
           if (!condition) {
             ║
         }
       `;
-      context.language = "javascript";
       const completion = inline`
             ├throw new Error("check not passed");
           }┤

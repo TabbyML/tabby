@@ -1,6 +1,6 @@
 import type { Connection, CancellationToken, Range, URI } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import type { TextDocuments } from "../lsp/textDocuments";
+import type { TextDocuments } from "../extensions/textDocuments";
 import type { Feature } from "../feature";
 import type { Configurations } from "../config";
 import {
@@ -102,7 +102,7 @@ export class ChatEditProvider implements Feature {
     return result;
   }
 
-  async fetchFileContent(uri: URI, range?: Range, token?: CancellationToken) {
+  async fetchFileContent(uri: URI, range: Range | undefined, token: CancellationToken) {
     this.logger.trace("Prepare to fetch text content...");
     let text: string | undefined = undefined;
     const targetDocument = this.documents.get(uri);

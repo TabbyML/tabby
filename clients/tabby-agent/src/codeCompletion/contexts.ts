@@ -1,312 +1,180 @@
-import type { components as TabbyApiComponents } from "tabby-openapi/compatible";
-import type { ConfigData } from "../config/type";
-import path from "path";
-import hashObject from "object-hash";
-import { splitLines, isBlank, regOnlyAutoClosingCloseChars } from "../utils/string";
+import type { Position, Range, SelectedCompletionInfo } from "vscode-languageserver";
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { splitLines } from "../utils/string";
+import { documentRange, rangeInDocument } from "../utils/range";
+import { getLogger } from "../logger";
+import { CodeSearchResult } from "../codeSearch";
+import { TextDocumentRangeContext } from "../contextProviders/documentContexts";
+import { WorkspaceContext } from "../contextProviders/workspace";
+import { GitContext } from "../contextProviders/git";
+import { EditorOptionsContext } from "../contextProviders/editorOptions";
 
-export type CompletionRequest = {
-  filepath: string;
-  language: string;
-  text: string;
-  position: number;
-  indentation?: string;
-  clipboard?: string;
-  manually?: boolean;
-  workspace?: string;
-  git?: {
-    root: string;
-    remotes: {
-      name: string;
-      url: string;
-    }[];
-  };
-  declarations?: Declaration[];
-  relevantSnippetsFromChangedFiles?: CodeSnippet[];
-  relevantSnippetsFromOpenedFiles?: CodeSnippet[];
-  //auto complete part
-  autoComplete?: {
-    completionItem?: string;
-    insertPosition?: number;
-    insertSeg?: string;
-    currSeg?: string;
-  };
-};
+const logger = getLogger("CodeCompletionContext");
 
-export type Declaration = {
-  filepath: string;
-  text: string;
-  offset?: number;
-};
+export interface CompletionContext {
+  readonly document: TextDocument;
+  readonly position: Position;
+  readonly selectedCompletionInfo?: SelectedCompletionInfo;
+  readonly notebookCells?: TextDocument[];
 
-export type CodeSnippet = {
-  filepath: string;
-  offset: number;
-  text: string;
-  score: number;
-};
+  // calculated from selectedCompletionInfo, this insertion text is already included in prefix
+  readonly selectedCompletionInsertion: string;
 
-function isAtLineEndExcludingAutoClosedChar(suffix: string) {
-  return suffix.trimEnd().match(regOnlyAutoClosingCloseChars);
+  // the line suffix is empty or should be replaced, in this case, the line suffix is already excluded from suffix
+  readonly isLineEnd: boolean;
+  readonly lineEndReplaceLength: number;
+
+  // calculated from contexts, do not equal to document prefix and suffix
+  readonly prefix: string;
+  readonly suffix: string;
+
+  // redundant quick access for prefix and suffix
+  readonly prefixLines: string[];
+  readonly suffixLines: string[];
+  readonly currentLinePrefix: string;
+  readonly currentLineSuffix: string;
 }
 
-export class CompletionContext {
-  filepath: string;
-  language: string;
-  indentation?: string;
-  text: string;
-  position: number;
-
-  prefix: string;
-  suffix: string;
-  prefixLines: string[];
-  suffixLines: string[];
-  currentLinePrefix: string;
-  currentLineSuffix: string;
-
-  clipboard: string;
-
-  workspace?: string;
-  git?: {
-    root: string;
-    remotes: {
-      name: string;
-      url: string;
-    }[];
-  };
-
-  declarations?: Declaration[];
-  relevantSnippetsFromChangedFiles?: CodeSnippet[];
-  snippetsFromOpenedFiles?: CodeSnippet[];
-  // "default": the cursor is at the end of the line
-  // "fill-in-line": the cursor is not at the end of the line, except auto closed characters
-  //   In this case, we assume the completion should be a single line, so multiple lines completion will be dropped.
-  mode: "default" | "fill-in-line";
-  hash: string;
-
-  // example of auto complete part
-  // cons| -> console
-  // completionItem: console
-  // insertPosition: 4
-  // insertSeg: ole
-  // currSeg: cons
-  completionItem: string = "";
-  insertPosition: number = 0;
-  insertSeg: string = "";
-  currSeg: string = "";
-  withCorrectCompletionItem: boolean = false; // weather we are using completionItem or not
-
-  // is current suffix is at end of line excluding auto closed char
-  lineEnd: RegExpMatchArray | null = null;
-
-  constructor(request: CompletionRequest) {
-    this.filepath = request.filepath;
-    this.language = request.language;
-    this.indentation = request.indentation;
-    this.position = request.position;
-    this.text = request.text;
-    this.prefix = this.text.slice(0, this.position);
-    this.suffix = this.text.slice(this.position);
-
-    if (request.autoComplete?.completionItem) {
-      this.handleAutoComplete(request);
-    }
-
-    this.prefixLines = splitLines(this.prefix);
-    this.suffixLines = splitLines(this.suffix);
-    this.currentLinePrefix = this.prefixLines[this.prefixLines.length - 1] ?? "";
-    this.currentLineSuffix = this.suffixLines[0] ?? "";
-    this.clipboard = request.clipboard?.trim() ?? "";
-    this.workspace = request.workspace;
-    this.git = request.git;
-    this.declarations = request.declarations;
-    this.relevantSnippetsFromChangedFiles = request.relevantSnippetsFromChangedFiles;
-    this.snippetsFromOpenedFiles = request.relevantSnippetsFromOpenedFiles;
-
-    this.lineEnd = isAtLineEndExcludingAutoClosedChar(this.currentLineSuffix);
-    this.mode = this.lineEnd ? "default" : "fill-in-line";
-    this.hash = hashObject({
-      filepath: this.filepath,
-      language: this.language,
-      prefix: this.prefix,
-      currentLineSuffix: this.lineEnd ? "" : this.currentLineSuffix,
-      nextLines: this.suffixLines.slice(1).join(""),
-      position: this.position,
-      clipboard: this.clipboard,
-      declarations: this.declarations,
-      relevantSnippetsFromChangedFiles: this.relevantSnippetsFromChangedFiles,
-      completionItem: this.completionItem,
-      insertPosition: this.insertPosition,
-      insertSeg: this.insertSeg,
-      currSeg: this.currSeg,
-    });
-  }
-
-  // is valid for completion.
-  isValid() {
-    return !isBlank(this.prefix);
-  }
-
-  // Generate a CompletionContext based on this CompletionContext.
-  // Simulate as if the user input new text based on this CompletionContext.
-  // FIXME: generate the context according to `selectedCompletionInfo`
-  forward(delta: string) {
-    return new CompletionContext({
-      filepath: this.filepath,
-      language: this.language,
-      text: this.text.substring(0, this.position) + delta + this.text.substring(this.position),
-      position: this.position + delta.length,
-      indentation: this.indentation,
-      workspace: this.workspace,
-      git: this.git,
-      declarations: this.declarations,
-      relevantSnippetsFromChangedFiles: this.relevantSnippetsFromChangedFiles,
-      relevantSnippetsFromOpenedFiles: this.snippetsFromOpenedFiles,
-      autoComplete: {
-        completionItem: this.completionItem,
-        insertPosition: this.insertPosition,
-        insertSeg: this.insertSeg,
-        currSeg: this.currSeg,
-      },
-    });
-  }
-
-  /**
-   * The method handles the auto complete part of the completion request.
-   * @param request completion request
-   * @returns void
-   */
-  private handleAutoComplete(request: CompletionRequest): void {
-    if (!request.autoComplete?.completionItem) return;
-    // check if the completion item is the same as the curr segment
-    if (!request.autoComplete.currSeg || !request.autoComplete.completionItem.startsWith(request.autoComplete.currSeg))
-      return;
-
-    this.completionItem = request.autoComplete.completionItem;
-    this.currSeg = request.autoComplete.currSeg ?? "";
-    this.insertSeg = request.autoComplete.insertSeg ?? "";
-
-    const prefixText = request.text.slice(0, request.position);
-    const lastIndex = prefixText.lastIndexOf(this.currSeg);
-
-    if (lastIndex !== -1) {
-      this.insertPosition = lastIndex + this.currSeg.length;
-
-      this.text = request.text.slice(0, lastIndex) + this.completionItem + request.text.slice(this.insertPosition);
-
-      this.position = lastIndex + this.completionItem.length;
-
-      this.prefix = this.text.slice(0, this.position);
-      this.suffix = this.text.slice(this.position);
-      this.withCorrectCompletionItem = true;
+export function buildCompletionContext(
+  document: TextDocument,
+  position: Position,
+  selectedCompletionInfo?: SelectedCompletionInfo,
+  notebookCells?: TextDocument[],
+): CompletionContext {
+  let selectedCompletionInsertion = "";
+  if (selectedCompletionInfo) {
+    // Handle selected completion info only if replacement matches prefix
+    // Handle: con -> console
+    // Ignore: cns -> console
+    const replaceRange = converToObjectRange(selectedCompletionInfo.range);
+    if (
+      replaceRange.start.line == position.line &&
+      replaceRange.start.character < position.character &&
+      replaceRange.end.line == position.line &&
+      replaceRange.end.character == position.character
+    ) {
+      const replaceLength = replaceRange.end.character - replaceRange.start.character;
+      selectedCompletionInsertion = selectedCompletionInfo.text.substring(replaceLength);
+      logger.trace("Used selected completion insertion: ", { selectedCompletionInsertion });
     }
   }
-  isWithCorrectAutoComplete(): boolean {
-    return this.withCorrectCompletionItem;
-  }
 
-  getFullCompletionItem(): string | null {
-    return this.isWithCorrectAutoComplete() ? this.completionItem : null;
-  }
-
-  // Build segments for TabbyApi
-  buildSegments(config: ConfigData["completion"]["prompt"]): TabbyApiComponents["schemas"]["Segments"] {
-    // prefix && suffix
-    const prefix = this.prefixLines.slice(Math.max(this.prefixLines.length - config.maxPrefixLines, 0)).join("");
-    let suffix = this.suffixLines.slice(0, config.maxSuffixLines).join("");
-    // if it's end of line, we don't need to include the suffix
-    if (this.lineEnd) {
-      suffix = "\n" + suffix.split("\n").slice(1).join("\n");
-    }
-
-    // filepath && git_url
-    let relativeFilepathRoot: string | undefined = undefined;
-    let filepath: string | undefined = undefined;
-    let gitUrl: string | undefined = undefined;
-    if (this.git && this.git.remotes.length > 0) {
-      // find remote url: origin > upstream > first
-      const remote =
-        this.git.remotes.find((remote) => remote.name === "origin") ||
-        this.git.remotes.find((remote) => remote.name === "upstream") ||
-        this.git.remotes[0];
-      if (remote) {
-        relativeFilepathRoot = this.git.root;
-        gitUrl = remote.url;
-      }
-    }
-    // if relativeFilepathRoot is not set by git context, use path relative to workspace
-    if (!relativeFilepathRoot && this.workspace) {
-      relativeFilepathRoot = this.workspace;
-    }
-    if (relativeFilepathRoot) {
-      filepath = path.relative(relativeFilepathRoot, this.filepath);
-    }
-
-    // declarations
-    const declarations = this.declarations?.map((declaration) => {
-      let declarationFilepath = declaration.filepath;
-      if (relativeFilepathRoot && declarationFilepath.startsWith(relativeFilepathRoot)) {
-        declarationFilepath = path.relative(relativeFilepathRoot, declarationFilepath);
-      }
-      return {
-        filepath: declarationFilepath,
-        body: declaration.text,
+  let notebookCellsPrefix = "";
+  let notebookCellsSuffix = "";
+  if (notebookCells) {
+    const currentCellIndex = notebookCells.indexOf(document);
+    if (currentCellIndex >= 0 && currentCellIndex < notebookCells.length - 1) {
+      const currentLanguageId = document.languageId;
+      const formatContext = (cells: TextDocument[]): string => {
+        const notebookLanguageComments: { [languageId: string]: (code: string) => string } = {
+          markdown: (code) => "```\n" + code + "\n```",
+          python: (code) =>
+            code
+              .split("\n")
+              .map((l) => "# " + l)
+              .join("\n"),
+        };
+        return cells
+          .map((textDocument) => {
+            if (textDocument.languageId === currentLanguageId) {
+              return textDocument.getText();
+            } else if (Object.keys(notebookLanguageComments).includes(currentLanguageId)) {
+              return notebookLanguageComments[currentLanguageId]?.(textDocument.getText()) ?? "";
+            } else {
+              return "";
+            }
+          })
+          .join("\n\n");
       };
-    });
-
-    // snippets
-    const relevantSnippetsFromChangedFiles = this.relevantSnippetsFromChangedFiles
-      // deduplicate
-      ?.filter(
-        (snippet) =>
-          // Remove snippet if find a declaration from the same file and range is overlapping
-          !this.declarations?.find((declaration) => {
-            return (
-              declaration.filepath === snippet.filepath &&
-              declaration.offset &&
-              // Is range overlapping
-              Math.max(declaration.offset, snippet.offset) <=
-                Math.min(declaration.offset + declaration.text.length, snippet.offset + snippet.text.length)
-            );
-          }),
-      )
-      .map((snippet) => {
-        let snippetFilepath = snippet.filepath;
-        if (relativeFilepathRoot && snippetFilepath.startsWith(relativeFilepathRoot)) {
-          snippetFilepath = path.relative(relativeFilepathRoot, snippetFilepath);
-        }
-        return {
-          filepath: snippetFilepath,
-          body: snippet.text,
-          score: snippet.score,
-        };
-      })
-      .sort((a, b) => b.score - a.score);
-
-    //FIXME(Sma1lboy): deduplicate in next few PR
-    const snippetsOpenedFiles = this.snippetsFromOpenedFiles
-      ?.map((snippet) => {
-        return {
-          filepath: snippet.filepath,
-          body: snippet.text,
-          score: snippet.score,
-        };
-      })
-      .sort((a, b) => b.score - a.score);
-
-    // clipboard
-    let clipboard = undefined;
-    if (this.clipboard.length >= config.clipboard.minChars && this.clipboard.length <= config.clipboard.maxChars) {
-      clipboard = this.clipboard;
+      notebookCellsPrefix = formatContext(notebookCells.slice(0, currentCellIndex)) + "\n\n";
+      notebookCellsSuffix = "\n\n" + formatContext(notebookCells.slice(currentCellIndex + 1));
+      logger.trace("Used notebook cells context:", { notebookCellsPrefix, notebookCellsSuffix });
     }
+  }
+
+  const fullDocumentRange = documentRange(document);
+  const prefixRange = {
+    start: fullDocumentRange.start,
+    end: position,
+  };
+  const documentPrefix = document.getText(prefixRange);
+  const prefix = notebookCellsPrefix + documentPrefix + selectedCompletionInsertion;
+
+  const documentCurrentLineSuffixRange = rangeInDocument(
+    {
+      start: position,
+      end: { line: position.line + 1, character: 0 },
+    },
+    document,
+  );
+  const documentCurrentLineSuffix = documentCurrentLineSuffixRange
+    ? document.getText(documentCurrentLineSuffixRange)
+    : "";
+  const isLineEnd = !!documentCurrentLineSuffix.match(/^\W*$/);
+  const lineEndReplaceLength = isLineEnd ? documentCurrentLineSuffix.replace(/\r?\n$/, "").length : 0;
+
+  const suffixRange = rangeInDocument(
+    {
+      start: { line: position.line, character: position.character + lineEndReplaceLength },
+      end: fullDocumentRange.end,
+    },
+    document,
+  );
+  const documentSuffix = suffixRange ? document.getText(suffixRange) : "";
+
+  const suffix = documentSuffix + notebookCellsSuffix;
+
+  const prefixLines = splitLines(prefix);
+  const suffixLines = splitLines(suffix);
+  const currentLinePrefix = prefixLines[prefixLines.length - 1] ?? "";
+  const currentLineSuffix = suffixLines[0] ?? "";
+
+  return {
+    document,
+    position,
+    selectedCompletionInfo,
+    notebookCells,
+    selectedCompletionInsertion,
+    isLineEnd,
+    lineEndReplaceLength,
+    prefix,
+    suffix,
+    prefixLines,
+    suffixLines,
+    currentLinePrefix,
+    currentLineSuffix,
+  };
+}
+
+export function buildCompletionContextWithAppend(context: CompletionContext, appendText: string): CompletionContext {
+  const offset = context.document.offsetAt(context.position);
+  const updatedText = context.prefix + appendText + context.suffix;
+  const updatedOffset = offset + appendText.length;
+  const updatedDocument = TextDocument.create(
+    context.document.uri,
+    context.document.languageId,
+    context.document.version + 1,
+    updatedText,
+  );
+  const updatedPosition = updatedDocument.positionAt(updatedOffset);
+  return buildCompletionContext(updatedDocument, updatedPosition, undefined, context.notebookCells);
+}
+
+export interface CompletionExtraContexts {
+  workspace?: WorkspaceContext;
+  git?: GitContext;
+  declarations?: TextDocumentRangeContext[];
+  recentlyChangedCodeSearchResult?: CodeSearchResult;
+  lastViewedSnippets?: TextDocumentRangeContext[];
+  editorOptions?: EditorOptionsContext;
+}
+
+function converToObjectRange(range: Range | [Position, Position]): Range {
+  if (Array.isArray(range)) {
     return {
-      prefix,
-      suffix,
-      filepath,
-      git_url: gitUrl,
-      declarations,
-      relevant_snippets_from_changed_files: relevantSnippetsFromChangedFiles,
-      relevant_snippets_from_recently_opened_files: snippetsOpenedFiles,
-      clipboard,
+      start: range[0],
+      end: range[1],
     };
   }
+  return range;
 }

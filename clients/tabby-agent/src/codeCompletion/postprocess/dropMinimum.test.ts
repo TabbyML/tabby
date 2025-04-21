@@ -1,6 +1,6 @@
 import { dropMinimum } from "./dropMinimum";
 import { documentContext, assertFilterResult } from "./testUtils";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
 
 describe("postprocess", () => {
   describe("dropMinimum", () => {
@@ -8,10 +8,9 @@ describe("postprocess", () => {
     const context = documentContext`
       dummy║
     `;
-    context.language = "plaintext";
 
     it("should return null if input is < 4 non-whitespace characters", async () => {
-      const expected = CompletionItem.createBlankItem(context);
+      const expected = new CompletionResultItem("");
       await assertFilterResult(filter, context, "\n", expected);
       await assertFilterResult(filter, context, "\t\n", expected);
       await assertFilterResult(filter, context, "ab\t\n", expected);

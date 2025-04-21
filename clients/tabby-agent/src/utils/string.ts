@@ -310,3 +310,22 @@ export function formatPlaceholders(template: string, replacements: Record<string
     return replacements[key] ?? "";
   });
 }
+
+/**
+ * Crop the text to fit within the specified character limit.
+ * If the text is cropped, it ensures the last line is complete by trimming at the last newline.
+ *
+ * @param text The input text to crop.
+ * @param maxChars The maximum number of characters allowed.
+ * @returns The cropped text.
+ */
+export function cropTextToMaxChars(text: string, maxChars: number): string {
+  if (text.length > maxChars) {
+    text = text.slice(0, maxChars);
+    const lastNewLine = text.lastIndexOf("\n");
+    if (lastNewLine > 0) {
+      text = text.slice(0, lastNewLine + 1);
+    }
+  }
+  return text;
+}

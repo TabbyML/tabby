@@ -1,69 +1,106 @@
+import type { TextDocuments } from "vscode-languageserver";
+import type { TextDocument } from "vscode-languageserver-textdocument";
+import { buildCompletionContextWithAppend, type CompletionContext } from "./contexts";
 import { LRUCache } from "lru-cache";
-import { CompletionSolution, CompletionItem } from "./solution";
-import { getLogger } from "../logger";
+import hashObject from "object-hash";
+import { CompletionSolution, CompletionResultItem } from "./solution";
 
-export class CompletionCache {
-  private readonly logger = getLogger("CompletionCache");
-  private readonly config = {
-    maxCount: 1000,
-    forwardCachingChars: 50,
-  };
-  private cache = new LRUCache<string, CompletionSolution>({
-    max: this.config.maxCount,
-  });
-
-  has(key: string): boolean {
-    return this.cache.has(key);
-  }
-
-  update(value: CompletionSolution): void {
-    this.logger.debug(`Updating completion cache, cache number before updating: ${this.cache.size}`);
-    const solutions = [value, ...this.generateForwardSolutions(value)];
-    solutions.forEach((solution) => {
-      const cachedSolution = this.cache.get(solution.context.hash);
-      if (cachedSolution) {
-        this.cache.set(solution.context.hash, CompletionSolution.merge(cachedSolution, solution));
-      } else {
-        this.cache.set(solution.context.hash, solution);
-      }
+export class CompletionCache extends LRUCache<string, CompletionSolution> {
+  constructor(options?: { max?: number; ttl?: number }) {
+    const max = options?.max ?? 100;
+    const ttl = options?.ttl ?? 5 * 60 * 1000; // 5 minutes
+    super({
+      max,
+      ttl,
     });
-    this.logger.debug(`Updated entries number: ${solutions.length}`);
-    this.logger.debug(`Completion cache updated, cache number: ${this.cache.size}`);
   }
+}
 
-  get(key: string): CompletionSolution | undefined {
-    return this.cache.get(key);
-  }
+export function calculateCompletionContextHash(
+  context: CompletionContext,
+  textDocuments: TextDocuments<TextDocument>,
+): string {
+  return hashObject({
+    document: {
+      uri: context.document.uri,
+      prefix: context.prefix,
+      suffix: context.suffix,
+    },
+    otherDocuments: textDocuments
+      .all()
+      .filter((doc) => doc.uri !== context.document.uri)
+      .map((doc) => ({
+        uri: doc.uri,
+        version: doc.version,
+      })),
+  });
+}
 
-  private generateForwardSolutions(solution: CompletionSolution): CompletionSolution[] {
-    const forwardSolutions: CompletionSolution[] = [];
-    const pushForwardSolution = (item: CompletionItem) => {
-      const existSolution = forwardSolutions.find((solution) => solution.context.hash === item.context.hash);
-      if (existSolution) {
-        existSolution.add(item);
-      } else {
-        forwardSolutions.push(new CompletionSolution(item.context, [item]));
-      }
-    };
-    for (const item of solution.items) {
-      // Forward at current line
-      for (let chars = 1; chars < Math.min(this.config.forwardCachingChars, item.currentLine.length); chars++) {
-        pushForwardSolution(item.forward(chars));
-      }
-      if (item.lines.length > 2) {
-        // current line end
-        pushForwardSolution(item.forward(item.currentLine.length - 1));
-        // next line start
-        pushForwardSolution(item.forward(item.currentLine.length));
-        const nextLine = item.lines[1]!;
-        let spaces = nextLine.search(/\S/);
-        if (spaces < 0) {
-          spaces = nextLine.length - 1;
-        }
-        // next line start, after indent spaces
-        pushForwardSolution(item.forward(item.currentLine.length + spaces));
-      }
+export function generateForwardingContexts(
+  context: CompletionContext,
+  items: CompletionResultItem[],
+  maxForwardingChars = 50,
+): {
+  context: CompletionContext;
+  items: CompletionResultItem[];
+}[] {
+  const forwarding: { appending: string; remaining: string; eventId: CompletionResultItem["eventId"] }[] = [];
+  for (const item of items) {
+    // Forward at current line
+    const steps = Math.min(maxForwardingChars, item.currentLine.length);
+    for (let chars = 1; chars < steps; chars++) {
+      forwarding.push({
+        appending: item.currentLine.slice(0, chars),
+        remaining: item.currentLine.slice(chars),
+        eventId: item.eventId,
+      });
     }
-    return forwardSolutions;
+    if (item.lines.length > 2) {
+      // current line end
+      forwarding.push({
+        appending: item.currentLine.slice(0, item.currentLine.length - 1),
+        remaining: item.currentLine.slice(item.currentLine.length - 1),
+        eventId: item.eventId,
+      });
+      // next line start
+      forwarding.push({
+        appending: item.currentLine.slice(0, item.currentLine.length),
+        remaining: item.currentLine.slice(item.currentLine.length),
+        eventId: item.eventId,
+      });
+      // next line start, after indent spaces
+      const nextLine = item.lines[1]!;
+      let spaces = nextLine.search(/\S/);
+      if (spaces < 0) {
+        spaces = nextLine.length - 1;
+      }
+      forwarding.push({
+        appending: item.currentLine.slice(0, item.currentLine.length + spaces),
+        remaining: item.currentLine.slice(item.currentLine.length + spaces),
+        eventId: item.eventId,
+      });
+    }
   }
+
+  const groupedForwarding = new Map<
+    string,
+    { appending: string; remaining: string; eventId: CompletionResultItem["eventId"] }[]
+  >();
+  for (const entry of forwarding) {
+    if (!groupedForwarding.has(entry.appending)) {
+      groupedForwarding.set(entry.appending, []);
+    }
+    groupedForwarding.get(entry.appending)?.push(entry);
+  }
+
+  return Array.from(groupedForwarding.entries()).map(([appending, entries]) => {
+    const updatedContext = buildCompletionContextWithAppend(context, appending);
+    const results = entries.map((entry) => {
+      return new CompletionResultItem(entry.remaining, entry.eventId);
+    });
+    return {
+      context: updatedContext,
+      items: results,
+    };
+  });
 }

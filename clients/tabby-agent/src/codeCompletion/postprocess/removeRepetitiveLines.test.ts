@@ -5,7 +5,7 @@ describe("postprocess", () => {
   describe("removeRepetitiveLines", () => {
     const filter = removeRepetitiveLines();
     it("should remove repetitive lines", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         function hello() {
           console.log("hello");
         }
@@ -13,7 +13,6 @@ describe("postprocess", () => {
         hello();
         ║
       `;
-      context.language = "javascript";
       const completion = inline`
         ├hello();
         hello();
@@ -33,11 +32,10 @@ describe("postprocess", () => {
     });
 
     it("should remove repetitive lines with patterns", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         const a = 1;
         ║
       `;
-      context.language = "javascript";
       const completion = inline`
         ├const b = 1;
         const c = 1;

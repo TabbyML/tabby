@@ -15,7 +15,7 @@ import {
   ClientProvidedConfig,
   DataStoreRecords,
 } from "./protocol";
-import { TextDocuments } from "./lsp/textDocuments";
+import { TextDocuments } from "./extensions/textDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { deepmerge } from "deepmerge-ts";
 import { isBrowser } from "./env";
@@ -25,20 +25,24 @@ import { Configurations } from "./config";
 import { CertsLoader } from "./certsLoader";
 import { AnonymousUsageLogger } from "./telemetry";
 import { TabbyApiClient } from "./http/tabbyApiClient";
-import { GitContextProvider } from "./git";
-import { RecentlyChangedCodeSearch } from "./codeSearch/recentlyChanged";
+import { TextDocumentReader } from "./contextProviders/documentContexts";
+import { WorkspaceContextProvider } from "./contextProviders/workspace";
+import { GitContextProvider } from "./contextProviders/git";
+import { DeclarationSnippetsProvider } from "./contextProviders/declarationSnippets";
+import { RecentlyChangedCodeSearch } from "./contextProviders/recentlyChangedCodeSearch";
+import { EditorVisibleRangesTracker } from "./contextProviders/editorVisibleRanges";
+import { EditorOptionsProvider } from "./contextProviders/editorOptions";
 import { CodeLensProvider } from "./codeLens";
 import { CompletionProvider } from "./codeCompletion";
 import { ChatFeature } from "./chat";
 import { ChatEditProvider } from "./chat/inlineEdit";
+import { SmartApplyFeature } from "./chat/smartApply";
 import { CommitMessageGenerator } from "./chat/generateCommitMessage";
 import { BranchNameGenerator } from "./chat/generateBranchName";
 import { StatusProvider } from "./status";
 import { CommandProvider } from "./command";
 import { name as serverName, version as serverVersion } from "../package.json";
 import "./utils/array";
-import { SmartApplyFeature } from "./chat/smartApply";
-import { FileTracker } from "./codeSearch/fileTracker";
 
 export class Server {
   private readonly logger = getLogger("TabbyLSP");
@@ -56,9 +60,13 @@ export class Server {
   private readonly anonymousUsageLogger = new AnonymousUsageLogger(this.dataStore, this.configurations);
   private readonly tabbyApiClient = new TabbyApiClient(this.configurations, this.anonymousUsageLogger);
 
+  private readonly textDocumentReader = new TextDocumentReader(this.documents);
+  private readonly workspaceContextProvider = new WorkspaceContextProvider();
   private readonly gitContextProvider = new GitContextProvider();
+  private readonly declarationSnippetsProvider = new DeclarationSnippetsProvider(this.textDocumentReader);
   private readonly recentlyChangedCodeSearch = new RecentlyChangedCodeSearch(this.configurations, this.documents);
-  private readonly fileTracker = new FileTracker(this.configurations);
+  private readonly editorVisibleRangesTracker = new EditorVisibleRangesTracker(this.configurations);
+  private readonly editorOptionsProvider = new EditorOptionsProvider();
 
   private readonly codeLensProvider = new CodeLensProvider(this.documents);
   private readonly completionProvider = new CompletionProvider(
@@ -67,9 +75,13 @@ export class Server {
     this.documents,
     this.notebooks,
     this.anonymousUsageLogger,
+    this.textDocumentReader,
+    this.workspaceContextProvider,
     this.gitContextProvider,
+    this.declarationSnippetsProvider,
     this.recentlyChangedCodeSearch,
-    this.fileTracker,
+    this.editorVisibleRangesTracker,
+    this.editorOptionsProvider,
   );
   private readonly chatFeature = new ChatFeature(this.tabbyApiClient);
   private readonly chatEditProvider = new ChatEditProvider(this.chatFeature, this.configurations, this.documents);
@@ -92,6 +104,25 @@ export class Server {
     this.completionProvider,
   );
   private readonly commandProvider = new CommandProvider(this.chatEditProvider, this.statusProvider);
+
+  private readonly featureComponents = [
+    this.textDocumentReader,
+    this.workspaceContextProvider,
+    this.gitContextProvider,
+    this.declarationSnippetsProvider,
+    this.recentlyChangedCodeSearch,
+    this.editorVisibleRangesTracker,
+    this.editorOptionsProvider,
+    this.completionProvider,
+    this.codeLensProvider,
+    this.chatFeature,
+    this.chatEditProvider,
+    this.commitMessageGenerator,
+    this.branchNameGenerator,
+    this.smartApplyFeature,
+    this.statusProvider,
+    this.commandProvider,
+  ];
 
   async listen() {
     await this.preInitialize();
@@ -167,20 +198,7 @@ export class Server {
     this.logger.debug("Internal components initialized.");
 
     this.logger.debug("Initializing feature components...");
-    const capabilities: ServerCapabilities[] = await [
-      this.gitContextProvider,
-      this.recentlyChangedCodeSearch,
-      this.codeLensProvider,
-      this.completionProvider,
-      this.chatFeature,
-      this.chatEditProvider,
-      this.commitMessageGenerator,
-      this.branchNameGenerator,
-      this.smartApplyFeature,
-      this.statusProvider,
-      this.commandProvider,
-      this.fileTracker,
-    ].mapAsync((feature: Feature) => {
+    const capabilities: ServerCapabilities[] = await this.featureComponents.mapAsync((feature: Feature) => {
       return feature.initialize(this.connection, clientCapabilities, clientProvidedConfig, dataStoreRecords);
     });
     this.logger.debug("Feature components initialized.");
@@ -202,20 +220,14 @@ export class Server {
 
   private async initialized(): Promise<void> {
     this.logger.info("Received initialized notification.");
-    await [
-      this.dataStore,
-      this.configurations,
-      this.statusProvider,
-      this.completionProvider,
-      this.chatFeature,
-    ].mapAsync((feature: Feature) => {
+    await [this.dataStore, this.configurations, ...this.featureComponents].mapAsync((feature: Feature) => {
       return feature.initialized?.(this.connection);
     });
   }
 
   private async shutdown() {
     this.logger.info("Shutting down...");
-    await [this.recentlyChangedCodeSearch, this.completionProvider].mapAsync((feature: Feature) => {
+    await this.featureComponents.mapAsync((feature: Feature) => {
       return feature.shutdown?.();
     });
     await this.tabbyApiClient.shutdown();

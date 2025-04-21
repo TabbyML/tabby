@@ -1,27 +1,14 @@
 import type { Range, ServerCapabilities } from "vscode-languageserver";
 import type { TextDocument, TextDocumentContentChangeEvent } from "vscode-languageserver-textdocument";
-import type { TextDocuments } from "../lsp/textDocuments";
+import type { TextDocuments } from "../extensions/textDocuments";
 import type { Feature } from "../feature";
 import type { Configurations } from "../config";
 import type { ConfigData } from "../config/type";
-import type { DocumentRange } from "./engine";
-import { CodeSearchEngine } from "./engine";
+import type { DocumentRange } from "../utils/types";
+import { CodeSearchEngine, CodeSearchResult } from "../codeSearch";
 import deepEqual from "deep-equal";
-import { getLogger } from "../logger";
 import { unionRange, rangeInDocument } from "../utils/range";
-
-function pickConfig(configData: ConfigData) {
-  return configData.completion.prompt.collectSnippetsFromRecentChangedFiles.indexing;
-}
-
-function getLanguageFilter(languageId: string): string[] {
-  const tsx = ["javascript", "javascriptreact", "typescript", "typescriptreact"];
-  if (tsx.includes(languageId)) {
-    return tsx;
-  } else {
-    return [languageId];
-  }
-}
+import { getLogger } from "../logger";
 
 export class RecentlyChangedCodeSearch implements Feature {
   private readonly logger = getLogger("RecentlyChangedCodeSearch");
@@ -44,6 +31,7 @@ export class RecentlyChangedCodeSearch implements Feature {
     this.setup();
     this.configurations.on("updated", (config: ConfigData, oldConfig: ConfigData) => {
       if (!deepEqual(pickConfig(config), pickConfig(oldConfig))) {
+        this.shutdown();
         this.setup();
       }
     });
@@ -68,20 +56,21 @@ export class RecentlyChangedCodeSearch implements Feature {
 
   private setup() {
     const config = pickConfig(this.configurations.getMergedConfig());
+    if (!config.enabled) {
+      this.logger.info("Recently changed code search is disabled.");
+      return;
+    }
 
-    const engine = new CodeSearchEngine(config);
+    const engine = new CodeSearchEngine(config.indexing);
     this.codeSearchEngine = engine;
 
-    if (this.indexingWorker) {
-      clearInterval(this.indexingWorker);
-    }
     this.indexingWorker = setInterval(async () => {
       let documentRange: DocumentRange | undefined = undefined;
       while ((documentRange = this.pendingDocumentRanges.shift()) != undefined) {
         this.logger.trace("Consuming indexing task.");
         await engine.index(documentRange);
       }
-    }, config.checkingChangesInterval);
+    }, config.indexing.checkingChangesInterval);
     this.logger.info("Created code search engine for recently changed files.");
     this.logger.trace("Created with config.", { config });
   }
@@ -120,11 +109,11 @@ export class RecentlyChangedCodeSearch implements Feature {
     // Expand the range to cropping window
     const expand: Range = {
       start: {
-        line: Math.max(0, mergedEditedRange.start.line - config.prefixLines),
+        line: Math.max(0, mergedEditedRange.start.line - config.indexing.prefixLines),
         character: 0,
       },
       end: {
-        line: Math.min(document.lineCount, mergedEditedRange.end.line + config.suffixLines + 1),
+        line: Math.min(document.lineCount, mergedEditedRange.end.line + config.indexing.suffixLines + 1),
         character: 0,
       },
     };
@@ -139,43 +128,54 @@ export class RecentlyChangedCodeSearch implements Feature {
       timer: setTimeout(() => {
         this.pendingDocumentRanges.push(documentRange);
         this.didChangeEventDebouncingCache.delete(document.uri);
-        this.logger.trace("Created indexing task:", { documentRange });
-      }, config.changesDebouncingInterval),
+        this.logger.trace("Created indexing task:", {
+          document: documentRange.document.uri,
+          range: documentRange.range,
+        });
+      }, config.indexing.changesDebouncingInterval),
     });
   }
 
-  async collectRelevantSnippets(
+  async search(
     query: string,
-    currentDocument: TextDocument,
+    excludes: string[],
+    language: string,
     limit?: number,
-  ): Promise<{ filepath: string; offset: number; text: string; score: number }[] | undefined> {
+  ): Promise<CodeSearchResult | undefined> {
     const engine = this.codeSearchEngine;
     if (!engine) {
       return undefined;
     }
-    const indexed = engine.getIndexed();
-    // Exclude current document from search
-    const filepaths = indexed
+    const indexedDocumentRange = engine.getIndexedDocumentRange();
+
+    const filepaths = indexedDocumentRange
       .map((documentRange) => documentRange.document.uri.toString())
-      .filter((filepath) => filepath !== currentDocument.uri.toString());
+      .filter((filepath) => !excludes.includes(filepath));
     if (filepaths.length < 1) {
       return [];
     }
+
     const options = {
       filepathsFilter: filepaths,
-      languagesFilter: getLanguageFilter(currentDocument.languageId),
+      languagesFilter: getLanguageFilter(language),
       limit,
     };
     this.logger.trace("Search in recently changed files", { query, options });
     const result = await engine.search(query, options);
     this.logger.trace("Search result", { result });
-    return result.map((hit) => {
-      return {
-        filepath: hit.snippet.filepath,
-        offset: hit.snippet.offset,
-        text: hit.snippet.fullText,
-        score: hit.score,
-      };
-    });
+    return result;
+  }
+}
+
+function pickConfig(configData: ConfigData) {
+  return configData.completion.prompt.collectSnippetsFromRecentChangedFiles;
+}
+
+function getLanguageFilter(languageId: string): string[] {
+  const tsx = ["javascript", "javascriptreact", "typescript", "typescriptreact"];
+  if (tsx.includes(languageId)) {
+    return tsx;
+  } else {
+    return [languageId];
   }
 }

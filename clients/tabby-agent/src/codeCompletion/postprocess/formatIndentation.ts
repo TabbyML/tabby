@@ -1,5 +1,6 @@
 import { PostprocessFilter, logger } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
+import { CompletionContext, CompletionExtraContexts } from "../contexts";
 import { isBlank } from "../../utils/string";
 
 function detectIndentation(lines: string[]): string | null {
@@ -45,9 +46,13 @@ function getIndentLevel(line: string, indentation: string): number {
 }
 
 export function formatIndentation(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
-    const context = item.context;
-    const { prefixLines, suffixLines, currentLinePrefix, indentation } = context;
+  return (
+    item: CompletionResultItem,
+    context: CompletionContext,
+    extraContext: CompletionExtraContexts,
+  ): CompletionResultItem => {
+    const { prefixLines, suffixLines, currentLinePrefix } = context;
+    const { indentation } = extraContext.editorOptions ?? {};
     const inputLines = item.lines;
 
     // if no indentation is specified
@@ -96,6 +101,6 @@ export function formatIndentation(): PostprocessFilter {
       }
     });
     logger.trace("Format indentation.", { inputLines, formatted });
-    return item.withText(formatted.join(""));
+    return new CompletionResultItem(formatted.join(""));
   };
 }

@@ -1,12 +1,12 @@
 import { PostprocessFilter, logger } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
+import { CompletionContext } from "../contexts";
 import { isBlank, isBlockClosingLine } from "../../utils/string";
 
 // For remove duplicated block closing line at ( ending of input text ) and ( beginning of suffix text )
 // Should be useful after limitScope
 export function removeDuplicatedBlockClosingLine(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
-    const context = item.context;
+  return (item: CompletionResultItem, context: CompletionContext): CompletionResultItem => {
     const { suffixLines, currentLinePrefix } = context;
     const inputLines = item.lines;
     if (inputLines.length < 2) {
@@ -36,7 +36,7 @@ export function removeDuplicatedBlockClosingLine(): PostprocessFilter {
       suffixBeginningLine.startsWith(inputEndingLine.trimEnd())
     ) {
       logger.trace("Remove duplicated block closing line.", { inputLines, suffixLines });
-      return item.withText(
+      return new CompletionResultItem(
         inputLines
           .slice(0, inputLines.length - 1)
           .join("")

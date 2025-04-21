@@ -1,5 +1,5 @@
 import type { Connection, CancellationToken } from "vscode-languageserver";
-import type { Feature } from "../feature";
+import type { Feature } from "../../feature";
 import type { GitCommandRunner } from "./gitCommand";
 import {
   ClientCapabilities,
@@ -10,8 +10,12 @@ import {
   GitDiffParams,
   GitDiffResult,
   GitDiffRequest,
-} from "../protocol";
+} from "../../protocol";
 import { getGitCommandRunner } from "./gitCommand";
+
+export interface GitContext {
+  repository: GitRepository;
+}
 
 export class GitContextProvider implements Feature {
   private lspConnection: Connection | undefined = undefined;
@@ -26,7 +30,15 @@ export class GitContextProvider implements Feature {
     return {};
   }
 
-  async getRepository(params: GitRepositoryParams, token?: CancellationToken): Promise<GitRepository | null> {
+  async getContext(uri: string, token: CancellationToken): Promise<GitContext | null> {
+    const repository = await this.getRepository({ uri: uri }, token);
+    if (repository) {
+      return { repository };
+    }
+    return null;
+  }
+
+  async getRepository(params: GitRepositoryParams, token: CancellationToken): Promise<GitRepository | null> {
     if (this.lspConnection) {
       return await this.lspConnection.sendRequest(GitRepositoryRequest.type, params, token);
     } else if (this.gitCommandRunner) {
@@ -34,7 +46,8 @@ export class GitContextProvider implements Feature {
     }
     return null;
   }
-  async diff(params: GitDiffParams, token?: CancellationToken): Promise<GitDiffResult | null> {
+
+  async diff(params: GitDiffParams, token: CancellationToken): Promise<GitDiffResult | null> {
     if (this.lspConnection) {
       return await this.lspConnection.sendRequest(GitDiffRequest.type, params, token);
     } else if (this.gitCommandRunner) {

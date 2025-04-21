@@ -1,11 +1,12 @@
 import { PostprocessFilter } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
+import { CompletionContext } from "../contexts";
 import { isBlank } from "../../utils/string";
 
 export function removeDuplicateSuffixLines(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
+  return (item: CompletionResultItem, context: CompletionContext): CompletionResultItem => {
     const text = item?.text;
-    const suffix = item?.context?.suffix;
+    const suffix = context?.suffix;
 
     if (text == null || suffix == null) {
       return item;
@@ -40,7 +41,7 @@ export function removeDuplicateSuffixLines(): PostprocessFilter {
         }
         if (isFullMatch) {
           const remainingLines = originalLines.slice(0, i);
-          return item.withText(remainingLines.join("\n"));
+          return new CompletionResultItem(remainingLines.join("\n"));
         }
       }
     }

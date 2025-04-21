@@ -1,19 +1,20 @@
+import { TextDocument } from "vscode-languageserver-textdocument";
 import type { PostprocessFilter } from "./base";
 import dedent from "dedent";
 import { expect, AssertionError } from "chai";
 import { v4 as uuid } from "uuid";
-import { CompletionContext } from "../contexts";
-import { CompletionItem } from "../solution";
+import { buildCompletionContext, CompletionContext, CompletionExtraContexts } from "../contexts";
+import { CompletionResultItem } from "../solution";
+import { splitLines } from "../../utils/string";
 
 // `║` is the cursor position
 export function documentContext(literals: TemplateStringsArray, ...placeholders: any[]): CompletionContext {
   const doc = dedent(literals, ...placeholders);
-  return new CompletionContext({
-    filepath: uuid(),
-    language: "",
-    text: doc.replace(/║/, ""),
-    position: doc.indexOf("║"),
-  });
+  const lines = splitLines(doc);
+  const language = lines[0]?.trim() ?? "plaintext";
+  const text = "\n" + lines.slice(1).join("");
+  const textDocument = TextDocument.create(uuid(), language, 0, text.replace(/║/, ""));
+  return buildCompletionContext(textDocument, textDocument.positionAt(text.indexOf("║")));
 }
 
 // `├` start of the inline completion to insert
@@ -25,30 +26,26 @@ export function inline(literals: TemplateStringsArray, ...placeholders: any[]): 
   return inline.slice(inline.indexOf("├") + 1, inline.lastIndexOf("┤"));
 }
 
-type TestCompletionItem = CompletionItem | string | { text: string; replacePrefix?: string; replaceSuffix?: string };
+type TestCompletionItem = CompletionResultItem | string;
 
 export async function assertFilterResult(
   filter: PostprocessFilter,
-  context: CompletionContext,
+  context: CompletionContext & CompletionExtraContexts,
   input: TestCompletionItem,
   expected: TestCompletionItem,
 ) {
-  const wrapTestCompletionItem = (testItem: TestCompletionItem): CompletionItem => {
-    let item: CompletionItem;
-    if (testItem instanceof CompletionItem) {
+  const wrapTestCompletionItem = (testItem: TestCompletionItem): CompletionResultItem => {
+    let item: CompletionResultItem;
+    if (testItem instanceof CompletionResultItem) {
       item = testItem;
-    } else if (typeof testItem === "string") {
-      item = new CompletionItem(context, testItem);
     } else {
-      item = new CompletionItem(context, testItem.text, testItem.replacePrefix, testItem.replaceSuffix);
+      item = new CompletionResultItem(testItem);
     }
     return item;
   };
-  const output = await filter(wrapTestCompletionItem(input));
+  const output = await filter(wrapTestCompletionItem(input), context, context);
   const expectedOutput = wrapTestCompletionItem(expected);
   expect(output.text).to.equal(expectedOutput.text);
-  expect(output.replacePrefix).to.equal(expectedOutput.replacePrefix);
-  expect(output.replaceSuffix).to.equal(expectedOutput.replaceSuffix);
 }
 
 export async function assertFilterResultNotEqual(

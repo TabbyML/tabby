@@ -1,10 +1,10 @@
 import { PostprocessFilter, logger } from "./base";
-import { CompletionItem } from "../solution";
+import { CompletionResultItem } from "../solution";
+import { CompletionContext } from "../contexts";
 import { isBlank, calcDistance } from "../../utils/string";
 
 export function dropDuplicated(): PostprocessFilter {
-  return (item: CompletionItem): CompletionItem => {
-    const context = item.context;
+  return (item: CompletionResultItem, context: CompletionContext): CompletionResultItem => {
     // get first n (n <= 3) lines of input and suffix, ignore blank lines
     const { suffixLines } = context;
     const inputLines = item.lines;
@@ -34,7 +34,7 @@ export function dropDuplicated(): PostprocessFilter {
     const distance = calcDistance(inputToCompare, suffixToCompare);
     if (distance <= threshold) {
       logger.trace("Drop completion due to duplicated.", { inputToCompare, suffixToCompare, distance, threshold });
-      return CompletionItem.createBlankItem(context);
+      return new CompletionResultItem("");
     }
     return item;
   };

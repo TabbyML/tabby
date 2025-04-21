@@ -5,14 +5,13 @@ describe("postprocess", () => {
   describe("removeRepetitiveBlocks", () => {
     const filter = removeRepetitiveBlocks();
     it("should remove repetitive blocks", async () => {
-      const context = documentContext`
+      const context = documentContext`javascript
         function myFuncA() {
           console.log("myFuncA called.");
         }
 
         ║
       `;
-      context.language = "javascript";
       const completion = inline`
         ├function myFuncB() {
           console.log("myFuncB called.");
