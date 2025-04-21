@@ -280,7 +280,9 @@ export class CompletionProvider extends EventEmitter implements Feature {
       if (!result) {
         return null;
       }
-      return result.solution.toCompletionList(result.context);
+      const list = result.solution.toCompletionList(result.context);
+      this.logger.info(`Provided inline completion items: ${list.items.length}`);
+      return list;
     } catch (error) {
       return null;
     }
@@ -309,7 +311,9 @@ export class CompletionProvider extends EventEmitter implements Feature {
       if (!result) {
         return null;
       }
-      return result.solution.toInlineCompletionList(result.context);
+      const list = result.solution.toInlineCompletionList(result.context);
+      this.logger.info(`Provided inline completion items: ${list.items.length}`);
+      return list;
     } catch (error) {
       return null;
     }
@@ -353,6 +357,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
     };
     const fetchDeclarations = async () => {
       if (config.fillDeclarations.enabled && prefixRange) {
+        this.logger.debug("Collecting declarations...");
         solution.extraContext.declarations = await this.declarationSnippetsProvider.collect(
           {
             uri: document.uri,
@@ -362,6 +367,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
           false,
           token,
         );
+        this.logger.debug("Completed collecting declarations.");
       }
     };
     const fetchRecentlyChangedCodeSearchResult = async () => {
@@ -422,6 +428,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
     selectedCompletionInfo: SelectedCompletionInfo | undefined,
     token: CancellationToken,
   ): Promise<{ context: CompletionContext; solution: CompletionSolution } | null> {
+    this.logger.info("Generating completions...");
     const config = this.configurations.getMergedConfig();
 
     // Mutex Control
@@ -442,7 +449,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
 
     const document = this.documents.get(textDocument.uri);
     if (!document) {
-      this.logger.trace("Document not found, cancelled.");
+      this.logger.debug("Document not found, cancelled.");
       return null;
     }
 
@@ -459,7 +466,9 @@ export class CompletionProvider extends EventEmitter implements Feature {
     }
 
     const context = buildCompletionContext(document, position, selectedCompletionInfo, notebookCells);
+    this.logger.trace("Completed Building completion context.");
     const hash = calculateCompletionContextHash(context, this.documents);
+    this.logger.trace("Completion hash: ", { hash });
 
     let solution: CompletionSolution | undefined = undefined;
     if (this.cache.has(hash)) {
@@ -493,7 +502,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
         solution = new CompletionSolution();
 
         try {
-          this.logger.info(`Fetching completion context...`);
+          this.logger.info(`Fetching extra completion context...`);
           const extraContextTimeout = 500; // 500ms when automatic trigger
           await this.fetchExtraContext(context, solution, extraContextTimeout, token);
         } catch (error) {
@@ -558,7 +567,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
         solution = solution ?? new CompletionSolution();
 
         try {
-          this.logger.info(`Fetching completion context...`);
+          this.logger.info(`Fetching extra completion context...`);
           await this.fetchExtraContext(context, solution, undefined, token);
         } catch (error) {
           this.logger.info(`Failed to fetch extra context: ${error}`);
@@ -677,7 +686,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
 
     if (solution) {
       this.statisticTracker.addTriggerEntry({ triggerMode: manuallyTriggered ? "manual" : "auto" });
-      this.logger.info(`Completed generating completions, items returned: ${solution.items.length}.`);
+      this.logger.info(`Completed generating completions.`);
       this.logger.trace("Completion solution:", { items: solution.items });
       return { context, solution };
     }

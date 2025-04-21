@@ -128,7 +128,10 @@ export class RecentlyChangedCodeSearch implements Feature {
       timer: setTimeout(() => {
         this.pendingDocumentRanges.push(documentRange);
         this.didChangeEventDebouncingCache.delete(document.uri);
-        this.logger.trace("Created indexing task:", { documentRange });
+        this.logger.trace("Created indexing task:", {
+          document: documentRange.document.uri,
+          range: documentRange.range,
+        });
       }, config.indexing.changesDebouncingInterval),
     });
   }

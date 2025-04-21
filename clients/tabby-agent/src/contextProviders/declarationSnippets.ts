@@ -12,7 +12,7 @@ import type { Connection } from "vscode-languageserver";
 import { intersectionRange, isPositionInRange } from "../utils/range";
 
 export class DeclarationSnippetsProvider implements Feature {
-  private readonly logger = getLogger("TextDocumentReader");
+  private readonly logger = getLogger("DeclarationSnippetsProvider");
 
   private lspConnection: Connection | undefined = undefined;
   private clientCapabilities: ClientCapabilities | undefined = undefined;

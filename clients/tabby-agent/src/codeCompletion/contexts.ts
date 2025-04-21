@@ -1,4 +1,4 @@
-import type { Position, SelectedCompletionInfo } from "vscode-languageserver";
+import type { Position, Range, SelectedCompletionInfo } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { splitLines } from "../utils/string";
 import { documentRange, rangeInDocument } from "../utils/range";
@@ -41,14 +41,12 @@ export function buildCompletionContext(
   selectedCompletionInfo?: SelectedCompletionInfo,
   notebookCells?: TextDocument[],
 ): CompletionContext {
-  logger.trace("Build completion context: ", { document: document.uri, position, selectedCompletionInfo });
-
   let selectedCompletionInsertion = "";
   if (selectedCompletionInfo) {
     // Handle selected completion info only if replacement matches prefix
     // Handle: con -> console
     // Ignore: cns -> console
-    const replaceRange = selectedCompletionInfo.range;
+    const replaceRange = converToObjectRange(selectedCompletionInfo.range);
     if (
       replaceRange.start.line == position.line &&
       replaceRange.start.character < position.character &&
@@ -169,4 +167,14 @@ export interface CompletionExtraContexts {
   recentlyChangedCodeSearchResult?: CodeSearchResult;
   lastViewedSnippets?: TextDocumentRangeContext[];
   editorOptions?: EditorOptionsContext;
+}
+
+function converToObjectRange(range: Range | [Position, Position]): Range {
+  if (Array.isArray(range)) {
+    return {
+      start: range[0],
+      end: range[1],
+    };
+  }
+  return range;
 }
