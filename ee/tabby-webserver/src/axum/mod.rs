@@ -21,7 +21,7 @@ pub trait FromAuth<S> {
     async fn build(state: S, token: Option<String>) -> Self;
 }
 
-#[cfg_attr(text, axum::debug_handler)]
+#[cfg_attr(test, axum::debug_handler)]
 pub async fn graphql<S, C>(
     State(state): State<C>,
     Extension(schema): Extension<S>,

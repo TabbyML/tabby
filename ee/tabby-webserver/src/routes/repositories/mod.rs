@@ -23,11 +23,11 @@ pub fn routes(
     auth: Arc<dyn AuthenticationService>,
 ) -> Router {
     Router::new()
-        .route("/:kind/:id/resolve/", routing::get(resolve_path))
-        .route("/:kind/:id/resolve/*path", routing::get(resolve_path))
+        .route("/{kind}/{id}/resolve/", routing::get(resolve_path))
+        .route("/{kind}/{id}/resolve/{*path}", routing::get(resolve_path))
         // Routes support viewing a specific revision of a repository
-        .route("/:kind/:id/rev/:rev/", routing::get(resolve_path))
-        .route("/:kind/:id/rev/:rev/*path", routing::get(resolve_path))
+        .route("/{kind}/{id}/rev/{rev}/", routing::get(resolve_path))
+        .route("/{kind}/{id}/rev/{rev}/{*path}", routing::get(resolve_path))
         .with_state(Arc::new(ResolveState::new(repository)))
         .fallback(not_found)
         .layer(from_fn_with_state(auth, require_login_middleware))

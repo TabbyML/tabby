@@ -4,6 +4,8 @@ use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use tabby_common::api::server_setting::ServerSetting;
+
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ModelInfo {
     completion: Option<Vec<String>>,

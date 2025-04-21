@@ -18,7 +18,7 @@ pub trait IntoData {
 impl IntoData for ws::Message {
     fn into_data(self) -> Option<Vec<u8>> {
         match self {
-            ws::Message::Binary(x) => Some(x),
+            ws::Message::Binary(x) => Some(x.to_vec()),
             _ => None,
         }
     }
