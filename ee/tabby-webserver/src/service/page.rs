@@ -793,31 +793,29 @@ async fn generate_section_with_attachments(
                 &config.code_search_params,
                 None,
             ).await?;
+            let debug_data = if debug_query_request {
+                Some(AttachmentCodeQueryDebugData {
+                    source_id: source_id.clone(),
+                    query: query_content,
+                })
+            } else {
+                None
+            };
 
             attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
+            let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
             if !hits.is_empty() {
-                let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                 db.update_page_section_code_attachments(section_id, &attachment.code.iter().map(|c| c.into()).collect::<Vec<_>>()).await?;
-
-                let debug_data = if debug_query_request {
-                    Some(AttachmentCodeQueryDebugData {
-                        source_id: source_id.clone(),
-                        query: query_content,
-                    })
-                } else {
-                    None
-                };
-
-                yield Ok(SectionRunItem::PageSectionAttachmentCode(
-                    PageSectionAttachmentCode {
-                        id: section_id.as_id(),
-                        codes: hits,
-
-                        debug_data,
-                    }
-                ));
             }
+            yield Ok(SectionRunItem::PageSectionAttachmentCode(
+                PageSectionAttachmentCode {
+                    id: section_id.as_id(),
+                    codes: hits,
+
+                    debug_data,
+                }
+            ));
         }
 
         if let Some(doc_query) = doc_query {
@@ -832,39 +830,39 @@ async fn generate_section_with_attachments(
                     true
                 }
             }).collect::<Vec<_>>();
+            let debug_data = if debug_query_request {
+                Some(AttachmentDocQueryDebugData {
+                    source_ids: doc_query.source_ids.clone().unwrap_or_default(),
+                    query: doc_query.content.clone(),
+                })
+            } else {
+                None
+            };
 
-            if !hits.is_empty() {
-                let hits = futures::future::join_all(hits.into_iter().map(|x| {
-                    let score = x.score;
-                    let doc = x.doc.clone();
-                    let auth = auth.clone();
-                    async move {
-                        AttachmentDocHit {
-                            score: score as f64,
-                            doc: attachment_doc_from_search(auth, doc).await,
-                        }
+            let hits = futures::future::join_all(hits.into_iter().map(|x| {
+                let score = x.score;
+                let doc = x.doc.clone();
+                let auth = auth.clone();
+                async move {
+                    AttachmentDocHit {
+                        score: score as f64,
+                        doc: attachment_doc_from_search(auth, doc).await,
                     }
-                })).await;
+                }
+            })).await;
+            if !hits.is_empty() {
                 attachment.doc = hits.clone().into_iter().map(|x| x.doc).collect::<Vec<_>>();
                 db.update_page_section_doc_attachments(section_id, &attachment.doc.iter().map(|c| c.into()).collect::<Vec<_>>()).await?;
-
-                let debug_data = if debug_query_request {
-                    Some(AttachmentDocQueryDebugData {
-                        source_ids: doc_query.source_ids.clone().unwrap_or_default(),
-                        query: doc_query.content.clone(),
-                    })
-                } else {
-                    None
-                };
-                yield Ok(SectionRunItem::PageSectionAttachmentDoc(
-                    PageSectionAttachmentDoc {
-                        id: section_id.as_id(),
-                        doc: hits,
-
-                        debug_data,
-                    }
-                ));
             }
+
+            yield Ok(SectionRunItem::PageSectionAttachmentDoc(
+                PageSectionAttachmentDoc {
+                    id: section_id.as_id(),
+                    doc: hits,
+
+                    debug_data,
+                }
+            ));
         }
 
         // Generate section content
