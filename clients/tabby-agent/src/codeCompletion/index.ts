@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import type {
   Connection,
   CancellationToken,
@@ -18,7 +19,7 @@ import type { TextDocuments } from "../lsp/textDocuments";
 import type { AnonymousUsageLogger } from "../telemetry";
 import type { Feature } from "../feature";
 import type { Configurations } from "../config";
-import type { TabbyApiClient } from "../http/tabbyApiClient";
+import type { TabbyApiClient, TabbyApiClientStatus } from "../http/tabbyApiClient";
 import type { GitContextProvider } from "../git";
 import type { RecentlyChangedCodeSearch } from "../codeSearch/recentlyChanged";
 import {
@@ -46,26 +47,32 @@ import {
   GitRepository,
 } from "../protocol";
 import { CompletionCache } from "./cache";
-import { CompletionDebounce } from "./debounce";
-import { CompletionStats } from "./statistics";
+import { CompletionDebouncer, DebouncingContext } from "./debouncer";
+import { CompletionStatisticsEntry, CompletionStatisticsTracker } from "./statistics";
 import { CompletionContext, CompletionRequest } from "./contexts";
 import { CompletionSolution, CompletionItem } from "./solution";
 import { preCacheProcess, postCacheProcess } from "./postprocess";
 import { getLogger } from "../logger";
 import { abortSignalFromAnyOf } from "../utils/signal";
 import { splitLines, extractNonReservedWordList } from "../utils/string";
-import { MutexAbortError, isCanceledError } from "../utils/error";
+import { MutexAbortError, isCanceledError, isRateLimitExceededError } from "../utils/error";
 import { isPositionInRange, intersectionRange } from "../utils/range";
 import { FileTracker } from "../codeSearch/fileTracker";
+import { ConfigData } from "../config/type";
+import { analyzeMetrics, buildHelpMessageForLatencyIssue, LatencyTracker } from "./latencyTracker";
 
-export class CompletionProvider implements Feature {
+export class CompletionProvider extends EventEmitter implements Feature {
   private readonly logger = getLogger("CompletionProvider");
 
-  private readonly completionCache = new CompletionCache();
-  private readonly completionDebounce = new CompletionDebounce();
-  private readonly completionStats = new CompletionStats();
+  private readonly cache = new CompletionCache();
+  private readonly debouncer = new CompletionDebouncer();
+  private readonly statisticTracker = new CompletionStatisticsTracker();
+  private readonly latencyTracker = new LatencyTracker();
 
-  private submitStatsTimer: ReturnType<typeof setInterval> | undefined = undefined;
+  private isApiAvailable = false;
+  private latencyIssue: "highTimeoutRate" | "slowResponseTime" | undefined = undefined;
+  private rateLimitExceeded: boolean = false;
+  private fetchingCompletion: boolean = false;
 
   private lspConnection: Connection | undefined = undefined;
   private clientCapabilities: ClientCapabilities | undefined = undefined;
@@ -75,6 +82,7 @@ export class CompletionProvider implements Feature {
   private inlineCompletionFeatureRegistration: Disposable | undefined = undefined;
 
   private mutexAbortController: AbortController | undefined = undefined;
+  private submitStatsTimer: ReturnType<typeof setInterval> | undefined = undefined;
 
   constructor(
     private readonly configurations: Configurations,
@@ -85,7 +93,82 @@ export class CompletionProvider implements Feature {
     private readonly gitContextProvider: GitContextProvider,
     private readonly recentlyChangedCodeSearch: RecentlyChangedCodeSearch,
     private readonly fileTracker: FileTracker,
-  ) {}
+  ) {
+    super();
+  }
+
+  isAvailable(): boolean {
+    return this.isApiAvailable;
+  }
+
+  getLatencyIssue(): "highTimeoutRate" | "slowResponseTime" | undefined {
+    return this.latencyIssue;
+  }
+
+  getHelpMessage(format?: "plaintext" | "markdown" | "html"): string | undefined {
+    if (!this.isApiAvailable) {
+      return "There is no code completion model available. Please check your server configuration.";
+    }
+    if (this.rateLimitExceeded) {
+      return "The rate limit for the code completion API has been reached. Please try again later.";
+    }
+    if (this.latencyIssue) {
+      return buildHelpMessageForLatencyIssue(
+        this.latencyIssue,
+        {
+          latencyStatistics: this.latencyTracker.calculateLatencyStatistics(),
+          endpoint: this.configurations.getMergedConfig().server.endpoint,
+          serverHealth: this.tabbyApiClient.getServerHealth(),
+        },
+        format,
+      );
+    }
+    return undefined;
+  }
+
+  isRateLimitExceeded(): boolean {
+    return this.rateLimitExceeded;
+  }
+
+  isFetching(): boolean {
+    return this.fetchingCompletion;
+  }
+
+  private updateIsAvailable() {
+    const health = this.tabbyApiClient.getServerHealth();
+    const isAvailable = !!(health && health["model"]);
+    if (this.isApiAvailable != isAvailable) {
+      this.isApiAvailable = isAvailable;
+      this.emit("isAvailableUpdated", isAvailable);
+    }
+  }
+
+  private updateLatencyIssue(issue: "highTimeoutRate" | "slowResponseTime" | undefined) {
+    if (this.latencyIssue != issue) {
+      this.latencyIssue = issue;
+      if (issue) {
+        this.logger.info(`Completion latency issue detected: ${issue}.`);
+      }
+      this.emit("latencyIssueUpdated", issue);
+    }
+  }
+
+  private updateIsRateLimitExceeded(value: boolean) {
+    if (this.rateLimitExceeded != value) {
+      if (value) {
+        this.logger.info(`Rate limit exceeded.`);
+      }
+      this.rateLimitExceeded = value;
+      this.emit("isRateLimitExceededUpdated", value);
+    }
+  }
+
+  private updateIsFetching(value: boolean) {
+    if (this.fetchingCompletion != value) {
+      this.fetchingCompletion = value;
+      this.emit("isFetchingUpdated", value);
+    }
+  }
 
   initialize(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities {
     this.lspConnection = connection;
@@ -124,9 +207,26 @@ export class CompletionProvider implements Feature {
       return this.postEvent(param);
     });
 
+    const config = this.configurations.getMergedConfig();
+    this.debouncer.updateConfig(config.completion.debounce);
+    this.configurations.on("updated", (config: ConfigData) => {
+      this.debouncer.updateConfig(config.completion.debounce);
+    });
+
+    this.updateIsAvailable();
+    this.tabbyApiClient.on("statusUpdated", async (status: TabbyApiClientStatus) => {
+      if (status === "noConnection") {
+        this.updateLatencyIssue(undefined);
+        this.latencyTracker.reset();
+      }
+
+      this.updateIsAvailable();
+      await this.syncFeatureRegistration(connection);
+    });
+
     const submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
     this.submitStatsTimer = setInterval(async () => {
-      await this.submitStats();
+      await this.sendCompletionStatistics();
     }, submitStatsInterval);
 
     return serverCapabilities;
@@ -134,13 +234,10 @@ export class CompletionProvider implements Feature {
 
   async initialized(connection: Connection) {
     await this.syncFeatureRegistration(connection);
-    this.tabbyApiClient.on("statusUpdated", async () => {
-      await this.syncFeatureRegistration(connection);
-    });
   }
 
   private async syncFeatureRegistration(connection: Connection) {
-    if (this.tabbyApiClient.isCodeCompletionApiAvailable()) {
+    if (this.isApiAvailable) {
       if (
         this.clientCapabilities?.textDocument?.completion?.dynamicRegistration &&
         !this.completionFeatureRegistration
@@ -165,14 +262,14 @@ export class CompletionProvider implements Feature {
   }
 
   async shutdown(): Promise<void> {
-    await this.submitStats();
+    await this.sendCompletionStatistics();
     if (this.submitStatsTimer) {
       clearInterval(this.submitStatsTimer);
     }
   }
 
   async provideCompletion(params: CompletionParams, token: CancellationToken): Promise<CompletionList | null> {
-    if (!this.tabbyApiClient.isCodeCompletionApiAvailable()) {
+    if (!this.isApiAvailable) {
       throw {
         name: "CodeCompletionFeatureNotAvailableError",
         message: "Code completion feature not available",
@@ -188,7 +285,7 @@ export class CompletionProvider implements Feature {
       if (!request) {
         return null;
       }
-      const response = await this.provideCompletions(request.request, abortController.signal);
+      const response = await this.handleCompletionRequest(request.request, abortController.signal);
       if (!response) {
         return null;
       }
@@ -202,7 +299,7 @@ export class CompletionProvider implements Feature {
     params: InlineCompletionParams,
     token: CancellationToken,
   ): Promise<InlineCompletionList | null> {
-    if (!this.tabbyApiClient.isCodeCompletionApiAvailable()) {
+    if (!this.isApiAvailable) {
       throw {
         name: "CodeCompletionFeatureNotAvailableError",
         message: "Code completion feature not available",
@@ -218,7 +315,7 @@ export class CompletionProvider implements Feature {
       if (!request) {
         return null;
       }
-      const response = await this.provideCompletions(request.request, abortController.signal);
+      const response = await this.handleCompletionRequest(request.request, abortController.signal);
       if (!response) {
         return null;
       }
@@ -229,7 +326,7 @@ export class CompletionProvider implements Feature {
   }
 
   async postEvent(params: EventParams): Promise<void> {
-    this.completionStats.addEvent(params.type);
+    this.statisticTracker.addEvent(params.type);
     const request = {
       type: params.type,
       select_kind: params.selectKind,
@@ -238,7 +335,11 @@ export class CompletionProvider implements Feature {
       view_id: params.viewId,
       elapsed: params.elapsed,
     };
-    await this.tabbyApiClient.postEvent(request);
+    try {
+      await this.tabbyApiClient.postEvent(request);
+    } catch (error) {
+      // ignore
+    }
   }
 
   private async completionParamsToCompletionRequest(
@@ -369,11 +470,11 @@ export class CompletionProvider implements Feature {
     };
   }
 
-  private async provideCompletions(
+  private async handleCompletionRequest(
     request: CompletionRequest,
     signal?: AbortSignal,
   ): Promise<CompletionSolution | null> {
-    this.logger.debug("Function providedCompletions called.");
+    this.logger.debug("Function handleCompletionRequest called.");
 
     const config = this.configurations.getMergedConfig();
 
@@ -381,8 +482,9 @@ export class CompletionProvider implements Feature {
     if (this.mutexAbortController && !this.mutexAbortController.signal.aborted) {
       this.mutexAbortController.abort(new MutexAbortError());
     }
-    this.mutexAbortController = new AbortController();
-    const signals = abortSignalFromAnyOf([this.mutexAbortController.signal, signal]);
+    const abortController = new AbortController();
+    this.mutexAbortController = abortController;
+    const signals = abortSignalFromAnyOf([abortController.signal, signal]);
 
     // Processing request
     const context = new CompletionContext(request);
@@ -393,9 +495,18 @@ export class CompletionProvider implements Feature {
 
     let solution: CompletionSolution | undefined = undefined;
     let cachedSolution: CompletionSolution | undefined = undefined;
-    if (this.completionCache.has(context.hash)) {
-      cachedSolution = this.completionCache.get(context.hash);
+    if (this.cache.has(context.hash)) {
+      cachedSolution = this.cache.get(context.hash);
     }
+
+    const debouncingContext: DebouncingContext = {
+      triggerCharacter: context.currentLinePrefix.slice(-1),
+      isLineEnd: context.mode === "default",
+      isDocumentEnd: !!context.suffix.match(/^\W*$/),
+      manually: request.manually,
+    };
+
+    const latencyStatsList: CompletionStatisticsEntry[] = [];
 
     try {
       // Resolve solution
@@ -405,14 +516,7 @@ export class CompletionProvider implements Feature {
         // Return cached solution, do not need to fetch more choices
 
         // Debounce before continue processing cached solution
-        await this.completionDebounce.debounce(
-          {
-            request,
-            config: config.completion.debounce,
-            responseTime: 0,
-          },
-          signals,
-        );
+        await this.debouncer.debounce(debouncingContext, signals);
 
         solution = cachedSolution.withContext(context);
         this.logger.info("Completion cache hit.");
@@ -422,12 +526,11 @@ export class CompletionProvider implements Feature {
         // We need to fetch the first choice
 
         // Debounce before fetching
-        const averageResponseTime = this.tabbyApiClient.getCompletionRequestStats().stats().stats.averageResponseTime;
-        await this.completionDebounce.debounce(
+        const averageResponseTime = this.latencyTracker.calculateLatencyStatistics().metrics.averageResponseTime;
+        await this.debouncer.debounce(
           {
-            request,
-            config: config.completion.debounce,
-            responseTime: averageResponseTime,
+            ...debouncingContext,
+            estimatedResponseTime: averageResponseTime,
           },
           signals,
         );
@@ -435,7 +538,10 @@ export class CompletionProvider implements Feature {
 
         // Fetch the completion
         this.logger.info(`Fetching completion...`);
+        this.updateIsFetching(true);
         try {
+          const latencyStats: CompletionStatisticsEntry = {};
+          latencyStatsList.push(latencyStats);
           const response = await this.tabbyApiClient.fetchCompletion(
             {
               language: context.language,
@@ -443,8 +549,10 @@ export class CompletionProvider implements Feature {
               temperature: undefined,
             },
             signals,
-            this.completionStats,
+            latencyStats,
           );
+          this.updateIsRateLimitExceeded(false);
+
           const completionItem = CompletionItem.createFromResponse(context, response);
           // postprocess: preCache
           solution.add(...(await preCacheProcess([completionItem], config.postprocess)));
@@ -452,6 +560,10 @@ export class CompletionProvider implements Feature {
           if (isCanceledError(error)) {
             this.logger.info(`Fetching completion canceled.`);
             solution = undefined;
+          } else if (isRateLimitExceededError(error)) {
+            this.updateIsRateLimitExceeded(true);
+          } else {
+            this.updateIsRateLimitExceeded(false);
           }
         }
       } else {
@@ -461,6 +573,7 @@ export class CompletionProvider implements Feature {
 
         solution = cachedSolution?.withContext(context) ?? new CompletionSolution(context);
         this.logger.info(`Fetching more completions...`);
+        this.updateIsFetching(true);
 
         try {
           let tries = 0;
@@ -469,6 +582,8 @@ export class CompletionProvider implements Feature {
             tries < config.completion.solution.maxTries
           ) {
             tries++;
+            const latencyStats: CompletionStatisticsEntry = {};
+            latencyStatsList.push(latencyStats);
             const response = await this.tabbyApiClient.fetchCompletion(
               {
                 language: context.language,
@@ -476,8 +591,10 @@ export class CompletionProvider implements Feature {
                 temperature: config.completion.solution.temperature,
               },
               signals,
-              this.completionStats,
+              latencyStats,
             );
+            this.updateIsRateLimitExceeded(false);
+
             const completionItem = CompletionItem.createFromResponse(context, response);
             // postprocess: preCache
             solution.add(...(await preCacheProcess([completionItem], config.postprocess)));
@@ -491,13 +608,17 @@ export class CompletionProvider implements Feature {
           if (isCanceledError(error)) {
             this.logger.info(`Fetching completion canceled.`);
             solution = undefined;
+          } else if (isRateLimitExceededError(error)) {
+            this.updateIsRateLimitExceeded(true);
+          } else {
+            this.updateIsRateLimitExceeded(false);
           }
         }
       }
       // Postprocess solution
       if (solution) {
         // Update Cache
-        this.completionCache.update(solution);
+        this.cache.update(solution);
 
         // postprocess: postCache
         solution = solution.withItems(...(await postCacheProcess(solution.items, config.postprocess)));
@@ -510,8 +631,39 @@ export class CompletionProvider implements Feature {
         this.logger.error(`Providing completions failed.`, error);
       }
     }
+
+    if (this.mutexAbortController === abortController) {
+      this.mutexAbortController = undefined;
+      this.updateIsFetching(false);
+    }
+
+    if (latencyStatsList.length > 0) {
+      latencyStatsList.forEach((latencyStats) => {
+        this.statisticTracker.addStatisticsEntry(latencyStats);
+
+        if (latencyStats.latency !== undefined) {
+          this.latencyTracker.add(latencyStats.latency);
+        } else if (latencyStats.timeout) {
+          this.latencyTracker.add(NaN);
+        }
+      });
+      const statsResult = this.latencyTracker.calculateLatencyStatistics();
+      const issue = analyzeMetrics(statsResult);
+      switch (issue) {
+        case "healthy":
+          this.updateLatencyIssue(undefined);
+          break;
+        case "highTimeoutRate":
+          this.updateLatencyIssue("highTimeoutRate");
+          break;
+        case "slowResponseTime":
+          this.updateLatencyIssue("slowResponseTime");
+          break;
+      }
+    }
+
     if (solution) {
-      this.completionStats.addProviderStatsEntry({ triggerMode: request.manually ? "manual" : "auto" });
+      this.statisticTracker.addTriggerEntry({ triggerMode: request.manually ? "manual" : "auto" });
       this.logger.info(`Completed processing completions, choices returned: ${solution.items.length}.`);
       this.logger.trace("Completion solution:", { solution: solution.toInlineCompletionList() });
     }
@@ -872,7 +1024,7 @@ export class CompletionProvider implements Feature {
       const doc = this.documents.get(file.uri);
       if (doc) {
         file.lastVisibleRange.forEach((range: Range) => {
-          this.logger.info(
+          this.logger.debug(
             `Original range: start(${range.start.line},${range.start.character}), end(${range.end.line},${range.end.character})`,
           );
 
@@ -904,7 +1056,7 @@ export class CompletionProvider implements Feature {
             }).length,
           };
 
-          this.logger.info(
+          this.logger.debug(
             `New range: start(${newStart.line},${newStart.character}), end(${newEnd.line},${newEnd.character})`,
           );
 
@@ -915,8 +1067,8 @@ export class CompletionProvider implements Feature {
             text = text.substring(0, chunkSize);
           }
 
-          this.logger.info(`Text length: ${text.length}`);
-          this.logger.info(`Upward chunk size: ${upwardChunkSize}, Downward chunk size: ${downwardChunkSize}`);
+          this.logger.debug(`Text length: ${text.length}`);
+          this.logger.debug(`Upward chunk size: ${upwardChunkSize}, Downward chunk size: ${downwardChunkSize}`);
 
           codeSnippets.push({
             filepath: file.uri,
@@ -932,11 +1084,11 @@ export class CompletionProvider implements Feature {
     return codeSnippets;
   }
 
-  private async submitStats() {
-    const stats = this.completionStats.stats();
-    if (stats["completion_request"]["count"] > 0) {
-      await this.anonymousUsageLogger.event("AgentStats", { stats });
-      this.completionStats.reset();
+  private async sendCompletionStatistics() {
+    const report = this.statisticTracker.report();
+    if (report["completion_request"]["count"] > 0) {
+      await this.anonymousUsageLogger.event("AgentStats", { stats: report });
+      this.statisticTracker.reset();
     }
   }
 }

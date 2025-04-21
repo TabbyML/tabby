@@ -20,6 +20,7 @@ import {
 } from "./protocol";
 import { getLogger } from "./logger";
 import "./utils/array";
+import { CompletionProvider } from "./codeCompletion";
 
 export class StatusProvider extends EventEmitter implements Feature {
   private readonly logger = getLogger("StatusProvider");
@@ -31,6 +32,7 @@ export class StatusProvider extends EventEmitter implements Feature {
     private readonly dataStore: DataStore,
     private readonly configurations: Configurations,
     private readonly tabbyApiClient: TabbyApiClient,
+    private readonly completionProvider: CompletionProvider,
   ) {
     super();
   }
@@ -42,7 +44,7 @@ export class StatusProvider extends EventEmitter implements Feature {
     connection.onRequest(StatusRequest.type, async (params) => {
       if (params?.recheckConnection) {
         await this.configurations.refreshClientProvidedConfig();
-        await this.tabbyApiClient.connect({ reset: true });
+        await this.tabbyApiClient.connect();
       }
       return this.buildStatusInfo({ includeHelpMessage: true });
     });
@@ -64,13 +66,16 @@ export class StatusProvider extends EventEmitter implements Feature {
     this.tabbyApiClient.on("isConnectingUpdated", async () => {
       this.notify();
     });
-    this.tabbyApiClient.on("isFetchingCompletionUpdated", async () => {
+    this.completionProvider.on("isAvailableUpdated", async () => {
       this.notify();
     });
-    this.tabbyApiClient.on("hasCompletionResponseTimeIssueUpdated", async () => {
+    this.completionProvider.on("latencyIssueUpdated", async () => {
       this.notify();
     });
-    this.tabbyApiClient.on("isRateLimitExceededUpdated", async () => {
+    this.completionProvider.on("isRateLimitExceededUpdated", async () => {
+      this.notify();
+    });
+    this.completionProvider.on("isFetchingUpdated", async () => {
       this.notify();
     });
 
@@ -94,46 +99,73 @@ export class StatusProvider extends EventEmitter implements Feature {
 
   async initialized(connection: Connection): Promise<void> {
     if (this.clientCapabilities?.tabby?.statusDidChangeListener) {
-      const statusInfo = await this.buildStatusInfo();
+      const statusInfo = this.buildStatusInfo();
       connection.sendNotification(StatusDidChangeNotification.type, statusInfo);
     }
   }
 
   private async notify() {
-    const statusInfo = await this.buildStatusInfo();
+    const statusInfo = this.buildStatusInfo();
     this.emit("updated", statusInfo);
   }
 
   async showStatusHelpMessage(): Promise<boolean | null> {
-    let params: ShowMessageRequestParams;
-    let issue: StatusIssuesName | undefined = undefined;
-
     const connection = this.lspConnection;
     if (!connection) {
       return null;
     }
 
-    const message = this.tabbyApiClient.getHelpMessage();
-    if (!message) {
-      return false;
+    let params: ShowMessageRequestParams;
+    let issue: StatusIssuesName | undefined = undefined;
+
+    const statusInfo = this.buildStatusInfo();
+    switch (statusInfo.status) {
+      case "disconnected":
+        {
+          const message = this.tabbyApiClient.getHelpMessage();
+          if (!message) {
+            return false;
+          }
+          params = {
+            type: MessageType.Error,
+            message,
+            actions: [{ title: "OK" }],
+          };
+        }
+        break;
+      case "codeCompletionNotAvailable":
+      case "rateLimitExceeded":
+        {
+          const message = this.completionProvider.getHelpMessage();
+          if (!message) {
+            return false;
+          }
+          params = {
+            type: MessageType.Error,
+            message,
+            actions: [{ title: "OK" }],
+          };
+        }
+        break;
+      case "completionResponseSlow":
+        {
+          const message = this.completionProvider.getHelpMessage();
+          if (!message) {
+            return false;
+          }
+          params = {
+            type: MessageType.Info,
+            message,
+            actions: [{ title: "OK" }, { title: "Never Show Again" }],
+          };
+          issue = "completionResponseSlow";
+        }
+        break;
+      default:
+        return false;
+        break;
     }
 
-    if (this.tabbyApiClient.getStatus() === "noConnection") {
-      params = {
-        type: MessageType.Error,
-        message,
-        actions: [{ title: "OK" }],
-      };
-    } else if (this.tabbyApiClient.hasCompletionResponseTimeIssue()) {
-      params = {
-        type: MessageType.Info,
-        message,
-        actions: [{ title: "OK" }, { title: "Never Show Again" }],
-      };
-      issue = "completionResponseSlow";
-    } else {
-      return false;
-    }
     const result = await connection.sendRequest(ShowMessageRequest.type, params);
     switch (result?.title) {
       case "Never Show Again":
@@ -150,7 +182,7 @@ export class StatusProvider extends EventEmitter implements Feature {
     return true;
   }
 
-  async editStatusIgnoredIssues(params: StatusIgnoredIssuesEditParams): Promise<boolean> {
+  private async editStatusIgnoredIssues(params: StatusIgnoredIssuesEditParams): Promise<boolean> {
     const issues = Array.isArray(params.issues) ? params.issues : [params.issues];
     const dataStore = this.dataStore;
     switch (params.operation) {
@@ -196,57 +228,48 @@ export class StatusProvider extends EventEmitter implements Feature {
   private buildStatusInfo(options: { includeHelpMessage?: boolean } = {}): StatusInfo {
     let statusInfo: StatusInfo;
     const apiClientStatus = this.tabbyApiClient.getStatus();
-    switch (apiClientStatus) {
-      case "noConnection":
-        statusInfo = { status: this.tabbyApiClient.isConnecting() ? "connecting" : "disconnected" };
-        break;
-      case "unauthorized":
-        statusInfo = { status: this.tabbyApiClient.isConnecting() ? "connecting" : "unauthorized" };
-        break;
-      case "ready":
-        {
-          const ignored = this.dataStore.data.statusIgnoredIssues ?? [];
-          if (this.tabbyApiClient.isRateLimitExceeded()) {
-            statusInfo = { status: "rateLimitExceeded" };
-          } else if (
-            this.tabbyApiClient.hasCompletionResponseTimeIssue() &&
-            !ignored.includes("completionResponseSlow")
-          ) {
-            statusInfo = { status: "completionResponseSlow" };
-          } else if (this.tabbyApiClient.isFetchingCompletion()) {
-            statusInfo = { status: "fetching" };
-          } else {
-            switch (this.configurations.getClientProvidedConfig().inlineCompletion?.triggerMode) {
-              case "auto":
-                statusInfo = { status: "readyForAutoTrigger" };
-                break;
-              case "manual":
-                statusInfo = { status: "readyForManualTrigger" };
-                break;
-              default:
-                statusInfo = { status: "ready" };
-                break;
+    if (this.tabbyApiClient.isConnecting()) {
+      statusInfo = { status: "connecting" };
+    } else {
+      switch (apiClientStatus) {
+        case "noConnection":
+          statusInfo = { status: "disconnected" };
+          break;
+        case "unauthorized":
+          statusInfo = { status: "unauthorized" };
+          break;
+        case "ready":
+          {
+            const ignored = this.dataStore.data.statusIgnoredIssues ?? [];
+            if (!this.completionProvider.isAvailable()) {
+              statusInfo = { status: "codeCompletionNotAvailable" };
+            } else if (this.completionProvider.isRateLimitExceeded()) {
+              statusInfo = { status: "rateLimitExceeded" };
+            } else if (
+              this.completionProvider.getLatencyIssue() != undefined &&
+              !ignored.includes("completionResponseSlow")
+            ) {
+              statusInfo = { status: "completionResponseSlow" };
+            } else if (this.completionProvider.isFetching()) {
+              statusInfo = { status: "fetching" };
+            } else {
+              switch (this.configurations.getClientProvidedConfig().inlineCompletion?.triggerMode) {
+                case "auto":
+                  statusInfo = { status: "readyForAutoTrigger" };
+                  break;
+                case "manual":
+                  statusInfo = { status: "readyForManualTrigger" };
+                  break;
+                default:
+                  statusInfo = { status: "ready" };
+                  break;
+              }
             }
           }
-        }
-        break;
+          break;
+      }
     }
-    this.fillToolTip(statusInfo);
-    statusInfo.serverHealth = this.tabbyApiClient.getServerHealth();
-    const hasHelpMessage = this.tabbyApiClient.hasHelpMessage();
-    statusInfo.command = hasHelpMessage
-      ? {
-          title: "Detail",
-          command: "tabby/status/showHelpMessage",
-          arguments: [{}],
-        }
-      : undefined;
-    statusInfo.helpMessage =
-      hasHelpMessage && options.includeHelpMessage ? this.tabbyApiClient.getHelpMessage() : undefined;
-    return statusInfo;
-  }
-
-  private fillToolTip(statusInfo: StatusInfo) {
+    let hasHelpMessage = false;
     switch (statusInfo.status) {
       case "connecting":
         statusInfo.tooltip = "Tabby: Connecting to Server...";
@@ -256,6 +279,7 @@ export class StatusProvider extends EventEmitter implements Feature {
         break;
       case "disconnected":
         statusInfo.tooltip = "Tabby: Connect to Server Failed";
+        hasHelpMessage = true;
         break;
       case "ready":
         statusInfo.tooltip = "Tabby: Code Completion Enabled";
@@ -269,14 +293,34 @@ export class StatusProvider extends EventEmitter implements Feature {
       case "fetching":
         statusInfo.tooltip = "Tabby: Generating Completions...";
         break;
-      case "completionResponseSlow":
-        statusInfo.tooltip = "Tabby: Slow Completion Response Detected";
+      case "codeCompletionNotAvailable":
+        statusInfo.tooltip = "Tabby: Code Completion Not Available";
+        hasHelpMessage = true;
         break;
       case "rateLimitExceeded":
         statusInfo.tooltip = "Tabby: Too Many Requests";
+        hasHelpMessage = true;
+        break;
+      case "completionResponseSlow":
+        statusInfo.tooltip = "Tabby: Slow Completion Response Detected";
+        hasHelpMessage = true;
         break;
       default:
         break;
     }
+    statusInfo.serverHealth = this.tabbyApiClient.getServerHealth();
+    if (hasHelpMessage) {
+      statusInfo.command = {
+        title: "Detail",
+        command: "tabby/status/showHelpMessage",
+        arguments: [{}],
+      };
+
+      if (options.includeHelpMessage) {
+        statusInfo.helpMessage = this.tabbyApiClient.getHelpMessage() ?? this.completionProvider.getHelpMessage();
+      }
+    }
+
+    return statusInfo;
   }
 }
