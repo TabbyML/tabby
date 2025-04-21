@@ -31,7 +31,7 @@ pub struct PageSectionDAO {
 }
 
 impl DbConn {
-    pub async fn create_page(&self, author_id: i64, code_source_id: Option<String>) -> Result<i64> {
+    pub async fn create_page(&self, author_id: i64, code_source_id: Option<&str>) -> Result<i64> {
         let res = query!(
             "INSERT INTO pages(author_id, code_source_id) VALUES (?, ?)",
             author_id,

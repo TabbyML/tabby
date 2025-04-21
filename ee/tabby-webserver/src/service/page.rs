@@ -94,6 +94,12 @@ impl PageService for PageServiceImpl {
             .list_thread_messages(&input.thread_id, None, None, None, None)
             .await?;
 
+        // use the first message source id for page
+        let code_source_id = thread_messages
+            .iter()
+            .find_map(|m| m.code_source_id.as_deref())
+            .map(ToOwned::to_owned);
+
         let debug_option = input
             .debug_option
             .as_ref()
@@ -101,11 +107,12 @@ impl PageService for PageServiceImpl {
                 return_chat_completion_request: d.return_chat_completion_request,
                 return_query_request: d.return_query_request,
             });
+
         self.page_run(
             policy,
             author_id,
             None,
-            None,
+            code_source_id.as_deref(),
             None,
             Some(&thread_messages),
             debug_option.as_ref(),
@@ -119,11 +126,17 @@ impl PageService for PageServiceImpl {
         author_id: &ID,
         input: &CreatePageRunInput,
     ) -> Result<PageRunStream> {
+        let code_source_id = if let Some(code_query) = input.code_query.as_ref() {
+            get_source_id(self.context.clone(), policy, code_query).await
+        } else {
+            None
+        };
+
         self.page_run(
             policy,
             author_id,
             Some(&input.title_prompt),
-            input.code_query.as_ref(),
+            code_source_id.as_deref(),
             input.doc_query.as_ref(),
             None,
             input.debug_option.as_ref(),
@@ -215,7 +228,7 @@ impl PageService for PageServiceImpl {
                 Some(new_section_prompt),
                 &existing_page_sections,
                 &page_title,
-                code_source_id,
+                code_source_id.as_deref(),
                 doc_query.as_ref(),
                 None,
                 db,
@@ -356,26 +369,14 @@ impl PageServiceImpl {
         policy: &AccessPolicy,
         author_id: &ID,
         title_prompt: Option<&str>,
-        code_query: Option<&CodeQueryInput>,
+        code_source_id: Option<&str>,
         doc_query: Option<&DocQueryInput>,
         thread_messages: Option<&[Message]>,
         debug_option: Option<&PageRunDebugOptionInput>,
     ) -> Result<PageRunStream> {
-        let code_source_id = if let Some(code_query) = code_query {
-            get_source_id(self.context.clone(), policy, code_query).await
-        } else {
-            // use the first message source id for page
-            thread_messages.and_then(|messages| {
-                messages
-                    .iter()
-                    .find_map(|m| m.code_source_id.as_deref())
-                    .map(ToOwned::to_owned)
-            })
-        };
-
         let page_id = self
             .db
-            .create_page(author_id.as_rowid()?, code_source_id.clone())
+            .create_page(author_id.as_rowid()?, code_source_id)
             .await?
             .as_id();
 
@@ -397,6 +398,17 @@ impl PageServiceImpl {
             )
             .await?;
 
+        let code_source_id = code_source_id.map(ToOwned::to_owned);
+        let doc_query = if let Some(doc_query) = doc_query {
+            Some(doc_query.to_owned())
+        } else {
+            code_source_id.as_ref().map(|code_source_id| DocQueryInput {
+                content: title_prompt.unwrap_or_else(|| &page_title).to_owned(),
+                search_public: false,
+                source_ids: Some(vec![code_source_id.clone()]),
+            })
+        };
+
         let db = self.db.clone();
         let policy = policy.clone();
         let chat = self.chat.clone();
@@ -405,7 +417,6 @@ impl PageServiceImpl {
         let retrieval = self.retrieval.clone();
         let config = self.config.clone();
         let auth = self.auth.clone();
-        let doc_query = doc_query.map(ToOwned::to_owned);
         let page_rowid = page_id.as_rowid()?;
         let debug_option = debug_option.map(|x| PageSectionRunDebugOptionInput {
             return_chat_completion_request: x.return_chat_completion_request,
@@ -496,7 +507,7 @@ impl PageServiceImpl {
                     None,
                     &existed_sections,
                     &page_title,
-                    code_source_id.clone(),
+                    code_source_id.as_deref(),
                     doc_query.as_ref(),
                     thread_messages.as_deref(),
                     db.clone(),
@@ -719,7 +730,7 @@ async fn generate_section_with_attachments(
     section_prompt: Option<String>,
     existing_sections: &[PageSection],
     page_title: &str,
-    code_source_id: Option<String>,
+    code_source_id: Option<&str>,
     doc_query: Option<&DocQueryInput>,
     thread_messages: Option<&[Message]>,
     db: DbConn,
@@ -735,6 +746,7 @@ async fn generate_section_with_attachments(
     let page_title = page_title.to_string();
     let thread_messages = thread_messages.map(ToOwned::to_owned);
     let context_info_helper = context.read(Some(&policy)).await?.helper();
+    let code_source_id = code_source_id.map(ToOwned::to_owned);
     let doc_query = doc_query.map(ToOwned::to_owned);
     let debug_chat_request = debug
         .map(|d| d.return_chat_completion_request)
