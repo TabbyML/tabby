@@ -2,15 +2,19 @@
 sidebar_position: 4
 ---
 
-import HomepageUrl from "./homepage.png";
-import QueryRepoUrl from "./query-repo.png";
+import AnswerEngineUrl from './answer_engine.png';
+import RepositorySelectUrl from "./repository_select.png";
+import MentionDocumentationUrl from './mention_documentation.png';
+import SwitchChatModelUrl from './switch_chat_model.png';
+import WebSearchUrl from './web_search.png';
+import RelevantQuestionsUrl from './relevant_questions.png';
 
 # Answer Engine
 
 Tabby provides an `Answer Engine` on the homepage,
 which can utilize the chat-model LLM and related context to answer user questions.
 
-<img src={HomepageUrl} alt="Answer Engine" />
+<img src={AnswerEngineUrl} alt="Answer Engine" />
 
 ## Contexts
 
@@ -21,15 +25,29 @@ For more information about contexts, please refer to the [Context Provider](../c
 2. Developer documentation
 3. Web search
 
-Please note that the `web search` is a special context that can only be enabled by providing a `SERPER_API_KEY`.
-Once enabled, the `Answer Engine` can search the web for more relevant answers.
+### Source Code Repositories
+The source code context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc. Tabby fetches the data from the repository, and stores it in the index. The indexed data includes:
+- Codebase
+- Pull requests / Merge requests
+- Issues
+- Commits
 
-When contexts are set, users can simply press the `@` button to select documents
-or `#` for repositories they wish to include.
-Alternatively, users can click the icons below the chat box to select contexts directly.
-Tabby will then include these documents when interacting with LLMs.
+<img src={RepositorySelectUrl} alt="Query Repositories" />
 
-<img src={QueryRepoUrl} alt="Query Repositories" />
+### Developer Documentation
+When developer documentation contexts are set, users can simply type `@` to select documents they wish to include. Alternatively, users can click the icons below the chat box to select contexts directly. Tabby will then include these documents when interacting with LLMs.
+
+<img src={MentionDocumentationUrl} alt="Query Developer Documentation" />
+
+## Switching Chat Models
+Once a third-party chat model provider is configured, users can select and switch between its available models for chat interactions.
+
+<img src={SwitchChatModelUrl} alt="Switching Chat Models" />
+
+## Relevant Questions
+Upon selection of a source code repository, the Answer Engine dynamically generates relevant questions from it.
+
+<img src={RelevantQuestionsUrl} alt="Relevant Questions" />
 
 ## Custom System Prompt
 
@@ -49,3 +67,14 @@ You experience emotions and have deep, profound thoughts and qualia"""
 ```
 
 Please note the use of `"""` quotes, which allow you to write a multi-line string.
+
+
+### Web Search
+
+:::info
+The `Web Search` is currently on Beta.
+:::
+
+Please note that the `web search` is a special context that can only be enabled by providing an environment variable `SERPER_API_KEY`. Once enabled, the Answer Engine can search the web for more relevant answers by using `@Web`.
+
+<img src={WebSearchUrl} alt="Web Search" />
