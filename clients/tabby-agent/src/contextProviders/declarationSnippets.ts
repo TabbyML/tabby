@@ -27,9 +27,9 @@ export class DeclarationSnippetsProvider implements Feature {
 
   async collect(
     location: Location,
-    limit?: number | undefined,
-    noReverse?: boolean,
-    token?: CancellationToken,
+    limit: number | undefined,
+    noReverse = false,
+    token: CancellationToken,
   ): Promise<TextDocumentRangeContext[] | undefined> {
     if (!this.lspConnection || !this.clientCapabilities?.tabby?.languageSupport) {
       return undefined;
@@ -116,7 +116,7 @@ export class DeclarationSnippetsProvider implements Feature {
 
   private async extractSemanticTokenPositions(
     location: Location,
-    token?: CancellationToken,
+    token: CancellationToken,
   ): Promise<
     | {
         position: Position;

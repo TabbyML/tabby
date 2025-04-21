@@ -335,8 +335,8 @@ export class CompletionProvider extends EventEmitter implements Feature {
   private async fetchExtraContext(
     context: CompletionContext,
     solution: CompletionSolution,
-    timeout?: number,
-    token?: CancellationToken,
+    timeout: number | undefined,
+    token: CancellationToken,
   ): Promise<void> {
     const config = this.configurations.getMergedConfig().completion.prompt;
     const { document, position } = context;
@@ -349,7 +349,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
       solution.extraContext.workspace = await this.workspaceContextProvider.getWorkspaceContext(document.uri);
     };
     const fetchGitContext = async () => {
-      solution.extraContext.git = (await this.gitContextProvider.getContext(document.uri)) ?? undefined;
+      solution.extraContext.git = (await this.gitContextProvider.getContext(document.uri, token)) ?? undefined;
     };
     const fetchDeclarations = async () => {
       if (config.fillDeclarations.enabled && prefixRange) {
@@ -390,7 +390,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
       }
     };
     const fetchEditorOptions = async () => {
-      solution.extraContext.editorOptions = await this.editorOptionsProvider.getEditorOptions(document.uri);
+      solution.extraContext.editorOptions = await this.editorOptionsProvider.getEditorOptions(document.uri, token);
     };
 
     await new Promise((resolve, reject) => {
@@ -419,8 +419,8 @@ export class CompletionProvider extends EventEmitter implements Feature {
   private async generateCompletions(
     documentPosition: TextDocumentPositionParams,
     manuallyTriggered: boolean,
-    selectedCompletionInfo?: SelectedCompletionInfo | undefined,
-    token?: CancellationToken | undefined,
+    selectedCompletionInfo: SelectedCompletionInfo | undefined,
+    token: CancellationToken,
   ): Promise<{ context: CompletionContext; solution: CompletionSolution } | null> {
     const config = this.configurations.getMergedConfig();
 

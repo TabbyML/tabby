@@ -38,8 +38,8 @@ export class TextDocumentReader implements Feature {
 
   async read(
     documentOrUri: TextDocument | string,
-    range?: Range | undefined,
-    token?: CancellationToken | undefined,
+    range: Range | undefined,
+    token: CancellationToken | undefined,
   ): Promise<TextDocumentRangeContext | undefined> {
     let targetDocument: TextDocument | undefined = undefined;
     let targetUri: string | undefined = undefined;

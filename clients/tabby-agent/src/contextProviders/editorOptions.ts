@@ -18,7 +18,7 @@ export class EditorOptionsProvider implements Feature {
     return {};
   }
 
-  async getEditorOptions(uri: string, token?: CancellationToken): Promise<EditorOptionsContext | undefined> {
+  async getEditorOptions(uri: string, token: CancellationToken): Promise<EditorOptionsContext | undefined> {
     if (this.lspConnection && this.clientCapabilities?.tabby?.editorOptions) {
       const editorOptions: EditorOptions | null = await this.lspConnection.sendRequest(
         EditorOptionsRequest.type,
