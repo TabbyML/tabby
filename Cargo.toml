@@ -52,7 +52,7 @@ regex = "1.10.0"
 strum = { version = "0.24", features = ["derive"] }
 thiserror = "1.0.49"
 utoipa = "5.3"
-axum = { version = "0.8", features = ["macros"] }
+axum = "0.8"
 axum-extra = "0.10"
 hyper = "1.1"
 juniper = "0.16"
