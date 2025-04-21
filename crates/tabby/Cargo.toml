@@ -27,7 +27,7 @@ axum-extra = {workspace = true, features = ["typed-header"]}
 hyper = { workspace = true }
 tokio = { workspace = true }
 utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
-utoipa-swagger-ui = { version = "6", features = ["axum"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
 serde = { workspace = true }
 serdeconv = { workspace = true }
 serde_json = { workspace = true }

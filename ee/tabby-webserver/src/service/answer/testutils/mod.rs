@@ -8,7 +8,7 @@ use async_openai_alt::{
         CreateChatCompletionResponse, CreateChatCompletionStreamResponse, FinishReason, Role,
     },
 };
-use axum::async_trait;
+use async_trait::async_trait;
 use juniper::ID;
 use tabby_common::api::{
     code::{

@@ -40,7 +40,7 @@ pub fn create(
 
     let protected_api = Router::new()
         .route(
-            "/background-jobs/:id/logs",
+            "/background-jobs/{id}/logs",
             routing::get(background_job_logs).with_state(ctx.job()),
         )
         // Add other endpoints that need authentication here
@@ -79,7 +79,7 @@ pub fn create(
             "/repositories",
             repositories::routes(ctx.repository(), ctx.auth()),
         )
-        .route("/avatar/:id", routing::get(avatar).with_state(ctx.auth()))
+        .route("/avatar/{id}", routing::get(avatar).with_state(ctx.auth()))
         .nest("/oauth", oauth::routes(ctx.auth()));
 
     let ui = ui.route(

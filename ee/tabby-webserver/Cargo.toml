@@ -20,7 +20,7 @@ futures.workspace = true
 hyper = { workspace = true, features = ["client"] }
 jsonwebtoken = "9.1.0"
 juniper.workspace = true
-juniper_axum = { version = "0.1", features = ["subscriptions"] }
+juniper_axum = { version = "0.2", features = ["subscriptions"] }
 juniper_graphql_ws = "0.4"
 lazy_static.workspace = true
 ldap3 = "0.11.0"

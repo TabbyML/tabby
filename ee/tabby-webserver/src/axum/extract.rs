@@ -1,7 +1,6 @@
 //! Types and traits for extracting data from [`Request`]s.
 
 use axum::{
-    async_trait,
     extract::FromRequestParts,
     http::{request::Parts, HeaderValue, StatusCode},
 };
@@ -11,7 +10,6 @@ pub struct AuthBearer(pub Option<String>);
 
 pub type Rejection = (StatusCode, &'static str);
 
-#[async_trait]
 impl<B> FromRequestParts<B> for AuthBearer
 where
     B: Send + Sync,

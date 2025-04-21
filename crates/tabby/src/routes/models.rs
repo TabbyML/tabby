@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
+use tabby_common::api::server_setting::ServerSetting;
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]

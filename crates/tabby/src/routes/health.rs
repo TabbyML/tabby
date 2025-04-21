@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, Json};
 
-use crate::services::health;
+use crate::services::health::HealthState;
 
 #[utoipa::path(
     get,
@@ -15,6 +15,6 @@ use crate::services::health;
         ("token" = [])
     )
 )]
-pub async fn health(State(state): State<Arc<health::HealthState>>) -> Json<health::HealthState> {
+pub async fn health(State(state): State<Arc<HealthState>>) -> Json<HealthState> {
     Json(state.as_ref().clone())
 }
