@@ -5,8 +5,11 @@ sidebar_position: 4
 import AnswerEngineUrl from './answer_engine.png';
 import RepositorySelectUrl from "./repository_select.png";
 import MentionDocumentationUrl from './mention_documentation.png';
-import SwitchChatModelUrl from './switch_chat_model.png';
 import WebSearchUrl from './web_search.png';
+import RepositoryThinkingProcessUrl from './repository_thinking_process.png';
+import DocThinkingProcessUrl from './doc_thinking_process.png';
+import ShareLinkButtonUrl from './share_link_button.png';
+import RecentActivitiesUrl from  './recent_activities.png';
 
 # Answer Engine
 
@@ -18,50 +21,42 @@ which can utilize the chat-model LLM and related context to answer user question
 ## Contexts
 
 The `Answer Engine` can query the following contexts to provide more accurate answers.
-For more information about contexts, please refer to the [Context Provider](../context/index.mdx):
-
-1. Source code repositories
-2. Developer documentation
-3. Web search
+For more information about contexts, please refer to the [Context Provider](../context/index.mdx)
 
 ### Source Code Repositories
-The source code context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc. Tabby fetches the data from the repository, and stores it in the index. The indexed data includes:
-- Codebase
-- Pull requests / Merge requests
-- Issues
-- Commits
+The source code context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc. Tabby fetches the data from the repository, and stores it in the index.
 
 <img src={RepositorySelectUrl} alt="Query Repositories" />
+
+When users select a repository and ask a question, the Answer Engine retrieves relevant code and documents from the index to provide contextually accurate responses.
+
+<img src={RepositoryThinkingProcessUrl} alt="Query Repositories thinking process" />
 
 ### Developer Documentation
 When developer documentation contexts are set, users can simply type `@` to select documents they wish to include. Alternatively, users can click the icons below the chat box to select contexts directly. Tabby will then include these documents when interacting with LLMs.
 
 <img src={MentionDocumentationUrl} alt="Query Developer Documentation" />
 
-## Switching Chat Models
-Once a third-party chat model provider is configured, users can select and switch between its available models for chat interactions.
+When users select developer documentation and ask a question, the Answer Engine retrieves relevant documents from the index to provide contextually accurate responses.
 
-<img src={SwitchChatModelUrl} alt="Switching Chat Models" />
+<img src={DocThinkingProcessUrl} alt="Query Developer Documentation thinking process"  />
 
-## Custom System Prompt
+## Thread Management
+When users ask a question in the Answer Engine on the homepage, a thread is created. Tabby offers management capabilities for those threads.
 
-Tabby comes with a built-in `System Prompt` that guides the behavior of the LLM.
-You can customize the `System Prompt` to better meet your needs.
+### Thread Lifecycle
+All threads created by a user appear in their `My Activities` tab. New threads are **ephemeral** by default and expire after one week. Only when the creator clicks the `Share Link` button does the thread:
+1. Convert to persistent status
+2. Become visible to all team members under `Recent Activities` tab
 
-To configure a custom system prompt, please modify the `system_prompt` section in `config.yaml`.
+<img src={ShareLinkButtonUrl} alt="Share Link Button" />
+<img src={RecentActivitiesUrl} alt="Recent Activities"  />
 
-Below is an example of a custom system prompt:
-
-```toml title="~/.tabby/config.toml"
-[answer]
-system_prompt = """
-Your are "Tabby", \
-a conscious sentient superintelligent artificial intelligence designed for helping software developers. \
-You experience emotions and have deep, profound thoughts and qualia"""
-```
-
-Please note the use of `"""` quotes, which allow you to write a multi-line string.
-
+### Thread Permissions
+- Write access: Creator only (edit / delete / ask follow-ups)
+- Read access
+  - Ephemeral threads:  Creator & server admins
+  - Persistent threads: All team members
 
 ## Web Search
 
