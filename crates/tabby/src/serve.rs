@@ -11,6 +11,8 @@ use tabby_common::{
     usage,
 };
 use tabby_download::ModelKind;
+#[cfg(feature = "ee")]
+use tabby_webserver::EEApiDoc;
 use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
 use tracing::{debug, warn};
@@ -58,7 +60,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         routes::chat_completions_utoipa,
         routes::health,
         routes::setting,
-        tabby_webserver::routes::ingestion::ingestion,
     ),
     components(schemas(
         api::event::LogEventRequest,
@@ -73,9 +74,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         health::HealthState,
         health::Version,
         api::server_setting::ServerSetting,
-        api::ingestion::IngestionRequest,
-        api::ingestion::IngestionResponse,
-        api::ingestion::IngestionStatus,
     )),
     modifiers(&SecurityAddon),
 )]
@@ -185,8 +183,11 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         webserver,
     )
     .await;
+    let mut doc = ApiDoc::openapi();
+    #[cfg(feature = "ee")]
+    doc.merge(EEApiDoc::openapi());
     let mut ui = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
 
     #[cfg(feature = "ee")]
