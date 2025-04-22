@@ -12,7 +12,6 @@ mod webserver;
 
 #[cfg(test)]
 pub use service::*;
-
 use tabby_common::api;
 use utoipa::OpenApi;
 
