@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -103,13 +104,27 @@ export default function CustomDocument() {
   const [list, setList] = useState<ListItem[] | undefined>()
   const inputRef = useRef<HTMLInputElement>(null)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [{ fetching, data, stale }] = useQuery({
-    query: listCustomWebDocuments
-  })
 
   const [{ data: userGroupData, fetching: fetchingUserGroups }] = useQuery({
     query: userGroupsQuery
   })
+
+  const [{ fetching, data, stale }, reexecuteQuery] = useQuery({
+    query: listCustomWebDocuments
+  })
+
+  useSWR(
+    ['refresh_docs'],
+    () => {
+      reexecuteQuery()
+    },
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateOnMount: false,
+      refreshInterval: 10 * 1000
+    }
+  )
 
   const clearFilter = () => {
     setFilterPattern('')

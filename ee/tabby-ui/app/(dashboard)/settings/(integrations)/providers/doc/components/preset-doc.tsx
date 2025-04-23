@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { go as fuzzy } from 'fuzzysort'
 import { toast } from 'sonner'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -98,9 +99,22 @@ export default function PresetDocument() {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [{ data, stale }] = useQuery({
+  const [{ data, stale }, reexecuteQuery] = useQuery({
     query: listPresetWebDocuments
   })
+
+  useSWR(
+    ['refresh_docs'],
+    () => {
+      reexecuteQuery()
+    },
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateOnMount: false,
+      refreshInterval: 10 * 1000
+    }
+  )
 
   const setPresetDocumentActive = useMutation(setPresetDocumentActiveMutation)
 
