@@ -57,6 +57,7 @@ pub struct Integration {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub status: IntegrationStatus,
+    pub message: Option<String>,
 }
 
 impl NodeType for Integration {
