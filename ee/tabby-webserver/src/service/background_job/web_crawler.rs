@@ -19,7 +19,7 @@ const CRAWLER_TIMEOUT_SECS: u64 = 7200;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebCrawlerJob {
     source_id: String,
-    url: String,
+    pub url: String,
     url_prefix: Option<String>,
 }
 

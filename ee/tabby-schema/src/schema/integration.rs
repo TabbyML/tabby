@@ -123,6 +123,6 @@ pub trait IntegrationService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<Integration>>;
 
-    async fn get_integration(&self, id: ID) -> Result<Integration>;
+    async fn get_integration(&self, id: &ID) -> Result<Integration>;
     async fn update_integration_sync_status(&self, id: &ID, error: Option<String>) -> Result<()>;
 }

@@ -76,7 +76,7 @@ impl IntegrationService for IntegrationServiceImpl {
             bail!("Self-hosted integrations must specify an API base");
         }
 
-        let integration = self.get_integration(id.clone()).await?;
+        let integration = self.get_integration(&id).await?;
         let access_token_is_changed = access_token
             .as_ref()
             .is_some_and(|token| token != &integration.access_token);
@@ -129,7 +129,7 @@ impl IntegrationService for IntegrationServiceImpl {
             .collect::<Result<_, _>>()?)
     }
 
-    async fn get_integration(&self, id: ID) -> Result<Integration> {
+    async fn get_integration(&self, id: &ID) -> Result<Integration> {
         Ok(self.db.get_integration(id.as_rowid()?).await?.try_into()?)
     }
 
@@ -184,7 +184,7 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = integration.get_integration(id.clone()).await.unwrap();
+        let provider = integration.get_integration(&id).await.unwrap();
         assert_eq!(provider.display_name, "id2");
         assert_eq!(provider.status, IntegrationStatus::Pending);
 
@@ -195,7 +195,7 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = integration.get_integration(id.clone()).await.unwrap();
+        let provider = integration.get_integration(&id).await.unwrap();
         assert_eq!(provider.status, IntegrationStatus::Failed);
 
         // Test successful status (no error)
@@ -204,7 +204,7 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = integration.get_integration(id.clone()).await.unwrap();
+        let provider = integration.get_integration(&id).await.unwrap();
         assert_eq!(provider.status, IntegrationStatus::Ready);
 
         // Deleting using github integration kind should fail since this is a gitlab integration
@@ -250,7 +250,7 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = integration.get_integration(id.clone()).await.unwrap();
+        let provider = integration.get_integration(&id).await.unwrap();
 
         assert_eq!(provider.status, IntegrationStatus::Failed);
 
@@ -266,7 +266,7 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = integration.get_integration(id.clone()).await.unwrap();
+        let provider = integration.get_integration(&id).await.unwrap();
 
         assert_eq!(provider.status, IntegrationStatus::Failed);
 
@@ -282,7 +282,7 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = integration.get_integration(id.clone()).await.unwrap();
+        let provider = integration.get_integration(&id).await.unwrap();
 
         assert_eq!(provider.status, IntegrationStatus::Pending);
 
@@ -296,7 +296,7 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = integration.get_integration(id.clone()).await.unwrap();
+        let provider = integration.get_integration(&id).await.unwrap();
 
         assert_eq!(provider.status, IntegrationStatus::Ready);
 
