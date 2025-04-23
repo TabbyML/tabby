@@ -103,7 +103,7 @@ export const defaultConfigData: ConfigData = {
       maxDiffLength: 3600,
       promptTemplate: generateCommitMessagePrompt,
       responseMatcher:
-        /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\S+\))?:.+(?=\s*\1)/gis.toString(),
+        /^(?:(?!!\[|^\[.*\]:\s*http).*?)(?:["'`]?)?((?:feat|fix|docs|refactor|style|test|build|ci|chore)(?:\(\S+\))?:.+?)(?:["'`])?(?:\n|$)/ims.toString(),
     },
     generateBranchName: {
       maxDiffLength: 3600,
