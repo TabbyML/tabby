@@ -6,7 +6,10 @@ import { useParams } from 'next/navigation'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { IntegrationStatus } from '@/lib/gql/generates/graphql'
+import {
+  IntegrationStatus,
+  ListIntegrationsQuery
+} from '@/lib/gql/generates/graphql'
 import { listIntegrations } from '@/lib/tabby/query'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -69,7 +72,7 @@ export default function RepositoryProvidersPage() {
                       <span className="w-[30%] shrink-0 text-muted-foreground">
                         Status
                       </span>
-                      <span>{toStatusMessage(item.node.status)}</span>
+                      <span>{toStatusMessage(item.node)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -104,12 +107,17 @@ function CreateRepositoryProvider() {
   )
 }
 
-function toStatusMessage(status: IntegrationStatus) {
-  switch (status) {
+function toStatusMessage(
+  node: ListIntegrationsQuery['integrations']['edges'][0]['node']
+) {
+  switch (node.status) {
     case IntegrationStatus.Ready:
       return 'Ready'
     case IntegrationStatus.Failed:
-      return 'Processing error. Please check if the access token is still valid'
+      return (
+        node.message ||
+        'Processing error. Please check if the access token is still valid'
+      )
     case IntegrationStatus.Pending:
       return 'Awaiting the next data synchronization'
   }
