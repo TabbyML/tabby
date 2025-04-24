@@ -185,6 +185,7 @@ export const listIntegrations = graphql(/* GraphQL */ `
           displayName
           status
           apiBase
+          message
         }
         cursor
       }
