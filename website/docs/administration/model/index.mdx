@@ -1,3 +1,5 @@
+import ModelCardUrl from "./model_card.png";
+
 # Model Configuration
 
 You can configure how Tabby connects with LLM models by editing the `~/.tabby/config.toml` file. Tabby incorporates three types of models: **Completion**, **Chat**, and **Embedding**. Each of them can be configured individually.
@@ -32,7 +34,7 @@ Remote Models
 [model.chat.http]
 kind = "openai/chat"
 # Please make sure to use a chat model, such as gpt-4o
-model_name = "gpt-4o"
+model_name = "gpt-4o
 # For multi-model support
 supported_models = ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini"]
 api_endpoint = "https://api.openai.com/v1"
@@ -42,7 +44,6 @@ api_key = "your-api-key"
 kind = "ollama/completion"
 model_name = "codellama:7b"
 api_endpoint = "http://localhost:11434"
-# Example prompt template for the CodeLlama model series.
 prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"
 
 [model.embedding.http]
@@ -52,6 +53,11 @@ api_endpoint = "https://api.openai.com/v1"
 api_key = "your-api-key"
 ```
 
+## Verifying Model Connection Status
+To check whether your configured models are properly connected, navigate to the **Information > System** page and check individual model cards.
+
+<img src={ModelCardUrl} alt="Model Card" />
+
 ## Multi-model Support
 
 When using HTTP connectors for remote chat models, users can dynamically switch between available models  in the chat interface by configuring the `supported_models` parameter.
@@ -60,32 +66,38 @@ When using HTTP connectors for remote chat models, users can dynamically switch 
 [model.chat.http]
 kind = "openai/chat"
 model_name = "gpt-4o"
-# For multi-model support
-supported_models = ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini"]
+supported_models = ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini"] # For multi-model support
 api_endpoint = "https://api.openai.com/v1"
 api_key = "your-api-key"
 ```
 
 ## Prompt Templates for HTTP Completion Models
 
-When using HTTP connectors for completion models, you must configure a prompt_template matching the target model's expected input format. Different completion models require distinct template structures. Always verify the required format in the model's official documentation.
+When using HTTP connectors for completion models, some may require configuring a `prompt_template` to match their expected input format. Different completion models require distinct template structures.
 
-Below are two prompt_template examples. For more examples, refer to [models.json](https://github.com/TabbyML/registry-tabby/blob/main/models.json) and [Models HTTP API](../../references/models-http-api/llama.cpp).
+Below are two prompt_template examples. For more examples, refer to [Models HTTP API](../../references/models-http-api/llama.cpp) and [models.json](https://github.com/TabbyML/registry-tabby/blob/main/models.json).
+
+Connecting the completion model with vllm
 
 ```toml title="~/.tabby/config.toml"
 [model.completion.http]
-kind = "mistral/completion"
-model_name = "Codestral-22B"
-api_endpoint = "https://api.mistral.ai"
-prompt_template = "[SUFFIX]{suffix}[PREFIX]{prefix}"
+kind = "vllm/completion"
+model_name = "your_model"
+api_endpoint = "http://localhost:8000/v1"
 api_key = "your-api-key"
+# Example prompt template for the CodeLlama model series
+prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"
 ```
 
+Connecting the completion model with llama.cpp
+
+
 ```toml title="~/.tabby/config.toml"
 [model.completion.http]
-kind = "deepseek/completion"
-model_name = "DeepSeekCoder-6.7B"
-api_endpoint = "https://api.deepseek.com/beta"
-prompt_template = "<｜fim▁begin｜>{prefix}<｜fim▁hole｜>{suffix}<｜fim▁end｜>"
-api_key = "your-api-key"
+kind = "llama.cpp/completion"
+model_name = "your_model"
+api_endpoint = "http://localhost:8081"  # DO NOT append the `v1` suffix
+api_key = "secret-api-key"
+# Example prompt template for the Qwen2.5 Coder model series.
+prompt_template = "<|fim_prefix|>{prefix}<|fim_suffix|>{suffix}<|fim_middle|>"
 ```
