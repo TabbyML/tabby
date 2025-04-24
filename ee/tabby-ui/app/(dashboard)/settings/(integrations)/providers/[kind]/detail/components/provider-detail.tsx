@@ -464,7 +464,7 @@ function toStatusBadge(
           <TooltipContent>
             {node.message ? (
               <div>
-                <p className='mb-2'>{node.message}</p>
+                <p className="mb-2">{node.message}</p>
                 Please verify your context provider settings to resolve the
                 issue
               </div>
