@@ -445,12 +445,12 @@ impl CompletionService {
         let segments = request
             .segments
             .as_ref()
-            .ok_or_else(|| CompletionError::EmptyPrompt)?;
+            .ok_or(CompletionError::EmptyPrompt)?;
 
         let edit_history = segments
             .edit_history
             .as_ref()
-            .ok_or_else(|| CompletionError::EmptyPrompt)?;
+            .ok_or(CompletionError::EmptyPrompt)?;
 
         let prompt = self.next_edit_prompt_builder.build_prompt(edit_history);
 

@@ -45,7 +45,7 @@ struct CompletionResponseChunk {
 #[async_trait]
 impl CompletionStream for LlamaCppEngine {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
-        let use_stream = !(options.mode == "next_edit_suggestion");
+        let use_stream = options.mode != "next_edit_suggestion";
 
         let request_body = CompletionRequest {
             seed: options.seed,
