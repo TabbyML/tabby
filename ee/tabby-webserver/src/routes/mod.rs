@@ -48,7 +48,6 @@ pub fn create(
             "/v1beta/ingestion",
             routing::post(ingestion::ingestion).with_state(Arc::new(ingestion::IngestionState {
                 ingestion: ctx.ingestion(),
-                logger: ctx.logger(),
             })),
         )
         // Add other endpoints that need authentication here

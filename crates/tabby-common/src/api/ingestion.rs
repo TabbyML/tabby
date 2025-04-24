@@ -35,16 +35,8 @@ pub struct IngestionRequest {
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub enum IngestionStatus {
-    Pending,
-    Completed,
-    Failed,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct IngestionResponse {
     pub id: String,
     pub source: String,
-    pub status: IngestionStatus,
     pub message: String,
 }

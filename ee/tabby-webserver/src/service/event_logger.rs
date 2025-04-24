@@ -125,23 +125,6 @@ impl EventLogger for DbEventLogger {
                     Ok(())
                 });
             }
-            Event::Ingestion { .. } => {
-                let Some(user) = get_user_id(entry.user) else {
-                    return;
-                };
-                let db = self.db.clone();
-                run_in_background(async move {
-                    db.create_user_event(
-                        user,
-                        EventKind::Ingestion.as_enum_str().into(),
-                        entry.ts,
-                        event_json,
-                    )
-                    .await?;
-
-                    Ok(())
-                });
-            }
         }
     }
 }

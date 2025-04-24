@@ -1,7 +1,7 @@
 use anyhow::Context;
 use async_trait::async_trait;
 use humantime::parse_duration;
-use tabby_common::api::ingestion::{IngestionRequest, IngestionResponse, IngestionStatus};
+use tabby_common::api::ingestion::{IngestionRequest, IngestionResponse};
 use tabby_db::DbConn;
 use tabby_schema::{
     ingestion::{IngestedDocument, IngestionService},
@@ -69,7 +69,6 @@ impl IngestionService for IngestionServiceImpl {
         Ok(IngestionResponse {
             id: ingestion.id,
             source: ingestion.source,
-            status: IngestionStatus::Pending,
             message: "Ingestion has been accepted and will be processed later.".to_string(),
         })
     }

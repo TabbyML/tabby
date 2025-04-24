@@ -2,17 +2,13 @@ use std::sync::Arc;
 
 use axum::{extract::State, Json};
 use hyper::StatusCode;
-use tabby_common::api::{
-    event::{Event as LoggerEvent, EventLogger},
-    ingestion::{IngestionRequest, IngestionResponse},
-};
+use tabby_common::api::ingestion::{IngestionRequest, IngestionResponse};
 use tabby_schema::ingestion::IngestionService;
 use tracing::{error, instrument, warn};
 use validator::Validate;
 
 pub struct IngestionState {
     pub ingestion: Arc<dyn IngestionService>,
-    pub logger: Arc<dyn EventLogger>,
 }
 
 #[utoipa::path(
@@ -48,15 +44,6 @@ pub async fn ingestion(
             error!("Failed to process ingestion: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-
-    state.logger.log(
-        None, //FIXME(kweizh): should get user from auth token
-        LoggerEvent::Ingestion {
-            source: request.source,
-            id: request.id,
-            title: request.title,
-        },
-    );
 
     Ok((StatusCode::ACCEPTED, Json(response)))
 }

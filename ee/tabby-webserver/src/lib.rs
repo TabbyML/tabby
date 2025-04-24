@@ -23,7 +23,6 @@ use utoipa::OpenApi;
     components(schemas(
         api::ingestion::IngestionRequest,
         api::ingestion::IngestionResponse,
-        api::ingestion::IngestionStatus,
     )),
     // modifiers(&SecurityAddon),
 )]
