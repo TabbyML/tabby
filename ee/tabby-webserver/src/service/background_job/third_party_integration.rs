@@ -94,7 +94,7 @@ impl SchedulerGithubGitlabJob {
             .get_provided_repository(&self.repository_id)
             .await?;
         let integration = integration_service
-            .get_integration(repository.integration_id.clone())
+            .get_integration(&repository.integration_id)
             .await?;
 
         let authenticated_url = integration
