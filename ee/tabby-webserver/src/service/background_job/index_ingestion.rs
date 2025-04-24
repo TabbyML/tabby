@@ -105,8 +105,9 @@ async fn fetch_all_ingested_documents(
                     let doc = StructuredDoc {
                         source_id: ingested.source.clone(),
                         fields: StructuredDocFields::Ingested(StructuredDocIngestedFields {
-                            // Prefix the ID with `/ingested/` and concatenate source and id to guarantee its uniqueness.
-                            id: format!("/ingested/{}/{}", ingested.source, ingested.id),
+                            // Concatenate the source and id to ensure uniqueness,
+                            // with the source having an `ingested:` prefix to guarantee it is distinct.
+                            id: format!("{}/{}", ingested.source, ingested.id),
                             title: ingested.title.clone(),
                             body: ingested.body.clone(),
                             link: ingested.link.clone(),
