@@ -51,11 +51,11 @@ impl IngestionService for IngestionServiceImpl {
         };
 
         // url encode the source and id
-        let source = urlencoding::encode(&ingestion.source);
+        let source = Self::format_source_id(&ingestion.source);
         let id = urlencoding::encode(&ingestion.id);
 
         self.db
-            .insert_ingested_document(
+            .upsert_ingested_document(
                 &source,
                 &id,
                 expired_at,
@@ -85,5 +85,11 @@ impl IngestionService for IngestionServiceImpl {
                 .context("Failed to mark ingestion as indexed")?;
         }
         Ok(())
+    }
+}
+
+impl IngestionServiceImpl {
+    pub fn format_source_id(source: &str) -> String {
+        format!("ingested:{}", urlencoding::encode(source))
     }
 }

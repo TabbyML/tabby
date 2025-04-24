@@ -59,7 +59,8 @@ impl DbConn {
 
         Ok(docs)
     }
-    pub async fn insert_ingested_document(
+
+    pub async fn upsert_ingested_document(
         &self,
         source: &str,
         doc_id: &str,
@@ -73,6 +74,12 @@ impl DbConn {
             INSERT INTO ingested_documents (
               source, doc_id, expired_at, link, title, body, status
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(source, doc_id) DO UPDATE SET
+              expired_at = excluded.expired_at,
+              link = excluded.link,
+              title = excluded.title,
+              body = excluded.body,
+              status = excluded.status
             "#,
             source,
             doc_id,

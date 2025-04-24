@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS ingested_documents (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 
     -- User-provided document source
     source TEXT NOT NULL,

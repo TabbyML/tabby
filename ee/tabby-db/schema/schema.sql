@@ -281,7 +281,7 @@ CREATE TABLE IF NOT EXISTS "page_sections"(
   UNIQUE(page_id, "position")
 );
 CREATE TABLE ingested_documents(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   -- User-provided document source
   source TEXT NOT NULL,
   -- User-provided document ID, unique within the same source
