@@ -29,12 +29,12 @@ impl BuildStructuredDoc for IngestedDocument {
 
     async fn build_attributes(&self) -> serde_json::Value {
         let mut attr = json!({
-            fields::page::TITLE: self.title,
+            fields::ingested::TITLE: self.title,
         });
         if let Some(link) = &self.link {
             attr.as_object_mut()
                 .unwrap()
-                .insert(fields::page::LINK.to_string(), json!(link));
+                .insert(fields::ingested::LINK.to_string(), json!(link));
         };
 
         attr
@@ -62,7 +62,7 @@ impl BuildStructuredDoc for IngestedDocument {
                         }
                     };
                     let chunk = json!({
-                        fields::page::CHUNK_CONTENT: chunk_text,
+                        fields::ingested::CHUNK_BODY: chunk_text,
                     });
 
                     Ok((tokens, chunk))

@@ -40,4 +40,13 @@ pub mod fields {
         // === Chunk level fields ===
         pub const CHUNK_CONTENT: &str = "chunk_text";
     }
+
+    pub mod ingested {
+        // === Doc level fields ===
+        pub const TITLE: &str = "title";
+        pub const LINK: &str = "link";
+
+        // === Chunk level fields ===
+        pub const CHUNK_BODY: &str = "chunk_body";
+    }
 }
