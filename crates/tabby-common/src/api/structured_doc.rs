@@ -24,6 +24,7 @@ pub enum DocSearchDocument {
     Pull(DocSearchPullDocument),
     Commit(DocSearchCommit),
     Page(DocSearchPageDocument),
+    Ingested(DocSearchIngestedDocument),
 }
 
 #[derive(Error, Debug)]
@@ -95,6 +96,14 @@ pub struct DocSearchPageDocument {
     pub content: String,
 }
 
+#[derive(Clone)]
+pub struct DocSearchIngestedDocument {
+    pub id: String,
+    pub title: String,
+    pub body: String,
+    pub link: Option<String>,
+}
+
 pub trait FromTantivyDocument {
     fn from_tantivy_document(doc: &TantivyDocument, chunk: &TantivyDocument) -> Option<Self>
     where
@@ -119,6 +128,8 @@ impl FromTantivyDocument for DocSearchDocument {
             }
             "page" => DocSearchPageDocument::from_tantivy_document(doc, chunk)
                 .map(DocSearchDocument::Page),
+            "ingested" => DocSearchIngestedDocument::from_tantivy_document(doc, chunk)
+                .map(DocSearchDocument::Ingested),
             _ => None,
         }
     }
@@ -293,6 +304,35 @@ impl FromTantivyDocument for DocSearchPageDocument {
             link: link.into(),
             title: title.into(),
             content: content.into(),
+        })
+    }
+}
+
+impl FromTantivyDocument for DocSearchIngestedDocument {
+    fn from_tantivy_document(doc: &TantivyDocument, chunk: &TantivyDocument) -> Option<Self> {
+        let schema = IndexSchema::instance();
+        let id = doc.get_first(schema.field_id).unwrap().as_str().unwrap();
+        let title = get_json_text_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::ingested::TITLE,
+        );
+        let body = get_json_text_field(
+            chunk,
+            schema.field_chunk_attributes,
+            structured_doc::fields::ingested::CHUNK_BODY,
+        );
+        let link = get_json_option_text_field(
+            doc,
+            schema.field_attributes,
+            structured_doc::fields::page::LINK,
+        );
+
+        Some(Self {
+            id: id.into(),
+            link: link.map(Into::into),
+            title: title.into(),
+            body: body.into(),
         })
     }
 }
