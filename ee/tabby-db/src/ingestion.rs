@@ -60,6 +60,31 @@ impl DbConn {
         Ok(docs)
     }
 
+    pub async fn list_ingested_document_sources(
+        &self,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<String>> {
+        let mut query =
+            String::from("SELECT DISTINCT source FROM ingested_documents ORDER BY source");
+        if limit.is_some() {
+            query.push_str(" LIMIT ?");
+        }
+        if offset.is_some() {
+            query.push_str(" OFFSET ?");
+        }
+
+        let mut q = sqlx::query_scalar::<_, String>(&query);
+        if let Some(l) = limit {
+            q = q.bind(l as i64);
+        }
+        if let Some(o) = offset {
+            q = q.bind(o as i64);
+        }
+
+        Ok(q.fetch_all(&self.pool).await?)
+    }
+
     pub async fn upsert_ingested_document(
         &self,
         source: &str,

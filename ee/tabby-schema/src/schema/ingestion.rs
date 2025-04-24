@@ -28,6 +28,12 @@ pub trait IngestionService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<IngestedDocument>>;
 
+    async fn list_sources(
+        &self,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<String>>;
+
     async fn ingestion(&self, ingestion: IngestionRequest) -> Result<IngestionResponse>;
 
     async fn should_ingest(&self) -> Result<bool>;

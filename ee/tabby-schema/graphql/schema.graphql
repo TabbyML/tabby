@@ -25,6 +25,7 @@ enum ContextSourceKind {
   DOC
   WEB
   PAGE
+  INGESTED
 }
 
 enum Encryption {
@@ -428,6 +429,13 @@ type AttachmentDocQueryDebugData {
   query: String!
 }
 
+type AttachmentIngestedDoc {
+  id: String!
+  title: String!
+  body: String!
+  link: String
+}
+
 type AttachmentIssueDoc {
   title: String!
   link: String!
@@ -575,6 +583,13 @@ type GrepSubMatch {
 type GrepTextOrBase64 {
   text: String
   base64: String
+}
+
+type IngestedContextSource implements ContextSourceId & ContextSource {
+  id: ID!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
 }
 
 type Integration {
@@ -728,6 +743,13 @@ type MessageAttachmentCommitDoc {
   message: String!
   author: User
   authorAt: DateTime!
+}
+
+type MessageAttachmentIngestedDoc {
+  id: String!
+  title: String!
+  body: String!
+  link: String
 }
 
 type MessageAttachmentIssueDoc {
@@ -1334,9 +1356,9 @@ type WebContextSource implements ContextSourceId & ContextSource {
   sourceName: String!
 }
 
-union AttachmentDoc = AttachmentWebDoc | AttachmentIssueDoc | AttachmentPullDoc | AttachmentCommitDoc | AttachmentPageDoc
+union AttachmentDoc = AttachmentWebDoc | AttachmentIssueDoc | AttachmentPullDoc | AttachmentCommitDoc | AttachmentPageDoc | AttachmentIngestedDoc
 
-union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc | MessageAttachmentCommitDoc | MessageAttachmentPageDoc
+union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc | MessageAttachmentPullDoc | MessageAttachmentCommitDoc | MessageAttachmentPageDoc | MessageAttachmentIngestedDoc
 
 "Schema of page convert stream."
 union PageRunItem = PageCreated | PageContentDelta | PageContentCompleted | PageSectionsCreated | PageSectionAttachmentCodeFileList | PageSectionAttachmentCode | PageSectionAttachmentDoc | PageSectionContentDelta | PageSectionContentCompleted | PageCompleted

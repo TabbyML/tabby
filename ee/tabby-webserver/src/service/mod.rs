@@ -7,7 +7,7 @@ pub mod context;
 mod email;
 pub mod embedding;
 pub mod event_logger;
-mod ingestion;
+pub mod ingestion;
 pub mod integration;
 pub mod job;
 mod license;
@@ -115,6 +115,7 @@ impl ServerContext {
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
+        ingestion: Arc<dyn IngestionService>,
         job: Arc<dyn JobService>,
         answer: Option<Arc<AnswerService>>,
         retrieval: Arc<retrieval::RetrievalService>,
@@ -148,7 +149,6 @@ impl ServerContext {
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
         let notification = Arc::new(notification::create(db_conn.clone()));
-        let ingestion = Arc::new(ingestion::create(db_conn.clone()));
 
         background_job::start(
             db_conn.clone(),
@@ -409,6 +409,7 @@ pub async fn create_service_locator(
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
+    ingestion: Arc<dyn IngestionService>,
     job: Arc<dyn JobService>,
     answer: Option<Arc<AnswerService>>,
     retrieval: Arc<RetrievalService>,
@@ -429,6 +430,7 @@ pub async fn create_service_locator(
             code,
             repository,
             integration,
+            ingestion,
             job,
             answer,
             retrieval,

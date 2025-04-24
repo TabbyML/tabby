@@ -74,7 +74,9 @@ impl PartialEq for AttachmentDoc {
             (AttachmentDoc::Pull(a), AttachmentDoc::Pull(b)) => a.link == b.link,
             (AttachmentDoc::Commit(a), AttachmentDoc::Commit(b)) => a.sha == b.sha,
             (AttachmentDoc::Page(a), AttachmentDoc::Page(b)) => a.link == b.link,
-
+            (AttachmentDoc::Ingested(a), AttachmentDoc::Ingested(b)) => {
+                a.id == b.id && a.title == b.title
+            }
             _ => false,
         }
     }
