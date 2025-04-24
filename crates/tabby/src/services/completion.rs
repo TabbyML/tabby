@@ -1,4 +1,5 @@
 mod completion_prompt;
+mod next_edit_prompt;
 
 use std::sync::Arc;
 
@@ -57,6 +58,34 @@ pub struct CompletionRequest {
 
     /// The seed used for randomly selecting tokens
     seed: Option<u64>,
+
+    /// The mode for completion. Use 'standard' for normal code completions or 'next_edit_suggestion'
+    /// to predict the next edit the user will make.
+    #[serde(default = "default_standard_mode")]
+    mode: String,
+}
+
+pub fn default_standard_mode() -> String {
+    "standard".to_string()
+}
+
+/// Contains information about edit history for next edit suggestion mode
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct EditHistory {
+    original_code: String,
+
+    /// Unified git-style diff of all edits made to the file
+    edits_diff: String,
+
+    /// Current version of the code after all edits
+    current_version: CurrentVersion,
+}
+
+/// Current version of the code after all edits
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct CurrentVersion {
+    /// Current content after all edits
+    content: String,
 }
 
 impl CompletionRequest {
@@ -77,6 +106,11 @@ impl CompletionRequest {
         self.debug_options
             .as_ref()
             .is_some_and(|x| x.disable_retrieval_augmented_code_completion)
+    }
+
+    /// Returns true if the request is for next edit suggestion mode.
+    fn is_next_edit_suggestion_mode(&self) -> bool {
+        self.mode == "next_edit_suggestion"
     }
 }
 
@@ -150,6 +184,9 @@ pub struct Segments {
 
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
+
+    /// Required when mode is 'next_edit_suggestion'. Contains information about edit history.
+    edit_history: Option<EditHistory>,
 }
 
 impl From<Segments> for api::event::Segments {
@@ -249,6 +286,7 @@ pub struct CompletionService {
     engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
+    next_edit_prompt_builder: next_edit_prompt::NextEditPromptBuilder,
 }
 
 impl CompletionService {
@@ -266,6 +304,7 @@ impl CompletionService {
                 prompt_template,
                 Some(code),
             ),
+            next_edit_prompt_builder: next_edit_prompt::NextEditPromptBuilder::new(),
             config,
             logger,
         }
@@ -293,6 +332,7 @@ impl CompletionService {
         seed: Option<u64>,
         max_input_length: usize,
         max_output_tokens: usize,
+        mode: String,
     ) -> CodeGenerationOptions {
         let mut builder = CodeGenerationOptionsBuilder::default();
         builder
@@ -305,6 +345,9 @@ impl CompletionService {
         seed.inspect(|x| {
             builder.seed(*x);
         });
+
+        builder.mode(mode);
+
         builder
             .build()
             .expect("Failed to create text generation options")
@@ -318,12 +361,20 @@ impl CompletionService {
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
+
+        if request.is_next_edit_suggestion_mode() {
+            return self
+                .generate_next_edit_suggestion(request, completion_id, language, user_agent)
+                .await;
+        }
+
         let options = Self::text_generation_options(
             language.as_str(),
             request.temperature,
             request.seed,
             self.config.max_input_length,
             self.config.max_decoding_tokens,
+            request.mode.clone(),
         );
 
         let mut use_crlf = false;
@@ -383,6 +434,66 @@ impl CompletionService {
             debug_data,
         ))
     }
+
+    async fn generate_next_edit_suggestion(
+        &self,
+        request: &CompletionRequest,
+        completion_id: String,
+        language: String,
+        user_agent: Option<&str>,
+    ) -> Result<CompletionResponse, CompletionError> {
+        let segments = request
+            .segments
+            .as_ref()
+            .ok_or_else(|| CompletionError::EmptyPrompt)?;
+
+        let edit_history = segments
+            .edit_history
+            .as_ref()
+            .ok_or_else(|| CompletionError::EmptyPrompt)?;
+
+        let prompt = self.next_edit_prompt_builder.build_prompt(edit_history);
+
+        let options = Self::text_generation_options(
+            language.as_str(),
+            request.temperature,
+            request.seed,
+            self.config.max_input_length,
+            self.config.max_decoding_tokens * 2,
+            request.mode.clone(),
+        );
+
+        let generated_text = self.engine.generate(&prompt, options).await;
+
+        self.logger.log(
+            request.user.clone(),
+            Event::Completion {
+                completion_id: completion_id.clone(),
+                language,
+                prompt: prompt.clone(),
+                segments: None,
+                choices: vec![api::event::Choice {
+                    index: 0,
+                    text: generated_text.clone(),
+                }],
+                user_agent: user_agent.map(|x| x.to_owned()),
+            },
+        );
+
+        let debug_data = request
+            .debug_options
+            .as_ref()
+            .map(|debug_options| DebugData {
+                snippets: None,
+                prompt: debug_options.return_prompt.then_some(prompt),
+            });
+
+        Ok(CompletionResponse::new(
+            completion_id,
+            vec![Choice::new(generated_text)],
+            debug_data,
+        ))
+    }
 }
 
 fn contains_crlf(segments: &Segments) -> bool {
@@ -413,8 +524,8 @@ fn override_prompt(prompt: String, use_crlf: bool) -> String {
 /// we can not simply replace \n with \r\n.
 fn override_generated_text(generated: String, use_crlf: bool) -> String {
     if use_crlf {
-        let re = Regex::new(r"([^\r])\n").unwrap(); // Match \n that is preceded by anything except \r
-        re.replace_all(&generated, "$1\r\n").to_string() // Replace with captured character and \r\n
+        let re = Regex::new(r"([^\r])\n").unwrap();
+        re.replace_all(&generated, "$1\r\n").to_string()
     } else {
         generated
     }
@@ -515,6 +626,7 @@ mod tests {
             relevant_snippets_from_changed_files: None,
             relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
+            edit_history: None,
         };
         let request = CompletionRequest {
             language: Some("rust".into()),
@@ -523,6 +635,7 @@ mod tests {
             debug_options: None,
             temperature: None,
             seed: None,
+            mode: "standard".into(),
         };
 
         let allowed_code_repository = AllowedCodeRepository::default();
@@ -550,6 +663,7 @@ mod tests {
                 relevant_snippets_from_changed_files: None,
                 relevant_snippets_from_recently_opened_files: None,
                 clipboard: None,
+                edit_history: None,
             },
             Segments {
                 prefix: "fn hello_world() -> &'static str {".into(),
@@ -560,6 +674,7 @@ mod tests {
                 relevant_snippets_from_changed_files: None,
                 relevant_snippets_from_recently_opened_files: None,
                 clipboard: None,
+                edit_history: None,
             },
             Segments {
                 prefix: "fn hello_world() -> &'static str {\r\n".into(),
@@ -570,6 +685,7 @@ mod tests {
                 relevant_snippets_from_changed_files: None,
                 relevant_snippets_from_recently_opened_files: None,
                 clipboard: None,
+                edit_history: None,
             },
         ];
         for segments in contained_crlf {
@@ -585,6 +701,7 @@ mod tests {
             relevant_snippets_from_changed_files: None,
             relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
+            edit_history: None,
         }];
         for segments in not_contained_crlf {
             assert!(!contains_crlf(&segments));

@@ -63,6 +63,8 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completion::Snippet,
         completion::DebugOptions,
         completion::DebugData,
+        completion::EditHistory,
+        completion::CurrentVersion,
         health::HealthState,
         health::Version,
         api::server_setting::ServerSetting,
