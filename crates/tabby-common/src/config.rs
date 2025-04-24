@@ -184,8 +184,13 @@ impl RepositoryConfig {
 
     pub fn resolve_dir(git_url: &str) -> PathBuf {
         if Self::resolve_is_local_dir(git_url) {
-            let path = git_url.strip_prefix("file://").unwrap();
-            path.into()
+            url::Url::parse(git_url)
+                .ok()
+                .and_then(|url| url.to_file_path().ok())
+                .unwrap_or_else(|| {
+                    let path = git_url.strip_prefix("file://").unwrap_or(git_url);
+                    PathBuf::from(path)
+                })
         } else {
             repositories_dir().join(Self::resolve_dir_name(git_url))
         }
@@ -490,6 +495,7 @@ impl CodeRepository {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
     use super::{sanitize_name, Config, RepositoryConfig};
 
@@ -535,6 +541,100 @@ mod tests {
             matches!(Config::validate_model_config(&config.model.completion), Err(ref _e) if true)
         );
         assert!(Config::validate_model_config(&config.model.chat).is_ok());
+    }
+    #[test]
+    #[cfg(windows)]
+    fn test_resolve_dir_handles_various_file_urls_windows() {
+        use std::path::PathBuf;
+
+        let test_cases = vec![
+            // Standard Windows-style file URL (forward slashes)
+            (
+                "file:///C:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // Lowercase drive letter
+            (
+                "file:///c:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // Trailing slash
+            (
+                "file:///C:/Users/test/project/",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // Encoded characters
+            (
+                "file:///C:/Users/test/My%20Project",
+                PathBuf::from(r"C:\Users\test\My Project"),
+            ),
+            // .git repo
+            (
+                "file:///C:/Users/test/project.git",
+                PathBuf::from(r"C:\Users\test\project.git"),
+            ),
+            // Multiple slashes
+            (
+                "file:////C:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // original issue case
+            (
+                "file://C:\\repos\\myproject",
+                PathBuf::from(r"C:\repos\myproject"),
+            ),
+        ];
+
+        for (input, expected_suffix) in test_cases {
+            let result = RepositoryConfig::resolve_dir(input);
+            assert!(
+                result.ends_with(&expected_suffix),
+                "Failed for input:\n  {}\nExpected suffix:\n  {:?}\nGot:\n  {:?}",
+                input,
+                expected_suffix,
+                result
+            );
+        }
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_resolve_dir_handles_various_file_urls_unix() {
+        use std::path::PathBuf;
+
+        let test_cases = vec![
+            // Standard Unix-style file URL
+            (
+                "file:///home/user/project",
+                PathBuf::from("/home/user/project"),
+            ),
+            // File URL with trailing slash
+            (
+                "file:///home/user/project/",
+                PathBuf::from("/home/user/project"),
+            ),
+            // File URL with encoded characters (e.g., spaces)
+            (
+                "file:///home/user/My%20Project",
+                PathBuf::from("/home/user/My Project"),
+            ),
+            // File URL pointing to a .git directory
+            (
+                "file:///home/user/project.git",
+                PathBuf::from("/home/user/project.git"),
+            ),
+        ];
+
+        for (input, expected_suffix) in test_cases {
+            let result = RepositoryConfig::resolve_dir(input);
+            assert!(
+                result.ends_with(&expected_suffix),
+                "Failed for input:\n  {}\nExpected suffix:\n  {:?}\nGot:\n  {:?}",
+                input,
+                expected_suffix,
+                result
+            );
+        }
     }
 
     #[test]
