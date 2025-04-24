@@ -220,7 +220,6 @@ pub async fn start(
                     };
 
                     let cloned_event = event.clone();
-                    notify_job_error(notification_service.clone(), integration_service.clone(), third_party_repository_service.clone(), "Debug", &cloned_event, job.id).await;
                     if let Err(err) = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);

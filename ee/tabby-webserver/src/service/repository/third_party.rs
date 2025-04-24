@@ -580,7 +580,7 @@ mod tests {
             },
         ];
 
-        let provider = integration.get_integration(provider_id).await.unwrap();
+        let provider = integration.get_integration(&provider_id).await.unwrap();
         refresh_repositories_for_provider(&*repository, &*integration, provider, new_repos)
             .await
             .unwrap();
