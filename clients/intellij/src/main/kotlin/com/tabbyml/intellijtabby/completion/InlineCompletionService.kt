@@ -1,5 +1,8 @@
 package com.tabbyml.intellijtabby.completion
 
+import com.intellij.codeInsight.lookup.LookupEvent
+import com.intellij.codeInsight.lookup.LookupListener
+import com.intellij.codeInsight.lookup.LookupManagerListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.command.WriteCommandAction
@@ -29,6 +32,7 @@ import com.tabbyml.intellijtabby.settings.SettingsService
 import com.tabbyml.intellijtabby.settings.SettingsState
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
+import org.eclipse.lsp4j.Range
 import org.eclipse.lsp4j.TextDocumentIdentifier
 
 @Service(Service.Level.PROJECT)
@@ -48,15 +52,23 @@ class InlineCompletionService(private val project: Project) : Disposable {
     val response: Response? = null,
     val partialAccepted: Boolean = false,
   ) {
+
+    data class CompletionInfo (val text: String, val prefixLength: Int)
+
     data class Request(
       val editor: Editor,
       val document: Document,
       val modificationStamp: Long,
       val offset: Int,
       val manually: Boolean,
+      val selectedCompletion: CompletionInfo? = null,
     ) {
       fun withManually(manually: Boolean = true): Request {
         return Request(editor, document, modificationStamp, offset, manually)
+      }
+
+      fun withCompletionInfo(selectedCompletion: CompletionInfo?): Request {
+        return Request(editor, document, modificationStamp, offset, manually, selectedCompletion)
       }
 
       companion object {
@@ -110,6 +122,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
   private var currentContextWriteLock = Object()
   private var shouldAutoTrigger: Boolean
   private var documentChangedListenerJob: Job? = null
+  private var completionChangedListenerJob: Job? = null
 
   fun isInlineCompletionVisibleAt(editor: Editor, offset: Int): Boolean =
     renderer.current?.editor == editor && renderer.current?.offset == offset
@@ -165,6 +178,27 @@ class InlineCompletionService(private val project: Project) : Disposable {
         dismiss()
       }
     })
+    messageBusConnection.subscribe(LookupManagerListener.TOPIC, LookupManagerListener { oldLookup, newLookup ->
+      newLookup?.addLookupListener(object: LookupListener {
+          override fun currentItemChanged(event: LookupEvent) {
+            val lookupItem = event.item
+            if (lookupItem == null) {
+              return
+            }
+            val lookup = event.lookup
+            val prefixLength = lookup.itemMatcher(lookupItem).prefix.length
+            completionChangedListenerJob?.cancel()
+            completionChangedListenerJob = scope.launch {
+              delay(10)
+              invokeLater {
+                handleLookupItemChanged(event.lookup.editor, InlineCompletionContext.CompletionInfo(
+                  lookupItem.lookupString, prefixLength
+                ))
+              }
+            }
+          }
+      })
+    })
   }
 
   private fun handleDocumentChanged(document: Document, editor: Editor, event: DocumentEvent) {
@@ -185,18 +219,35 @@ class InlineCompletionService(private val project: Project) : Disposable {
     }
   }
 
+  private fun handleLookupItemChanged(editor: Editor, completionInfo: InlineCompletionContext.CompletionInfo) {
+    if (shouldAutoTrigger) {
+        val offset = editor.caretModel.offset
+        provideInlineCompletion(editor, offset, false, completionInfo)
+    }
+  }
+
   private fun buildInlineCompletionParams(requestContext: InlineCompletionContext.Request): InlineCompletionParams {
     val documentUri = requestContext.editor.virtualFile.url
+    val position = positionInDocument(requestContext.document, requestContext.offset)
     return InlineCompletionParams(
       context = InlineCompletionParams.InlineCompletionContext(
         triggerKind = if (requestContext.manually) {
           InlineCompletionParams.InlineCompletionContext.InlineCompletionTriggerKind.Invoked
         } else {
           InlineCompletionParams.InlineCompletionContext.InlineCompletionTriggerKind.Automatic
-        }
+        },
+        selectedCompletionInfo = if (requestContext.selectedCompletion != null) InlineCompletionParams.InlineCompletionContext.SelectedCompletionInfo(
+          requestContext.selectedCompletion.text,
+          Range(
+            positionInDocument(
+              requestContext.document,
+              requestContext.offset - requestContext.selectedCompletion.prefixLength
+            ), position
+          )
+        ) else null
       ),
       textDocument = TextDocumentIdentifier(documentUri),
-      position = positionInDocument(requestContext.document, requestContext.offset),
+      position = position,
     )
   }
 
@@ -298,9 +349,9 @@ class InlineCompletionService(private val project: Project) : Disposable {
     }
   }
 
-  fun provideInlineCompletion(editor: Editor, offset: Int, manually: Boolean = false) {
+  fun provideInlineCompletion(editor: Editor, offset: Int, manually: Boolean = false, completionInfo: InlineCompletionContext.CompletionInfo? = null) {
     synchronized(currentContextWriteLock) {
-      logger.debug("Provide inline completion at $editor $offset $manually")
+      logger.debug("Provide inline completion at $editor $offset $manually $completionInfo")
       var partialAcceptedResponse: InlineCompletionContext.Response? = null
       current?.let {
         it.job.cancel()
@@ -311,7 +362,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
         }
         current = null
       }
-      val requestContext = InlineCompletionContext.Request.from(editor, offset).withManually(manually)
+      val requestContext = InlineCompletionContext.Request.from(editor, offset).withManually(manually).withCompletionInfo(completionInfo)
       val job = launchJobForInlineCompletion(requestContext) { inlineCompletionList ->
         synchronized(currentContextWriteLock) {
           current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))

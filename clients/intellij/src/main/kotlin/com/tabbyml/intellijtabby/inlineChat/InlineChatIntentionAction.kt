@@ -5,6 +5,7 @@ import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.icons.AllIcons
 import com.intellij.ide.ui.LafManagerListener
 import com.intellij.openapi.components.serviceOrNull
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
@@ -253,6 +254,7 @@ class InlineInputComponent(
     private var onSubmit: (value: String) -> Unit,
     private var onCancel: () -> Unit
 ) : JPanel() {
+    private val logger = Logger.getInstance(InlineInputComponent::class.java)
     private val history: CommandHistory? = project.serviceOrNull<CommandHistory>()
     private val textArea: JTextArea = createTextArea()
     private val submitButton: JLabel = createSubmitButton()
@@ -385,15 +387,20 @@ class InlineInputComponent(
 
     private fun getCommandList(): List<CommandListItem> {
         val location = project.serviceOrNull<InlineChatService>()?.location ?: return emptyList()
-        val suggestedItems = getSuggestedCommands(project, location).get()?.map {
-            CommandListItem(
-                label = it.label,
-                value = it.command,
-                icon = AllIcons.Actions.IntentionBulbGrey,
-                description = it.command,
-                canDelete = false
-            )
-        } ?: emptyList()
+        val suggestedItems = try {
+            getSuggestedCommands(project, location).get()?.map {
+                CommandListItem(
+                    label = it.label,
+                    value = it.command,
+                    icon = AllIcons.Actions.IntentionBulbGrey,
+                    description = it.command,
+                    canDelete = false
+                )
+            } ?: emptyList()
+        } catch (e: Exception) {
+            logger.warn("Error getting suggested commands", e)
+            emptyList()
+        }
         val historyItems = getHistoryCommand().filter { historyCommand ->
             suggestedItems.find {
                 it.value == historyCommand.command.replace(

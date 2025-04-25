@@ -9,6 +9,7 @@ import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.components.serviceOrNull
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.keymap.KeymapUtil
@@ -20,6 +21,7 @@ import org.eclipse.lsp4j.Range
 import javax.swing.Icon
 
 abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware {
+    private val logger = Logger.getInstance(InlineChatCodeVisionProvider::class.java)
     override val defaultAnchor: CodeVisionAnchorKind = CodeVisionAnchorKind.Top
 
     // provider id
@@ -44,7 +46,12 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
         val virtualFile = FileDocumentManager.getInstance()
             .getFile(editor.document)
         val uri = virtualFile?.url ?: return READY_EMPTY
-        val codeLenses = getCodeLenses(project, uri).get() ?: return READY_EMPTY
+        val codeLenses = try {
+            getCodeLenses(project, uri).get() ?: return READY_EMPTY
+        } catch (e: Exception) {
+            logger.warn("Failed to get code lenses", e)
+            return READY_EMPTY
+        }
         val codelens = codeLenses.firstOrNull() {
             it.command != null && (it.command?.arguments?.firstOrNull() as JsonObject?)?.get("action")?.asString == action
         } ?: return READY_EMPTY
