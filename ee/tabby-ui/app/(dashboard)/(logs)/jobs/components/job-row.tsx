@@ -5,6 +5,7 @@ import Link from 'next/link'
 import humanizerDuration from 'humanize-duration'
 import { isNil } from 'lodash-es'
 import moment from 'moment'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { listJobRuns, queryJobRunStats } from '@/lib/tabby/query'
@@ -88,12 +89,19 @@ function JobRunState({ name }: { name: string }) {
 export default function JobRow({ name }: { name: string }) {
   const RECENT_DISPLAYED_SIZE = 10
 
-  const [{ data, fetching }] = useQuery({
+  const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listJobRuns,
     variables: {
       last: RECENT_DISPLAYED_SIZE,
       jobs: [name]
     }
+  })
+
+  useSWR('refresh_jobs', () => reexecuteQuery(), {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    revalidateOnMount: false,
+    refreshInterval: 10 * 1000
   })
 
   const edges = data?.jobRuns?.edges

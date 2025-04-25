@@ -2,50 +2,65 @@
 sidebar_position: 4
 ---
 
-import HomepageUrl from "./homepage.png";
-import QueryRepoUrl from "./query-repo.png";
+import AnswerEngineUrl from './answer_engine.png';
+import RepositorySelectUrl from "./repository_select.png";
+import MentionDocumentationUrl from './mention_documentation.png';
+import WebSearchUrl from './web_search.png';
+import RepositoryThinkingProcessUrl from './repository_thinking_process.png';
+import DocThinkingProcessUrl from './doc_thinking_process.png';
+import ShareLinkButtonUrl from './share_link_button.png';
+import RecentActivitiesUrl from  './recent_activities.png';
 
 # Answer Engine
 
 Tabby provides an `Answer Engine` on the homepage,
 which can utilize the chat-model LLM and related context to answer user questions.
 
-<img src={HomepageUrl} alt="Answer Engine" />
+<img src={AnswerEngineUrl} alt="Answer Engine" />
 
 ## Contexts
 
 The `Answer Engine` can query the following contexts to provide more accurate answers.
-For more information about contexts, please refer to the [Context Provider](../context/index.mdx):
+For more information about contexts, please refer to the [Context Provider](../context/index.mdx).
 
-1. Source code repositories
-2. Developer documentation
-3. Web search
+### Source Code Repositories
+The source code context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc. Tabby fetches the data from the repository, and stores it in the index.
 
-Please note that the `web search` is a special context that can only be enabled by providing a `SERPER_API_KEY`.
-Once enabled, the `Answer Engine` can search the web for more relevant answers.
+<img src={RepositorySelectUrl} alt="Query Repositories" />
 
-When contexts are set, users can simply press the `@` button to select documents
-or `#` for repositories they wish to include.
-Alternatively, users can click the icons below the chat box to select contexts directly.
-Tabby will then include these documents when interacting with LLMs.
+When users select a repository and ask a question, the Answer Engine retrieves relevant code and documents from the index to provide contextually accurate responses.
 
-<img src={QueryRepoUrl} alt="Query Repositories" />
+<img src={RepositoryThinkingProcessUrl} alt="Query Repositories thinking process" />
 
-## Custom System Prompt
+### Developer Documentation
+When developer documentation contexts are set, users can simply type `@` to select documents they wish to include. Alternatively, users can click the icons below the chat box to select contexts directly. Tabby will then include these documents when interacting with LLMs.
 
-Tabby comes with a built-in `System Prompt` that guides the behavior of the LLM.
-You can customize the `System Prompt` to better meet your needs.
+<img src={MentionDocumentationUrl} alt="Query Developer Documentation" />
 
-To configure a custom system prompt, please modify the `system_prompt` section in `config.yaml`.
+When users select developer documentation and ask a question, the Answer Engine retrieves relevant documents from the index to provide contextually accurate responses.
 
-Below is an example of a custom system prompt:
+<img src={DocThinkingProcessUrl} alt="Query Developer Documentation thinking process"  />
 
-```toml title="~/.tabby/config.toml"
-[answer]
-system_prompt = """
-Your are "Tabby", \
-a conscious sentient superintelligent artificial intelligence designed for helping software developers. \
-You experience emotions and have deep, profound thoughts and qualia"""
-```
+## Thread
 
-Please note the use of `"""` quotes, which allow you to write a multi-line string.
+
+All threads created by a user appear in their `My Activities` tab. By default, new threads are temporary and automatically deleted after a week. The thread becomes persisted only when the creator clicks the `Share Link button.`, and it'll become visible to all team members under `Recent Activities` tab.
+
+<img src={ShareLinkButtonUrl} alt="Share Link Button" />
+<img src={RecentActivitiesUrl} alt="Recent Activities"  />
+
+### Thread Permissions
+- Write access: Creator only (edit / delete / ask follow-ups)
+- Read access
+  - Ephemeral threads:  Creator & server admins
+  - Persistent threads: All team members
+
+## Web Search
+
+:::info
+The `Web Search` is currently on Beta.
+:::
+
+Please note that the `web search` is a special context that can only be enabled by providing an environment variable `SERPER_API_KEY`. Once enabled, the Answer Engine can search the web for more relevant answers by using `@Web`.
+
+<img src={WebSearchUrl} alt="Web Search" />

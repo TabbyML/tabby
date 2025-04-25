@@ -18,13 +18,12 @@ Tabby Context supports two kinds of context currently:
 1. source code repositories
 2. developer docs
 
-The source code context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc.
-Tabby fetches the source code from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities.
+The source code repositories context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc.
+Tabby fetches the **codebase**, **pull requests / merge requests**, **issues**, and **commits** from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities. View the use case in [Answer Engine - Source Code Repositories](../answer-engine#code-source-repositories)
 
-The developer docs context is currently on Beta,
-it is a critical source for engineering knowledge,
+The developer docs context is a critical source for engineering knowledge,
 simply press the `@` button in the chat interface and select the document you wish to include,
-Tabby will include these documents when interacting with LLMs.
+Tabby will include these documents when interacting with LLMs. View the use case in [Answer Engine - Developer Documentation](../answer-engine#developer-documentation)
 
 ## Adding a Repository through Admin UI
 

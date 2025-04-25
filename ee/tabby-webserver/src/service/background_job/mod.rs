@@ -38,6 +38,7 @@ use tabby_schema::{
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
+use url::Url;
 pub use web_crawler::WebCrawlerJob;
 
 use self::third_party_integration::SyncIntegrationJob;
@@ -75,27 +76,84 @@ impl BackgroundJobEvent {
     }
 }
 
-fn background_job_notification_name(event: &BackgroundJobEvent) -> &str {
+async fn background_job_notification_name(
+    integration_service: Arc<dyn IntegrationService>,
+    third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
+    event: &BackgroundJobEvent,
+) -> String {
     match event {
-        BackgroundJobEvent::SchedulerGitRepository(_) => "Indexing Repository",
-        BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => "Indexing Repository",
-        BackgroundJobEvent::SyncThirdPartyRepositories(_) => "Loading Repository",
-        BackgroundJobEvent::SyncPagesIndex => "Pages Indexing",
-        BackgroundJobEvent::WebCrawler(_) => "Web Indexing",
-        BackgroundJobEvent::IndexGarbageCollection => "Garbage Collection",
-        BackgroundJobEvent::Hourly => "Hourly",
-        BackgroundJobEvent::Daily => "Daily",
+        BackgroundJobEvent::SchedulerGitRepository(repo) => {
+            if let Ok(url) = Url::parse(&repo.git_url) {
+                format!(
+                    "Indexing Git Repository {}",
+                    url.path()
+                        .strip_suffix(".git")
+                        .unwrap_or_else(|| url.path())
+                        .rsplit('/')
+                        .next()
+                        .unwrap_or("")
+                )
+            } else {
+                repo.git_url.clone()
+            }
+        }
+        BackgroundJobEvent::SchedulerGithubGitlabRepository(id) => {
+            if let Ok(repo) = third_party_repository_service
+                .get_provided_repository(id)
+                .await
+            {
+                format!(
+                    "Indexing {} Repository {}",
+                    integration_service
+                        .get_integration(&repo.integration_id)
+                        .await
+                        .map(|integration| integration.display_name)
+                        .unwrap_or_else(|_| String::new()),
+                    repo.display_name
+                )
+            } else {
+                format!("Indexing Third Party Repository {}", id)
+            }
+        }
+        BackgroundJobEvent::SyncThirdPartyRepositories(id) => {
+            if let Ok(repo) = integration_service.get_integration(id).await {
+                format!("Loading {} Repositories", repo.display_name)
+            } else {
+                format!("Loading Third Party Repositories {}", id)
+            }
+        }
+        BackgroundJobEvent::SyncPagesIndex => "Pages Indexing".into(),
+        BackgroundJobEvent::WebCrawler(doc) => {
+            if let Ok(url) = Url::parse(&doc.url) {
+                format!(
+                    "Indexing Web {}",
+                    url.host_str().unwrap_or_else(|| &doc.url)
+                )
+            } else {
+                format!("Indexing Web {}", doc.url)
+            }
+        }
+        BackgroundJobEvent::IndexGarbageCollection => "Index Garbage Collection".into(),
+        BackgroundJobEvent::Hourly => "Hourly".into(),
+        BackgroundJobEvent::Daily => "Daily".into(),
     }
 }
 
 async fn notify_job_error(
     notification_service: Arc<dyn NotificationService>,
+    integration_service: Arc<dyn IntegrationService>,
+    third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     err: &str,
     event: &BackgroundJobEvent,
     id: i64,
 ) {
     warn!("job {:?} failed: {:?}", event, err);
-    let name = background_job_notification_name(event);
+    let name = background_job_notification_name(
+        integration_service,
+        third_party_repository_service,
+        event,
+    )
+    .await;
     if let Err(err) = notification_service
         .create(
             NotificationRecipient::Admin,
@@ -223,7 +281,7 @@ pub async fn start(
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
-                        notify_job_error(notification_service.clone(), &err.to_string(), &cloned_event, job.id).await;
+                        notify_job_error(notification_service.clone(), integration_service.clone(), third_party_repository_service.clone(), &err.to_string(), &cloned_event, job.id).await;
                     } else {
                         logkit::info!(exit_code = 0; "Job completed successfully");
                     }

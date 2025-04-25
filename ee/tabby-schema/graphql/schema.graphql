@@ -585,6 +585,7 @@ type Integration {
   createdAt: DateTime!
   updatedAt: DateTime!
   status: IntegrationStatus!
+  message: String
 }
 
 type IntegrationConnection {

@@ -1,6 +1,5 @@
-```html
 <div align="center">
-  
+
 # 🐾 Tabby
 
 [📚 文档](https://tabby.tabbyml.com/docs/welcome/) • [💬 Slack](https://links.tabbyml.com/join-slack) • [🗺️ 路线图](https://tabby.tabbyml.com/docs/roadmap/)
@@ -133,4 +132,3 @@ apt install make sqlite3 graphviz
 ### 🌟 星标历史
 
 [![星标历史图](https://api.star-history.com/svg?repos=tabbyml/tabby&type=Date)](https://star-history.com/#tabbyml/tabby&Date)
-```

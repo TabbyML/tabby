@@ -74,7 +74,7 @@ impl RepositoryProvider for ThirdPartyRepositoryServiceImpl {
         let repo = self.get_provided_repository(id).await?;
         let provider = self
             .integration
-            .get_integration(repo.integration_id.clone())
+            .get_integration(&repo.integration_id)
             .await?;
         Ok(to_repository(provider.kind.into(), repo))
     }
@@ -154,7 +154,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
     }
 
     async fn sync_repositories(&self, integration_id: ID) -> Result<()> {
-        let provider = self.integration.get_integration(integration_id).await?;
+        let provider = self.integration.get_integration(&integration_id).await?;
         debug!(
             "Refreshing repositories for provider: {}",
             provider.display_name
@@ -580,7 +580,7 @@ mod tests {
             },
         ];
 
-        let provider = integration.get_integration(provider_id).await.unwrap();
+        let provider = integration.get_integration(&provider_id).await.unwrap();
         refresh_repositories_for_provider(&*repository, &*integration, provider, new_repos)
             .await
             .unwrap();

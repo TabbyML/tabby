@@ -57,6 +57,7 @@ pub struct Integration {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub status: IntegrationStatus,
+    pub message: Option<String>,
 }
 
 impl NodeType for Integration {
@@ -123,6 +124,6 @@ pub trait IntegrationService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<Integration>>;
 
-    async fn get_integration(&self, id: ID) -> Result<Integration>;
+    async fn get_integration(&self, id: &ID) -> Result<Integration>;
     async fn update_integration_sync_status(&self, id: &ID, error: Option<String>) -> Result<()>;
 }

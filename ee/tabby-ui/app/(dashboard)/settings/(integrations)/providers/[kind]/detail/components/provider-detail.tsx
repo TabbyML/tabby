@@ -3,13 +3,15 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import {
   IntegrationKind,
   IntegrationStatus,
-  ListIntegratedRepositoriesQuery
+  ListIntegratedRepositoriesQuery,
+  ListIntegrationsQuery
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import {
@@ -49,6 +51,11 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -108,9 +115,7 @@ const ProviderDetail: React.FC = () => {
           <span className="ml-1">{provider?.displayName}</span>
         </div>
         <div className="flex items-center gap-2 text-base">
-          <div className="ml-1">
-            {provider && toStatusBadge(provider.status)}
-          </div>
+          <div className="ml-1">{provider && toStatusBadge(provider)}</div>
         </div>
       </CardTitle>
       <CardContent className="mt-8">
@@ -179,6 +184,21 @@ const ActiveRepoTable: React.FC<{
       return res?.data
     }
   }
+
+  useSWR(
+    ['refresh_repos', page],
+    ([, p]) => {
+      fetchRepositoriesSequentially(p).then(res =>
+        setActiveRepositoriesResult(res)
+      )
+    },
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateOnMount: false,
+      refreshInterval: 10 * 1000
+    }
+  )
 
   const [activeRepositoriesResult, setActiveRepositoriesResult] =
     React.useState<QueryResponseData<typeof listIntegratedRepositories>>()
@@ -445,12 +465,35 @@ const ActiveRepoTable: React.FC<{
   )
 }
 
-function toStatusBadge(status: IntegrationStatus) {
-  switch (status) {
+function toStatusBadge(
+  node: ListIntegrationsQuery['integrations']['edges'][0]['node']
+) {
+  switch (node.status) {
     case IntegrationStatus.Ready:
       return <Badge variant="successful">Ready</Badge>
-    case IntegrationStatus.Failed:
-      return <Badge variant="destructive">Error</Badge>
+    case IntegrationStatus.Failed: {
+      return (
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger>
+            <Badge variant="destructive">Error</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            {node.message ? (
+              <div>
+                <p className="mb-2">{node.message}</p>
+                Please verify your context provider settings to resolve the
+                issue
+              </div>
+            ) : (
+              <p>
+                Processing error. Please check if the access token is still
+                valid
+              </p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      )
+    }
     case IntegrationStatus.Pending:
       return <Badge>Pending</Badge>
   }

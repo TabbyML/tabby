@@ -213,7 +213,7 @@ export class CodeSearchEngine {
         .map((hit) => {
           return {
             ...hit.document,
-            score: hit.score ?? 0,
+            score: hit.score || 0, // set score to 0 if it is NaN
           };
         })
         .sort((a, b) => b.score - a.score)

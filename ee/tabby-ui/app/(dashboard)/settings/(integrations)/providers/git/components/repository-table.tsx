@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { toast } from 'sonner'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
@@ -46,6 +47,19 @@ export default function RepositoryTable() {
     query: listRepositories,
     variables: { last: PAGE_SIZE, before }
   })
+
+  useSWR(
+    ['refresh_repos', before],
+    () => {
+      reexecuteQuery()
+    },
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateOnMount: false,
+      refreshInterval: 10 * 1000
+    }
+  )
 
   const [{ data: userGroupData, fetching: fetchingUserGroups }] = useQuery({
     query: userGroupsQuery
