@@ -20,7 +20,7 @@ use crate::{
     schema::{
         auth::{self, LdapCredential, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
-        ingestion::{IngestedDocument, IngestionStatus},
+        ingestion::{IngestedDocStatus, IngestedDocument},
         job,
         repository::{
             GithubRepositoryProvider, GitlabRepositoryProvider, RepositoryProviderStatus,
@@ -506,12 +506,12 @@ impl From<&retrieval::AttachmentDoc> for AttachmentDoc {
     }
 }
 
-impl From<IngestedDocumentStatusDAO> for IngestionStatus {
+impl From<IngestedDocumentStatusDAO> for IngestedDocStatus {
     fn from(value: IngestedDocumentStatusDAO) -> Self {
         match value {
-            IngestedDocumentStatusDAO::Pending => IngestionStatus::Pending,
-            IngestedDocumentStatusDAO::Failed => IngestionStatus::Failed,
-            IngestedDocumentStatusDAO::Indexed => IngestionStatus::Indexed,
+            IngestedDocumentStatusDAO::Pending => IngestedDocStatus::Pending,
+            IngestedDocumentStatusDAO::Failed => IngestedDocStatus::Failed,
+            IngestedDocumentStatusDAO::Indexed => IngestedDocStatus::Indexed,
         }
     }
 }

@@ -28,7 +28,7 @@ impl IngestionService for IngestionServiceImpl {
         urlencoding::decode(
             source_id
                 .strip_prefix(SOURCE_ID_PREFIX)
-                .unwrap_or_else(|| source_id),
+                .unwrap_or(source_id),
         )
         .unwrap_or_else(|_| source_id.into())
         .to_string()

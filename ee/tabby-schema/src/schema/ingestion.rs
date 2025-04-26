@@ -9,10 +9,10 @@ pub struct IngestedDocument {
     pub link: Option<String>,
     pub title: String,
     pub body: String,
-    pub status: IngestionStatus,
+    pub status: IngestedDocStatus,
 }
 
-pub enum IngestionStatus {
+pub enum IngestedDocStatus {
     Pending,
     Indexed,
     Failed,
