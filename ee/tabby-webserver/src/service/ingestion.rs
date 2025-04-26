@@ -4,7 +4,7 @@ use humantime::parse_duration;
 use tabby_common::api::ingestion::{IngestionRequest, IngestionResponse};
 use tabby_db::DbConn;
 use tabby_schema::{
-    ingestion::{IngestedDocument, IngestionService},
+    ingestion::{IngestedDocument, IngestionService, IngestionStats},
     CoreError, Result,
 };
 
@@ -98,6 +98,16 @@ impl IngestionService for IngestionServiceImpl {
             source: ingestion.source,
             message: "Ingestion has been accepted and will be processed later.".to_string(),
         })
+    }
+
+    async fn stats(&self, sources: Option<Vec<String>>) -> Result<Vec<IngestionStats>> {
+        Ok(self
+            .db
+            .list_ingested_document_statuses(sources)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     async fn should_ingest(&self) -> Result<bool> {

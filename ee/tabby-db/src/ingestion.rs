@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{query, FromRow};
+use sqlx::{query, FromRow, Row};
 use tabby_db_macros::query_paged_as;
 
 use super::DbConn;
@@ -25,6 +25,14 @@ pub enum IngestedDocumentStatusDAO {
     Pending,
     Indexed,
     Failed,
+}
+
+#[derive(FromRow)]
+pub struct IngestionStatusDAO {
+    pub source: String,
+    pub pending: i32,
+    pub failed: i32,
+    pub total: i32,
 }
 
 /// db read/write operations for `job_runs` table
@@ -151,5 +159,59 @@ impl DbConn {
         .await?;
 
         Ok(())
+    }
+
+    pub async fn list_ingested_document_statuses(
+        &self,
+        sources: Option<Vec<String>>,
+    ) -> Result<Vec<IngestionStatusDAO>> {
+        let mut query = String::from(
+            r#"
+            SELECT
+                source,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+                COUNT(1) as total
+            FROM ingested_documents
+            "#,
+        );
+
+        if sources.is_some() {
+            query.push_str(" WHERE source IN (");
+            query.push_str(
+                &sources
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .map(|_| "?")
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
+            query.push(')');
+        }
+
+        query.push_str(" GROUP BY source");
+
+        let mut q = sqlx::query(&query);
+
+        if let Some(sources) = sources {
+            for source in sources {
+                q = q.bind(source);
+            }
+        }
+
+        let statuses = q
+            .fetch_all(&self.pool)
+            .await?
+            .into_iter()
+            .map(|row| IngestionStatusDAO {
+                source: row.get("source"),
+                pending: row.get("pending"),
+                failed: row.get("failed"),
+                total: row.get("total"),
+            })
+            .collect();
+
+        Ok(statuses)
     }
 }

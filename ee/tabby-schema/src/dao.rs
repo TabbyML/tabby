@@ -5,12 +5,13 @@ use tabby_db::{
     AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentCommitDoc,
     AttachmentDoc, AttachmentIngestedDoc, AttachmentIssueDoc, AttachmentPageDoc, AttachmentPullDoc,
     AttachmentWebDoc, EmailSettingDAO, IngestedDocumentDAO, IngestedDocumentStatusDAO,
-    IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
-    OAuthCredentialDAO, PageDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
+    IngestionStatusDAO, IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO,
+    NotificationDAO, OAuthCredentialDAO, PageDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
 };
 
 use crate::{
     auth::LdapEncryptionKind,
+    ingestion::IngestionStats,
     integration::{Integration, IntegrationKind, IntegrationStatus},
     interface::UserValue,
     notification::{Notification, NotificationRecipient},
@@ -525,6 +526,17 @@ impl From<IngestedDocumentDAO> for IngestedDocument {
             title: value.title,
             body: value.body,
             status: value.status.into(),
+        }
+    }
+}
+
+impl From<IngestionStatusDAO> for IngestionStats {
+    fn from(value: IngestionStatusDAO) -> Self {
+        Self {
+            source: value.source,
+            pending: value.pending,
+            failed: value.failed,
+            total: value.total,
         }
     }
 }
