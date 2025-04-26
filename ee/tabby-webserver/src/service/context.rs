@@ -68,7 +68,10 @@ impl ContextService for ContextServiceImpl {
                 .await?
                 .into_iter()
                 .map(|source| {
-                    ContextSourceValue::IngestedContextSource(IngestedContextSource(source))
+                    ContextSourceValue::IngestedContextSource(IngestedContextSource {
+                        id: source.clone(),
+                        name: self.ingestion.source_name_from_id(&source),
+                    })
                 }),
         );
 

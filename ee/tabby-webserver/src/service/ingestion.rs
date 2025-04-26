@@ -20,8 +20,24 @@ pub fn create(db: DbConn) -> impl IngestionService {
 
 const TTL_DEFAULT_90_DAYS: i64 = 90 * 24 * 60 * 60;
 
+const SOURCE_ID_PREFIX: &str = "ingested:";
+
 #[async_trait]
 impl IngestionService for IngestionServiceImpl {
+    fn source_name_from_id(&self, source_id: &str) -> String {
+        urlencoding::decode(
+            source_id
+                .strip_prefix(SOURCE_ID_PREFIX)
+                .unwrap_or_else(|| source_id),
+        )
+        .unwrap_or_else(|_| source_id.into())
+        .to_string()
+    }
+
+    fn source_id_from_name(&self, source_name: &str) -> String {
+        format!("{}{}", SOURCE_ID_PREFIX, urlencoding::encode(source_name))
+    }
+
     async fn list(
         &self,
         after: Option<String>,
@@ -62,7 +78,7 @@ impl IngestionService for IngestionServiceImpl {
         };
 
         // url encode the source and id
-        let source = Self::format_source_id(&ingestion.source);
+        let source = self.source_id_from_name(&ingestion.source);
         let id = urlencoding::encode(&ingestion.id);
 
         self.db
@@ -96,12 +112,6 @@ impl IngestionService for IngestionServiceImpl {
                 .context("Failed to mark ingestion as indexed")?;
         }
         Ok(())
-    }
-}
-
-impl IngestionServiceImpl {
-    pub fn format_source_id(source: &str) -> String {
-        format!("ingested:{}", urlencoding::encode(source))
     }
 }
 

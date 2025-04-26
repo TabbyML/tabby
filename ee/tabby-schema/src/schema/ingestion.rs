@@ -38,4 +38,7 @@ pub trait IngestionService: Send + Sync {
 
     async fn should_ingest(&self) -> Result<bool>;
     async fn mark_all_indexed(&self, sourced_ids: Vec<(String, String)>) -> Result<()>;
+
+    fn source_name_from_id(&self, source_id: &str) -> String;
+    fn source_id_from_name(&self, source_name: &str) -> String;
 }

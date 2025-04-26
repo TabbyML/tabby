@@ -115,12 +115,15 @@ impl PageContextSource {
     }
 }
 
-pub struct IngestedContextSource(pub String);
+pub struct IngestedContextSource {
+    pub id: String,
+    pub name: String,
+}
 
 #[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl IngestedContextSource {
     fn id(&self) -> ID {
-        ID::new(self.0.clone())
+        ID::new(self.id.clone())
     }
 
     fn source_kind(&self) -> ContextSourceKind {
@@ -128,11 +131,11 @@ impl IngestedContextSource {
     }
 
     pub fn source_id(&self) -> &str {
-        &self.0
+        &self.id
     }
 
     pub fn source_name(&self) -> &str {
-        &self.0
+        &self.name
     }
 }
 
