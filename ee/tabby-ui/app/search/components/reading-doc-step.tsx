@@ -120,7 +120,11 @@ export function ReadingDocStepper({
                             <HoverCardTrigger>
                               <div
                                 className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
-                                onClick={() => window.open(_key)}
+                                onClick={() => {
+                                  if (_key) {
+                                    window.open(_key)
+                                  }
+                                }}
                               >
                                 <PageSummaryView doc={x} />
                               </div>
@@ -157,8 +161,17 @@ export function ReadingDocStepper({
                         return (
                           <div key={`${_key}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
-                              <HoverCardTrigger asChild>
-                                <WebDocSummaryView doc={x} />
+                              <HoverCardTrigger>
+                                <div
+                                  className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
+                                  onClick={() => {
+                                    if (_key) {
+                                      window.open(_key)
+                                    }
+                                  }}
+                                >
+                                  <WebDocSummaryView doc={x} />
+                                </div>
                               </HoverCardTrigger>
                               <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
                                 <DocDetailView
@@ -200,11 +213,9 @@ function WebDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
   if (!isWebDoc || !sourceUrl) return null
 
   return (
-    <div className="whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold">
-      <div className="m-0 flex items-center space-x-1 text-xs text-muted-foreground group-hover:text-foreground">
-        <SiteFavicon hostname={sourceUrl.hostname} className="m-0 mr-1" />
-        <p className="m-0 ">{sourceUrl.hostname}</p>
-      </div>
+    <div className="m-0 flex items-center space-x-1 text-xs text-muted-foreground group-hover:text-foreground">
+      <SiteFavicon hostname={sourceUrl.hostname} className="m-0 mr-1" />
+      <p className="m-0 ">{sourceUrl.hostname}</p>
     </div>
   )
 }
