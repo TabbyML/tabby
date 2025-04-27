@@ -120,7 +120,11 @@ export function ReadingDocStepper({
                             <HoverCardTrigger>
                               <div
                                 className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
-                                onClick={() => window.open(_key)}
+                                onClick={() => {
+                                  if (_key) {
+                                    window.open(_key)
+                                  }
+                                }}
                               >
                                 <PageSummaryView doc={x} />
                               </div>
@@ -160,7 +164,11 @@ export function ReadingDocStepper({
                               <HoverCardTrigger>
                                 <div
                                   className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
-                                  onClick={() => window.open(_key)}
+                                  onClick={() => {
+                                    if (_key) {
+                                      window.open(_key)
+                                    }
+                                  }}
                                 >
                                   <WebDocSummaryView doc={x} />
                                 </div>
