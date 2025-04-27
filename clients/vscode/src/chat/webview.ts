@@ -27,7 +27,6 @@ import type {
   SymbolInfo,
   FileLocation,
   GitRepository,
-  EditorFileContext,
   ListFilesInWorkspaceParams,
   ListFileItem,
   FileRange,
@@ -36,6 +35,8 @@ import type {
   ListSymbolItem,
   ChangeItem,
   GetChangesParams,
+  EditorFileContext,
+  TerminalContext,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
@@ -60,6 +61,7 @@ import { listFiles } from "../findFiles";
 import { wrapCancelableFunction } from "../cancelableFunction";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
+import { getTerminalContext } from "../terminal";
 
 export class ChatWebview extends EventEmitter {
   private readonly logger = getLogger("ChatWebView");
@@ -184,6 +186,18 @@ export class ChatWebview extends EventEmitter {
       });
       webview.postMessage({ id, action: "checkFocused" });
     });
+  }
+
+  setActiveSelection(selection: EditorContext) {
+    if (this.client) {
+      this.logger.info(`Set active selection: ${selection}`);
+      this.client["0.8.0"].updateActiveSelection(selection);
+    } else {
+      this.pendingActions.push(async () => {
+        this.logger.info(`Set pending active selection: ${selection}`);
+        await this.client?.["0.8.0"].updateActiveSelection(selection);
+      });
+    }
   }
 
   async addRelevantContext(context: EditorContext) {
@@ -476,6 +490,15 @@ export class ChatWebview extends EventEmitter {
         }
 
         return await getEditorContext(editor, this.gitProvider);
+      },
+
+      getActiveTerminalSelection: async (): Promise<TerminalContext | null> => {
+        const terminalContext = await getTerminalContext();
+        if (!terminalContext) {
+          this.logger.warn("No active terminal selection found.");
+          return null;
+        }
+        return terminalContext;
       },
 
       fetchSessionState: async (keys?: string[] | undefined): Promise<Record<string, unknown> | null> => {

@@ -135,10 +135,33 @@ export interface EditorFileContext {
 }
 
 /**
+ * Represents a client-side terminal context.
+ * This type should only be used for sending context from client to server.
+ */
+export interface TerminalContext {
+  kind: 'terminal'
+
+  /**
+   * The terminal name.
+   */
+  name: string
+
+  /**
+   * The terminal process id
+   */
+  processId: number | undefined
+
+  /**
+   * The selected text in the terminal.
+   */
+  selection: string
+}
+
+/**
  * Represents a client-side context.
  * This type should only be used for sending context from client to server.
  */
-export type EditorContext = EditorFileContext
+export type EditorContext = EditorFileContext | TerminalContext
 
 /**
  * Represents a file and a location in it.

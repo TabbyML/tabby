@@ -13,7 +13,7 @@ import type {
 } from 'tabby-chat-panel'
 import { twMerge } from 'tailwind-merge'
 
-import { AttachmentCodeItem, FileContext } from '@/lib/types'
+import { AttachmentCodeItem, Context, FileContext } from '@/lib/types'
 
 import { Maybe } from '../gql/generates/graphql'
 
@@ -175,6 +175,8 @@ export function getPromptForChatCommand(command: ChatCommand) {
   switch (command) {
     case 'explain':
       return 'Explain the selected code:'
+    case 'explain-terminal':
+      return 'Explain the selected text in the terminal:'
     case 'fix':
       return 'Identify and fix potential bugs in the selected code:'
     case 'generate-docs':
@@ -212,9 +214,7 @@ export function convertFromFilepath(filepath: Filepath): FilepathConvertible {
   }
 }
 
-export function convertEditorContext(
-  editorContext: EditorContext
-): FileContext {
+export function convertEditorContext(editorContext: EditorContext): Context {
   const convertRange = (range: LineRange | PositionRange | undefined) => {
     // If the range is not provided, the whole file is considered.
     if (!range || typeof range.start === 'undefined') {
@@ -229,6 +229,15 @@ export function convertEditorContext(
     return {
       start: positionRange.start.line,
       end: positionRange.end.line
+    }
+  }
+
+  if (editorContext.kind === 'terminal') {
+    return {
+      kind: 'terminal',
+      selection: editorContext.selection,
+      processId: editorContext.processId,
+      name: editorContext.name
     }
   }
 

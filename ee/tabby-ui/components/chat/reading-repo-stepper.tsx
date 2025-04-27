@@ -1,12 +1,17 @@
 import { ReactNode, useContext, useMemo, useState } from 'react'
 import { isNil } from 'lodash-es'
+import { TerminalContext } from 'tabby-chat-panel/index'
 
 import {
   Maybe,
   MessageAttachmentCodeFileList,
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
+import {
+  AttachmentDocItem,
+  RelevantCodeContext,
+  ServerFileContext
+} from '@/lib/types'
 import {
   cn,
   isAttachmentCommitDoc,
@@ -131,6 +136,14 @@ export function ReadingRepoStepper({
                 <div className="mb-3 mt-2">
                   <CodeContextList>
                     {clientCodeContexts.map((ctx, index) => {
+                      if (ctx.kind === 'terminal') {
+                        return (
+                          <TerminalSummaryView
+                            key={`terminal-${index}`}
+                            context={ctx}
+                          />
+                        )
+                      }
                       return (
                         <CodeSummaryView
                           key={`clientCode-${index}`}
@@ -177,6 +190,14 @@ export function ReadingRepoStepper({
                   <div className="mb-3 mt-2">
                     <CodeContextList>
                       {serverCodeContexts?.map((item, index) => {
+                        if (item.kind === 'terminal') {
+                          return (
+                            <TerminalSummaryView
+                              key={`terminal-${index}`}
+                              context={item}
+                            />
+                          )
+                        }
                         return (
                           <CodeSummaryView
                             key={`serverCode-${index}`}
@@ -252,9 +273,9 @@ function CodeSummaryView({
   showExternalLinkIcon,
   showClientCodeIcon
 }: {
-  context: RelevantCodeContext
+  context: ServerFileContext
   clickable?: boolean
-  onContextClick?: (context: RelevantCodeContext) => void
+  onContextClick?: (context: ServerFileContext) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
   showExternalLinkIcon?: boolean
@@ -393,6 +414,19 @@ function CodebaseDocSummaryView({
     >
       <span className="shrink-0">{icon}</span>
       <span className="truncate whitespace-nowrap">{docName}</span>
+    </div>
+  )
+}
+
+const TerminalSummaryView: React.FC<{ context: TerminalContext }> = ({
+  context
+}) => {
+  return (
+    <div className="flex flex-nowrap items-center gap-2 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground">
+      <IconCode className="shrink-0" />
+      <span className="truncate whitespace-nowrap">
+        {context.name ?? `Terminal Selection`}
+      </span>
     </div>
   )
 }

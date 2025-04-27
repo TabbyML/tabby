@@ -29,6 +29,7 @@ import { InlineEditController } from "../inline-edit";
 import { CommandPalette } from "./commandPalette";
 import { ConnectToServerWidget } from "./connectToServer";
 import { BranchQuickPick } from "./branchQuickPick";
+import { getTerminalContext } from "../terminal";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -496,6 +497,20 @@ export class Commands {
           window.showErrorMessage(`Failed to create branch: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
+    },
+    "terminal.explainSelection": async () => {
+      await commands.executeCommand("tabby.chatView.focus");
+      this.chatSidePanelProvider.chatWebview.executeCommand("explain-terminal");
+    },
+    "terminal.addSelectionToChat": async () => {
+      const terminalContext = await getTerminalContext();
+      if (!terminalContext) {
+        window.showInformationMessage("No terminal selection found.");
+        return;
+      }
+
+      await commands.executeCommand("tabby.chatView.focus");
+      this.chatSidePanelProvider.chatWebview.addRelevantContext(terminalContext);
     },
   };
 }

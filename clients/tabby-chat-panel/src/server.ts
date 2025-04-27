@@ -72,12 +72,13 @@ export interface ServerApiV0_9 extends ServerApiV0_8 {
 /**
  * Predefined commands used in {@link ServerApiV0_8.executeCommand}.
  * - 'explain': Explain the selected code.
+ * - 'explain-terminal': Explain the selected text in the terminal.
  * - 'fix': Fix bugs in the selected code.
  * - 'generate-docs': Generate documentation for the selected code.
  * - 'generate-tests': Generate tests for the selected code.
  * - 'code-review': Review the selected code and provide feedback.
  */
-export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests' | 'code-review'
+export type ChatCommand = 'explain' | 'explain-terminal' | 'fix' | 'generate-docs' | 'generate-tests' | 'code-review'
 
 /**
  * The views used in {@link ServerApiV0_8.navigate}.

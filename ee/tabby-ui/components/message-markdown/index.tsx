@@ -13,7 +13,7 @@ import {
 import {
   AttachmentCodeItem,
   AttachmentDocItem,
-  FileContext,
+  Context,
   RelevantCodeContext
 } from '@/lib/types'
 import {
@@ -103,7 +103,7 @@ export interface MessageMarkdownProps {
   // wrapLongLines for code block
   canWrapLongLines?: boolean
   supportsOnApplyInEditorV2: boolean
-  activeSelection?: FileContext
+  activeSelection?: Context
   runShell?: (command: string) => Promise<void>
 }
 

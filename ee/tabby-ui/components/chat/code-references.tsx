@@ -1,7 +1,8 @@
 import React, { forwardRef, useEffect, useState } from 'react'
 import { isNil } from 'lodash-es'
+import { TerminalContext } from 'tabby-chat-panel/index'
 
-import { RelevantCodeContext } from '@/lib/types'
+import { RelevantCodeContext, ServerFileContext } from '@/lib/types'
 import {
   cn,
   resolveDirectoryPath,
@@ -19,7 +20,12 @@ import {
   AccordionItem,
   AccordionTrigger
 } from '../ui/accordion'
-import { IconExternalLink, IconFile, IconFileSearch2 } from '../ui/icons'
+import {
+  IconExternalLink,
+  IconFile,
+  IconFileSearch2,
+  IconTerminalSquare
+} from '../ui/icons'
 
 interface ContextReferencesProps {
   supportsOpenInEditor?: boolean
@@ -103,8 +109,16 @@ export const CodeReferences = forwardRef<
           </AccordionTrigger>
           <AccordionContent className="space-y-2">
             {clientContexts?.map((item, index) => {
+              if (item.kind === 'terminal') {
+                return (
+                  <TerminalContextItem
+                    key={`client-terminal-${index}`}
+                    context={item}
+                  />
+                )
+              }
               return (
-                <ContextItem
+                <FileContextItem
                   key={`user-${index}`}
                   context={item}
                   onContextClick={ctx => onContextClick?.(ctx, true)}
@@ -115,8 +129,16 @@ export const CodeReferences = forwardRef<
               )
             })}
             {contexts.map((item, index) => {
+              if (item.kind === 'terminal') {
+                return (
+                  <TerminalContextItem
+                    key={`terminal-${index}`}
+                    context={item}
+                  />
+                )
+              }
               return (
-                <ContextItem
+                <FileContextItem
                   key={`assistant-${index}`}
                   context={item}
                   onContextClick={ctx => onContextClick?.(ctx, false)}
@@ -137,7 +159,7 @@ export const CodeReferences = forwardRef<
 )
 CodeReferences.displayName = 'CodeReferences'
 
-function ContextItem({
+function FileContextItem({
   context,
   clickable = true,
   onContextClick,
@@ -147,7 +169,7 @@ function ContextItem({
   showClientCodeIcon,
   isHighlighted
 }: {
-  context: RelevantCodeContext
+  context: ServerFileContext
   clickable?: boolean
   onContextClick?: (context: RelevantCodeContext) => void
   enableTooltip?: boolean
@@ -238,5 +260,20 @@ function ContextItem({
         </div>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+const TerminalContextItem: React.FC<{ context: TerminalContext }> = ({
+  context
+}) => {
+  return (
+    <div className="rounded-md border p-2">
+      <div className="flex items-center gap-1 overflow-hidden">
+        <IconTerminalSquare className="shrink-0" />
+        <div className="flex-1 truncate" title={context.selection}>
+          <span>{context.name ?? 'Terminal Selection'}</span>
+        </div>
+      </div>
+    </div>
   )
 }

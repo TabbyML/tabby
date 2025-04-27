@@ -2,7 +2,7 @@ import { createContext } from 'react'
 import { FileLocation, SymbolInfo } from 'tabby-chat-panel/index'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
-import { AttachmentCodeItem, FileContext } from '@/lib/types'
+import { AttachmentCodeItem, Context } from '@/lib/types'
 
 export type MessageMarkdownContextValue = {
   onCopyContent?: ((value: string) => void) | undefined
@@ -16,7 +16,7 @@ export type MessageMarkdownContextValue = {
   fetchingContextInfo: boolean
   canWrapLongLines: boolean
   supportsOnApplyInEditorV2: boolean
-  activeSelection?: FileContext
+  activeSelection?: Context
   symbolPositionMap: Map<string, SymbolInfo | null>
   openInEditor?: (target: FileLocation) => void
   lookupSymbol?: (keyword: string) => void

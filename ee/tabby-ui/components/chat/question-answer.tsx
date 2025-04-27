@@ -15,11 +15,15 @@ import {
   AssistantMessage,
   AttachmentCodeItem,
   Context,
+  FileContext,
   QuestionAnswerPair,
+  RelevantCodeContext,
   UserMessage
 } from '@/lib/types/chat'
 import {
+  attachmentCodeToTerminalContext,
   buildCodeBrowserUrlForContext,
+  buildMarkdownCodeBlock,
   cn,
   getFileLocationFromContext,
   getMentionsFromText,
@@ -43,6 +47,7 @@ import {
   IconEdit,
   IconFile,
   IconRefresh,
+  IconTerminalSquare,
   IconTrash,
   IconUser
 } from '../ui/icons'
@@ -127,15 +132,22 @@ function UserMessageCard(props: { message: UserMessage }) {
     fetchingContextInfo
   } = React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
+    if (selectContext?.kind === 'terminal') {
+      return buildMarkdownCodeBlock(selectContext?.selection, 'shell')
+    }
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
       ? filename2prism(selectContext?.filepath)[0] ?? ''
       : ''
-    return `\n${'```'}${language}\n${selectContext?.content ?? ''}\n${'```'}\n`
+    return buildMarkdownCodeBlock(selectContext?.content, language)
   }, [selectContext])
 
   let selectCode: SelectCode | null = null
-  if (selectCodeSnippet && message.selectContext) {
+  if (
+    selectCodeSnippet &&
+    message.selectContext &&
+    message.selectContext.kind === 'file'
+  ) {
     const { range, filepath } = message.selectContext
     selectCode = {
       filepath,
@@ -189,18 +201,33 @@ function UserMessageCard(props: { message: UserMessage }) {
             fetchingContextInfo={fetchingContextInfo}
           />
 
-          {selectCode && message.selectContext && (
-            <div
-              className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
-              onClick={() => {
-                const context = message.selectContext!
-                openInEditor(getFileLocationFromContext(context))
-              }}
-            >
-              <IconFile className="h-3 w-3" />
-              <p className="flex-1 truncate pr-1">
-                <span>{selectCode.filepath}</span>
-                <CodeRangeLabel range={message.selectContext.range} />
+          {selectCode &&
+            message.selectContext &&
+            message.selectContext.kind === 'file' && (
+              <div
+                className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
+                onClick={() => {
+                  const context = message.selectContext!
+                  if (context.kind === 'file') {
+                    openInEditor(getFileLocationFromContext(context))
+                  }
+                }}
+              >
+                <IconFile className="h-3 w-3" />
+                <p className="flex-1 truncate pr-1">
+                  <span>{selectCode.filepath}</span>
+                  <CodeRangeLabel range={message.selectContext.range} />
+                </p>
+              </div>
+            )}
+          {message.selectContext?.kind === 'terminal' && (
+            <div className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline">
+              <IconTerminalSquare className="h-3 w-3" />
+              <p
+                className="flex-1 truncate pr-1"
+                title={message.selectContext.selection}
+              >
+                <span>{message.selectContext.name}</span>
               </p>
             </div>
           )}
@@ -281,21 +308,43 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       compact([
         userMessage.activeContext,
         ...(userMessage?.relevantContext ?? [])
-      ]),
+      ]).map(item => {
+        if (item.kind === 'terminal') {
+          return item
+        }
+        const terminalContext = attachmentCodeToTerminalContext(item)
+        if (terminalContext) {
+          return terminalContext
+        }
+        return {
+          kind: 'file',
+          range: getRangeFromAttachmentCode(item),
+          filepath: item.filepath,
+          content: item.content,
+          gitUrl: item.gitUrl,
+          commit: item.commit ?? undefined
+        }
+      }),
       isEqual
     )
   }, [userMessage.activeContext, userMessage.relevantContext])
 
   const serverCode: Array<Context> = React.useMemo(() => {
     return (
-      message?.attachment?.code?.map(code => ({
-        kind: 'file',
-        range: getRangeFromAttachmentCode(code),
-        filepath: code.filepath,
-        content: code.content,
-        gitUrl: code.gitUrl,
-        commit: code.commit ?? undefined
-      })) ?? []
+      message?.attachment?.code?.map<Context>(code => {
+        const terminalContext = attachmentCodeToTerminalContext(code)
+        if (terminalContext) {
+          return terminalContext
+        }
+        return {
+          kind: 'file',
+          range: getRangeFromAttachmentCode(code),
+          filepath: code.filepath,
+          content: code.content,
+          gitUrl: code.gitUrl,
+          commit: code.commit ?? undefined
+        }
+      }) ?? []
     )
   }, [message?.attachment?.code])
 
@@ -306,29 +355,55 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     }
   > = useMemo(() => {
     const formattedAttachmentClientCode =
-      clientCode?.map(o => ({
-        content: o.content,
-        filepath: o.filepath,
-        gitUrl: o.gitUrl,
-        baseDir: o.baseDir,
-        startLine: o.range ? o.range.start : undefined,
-        language: filename2prism(o.filepath ?? '')[0],
-        isClient: true
-      })) ?? []
+      clientCode?.map(o => {
+        if (o.kind === 'terminal') {
+          return {
+            content: o.selection,
+            filepath: '',
+            gitUrl: '',
+            baseDir: '',
+            startLine: undefined,
+            language: 'shell',
+            isClient: true
+          }
+        }
+        return {
+          content: o.content,
+          filepath: o.filepath,
+          gitUrl: o.gitUrl,
+          baseDir: o.baseDir,
+          startLine: o.range ? o.range.start : undefined,
+          language: filename2prism(o.filepath ?? '')[0],
+          isClient: true
+        }
+      }) ?? []
     return formattedAttachmentClientCode
   }, [clientCode])
 
   const attachmentServerCode: Array<Omit<AttachmentCodeItem, '__typename'>> =
     useMemo(() => {
       const formattedServerAttachmentCode =
-        serverCode?.map(o => ({
-          content: o.content,
-          filepath: o.filepath,
-          gitUrl: o.gitUrl ?? '',
-          startLine: o.range?.start,
-          language: filename2prism(o.filepath ?? '')[0],
-          isClient: false
-        })) ?? []
+        serverCode?.map(o => {
+          if (o.kind === 'terminal') {
+            return {
+              content: o.selection,
+              filepath: '',
+              gitUrl: '',
+              baseDir: '',
+              startLine: undefined,
+              language: 'shell',
+              isClient: false
+            }
+          }
+          return {
+            content: o.content,
+            filepath: o.filepath,
+            gitUrl: o.gitUrl ?? '',
+            startLine: o.range?.start,
+            language: filename2prism(o.filepath ?? '')[0],
+            isClient: false
+          }
+        }) ?? []
       return compact([...formattedServerAttachmentCode])
     }, [serverCode])
 
@@ -396,7 +471,10 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
   const isInEditor = !!onApplyInEditor
 
-  const onContextClick = (context: Context, isClient?: boolean) => {
+  const onContextClick = (context: RelevantCodeContext, isClient?: boolean) => {
+    if (context.kind !== 'file') {
+      return
+    }
     // When isInEditor is false, we are in the code browser.
     // The `openInEditor` function implementation as `openInCodeBrowser`,
     // and will navigate to target without opening a new tab.
@@ -410,7 +488,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   }
 
   const onCodeCitationClick = (code: AttachmentCodeItem) => {
-    const ctx: Context = {
+    const ctx: FileContext = {
       gitUrl: code.gitUrl,
       content: code.content,
       filepath: code.filepath,

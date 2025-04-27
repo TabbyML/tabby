@@ -311,6 +311,10 @@ export default function ChatPage() {
     return server?.getActiveEditorSelection() ?? null
   }
 
+  const getActiveTerminalSelection = async () => {
+    return server?.getActiveTerminalSelection?.() ?? null
+  }
+
   const fetchSessionState = async () => {
     return server?.fetchSessionState?.() ?? null
   }
@@ -451,6 +455,7 @@ export default function ChatPage() {
         openExternal={openExternal}
         readWorkspaceGitRepositories={server?.readWorkspaceGitRepositories}
         getActiveEditorSelection={getActiveEditorSelection}
+        getActiveTerminalSelection={getActiveTerminalSelection}
         fetchSessionState={
           supportsStoreAndFetchSessionState ? fetchSessionState : undefined
         }

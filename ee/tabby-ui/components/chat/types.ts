@@ -14,7 +14,8 @@ import type {
   ListSymbolItem,
   ListSymbolsParams,
   LookupSymbolHint,
-  SymbolInfo
+  SymbolInfo,
+  TerminalContext
 } from 'tabby-chat-panel'
 
 import type { QuestionAnswerPair, SessionState } from '@/lib/types'
@@ -45,6 +46,7 @@ export interface ChatProps extends React.ComponentProps<'div'> {
   supportsOnApplyInEditorV2: boolean
   readWorkspaceGitRepositories?: () => Promise<GitRepository[]>
   getActiveEditorSelection?: () => Promise<EditorFileContext | null>
+  getActiveTerminalSelection?: () => Promise<TerminalContext | null>
   fetchSessionState?: () => Promise<SessionState | null>
   storeSessionState?: (state: Partial<SessionState>) => Promise<void>
   listFileInWorkspace?: (

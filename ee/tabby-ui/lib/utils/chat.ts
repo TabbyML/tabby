@@ -7,13 +7,15 @@ import type {
   ChangeItem,
   Filepath,
   FileRange,
-  GetChangesParams
+  GetChangesParams,
+  TerminalContext
 } from 'tabby-chat-panel'
 
 import {
   ContextInfo,
   ContextSource,
-  ContextSourceKind
+  ContextSourceKind,
+  MessageAttachmentCodeInput
 } from '@/lib/gql/generates/graphql'
 import type { MentionAttributes } from '@/lib/types'
 import {
@@ -500,5 +502,45 @@ export const normalizedMarkdownText = (input: string, maxLen?: number) => {
     return `${plainText.substring(0, maxLen)}...`
   } else {
     return plainText
+  }
+}
+
+export const buildMarkdownCodeBlock = (code: string, language: string) => {
+  // use ```` to avoid conflict with markdown code block
+  return `\n${'````'}${language}\n${code ?? ''}\n${'````'}\n`
+}
+
+export const terminalContextToAttachmentCode = (
+  context: TerminalContext
+): MessageAttachmentCodeInput => {
+  return {
+    filepath: `terminal://${context.name}-${context.processId}`,
+    content: context.selection
+  }
+}
+
+export const attachmentCodeToTerminalContext = (attachmentCode: {
+  filepath: string
+  content: string
+}): TerminalContext | undefined => {
+  const { filepath, content } = attachmentCode
+  if (!filepath || filepath.length === 0) {
+    return undefined
+  }
+  let uri: URL
+  try {
+    uri = new URL(filepath)
+  } catch (error) {
+    return undefined
+  }
+  if (uri.protocol !== 'terminal:') {
+    return undefined
+  }
+  const [name, processId] = uri.host.split('-')
+  return {
+    kind: 'terminal',
+    name,
+    processId: parseInt(processId),
+    selection: content
   }
 }

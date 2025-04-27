@@ -2,13 +2,18 @@
 
 import { ReactNode, useContext, useMemo } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
+import { TerminalContext } from 'tabby-chat-panel/index'
 
 import {
   ContextSource,
   MessageAttachmentCodeFileList,
   ThreadAssistantMessageReadingCode
 } from '@/lib/gql/generates/graphql'
-import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
+import {
+  AttachmentDocItem,
+  RelevantCodeContext,
+  ServerFileContext
+} from '@/lib/types'
 import {
   cn,
   isAttachmentCommitDoc,
@@ -38,7 +43,8 @@ import {
   IconGitCommit,
   IconGitMerge,
   IconGitPullRequest,
-  IconListTree
+  IconListTree,
+  IconTerminalSquare
 } from '@/components/ui/icons'
 import {
   Sheet,
@@ -207,6 +213,14 @@ export function ReadingCodeStepper({
                   <div className="mb-3 mt-2">
                     <div className="flex flex-wrap gap-2 text-xs font-semibold">
                       {clientCodeContexts?.map((item, index) => {
+                        if (item.kind === 'terminal') {
+                          return (
+                            <TerminalContextItem
+                              key={`client-termianl-${index}`}
+                              context={item}
+                            />
+                          )
+                        }
                         return (
                           <CodeContextItem
                             key={`client-${index}`}
@@ -218,6 +232,14 @@ export function ReadingCodeStepper({
                         )
                       })}
                       {serverCodeContexts?.map((item, index) => {
+                        if (item.kind === 'terminal') {
+                          return (
+                            <TerminalContextItem
+                              key={`server-terminal-${index}`}
+                              context={item}
+                            />
+                          )
+                        }
                         return (
                           <CodeContextItem
                             key={`server-${index}`}
@@ -281,7 +303,7 @@ export function ReadingCodeStepper({
 }
 
 interface CodeContextItemProps {
-  context: RelevantCodeContext
+  context: ServerFileContext
   onContextClick?: (context: RelevantCodeContext) => void
   clickable?: boolean
   enableDeveloperMode?: boolean
@@ -415,6 +437,23 @@ function CodebaseDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
     >
       {icon}
       <span>{docName}</span>
+    </div>
+  )
+}
+
+const TerminalContextItem: React.FC<{ context: TerminalContext }> = ({
+  context
+}) => {
+  return (
+    <div
+      className={cn(
+        'group flex flex-nowrap items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5',
+        'hover:bg-muted/90'
+      )}
+      title={context.selection}
+    >
+      <IconTerminalSquare className="h-3 w-3" />
+      <span>{context.name}</span>
     </div>
   )
 }

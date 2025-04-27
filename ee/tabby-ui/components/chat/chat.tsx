@@ -44,13 +44,15 @@ import {
   UserMessageWithOptionalId
 } from '@/lib/types/chat'
 import {
+  buildMarkdownCodeBlock,
   cn,
   convertEditorContext,
   findClosestGitRepository,
   getFileLocationFromContext,
   getPromptForChatCommand,
   nanoid,
-  processingPlaceholder
+  processingPlaceholder,
+  terminalContextToAttachmentCode
 } from '@/lib/utils'
 import { convertContextBlockToPlaceholder } from '@/lib/utils/markdown'
 
@@ -92,6 +94,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       supportsOnApplyInEditorV2,
       readWorkspaceGitRepositories,
       getActiveEditorSelection,
+      getActiveTerminalSelection,
       fetchSessionState,
       storeSessionState,
       listFileInWorkspace,
@@ -332,7 +335,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         content: inputContent
       })
 
-      if (userMessage.activeContext) {
+      if (
+        userMessage.activeContext &&
+        userMessage.activeContext.kind === 'file'
+      ) {
         openInEditor(getFileLocationFromContext(userMessage.activeContext))
       }
 
@@ -540,7 +546,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       const hasUsableActiveContext =
         enableActiveSelection && !!userMessage.activeContext
 
-      const clientFileContexts: FileContext[] = uniqWith(
+      const clientContexts: Context[] = uniqWith(
         compact([
           userMessage.selectContext,
           hasUsableActiveContext && userMessage.activeContext,
@@ -550,11 +556,16 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       )
 
       const attachmentCode: MessageAttachmentCodeInput[] =
-        clientFileContexts.map(o => ({
-          content: o.content,
-          filepath: o.filepath,
-          startLine: o.range?.start
-        }))
+        clientContexts.map<MessageAttachmentCodeInput>(o => {
+          if (o.kind === 'terminal') {
+            return terminalContextToAttachmentCode(o)
+          }
+          return {
+            content: o.content,
+            filepath: o.filepath,
+            startLine: o.range?.start
+          }
+        })
 
       const content = userMessage.content
       const docQuery: InputMaybe<DocQueryInput> = codeSourceId
@@ -595,14 +606,25 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         if (isLoading) return
 
         let selectCodeSnippet = ''
-        const selectCodeContextContent = userMessage?.selectContext?.content
-        if (selectCodeContextContent) {
-          const language = userMessage?.selectContext?.filepath
-            ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
-            : ''
-          selectCodeSnippet = `\n${'```'}${language}\n${
-            selectCodeContextContent ?? ''
-          }\n${'```'}\n`
+        if (userMessage?.selectContext?.kind === 'file') {
+          const selectCodeContextContent = userMessage?.selectContext?.content
+          if (selectCodeContextContent) {
+            const language = userMessage?.selectContext?.filepath
+              ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
+              : ''
+            selectCodeSnippet = buildMarkdownCodeBlock(
+              selectCodeContextContent,
+              language
+            )
+          }
+        } else if (userMessage?.selectContext?.kind === 'terminal') {
+          const selectCodeContextContent = userMessage?.selectContext?.selection
+          if (selectCodeContextContent) {
+            selectCodeSnippet = buildMarkdownCodeBlock(
+              selectCodeContextContent,
+              'shell'
+            )
+          }
         }
 
         // processing placeholder like contextCommand, file, symbol, etc.
@@ -663,7 +685,10 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
       sendUserChat(
         {
           content: prompt,
-          selectContext: activeSelection ?? undefined
+          selectContext:
+            command == 'explain-terminal'
+              ? (await getActiveTerminalSelection?.()) ?? undefined
+              : activeSelection ?? undefined
         },
         selectedRepoId
       )
@@ -711,7 +736,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
     }, [relevantContext, isDataSetup, storeSessionState])
 
     const debouncedUpdateActiveSelection = useDebounceCallback(
-      (ctx: Context | null) => {
+      (ctx: FileContext | null) => {
         setActiveSelection(ctx)
       },
       300
@@ -719,7 +744,9 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
 
     const updateActiveSelection = (editorContext: EditorContext | null) => {
       const context = editorContext ? convertEditorContext(editorContext) : null
-      debouncedUpdateActiveSelection.run(context)
+      debouncedUpdateActiveSelection.run(
+        context?.kind === 'file' ? context : null
+      )
     }
 
     const fetchWorkspaceGitRepo = () => {
@@ -778,7 +805,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         // update active selection
         if (activeEditorSelection) {
           const context = convertEditorContext(activeEditorSelection)
-          setActiveSelection(context)
+          setActiveSelection(context.kind === 'file' ? context : null)
         }
       }
 
@@ -907,11 +934,14 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
 )
 Chat.displayName = 'Chat'
 
+// get all keys from a union type, eg. T = A | B, then return keyof A | keyof B
+type AllKeys<T> = T extends infer U ? keyof U : never
+
 function appendContextAndDedupe(
   ctxList: Context[],
   newCtx: Context
 ): Context[] {
-  const fieldsToIgnore: Array<keyof Context> = ['content']
+  const fieldsToIgnore: Array<AllKeys<Context>> = ['content']
   const isEqualIgnoringFields = (obj1: Context, obj2: Context) => {
     return isEqualWith(obj1, obj2, (_value1, _value2, key) => {
       // If the key is in the fieldsToIgnore array, consider the values equal
