@@ -20,6 +20,7 @@ import {
   cn,
   getAttachmentDocContent,
   getRangeFromAttachmentCode,
+  isAttachmentIngestedDoc,
   isAttachmentCommitDoc,
   isAttachmentIssueDoc,
   isAttachmentPageDoc,
@@ -435,11 +436,16 @@ function DocPreviewCard({ source }: { source: AttachmentDocItem }) {
   const isPR = isAttachmentPullDoc(source)
   const isWeb = isAttachmentWebDoc(source)
   const isPage = isAttachmentPageDoc(source)
+  const isIngestion = isAttachmentIngestedDoc(source)
 
   const hostname = useMemo(() => {
     if (isCommit) return null
     try {
-      return new URL(source.link).hostname
+      let link = isIngestion ? source.ingestedDocLink : source.link
+      if (link) {
+        return new URL(link).hostname
+      }
+      return null
     } catch {
       return null
     }
