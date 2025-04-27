@@ -36,10 +36,13 @@ const resetRegistrationTokenDocument = graphql(/* GraphQL */ `
   }
 `)
 
-const testModelConnectionQuery = graphql(/* GraphQL */ `
-  query TestModelConnection($backend: ModelHealthBackend!) {
-    testModelConnection(backend: $backend) {
-      latencyMs
+const listIngestionStatus = graphql(/* GraphQL */ `
+  query ingestionStatus($sources: [String!]) {
+    ingestionStatus(sources: $sources) {
+      source
+      pending
+      failed
+      total
     }
   }
 `)
@@ -53,6 +56,13 @@ export default function Workers() {
   const { data: workers, isLoading, error: workersError } = useWorkers()
   const [{ data: registrationTokenRes }, reexecuteQuery] = useQuery({
     query: getRegistrationTokenDocument
+  })
+
+  const [{
+    data: ingestionStatusData,
+    fetching: fetchingIngestion,
+  }, reexecuteQueryIngestion] = useQuery({
+    query: listIngestionStatus
   })
 
   const resetRegistrationToken = useMutation(resetRegistrationTokenDocument, {
@@ -141,6 +151,13 @@ export default function Workers() {
             />
           </div>
         </>
+      </LoadingWrapper>
+      <LoadingWrapper
+        loading={fetchingIngestion}
+        fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
+      >
+        <Separator className='my-4' />
+        {ingestionStatusData?.ingestionStatus?.[0].source}
       </LoadingWrapper>
     </div>
   )

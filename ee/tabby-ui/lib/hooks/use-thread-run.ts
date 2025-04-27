@@ -111,6 +111,12 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
               title
               content
             }
+            ... on MessageAttachmentIngestedDoc {
+              id
+              title
+              body
+              ingestedDocLink: link
+            }
           }
           score
         }
@@ -216,6 +222,12 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
               link
               title
               content
+            }
+            ... on MessageAttachmentIngestedDoc {
+              id
+              title
+              body
+              ingestedDocLink: link
             }
           }
           score
