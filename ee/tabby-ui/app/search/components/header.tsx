@@ -5,7 +5,6 @@ import type { MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
-import { useEnablePage } from '@/lib/experiment-flags'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import { deleteThreadMutation } from '@/lib/tabby/query'
@@ -63,8 +62,6 @@ export function Header({
   const { isThreadOwner } = useContext(SearchContext)
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-
-  const [enablePage] = useEnablePage()
 
   const deleteThread = useMutation(deleteThreadMutation, {
     onCompleted(data) {
@@ -139,21 +136,19 @@ export function Header({
               )}
               {isThreadOwner && (
                 <>
-                  {!!enablePage.value && (
-                    <DropdownMenuItem
-                      className="cursor-pointer gap-2"
-                      onSelect={e => onConvertToPage?.()}
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2"
+                    onSelect={e => onConvertToPage?.()}
+                  >
+                    <IconBookOpen />
+                    <span>Convert to page</span>
+                    <Badge
+                      variant="outline"
+                      className="h-3.5 border-secondary-foreground/60 px-1.5 text-[10px] text-secondary-foreground/60"
                     >
-                      <IconBookOpen />
-                      <span>Convert to page</span>
-                      <Badge
-                        variant="outline"
-                        className="h-3.5 border-secondary-foreground/60 px-1.5 text-[10px] text-secondary-foreground/60"
-                      >
-                        Beta
-                      </Badge>
-                    </DropdownMenuItem>
-                  )}
+                      Beta
+                    </Badge>
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer gap-2 !text-destructive"
                     onSelect={e => setDeleteAlertVisible(true)}
