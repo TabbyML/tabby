@@ -39,7 +39,7 @@ export function isAttachmentIngestedDoc(attachment: AttachmentDocItem) {
   return (
     attachment.__typename === 'AttachmentIngestedDoc' ||
     attachment.__typename === 'MessageAttachmentIngestedDoc'
-   )
+  )
 }
 
 export function getAttachmentDocContent(attachment: AttachmentDocItem) {

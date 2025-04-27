@@ -12,6 +12,7 @@ import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
 import {
   cn,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentIssueDoc,
   isAttachmentPullDoc,
   isCodeSourceContext,
@@ -243,12 +244,16 @@ export function ReadingCodeStepper({
                   <div className="mb-3 mt-2 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {docs?.map((x, index) => {
-                        const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
+                        const _key = isAttachmentIngestedDoc(x)
+                          ? x.id
+                          : isAttachmentCommitDoc(x)
+                          ? x.sha
+                          : x.link
                         return (
                           <div key={`${_key}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
                               <HoverCardTrigger>
-                                <CodebaseDocView doc={x} />
+                                <CodebaseDocSummaryView doc={x} />
                               </HoverCardTrigger>
                               <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
                                 <DocDetailView
@@ -361,10 +366,14 @@ function CodeContextItem({
 }
 
 // Issue, PR, Commit
-function CodebaseDocView({ doc }: { doc: AttachmentDocItem }) {
+function CodebaseDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
   const isIssue = isAttachmentIssueDoc(doc)
   const isPR = isAttachmentPullDoc(doc)
   const isCommit = isAttachmentCommitDoc(doc)
+
+  if (!isIssue && !isPR && !isCommit) {
+    return null
+  }
 
   const docName = isCommit
     ? `${doc.sha.slice(0, 7)}`

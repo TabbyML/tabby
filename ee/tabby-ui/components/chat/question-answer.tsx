@@ -26,6 +26,7 @@ import {
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentIssueDoc,
   isAttachmentPageDoc,
   isAttachmentPullDoc,
@@ -352,7 +353,9 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   }, [messageAttachmentDocs])
   // web docs
   const webDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(x => isAttachmentWebDoc(x))
+    return messageAttachmentDocs?.filter(
+      x => isAttachmentWebDoc(x) || isAttachmentIngestedDoc(x)
+    )
   }, [messageAttachmentDocs])
   // pages
   const pages = useMemo(() => {

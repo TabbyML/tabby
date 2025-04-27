@@ -58,10 +58,10 @@ export default function Workers() {
     query: getRegistrationTokenDocument
   })
 
-  const [{
-    data: ingestionStatusData,
-    fetching: fetchingIngestion,
-  }, reexecuteQueryIngestion] = useQuery({
+  const [
+    { data: ingestionStatusData, fetching: fetchingIngestion },
+    reexecuteQueryIngestion
+  ] = useQuery({
     query: listIngestionStatus
   })
 
@@ -156,7 +156,7 @@ export default function Workers() {
         loading={fetchingIngestion}
         fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
       >
-        <Separator className='my-4' />
+        <Separator className="my-4" />
         {ingestionStatusData?.ingestionStatus?.[0].source}
       </LoadingWrapper>
     </div>

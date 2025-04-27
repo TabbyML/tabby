@@ -29,8 +29,8 @@ import {
   getMentionsFromText,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
-  isAttachmentIngestedDoc,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentIssueDoc,
   isAttachmentPageDoc,
   isAttachmentPullDoc,
@@ -121,7 +121,7 @@ export function AssistantMessageSection({
           if (isAttachmentCommitDoc(doc)) {
             return `[${idx + 1}] ${doc.sha}`
           } else if (isAttachmentIngestedDoc(doc)) {
-            return `[${idx  + 1}] ${doc.ingestedDocLink ?? ''}`
+            return `[${idx + 1}] ${doc.ingestedDocLink ?? ''}`
           } else {
             return `[${idx + 1}] ${doc.link}`
           }
@@ -208,7 +208,9 @@ export function AssistantMessageSection({
   }, [messageAttachmentDocs])
 
   const webDocs = useMemo(() => {
-    return messageAttachmentDocs?.filter(x => isAttachmentWebDoc(x) || isAttachmentIngestedDoc(x))
+    return messageAttachmentDocs?.filter(
+      x => isAttachmentWebDoc(x) || isAttachmentIngestedDoc(x)
+    )
     // return messageAttachmentDocs?.filter(x => isAttachmentWebDoc(x))
   }, [messageAttachmentDocs])
 

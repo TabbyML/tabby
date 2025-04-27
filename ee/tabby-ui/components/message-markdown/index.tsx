@@ -24,6 +24,7 @@ import {
   formatCustomHTMLBlockTags,
   getRangeFromAttachmentCode,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   resolveDirectoryPath,
   resolveFileNameForDisplay
 } from '@/lib/utils'
@@ -654,9 +655,16 @@ function RelevantDocumentBadge({
   citationIndex: number
 }) {
   const { onLinkClick } = useContext(MessageMarkdownContext)
-  const link = isAttachmentCommitDoc(relevantDocument)
-    ? undefined
-    : relevantDocument.link
+  const link = useMemo(() => {
+    if (isAttachmentCommitDoc(relevantDocument)) {
+      return undefined
+    }
+    if (isAttachmentIngestedDoc(relevantDocument)) {
+      return relevantDocument.ingestedDocLink
+    }
+
+    return relevantDocument.link
+  }, [relevantDocument])
 
   return (
     <HoverCard openDelay={100} closeDelay={100}>

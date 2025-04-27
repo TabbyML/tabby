@@ -6,6 +6,7 @@ import { Maybe } from 'graphql/jsutils/Maybe'
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
 import {
+  isAttachmentIngestedDoc,
   isAttachmentPageDoc,
   isAttachmentWebDoc,
   normalizedMarkdownText
@@ -25,7 +26,9 @@ import {
   IconBlocks,
   IconBookOpen,
   IconEmojiBook,
-  IconEmojiGlobe
+  IconEmojiGlobe,
+  IconFileUp,
+  IconFolderUp
 } from '@/components/ui/icons'
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
@@ -41,7 +44,13 @@ interface ReadingDocStepperProps {
         Array<
           Extract<
             AttachmentDocItem,
-            { __typename: 'MessageAttachmentWebDoc' | 'AttachmentWebDoc' }
+            {
+              __typename:
+                | 'MessageAttachmentWebDoc'
+                | 'AttachmentWebDoc'
+                | 'AttachmentIngestedDoc'
+                | 'MessageAttachmentIngestedDoc'
+            }
           >
         >
       >
@@ -97,6 +106,8 @@ export function ReadingDocStepper({
                         />
                       ) : x.sourceKind === ContextSourceKind.Page ? (
                         <IconBookOpen className="h-3.5 w-3.5 shrink-0" />
+                      ) : x.sourceKind === ContextSourceKind.Ingested ? (
+                        <IconFolderUp className="shrink-0" />
                       ) : (
                         <IconEmojiBook
                           className="h-3 w-3 shrink-0"
@@ -167,18 +178,22 @@ export function ReadingDocStepper({
               {!!webDocs?.length && (
                 <div className="mb-3 mt-2 space-y-2">
                   {webDocs.map((x, index) => {
-                    const _key = x.link
+                    const link = isAttachmentWebDoc(x)
+                      ? x.link
+                      : x.ingestedDocLink
                     return (
-                      <div key={`${_key}_${index}`}>
+                      <div key={`${link}_${index}`}>
                         <HoverCard openDelay={100} closeDelay={100}>
                           <HoverCardTrigger>
                             <div
                               className="group cursor-pointer pl-2"
                               onClick={() => {
-                                openExternal(x.link)
+                                if (link) {
+                                  openExternal(link)
+                                }
                               }}
                             >
-                              <WebDocSummaryView doc={x} />
+                              <DocumentSummaryView doc={x} />
                             </div>
                           </HoverCardTrigger>
                           <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
@@ -200,6 +215,20 @@ export function ReadingDocStepper({
         </AccordionContent>
       </AccordionItem>
     </Accordion>
+  )
+}
+
+function DocumentSummaryView({ doc }: { doc: AttachmentDocItem }) {
+  const isWebDoc = isAttachmentWebDoc(doc)
+  const isIngestedDoc = isAttachmentIngestedDoc(doc)
+
+  if (!isWebDoc && !isIngestedDoc) return null
+
+  return (
+    <div>
+      {isWebDoc && <WebDocSummaryView doc={doc} />}
+      {isIngestedDoc && <IngestedDocSummaryView doc={doc} />}
+    </div>
   )
 }
 
@@ -236,6 +265,19 @@ function PageSummaryView({ doc }: { doc: AttachmentDocItem }) {
       <span className="flex-1 truncate text-foreground">
         {normalizedMarkdownText(doc.title)}
       </span>
+    </div>
+  )
+}
+
+function IngestedDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
+  const isIngestedDoc = isAttachmentIngestedDoc(doc)
+
+  if (!isIngestedDoc) return null
+
+  return (
+    <div className="flex flex-nowrap items-center gap-2 rounded-md px-1.5 py-0.5 font-semibold text-foreground hover:bg-accent hover:text-accent-foreground">
+      <IconFileUp className="h-3.5 w-3.5 shrink-0" />
+      <p>{normalizedMarkdownText(doc.title, 20)}</p>
     </div>
   )
 }

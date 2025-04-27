@@ -23,7 +23,9 @@ import {
   Files,
   FileSearch2,
   FileText,
+  FileUp,
   Filter,
+  FolderUp,
   GitCommitHorizontal,
   GitFork,
   GitMerge,
@@ -51,9 +53,7 @@ import {
   Sun,
   Tag,
   WrapText,
-  X,
-  FolderUp,
-  FileUp
+  X
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'

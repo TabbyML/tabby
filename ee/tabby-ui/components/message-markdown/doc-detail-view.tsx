@@ -9,8 +9,8 @@ import type { AttachmentDocItem } from '@/lib/types'
 import {
   cn,
   getAttachmentDocContent,
-  isAttachmentIngestedDoc,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentIssueDoc,
   isAttachmentPageDoc,
   isAttachmentPullDoc,
@@ -43,7 +43,11 @@ export function DocDetailView({
   const isCommit = isAttachmentCommitDoc(relevantDocument)
   const isPage = isAttachmentPageDoc(relevantDocument)
   const isIngested = isAttachmentIngestedDoc(relevantDocument)
-  const link = isCommit ? undefined : isIngested ? relevantDocument.ingestedDocLink : relevantDocument.link
+  const link = isCommit
+    ? undefined
+    : isIngested
+    ? relevantDocument.ingestedDocLink
+    : relevantDocument.link
   const title = isCommit ? (
     <span>
       Commit

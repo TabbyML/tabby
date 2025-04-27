@@ -6,12 +6,12 @@ import { Maybe } from 'graphql/jsutils/Maybe'
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
 import {
-  isAttachmentIngestedDoc,
+  cn,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentPageDoc,
   isAttachmentWebDoc,
-  normalizedMarkdownText,
-  cn
+  normalizedMarkdownText
 } from '@/lib/utils'
 import {
   Accordion,
@@ -85,7 +85,7 @@ export function ReadingDocStepper({
                       ) : x.sourceKind === ContextSourceKind.Page ? (
                         <IconBookOpen className="h-3.5 w-3.5 shrink-0" />
                       ) : x.sourceKind === ContextSourceKind.Ingested ? (
-                        <IconFolderUp className='shrink-0' />
+                        <IconFolderUp className="shrink-0" />
                       ) : (
                         <IconEmojiBook
                           className="h-3 w-3 shrink-0"
@@ -119,7 +119,11 @@ export function ReadingDocStepper({
                 <div className="mb-3 mt-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {pages.map((x, index) => {
-                      const _key = isAttachmentCommitDoc(x) ? x.sha : isAttachmentIngestedDoc(x) ? x.id : x.link
+                      const _key = isAttachmentCommitDoc(x)
+                        ? x.sha
+                        : isAttachmentIngestedDoc(x)
+                        ? x.id
+                        : x.link
                       return (
                         <div key={`${_key}_${index}`}>
                           <HoverCard openDelay={100} closeDelay={100}>
@@ -163,23 +167,26 @@ export function ReadingDocStepper({
                   <div className="mb-3 mt-2">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {webDocs.map((x, index) => {
-                        const _key = isAttachmentCommitDoc(x) ? x.sha : isAttachmentIngestedDoc(x) ? x.id : x.link
+                        const _key = isAttachmentCommitDoc(x)
+                          ? x.sha
+                          : isAttachmentIngestedDoc(x)
+                          ? x.id
+                          : x.link
                         const isWebDoc = isAttachmentWebDoc(x)
                         return (
-
                           <div key={`${_key}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
                               <HoverCardTrigger>
                                 <div
                                   className={cn(
-                                    "group whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold",
+                                    'group whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold',
                                     {
-                                      "cursor-pointer": isWebDoc && !!x.link,
+                                      'cursor-pointer': isWebDoc && !!x.link
                                     }
                                   )}
                                   onClick={() => {
                                     if (isWebDoc && !!x.link) {
-                                      window.open(_key)
+                                      window.open(x.link)
                                     }
                                   }}
                                 >
@@ -224,7 +231,6 @@ function DocumentSummaryView({ doc }: { doc: AttachmentDocItem }) {
     </div>
   )
 }
-
 
 function WebDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
   const isWebDoc = isAttachmentWebDoc(doc)
