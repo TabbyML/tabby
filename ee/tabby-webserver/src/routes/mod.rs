@@ -44,12 +44,6 @@ pub fn create(
             "/background-jobs/{id}/logs",
             routing::get(background_job_logs).with_state(ctx.job()),
         )
-        .route(
-            "/v1beta/ingestion",
-            routing::post(ingestion::ingestion).with_state(Arc::new(ingestion::IngestionState {
-                ingestion: ctx.ingestion(),
-            })),
-        )
         // Add other endpoints that need authentication here
         .layer(from_fn_with_state(ctx.auth(), require_login_middleware));
 
@@ -63,6 +57,12 @@ pub fn create(
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
         // 1. /v1/*
         // 2. /v1beta/*
+        .route(
+            "/v1beta/ingestion",
+            routing::post(ingestion::ingestion).with_state(Arc::new(ingestion::IngestionState {
+                ingestion: ctx.ingestion(),
+            })),
+        )
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
         .route(
             "/graphql",

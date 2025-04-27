@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use validator::Validate;
+use validator::{Validate, ValidationError};
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct IngestionRequest {
@@ -31,7 +31,15 @@ pub struct IngestionRequest {
 
     /// Time-to-live duration (optional). Duration string like "90d"
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(custom(function = "validate_ttl"))]
     pub ttl: Option<String>,
+}
+
+fn validate_ttl(ttl: &String) -> Result<(), ValidationError> {
+    if humantime::parse_duration(ttl).is_err() {
+        return Err(ValidationError::new("invalid_ttl"));
+    }
+    Ok(())
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]

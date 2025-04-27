@@ -5503,6 +5503,7 @@ dependencies = [
  "derive_builder",
  "hash-ids",
  "home",
+ "humantime",
  "lazy_static",
  "parse-git-url",
  "reqwest",
