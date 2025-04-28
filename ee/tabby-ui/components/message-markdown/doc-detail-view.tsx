@@ -10,6 +10,7 @@ import {
   cn,
   getAttachmentDocContent,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentIssueDoc,
   isAttachmentPageDoc,
   isAttachmentPullDoc,
@@ -22,6 +23,7 @@ import {
   IconBookOpen,
   IconCheckCircled,
   IconCircleDot,
+  IconFolderUp,
   IconGitMerge,
   IconGitPullRequest
 } from '../ui/icons'
@@ -40,7 +42,12 @@ export function DocDetailView({
   const isPR = isAttachmentPullDoc(relevantDocument)
   const isCommit = isAttachmentCommitDoc(relevantDocument)
   const isPage = isAttachmentPageDoc(relevantDocument)
-  const link = isCommit ? undefined : relevantDocument.link
+  const isIngested = isAttachmentIngestedDoc(relevantDocument)
+  const link = isCommit
+    ? undefined
+    : isIngested
+    ? relevantDocument.ingestedDocLink
+    : relevantDocument.link
   const title = isCommit ? (
     <span>
       Commit
@@ -65,7 +72,8 @@ export function DocDetailView({
 
   const author =
     isAttachmentWebDoc(relevantDocument) ||
-    isAttachmentPageDoc(relevantDocument)
+    isAttachmentPageDoc(relevantDocument) ||
+    isAttachmentIngestedDoc(relevantDocument)
       ? undefined
       : relevantDocument.author
   const score = relevantDocument?.extra?.score
@@ -73,12 +81,17 @@ export function DocDetailView({
   return (
     <div className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0">
       <div className="flex w-full flex-col gap-y-1 text-sm">
-        {!!sourceUrl && (
+        {(!!sourceUrl || isPage || isIngested) && (
           <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
             {isPage ? (
               <>
                 <IconBookOpen className="m-0 mr-1 leading-none" />
                 <p className="m-0 leading-none">Pages</p>
+              </>
+            ) : isIngested ? (
+              <>
+                <IconFolderUp className="m-0 mr-1 leading-none" />
+                <p className="m-0 leading-none">Ingestion</p>
               </>
             ) : (
               <>

@@ -21,6 +21,7 @@ import {
   getAttachmentDocContent,
   getRangeFromAttachmentCode,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentIssueDoc,
   isAttachmentPageDoc,
   isAttachmentPullDoc,
@@ -36,6 +37,7 @@ import {
   IconCircleDot,
   IconCode,
   IconEdit,
+  IconFileUp,
   IconGitCommit,
   IconGitMerge,
   IconGitPullRequest,
@@ -127,6 +129,10 @@ export function SectionContent({
           break
         case 'AttachmentCodeFileList':
           result.push('codeFileList')
+          break
+        case 'AttachmentIngestedDoc':
+        case 'MessageAttachmentIngestedDoc':
+          result.push('ingestedDoc')
           break
         case 'MessageAttachmentCommitDoc':
         case 'AttachmentCommitDoc':
@@ -311,6 +317,7 @@ function SourcePreviewCard({
     source.__typename === 'AttachmentWebDoc' ||
     source.__typename === 'AttachmentPageDoc'
   const isCommit = source.__typename === 'AttachmentCommitDoc'
+  const isIngestedDoc = source.__typename === 'AttachmentIngestedDoc'
 
   if (isCodeFileList) {
     return (
@@ -416,6 +423,18 @@ function SourcePreviewCard({
     )
   }
 
+  if (isIngestedDoc) {
+    return (
+      <div className="flex items-start gap-2">
+        <div className="relative flex w-full gap-2 rounded-lg bg-accent p-3 text-accent-foreground hover:bg-accent/70">
+          <div className="relative flex w-full flex-col justify-between">
+            <DocPreviewCard source={source} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (isCommit) {
     return (
       <div className="flex items-start gap-2">
@@ -435,11 +454,16 @@ function DocPreviewCard({ source }: { source: AttachmentDocItem }) {
   const isPR = isAttachmentPullDoc(source)
   const isWeb = isAttachmentWebDoc(source)
   const isPage = isAttachmentPageDoc(source)
+  const isIngestion = isAttachmentIngestedDoc(source)
 
   const hostname = useMemo(() => {
     if (isCommit) return null
     try {
-      return new URL(source.link).hostname
+      let link = isIngestion ? source.ingestedDocLink : source.link
+      if (link) {
+        return new URL(link).hostname
+      }
+      return null
     } catch {
       return null
     }
@@ -486,6 +510,11 @@ function DocPreviewCard({ source }: { source: AttachmentDocItem }) {
             <div className="flex flex-1 items-center gap-1">
               <IconBookOpen className="h-3.5 w-3.5" />
               Pages
+            </div>
+          ) : isIngestion ? (
+            <div className="flex flex-1 items-center gap-1">
+              <IconFileUp className="h-3.5 w-3.5" />
+              Ingestion
             </div>
           ) : (
             <>
@@ -638,6 +667,17 @@ function SourceIconSummary({ hostnames }: { hostnames: string[] }) {
               className="bg-background group-hover:bg-transparent"
             >
               <IconBookOpen className="h-3.5 w-3.5 rounded-full bg-primary p-[0.15rem] text-primary-foreground" />
+            </SourceIcon>
+          )
+        }
+
+        if (hostname === 'ingestedDoc') {
+          return (
+            <SourceIcon
+              key={hostname}
+              className="bg-background group-hover:bg-transparent"
+            >
+              <IconFileUp className="h-3.5 w-3.5 rounded-full bg-primary p-[0.15rem] text-primary-foreground" />
             </SourceIcon>
           )
         }

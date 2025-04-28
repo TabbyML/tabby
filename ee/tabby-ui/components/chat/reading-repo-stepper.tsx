@@ -10,6 +10,7 @@ import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
 import {
   cn,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentIssueDoc,
   isAttachmentPullDoc,
   resolveDirectoryPath,
@@ -201,7 +202,11 @@ export function ReadingRepoStepper({
                 <div className="mb-3 mt-2">
                   <div className="space-y-2 pl-2 text-sm">
                     {docs?.map((x, index) => {
-                      const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
+                      const _key = isAttachmentIngestedDoc(x)
+                        ? x.id
+                        : isAttachmentCommitDoc(x)
+                        ? x.sha
+                        : x.link
                       return (
                         <div key={`${_key}_${index}`}>
                           <HoverCard openDelay={100} closeDelay={100}>
@@ -353,6 +358,11 @@ function CodebaseDocSummaryView({
   const isIssue = isAttachmentIssueDoc(doc)
   const isPR = isAttachmentPullDoc(doc)
   const isCommit = isAttachmentCommitDoc(doc)
+
+  if (!isIssue && !isPR && !isCommit) {
+    return null
+  }
+
   const docName = isCommit ? `Commit-${doc.sha.slice(0, 7)}` : doc.title
   const link = isCommit ? undefined : doc.link
 

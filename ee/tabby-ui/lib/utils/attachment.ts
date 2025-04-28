@@ -35,6 +35,13 @@ export function isAttachmentPageDoc(attachment: AttachmentDocItem) {
   )
 }
 
+export function isAttachmentIngestedDoc(attachment: AttachmentDocItem) {
+  return (
+    attachment.__typename === 'AttachmentIngestedDoc' ||
+    attachment.__typename === 'MessageAttachmentIngestedDoc'
+  )
+}
+
 export function getAttachmentDocContent(attachment: AttachmentDocItem) {
   switch (attachment.__typename) {
     case 'MessageAttachmentWebDoc':
@@ -46,6 +53,8 @@ export function getAttachmentDocContent(attachment: AttachmentDocItem) {
     case 'MessageAttachmentPullDoc':
     case 'AttachmentIssueDoc':
     case 'AttachmentPullDoc':
+    case 'AttachmentIngestedDoc':
+    case 'MessageAttachmentIngestedDoc':
       return attachment.body
     case 'MessageAttachmentCommitDoc':
     case 'AttachmentCommitDoc':

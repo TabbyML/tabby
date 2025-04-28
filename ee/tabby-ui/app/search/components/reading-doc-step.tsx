@@ -6,7 +6,9 @@ import { Maybe } from 'graphql/jsutils/Maybe'
 import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
 import {
+  cn,
   isAttachmentCommitDoc,
+  isAttachmentIngestedDoc,
   isAttachmentPageDoc,
   isAttachmentWebDoc,
   normalizedMarkdownText
@@ -26,7 +28,9 @@ import {
   IconBlocks,
   IconBookOpen,
   IconEmojiBook,
-  IconEmojiGlobe
+  IconEmojiGlobe,
+  IconFileUp,
+  IconFolderUp
 } from '@/components/ui/icons'
 import { DocDetailView } from '@/components/message-markdown/doc-detail-view'
 import { SiteFavicon } from '@/components/site-favicon'
@@ -80,6 +84,8 @@ export function ReadingDocStepper({
                         />
                       ) : x.sourceKind === ContextSourceKind.Page ? (
                         <IconBookOpen className="h-3.5 w-3.5 shrink-0" />
+                      ) : x.sourceKind === ContextSourceKind.Ingested ? (
+                        <IconFolderUp className="shrink-0" />
                       ) : (
                         <IconEmojiBook
                           className="h-3 w-3 shrink-0"
@@ -113,7 +119,11 @@ export function ReadingDocStepper({
                 <div className="mb-3 mt-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {pages.map((x, index) => {
-                      const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
+                      const _key = isAttachmentCommitDoc(x)
+                        ? x.sha
+                        : isAttachmentIngestedDoc(x)
+                        ? x.id
+                        : x.link
                       return (
                         <div key={`${_key}_${index}`}>
                           <HoverCard openDelay={100} closeDelay={100}>
@@ -157,20 +167,30 @@ export function ReadingDocStepper({
                   <div className="mb-3 mt-2">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {webDocs.map((x, index) => {
-                        const _key = isAttachmentCommitDoc(x) ? x.sha : x.link
+                        const _key = isAttachmentCommitDoc(x)
+                          ? x.sha
+                          : isAttachmentIngestedDoc(x)
+                          ? x.id
+                          : x.link
+                        const isWebDoc = isAttachmentWebDoc(x)
                         return (
                           <div key={`${_key}_${index}`}>
                             <HoverCard openDelay={100} closeDelay={100}>
                               <HoverCardTrigger>
                                 <div
-                                  className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
+                                  className={cn(
+                                    'group whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold',
+                                    {
+                                      'cursor-pointer': isWebDoc && !!x.link
+                                    }
+                                  )}
                                   onClick={() => {
-                                    if (_key) {
-                                      window.open(_key)
+                                    if (isWebDoc && !!x.link) {
+                                      window.open(x.link)
                                     }
                                   }}
                                 >
-                                  <WebDocSummaryView doc={x} />
+                                  <DocumentSummaryView doc={x} />
                                 </div>
                               </HoverCardTrigger>
                               <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
@@ -195,6 +215,20 @@ export function ReadingDocStepper({
         </AccordionContent>
       </AccordionItem>
     </Accordion>
+  )
+}
+
+function DocumentSummaryView({ doc }: { doc: AttachmentDocItem }) {
+  const isWebDoc = isAttachmentWebDoc(doc)
+  const isIngestedDoc = isAttachmentIngestedDoc(doc)
+
+  if (!isWebDoc && !isIngestedDoc) return null
+
+  return (
+    <div>
+      {isWebDoc && <WebDocSummaryView doc={doc} />}
+      {isIngestedDoc && <IngestedDocSummaryView doc={doc} />}
+    </div>
   )
 }
 
@@ -226,6 +260,19 @@ function PageSummaryView({ doc }: { doc: AttachmentDocItem }) {
   return (
     <div className="m-0 flex items-center space-x-1 text-xs text-muted-foreground group-hover:text-foreground">
       <IconBookOpen className="h-3 w-3" />
+      <p>{normalizedMarkdownText(doc.title, 20)}</p>
+    </div>
+  )
+}
+
+function IngestedDocSummaryView({ doc }: { doc: AttachmentDocItem }) {
+  const isIngestedDoc = isAttachmentIngestedDoc(doc)
+
+  if (!isIngestedDoc) return null
+
+  return (
+    <div className="m-0 flex items-center space-x-1 text-xs text-muted-foreground group-hover:text-foreground">
+      <IconFileUp className="h-3 w-3" />
       <p>{normalizedMarkdownText(doc.title, 20)}</p>
     </div>
   )

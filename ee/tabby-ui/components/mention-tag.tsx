@@ -18,6 +18,7 @@ import {
   IconCode,
   IconEmojiBook,
   IconEmojiGlobe,
+  IconFolderUp,
   IconGitHub,
   IconGitLab
 } from '@/components/ui/icons'
@@ -64,6 +65,8 @@ function SourceIcon({
       return <IconGitHub {...rest} />
     case ContextSourceKind.Gitlab:
       return <IconGitLab {...rest} />
+    case ContextSourceKind.Ingested:
+      return <IconFolderUp {...rest} />
     default:
       return null
   }

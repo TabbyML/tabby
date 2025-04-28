@@ -23,7 +23,9 @@ import {
   Files,
   FileSearch2,
   FileText,
+  FileUp,
   Filter,
+  FolderUp,
   GitCommitHorizontal,
   GitFork,
   GitMerge,
@@ -1783,6 +1785,20 @@ function IconCheckFull({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
+function IconFolderUp({
+  className,
+  ...props
+}: React.ComponentProps<typeof FolderUp>) {
+  return <FolderUp className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconFileUp({
+  className,
+  ...props
+}: React.ComponentProps<typeof FileUp>) {
+  return <FileUp className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1901,5 +1917,7 @@ export {
   IconListTree,
   IconCheckFull,
   IconBookOpen,
-  IconMessageSquare
+  IconMessageSquare,
+  IconFolderUp,
+  IconFileUp
 }

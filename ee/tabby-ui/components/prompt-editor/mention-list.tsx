@@ -22,6 +22,7 @@ import {
   IconCode,
   IconEmojiBook,
   IconEmojiGlobe,
+  IconFolderUp,
   IconGitHub,
   IconGitLab,
   IconSpinner
@@ -168,6 +169,8 @@ function OptionIcon({ kind }: { kind: ContextSourceKind }) {
       return <IconEmojiBook />
     case ContextSourceKind.Web:
       return <IconEmojiGlobe />
+    case ContextSourceKind.Ingested:
+      return <IconFolderUp />
     case ContextSourceKind.Git:
       return <IconCode />
     case ContextSourceKind.Github:

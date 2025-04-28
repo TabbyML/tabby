@@ -41,7 +41,11 @@ export const isCodeSourceContext = (kind: ContextSourceKind) => {
 }
 
 export const isDocSourceContext = (kind: ContextSourceKind) => {
-  return [ContextSourceKind.Doc, ContextSourceKind.Web].includes(kind)
+  return [
+    ContextSourceKind.Doc,
+    ContextSourceKind.Web,
+    ContextSourceKind.Ingested
+  ].includes(kind)
 }
 
 export const getMentionsFromText = (

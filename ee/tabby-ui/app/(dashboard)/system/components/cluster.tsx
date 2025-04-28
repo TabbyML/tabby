@@ -2,6 +2,7 @@
 
 import { noop, sum } from 'lodash-es'
 import prettyBytes from 'pretty-bytes'
+import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -22,6 +23,7 @@ import { CopyButton } from '@/components/copy-button'
 import { ErrorView } from '@/components/error-view'
 import LoadingWrapper from '@/components/loading-wrapper'
 
+import { IngestionTable } from './ingestion-table'
 import WorkerCard from './worker-card'
 
 const getRegistrationTokenDocument = graphql(/* GraphQL */ `
@@ -36,10 +38,13 @@ const resetRegistrationTokenDocument = graphql(/* GraphQL */ `
   }
 `)
 
-const testModelConnectionQuery = graphql(/* GraphQL */ `
-  query TestModelConnection($backend: ModelHealthBackend!) {
-    testModelConnection(backend: $backend) {
-      latencyMs
+const listIngestionStatus = graphql(/* GraphQL */ `
+  query ingestionStatus($sources: [String!]) {
+    ingestionStatus(sources: $sources) {
+      source
+      pending
+      failed
+      total
     }
   }
 `)
@@ -55,11 +60,31 @@ export default function Workers() {
     query: getRegistrationTokenDocument
   })
 
+  const [
+    { data: ingestionStatusData, fetching: fetchingIngestion },
+    reexecuteQueryIngestion
+  ] = useQuery({
+    query: listIngestionStatus
+  })
+
   const resetRegistrationToken = useMutation(resetRegistrationTokenDocument, {
     onCompleted() {
       reexecuteQuery()
     }
   })
+
+  useSWR(
+    ingestionStatusData?.ingestionStatus?.length ? 'refresh_repos' : null,
+    () => {
+      reexecuteQueryIngestion()
+    },
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateOnMount: false,
+      refreshInterval: 10 * 1000
+    }
+  )
 
   const error = healthError || workersError
 
@@ -141,6 +166,21 @@ export default function Workers() {
             />
           </div>
         </>
+      </LoadingWrapper>
+      <LoadingWrapper
+        loading={fetchingIngestion}
+        fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
+      >
+        {!!ingestionStatusData?.ingestionStatus?.length && (
+          <>
+            <Separator className="my-4" />
+            <div className="font-bold">Ingestion</div>
+            <IngestionTable
+              ingestionStatus={ingestionStatusData.ingestionStatus}
+              className="mb-8"
+            />
+          </>
+        )}
       </LoadingWrapper>
     </div>
   )

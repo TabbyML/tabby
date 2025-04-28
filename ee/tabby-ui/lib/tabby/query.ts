@@ -471,6 +471,12 @@ export const listThreadMessages = graphql(/* GraphQL */ `
                 link
                 content
               }
+              ... on MessageAttachmentIngestedDoc {
+                id
+                title
+                body
+                ingestedDocLink: link
+              }
             }
             codeFileList {
               fileList
@@ -673,6 +679,12 @@ export const listPageSections = graphql(/* GraphQL */ `
                 link
                 title
                 content
+              }
+              ... on AttachmentIngestedDoc {
+                id
+                title
+                body
+                ingestedDocLink: link
               }
             }
           }
