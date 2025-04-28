@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use derive_builder::Builder;
-use futures::stream::BoxStream;
-use futures::StreamExt;
+use futures::{stream::BoxStream, StreamExt};
 
 #[derive(Builder, Debug)]
 pub struct CompletionOptions {
