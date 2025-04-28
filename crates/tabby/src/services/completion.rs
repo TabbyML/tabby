@@ -250,14 +250,23 @@ pub struct CompletionResponse {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     debug_data: Option<DebugData>,
+
+    #[serde(default = "default_standard_mode")]
+    mode: String,
 }
 
 impl CompletionResponse {
-    pub fn new(id: String, choices: Vec<Choice>, debug_data: Option<DebugData>) -> Self {
+    pub fn new(
+        id: String,
+        choices: Vec<Choice>,
+        debug_data: Option<DebugData>,
+        mode: String,
+    ) -> Self {
         Self {
             id,
             choices,
             debug_data,
+            mode,
         }
     }
 }
@@ -425,6 +434,7 @@ impl CompletionService {
             completion_id,
             vec![Choice::new(generated_text)],
             debug_data,
+            "standard".to_string(),
         ))
     }
 
@@ -485,6 +495,7 @@ impl CompletionService {
             completion_id,
             vec![Choice::new(generated_text)],
             debug_data,
+            "next_edit_suggestion".to_string(),
         ))
     }
 }
