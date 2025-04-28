@@ -11,7 +11,7 @@ impl NextEditPromptBuilder {
         let prompt = format!("<|original_code|>\n{}\n<|edits_diff|>\n{}\n<|current_version|>\n{}\n<|next_version|>\n",
             edit_history.original_code,
             edit_history.edits_diff,
-            edit_history.current_version.content
+            edit_history.current_version
         );
 
         prompt
@@ -21,16 +21,13 @@ impl NextEditPromptBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::completion::CurrentVersion;
 
     #[test]
     fn test_build_prompt() {
         let edit_history = EditHistory {
             original_code: "fn main() {\n    println!(\"Hello, world!\");\n}".to_string(),
             edits_diff: "---src/main.rs\n+++src/main.rs\n@@ -1,1 +1,2 @@\n    println!(\"Hello, world!\");\n    let x = 5;\n    println!(\"Hello, world!\");".to_string(),
-            current_version: CurrentVersion {
-                content: "fn main() {\n    let x = 5;\n    println!(\"Hello, world!\");\n}".to_string(),
-            },
+            current_version: "fn main() {\n    let x = 5;\n    println!(\"Hello, world!\");\n}".to_string(),
         };
 
         let builder = NextEditPromptBuilder::new();

@@ -78,14 +78,7 @@ pub struct EditHistory {
     edits_diff: String,
 
     /// Current version of the code after all edits
-    current_version: CurrentVersion,
-}
-
-/// Current version of the code after all edits
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct CurrentVersion {
-    /// Current content after all edits
-    content: String,
+    current_version: String,
 }
 
 impl CompletionRequest {
