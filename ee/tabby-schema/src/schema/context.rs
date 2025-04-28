@@ -23,17 +23,18 @@ pub enum ContextSourceKind {
     Doc,
     Web,
     Page,
+    Ingested,
 }
 
 #[graphql_interface]
-#[graphql(context = Context, for = [ProvidedRepository, GitRepository, ContextSourceValue, CustomWebDocument, PresetWebDocument, Repository, WebContextSource, PageContextSource])]
+#[graphql(context = Context, for = [ProvidedRepository, GitRepository, ContextSourceValue, CustomWebDocument, PresetWebDocument, Repository, WebContextSource, PageContextSource, IngestedContextSource])]
 pub trait ContextSourceId {
     /// Represents the source of the context, which is the value mapped to `source_id` in the index.
     fn source_id(&self) -> String;
 }
 
 #[derive(GraphQLInterface)]
-#[graphql(context = Context, impl = [ContextSourceIdValue], for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource, PageContextSource])]
+#[graphql(context = Context, impl = [ContextSourceIdValue], for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource, PageContextSource, IngestedContextSource])]
 pub struct ContextSource {
     pub id: ID,
 
@@ -54,6 +55,7 @@ impl ContextSourceValue {
             ContextSourceValueEnum::PresetWebDocument(x) => x.source_id(),
             ContextSourceValueEnum::WebContextSource(x) => x.source_id().into(),
             ContextSourceValueEnum::PageContextSource(x) => x.source_id().into(),
+            ContextSourceValueEnum::IngestedContextSource(x) => x.source_id().into(),
         }
     }
 
@@ -64,6 +66,7 @@ impl ContextSourceValue {
             ContextSourceValueEnum::PresetWebDocument(x) => x.source_name().into(),
             ContextSourceValueEnum::WebContextSource(x) => x.source_name().into(),
             ContextSourceValueEnum::PageContextSource(x) => x.source_name().into(),
+            ContextSourceValueEnum::IngestedContextSource(x) => x.source_name().into(),
         }
     }
 }
@@ -109,6 +112,30 @@ impl PageContextSource {
 
     pub fn source_name(&self) -> &'static str {
         "Page"
+    }
+}
+
+pub struct IngestedContextSource {
+    pub id: String,
+    pub name: String,
+}
+
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
+impl IngestedContextSource {
+    fn id(&self) -> ID {
+        ID::new(self.id.clone())
+    }
+
+    fn source_kind(&self) -> ContextSourceKind {
+        ContextSourceKind::Ingested
+    }
+
+    pub fn source_id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn source_name(&self) -> &str {
+        &self.name
     }
 }
 

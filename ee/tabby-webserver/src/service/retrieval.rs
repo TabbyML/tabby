@@ -20,8 +20,8 @@ use tabby_schema::{
     policy::AccessPolicy,
     repository::{Repository, RepositoryService},
     retrieval::{
-        AttachmentCommitDoc, AttachmentDoc, AttachmentIssueDoc, AttachmentPageDoc,
-        AttachmentPullDoc, AttachmentWebDoc,
+        AttachmentCommitDoc, AttachmentDoc, AttachmentIngestedDoc, AttachmentIssueDoc,
+        AttachmentPageDoc, AttachmentPullDoc, AttachmentWebDoc,
     },
     setting::SettingService,
     thread::{CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput},
@@ -355,6 +355,12 @@ pub async fn attachment_doc_from_search(
             title: page.title,
             content: page.content,
         }),
+        DocSearchDocument::Ingested(ingested) => AttachmentDoc::Ingested(AttachmentIngestedDoc {
+            id: ingested.id,
+            title: ingested.title,
+            body: ingested.body,
+            link: ingested.link,
+        }),
     }
 }
 
@@ -424,6 +430,14 @@ pub fn attachment_doc_from_db(
             title: page.title,
             content: page.content,
         }),
+        tabby_db::AttachmentDoc::Ingested(ingested) => {
+            AttachmentDoc::Ingested(AttachmentIngestedDoc {
+                id: ingested.id,
+                title: ingested.title,
+                body: ingested.body,
+                link: ingested.link,
+            })
+        }
     }
 }
 
@@ -526,6 +540,7 @@ mod tests {
                 commit_doc.message.lines().next().unwrap_or(&commit_doc.sha)
             }
             DocSearchDocument::Page(page_doc) => &page_doc.title,
+            DocSearchDocument::Ingested(ingested_doc) => &ingested_doc.title,
         }
     }
 

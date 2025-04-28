@@ -28,6 +28,7 @@ pub enum AttachmentDoc {
     Pull(AttachmentPullDoc),
     Commit(AttachmentCommitDoc),
     Page(AttachmentPageDoc),
+    Ingested(AttachmentIngestedDoc),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -69,6 +70,14 @@ pub struct AttachmentPageDoc {
     pub page_link: String,
     pub title: String,
     pub content: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AttachmentIngestedDoc {
+    pub id: String,
+    pub title: String,
+    pub body: String,
+    pub link: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

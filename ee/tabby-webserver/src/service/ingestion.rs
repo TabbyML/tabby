@@ -20,8 +20,24 @@ pub fn create(db: DbConn) -> impl IngestionService {
 
 const TTL_DEFAULT_90_DAYS: i64 = 90 * 24 * 60 * 60;
 
+const SOURCE_ID_PREFIX: &str = "ingested:";
+
 #[async_trait]
 impl IngestionService for IngestionServiceImpl {
+    fn source_name_from_id(&self, source_id: &str) -> String {
+        urlencoding::decode(
+            source_id
+                .strip_prefix(SOURCE_ID_PREFIX)
+                .unwrap_or(source_id),
+        )
+        .unwrap_or_else(|_| source_id.into())
+        .to_string()
+    }
+
+    fn source_id_from_name(&self, source_name: &str) -> String {
+        format!("{}{}", SOURCE_ID_PREFIX, urlencoding::encode(source_name))
+    }
+
     async fn list(
         &self,
         after: Option<String>,
@@ -39,6 +55,17 @@ impl IngestionService for IngestionServiceImpl {
         Ok(docs.into_iter().map(Into::into).collect())
     }
 
+    async fn list_sources(
+        &self,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<String>> {
+        Ok(self
+            .db
+            .list_ingested_document_sources(limit, offset)
+            .await?)
+    }
+
     async fn ingestion(&self, ingestion: IngestionRequest) -> Result<IngestionResponse> {
         let now = chrono::Utc::now();
         let expired_at = if let Some(ttl) = &ingestion.ttl {
@@ -51,7 +78,7 @@ impl IngestionService for IngestionServiceImpl {
         };
 
         // url encode the source and id
-        let source = Self::format_source_id(&ingestion.source);
+        let source = self.source_id_from_name(&ingestion.source);
         let id = urlencoding::encode(&ingestion.id);
 
         self.db
@@ -88,8 +115,71 @@ impl IngestionService for IngestionServiceImpl {
     }
 }
 
-impl IngestionServiceImpl {
-    pub fn format_source_id(source: &str) -> String {
-        format!("ingested:{}", urlencoding::encode(source))
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_ingestion() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let ingestion_service = create(db.clone());
+
+        let ingestion = IngestionRequest {
+            source: "test_source".to_string(),
+            id: "test_id".to_string(),
+            title: "Test Title".to_string(),
+            body: "Test Body".to_string(),
+            link: Some("http://example.com".to_string()),
+            ttl: None,
+        };
+
+        let response = ingestion_service.ingestion(ingestion).await.unwrap();
+        assert_eq!(response.source, "test_source");
+        assert_eq!(response.id, "test_id");
+    }
+
+    #[tokio::test]
+    async fn test_list_sources() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let ingestion_service = create(db.clone());
+
+        // Insert some test data
+        db.upsert_ingested_document(
+            "test_source_1",
+            "test_id_1",
+            0,
+            None,
+            "Test Title 1",
+            "Test Body 1",
+        )
+        .await
+        .unwrap();
+
+        db.upsert_ingested_document(
+            "test_source_1",
+            "test_id_2",
+            0,
+            None,
+            "Test Title 2",
+            "Test Body 2",
+        )
+        .await
+        .unwrap();
+
+        db.upsert_ingested_document(
+            "test_source_2",
+            "test_id_2",
+            0,
+            None,
+            "Test Title 2",
+            "Test Body 2",
+        )
+        .await
+        .unwrap();
+
+        let sources = ingestion_service.list_sources(None, None).await.unwrap();
+        assert_eq!(sources.len(), 2);
+        assert!(sources.contains(&"test_source_1".to_string()));
+        assert!(sources.contains(&"test_source_2".to_string()));
     }
 }

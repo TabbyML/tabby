@@ -9,10 +9,10 @@ pub struct IngestedDocument {
     pub link: Option<String>,
     pub title: String,
     pub body: String,
-    pub status: IngestionStatus,
+    pub status: IngestedDocStatus,
 }
 
-pub enum IngestionStatus {
+pub enum IngestedDocStatus {
     Pending,
     Indexed,
     Failed,
@@ -28,8 +28,17 @@ pub trait IngestionService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<IngestedDocument>>;
 
+    async fn list_sources(
+        &self,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<String>>;
+
     async fn ingestion(&self, ingestion: IngestionRequest) -> Result<IngestionResponse>;
 
     async fn should_ingest(&self) -> Result<bool>;
     async fn mark_all_indexed(&self, sourced_ids: Vec<(String, String)>) -> Result<()>;
+
+    fn source_name_from_id(&self, source_id: &str) -> String;
+    fn source_id_from_name(&self, source_name: &str) -> String;
 }

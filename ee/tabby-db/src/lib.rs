@@ -3,7 +3,8 @@ use std::{path::Path, sync::Arc};
 use anyhow::anyhow;
 pub use attachment::{
     Attachment, AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentCommitDoc,
-    AttachmentDoc, AttachmentIssueDoc, AttachmentPageDoc, AttachmentPullDoc, AttachmentWebDoc,
+    AttachmentDoc, AttachmentIngestedDoc, AttachmentIssueDoc, AttachmentPageDoc, AttachmentPullDoc,
+    AttachmentWebDoc,
 };
 use cache::Cache;
 use cached::TimedSizedCache;

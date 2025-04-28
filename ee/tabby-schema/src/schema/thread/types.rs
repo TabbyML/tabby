@@ -161,6 +161,7 @@ pub enum MessageAttachmentDoc {
     Pull(MessageAttachmentPullDoc),
     Commit(MessageAttachmentCommitDoc),
     Page(MessageAttachmentPageDoc),
+    Ingested(MessageAttachmentIngestedDoc),
 }
 
 #[derive(GraphQLObject, Clone)]
@@ -208,6 +209,15 @@ pub struct MessageAttachmentPageDoc {
     pub content: String,
 }
 
+#[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
+pub struct MessageAttachmentIngestedDoc {
+    pub id: String,
+    pub title: String,
+    pub body: String,
+    pub link: Option<String>,
+}
+
 impl MessageAttachmentDoc {
     pub fn from_doc_search_document(doc: DocSearchDocument, author: Option<UserValue>) -> Self {
         match doc {
@@ -246,6 +256,14 @@ impl MessageAttachmentDoc {
                 title: page.title,
                 content: page.content,
             }),
+            DocSearchDocument::Ingested(ingested) => {
+                MessageAttachmentDoc::Ingested(MessageAttachmentIngestedDoc {
+                    id: ingested.id,
+                    title: ingested.title,
+                    body: ingested.body,
+                    link: ingested.link,
+                })
+            }
         }
     }
 
@@ -256,6 +274,7 @@ impl MessageAttachmentDoc {
             MessageAttachmentDoc::Pull(pull) => pull.body.to_string(),
             MessageAttachmentDoc::Commit(commit) => commit.message.to_string(),
             MessageAttachmentDoc::Page(page) => page.content.to_string(),
+            MessageAttachmentDoc::Ingested(ingested) => ingested.body.clone(),
         }
     }
 }

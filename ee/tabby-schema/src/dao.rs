@@ -3,10 +3,10 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentCommitDoc,
-    AttachmentDoc, AttachmentIssueDoc, AttachmentPageDoc, AttachmentPullDoc, AttachmentWebDoc,
-    EmailSettingDAO, IngestedDocumentDAO, IngestedDocumentStatusDAO, IntegrationDAO, InvitationDAO,
-    JobRunDAO, LdapCredentialDAO, NotificationDAO, OAuthCredentialDAO, PageDAO, ServerSettingDAO,
-    ThreadDAO, UserEventDAO,
+    AttachmentDoc, AttachmentIngestedDoc, AttachmentIssueDoc, AttachmentPageDoc, AttachmentPullDoc,
+    AttachmentWebDoc, EmailSettingDAO, IngestedDocumentDAO, IngestedDocumentStatusDAO,
+    IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
+    OAuthCredentialDAO, PageDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
 };
 
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
     schema::{
         auth::{self, LdapCredential, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
-        ingestion::{IngestedDocument, IngestionStatus},
+        ingestion::{IngestedDocStatus, IngestedDocument},
         job,
         repository::{
             GithubRepositoryProvider, GitlabRepositoryProvider, RepositoryProviderStatus,
@@ -326,6 +326,14 @@ pub fn from_thread_message_attachment_document(
                 content: page.content,
             })
         }
+        AttachmentDoc::Ingested(ingested) => {
+            thread::MessageAttachmentDoc::Ingested(thread::MessageAttachmentIngestedDoc {
+                id: ingested.id,
+                link: ingested.link,
+                title: ingested.title,
+                body: ingested.body,
+            })
+        }
     }
 }
 
@@ -371,6 +379,14 @@ impl From<&thread::MessageAttachmentDoc> for AttachmentDoc {
                 title: val.title.clone(),
                 content: val.content.clone(),
             }),
+            thread::MessageAttachmentDoc::Ingested(val) => {
+                AttachmentDoc::Ingested(AttachmentIngestedDoc {
+                    id: val.id.clone(),
+                    link: val.link.clone(),
+                    title: val.title.clone(),
+                    body: val.body.clone(),
+                })
+            }
         }
     }
 }
@@ -478,16 +494,24 @@ impl From<&retrieval::AttachmentDoc> for AttachmentDoc {
                 title: page.title.clone(),
                 content: page.content.clone(),
             }),
+            retrieval::AttachmentDoc::Ingested(ingested) => {
+                AttachmentDoc::Ingested(AttachmentIngestedDoc {
+                    id: ingested.id.clone(),
+                    link: ingested.link.clone(),
+                    title: ingested.title.clone(),
+                    body: ingested.body.clone(),
+                })
+            }
         }
     }
 }
 
-impl From<IngestedDocumentStatusDAO> for IngestionStatus {
+impl From<IngestedDocumentStatusDAO> for IngestedDocStatus {
     fn from(value: IngestedDocumentStatusDAO) -> Self {
         match value {
-            IngestedDocumentStatusDAO::Pending => IngestionStatus::Pending,
-            IngestedDocumentStatusDAO::Failed => IngestionStatus::Failed,
-            IngestedDocumentStatusDAO::Indexed => IngestionStatus::Indexed,
+            IngestedDocumentStatusDAO::Pending => IngestedDocStatus::Pending,
+            IngestedDocumentStatusDAO::Failed => IngestedDocStatus::Failed,
+            IngestedDocumentStatusDAO::Indexed => IngestedDocStatus::Indexed,
         }
     }
 }
