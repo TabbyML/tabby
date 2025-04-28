@@ -79,7 +79,7 @@ impl CodeGeneration {
                 .expect("Failed to build completion options");
 
             for await new_text in self.imp.generate(prompt, options).await {
-                // WARN: for regular fetch /completion, the stop_condition is used to stop some where by the keyword, it shoundn't happen in NES mode
+                // WARN: for regular fetch /completion, the stop_condition is used to stop somewhere by the keyword, it shouldn't happen in NES mode
                 let (should_stop, stop_length) = stop_condition.should_stop(&new_text);
                 text += &new_text;
                 if should_stop {
