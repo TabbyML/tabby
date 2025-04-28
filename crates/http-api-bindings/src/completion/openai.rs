@@ -71,14 +71,13 @@ impl CompletionStream for OpenAICompletionEngine {
             (prompt, None)
         };
 
-        // Always use streaming mode in generate method
         let request = CompletionRequest {
             model: self.model_name.clone(),
             prompt: prompt.to_owned(),
             suffix: suffix.map(|x| x.to_owned()),
             max_tokens: options.max_decoding_tokens,
             temperature: options.sampling_temperature,
-            stream: true, // Always true for streaming mode
+            stream: true,
             presence_penalty: options.presence_penalty,
         };
 
