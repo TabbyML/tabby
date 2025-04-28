@@ -524,8 +524,8 @@ fn override_prompt(prompt: String, use_crlf: bool) -> String {
 /// we can not simply replace \n with \r\n.
 fn override_generated_text(generated: String, use_crlf: bool) -> String {
     if use_crlf {
-        let re = Regex::new(r"([^\r])\n").unwrap();
-        re.replace_all(&generated, "$1\r\n").to_string()
+        let re = Regex::new(r"([^\r])\n").unwrap(); // Match \n that is preceded by anything except \r
+        re.replace_all(&generated, "$1\r\n").to_string() // Replace with captured character and \r\n
     } else {
         generated
     }
