@@ -1,6 +1,6 @@
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt, TryFutureExt};
+use futures::{stream::BoxStream, StreamExt};
 use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
