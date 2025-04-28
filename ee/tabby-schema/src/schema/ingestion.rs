@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use juniper::GraphQLObject;
 use tabby_common::api::ingestion::{IngestionRequest, IngestionResponse};
 
 use crate::Result;
@@ -18,6 +19,14 @@ pub enum IngestedDocStatus {
     Failed,
 }
 
+#[derive(Debug, GraphQLObject)]
+pub struct IngestionStats {
+    pub source: String,
+    pub pending: i32,
+    pub failed: i32,
+    pub total: i32,
+}
+
 #[async_trait]
 pub trait IngestionService: Send + Sync {
     async fn list(
@@ -35,6 +44,7 @@ pub trait IngestionService: Send + Sync {
     ) -> Result<Vec<String>>;
 
     async fn ingestion(&self, ingestion: IngestionRequest) -> Result<IngestionResponse>;
+    async fn stats(&self, sources: Option<Vec<String>>) -> Result<Vec<IngestionStats>>;
 
     async fn should_ingest(&self) -> Result<bool>;
     async fn mark_all_indexed(&self, sourced_ids: Vec<(String, String)>) -> Result<()>;

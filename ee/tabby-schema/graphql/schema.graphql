@@ -592,6 +592,13 @@ type IngestedContextSource implements ContextSourceId & ContextSource {
   sourceName: String!
 }
 
+type IngestionStats {
+  source: String!
+  pending: Int!
+  failed: Int!
+  total: Int!
+}
+
 type Integration {
   id: ID!
   kind: IntegrationKind!
@@ -1115,6 +1122,7 @@ type Query {
   contextInfo: ContextInfo!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
+  ingestionStatus(sources: [String!]): [IngestionStats!]!
   threads(ids: [ID!], isEphemeral: Boolean, after: String, before: String, first: Int, last: Int): ThreadConnection!
   myThreads(after: String, before: String, first: Int, last: Int): ThreadConnection!
   """

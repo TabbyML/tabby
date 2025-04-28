@@ -77,7 +77,7 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    ingestion::IngestionService,
+    ingestion::{IngestionService, IngestionStats},
     integration::{Integration, IntegrationKind, IntegrationService},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
@@ -731,6 +731,14 @@ impl Query {
             },
         )
         .await
+    }
+
+    async fn ingestion_status(
+        ctx: &Context,
+        sources: Option<Vec<String>>,
+    ) -> Result<Vec<IngestionStats>> {
+        check_admin(ctx).await?;
+        ctx.locator.ingestion().stats(sources).await
     }
 
     async fn threads(
