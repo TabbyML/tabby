@@ -1,4 +1,5 @@
 mod hub;
+pub mod ingestion;
 mod oauth;
 mod repositories;
 mod ui;
@@ -56,6 +57,12 @@ pub fn create(
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
         // 1. /v1/*
         // 2. /v1beta/*
+        .route(
+            "/v1beta/ingestion",
+            routing::post(ingestion::ingestion).with_state(Arc::new(ingestion::IngestionState {
+                ingestion: ctx.ingestion(),
+            })),
+        )
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
         .route(
             "/graphql",

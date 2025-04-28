@@ -26,6 +26,8 @@ chrono.workspace = true
 axum.workspace = true
 axum-extra = { workspace = true, features = ["typed-header"] }
 parse-git-url = "0.5.1"
+validator = { workspace = true }
+humantime = { workspace = true }
 
 [dev-dependencies]
 temp_testdir = { workspace = true }

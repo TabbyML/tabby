@@ -59,6 +59,9 @@ logkit.workspace = true
 async-openai-alt.workspace = true
 ratelimit.workspace = true
 cached.workspace = true
+humantime = { workspace = true }
+validator = { workspace = true }
+utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
 
 [dev-dependencies]
 assert_matches.workspace = true

@@ -12,11 +12,25 @@ mod webserver;
 
 #[cfg(test)]
 pub use service::*;
+use tabby_common::api;
+use utoipa::OpenApi;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        routes::ingestion::ingestion,
+    ),
+    components(schemas(
+        api::ingestion::IngestionRequest,
+        api::ingestion::IngestionResponse,
+    )),
+    // modifiers(&SecurityAddon),
+)]
+pub struct EEApiDoc;
 
 pub mod public {
 
     pub use super::{
-        /* used by tabby workers (consumer of /hub api) */
         hub::{create_worker_client, WorkerClient},
         webserver::Webserver,
     };

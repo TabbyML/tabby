@@ -5,6 +5,7 @@ mod helper;
 mod hourly;
 mod index_commits;
 mod index_garbage_collection;
+mod index_ingestion;
 mod index_pages;
 mod license_check;
 mod third_party_integration;
@@ -19,6 +20,7 @@ use git::SchedulerGitJob;
 use helper::{CronStream, Job, JobLogger};
 use hourly::HourlyJob;
 use index_garbage_collection::IndexGarbageCollection;
+use index_ingestion::SyncIngestionIndexJob;
 use index_pages::SyncPageIndexJob;
 use juniper::ID;
 use license_check::LicenseCheckJob;
@@ -28,6 +30,7 @@ use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{
     context::ContextService,
+    ingestion::IngestionService,
     integration::IntegrationService,
     job::JobService,
     license::LicenseService,
@@ -50,6 +53,7 @@ pub enum BackgroundJobEvent {
     SyncThirdPartyRepositories(ID),
     WebCrawler(WebCrawlerJob),
     IndexGarbageCollection,
+    SyncIngestionIndex,
     SyncPagesIndex,
     Hourly,
     Daily,
@@ -66,6 +70,7 @@ impl BackgroundJobEvent {
             BackgroundJobEvent::SyncPagesIndex => SyncPageIndexJob::NAME,
             BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
+            BackgroundJobEvent::SyncIngestionIndex => SyncIngestionIndexJob::NAME,
             BackgroundJobEvent::Hourly => HourlyJob::NAME,
             BackgroundJobEvent::Daily => DailyJob::NAME,
         }
@@ -133,6 +138,7 @@ async fn background_job_notification_name(
                 format!("Indexing Web {}", doc.url)
             }
         }
+        BackgroundJobEvent::SyncIngestionIndex => "Ingestion Indexing".into(),
         BackgroundJobEvent::IndexGarbageCollection => "Index Garbage Collection".into(),
         BackgroundJobEvent::Hourly => "Hourly".into(),
         BackgroundJobEvent::Daily => "Daily".into(),
@@ -178,6 +184,7 @@ pub async fn start(
     git_repository_service: Arc<dyn GitRepositoryService>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
+    ingestion_service: Arc<dyn IngestionService>,
     repository_service: Arc<dyn RepositoryService>,
     page_service: Option<Arc<dyn PageService>>,
     context_service: Arc<dyn ContextService>,
@@ -191,6 +198,10 @@ pub async fn start(
 
     let mut daily = CronStream::new(Schedule::from_str("@daily").expect("Invalid cron expression"))
         .into_stream();
+
+    let mut ten_seconds =
+        CronStream::new(Schedule::from_str("*/10 * * * * *").expect("Invalid cron expression"))
+            .into_stream();
 
     tokio::spawn(async move {
         loop {
@@ -252,6 +263,13 @@ pub async fn start(
                             let job = IndexGarbageCollection;
                             job.run(repository_service.clone(), context_service.clone()).await
                         }
+                        BackgroundJobEvent::SyncIngestionIndex => {
+                            let job = SyncIngestionIndexJob;
+                            job.run(
+                                ingestion_service.clone(),
+                                embedding.clone(),
+                            ).await
+                        }
                         BackgroundJobEvent::Hourly => {
                             let job = HourlyJob;
                             if let Err(e) = job.run(
@@ -298,6 +316,13 @@ pub async fn start(
                     match job_service.trigger(BackgroundJobEvent::Daily.to_command()).await {
                         Err(err) => warn!("Daily background job schedule failed {}", err),
                         Ok(id) => debug!("Daily background job {} scheduled", id),
+                    }
+                }
+                Some(_) = ten_seconds.next() => {
+                    match SyncIngestionIndexJob::cron(job_service.clone(), ingestion_service.clone()).await {
+                        Err(err) => warn!("Schedule ingestion job failed: {}", err),
+                        Ok(true) => debug!("Ingestion job scheduled"),
+                        Ok(false) => {},
                     }
                 }
                 else => {

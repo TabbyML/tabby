@@ -4,8 +4,9 @@ use lazy_static::lazy_static;
 use tabby_db::{
     AttachmentClientCode, AttachmentCode, AttachmentCodeFileList, AttachmentCommitDoc,
     AttachmentDoc, AttachmentIssueDoc, AttachmentPageDoc, AttachmentPullDoc, AttachmentWebDoc,
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, LdapCredentialDAO, NotificationDAO,
-    OAuthCredentialDAO, PageDAO, ServerSettingDAO, ThreadDAO, UserEventDAO,
+    EmailSettingDAO, IngestedDocumentDAO, IngestedDocumentStatusDAO, IntegrationDAO, InvitationDAO,
+    JobRunDAO, LdapCredentialDAO, NotificationDAO, OAuthCredentialDAO, PageDAO, ServerSettingDAO,
+    ThreadDAO, UserEventDAO,
 };
 
 use crate::{
@@ -19,6 +20,7 @@ use crate::{
     schema::{
         auth::{self, LdapCredential, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
+        ingestion::{IngestedDocument, IngestionStatus},
         job,
         repository::{
             GithubRepositoryProvider, GitlabRepositoryProvider, RepositoryProviderStatus,
@@ -480,6 +482,29 @@ impl From<&retrieval::AttachmentDoc> for AttachmentDoc {
     }
 }
 
+impl From<IngestedDocumentStatusDAO> for IngestionStatus {
+    fn from(value: IngestedDocumentStatusDAO) -> Self {
+        match value {
+            IngestedDocumentStatusDAO::Pending => IngestionStatus::Pending,
+            IngestedDocumentStatusDAO::Failed => IngestionStatus::Failed,
+            IngestedDocumentStatusDAO::Indexed => IngestionStatus::Indexed,
+        }
+    }
+}
+
+impl From<IngestedDocumentDAO> for IngestedDocument {
+    fn from(value: IngestedDocumentDAO) -> Self {
+        Self {
+            id: value.doc_id,
+            source: value.source,
+            link: value.link,
+            title: value.title,
+            body: value.body,
+            status: value.status.into(),
+        }
+    }
+}
+
 lazy_static! {
     static ref HASHER: HashIds = HashIds::builder()
         .with_salt("tabby-id-serializer")
@@ -529,6 +554,7 @@ impl DbEnum for EventKind {
             EventKind::Select => "select",
             EventKind::View => "view",
             EventKind::Dismiss => "dismiss",
+            EventKind::Ingestion => "ingestion",
         }
     }
 
@@ -539,6 +565,7 @@ impl DbEnum for EventKind {
             "select" => Ok(EventKind::Select),
             "view" => Ok(EventKind::View),
             "dismiss" => Ok(EventKind::Dismiss),
+            "ingestion" => Ok(EventKind::Ingestion),
             _ => bail!("{s} is not a valid value for EventKind"),
         }
     }

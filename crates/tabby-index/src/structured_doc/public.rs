@@ -9,6 +9,7 @@ use tabby_inference::Embedding;
 
 pub use super::types::{
     commit::CommitDocument as StructuredDocCommitFields,
+    ingested::IngestedDocument as StructuredDocIngestedFields,
     issue::IssueDocument as StructuredDocIssueFields,
     page::PageDocument as StructuredDocPageFields,
     pull::PullDocument as StructuredDocPullDocumentFields,
