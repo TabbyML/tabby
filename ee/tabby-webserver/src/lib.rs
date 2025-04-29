@@ -19,6 +19,8 @@ use utoipa::OpenApi;
 #[openapi(
     paths(
         routes::ingestion::ingestion,
+        routes::ingestion::delete_ingestion_source,
+        routes::ingestion::delete_ingestion,
     ),
     components(schemas(
         api::ingestion::IngestionRequest,

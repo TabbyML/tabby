@@ -63,6 +63,22 @@ pub fn create(
                 ingestion: ctx.ingestion(),
             })),
         )
+        .route(
+            "/v1beta/ingestion/{source}",
+            routing::delete(ingestion::delete_ingestion_source).with_state(Arc::new(
+                ingestion::IngestionState {
+                    ingestion: ctx.ingestion(),
+                },
+            )),
+        )
+        .route(
+            "/v1beta/ingestion/{source}/{id}",
+            routing::delete(ingestion::delete_ingestion).with_state(Arc::new(
+                ingestion::IngestionState {
+                    ingestion: ctx.ingestion(),
+                },
+            )),
+        )
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
         .route(
             "/graphql",

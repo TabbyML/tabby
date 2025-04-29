@@ -5,7 +5,7 @@ use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
 use serde_json::json;
 use tabby_common::{
-    index::{IndexSchema, FIELD_SOURCE_ID},
+    index::{structured_doc::fields::KIND, IndexSchema, FIELD_SOURCE_ID},
     path,
 };
 use tantivy::{
@@ -236,6 +236,13 @@ impl Indexer {
             .map_err(|e| e.into())
     }
 
+    // `get_doc_kind` returns the kind of a structured_doc, and `None` for a code.
+    pub async fn get_doc_kind<'a>(&self, id: &str) -> Result<Option<String>> {
+        let doc = self.get_doc(id).await?;
+        let schema = IndexSchema::instance();
+        Ok(get_json_text_optional(&doc, schema.field_attributes, KIND).map(|v| v.to_owned()))
+    }
+
     /// Lists the latest document IDs based on the given source ID, key-value pairs, and datetime field.
     ///
     /// The IDs are sorted by the datetime field in descending order and filtered by the given constraints.
@@ -324,7 +331,7 @@ impl Indexer {
     }
 
     /// Iterates over all the document IDs in the corpus.
-    pub fn iter_ids(&self) -> impl Stream<Item = String> + '_ {
+    pub fn iter_ids(&self) -> impl Stream<Item = (String, String)> + '_ {
         let schema = IndexSchema::instance();
 
         stream! {
@@ -348,7 +355,8 @@ impl Indexer {
                         // Skip chunks, as we only want to iterate over the main docs
                         if doc.get_first(schema.field_chunk_id).is_none() {
                             let id = get_text(&doc, schema.field_id);
-                            yield id.to_owned();
+                            let source = get_text(&doc, schema.field_source_id);
+                            yield (source.to_owned(), id.to_owned());
                         }
                     }
                     doc_id = postings.advance();
@@ -496,4 +504,25 @@ fn get_json_field<'a>(
 
 fn get_json_date_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> DateTime {
     get_json_field(doc, field, name).as_datetime().unwrap()
+}
+
+fn get_json_field_optional<'a>(
+    doc: &'a TantivyDocument,
+    field: schema::Field,
+    name: &str,
+) -> Option<CompactDocValue<'a>> {
+    Some(
+        doc.get_first(field)?
+            .as_object()?
+            .find(|(k, _)| *k == name)?
+            .1,
+    )
+}
+
+fn get_json_text_optional<'a>(
+    doc: &'a TantivyDocument,
+    field: schema::Field,
+    name: &str,
+) -> Option<&'a str> {
+    get_json_field_optional(doc, field, name).map(|v| v.as_str().unwrap())
 }

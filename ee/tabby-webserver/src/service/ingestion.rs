@@ -38,6 +38,17 @@ impl IngestionService for IngestionServiceImpl {
         format!("{}{}", SOURCE_ID_PREFIX, urlencoding::encode(source_name))
     }
 
+    async fn get(&self, source_id: &str, id: &str) -> Result<IngestedDocument> {
+        let doc = self
+            .db
+            .get_ingested_document(source_id, id)
+            .await
+            .context("Failed to get ingestion")?
+            .ok_or_else(|| CoreError::NotFound("Ingested doc not found"))?;
+
+        Ok(doc.into())
+    }
+
     async fn list(
         &self,
         after: Option<String>,
@@ -98,6 +109,26 @@ impl IngestionService for IngestionServiceImpl {
             source: ingestion.source,
             message: "Ingestion has been accepted and will be processed later.".to_string(),
         })
+    }
+
+    async fn delete(&self, source: String, id: String) -> Result<()> {
+        let source = self.source_id_from_name(&source);
+        let id = urlencoding::encode(&id);
+
+        self.db
+            .delete_ingested_document(&source, &id)
+            .await
+            .context("Failed to delete ingestion")?;
+        Ok(())
+    }
+
+    async fn delete_by_source_id(&self, source: String) -> Result<()> {
+        let source = self.source_id_from_name(&source);
+        self.db
+            .delete_ingested_document_by_source(&source)
+            .await
+            .context("Failed to delete ingestion by source")?;
+        Ok(())
     }
 
     async fn stats(&self, sources: Option<Vec<String>>) -> Result<Vec<IngestionStats>> {
