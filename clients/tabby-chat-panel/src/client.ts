@@ -35,6 +35,7 @@ export interface ClientApi {
   /**
    * Get the active terminal selection as context.
    * @returns The {@link TerminalContext} of the active terminal, or `null` if no active terminal selection is found.
+   * @since 0.10.0
    */
   getActiveTerminalSelection?: () => Promise<TerminalContext | null>
 

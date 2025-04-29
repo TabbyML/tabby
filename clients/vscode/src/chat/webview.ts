@@ -20,7 +20,6 @@ import {
 } from "vscode";
 import type {
   ServerApiList,
-  ChatCommand,
   ChatView,
   EditorContext,
   LookupSymbolHint,
@@ -37,6 +36,7 @@ import type {
   GetChangesParams,
   EditorFileContext,
   TerminalContext,
+  ChatCommand,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
@@ -203,11 +203,19 @@ export class ChatWebview extends EventEmitter {
   async addRelevantContext(context: EditorContext) {
     if (this.client) {
       this.logger.info(`Adding relevant context: ${context}`);
-      this.client["0.8.0"].addRelevantContext(context);
+      if (context.kind === "terminal") {
+        this.client["0.10.0"]?.addRelevantContext(context);
+      } else {
+        this.client["0.8.0"].addRelevantContext(context);
+      }
     } else {
       this.pendingActions.push(async () => {
         this.logger.info(`Adding pending relevant context: ${context}`);
-        await this.client?.["0.8.0"].addRelevantContext(context);
+        if (context.kind === "terminal") {
+          await this.client?.["0.10.0"]?.addRelevantContext(context);
+        } else {
+          await this.client?.["0.8.0"].addRelevantContext(context);
+        }
       });
     }
   }
@@ -215,11 +223,19 @@ export class ChatWebview extends EventEmitter {
   async executeCommand(command: ChatCommand) {
     if (this.client) {
       this.logger.info(`Executing command: ${command}`);
-      this.client["0.8.0"].executeCommand(command);
+      if (command === "explain-terminal") {
+        this.client["0.10.0"]?.executeCommand(command);
+      } else {
+        this.client["0.8.0"].executeCommand(command);
+      }
     } else {
       this.pendingActions.push(async () => {
         this.logger.info(`Executing pending command: ${command}`);
-        await this.client?.["0.8.0"].executeCommand(command);
+        if (command === "explain-terminal") {
+          await this.client?.["0.10.0"]?.executeCommand(command);
+        } else {
+          await this.client?.["0.8.0"].executeCommand(command);
+        }
       });
     }
   }

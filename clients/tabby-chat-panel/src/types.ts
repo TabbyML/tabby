@@ -137,6 +137,7 @@ export interface EditorFileContext {
 /**
  * Represents a client-side terminal context.
  * This type should only be used for sending context from client to server.
+ * @since 0.10.0
  */
 export interface TerminalContext {
   kind: 'terminal'
@@ -160,6 +161,7 @@ export interface TerminalContext {
 /**
  * Represents a client-side context.
  * This type should only be used for sending context from client to server.
+ * @since 0.10.0 added TerminalContext
  */
 export type EditorContext = EditorFileContext | TerminalContext
 
