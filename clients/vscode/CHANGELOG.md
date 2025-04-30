@@ -1,3 +1,11 @@
+## 1.28.0
+
+### Fixes & Improvements
+
+- **Code Completion**:
+  - Enhanced completion context and caching management, reducing redundant context collection and improving code completion performance.
+  - Fixed a bug where inline completion caused multiple duplicate import statements to be added automatically.
+
 ## 1.26.0
 
 ### Features
