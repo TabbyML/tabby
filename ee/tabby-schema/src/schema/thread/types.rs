@@ -351,6 +351,11 @@ pub struct ThreadAssistantMessageAttachmentsCode {
     pub hits: Vec<MessageCodeSearchHit>,
 }
 
+#[derive(GraphQLObject, Clone, Debug)]
+pub struct ThreadAssistantMessageReadingDoc {
+    pub source_ids: Vec<String>,
+}
+
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct ThreadAssistantMessageAttachmentsDoc {
@@ -387,6 +392,7 @@ pub enum ThreadRunItem {
     ThreadAssistantMessageReadingCode(ThreadAssistantMessageReadingCode),
     ThreadAssistantMessageAttachmentsCodeFileList(ThreadAssistantMessageAttachmentsCodeFileList),
     ThreadAssistantMessageAttachmentsCode(ThreadAssistantMessageAttachmentsCode),
+    ThreadAssistantMessageReadingDoc(ThreadAssistantMessageReadingDoc),
     ThreadAssistantMessageAttachmentsDoc(ThreadAssistantMessageAttachmentsDoc),
     ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta),
     ThreadAssistantMessageCompleted(ThreadAssistantMessageCompleted),
