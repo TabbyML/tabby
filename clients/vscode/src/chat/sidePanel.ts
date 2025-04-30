@@ -17,6 +17,7 @@ export class ChatSidePanelProvider implements WebviewViewProvider {
     this.contextVariables.chatSidePanelStatus = undefined;
     this.chatWebview.on("didChangedStatus", (status: "loading" | "error" | "ready") => {
       this.contextVariables.chatSidePanelStatus = status;
+      this.contextVariables.terminalContextEnabled = this.chatWebview.isTerminalContextEnabled;
     });
   }
 

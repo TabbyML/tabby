@@ -316,7 +316,8 @@
       "terminal/context": [
         {
           "submenu": "tabby.terminal.submenu",
-          "group": "2_tabby"
+          "group": "2_tabby",
+          "when": "tabby.terminalContextEnabled"
         }
       ]
     },

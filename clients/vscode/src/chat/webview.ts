@@ -56,6 +56,7 @@ import {
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
   vscodeRangeToChatPanelLineRange,
+  isCompatible,
 } from "./utils";
 import { listFiles } from "../findFiles";
 import { wrapCancelableFunction } from "../cancelableFunction";
@@ -186,6 +187,14 @@ export class ChatWebview extends EventEmitter {
       });
       webview.postMessage({ id, action: "checkFocused" });
     });
+  }
+
+  getApiVersions(): string[] | undefined {
+    return Object.keys(this.client ?? {}).filter((key) => semver.valid(key));
+  }
+
+  get isTerminalContextEnabled(): boolean {
+    return this.getApiVersions()?.some((version) => isCompatible(version, "0.10.0")) ?? false;
   }
 
   setActiveSelection(selection: EditorContext) {

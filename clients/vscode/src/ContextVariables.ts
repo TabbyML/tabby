@@ -8,6 +8,7 @@ export class ContextVariables {
   private chatEditResolvingValue = false;
   private inlineCompletionTriggerModeValue: "automatic" | "manual" = "automatic";
   private chatSidePanelVisibleValue = false;
+  private terminalContextEnabledValue = false;
 
   constructor(
     private readonly client: Client,
@@ -110,5 +111,14 @@ export class ContextVariables {
   set chatSidePanelVisible(value: boolean) {
     commands.executeCommand("setContext", "tabby.chatSidePanelVisible", value);
     this.chatSidePanelVisibleValue = value;
+  }
+
+  set terminalContextEnabled(value: boolean) {
+    commands.executeCommand("setContext", "tabby.terminalContextEnabled", value);
+    this.terminalContextEnabledValue = value;
+  }
+
+  get terminalContextEnabled(): boolean {
+    return this.terminalContextEnabledValue;
   }
 }
