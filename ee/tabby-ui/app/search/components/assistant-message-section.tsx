@@ -169,8 +169,6 @@ export function AssistantMessageSection({
   }, [clientCode, clientCodeGitUrl])
 
   const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
-    // eslint-disable-next-line no-console
-    console.log('serverCodeContexts', message?.attachment?.code)
     return (
       message?.attachment?.code?.map(code => {
         const terminalContext = attachmentCodeToTerminalContext(code)
