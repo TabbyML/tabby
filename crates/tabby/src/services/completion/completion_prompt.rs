@@ -293,6 +293,7 @@ mod tests {
             relevant_snippets_from_changed_files: None,
             relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
+            edit_history: None,
         }
     }
 
@@ -514,6 +515,7 @@ def this_is_prefix():\n";
             relevant_snippets_from_changed_files: None,
             relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
+            edit_history: None,
         };
 
         let max_snippets_chars = 768;
@@ -540,6 +542,7 @@ def this_is_prefix():\n";
                 score: 1.0,
             }]),
             clipboard: None,
+            edit_history: None,
         };
 
         assert!(

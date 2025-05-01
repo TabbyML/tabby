@@ -1,6 +1,6 @@
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt};
+use futures::{stream::BoxStream, StreamExt, TryFutureExt};
 use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
@@ -25,7 +25,7 @@ impl LlamaCppEngine {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct CompletionRequest {
     seed: u64,
     prompt: String,
@@ -45,7 +45,8 @@ struct CompletionResponseChunk {
 #[async_trait]
 impl CompletionStream for LlamaCppEngine {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
-        let request = CompletionRequest {
+        // Always use streaming mode in generate method
+        let request_body = CompletionRequest {
             seed: options.seed,
             prompt: prompt.to_owned(),
             n_predict: options.max_decoding_tokens,
@@ -55,7 +56,12 @@ impl CompletionStream for LlamaCppEngine {
             presence_penalty: options.presence_penalty,
         };
 
-        let mut request = self.client.post(&self.api_endpoint).json(&request);
+        let request_json = serde_json::to_string_pretty(&request_body)
+            .unwrap_or_else(|_| format!("{:#?}", request_body));
+
+        tracing::debug!("Completion Request body: \n{}", request_json);
+
+        let mut request = self.client.post(&self.api_endpoint).json(&request_body);
         if let Some(api_key) = &self.api_key {
             request = request.bearer_auth(api_key);
         }
