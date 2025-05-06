@@ -142,6 +142,10 @@ impl AnswerService {
                     .unwrap_or_default()
                     .to_vec();
                 sources.retain(|x| context_info_helper.can_access_source_id(x));
+
+                // Emit the ThreadAssistantMessageReadingDoc event to indicate the initiation
+                // of the document retrieval process.
+                // The sources are filtered to include only those that are accessible to the user.
                 yield Ok(ThreadRunItem::ThreadAssistantMessageReadingDoc(ThreadAssistantMessageReadingDoc {
                     source_ids: sources,
                 }));
