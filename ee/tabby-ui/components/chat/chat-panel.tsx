@@ -33,6 +33,7 @@ import {
   IconRemove,
   IconShare,
   IconStop,
+  IconTerminalSquare,
   IconTrash
 } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
@@ -273,7 +274,12 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                     }
                   )}
                 >
-                  <IconFileText className="shrink-0" />
+                  {activeSelection.kind === 'file' && (
+                    <IconFileText className="shrink-0" />
+                  )}
+                  {activeSelection.kind === 'terminal' && (
+                    <IconTerminalSquare className="shrink-0" />
+                  )}
                   <ContextLabel
                     context={activeSelection}
                     className="flex-1 truncate"
@@ -295,8 +301,12 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
               ) : null}
               <AnimatePresence>
                 {relevantContext.map((item, idx) => {
-                  // `gitUrl + filepath + range` as unique key
-                  const key = `${item.gitUrl}_${item.filepath}_${item.range?.start}_${item.range?.end}`
+                  // `gitUrl + filepath + range` as unique key for file context
+                  // `name + processId + selection.length + idx` as unique key for terminal context
+                  const key =
+                    item.kind === 'file'
+                      ? `${item.gitUrl}_${item.filepath}_${item.range?.start}_${item.range?.end}`
+                      : `${item.name}_${item.processId}_${item.selection.length}_${idx}`
                   return (
                     <motion.div
                       key={key}
@@ -316,10 +326,17 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
                           'inline-flex h-7 w-full cursor-pointer flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold'
                         )}
                         onClick={() => {
-                          openInEditor(getFileLocationFromContext(item))
+                          if (item.kind === 'file') {
+                            openInEditor(getFileLocationFromContext(item))
+                          }
                         }}
                       >
-                        <IconFileText className="shrink-0" />
+                        {item.kind === 'file' && (
+                          <IconFileText className="shrink-0" />
+                        )}
+                        {item.kind === 'terminal' && (
+                          <IconTerminalSquare className="shrink-0" />
+                        )}
                         <ContextLabel context={item} />
                         <Button
                           size="icon"
@@ -359,6 +376,15 @@ function ContextLabel({
   context: Context
   className?: string
 }) {
+  if (context.kind === 'terminal') {
+    return (
+      <span className={cn('truncate', className)} title={context.selection}>
+        <span className="text-muted-foreground">
+          {context.name ?? 'Terminal Selection'}
+        </span>
+      </span>
+    )
+  }
   const line = context.range
     ? context.range.start === context.range.end
       ? `:${context.range.start}`

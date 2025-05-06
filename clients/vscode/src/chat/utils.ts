@@ -3,6 +3,7 @@ import { TextEditor, Position as VSCodePosition, Range as VSCodeRange, Uri, work
 import type { Filepath, Position as ChatPanelPosition, LineRange, PositionRange, Location } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
+import * as semver from "semver";
 
 const logger = getLogger("chat/utils");
 
@@ -221,4 +222,13 @@ function generateNotebookCellUri(notebook: Uri, handle: number): Uri {
   const p = s.length < nb_lengths.length ? nb_lengths[s.length - 1] : "z";
   const fragment = `${p}${s}s${Buffer.from(notebook.scheme).toString("base64")}`;
   return notebook.with({ scheme: DocumentSchemes.vscodeNotebookCell, fragment });
+}
+
+export function isCompatible(current: string, target: string): boolean {
+  const currentSemver = semver.coerce(current);
+  const targetSemver = semver.coerce(target);
+  if (!currentSemver || !targetSemver) {
+    return false;
+  }
+  return semver.gte(currentSemver, targetSemver);
 }

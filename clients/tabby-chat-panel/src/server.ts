@@ -1,12 +1,13 @@
 import type { EditorContext } from './types'
 
-export const serverApiVersionList = ['0.8.0', '0.9.0']
+export const serverApiVersionList = ['0.8.0', '0.9.0', '0.10.0']
 
-export type ServerApi = ServerApiV0_9
+export type ServerApi = ServerApiV0_10
 
 export interface ServerApiList {
   '0.8.0': ServerApiV0_8
   '0.9.0': ServerApiV0_9 | undefined
+  '0.10.0': ServerApiV0_10 | undefined
 }
 
 export interface ServerApiV0_8 {
@@ -69,6 +70,18 @@ export interface ServerApiV0_9 extends ServerApiV0_8 {
   getVersion: () => Promise<string>
 }
 
+export interface ServerApiV0_10 extends ServerApiV0_9 {
+  /**
+   * @since 0.10.0 added 'explain-terminal'
+   */
+  executeCommand: (command: ChatCommand) => Promise<void>
+
+  /**
+   * @since 0.10.0 added terminal context support
+   */
+  addRelevantContext: (context: EditorContext) => Promise<void>
+}
+
 /**
  * Predefined commands used in {@link ServerApiV0_8.executeCommand}.
  * - 'explain': Explain the selected code.
@@ -76,8 +89,9 @@ export interface ServerApiV0_9 extends ServerApiV0_8 {
  * - 'generate-docs': Generate documentation for the selected code.
  * - 'generate-tests': Generate tests for the selected code.
  * - 'code-review': Review the selected code and provide feedback.
+ * - 'explain-terminal': Explain the selected text in the terminal. @since 0.10.0
  */
-export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests' | 'code-review'
+export type ChatCommand = 'explain' | 'fix' | 'generate-docs' | 'generate-tests' | 'code-review' | 'explain-terminal'
 
 /**
  * The views used in {@link ServerApiV0_8.navigate}.

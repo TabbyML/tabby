@@ -169,11 +169,25 @@
         "command": "tabby.toggleLanguageInlineCompletion",
         "title": "Enable/Disable Inline Completion for Current Language",
         "category": "Tabby"
+      },
+      {
+        "command": "tabby.terminal.explainSelection",
+        "title": "Explain",
+        "category": "Tabby"
+      },
+      {
+        "command": "tabby.terminal.addSelectionToChat",
+        "title": "Add Selection to Chat",
+        "category": "Tabby"
       }
     ],
     "submenus": [
       {
         "id": "tabby.submenu",
+        "label": "Tabby"
+      },
+      {
+        "id": "tabby.terminal.submenu",
         "label": "Tabby"
       }
     ],
@@ -203,6 +217,16 @@
           "command": "tabby.chat.addFileContext",
           "when": "tabby.chatEnabled",
           "group": "tabby.submenu.2chat@2"
+        }
+      ],
+      "tabby.terminal.submenu": [
+        {
+          "command": "tabby.terminal.explainSelection",
+          "group": "tabby.terminal.action"
+        },
+        {
+          "command": "tabby.terminal.addSelectionToChat",
+          "group": "tabby.terminal.context"
         }
       ],
       "commandPalette": [
@@ -287,6 +311,13 @@
           "command": "tabby.chat.createPanel",
           "when": "view == tabby.chatView",
           "group": "0_new"
+        }
+      ],
+      "terminal/context": [
+        {
+          "submenu": "tabby.terminal.submenu",
+          "group": "2_tabby",
+          "when": "tabby.terminalContextEnabled"
         }
       ]
     },

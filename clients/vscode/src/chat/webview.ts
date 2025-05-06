@@ -20,14 +20,12 @@ import {
 } from "vscode";
 import type {
   ServerApiList,
-  ChatCommand,
   ChatView,
   EditorContext,
   LookupSymbolHint,
   SymbolInfo,
   FileLocation,
   GitRepository,
-  EditorFileContext,
   ListFilesInWorkspaceParams,
   ListFileItem,
   FileRange,
@@ -36,6 +34,9 @@ import type {
   ListSymbolItem,
   ChangeItem,
   GetChangesParams,
+  EditorFileContext,
+  TerminalContext,
+  ChatCommand,
 } from "tabby-chat-panel";
 import * as semver from "semver";
 import debounce from "debounce";
@@ -55,11 +56,13 @@ import {
   chatPanelLocationToVSCodeRange,
   isValidForSyncActiveEditorSelection,
   vscodeRangeToChatPanelLineRange,
+  isCompatible,
 } from "./utils";
 import { listFiles } from "../findFiles";
 import { wrapCancelableFunction } from "../cancelableFunction";
 import mainHtml from "./html/main.html";
 import errorHtml from "./html/error.html";
+import { getTerminalContext } from "../terminal";
 
 export class ChatWebview extends EventEmitter {
   private readonly logger = getLogger("ChatWebView");
@@ -186,14 +189,42 @@ export class ChatWebview extends EventEmitter {
     });
   }
 
+  getApiVersions(): string[] | undefined {
+    return Object.keys(this.client ?? {}).filter((key) => semver.valid(key));
+  }
+
+  get isTerminalContextEnabled(): boolean {
+    return this.getApiVersions()?.some((version) => isCompatible(version, "0.10.0")) ?? false;
+  }
+
+  setActiveSelection(selection: EditorContext) {
+    if (this.client) {
+      this.logger.info(`Set active selection: ${selection}`);
+      this.client["0.8.0"].updateActiveSelection(selection);
+    } else {
+      this.pendingActions.push(async () => {
+        this.logger.info(`Set pending active selection: ${selection}`);
+        await this.client?.["0.8.0"].updateActiveSelection(selection);
+      });
+    }
+  }
+
   async addRelevantContext(context: EditorContext) {
     if (this.client) {
       this.logger.info(`Adding relevant context: ${context}`);
-      this.client["0.8.0"].addRelevantContext(context);
+      if (context.kind === "terminal") {
+        this.client["0.10.0"]?.addRelevantContext(context);
+      } else {
+        this.client["0.8.0"].addRelevantContext(context);
+      }
     } else {
       this.pendingActions.push(async () => {
         this.logger.info(`Adding pending relevant context: ${context}`);
-        await this.client?.["0.8.0"].addRelevantContext(context);
+        if (context.kind === "terminal") {
+          await this.client?.["0.10.0"]?.addRelevantContext(context);
+        } else {
+          await this.client?.["0.8.0"].addRelevantContext(context);
+        }
       });
     }
   }
@@ -201,11 +232,19 @@ export class ChatWebview extends EventEmitter {
   async executeCommand(command: ChatCommand) {
     if (this.client) {
       this.logger.info(`Executing command: ${command}`);
-      this.client["0.8.0"].executeCommand(command);
+      if (command === "explain-terminal") {
+        this.client["0.10.0"]?.executeCommand(command);
+      } else {
+        this.client["0.8.0"].executeCommand(command);
+      }
     } else {
       this.pendingActions.push(async () => {
         this.logger.info(`Executing pending command: ${command}`);
-        await this.client?.["0.8.0"].executeCommand(command);
+        if (command === "explain-terminal") {
+          await this.client?.["0.10.0"]?.executeCommand(command);
+        } else {
+          await this.client?.["0.8.0"].executeCommand(command);
+        }
       });
     }
   }
@@ -476,6 +515,15 @@ export class ChatWebview extends EventEmitter {
         }
 
         return await getEditorContext(editor, this.gitProvider);
+      },
+
+      getActiveTerminalSelection: async (): Promise<TerminalContext | null> => {
+        const terminalContext = await getTerminalContext();
+        if (!terminalContext) {
+          this.logger.warn("No active terminal selection found.");
+          return null;
+        }
+        return terminalContext;
       },
 
       fetchSessionState: async (keys?: string[] | undefined): Promise<Record<string, unknown> | null> => {

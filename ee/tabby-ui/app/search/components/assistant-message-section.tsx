@@ -18,11 +18,11 @@ import {
 import { makeFormErrorHandler } from '@/lib/tabby/gql'
 import {
   AttachmentCodeItem,
-  Context,
   ExtendedCombinedError,
   RelevantCodeContext
 } from '@/lib/types'
 import {
+  attachmentCodeToTerminalContext,
   buildCodeBrowserUrlForContext,
   cn,
   formatLineHashForCodeBrowser,
@@ -171,6 +171,10 @@ export function AssistantMessageSection({
   const serverCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
       message?.attachment?.code?.map(code => {
+        const terminalContext = attachmentCodeToTerminalContext(code)
+        if (terminalContext) {
+          return terminalContext
+        }
         return {
           kind: 'file',
           range: getRangeFromAttachmentCode(code),
@@ -250,7 +254,10 @@ export function AssistantMessageSection({
     pages?.length
   ])
 
-  const onCodeContextClick = (ctx: Context) => {
+  const onCodeContextClick = (ctx: RelevantCodeContext) => {
+    if (ctx.kind !== 'file') {
+      return
+    }
     if (!ctx.filepath) return
     const url = buildCodeBrowserUrlForContext(window.location.origin, ctx)
     window.open(url, '_blank')

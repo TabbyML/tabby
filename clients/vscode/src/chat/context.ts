@@ -1,6 +1,6 @@
 import type { TextEditor } from "vscode";
 import dedent from "dedent";
-import type { EditorContext } from "tabby-chat-panel";
+import type { EditorFileContext } from "tabby-chat-panel";
 import type { GitProvider } from "../git/GitProvider";
 import { localUriToChatPanelFilepath, vscodeRangeToChatPanelPositionRange } from "./utils";
 
@@ -13,7 +13,7 @@ export async function getEditorContext(
   editor: TextEditor,
   gitProvider: GitProvider,
   rangeStrategy: RangeStrategy = "default",
-): Promise<EditorContext | null> {
+): Promise<EditorFileContext | null> {
   let range = rangeStrategy !== "file" ? editor.selection : undefined;
   let text = !range?.isEmpty ? editor.document.getText(range) : "";
   if (!text || text.trim().length < 1) {

@@ -51,16 +51,35 @@ export interface FileContext {
   commit?: string
 }
 
-export type Context = FileContext
+interface TerminalContext {
+  kind: 'terminal'
+
+  /**
+   * The terminal name.
+   */
+  name: string
+
+  /**
+   * The terminal process id
+   */
+  processId: number | undefined
+
+  /**
+   * The selected text in the terminal.
+   */
+  selection: string
+}
+
+export type Context = FileContext | TerminalContext
 
 export interface UserMessage {
   id: string
   content: string
 
-  // Client side context - displayed in user message
+  // Client side context - displayed in user message, eg. explain code
   selectContext?: Context
 
-  // Client side contexts - displayed in assistant message
+  // Client side contexts - displayed in assistant message, eg. add selection to code
   relevantContext?: Array<Context>
 
   // Client side active selection context - displayed in assistant message
@@ -139,11 +158,12 @@ export interface ThreadRunContexts {
   codeSourceId?: string
 }
 
-export interface RelevantCodeContext extends Context {
+export interface ServerFileContext extends FileContext {
   extra?: {
     scores?: components['schemas']['CodeSearchScores']
   }
 }
+export type RelevantCodeContext = Context | ServerFileContext
 
 type ExtractHitsByType<T, N> = T extends {
   __typename: N

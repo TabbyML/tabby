@@ -1,4 +1,4 @@
-import type { EditorContext, FileLocation, FileRange, Filepath, GitRepository, LineRange, Location } from './types'
+import type { EditorFileContext, FileLocation, FileRange, Filepath, GitRepository, LineRange, Location, TerminalContext } from './types'
 
 export interface ClientApi {
   /**
@@ -28,9 +28,16 @@ export interface ClientApi {
 
   /**
    * Get the active editor selection as context, or the whole file if no selection.
-   * @returns The {@link EditorContext} of the active editor, or `null` if no active editor is found.
+   * @returns The {@link EditorFileContext} of the active editor, or `null` if no active editor is found.
    */
-  getActiveEditorSelection: () => Promise<EditorContext | null>
+  getActiveEditorSelection: () => Promise<EditorFileContext | null>
+
+  /**
+   * Get the active terminal selection as context.
+   * @returns The {@link TerminalContext} of the active terminal, or `null` if no active terminal selection is found.
+   * @since 0.10.0
+   */
+  getActiveTerminalSelection?: () => Promise<TerminalContext | null>
 
   /**
    * Copy the content to the clipboard.
