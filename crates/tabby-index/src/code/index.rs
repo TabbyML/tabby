@@ -61,7 +61,7 @@ pub async fn garbage_collection() {
         let mut num_to_keep = 0;
         let mut num_to_delete = 0;
 
-        for await id in index.iter_ids() {
+        for await (_, id) in index.iter_ids() {
             let Some(source_file_id) = SourceCode::source_file_id_from_id(&id) else {
                 warn!("Failed to extract source file id from index id: {id}");
                 num_to_delete += 1;

@@ -29,6 +29,7 @@ pub struct IngestionStats {
 
 #[async_trait]
 pub trait IngestionService: Send + Sync {
+    async fn get(&self, source_id: &str, id: &str) -> Result<IngestedDocument>;
     async fn list(
         &self,
         after: Option<String>,
@@ -44,6 +45,8 @@ pub trait IngestionService: Send + Sync {
     ) -> Result<Vec<String>>;
 
     async fn ingestion(&self, ingestion: IngestionRequest) -> Result<IngestionResponse>;
+    async fn delete(&self, source_id: String, id: String) -> Result<()>;
+    async fn delete_by_source_id(&self, source_id: String) -> Result<()>;
     async fn stats(&self, sources: Option<Vec<String>>) -> Result<Vec<IngestionStats>>;
 
     async fn should_ingest(&self) -> Result<bool>;

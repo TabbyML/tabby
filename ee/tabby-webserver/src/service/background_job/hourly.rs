@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
 use tabby_schema::{
     context::ContextService,
+    ingestion::IngestionService,
     integration::IntegrationService,
     job::JobService,
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
@@ -30,6 +31,7 @@ impl HourlyJob {
         context_service: Arc<dyn ContextService>,
         git_repository_service: Arc<dyn GitRepositoryService>,
         job_service: Arc<dyn JobService>,
+        ingestion_service: Arc<dyn IngestionService>,
         integration_service: Arc<dyn IntegrationService>,
         third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
         repository_service: Arc<dyn RepositoryService>,
@@ -68,7 +70,11 @@ impl HourlyJob {
         }
 
         if let Err(err) = IndexGarbageCollection
-            .run(repository_service.clone(), context_service.clone())
+            .run(
+                repository_service.clone(),
+                context_service.clone(),
+                ingestion_service.clone(),
+            )
             .await
         {
             has_error = true;
