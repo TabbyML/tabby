@@ -543,6 +543,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
         {!!docQuerySources?.length && (
           <ReadingDocStepper
+            codeSourceId={message.codeSourceId}
             docQuerySources={docQuerySources}
             readingDoc={message.readingDoc}
             isReadingDocs={message.isReadingDocs}

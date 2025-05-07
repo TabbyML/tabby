@@ -40,6 +40,7 @@ import { SiteFavicon } from '@/components/site-favicon'
 import { StepItem } from './imtermediate-step'
 
 interface ReadingDocStepperProps {
+  codeSourceId: Maybe<string>
   readingDoc: ThreadAssistantMessageReadingDoc | undefined
   isReadingDocs: boolean | undefined
   sourceIds?: string[]
@@ -75,6 +76,7 @@ interface ReadingDocStepperProps {
 }
 
 export function ReadingDocStepper({
+  codeSourceId,
   isReadingDocs,
   readingDoc,
   docQuerySources,
@@ -90,7 +92,12 @@ export function ReadingDocStepper({
     readingDoc?.sourceIds.includes('page') || !!pages?.length
   const showWebSubStep =
     (!!readingDoc &&
-      readingDoc.sourceIds.filter(x => x !== 'page').length > 0) ||
+      readingDoc.sourceIds.filter(x => {
+        if (codeSourceId) {
+          return x !== 'page' && x !== codeSourceId
+        }
+        return x !== 'page'
+      }).length > 0) ||
     !!webDocs?.length
 
   return (

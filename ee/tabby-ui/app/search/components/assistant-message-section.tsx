@@ -347,6 +347,7 @@ export function AssistantMessageSection({
             )}
             {showReadingDocStepper && (
               <ReadingDocStepper
+                codeSourceId={message.codeSourceId}
                 docQuerySources={docQuerySources}
                 isReadingDocs={message.isReadingDocs}
                 readingDoc={message.readingDoc}

@@ -46,6 +46,7 @@ interface ReadingDocStepperProps {
   readingDoc: ThreadAssistantMessageReadingDoc | undefined
   isReadingDocs: boolean | undefined
   className?: string
+  codeSourceId: Maybe<string> | undefined
   docQuerySources: Omit<ContextSource, 'id'>[] | undefined
   webDocs?: Maybe<AttachmentDocItem[]> | undefined
   pages?: Maybe<AttachmentDocItem[]> | undefined
@@ -56,7 +57,8 @@ export function ReadingDocStepper({
   isReadingDocs,
   webDocs,
   docQuerySources,
-  pages
+  pages,
+  codeSourceId
 }: ReadingDocStepperProps) {
   const { enableDeveloperMode } = useContext(SearchContext)
   const webDocLen = webDocs?.length ?? 0
@@ -67,7 +69,12 @@ export function ReadingDocStepper({
     readingDoc?.sourceIds.includes('page') || !!pages?.length
   const showWebSubStep =
     (!!readingDoc &&
-      readingDoc.sourceIds.filter(x => x !== 'page').length > 0) ||
+      readingDoc.sourceIds.filter(x => {
+        if (codeSourceId) {
+          return x !== 'page' && x !== codeSourceId
+        }
+        return x !== 'page'
+      }).length > 0) ||
     !!webDocs?.length
 
   return (
