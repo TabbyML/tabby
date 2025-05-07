@@ -4,7 +4,8 @@ import {
   MessageAttachmentClientCode,
   MessageAttachmentCodeFileList,
   ThreadAssistantMessageCompletedDebugData,
-  ThreadAssistantMessageReadingCode
+  ThreadAssistantMessageReadingCode,
+  ThreadAssistantMessageReadingDoc
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 
@@ -22,6 +23,7 @@ export type ConversationMessage = Omit<
     codeFileList?: Maybe<MessageAttachmentCodeFileList>
   }
   readingCode?: ThreadAssistantMessageReadingCode
+  readingDoc?: ThreadAssistantMessageReadingDoc
   isReadingCode?: boolean
   isReadingFileList?: boolean
   isReadingDocs?: boolean

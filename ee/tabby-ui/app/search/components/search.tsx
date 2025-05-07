@@ -495,6 +495,7 @@ export function Search() {
 
     // update expose steps
     currentAssistantMessage.readingCode = answer?.readingCode
+    currentAssistantMessage.readingDoc = answer?.readingDoc
 
     // debug data
     currentAssistantMessage.debugData = answer?.debugData
@@ -867,6 +868,7 @@ export function Search() {
                                 isLastAssistantMessage={isLastMessage}
                                 showRelatedQuestion={isLastMessage}
                                 isDeletable={!isLoading && messages.length > 2}
+                                enableSearchPages={enableSearchPages.value}
                               />
                             )}
                             {!isLastMessage && <Separator />}

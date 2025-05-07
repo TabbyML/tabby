@@ -10,7 +10,8 @@ import {
   MessageAttachmentCodeFileList,
   MessageCodeSearchHit,
   MessageDocSearchHit,
-  ThreadAssistantMessageReadingCode
+  ThreadAssistantMessageReadingCode,
+  ThreadAssistantMessageReadingDoc
 } from '../gql/generates/graphql'
 import { ArrayElementType } from './common'
 
@@ -103,6 +104,7 @@ export interface AssistantMessage {
     codeFileList?: Maybe<MessageAttachmentCodeFileList>
   }
   readingCode?: ThreadAssistantMessageReadingCode
+  readingDoc?: ThreadAssistantMessageReadingDoc
   isReadingCode?: boolean
   isReadingFileList?: boolean
   isReadingDocs?: boolean

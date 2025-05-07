@@ -421,6 +421,7 @@ export const Chat = React.forwardRef<ChatRef, ChatProps>(
         }
         // update expose steps
         nextAssistantMessage.readingCode = answer?.readingCode
+        nextAssistantMessage.readingDoc = answer?.readingDoc
         // get and format scores from streaming answer
         if (
           !nextAssistantMessage.attachment?.code &&

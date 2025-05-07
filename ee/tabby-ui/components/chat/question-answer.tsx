@@ -407,15 +407,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       return compact([...formattedServerAttachmentCode])
     }, [serverCode])
 
-  const messageAttachmentCodeLen =
-    (message.attachment?.clientCode?.length || 0) +
-    (message.attachment?.code?.length || 0)
-  const showFileListStep =
-    !!message.readingCode?.fileList ||
-    !!message.attachment?.codeFileList?.fileList?.length
-  const showCodeSnippetsStep =
-    message.readingCode?.snippet || !!messageAttachmentCodeLen
-
   const messageAttachmentDocs = message?.attachment?.doc
   // pulls / issues / commits
   const codebaseDocs = useMemo(() => {
@@ -534,10 +525,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             serverCodeContexts={serverCode}
             codeFileList={message.attachment?.codeFileList}
             docs={codebaseDocs}
-            readingCode={{
-              fileList: showFileListStep,
-              snippet: showCodeSnippetsStep
-            }}
+            readingCode={message.readingCode}
+            readingDoc={message.readingDoc}
             onContextClick={onContextClick}
             openExternal={openExternal}
           />
@@ -555,6 +544,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         {!!docQuerySources?.length && (
           <ReadingDocStepper
             docQuerySources={docQuerySources}
+            readingDoc={message.readingDoc}
             isReadingDocs={message.isReadingDocs}
             webDocs={webDocs}
             pages={pages}

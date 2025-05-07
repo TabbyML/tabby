@@ -8,6 +8,7 @@ import {
   Maybe,
   ThreadAssistantMessageCompletedDebugData,
   ThreadAssistantMessageReadingCode,
+  ThreadAssistantMessageReadingDoc,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
 import { client, useMutation } from '../tabby/gql'
@@ -40,6 +41,9 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageReadingCode {
         snippet
         fileList
+      }
+      ... on ThreadAssistantMessageReadingDoc {
+        sourceIds
       }
       ... on ThreadRelevantQuestions {
         questions
@@ -152,6 +156,9 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageReadingCode {
         snippet
         fileList
+      }
+      ... on ThreadAssistantMessageReadingDoc {
+        sourceIds
       }
       ... on ThreadRelevantQuestions {
         questions
@@ -274,6 +281,7 @@ export interface AnswerStream {
     { __typename: 'ThreadAssistantMessageAttachmentsCodeFileList' }
   >
   readingCode?: ThreadAssistantMessageReadingCode
+  readingDoc?: ThreadAssistantMessageReadingDoc
   content: string
   isReadingCode: boolean
   isReadingFileList: boolean
@@ -287,7 +295,7 @@ const defaultAnswerStream = (): AnswerStream => ({
   completed: false,
   isReadingCode: false,
   isReadingFileList: false,
-  isReadingDocs: true
+  isReadingDocs: false
 })
 
 export interface ThreadRun {
@@ -358,11 +366,16 @@ export function useThreadRun({
       case 'ThreadAssistantMessageReadingCode':
         x.isReadingCode = true
         x.isReadingFileList = true
-        x.isReadingDocs = true
         x.readingCode = {
           fileList: data.fileList,
           snippet: data.snippet
         }
+        break
+      case 'ThreadAssistantMessageReadingDoc':
+        if (!!data.sourceIds.length) {
+          x.isReadingDocs = true
+        }
+        x.readingDoc = data
         break
       case 'ThreadAssistantMessageAttachmentsCodeFileList':
         x.isReadingFileList = false
@@ -373,8 +386,8 @@ export function useThreadRun({
         x.attachmentsCode = data.hits
         break
       case 'ThreadAssistantMessageAttachmentsDoc':
-        x.attachmentsDoc = data.hits
         x.isReadingDocs = false
+        x.attachmentsDoc = data.hits
         break
       case 'ThreadAssistantMessageContentDelta':
         x.isReadingCode = false
