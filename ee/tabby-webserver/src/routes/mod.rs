@@ -47,16 +47,8 @@ pub fn create(
         // Add other endpoints that need authentication here
         .layer(from_fn_with_state(ctx.auth(), require_login_middleware));
 
-    let api = api.route(
-        "/v1beta/server_setting",
-        routing::get(server_setting).with_state(ctx.clone()),
-    );
-
-    let api = api
-        .merge(protected_api)
-        // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
-        // 1. /v1/*
-        // 2. /v1beta/*
+    // Ingestion APIs are protected by registration token
+    let registration_api = Router::new()
         .route(
             "/v1beta/ingestion",
             routing::post(ingestion::ingestion).with_state(Arc::new(ingestion::IngestionState {
@@ -79,7 +71,20 @@ pub fn create(
                 },
             )),
         )
+        .layer(from_fn_with_state(ctx.clone(), require_registration_token));
+
+    let api = api.route(
+        "/v1beta/server_setting",
+        routing::get(server_setting).with_state(ctx.clone()),
+    );
+
+    let api = api
+        // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
+        // 1. /v1/*
+        // 2. /v1beta/*
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
+        .merge(protected_api)
+        .merge(registration_api)
         .route(
             "/graphql",
             routing::post(graphql::<Arc<Schema>, Arc<dyn ServiceLocator>>).with_state(ctx.clone()),
@@ -150,6 +155,33 @@ async fn distributed_tabby_layer(
     next: Next,
 ) -> axum::response::Response {
     ws.worker().dispatch_request(request, next).await
+}
+
+pub(crate) async fn require_registration_token(
+    State(locator): State<Arc<dyn ServiceLocator>>,
+    AuthBearer(token): AuthBearer,
+    request: Request<Body>,
+    next: Next,
+) -> impl IntoResponse {
+    let unauthorized = axum::response::Response::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .body(Body::empty())
+        .unwrap()
+        .into_response();
+
+    let Some(token) = token else {
+        return unauthorized;
+    };
+
+    let Ok(registration_token) = locator.worker().read_registration_token().await else {
+        return unauthorized;
+    };
+
+    if token != registration_token {
+        return unauthorized;
+    }
+
+    next.run(request).await
 }
 
 async fn server_setting(
