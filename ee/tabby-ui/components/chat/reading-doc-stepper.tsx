@@ -3,7 +3,11 @@
 import { useMemo } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 
-import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
+import {
+  ContextSource,
+  ContextSourceKind,
+  ThreadAssistantMessageReadingDoc
+} from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
 import {
   isAttachmentIngestedDoc,
@@ -36,6 +40,8 @@ import { SiteFavicon } from '@/components/site-favicon'
 import { StepItem } from './imtermediate-step'
 
 interface ReadingDocStepperProps {
+  codeSourceId: Maybe<string>
+  readingDoc: ThreadAssistantMessageReadingDoc | undefined
   isReadingDocs: boolean | undefined
   sourceIds?: string[]
   className?: string
@@ -70,19 +76,29 @@ interface ReadingDocStepperProps {
 }
 
 export function ReadingDocStepper({
+  codeSourceId,
   isReadingDocs,
+  readingDoc,
   docQuerySources,
   webDocs,
   pages,
   openExternal
 }: ReadingDocStepperProps) {
-  const hasMentionDocs =
-    !!docQuerySources &&
-    docQuerySources.filter(x => x.sourceKind !== ContextSourceKind.Page)
-      .length > 0
   const webDocLen = webDocs?.length ?? 0
   const pagesLen = pages?.length ?? 0
   const totalLen = webDocLen + pagesLen
+
+  const showPageSubStep =
+    readingDoc?.sourceIds.includes('page') || !!pages?.length
+  const showWebSubStep =
+    (!!readingDoc &&
+      readingDoc.sourceIds.filter(x => {
+        if (codeSourceId) {
+          return x !== 'page' && x !== codeSourceId
+        }
+        return x !== 'page'
+      }).length > 0) ||
+    !!webDocs?.length
 
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
@@ -131,86 +147,90 @@ export function ReadingDocStepper({
         </AccordionTrigger>
         <AccordionContent className="pb-0">
           <div className="space-y-2 text-sm text-muted-foreground">
-            <StepItem
-              title="Search pages ..."
-              isLastItem={!hasMentionDocs}
-              isLoading={isReadingDocs}
-              defaultOpen={!!pages?.length}
-            >
-              {!!pages?.length && (
-                <div className="mb-3 mt-2 space-y-2">
-                  {pages.map((x, index) => {
-                    const _key = x.link
-                    return (
-                      <div key={`${_key}_${index}`}>
-                        <HoverCard openDelay={100} closeDelay={100}>
-                          <HoverCardTrigger>
-                            <div
-                              className="group cursor-pointer pl-2"
-                              onClick={() => {
-                                openExternal(x.link)
-                              }}
-                            >
-                              <PageSummaryView doc={x} />
-                            </div>
-                          </HoverCardTrigger>
-                          <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
-                            <DocDetailView
-                              relevantDocument={x}
-                              onLinkClick={url => {
-                                openExternal(url)
-                              }}
-                            />
-                          </HoverCardContent>
-                        </HoverCard>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </StepItem>
-            <StepItem
-              title="Collect documents ..."
-              isLastItem
-              isLoading={isReadingDocs}
-              defaultOpen={!!webDocs?.length}
-            >
-              {!!webDocs?.length && (
-                <div className="mb-3 mt-2 space-y-2">
-                  {webDocs.map((x, index) => {
-                    const link = isAttachmentWebDoc(x)
-                      ? x.link
-                      : x.ingestedDocLink
-                    return (
-                      <div key={`${link}_${index}`}>
-                        <HoverCard openDelay={100} closeDelay={100}>
-                          <HoverCardTrigger>
-                            <div
-                              className="group cursor-pointer pl-2"
-                              onClick={() => {
-                                if (link) {
-                                  openExternal(link)
-                                }
-                              }}
-                            >
-                              <DocumentSummaryView doc={x} />
-                            </div>
-                          </HoverCardTrigger>
-                          <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
-                            <DocDetailView
-                              relevantDocument={x}
-                              onLinkClick={url => {
-                                openExternal(url)
-                              }}
-                            />
-                          </HoverCardContent>
-                        </HoverCard>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </StepItem>
+            {showPageSubStep && (
+              <StepItem
+                title="Search pages ..."
+                isLoading={isReadingDocs}
+                defaultOpen={!!pages?.length}
+                isLastItem={!showWebSubStep}
+              >
+                {!!pages?.length && (
+                  <div className="mb-3 mt-2 space-y-2">
+                    {pages.map((x, index) => {
+                      const _key = x.link
+                      return (
+                        <div key={`${_key}_${index}`}>
+                          <HoverCard openDelay={100} closeDelay={100}>
+                            <HoverCardTrigger>
+                              <div
+                                className="group cursor-pointer pl-2"
+                                onClick={() => {
+                                  openExternal(x.link)
+                                }}
+                              >
+                                <PageSummaryView doc={x} />
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
+                              <DocDetailView
+                                relevantDocument={x}
+                                onLinkClick={url => {
+                                  openExternal(url)
+                                }}
+                              />
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </StepItem>
+            )}
+            {showWebSubStep && (
+              <StepItem
+                title="Collect documents ..."
+                isLastItem
+                isLoading={isReadingDocs}
+                defaultOpen={!!webDocs?.length}
+              >
+                {!!webDocs?.length && (
+                  <div className="mb-3 mt-2 space-y-2">
+                    {webDocs.map((x, index) => {
+                      const link = isAttachmentWebDoc(x)
+                        ? x.link
+                        : x.ingestedDocLink
+                      return (
+                        <div key={`${link}_${index}`}>
+                          <HoverCard openDelay={100} closeDelay={100}>
+                            <HoverCardTrigger>
+                              <div
+                                className="group cursor-pointer pl-2"
+                                onClick={() => {
+                                  if (link) {
+                                    openExternal(link)
+                                  }
+                                }}
+                              >
+                                <DocumentSummaryView doc={x} />
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-[60vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
+                              <DocDetailView
+                                relevantDocument={x}
+                                onLinkClick={url => {
+                                  openExternal(url)
+                                }}
+                              />
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </StepItem>
+            )}
           </div>
         </AccordionContent>
       </AccordionItem>

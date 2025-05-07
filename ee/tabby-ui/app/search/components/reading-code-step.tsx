@@ -7,7 +7,8 @@ import { TerminalContext } from 'tabby-chat-panel/index'
 import {
   ContextSource,
   MessageAttachmentCodeFileList,
-  ThreadAssistantMessageReadingCode
+  ThreadAssistantMessageReadingCode,
+  ThreadAssistantMessageReadingDoc
 } from '@/lib/gql/generates/graphql'
 import {
   AttachmentDocItem,
@@ -68,10 +69,16 @@ import { StepItem } from './intermediate-step'
 import { SearchContext } from './search-context'
 
 interface ReadingCodeStepperProps {
+  readingCode: ThreadAssistantMessageReadingCode | undefined
+  // determine whether to display the 'collect documents' step
+  readingDoc: ThreadAssistantMessageReadingDoc | undefined
+
+  // loading state start
   isReadingCode: boolean | undefined
   isReadingFileList: boolean | undefined
   isReadingDocs: boolean | undefined
-  readingCode: ThreadAssistantMessageReadingCode | undefined
+  // loading state end
+
   codeSourceId: Maybe<string>
   docQuery?: boolean
   className?: string
@@ -87,11 +94,11 @@ interface ReadingCodeStepperProps {
 }
 
 export function ReadingCodeStepper({
-  docQuery,
   isReadingCode,
   isReadingFileList,
   isReadingDocs,
   readingCode,
+  readingDoc,
   codeSourceId,
   serverCodeContexts,
   clientCodeContexts,
@@ -114,19 +121,29 @@ export function ReadingCodeStepper({
     return target
   }, [codeSourceId, contextInfo])
 
+  const showFileListSubStep =
+    !!readingCode?.fileList || !!codeFileList?.fileList?.length
+  const showCodeSnippetsSubStep =
+    readingCode?.snippet ||
+    !!clientCodeContexts?.length ||
+    !!serverCodeContexts?.length
+  const showDocSubStep =
+    !!codeSourceId &&
+    (readingDoc?.sourceIds.includes(codeSourceId) || !!docs?.length)
+
   const steps = useMemo(() => {
     let result: Array<'fileList' | 'snippet' | 'docs' | 'commits'> = []
-    if (readingCode?.fileList) {
+    if (showFileListSubStep) {
       result.push('fileList')
     }
-    if (readingCode?.snippet) {
+    if (showCodeSnippetsSubStep) {
       result.push('snippet')
     }
-    if (docQuery) {
+    if (showDocSubStep) {
       result.push('docs')
     }
     return result
-  }, [readingCode?.fileList, readingCode?.snippet, docQuery])
+  }, [showFileListSubStep, showCodeSnippetsSubStep, showDocSubStep])
 
   const lastItem = useMemo(() => {
     return steps.slice().pop()
@@ -161,7 +178,7 @@ export function ReadingCodeStepper({
         </AccordionTrigger>
         <AccordionContent className="pb-0">
           <div className="space-y-2 text-sm text-muted-foreground">
-            {readingCode?.fileList && (
+            {showFileListSubStep && (
               <StepItem
                 key="fileList"
                 title="Read codebase structure ..."
@@ -198,7 +215,7 @@ export function ReadingCodeStepper({
                 ) : null}
               </StepItem>
             )}
-            {readingCode?.snippet && (
+            {showCodeSnippetsSubStep && (
               <StepItem
                 key="snippet"
                 title="Search for relevant code snippets ..."
@@ -254,7 +271,7 @@ export function ReadingCodeStepper({
                 )}
               </StepItem>
             )}
-            {docQuery && (
+            {showDocSubStep && (
               <StepItem
                 key="docs"
                 title="Collect documents ..."

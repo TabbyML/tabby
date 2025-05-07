@@ -8,7 +8,6 @@ import Textarea from 'react-textarea-autosize'
 import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
-import { useEnableSearchPages } from '@/lib/experiment-flags'
 import {
   ContextSource,
   ContextSourceKind,
@@ -76,7 +75,8 @@ export function AssistantMessageSection({
   isLoading,
   isLastAssistantMessage,
   isDeletable,
-  clientCode
+  clientCode,
+  enableSearchPages
 }: {
   className?: string
   message: ConversationMessage
@@ -86,6 +86,7 @@ export function AssistantMessageSection({
   isLastAssistantMessage?: boolean
   isDeletable?: boolean
   clientCode?: Maybe<Array<MessageAttachmentClientCode>>
+  enableSearchPages: boolean
 }) {
   const {
     onRegenerateResponse,
@@ -100,9 +101,7 @@ export function AssistantMessageSection({
     onUpdateMessage,
     repositories
   } = useContext(SearchContext)
-  const [enableSearchPages] = useEnableSearchPages()
   const { supportsOnApplyInEditorV2 } = useContext(ChatContext)
-
   const [isEditing, setIsEditing] = useState(false)
   const getCopyContent = (answer: ConversationMessage) => {
     if (isEmpty(answer?.attachment?.doc) && isEmpty(answer?.attachment?.code)) {
@@ -238,7 +237,7 @@ export function AssistantMessageSection({
         sourceName: x.label
       }))
 
-    if (enableSearchPages.value || pages?.length) {
+    if (enableSearchPages || pages?.length) {
       result.unshift({
         sourceId: 'page',
         sourceKind: ContextSourceKind.Page,
@@ -250,7 +249,7 @@ export function AssistantMessageSection({
   }, [
     contextInfo?.sources,
     userMessage?.content,
-    enableSearchPages.value,
+    enableSearchPages,
     pages?.length
   ])
 
@@ -299,14 +298,8 @@ export function AssistantMessageSection({
     }
   }
 
-  const showFileListStep =
-    !!message.readingCode?.fileList ||
-    !!message.attachment?.codeFileList?.fileList?.length
-  const showCodeSnippetsStep =
-    message.readingCode?.snippet || !!messageAttachmentCodeLen
-
-  const showReadingCodeStep = !!message.codeSourceId
-  const showReadingDocStep = !!docQuerySources?.length
+  const showReadingCodeStepper = !!message.codeSourceId
+  const showReadingDocStepper = !!docQuerySources?.length
 
   return (
     <div className={cn('flex flex-col gap-y-5', className)}>
@@ -333,9 +326,9 @@ export function AssistantMessageSection({
           )}
         </div>
 
-        {(showReadingCodeStep || showReadingDocStep) && (
+        {(showReadingCodeStepper || showReadingDocStepper) && (
           <div className="mb-6 space-y-1.5">
-            {showReadingCodeStep && (
+            {showReadingCodeStepper && (
               <ReadingCodeStepper
                 clientCodeContexts={clientCodeContexts}
                 serverCodeContexts={serverCodeContexts}
@@ -347,17 +340,17 @@ export function AssistantMessageSection({
                 docQueryResources={docQuerySources}
                 docs={codebaseDocs}
                 codeFileList={message.attachment?.codeFileList}
-                readingCode={{
-                  fileList: showFileListStep,
-                  snippet: showCodeSnippetsStep
-                }}
+                readingCode={message.readingCode}
+                readingDoc={message.readingDoc}
                 onContextClick={onCodeContextClick}
               />
             )}
-            {showReadingDocStep && (
+            {showReadingDocStepper && (
               <ReadingDocStepper
+                codeSourceId={message.codeSourceId}
                 docQuerySources={docQuerySources}
                 isReadingDocs={message.isReadingDocs}
+                readingDoc={message.readingDoc}
                 webDocs={webDocs}
                 pages={pages}
               />

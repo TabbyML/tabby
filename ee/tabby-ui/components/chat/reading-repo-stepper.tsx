@@ -5,7 +5,8 @@ import { TerminalContext } from 'tabby-chat-panel/index'
 import {
   Maybe,
   MessageAttachmentCodeFileList,
-  ThreadAssistantMessageReadingCode
+  ThreadAssistantMessageReadingCode,
+  ThreadAssistantMessageReadingDoc
 } from '@/lib/gql/generates/graphql'
 import {
   AttachmentDocItem,
@@ -61,6 +62,7 @@ interface ReadingRepoStepperProps {
   isReadingFileList: boolean | undefined
   isReadingDocs: boolean | undefined
   readingCode: ThreadAssistantMessageReadingCode | undefined
+  readingDoc: ThreadAssistantMessageReadingDoc | undefined
   codeSourceId: Maybe<string>
   serverCodeContexts: RelevantCodeContext[]
   clientCodeContexts: RelevantCodeContext[]
@@ -80,6 +82,7 @@ export function ReadingRepoStepper({
   serverCodeContexts,
   docs,
   readingCode,
+  readingDoc,
   isReadingCode,
   isReadingDocs,
   isReadingFileList,
@@ -95,6 +98,40 @@ export function ReadingRepoStepper({
   const targetRepo = useMemo(() => {
     return repos?.find(x => x.sourceId === codeSourceId)
   }, [repos, codeSourceId])
+
+  const showFileListSubStep =
+    !!readingCode?.fileList || !!codeFileList?.fileList?.length
+  const showCodeSnippetsSubStep =
+    readingCode?.snippet || !!serverCodeContexts?.length
+  const showDocSubStep =
+    !!codeSourceId &&
+    (readingDoc?.sourceIds.includes(codeSourceId) || !!docs?.length)
+
+  const steps = useMemo(() => {
+    let result: Array<'clientCode' | 'fileList' | 'snippet' | 'docs'> = []
+    if (!!clientCodeContexts?.length) {
+      result.push('clientCode')
+    }
+    if (showFileListSubStep) {
+      result.push('fileList')
+    }
+    if (showCodeSnippetsSubStep) {
+      result.push('snippet')
+    }
+    if (showDocSubStep) {
+      result.push('docs')
+    }
+    return result
+  }, [
+    clientCodeContexts?.length,
+    showFileListSubStep,
+    showCodeSnippetsSubStep,
+    showDocSubStep
+  ])
+
+  const lastItem = useMemo(() => {
+    return steps.slice().pop()
+  }, [steps])
 
   return (
     <Accordion defaultValue="readingRepo" collapsible type="single">
@@ -132,6 +169,7 @@ export function ReadingRepoStepper({
                 isLoading={false}
                 triggerClassname="text-sm"
                 defaultOpen
+                isLastItem={lastItem === 'clientCode'}
               >
                 <div className="mb-3 mt-2">
                   <CodeContextList>
@@ -156,13 +194,14 @@ export function ReadingRepoStepper({
                 </div>
               </StepItem>
             )}
-            {readingCode?.fileList && (
+            {showFileListSubStep && (
               <StepItem
                 key="fileList"
                 title="Read codebase structure ..."
                 isLoading={isReadingFileList}
                 triggerClassname="text-sm"
                 defaultOpen={!!codeFileList?.fileList?.length}
+                isLastItem={lastItem === 'fileList'}
               >
                 {codeFileList?.fileList?.length ? (
                   <div className="mb-3 ml-2 mt-2 flex flex-nowrap items-center gap-2 whitespace-nowrap rounded-md px-1 py-0.5 text-sm font-semibold text-foreground hover:bg-accent">
@@ -178,13 +217,14 @@ export function ReadingRepoStepper({
                 ) : null}
               </StepItem>
             )}
-            {readingCode?.snippet && (
+            {showCodeSnippetsSubStep && (
               <StepItem
                 key="snippet"
                 title="Search for relevant code snippets ..."
                 isLoading={isReadingCode}
                 defaultOpen={!!serverCodeContexts?.length}
                 triggerClassname="text-sm"
+                isLastItem={lastItem === 'snippet'}
               >
                 {!!serverCodeContexts?.length && (
                   <div className="mb-3 mt-2">
@@ -211,46 +251,48 @@ export function ReadingRepoStepper({
                 )}
               </StepItem>
             )}
-            <StepItem
-              key="docs"
-              title="Collect documents ..."
-              isLastItem
-              isLoading={isReadingDocs}
-              triggerClassname="text-sm"
-              defaultOpen={!!docs?.length}
-            >
-              {!!docs?.length && (
-                <div className="mb-3 mt-2">
-                  <div className="space-y-2 pl-2 text-sm">
-                    {docs?.map((x, index) => {
-                      const _key = isAttachmentIngestedDoc(x)
-                        ? x.id
-                        : isAttachmentCommitDoc(x)
-                        ? x.sha
-                        : x.link
-                      return (
-                        <div key={`${_key}_${index}`}>
-                          <HoverCard openDelay={100} closeDelay={100}>
-                            <HoverCardTrigger>
-                              <CodebaseDocSummaryView
-                                doc={x}
-                                openExternal={openExternal}
-                              />
-                            </HoverCardTrigger>
-                            <HoverCardContent className="w-[50vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
-                              <DocDetailView
-                                relevantDocument={x}
-                                onLinkClick={openExternal}
-                              />
-                            </HoverCardContent>
-                          </HoverCard>
-                        </div>
-                      )
-                    })}
+            {showDocSubStep && (
+              <StepItem
+                key="docs"
+                title="Collect documents ..."
+                isLoading={isReadingDocs}
+                triggerClassname="text-sm"
+                defaultOpen={!!docs?.length}
+                isLastItem={lastItem === 'docs'}
+              >
+                {!!docs?.length && (
+                  <div className="mb-3 mt-2">
+                    <div className="space-y-2 pl-2 text-sm">
+                      {docs?.map((x, index) => {
+                        const _key = isAttachmentIngestedDoc(x)
+                          ? x.id
+                          : isAttachmentCommitDoc(x)
+                          ? x.sha
+                          : x.link
+                        return (
+                          <div key={`${_key}_${index}`}>
+                            <HoverCard openDelay={100} closeDelay={100}>
+                              <HoverCardTrigger>
+                                <CodebaseDocSummaryView
+                                  doc={x}
+                                  openExternal={openExternal}
+                                />
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-[50vw] bg-background text-sm text-foreground dark:border-muted-foreground/60 sm:w-96">
+                                <DocDetailView
+                                  relevantDocument={x}
+                                  onLinkClick={openExternal}
+                                />
+                              </HoverCardContent>
+                            </HoverCard>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
-            </StepItem>
+                )}
+              </StepItem>
+            )}
           </div>
         </AccordionContent>
       </AccordionItem>

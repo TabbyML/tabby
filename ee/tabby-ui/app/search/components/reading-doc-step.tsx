@@ -3,7 +3,11 @@
 import { useContext, useMemo } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 
-import { ContextSource, ContextSourceKind } from '@/lib/gql/generates/graphql'
+import {
+  ContextSource,
+  ContextSourceKind,
+  ThreadAssistantMessageReadingDoc
+} from '@/lib/gql/generates/graphql'
 import { AttachmentDocItem } from '@/lib/types'
 import {
   cn,
@@ -39,28 +43,39 @@ import { StepItem } from './intermediate-step'
 import { SearchContext } from './search-context'
 
 interface ReadingDocStepperProps {
+  readingDoc: ThreadAssistantMessageReadingDoc | undefined
   isReadingDocs: boolean | undefined
-  sourceIds?: string[]
   className?: string
+  codeSourceId: Maybe<string> | undefined
   docQuerySources: Omit<ContextSource, 'id'>[] | undefined
   webDocs?: Maybe<AttachmentDocItem[]> | undefined
   pages?: Maybe<AttachmentDocItem[]> | undefined
 }
 
 export function ReadingDocStepper({
+  readingDoc,
   isReadingDocs,
   webDocs,
   docQuerySources,
-  pages
+  pages,
+  codeSourceId
 }: ReadingDocStepperProps) {
   const { enableDeveloperMode } = useContext(SearchContext)
-  const hasMentionDocs =
-    !!docQuerySources &&
-    docQuerySources.filter(x => x.sourceKind !== ContextSourceKind.Page)
-      .length > 0
   const webDocLen = webDocs?.length ?? 0
   const pagesLen = pages?.length ?? 0
   const totalLen = webDocLen + pagesLen
+
+  const showPageSubStep =
+    readingDoc?.sourceIds.includes('page') || !!pages?.length
+  const showWebSubStep =
+    (!!readingDoc &&
+      readingDoc.sourceIds.filter(x => {
+        if (codeSourceId) {
+          return x !== 'page' && x !== codeSourceId
+        }
+        return x !== 'page'
+      }).length > 0) ||
+    !!webDocs?.length
 
   return (
     <Accordion collapsible type="single" defaultValue="readingCode">
@@ -109,54 +124,56 @@ export function ReadingDocStepper({
         </AccordionTrigger>
         <AccordionContent className="pb-0">
           <div className="space-y-2 text-sm text-muted-foreground">
-            <StepItem
-              title="Search pages ..."
-              isLoading={isReadingDocs}
-              defaultOpen={!!pagesLen}
-              isLastItem={!hasMentionDocs}
-            >
-              {!!pages?.length && (
-                <div className="mb-3 mt-2">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {pages.map((x, index) => {
-                      const _key = isAttachmentCommitDoc(x)
-                        ? x.sha
-                        : isAttachmentIngestedDoc(x)
-                        ? x.id
-                        : x.link
-                      return (
-                        <div key={`${_key}_${index}`}>
-                          <HoverCard openDelay={100} closeDelay={100}>
-                            <HoverCardTrigger>
-                              <div
-                                className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
-                                onClick={() => {
-                                  if (_key) {
-                                    window.open(_key)
-                                  }
-                                }}
-                              >
-                                <PageSummaryView doc={x} />
-                              </div>
-                            </HoverCardTrigger>
-                            <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
-                              <DocDetailView
-                                enableDeveloperMode={enableDeveloperMode}
-                                relevantDocument={x}
-                                onLinkClick={url => {
-                                  window.open(url)
-                                }}
-                              />
-                            </HoverCardContent>
-                          </HoverCard>
-                        </div>
-                      )
-                    })}
+            {!!showPageSubStep && (
+              <StepItem
+                title="Search pages ..."
+                isLoading={isReadingDocs}
+                defaultOpen={!!pagesLen}
+                isLastItem={!showWebSubStep}
+              >
+                {!!pages?.length && (
+                  <div className="mb-3 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {pages.map((x, index) => {
+                        const _key = isAttachmentCommitDoc(x)
+                          ? x.sha
+                          : isAttachmentIngestedDoc(x)
+                          ? x.id
+                          : x.link
+                        return (
+                          <div key={`${_key}_${index}`}>
+                            <HoverCard openDelay={100} closeDelay={100}>
+                              <HoverCardTrigger>
+                                <div
+                                  className="group cursor-pointer whitespace-nowrap rounded-md bg-muted px-1.5 py-0.5 font-semibold"
+                                  onClick={() => {
+                                    if (_key) {
+                                      window.open(_key)
+                                    }
+                                  }}
+                                >
+                                  <PageSummaryView doc={x} />
+                                </div>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-96 bg-background text-sm text-foreground dark:border-muted-foreground/60">
+                                <DocDetailView
+                                  enableDeveloperMode={enableDeveloperMode}
+                                  relevantDocument={x}
+                                  onLinkClick={url => {
+                                    window.open(url)
+                                  }}
+                                />
+                              </HoverCardContent>
+                            </HoverCard>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
-            </StepItem>
-            {hasMentionDocs && (
+                )}
+              </StepItem>
+            )}
+            {showWebSubStep && (
               <StepItem
                 title="Collect documents ..."
                 isLastItem
