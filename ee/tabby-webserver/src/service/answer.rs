@@ -123,12 +123,10 @@ impl AnswerService {
                         ).await;
                         attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
-                        if !hits.is_empty() {
-                            let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
-                            yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                                ThreadAssistantMessageAttachmentsCode { hits }
-                            ));
-                        }
+                        let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                        yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
+                            ThreadAssistantMessageAttachmentsCode { hits }
+                        ));
                     }
 
                 };
