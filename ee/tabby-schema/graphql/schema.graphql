@@ -1274,6 +1274,10 @@ type ThreadAssistantMessageReadingCode {
   fileList: Boolean!
 }
 
+type ThreadAssistantMessageReadingDoc {
+  sourceIds: [String!]!
+}
+
 type ThreadConnection {
   edges: [ThreadEdge!]!
   pageInfo: PageInfo!
@@ -1379,4 +1383,4 @@ union SectionRunItem = PageSectionCreated | PageSectionAttachmentCodeFileList | 
 
   Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 """
-union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageReadingCode | ThreadAssistantMessageAttachmentsCodeFileList | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageReadingCode | ThreadAssistantMessageAttachmentsCodeFileList | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageReadingDoc | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted

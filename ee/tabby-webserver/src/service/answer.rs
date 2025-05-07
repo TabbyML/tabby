@@ -23,7 +23,8 @@ use tabby_schema::{
         MessageDocSearchHit, ThreadAssistantMessageAttachmentsCode,
         ThreadAssistantMessageAttachmentsCodeFileList, ThreadAssistantMessageAttachmentsDoc,
         ThreadAssistantMessageCompletedDebugData, ThreadAssistantMessageContentDelta,
-        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
+        ThreadAssistantMessageReadingDoc, ThreadRelevantQuestions, ThreadRunItem,
+        ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -122,12 +123,10 @@ impl AnswerService {
                         ).await;
                         attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
-                        if !hits.is_empty() {
-                            let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
-                            yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                                ThreadAssistantMessageAttachmentsCode { hits }
-                            ));
-                        }
+                        let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                        yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
+                            ThreadAssistantMessageAttachmentsCode { hits }
+                        ));
                     }
 
                 };
@@ -135,6 +134,20 @@ impl AnswerService {
 
             // 2. Collect relevant docs if needed.
             if let Some(doc_query) = options.doc_query.as_ref() {
+                let mut sources = doc_query
+                    .source_ids
+                    .as_deref()
+                    .unwrap_or_default()
+                    .to_vec();
+                sources.retain(|x| context_info_helper.can_access_source_id(x));
+
+                // Emit the ThreadAssistantMessageReadingDoc event to indicate the initiation
+                // of the document retrieval process.
+                // The sources are filtered to include only those that are accessible to the user.
+                yield Ok(ThreadRunItem::ThreadAssistantMessageReadingDoc(ThreadAssistantMessageReadingDoc {
+                    source_ids: sources,
+                }));
+
                 let hits = self.retrieval.collect_relevant_docs(&context_info_helper, doc_query)
                     .await;
                 attachment.doc = futures::future::join_all(hits.iter().map(|x| async {
@@ -143,22 +156,20 @@ impl AnswerService {
 
                 debug!("query content: {:?}, matched {:?} docs", doc_query.content, attachment.doc.len());
 
-                if !attachment.doc.is_empty() {
-                    let hits = futures::future::join_all(hits.into_iter().map(|x| {
-                        let score = x.score;
-                        let doc = x.doc.clone();
-                        let auth = self.auth.clone();
-                        async move {
-                            MessageDocSearchHit {
-                                score: score as f64,
-                                doc: Self::new_message_attachment_doc(auth, doc).await,
-                            }
+                let hits = futures::future::join_all(hits.into_iter().map(|x| {
+                    let score = x.score;
+                    let doc = x.doc.clone();
+                    let auth = self.auth.clone();
+                    async move {
+                        MessageDocSearchHit {
+                            score: score as f64,
+                            doc: Self::new_message_attachment_doc(auth, doc).await,
                         }
-                    })).await;
-                    yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(
-                        ThreadAssistantMessageAttachmentsDoc { hits }
-                    ));
-                }
+                    }
+                })).await;
+                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(
+                    ThreadAssistantMessageAttachmentsDoc { hits }
+                ));
             };
 
             // 3. Generate relevant questions.
@@ -713,8 +724,8 @@ mod tests {
 
         assert_eq!(
             collected_results.len(),
-            5,
-            "Expected 5 items in the result stream"
+            6,
+            "Expected 6 items in the result stream"
         );
     }
 }
