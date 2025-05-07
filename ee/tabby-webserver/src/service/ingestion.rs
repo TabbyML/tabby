@@ -132,13 +132,29 @@ impl IngestionService for IngestionServiceImpl {
     }
 
     async fn stats(&self, sources: Option<Vec<String>>) -> Result<Vec<IngestionStats>> {
-        Ok(self
-            .db
-            .list_ingested_document_statuses(sources)
-            .await?
+        // Assume user provided sources are in the format of source names,
+        // we should convert them to source IDs for the database query.
+        let source_ids = sources.map(|source_names| {
+            source_names
+                .into_iter()
+                .map(|name| self.source_id_from_name(&name)) // Convert name to ID
+                .collect::<Vec<String>>()
+        });
+
+        let stats = self.db.list_ingested_document_statuses(source_ids).await?;
+
+        let stats = stats
             .into_iter()
-            .map(Into::into)
-            .collect())
+            .map(|stat| {
+                let mut stat: IngestionStats = stat.into();
+
+                // Convert source ID back to name for the response
+                stat.source = self.source_name_from_id(&stat.source);
+                stat
+            })
+            .collect();
+
+        Ok(stats)
     }
 
     async fn should_ingest(&self) -> Result<bool> {
