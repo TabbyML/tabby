@@ -32,10 +32,18 @@ export function IngestionTable({
       <Table>
         <TableHeader>
           <TableRow className="border-b">
-            <TableHead className="px-6 py-3 font-medium text-muted-foreground">Source Name</TableHead>
-            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">Pending</TableHead>
-            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">Failed</TableHead>
-            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">Total</TableHead>
+            <TableHead className="px-6 py-3 font-medium text-muted-foreground">
+              Source Name
+            </TableHead>
+            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">
+              Pending
+            </TableHead>
+            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">
+              Failed
+            </TableHead>
+            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">
+              Total
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -43,9 +51,15 @@ export function IngestionTable({
             return (
               <TableRow key={x.source} className="border-b">
                 <TableCell className="px-6 py-3">{x.source}</TableCell>
-                <TableCell className="px-6 py-3 text-center">{x.pending}</TableCell>
-                <TableCell className="px-6 py-3 text-center">{x.failed}</TableCell>
-                <TableCell className="px-6 py-3 text-center">{x.total}</TableCell>
+                <TableCell className="px-6 py-3 text-center">
+                  {x.pending}
+                </TableCell>
+                <TableCell className="px-6 py-3 text-center">
+                  {x.failed}
+                </TableCell>
+                <TableCell className="px-6 py-3 text-center">
+                  {x.total}
+                </TableCell>
               </TableRow>
             )
           })}
