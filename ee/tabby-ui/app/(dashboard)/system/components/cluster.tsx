@@ -174,10 +174,10 @@ export default function Workers() {
         {!!ingestionStatusData?.ingestionStatus?.length && (
           <>
             <Separator className="my-4" />
-            <div className="font-bold">Ingestion</div>
+            <div className="font-bold">Documents Ingestion Status</div>
             <IngestionTable
               ingestionStatus={ingestionStatusData.ingestionStatus}
-              className="mb-8"
+              className="mb-8 lg:w-[850px]"
             />
           </>
         )}
