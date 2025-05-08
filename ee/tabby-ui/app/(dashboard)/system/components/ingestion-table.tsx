@@ -31,21 +31,35 @@ export function IngestionTable({
     <div className={className}>
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Ingestion Group</TableHead>
-            <TableHead className="w-[90px] text-center">Pending</TableHead>
-            <TableHead className="w-[90px] text-center">Failed</TableHead>
-            <TableHead className="w-[90px] text-center">Total</TableHead>
+          <TableRow className="border-b">
+            <TableHead className="px-6 py-3 font-medium text-muted-foreground">
+              Source Name
+            </TableHead>
+            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">
+              Pending
+            </TableHead>
+            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">
+              Failed
+            </TableHead>
+            <TableHead className="w-[100px] px-6 py-3 text-center font-medium text-muted-foreground">
+              Total
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {nodes.map(x => {
             return (
-              <TableRow key={x.source}>
-                <TableCell>{x.source.replace(/^ingested:/, '')}</TableCell>
-                <TableCell className="text-center">{x.pending}</TableCell>
-                <TableCell className="text-center">{x.failed}</TableCell>
-                <TableCell className="text-center">{x.total}</TableCell>
+              <TableRow key={x.source} className="border-b">
+                <TableCell className="px-6 py-3">{x.source}</TableCell>
+                <TableCell className="px-6 py-3 text-center">
+                  {x.pending}
+                </TableCell>
+                <TableCell className="px-6 py-3 text-center">
+                  {x.failed}
+                </TableCell>
+                <TableCell className="px-6 py-3 text-center">
+                  {x.total}
+                </TableCell>
               </TableRow>
             )
           })}
