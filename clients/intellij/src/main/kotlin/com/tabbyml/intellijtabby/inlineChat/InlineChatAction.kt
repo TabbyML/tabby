@@ -24,7 +24,6 @@ class InlineChatAcceptAction : DumbAwareAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val inlineChatService = project.serviceOrNull<InlineChatService>() ?: return
-        inlineChatService.inlineChatEditing = false
         val location = inlineChatService.location ?: return
         scope.launch {
             val server = project.serviceOrNull<ConnectionService>()?.getServerAsync() ?: return@launch
@@ -39,11 +38,24 @@ class InlineChatDiscardAction : DumbAwareAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val inlineChatService = project.serviceOrNull<InlineChatService>() ?: return
-        inlineChatService.inlineChatEditing = false
         val location = inlineChatService.location ?: return
         scope.launch {
             val server = project.serviceOrNull<ConnectionService>()?.getServerAsync() ?: return@launch
             server.chatFeature.resolveEdit(ChatEditResolveParams(location = location, action = "discard"))
+        }
+    }
+}
+
+class InlineChatCancelAction : DumbAwareAction() {
+    private val scope = CoroutineScope(Dispatchers.IO)
+
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        val inlineChatService = project.serviceOrNull<InlineChatService>() ?: return
+        val location = inlineChatService.location ?: return
+        scope.launch {
+            val server = project.serviceOrNull<ConnectionService>()?.getServerAsync() ?: return@launch
+            server.chatFeature.resolveEdit(ChatEditResolveParams(location = location, action = "cancel"))
         }
     }
 }
