@@ -10,6 +10,10 @@ fn main() {
 
     let mut config = Config::new("./llama.cpp");
     config.profile("Release");
+
+    // Tabby handles model downloads, thus turn the download feature off in llama.cpp.
+    config.define("LLAMA_CURL", "OFF");
+
     config.define("GGML_NATIVE", "OFF");
     config.define("GGML_NATIVE_DEFAULT", "OFF");
     config.define("BUILD_SHARED_LIBS", "OFF");
