@@ -15,6 +15,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
+import com.intellij.ui.SpinningProgressIcon
 import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
@@ -27,11 +28,14 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
     // provider id
     abstract override val id: String
 
+    // command name
+    abstract val command: String
+
     // action name
-    abstract val action: String
+    abstract val action: String?
 
     // execute action id
-    abstract val actionId: String
+    abstract val actionId: String?
     abstract val icon: Icon
     override val name: String = "Inline Chat Code Vision Provider"
 
@@ -53,9 +57,15 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
             return READY_EMPTY
         }
         val codelens = codeLenses.firstOrNull() {
-            it.command != null && (it.command?.arguments?.firstOrNull() as JsonObject?)?.get("action")?.asString == action
-        } ?: return READY_EMPTY
-        inlineChatService.inlineChatEditing = true
+            val codeLensCommand = it.command?.command
+            val codeLensAction = (it.command?.arguments?.firstOrNull() as JsonObject?)?.get("action")?.asString
+            codeLensCommand == command && codeLensAction == action
+        }
+        if (codelens == null) {
+            inlineChatService.inlineChatDiffActionState[id] = false
+            return READY_EMPTY
+        }
+        inlineChatService.inlineChatDiffActionState[id] = true
         inlineChatService.location = Location(
             uri,
             Range(
@@ -67,7 +77,7 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
         val title = codelens.command.title.replace(
             prefixRegex,
             ""
-        ) + " (${KeymapUtil.getFirstKeyboardShortcutText(getAction())})"
+        ) + if (actionId != null) " (${KeymapUtil.getFirstKeyboardShortcutText(getAction(actionId!!))})" else ""
         val startOffset = document.getLineStartOffset(codelens.range.start.line) + codelens.range.start.character
         val endOffset = document.getLineStartOffset(codelens.range.end.line) + codelens.range.end.character
         val entry =
@@ -79,16 +89,40 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
     }
 
     override fun handleClick(editor: Editor, textRange: TextRange, entry: CodeVisionEntry) {
+        if (actionId == null) {
+            return
+        }
         val editorDataContext = DataManager.getInstance().getDataContext(editor.component)
-        ActionUtil.invokeAction(getAction(), editorDataContext, "", null, null)
+        ActionUtil.invokeAction(getAction(actionId!!), editorDataContext, "", null, null)
     }
 
-    private fun getAction() = ActionManager.getInstance().getAction(actionId)
+    private fun getAction(actionId: String) = ActionManager.getInstance().getAction(actionId)
+}
+
+class InlineChatLoadingCodeVisionProvider : InlineChatCodeVisionProvider() {
+    override val id: String = "Tabby.InlineChat.Loading"
+    override val command: String = " "
+    override val action: String? = null
+    override val actionId: String? = null
+    override val icon: Icon = SpinningProgressIcon()
+    override val relativeOrderings: List<CodeVisionRelativeOrdering> =
+        listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingBefore("Tabby.InlineChat.Cancel"))
+}
+
+class InlineChatCancelCodeVisionProvider : InlineChatCodeVisionProvider() {
+    override val id: String = "Tabby.InlineChat.Cancel"
+    override val command: String = "tabby/chat/edit/resolve"
+    override val action: String = "cancel"
+    override val actionId: String = "Tabby.InlineChat.Resolve.Cancel"
+    override val icon: Icon = AllIcons.Actions.Cancel
+    override val relativeOrderings: List<CodeVisionRelativeOrdering> =
+        emptyList()
 }
 
 class InlineChatAcceptCodeVisionProvider : InlineChatCodeVisionProvider() {
     override val id: String = "Tabby.InlineChat.Accept"
-    override val action: String = "accept"
+    override val command: String = "tabby/chat/edit/resolve"
+    override val action: String? = "accept"
     override val actionId: String = "Tabby.InlineChat.Resolve.Accept"
     override val icon: Icon = AllIcons.Actions.Checked
     override val relativeOrderings: List<CodeVisionRelativeOrdering> =
@@ -97,6 +131,7 @@ class InlineChatAcceptCodeVisionProvider : InlineChatCodeVisionProvider() {
 
 class InlineChatDiscardCodeVisionProvider : InlineChatCodeVisionProvider() {
     override val id: String = "Tabby.InlineChat.Discard"
+    override val command: String = "tabby/chat/edit/resolve"
     override val action: String = "discard"
     override val actionId: String = "Tabby.InlineChat.Resolve.Discard"
     override val icon: Icon = AllIcons.Actions.Close

@@ -8,9 +8,16 @@ import org.eclipse.lsp4j.Location
 @Service(Service.Level.PROJECT)
 class InlineChatService(private val project: Project) : Disposable {
 
-    var inlineChatEditing = false
+    var inlineChatInputVisible = false
+    var inlineChatDiffActionState = mutableMapOf<String, Boolean>()
     var location: Location? = null
 
+    val hasDiffAction: Boolean
+        get() = inlineChatDiffActionState.any { it.value }
+
     override fun dispose() {
+        inlineChatInputVisible = false
+        inlineChatDiffActionState.clear()
+        location = null
     }
 }
