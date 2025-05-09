@@ -41,7 +41,7 @@ export function removeDuplicateSuffixLines(): PostprocessFilter {
         }
         if (isFullMatch) {
           const remainingLines = originalLines.slice(0, i);
-          return new CompletionResultItem(remainingLines.join("\n"));
+          return item.withText(remainingLines.join("\n"));
         }
       }
     }

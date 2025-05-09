@@ -320,16 +320,16 @@ export class CompletionProvider extends EventEmitter implements Feature {
   }
 
   async postEvent(params: EventParams): Promise<void> {
-    this.statisticTracker.addEvent(params.type);
-    const request = {
-      type: params.type,
-      select_kind: params.selectKind,
-      completion_id: params.eventId.completionId,
-      choice_index: params.eventId.choiceIndex,
-      view_id: params.viewId,
-      elapsed: params.elapsed,
-    };
     try {
+      this.statisticTracker.addEvent(params.type);
+      const request = {
+        type: params.type,
+        select_kind: params.selectKind,
+        completion_id: params.eventId.completionId,
+        choice_index: params.eventId.choiceIndex,
+        view_id: params.viewId,
+        elapsed: params.elapsed,
+      };
       await this.tabbyApiClient.postEvent(request);
     } catch (error) {
       // ignore
