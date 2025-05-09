@@ -37,9 +37,13 @@ impl HealthState {
 
         let cuda_devices = read_cuda_devices().unwrap_or_default();
 
+        let chat_model = &model_config.chat
+            .as_ref()
+            .and_then(|t| Some(t.get_model_configs()[0].clone()));
+        
         Self {
             model: to_model_name(&model_config.completion),
-            chat_model: to_model_name(&model_config.chat),
+            chat_model: to_model_name(chat_model),
             chat_device: chat_device.map(|x| x.to_string()),
             device: device.to_string(),
             arch: ARCH.to_string(),
