@@ -1,0 +1,42 @@
+
+import InviteLinkUrl from './invite_link.png';
+import AccessControlUrl from './access_control.png';
+import InviteMemberUrl from './invite_member.png';
+import GroupsUrl from './groups.png';
+
+
+# Users & Groups
+Tabby provides comprehensive user management capabilities.
+
+## Users
+
+### Inviting Team Members via Email
+
+Navigate to the **Users & Groups** page and locate the invite form. Enter the recipient's email address and click Invite. Tabby will generate a pending invitation and send a sign-up link to the provided email. The recipient completes registration by clicking the link in the email.
+
+<img src={InviteMemberUrl} alt="Invite Member" />
+
+Alternatively, you can copy the sign-up link in the **Pending Invites** list and share this link directly with the user, bypassing email delivery.
+
+<img src={InviteLinkUrl} alt="Invite Link" />
+
+:::info
+1. To enable sign-up email delivery, administrators must first configure the **[Mail Delivery](../smtp)** settings in Tabby.
+2. Tabby constructs all sign-up links using the configured External URL. Please ensure this URL is properly set and publicly accessible, as users will need to reach the Tabby instance through this address to complete registration.
+:::
+
+### Self Registration
+In addition to email invitations, Tabby supports self-registration for users with approved email domains. By configuring [Authentication Domains](../general-settings), you can enable users with matching email addresses to sign up without requiring individual invitations.
+
+### Single Sign-On
+Tabby supports SSO, including OAuth 2.0 and LDAP. For more details, please refer to [Single Sign-On](../sso).
+
+## Groups
+Tabby enforces [Context](../context) access permissions through user groups. Administrators can granularly control which teams can access designated resources.
+
+<img src={GroupsUrl} alt="Groups" />
+
+### Context Access Control
+On the **Integrations > Context Providers** page, administrators can manage the context access permissions. By default, any context without explicitly assigned user groups is accessible to **all members**. When user groups are assigned to a context, only members of those groups can access it.
+
+<img src={AccessControlUrl} alt="Access Control" />
