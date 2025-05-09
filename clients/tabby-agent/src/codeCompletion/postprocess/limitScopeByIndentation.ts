@@ -119,7 +119,7 @@ export function limitScopeByIndentation(): PostprocessFilter {
         suffixLines,
         trimAtInputLine: index,
       });
-      return new CompletionResultItem(inputLines.slice(0, index).join("").trimEnd());
+      return item.withText(inputLines.slice(0, index).join("").trimEnd());
     }
     return item;
   };

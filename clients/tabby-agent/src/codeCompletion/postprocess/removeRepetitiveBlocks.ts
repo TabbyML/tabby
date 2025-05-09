@@ -44,7 +44,7 @@ export function removeRepetitiveBlocks(): PostprocessFilter {
         inputBlocks,
         repetitionCount,
       });
-      return new CompletionResultItem(
+      return item.withText(
         inputBlocks
           .slice(0, index + 1)
           .join("")

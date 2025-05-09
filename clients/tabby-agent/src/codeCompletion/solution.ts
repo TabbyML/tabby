@@ -20,6 +20,13 @@ export class CompletionResultItem {
     this.currentLine = this.lines[0] ?? "";
   }
 
+  /**
+   * Create a new CompletionItem from this item with the given text.
+   */
+  withText(text: string): CompletionResultItem {
+    return new CompletionResultItem(text, this.eventId);
+  }
+
   toCompletionItem(context: CompletionContext): CompletionItem | undefined {
     if (isBlank(this.text)) {
       return undefined;
@@ -100,6 +107,8 @@ export class CompletionSolution {
     };
   }
 }
+
+export const emptyCompletionResultItem = new CompletionResultItem("");
 
 export function createCompletionResultItemFromResponse(
   response: TabbyApiComponents["schemas"]["CompletionResponse"],

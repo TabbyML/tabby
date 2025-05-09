@@ -36,7 +36,7 @@ export function removeDuplicatedBlockClosingLine(): PostprocessFilter {
       suffixBeginningLine.startsWith(inputEndingLine.trimEnd())
     ) {
       logger.trace("Remove duplicated block closing line.", { inputLines, suffixLines });
-      return new CompletionResultItem(
+      return item.withText(
         inputLines
           .slice(0, inputLines.length - 1)
           .join("")

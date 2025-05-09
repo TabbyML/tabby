@@ -101,6 +101,6 @@ export function formatIndentation(): PostprocessFilter {
       }
     });
     logger.trace("Format indentation.", { inputLines, formatted });
-    return new CompletionResultItem(formatted.join(""));
+    return item.withText(formatted.join(""));
   };
 }

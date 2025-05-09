@@ -1,4 +1,4 @@
-import { CompletionResultItem } from "../solution";
+import { emptyCompletionResultItem } from "../solution";
 import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { removeLineEndsWithRepetition } from "./removeLineEndsWithRepetition";
 
@@ -12,7 +12,7 @@ describe("postprocess", () => {
       const completion = inline`
                   ├foo = foo = foo = foo = foo = foo = foo =┤
       `;
-      const expected = new CompletionResultItem("");
+      const expected = emptyCompletionResultItem;
       await assertFilterResult(filter, context, completion, expected);
     });
 
