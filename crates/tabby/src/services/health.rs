@@ -18,12 +18,85 @@ pub struct HealthState {
     #[serde(skip_serializing_if = "Option::is_none")]
     chat_device: Option<String>,
     device: String,
+    cuda_devices: Vec<String>,
+
+    // Model health status; the above fields are slated for future deprecation.
+    models: ModelsHealth,
+
+    // CPU information for Tabby server
     arch: String,
     cpu_info: String,
     cpu_count: usize,
-    cuda_devices: Vec<String>,
+
     version: Version,
     webserver: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct ModelsHealth {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    completion: Option<ModelHealth>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    chat: Option<ModelHealth>,
+
+    embedding: ModelHealth,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+enum ModelHealth {
+    #[serde(rename = "remote")]
+    Remote(RemoteModelHealth),
+    #[serde(rename = "local")]
+    Local(LocalModelHealth),
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct RemoteModelHealth {
+    kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model_name: Option<String>,
+    api_endpoint: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct LocalModelHealth {
+    model_id: String,
+    device: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    cuda_devices: Vec<String>,
+}
+
+impl From<&ModelConfig> for ModelHealth {
+    fn from(model_config: &ModelConfig) -> Self {
+        match model_config {
+            ModelConfig::Http(http) => ModelHealth::Remote(RemoteModelHealth {
+                kind: http.kind.clone(),
+                model_name: http.model_name.clone(),
+                api_endpoint: http.api_endpoint.clone().unwrap_or_default(),
+            }),
+            ModelConfig::Local(llama) => ModelHealth::Local(LocalModelHealth {
+                model_id: llama.model_id.clone(),
+                device: String::new(),
+                cuda_devices: vec![],
+            }),
+        }
+    }
+}
+
+impl From<&ModelConfigGroup> for ModelsHealth {
+    fn from(model_config: &ModelConfigGroup) -> Self {
+        let completion = model_config.completion.as_ref().map(ModelHealth::from);
+        let chat = model_config.chat.as_ref().map(ModelHealth::from);
+
+        let embedding = ModelHealth::from(&model_config.embedding);
+
+        Self {
+            completion,
+            chat,
+            embedding,
+        }
+    }
 }
 
 impl HealthState {
@@ -36,12 +109,30 @@ impl HealthState {
         let (cpu_info, cpu_count) = read_cpu_info();
 
         let cuda_devices = read_cuda_devices().unwrap_or_default();
+        let mut models = ModelsHealth::from(model_config);
+        if let Some(model) = &mut models.completion {
+            if let ModelHealth::Local(ref mut local) = model {
+                local.device = device.to_string();
+                local.cuda_devices = cuda_devices.clone();
+            }
+        }
+        if let Some(model) = &mut models.chat {
+            if let ModelHealth::Local(ref mut local) = model {
+                local.device = chat_device.unwrap_or(device).to_string();
+                local.cuda_devices = cuda_devices.clone();
+            }
+        }
+        if let ModelHealth::Local(ref mut local) = models.embedding {
+            local.device = device.to_string();
+            local.cuda_devices = cuda_devices.clone();
+        }
 
         Self {
             model: to_model_name(&model_config.completion),
             chat_model: to_model_name(&model_config.chat),
             chat_device: chat_device.map(|x| x.to_string()),
             device: device.to_string(),
+            models,
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count,
