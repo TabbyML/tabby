@@ -194,7 +194,6 @@ function UserMessageCard(props: { message: UserMessage }) {
         <div className="flex-1 space-y-2 overflow-hidden px-1">
           <MessageMarkdown
             message={processedContent}
-            canWrapLongLines
             supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             openInEditor={openInEditor}
             contextInfo={contextInfo}
@@ -566,7 +565,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               attachmentDocs={messageAttachmentDocs}
               onCodeCitationClick={onCodeCitationClick}
               onLinkClick={onLinkClick}
-              canWrapLongLines={!isLoading}
+              isStreaming={isLoading}
               onLookupSymbol={onLookupSymbol}
               openInEditor={openInEditor}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
