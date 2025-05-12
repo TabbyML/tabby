@@ -100,8 +100,7 @@ export interface MessageMarkdownProps {
   contextInfo?: ContextInfo
   fetchingContextInfo?: boolean
   className?: string
-  // wrapLongLines for code block
-  canWrapLongLines?: boolean
+  isStreaming?: boolean
   supportsOnApplyInEditorV2: boolean
   activeSelection?: Context
   runShell?: (command: string) => Promise<void>
@@ -118,7 +117,7 @@ export function MessageMarkdown({
   contextInfo,
   fetchingContextInfo,
   className,
-  canWrapLongLines,
+  isStreaming,
   onLookupSymbol,
   openInEditor,
   supportsOnApplyInEditorV2,
@@ -298,7 +297,7 @@ export function MessageMarkdown({
         onLinkClick: rest.onLinkClick,
         contextInfo,
         fetchingContextInfo: !!fetchingContextInfo,
-        canWrapLongLines: !!canWrapLongLines,
+        isStreaming: !!isStreaming,
         supportsOnApplyInEditorV2,
         activeSelection,
         symbolPositionMap,
