@@ -130,107 +130,109 @@ const CodeBlock: FC<CodeBlockProps> = memo(
       <div className="codeblock relative w-full bg-zinc-950 font-sans">
         <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
           <span className="text-xs lowercase">{language}</span>
-          {!isStreaming && (
-            <div className="flex items-center space-x-1">
-              {runShell && commonShells.includes(language.toLowerCase()) && (
+          <div className="flex items-center space-x-1 min-h-[2rem]">
+            {!isStreaming && (
+              <>
+                {runShell && commonShells.includes(language.toLowerCase()) && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                        onClick={onRunCommand}
+                      >
+                        <PlayCircle className="h-4 w-4" />
+                        <span className="sr-only">Run Command</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="m-0">Run Command</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                      onClick={() => setWrapLongLines(!wrapLongLines)}
+                    >
+                      {wrapLongLines ? <IconAlignJustify /> : <IconWrapText />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="m-0">Toggle word wrap</p>
+                  </TooltipContent>
+                </Tooltip>
+                {supportsOnApplyInEditorV2 &&
+                  onApplyInEditor &&
+                  !(
+                    runShell && commonShells.includes(language.toLowerCase())
+                  ) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                          onClick={() =>
+                            onApplyInEditor(value, {
+                              languageId: language,
+                              smart: true
+                            })
+                          }
+                        >
+                          <IconSmartApplyInEditor />
+                          <span className="sr-only">Smart Apply in Editor</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="m-0">Smart Apply in Editor</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                {onApplyInEditor &&
+                  !(
+                    runShell && commonShells.includes(language.toLowerCase())
+                  ) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                          onClick={() => onApplyInEditor(value, undefined)}
+                        >
+                          <IconApplyInEditor />
+                          <span className="sr-only">Apply in Editor</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="m-0">Apply in Editor</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                      onClick={onRunCommand}
+                      onClick={onCopy}
                     >
-                      <PlayCircle className="h-4 w-4" />
-                      <span className="sr-only">Run Command</span>
+                      {isCopied ? <IconCheck /> : <IconCopy />}
+                      <span className="sr-only">Copy</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="m-0">Run Command</p>
+                    <p className="m-0">Copy</p>
                   </TooltipContent>
                 </Tooltip>
-              )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                    onClick={() => setWrapLongLines(!wrapLongLines)}
-                  >
-                    {wrapLongLines ? <IconAlignJustify /> : <IconWrapText />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="m-0">Toggle word wrap</p>
-                </TooltipContent>
-              </Tooltip>
-              {supportsOnApplyInEditorV2 &&
-                onApplyInEditor &&
-                !(
-                  runShell && commonShells.includes(language.toLowerCase())
-                ) && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                        onClick={() =>
-                          onApplyInEditor(value, {
-                            languageId: language,
-                            smart: true
-                          })
-                        }
-                      >
-                        <IconSmartApplyInEditor />
-                        <span className="sr-only">Smart Apply in Editor</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="m-0">Smart Apply in Editor</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              {onApplyInEditor &&
-                !(
-                  runShell && commonShells.includes(language.toLowerCase())
-                ) && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                        onClick={() => onApplyInEditor(value, undefined)}
-                      >
-                        <IconApplyInEditor />
-                        <span className="sr-only">Apply in Editor</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="m-0">Apply in Editor</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                    onClick={onCopy}
-                  >
-                    {isCopied ? <IconCheck /> : <IconCopy />}
-                    <span className="sr-only">Copy</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="m-0">Copy</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
         <SyntaxHighlighter
           language={languageForSyntax}
