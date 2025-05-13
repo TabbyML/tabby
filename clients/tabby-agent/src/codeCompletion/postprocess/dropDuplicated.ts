@@ -1,5 +1,5 @@
 import { PostprocessFilter, logger } from "./base";
-import { CompletionResultItem } from "../solution";
+import { CompletionResultItem, emptyCompletionResultItem } from "../solution";
 import { CompletionContext } from "../contexts";
 import { isBlank, calcDistance } from "../../utils/string";
 
@@ -34,7 +34,7 @@ export function dropDuplicated(): PostprocessFilter {
     const distance = calcDistance(inputToCompare, suffixToCompare);
     if (distance <= threshold) {
       logger.trace("Drop completion due to duplicated.", { inputToCompare, suffixToCompare, distance, threshold });
-      return new CompletionResultItem("");
+      return emptyCompletionResultItem;
     }
     return item;
   };

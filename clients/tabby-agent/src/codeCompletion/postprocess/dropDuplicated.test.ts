@@ -1,6 +1,6 @@
 import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { dropDuplicated } from "./dropDuplicated";
-import { CompletionResultItem } from "../solution";
+import { emptyCompletionResultItem } from "../solution";
 
 describe("postprocess", () => {
   describe("dropDuplicated", () => {
@@ -15,7 +15,7 @@ describe("postprocess", () => {
       const completion = inline`
           ├return a + b;┤
       `;
-      const expected = new CompletionResultItem("");
+      const expected = emptyCompletionResultItem;
       await assertFilterResult(filter, context, completion, expected);
     });
 
@@ -30,7 +30,7 @@ describe("postprocess", () => {
       const completion = inline`
           ├}┤
       `;
-      const expected = new CompletionResultItem("");
+      const expected = emptyCompletionResultItem;
       await assertFilterResult(filter, context, completion, expected);
     });
   });

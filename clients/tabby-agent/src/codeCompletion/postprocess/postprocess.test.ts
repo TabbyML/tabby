@@ -8,7 +8,7 @@ import { expect } from "chai";
 import { deepmerge } from "deepmerge-ts";
 import { ConfigData } from "../../config/type";
 import { defaultConfigData } from "../../config/default";
-import { CompletionResultItem } from "../solution";
+import { CompletionResultItem, emptyCompletionResultItem } from "../solution";
 import { buildCompletionContext, CompletionContext, CompletionExtraContexts } from "../contexts";
 import { preCacheProcess, postCacheProcess } from "./index";
 
@@ -94,7 +94,7 @@ describe("postprocess golden test", () => {
       if (testCase["expected"]?.["unchanged"]) {
         checkExpected(unchanged);
       } else if (testCase["expected"]?.["discard"]) {
-        const expected = new CompletionResultItem("");
+        const expected = emptyCompletionResultItem;
         checkExpected(expected);
       } else {
         const expectedContext = parseDocContext(testCase["expected"]?.["text"] ?? "");
