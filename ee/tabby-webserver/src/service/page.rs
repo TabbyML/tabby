@@ -140,6 +140,7 @@ impl PageService for PageServiceImpl {
     ) -> Result<PageRunStream> {
         let user = self.auth.get_user(author_id).await?;
 
+        let now = Utc::now();
         let mut answer_messages = vec![Message {
             id: ID::new("page-run-user-msg"),
             thread_id: ID::new("page-run-temporary-thread"),
@@ -147,8 +148,8 @@ impl PageService for PageServiceImpl {
             content: input.title_prompt.clone(),
             role: Role::User,
             attachment: MessageAttachment::default(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: now,
+            updated_at: now,
         }];
 
         let answer_options = ThreadRunOptionsInput {
@@ -205,6 +206,7 @@ impl PageService for PageServiceImpl {
             }
         }
 
+        let now = Utc::now();
         let assistant_message = Message {
             id: ID::new("page-run-assistant-msg"),
             thread_id: ID::new("page-run-temporary-thread"),
@@ -212,8 +214,8 @@ impl PageService for PageServiceImpl {
             content: assistant_content,
             role: Role::Assistant,
             attachment: assistant_attachment,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: now,
+            updated_at: now,
         };
 
         answer_messages.push(assistant_message);
