@@ -177,7 +177,7 @@ impl PageService for PageServiceImpl {
                         assistant_attachment.code = code_attachments
                             .hits
                             .into_iter()
-                            .map(|hit| hit.code.into())
+                            .map(|hit| hit.code)
                             .collect();
                     }
                     ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(doc_attachments) => {
