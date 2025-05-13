@@ -330,22 +330,22 @@ class InlineCompletionService(private val project: Project) : Disposable {
   private fun telemetryEvent(
     type: String, renderingContext: InlineCompletionRenderer.RenderingContext, acceptType: AcceptType? = null
   ) {
+    val eventId = renderingContext.completionItem.data?.eventId ?: return
+    val eventParams = EventParams(
+      type = type,
+      selectKind = when (acceptType) {
+        AcceptType.NEXT_WORD, AcceptType.NEXT_LINE -> EventParams.SelectKind.LINE
+        else -> null
+      },
+      eventId = eventId,
+      viewId = renderingContext.id,
+      elapsed = when (type) {
+        EventParams.EventType.VIEW -> null
+        else -> renderingContext.calcElapsed().toInt()
+      },
+    )
     scope.launch {
-      getServer()?.telemetryFeature?.event(
-        EventParams(
-          type = type,
-          selectKind = when (acceptType) {
-            AcceptType.NEXT_WORD, AcceptType.NEXT_LINE -> EventParams.SelectKind.LINE
-            else -> null
-          },
-          eventId = renderingContext.completionItem.data?.eventId,
-          viewId = renderingContext.id,
-          elapsed = when (type) {
-            EventParams.EventType.VIEW -> null
-            else -> renderingContext.calcElapsed().toInt()
-          },
-        )
-      )
+      getServer()?.telemetryFeature?.event(eventParams)
     }
   }
 
