@@ -322,6 +322,11 @@ export class CompletionProvider extends EventEmitter implements Feature {
   async postEvent(params: EventParams): Promise<void> {
     try {
       this.statisticTracker.addEvent(params.type);
+    } catch (error) {
+      // ignore
+    }
+
+    try {
       const request = {
         type: params.type,
         select_kind: params.selectKind,
