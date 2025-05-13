@@ -202,7 +202,7 @@ data class EventParams(
    * [SelectKind]
    */
   val selectKind: String? = null,
-  val eventId: CompletionEventId? = null,
+  val eventId: CompletionEventId,
   val viewId: String? = null,
   val elapsed: Int? = null,
 ) {
