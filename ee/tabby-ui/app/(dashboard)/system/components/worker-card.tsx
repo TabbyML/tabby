@@ -158,10 +158,10 @@ export default function RunnerCard({
           <HealthInfoView backend={kind} className={textClass} />
         </Info>
       </CardContent>
-      <div className="absolute top-0 right-1">
+      <div className="absolute right-1 top-0">
         <Badge
           variant="secondary"
-          className="text-xs leading-tight font-normal px-2"
+          className="px-2 text-xs font-normal leading-tight"
         >
           {source === ModelSource.remote ? 'Remote' : 'Local'}
         </Badge>
