@@ -50,13 +50,13 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val inlineChatService = project.serviceOrNull<InlineChatService>() ?: return
-        if (inlineChatService.inlineChatEditing) return
-        inlineChatService.inlineChatEditing = true
+        if (inlineChatService.inlineChatInputVisible || inlineChatService.hasDiffAction) return
         this.project = project
         this.editor = editor
         if (editor != null) {
             val locationInfo = getCurrentLocation(editor = editor)
             inlineChatService.location = locationInfo.location
+            inlineChatService.inlineChatInputVisible = true
             addInputToEditor(project, editor, locationInfo.startOffset);
         }
 
@@ -83,7 +83,7 @@ class InlineChatIntentionAction : BaseIntentionAction(), DumbAware {
     private fun onClose() {
         inlay?.dispose()
         val inlineChatService = project?.serviceOrNull<InlineChatService>() ?: return
-        inlineChatService.inlineChatEditing = false
+        inlineChatService.inlineChatInputVisible = false
     }
 
     private fun onInputSubmit(value: String) {
@@ -151,8 +151,10 @@ class InlineChatInlayRenderer(
         if (disposed) {
             return
         }
+        val visibleArea = editor.scrollingModel.visibleArea
         if (this.targetRegion == null) {
             this.targetRegion = targetRegion
+            this.targetRegion?.y = targetRegion.y + visibleArea.y
         }
         val firstTargetRegion = this.targetRegion ?: targetRegion
         inlineChatComponent.setSize(firstTargetRegion.width, firstTargetRegion.height)
