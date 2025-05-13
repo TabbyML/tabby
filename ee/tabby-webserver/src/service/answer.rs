@@ -333,10 +333,7 @@ mod tests {
     use std::sync::Arc;
 
     use juniper::ID;
-    use tabby_common::api::{
-            code::CodeSearch,
-            structured_doc::DocSearch,
-        };
+    use tabby_common::api::{code::CodeSearch, structured_doc::DocSearch};
     use tabby_db::{testutils::create_user, DbConn};
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
