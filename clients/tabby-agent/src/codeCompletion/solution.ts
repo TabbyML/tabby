@@ -21,7 +21,9 @@ export class CompletionResultItem {
   }
 
   /**
-   * Create a new CompletionItem from this item with the given text.
+   * Create a new CompletionResultItem from this item with the given text.
+   * This method preserves the `eventId` property from the original item.
+   * No other properties of the original item are carried over by design.
    */
   withText(text: string): CompletionResultItem {
     return new CompletionResultItem(text, this.eventId);
