@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{query, FromRow, Row};
+use sqlx::{query, query_as, FromRow, Row};
 use tabby_db_macros::query_paged_as;
 
 use super::DbConn;
@@ -37,6 +37,37 @@ pub struct IngestionStatusDAO {
 
 /// db read/write operations for `job_runs` table
 impl DbConn {
+    pub async fn get_ingested_document(
+        &self,
+        source_id: &str,
+        id: &str,
+    ) -> Result<Option<IngestedDocumentDAO>> {
+        let doc = query_as!(
+            IngestedDocumentDAO,
+            r#"
+            SELECT
+                id,
+                source,
+                doc_id,
+                expired_at,
+                link,
+                title,
+                body,
+                status as "status: IngestedDocumentStatusDAO",
+                created_at as "created_at: DateTime<Utc>",
+                updated_at as "updated_at: DateTime<Utc>"
+            FROM ingested_documents
+            WHERE source = ? AND doc_id = ?
+            "#,
+            source_id,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(doc)
+    }
+
     pub async fn list_ingested_documents(
         &self,
         limit: Option<usize>,
@@ -121,6 +152,35 @@ impl DbConn {
             title,
             body,
             IngestedDocumentStatusDAO::Pending,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_ingested_document(&self, source: &str, doc_id: &str) -> Result<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM ingested_documents
+            WHERE source = ? AND doc_id = ?
+            "#,
+            source,
+            doc_id,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_ingested_document_by_source(&self, source: &str) -> Result<()> {
+        sqlx::query!(
+            r#"
+            DELETE FROM ingested_documents
+            WHERE source = ?
+            "#,
+            source,
         )
         .execute(&self.pool)
         .await?;

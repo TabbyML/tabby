@@ -194,7 +194,6 @@ function UserMessageCard(props: { message: UserMessage }) {
         <div className="flex-1 space-y-2 overflow-hidden px-1">
           <MessageMarkdown
             message={processedContent}
-            canWrapLongLines
             supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
             openInEditor={openInEditor}
             contextInfo={contextInfo}
@@ -407,15 +406,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       return compact([...formattedServerAttachmentCode])
     }, [serverCode])
 
-  const messageAttachmentCodeLen =
-    (message.attachment?.clientCode?.length || 0) +
-    (message.attachment?.code?.length || 0)
-  const showFileListStep =
-    !!message.readingCode?.fileList ||
-    !!message.attachment?.codeFileList?.fileList?.length
-  const showCodeSnippetsStep =
-    message.readingCode?.snippet || !!messageAttachmentCodeLen
-
   const messageAttachmentDocs = message?.attachment?.doc
   // pulls / issues / commits
   const codebaseDocs = useMemo(() => {
@@ -534,10 +524,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             serverCodeContexts={serverCode}
             codeFileList={message.attachment?.codeFileList}
             docs={codebaseDocs}
-            readingCode={{
-              fileList: showFileListStep,
-              snippet: showCodeSnippetsStep
-            }}
+            readingCode={message.readingCode}
+            readingDoc={message.readingDoc}
             onContextClick={onContextClick}
             openExternal={openExternal}
           />
@@ -554,7 +542,9 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
         {!!docQuerySources?.length && (
           <ReadingDocStepper
+            codeSourceId={message.codeSourceId}
             docQuerySources={docQuerySources}
+            readingDoc={message.readingDoc}
             isReadingDocs={message.isReadingDocs}
             webDocs={webDocs}
             pages={pages}
@@ -575,7 +565,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               attachmentDocs={messageAttachmentDocs}
               onCodeCitationClick={onCodeCitationClick}
               onLinkClick={onLinkClick}
-              canWrapLongLines={!isLoading}
+              isStreaming={isLoading}
               onLookupSymbol={onLookupSymbol}
               openInEditor={openInEditor}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}

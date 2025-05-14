@@ -67,6 +67,8 @@
         <intentionAction>
             <className>com.tabbyml.intellijtabby.inlineChat.InlineChatIntentionAction</className>
         </intentionAction>
+        <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatLoadingCodeVisionProvider" />
+        <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatCancelCodeVisionProvider" />
         <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatAcceptCodeVisionProvider" />
         <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatDiscardCodeVisionProvider" />
         <highlightingPassFactory implementation="com.tabbyml.intellijtabby.inlineChat.DiffHighlighterRegister" />
@@ -273,6 +275,13 @@
                 class="com.tabbyml.intellijtabby.inlineChat.InlineChatDiscardAction"
                 text="Discard Inline Edit"
                 description="Discard the inline edit suggestion.">
+            <keyboard-shortcut first-keystroke="ctrl ESCAPE" keymap="$default"/>
+        </action>
+
+        <action id="Tabby.InlineChat.Resolve.Cancel"
+                class="com.tabbyml.intellijtabby.inlineChat.InlineChatCancelAction"
+                text="Cancel Inline Edit"
+                description="Cancel the inline edit suggestion.">
             <keyboard-shortcut first-keystroke="ctrl ESCAPE" keymap="$default"/>
         </action>
     </actions>

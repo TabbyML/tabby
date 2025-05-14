@@ -261,7 +261,7 @@ pub async fn start(
                         }
                         BackgroundJobEvent::IndexGarbageCollection => {
                             let job = IndexGarbageCollection;
-                            job.run(repository_service.clone(), context_service.clone()).await
+                            job.run(repository_service.clone(), context_service.clone(), ingestion_service.clone()).await
                         }
                         BackgroundJobEvent::SyncIngestionIndex => {
                             let job = SyncIngestionIndexJob;
@@ -277,6 +277,7 @@ pub async fn start(
                                 context_service.clone(),
                                 git_repository_service.clone(),
                                 job_service.clone(),
+                                ingestion_service.clone(),
                                 integration_service.clone(),
                                 third_party_repository_service.clone(),
                                 repository_service.clone(),

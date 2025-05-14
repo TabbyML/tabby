@@ -1,4 +1,4 @@
-import { CompletionResultItem } from "../solution";
+import { emptyCompletionResultItem } from "../solution";
 import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 
@@ -14,7 +14,7 @@ describe("postprocess", () => {
                     ├message);
         throw error;┤
       `;
-      const expected = new CompletionResultItem("");
+      const expected = emptyCompletionResultItem;
       await assertFilterResult(filter, context, completion, expected);
     });
 

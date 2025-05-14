@@ -38,6 +38,17 @@ impl IngestionService for IngestionServiceImpl {
         format!("{}{}", SOURCE_ID_PREFIX, urlencoding::encode(source_name))
     }
 
+    async fn get(&self, source_id: &str, id: &str) -> Result<IngestedDocument> {
+        let doc = self
+            .db
+            .get_ingested_document(source_id, id)
+            .await
+            .context("Failed to get ingestion")?
+            .ok_or_else(|| CoreError::NotFound("Ingested doc not found"))?;
+
+        Ok(doc.into())
+    }
+
     async fn list(
         &self,
         after: Option<String>,
@@ -100,14 +111,50 @@ impl IngestionService for IngestionServiceImpl {
         })
     }
 
+    async fn delete(&self, source: String, id: String) -> Result<()> {
+        let source = self.source_id_from_name(&source);
+        let id = urlencoding::encode(&id);
+
+        self.db
+            .delete_ingested_document(&source, &id)
+            .await
+            .context("Failed to delete ingestion")?;
+        Ok(())
+    }
+
+    async fn delete_by_source_id(&self, source: String) -> Result<()> {
+        let source = self.source_id_from_name(&source);
+        self.db
+            .delete_ingested_document_by_source(&source)
+            .await
+            .context("Failed to delete ingestion by source")?;
+        Ok(())
+    }
+
     async fn stats(&self, sources: Option<Vec<String>>) -> Result<Vec<IngestionStats>> {
-        Ok(self
-            .db
-            .list_ingested_document_statuses(sources)
-            .await?
+        // Assume user provided sources are in the format of source names,
+        // we should convert them to source IDs for the database query.
+        let source_ids = sources.map(|source_names| {
+            source_names
+                .into_iter()
+                .map(|name| self.source_id_from_name(&name)) // Convert name to ID
+                .collect::<Vec<String>>()
+        });
+
+        let stats = self.db.list_ingested_document_statuses(source_ids).await?;
+
+        let stats = stats
             .into_iter()
-            .map(Into::into)
-            .collect())
+            .map(|stat| {
+                let mut stat: IngestionStats = stat.into();
+
+                // Convert source ID back to name for the response
+                stat.source = self.source_name_from_id(&stat.source);
+                stat
+            })
+            .collect();
+
+        Ok(stats)
     }
 
     async fn should_ingest(&self) -> Result<bool> {

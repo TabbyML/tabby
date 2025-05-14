@@ -36,7 +36,7 @@ export function removeRepetitiveLines(): PostprocessFilter {
         inputLines,
         repetitionCount,
       });
-      return new CompletionResultItem(
+      return item.withText(
         inputLines
           .slice(0, index + 1)
           .join("")

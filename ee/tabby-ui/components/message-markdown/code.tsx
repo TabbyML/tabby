@@ -26,7 +26,7 @@ export function CodeElement({
   const {
     lookupSymbol,
     openInEditor,
-    canWrapLongLines,
+    isStreaming,
     onApplyInEditor,
     onCopyContent,
     supportsOnApplyInEditorV2,
@@ -90,7 +90,7 @@ export function CodeElement({
       value={String(children).replace(/\n$/, '')}
       onApplyInEditor={onApplyInEditor}
       onCopyContent={onCopyContent}
-      canWrapLongLines={canWrapLongLines}
+      isStreaming={isStreaming}
       supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
       runShell={runShell}
     />

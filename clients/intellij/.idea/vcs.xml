@@ -3,5 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../.." vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../crates/llama-cpp-server/llama.cpp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../crates/llama-cpp-server/llama.cpp/ggml/src/ggml-kompute/kompute" vcs="Git" />
   </component>
 </project>

@@ -1,6 +1,6 @@
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt, TryFutureExt};
+use futures::{stream::BoxStream, StreamExt};
 use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
@@ -55,11 +55,6 @@ impl CompletionStream for LlamaCppEngine {
             penalty_last_n: 0,
             presence_penalty: options.presence_penalty,
         };
-
-        let request_json = serde_json::to_string_pretty(&request_body)
-            .unwrap_or_else(|_| format!("{:#?}", request_body));
-
-        tracing::debug!("Completion Request body: \n{}", request_json);
 
         let mut request = self.client.post(&self.api_endpoint).json(&request_body);
         if let Some(api_key) = &self.api_key {

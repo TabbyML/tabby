@@ -197,7 +197,7 @@ export function SectionContent({
           ) : (
             <MessageMarkdown
               message={section.content}
-              canWrapLongLines={!isGenerating}
+              isStreaming={isGenerating}
               supportsOnApplyInEditorV2={false}
               className="prose-p:my-0.5 prose-ol:my-1 prose-ul:my-1"
               attachmentCode={attachmentCode}

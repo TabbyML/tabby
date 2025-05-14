@@ -19,6 +19,7 @@ concurrency:
 
 env:
   RUST_TOOLCHAIN: 1.82.0
+  CUDA_VERSION: 12.9.0
 
 jobs:
   release-docker:
@@ -116,7 +117,42 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
-          build-args: RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
+          build-args: |
+            RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
+            CUDA_VERSION=${{ env.CUDA_VERSION }}
+
+      - name: Docker meta for CUDA 11
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: meta-cuda11
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ env.IMAGE_NAME }}
+            ${{ env.IMAGE_NAME }}
+          # do not generate tags for latest since cuda12 is the latest
+          flavor: |
+            latest=false
+          tags: |
+            type=semver,pattern={{version}}-cuda11
+
+      # Build and push Docker image with Buildx
+      # Only built on release tags for compatibility with previous versions
+      - name: Build and push Docker image for CUDA 11
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: build-and-push-cuda11
+        uses: docker/build-push-action@v5
+        with:
+          file: docker/Dockerfile.${{ matrix.device-type }}
+          push: true
+          context: .
+          tags: ${{ steps.meta-cuda11.outputs.tags }}
+          labels: ${{ steps.meta-cuda11.outputs.labels }}
+          cache-from: ${{ steps.cache.outputs.cache-from }}
+          cache-to: ${{ steps.cache.outputs.cache-to }}
+          build-args: |
+            RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
+            CUDA_VERSION=11.7.1
+
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4

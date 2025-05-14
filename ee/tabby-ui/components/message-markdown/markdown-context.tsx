@@ -14,7 +14,7 @@ export type MessageMarkdownContextValue = {
   onLinkClick?: (url: string) => void
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
-  canWrapLongLines: boolean
+  isStreaming: boolean
   supportsOnApplyInEditorV2: boolean
   activeSelection?: Context
   symbolPositionMap: Map<string, SymbolInfo | null>

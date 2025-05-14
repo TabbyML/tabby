@@ -32,7 +32,6 @@ export function UserMessageSection({
           fetchingContextInfo={fetchingContextInfo}
           className="text-xl prose-p:mb-2 prose-p:mt-0"
           headline
-          canWrapLongLines
         />
       </CollapsibleContainer>
     </div>

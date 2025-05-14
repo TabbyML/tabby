@@ -287,8 +287,12 @@ class InlineCompletionService(private val project: Project) : Disposable {
       val inlineCompletionList = try {
         server.textDocumentFeature.inlineCompletion(params).await()
       } catch (e: Exception) {
-        logger.warn("Error while requesting inline completion", e)
-        null
+        if (e is CancellationException) {
+          null
+        } else {
+          logger.warn("Error while requesting inline completion", e)
+          null
+        }
       }
       val context = current
       if (requestContext == context?.request) {
@@ -330,22 +334,22 @@ class InlineCompletionService(private val project: Project) : Disposable {
   private fun telemetryEvent(
     type: String, renderingContext: InlineCompletionRenderer.RenderingContext, acceptType: AcceptType? = null
   ) {
+    val eventId = renderingContext.completionItem.data?.eventId ?: return
+    val eventParams = EventParams(
+      type = type,
+      selectKind = when (acceptType) {
+        AcceptType.NEXT_WORD, AcceptType.NEXT_LINE -> EventParams.SelectKind.LINE
+        else -> null
+      },
+      eventId = eventId,
+      viewId = renderingContext.id,
+      elapsed = when (type) {
+        EventParams.EventType.VIEW -> null
+        else -> renderingContext.calcElapsed().toInt()
+      },
+    )
     scope.launch {
-      getServer()?.telemetryFeature?.event(
-        EventParams(
-          type = type,
-          selectKind = when (acceptType) {
-            AcceptType.NEXT_WORD, AcceptType.NEXT_LINE -> EventParams.SelectKind.LINE
-            else -> null
-          },
-          eventId = renderingContext.completionItem.data?.eventId,
-          viewId = renderingContext.id,
-          elapsed = when (type) {
-            EventParams.EventType.VIEW -> null
-            else -> renderingContext.calcElapsed().toInt()
-          },
-        )
-      )
+      getServer()?.telemetryFeature?.event(eventParams)
     }
   }
 
@@ -436,10 +440,8 @@ class InlineCompletionService(private val project: Project) : Disposable {
           val lines = completionText.lines()
           if (lines.size <= 1) {
             completionText
-          } else if (lines.first().isEmpty()) {
+          } else lines.first().ifEmpty {
             lines.subList(0, 2).joinToString("\n")
-          } else {
-            lines.first()
           }
         }
       }
