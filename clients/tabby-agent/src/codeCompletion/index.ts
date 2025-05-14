@@ -432,6 +432,10 @@ export class CompletionProvider extends EventEmitter implements Feature {
 
     await new Promise<void>((resolve, reject) => {
       const disposables: Disposable[] = [];
+      const disposeAll = () => {
+        disposables.forEach((d) => d.dispose());
+      };
+
       Promise.all([
         fetchWorkspaceContext(),
         fetchGitContext(),
@@ -440,26 +444,26 @@ export class CompletionProvider extends EventEmitter implements Feature {
         fetchLastViewedSnippets(),
         fetchEditorOptions(),
       ]).then(() => {
-        disposables.forEach((d) => d.dispose());
+        disposeAll();
         resolve();
       });
       // No need to catch Promise.all errors here, as individual fetches handle their errors.
 
       if (token) {
         if (token.isCancellationRequested) {
-          disposables.forEach((d) => d.dispose());
+          disposeAll();
           reject(new Error("Request canceled."));
         }
         disposables.push(
           token.onCancellationRequested(() => {
-            disposables.forEach((d) => d.dispose());
+            disposeAll();
             reject(new Error("Request canceled."));
           }),
         );
       }
       if (timeout) {
         const timer = setTimeout(() => {
-          disposables.forEach((d) => d.dispose());
+          disposeAll();
           reject(new Error("Timeout."));
         }, timeout);
         disposables.push({
@@ -561,8 +565,8 @@ export class CompletionProvider extends EventEmitter implements Feature {
         );
 
         try {
-          this.logger.info(`Fetching extra completion context...`);
           const extraContextTimeout = 500; // 500ms when automatic trigger
+          this.logger.info(`Fetching extra completion context with ${extraContextTimeout}ms timeout ...`);
           await this.fetchExtraContext(context, solution, extraContextTimeout, token);
         } catch (error) {
           const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
