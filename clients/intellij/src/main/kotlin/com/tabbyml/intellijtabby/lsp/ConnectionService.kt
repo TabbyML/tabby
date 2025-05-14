@@ -18,6 +18,8 @@ import com.tabbyml.intellijtabby.settings.SettingsService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.eclipse.lsp4j.InitializedParams
 import org.eclipse.lsp4j.jsonrpc.Launcher
 import java.io.BufferedReader
@@ -35,10 +37,15 @@ class ConnectionService(private val project: Project) : Disposable {
   private var process: Process? = null
   private var listening: Future<Void>? = null
   private var server: LanguageServer? = null
+  private val initializeMutex = Mutex()
 
   suspend fun getServerAsync(): LanguageServer? {
     if (server == null || listening == null || (process?.isAlive != true)) {
-      initialize()
+      initializeMutex.withLock {
+        if (server == null || listening == null || (process?.isAlive != true)) {
+          initialize()
+        }
+      }
     }
     return server
   }
@@ -73,7 +80,7 @@ class ConnectionService(private val project: Project) : Disposable {
         Launcher.Builder<LanguageServer>().setLocalService(client).setRemoteInterface(LanguageServer::class.java)
           .setInput(process.inputStream).setOutput(process.outputStream).traceMessages(PrintWriter(Tracer())).create()
       val server = launcher.remoteProxy
-      logger.info("Created tabby-agent process, listening to stdio.")
+      logger.info("Created tabby-agent process with PID: ${process.pid()}, listening to stdio.")
 
       this.process = process
       this.server = server
