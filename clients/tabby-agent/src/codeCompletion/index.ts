@@ -708,7 +708,9 @@ export class CompletionProvider extends EventEmitter implements Feature {
         }
       }
     } catch (error) {
-      if (!isCanceledError(error)) {
+      if (isCanceledError(error)) {
+        this.logger.debug(`Providing completions canceled.`);
+      } else {
         this.logger.error(`Providing completions failed.`, error);
       }
     }
