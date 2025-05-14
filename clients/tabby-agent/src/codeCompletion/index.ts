@@ -44,7 +44,7 @@ import { CompletionStatisticsEntry, CompletionStatisticsTracker } from "./statis
 import { buildCompletionContext, CompletionContext } from "./contexts";
 import { CompletionSolution, createCompletionResultItemFromResponse } from "./solution";
 import { extractNonReservedWordList } from "../utils/string";
-import { MutexAbortError, isCanceledError, isRateLimitExceededError } from "../utils/error";
+import { MutexAbortError, errorToString, isCanceledError, isRateLimitExceededError } from "../utils/error";
 import { preCacheProcess, postCacheProcess } from "./postprocess";
 import { buildRequest } from "./buildRequest";
 import { analyzeMetrics, buildHelpMessageForLatencyIssue, LatencyTracker } from "./latencyTracker";
@@ -355,56 +355,83 @@ export class CompletionProvider extends EventEmitter implements Feature {
     );
 
     const fetchWorkspaceContext = async () => {
-      solution.extraContext.workspace = await this.workspaceContextProvider.getWorkspaceContext(document.uri);
+      try {
+        solution.extraContext.workspace = await this.workspaceContextProvider.getWorkspaceContext(document.uri);
+      } catch (error) {
+        this.logger.debug("Failed to fetch workspace context.");
+      }
     };
     const fetchGitContext = async () => {
-      solution.extraContext.git = (await this.gitContextProvider.getContext(document.uri, token)) ?? undefined;
+      try {
+        solution.extraContext.git = (await this.gitContextProvider.getContext(document.uri, token)) ?? undefined;
+      } catch (error) {
+        this.logger.debug("Failed to fetch git context.");
+      }
     };
     const fetchDeclarations = async () => {
       if (config.fillDeclarations.enabled && prefixRange) {
         this.logger.debug("Collecting declarations...");
-        solution.extraContext.declarations = await this.declarationSnippetsProvider.collect(
-          {
-            uri: document.uri,
-            range: prefixRange,
-          },
-          config.fillDeclarations.maxSnippets,
-          false,
-          token,
-        );
-        this.logger.debug("Completed collecting declarations.");
+        try {
+          solution.extraContext.declarations = await this.declarationSnippetsProvider.collect(
+            {
+              uri: document.uri,
+              range: prefixRange,
+            },
+            config.fillDeclarations.maxSnippets,
+            false,
+            token,
+          );
+          this.logger.debug("Completed collecting declarations.");
+        } catch (error) {
+          this.logger.debug("Failed to collect declarations.");
+        }
       }
     };
     const fetchRecentlyChangedCodeSearchResult = async () => {
       if (config.collectSnippetsFromRecentChangedFiles.enabled && prefixRange) {
-        const prefixText = document.getText(prefixRange);
-        const query = extractNonReservedWordList(prefixText);
-        solution.extraContext.recentlyChangedCodeSearchResult = await this.recentlyChangedCodeSearch.search(
-          query,
-          [document.uri],
-          document.languageId,
-          config.collectSnippetsFromRecentChangedFiles.maxSnippets,
-        );
+        this.logger.debug("Searching recently changed code...");
+        try {
+          const prefixText = document.getText(prefixRange);
+          const query = extractNonReservedWordList(prefixText);
+          solution.extraContext.recentlyChangedCodeSearchResult = await this.recentlyChangedCodeSearch.search(
+            query,
+            [document.uri],
+            document.languageId,
+            config.collectSnippetsFromRecentChangedFiles.maxSnippets,
+          );
+          this.logger.debug("Completed searching recently changed code.");
+        } catch (error) {
+          this.logger.debug("Failed to do recently changed code search.");
+        }
       }
     };
     const fetchLastViewedSnippets = async () => {
       if (config.collectSnippetsFromRecentOpenedFiles.enabled) {
-        const ranges = await this.editorVisibleRangesTracker.getHistoryRanges({
-          max: config.collectSnippetsFromRecentOpenedFiles.maxOpenedFiles,
-          excludedUris: [document.uri],
-        });
-        solution.extraContext.lastViewedSnippets = (
-          await ranges?.mapAsync(async (range) => {
-            return await this.textDocumentReader.read(range.uri, range.range, token);
-          })
-        )?.filter((item) => item !== undefined);
+        try {
+          const ranges = await this.editorVisibleRangesTracker.getHistoryRanges({
+            max: config.collectSnippetsFromRecentOpenedFiles.maxOpenedFiles,
+            excludedUris: [document.uri],
+          });
+          solution.extraContext.lastViewedSnippets = (
+            await ranges?.mapAsync(async (range) => {
+              return await this.textDocumentReader.read(range.uri, range.range, token);
+            })
+          )?.filter((item) => item !== undefined);
+        } catch (error) {
+          this.logger.debug("Failed to read last viewed snippets.");
+        }
       }
     };
     const fetchEditorOptions = async () => {
-      solution.extraContext.editorOptions = await this.editorOptionsProvider.getEditorOptions(document.uri, token);
+      try {
+        solution.extraContext.editorOptions = await this.editorOptionsProvider.getEditorOptions(document.uri, token);
+      } catch (error) {
+        this.logger.debug("Failed to fetch editor options.");
+      }
     };
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
+      const disposables: Disposable[] = [];
       Promise.all([
         fetchWorkspaceContext(),
         fetchGitContext(),
@@ -412,16 +439,33 @@ export class CompletionProvider extends EventEmitter implements Feature {
         fetchRecentlyChangedCodeSearchResult(),
         fetchLastViewedSnippets(),
         fetchEditorOptions(),
-      ]).then(resolve);
-      if (timeout) {
-        setTimeout(reject, timeout);
-      }
+      ]).then(() => {
+        disposables.forEach((d) => d.dispose());
+        resolve();
+      });
+      // No need to catch Promise.all errors here, as individual fetches handle their errors.
+
       if (token) {
         if (token.isCancellationRequested) {
-          reject();
+          disposables.forEach((d) => d.dispose());
+          reject(new Error("Request canceled."));
         }
-        token.onCancellationRequested(() => {
-          reject();
+        disposables.push(
+          token.onCancellationRequested(() => {
+            disposables.forEach((d) => d.dispose());
+            reject(new Error("Request canceled."));
+          }),
+        );
+      }
+      if (timeout) {
+        const timer = setTimeout(() => {
+          disposables.forEach((d) => d.dispose());
+          reject(new Error("Timeout."));
+        }, timeout);
+        disposables.push({
+          dispose: () => {
+            clearTimeout(timer);
+          },
         });
       }
     });
@@ -506,14 +550,6 @@ export class CompletionProvider extends EventEmitter implements Feature {
 
         solution = new CompletionSolution();
 
-        try {
-          this.logger.info(`Fetching extra completion context...`);
-          const extraContextTimeout = 500; // 500ms when automatic trigger
-          await this.fetchExtraContext(context, solution, extraContextTimeout, token);
-        } catch (error) {
-          this.logger.info(`Failed to fetch extra context: ${error}`);
-        }
-
         // Debounce before fetching
         const averageResponseTime = this.latencyTracker.calculateLatencyStatistics().metrics.averageResponseTime;
         await this.debouncer.debounce(
@@ -523,6 +559,18 @@ export class CompletionProvider extends EventEmitter implements Feature {
           },
           signal,
         );
+
+        try {
+          this.logger.info(`Fetching extra completion context...`);
+          const extraContextTimeout = 500; // 500ms when automatic trigger
+          await this.fetchExtraContext(context, solution, extraContextTimeout, token);
+        } catch (error) {
+          const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
+          this.logger.info(`Failed to fetch extra context: ${message}`);
+        }
+        if (signal.aborted) {
+          throw signal.reason;
+        }
 
         // Fetch the completion
         this.logger.info(`Fetching completions from the server...`);
@@ -571,16 +619,20 @@ export class CompletionProvider extends EventEmitter implements Feature {
 
         solution = solution ?? new CompletionSolution();
 
+        // Fetch multiple times to get more choices
+        this.logger.info(`Fetching more completions from the server...`);
+        this.updateIsFetching(true);
+
         try {
           this.logger.info(`Fetching extra completion context...`);
           await this.fetchExtraContext(context, solution, undefined, token);
         } catch (error) {
-          this.logger.info(`Failed to fetch extra context: ${error}`);
+          const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
+          this.logger.info(`Failed to fetch extra context: ${message}`);
         }
-
-        // Fetch multiple times to get more choices
-        this.logger.info(`Fetching more completions from the server...`);
-        this.updateIsFetching(true);
+        if (signal.aborted) {
+          throw signal.reason;
+        }
 
         try {
           let tries = 0;
