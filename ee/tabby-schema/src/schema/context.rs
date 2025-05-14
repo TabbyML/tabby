@@ -185,7 +185,10 @@ impl ContextInfoHelper {
         let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
         let new_content = re.replace_all(content, |caps: &Captures| {
             let source_id = caps.get(1).unwrap().as_str();
-            if source_id == PUBLIC_WEB_INTERNAL_SOURCE_ID {
+            if source_id == PUBLIC_WEB_INTERNAL_SOURCE_ID
+                || source_id == "page"
+                || source_id.starts_with("ingested:")
+            {
                 // For public-web source, don't include it in the content.
                 return "".to_owned();
             }
