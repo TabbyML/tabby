@@ -80,7 +80,7 @@ class ConnectionService(private val project: Project) : Disposable {
         Launcher.Builder<LanguageServer>().setLocalService(client).setRemoteInterface(LanguageServer::class.java)
           .setInput(process.inputStream).setOutput(process.outputStream).traceMessages(PrintWriter(Tracer())).create()
       val server = launcher.remoteProxy
-      logger.info("Created tabby-agent process, listening to stdio.")
+      logger.info("Created tabby-agent process with PID: ${process.pid()}, listening to stdio.")
 
       this.process = process
       this.server = server
