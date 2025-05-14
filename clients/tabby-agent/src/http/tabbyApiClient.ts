@@ -19,7 +19,7 @@ import { isBlank } from "../utils/string";
 import { readChatStream } from "./stream";
 import { abortSignalFromAnyOf } from "../utils/signal";
 import {
-  errorToString,
+  formatErrorMessage,
   HttpError,
   MutexAbortError,
   isUnauthorizedError,
@@ -252,8 +252,7 @@ export class TabbyApiClient extends EventEmitter {
       } else {
         this.logger.error(`Health check request failed. [${requestId}]`, error);
         this.serverHealth = undefined;
-        const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
-        this.connectionErrorMessage = `${requestDescription} failed: \n${message}`;
+        this.connectionErrorMessage = `${requestDescription} failed: \n${formatErrorMessage(error)}`;
         this.updateStatus("noConnection");
       }
     } finally {

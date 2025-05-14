@@ -44,7 +44,7 @@ import { CompletionStatisticsEntry, CompletionStatisticsTracker } from "./statis
 import { buildCompletionContext, CompletionContext } from "./contexts";
 import { CompletionSolution, createCompletionResultItemFromResponse } from "./solution";
 import { extractNonReservedWordList } from "../utils/string";
-import { MutexAbortError, errorToString, isCanceledError, isRateLimitExceededError } from "../utils/error";
+import { MutexAbortError, formatErrorMessage, isCanceledError, isRateLimitExceededError } from "../utils/error";
 import { preCacheProcess, postCacheProcess } from "./postprocess";
 import { buildRequest } from "./buildRequest";
 import { analyzeMetrics, buildHelpMessageForLatencyIssue, LatencyTracker } from "./latencyTracker";
@@ -358,14 +358,14 @@ export class CompletionProvider extends EventEmitter implements Feature {
       try {
         solution.extraContext.workspace = await this.workspaceContextProvider.getWorkspaceContext(document.uri);
       } catch (error) {
-        this.logger.debug("Failed to fetch workspace context.");
+        this.logger.debug(`Failed to fetch workspace context: ${formatErrorMessage(error)}`);
       }
     };
     const fetchGitContext = async () => {
       try {
         solution.extraContext.git = (await this.gitContextProvider.getContext(document.uri, token)) ?? undefined;
       } catch (error) {
-        this.logger.debug("Failed to fetch git context.");
+        this.logger.debug(`Failed to fetch git context: ${formatErrorMessage(error)}`);
       }
     };
     const fetchDeclarations = async () => {
@@ -383,7 +383,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
           );
           this.logger.debug("Completed collecting declarations.");
         } catch (error) {
-          this.logger.debug("Failed to collect declarations.");
+          this.logger.debug(`Failed to collect declarations: ${formatErrorMessage(error)}`);
         }
       }
     };
@@ -401,7 +401,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
           );
           this.logger.debug("Completed searching recently changed code.");
         } catch (error) {
-          this.logger.debug("Failed to do recently changed code search.");
+          this.logger.debug(`Failed to do recently changed code search: ${formatErrorMessage(error)}`);
         }
       }
     };
@@ -418,7 +418,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
             })
           )?.filter((item) => item !== undefined);
         } catch (error) {
-          this.logger.debug("Failed to read last viewed snippets.");
+          this.logger.debug(`Failed to read last viewed snippets: ${formatErrorMessage(error)}`);
         }
       }
     };
@@ -426,7 +426,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
       try {
         solution.extraContext.editorOptions = await this.editorOptionsProvider.getEditorOptions(document.uri, token);
       } catch (error) {
-        this.logger.debug("Failed to fetch editor options.");
+        this.logger.debug(`Failed to fetch editor options: ${formatErrorMessage(error)}`);
       }
     };
 
@@ -569,8 +569,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
           this.logger.info(`Fetching extra completion context with ${extraContextTimeout}ms timeout ...`);
           await this.fetchExtraContext(context, solution, extraContextTimeout, token);
         } catch (error) {
-          const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
-          this.logger.info(`Failed to fetch extra context: ${message}`);
+          this.logger.info(`Failed to fetch extra context: ${formatErrorMessage(error)}`);
         }
         if (signal.aborted) {
           throw signal.reason;
@@ -631,8 +630,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
           this.logger.info(`Fetching extra completion context...`);
           await this.fetchExtraContext(context, solution, undefined, token);
         } catch (error) {
-          const message = error instanceof Error ? errorToString(error) : JSON.stringify(error);
-          this.logger.info(`Failed to fetch extra context: ${message}`);
+          this.logger.info(`Failed to fetch extra context: ${formatErrorMessage(error)}`);
         }
         if (signal.aborted) {
           throw signal.reason;
