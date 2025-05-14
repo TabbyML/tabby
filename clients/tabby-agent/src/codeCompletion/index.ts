@@ -281,7 +281,7 @@ export class CompletionProvider extends EventEmitter implements Feature {
         return null;
       }
       const list = result.solution.toCompletionList(result.context);
-      this.logger.info(`Provided inline completion items: ${list.items.length}`);
+      this.logger.info(`Provided completion items: ${list.items.length}`);
       return list;
     } catch (error) {
       return null;
