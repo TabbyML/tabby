@@ -87,7 +87,12 @@ impl From<&ModelConfig> for ModelHealth {
 impl From<&ModelConfigGroup> for ModelsHealth {
     fn from(model_config: &ModelConfigGroup) -> Self {
         let completion = model_config.completion.as_ref().map(ModelHealth::from);
-        let chat = model_config.chat.as_ref().map(ModelHealth::from);
+        let chat = model_config
+            .chat
+            .as_ref()
+            .map(|m| m.get_model_configs()[0].clone())
+            .as_ref()
+            .map(ModelHealth::from);
 
         let embedding = ModelHealth::from(&model_config.embedding);
 
