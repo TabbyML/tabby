@@ -96,10 +96,12 @@ impl WebContextSource {
 
 pub struct PageContextSource;
 
+const PAGE_SOURCE_ID: &str = "page";
+
 #[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl PageContextSource {
     fn id(&self) -> ID {
-        ID::new("page".to_owned())
+        ID::new(PAGE_SOURCE_ID.to_owned())
     }
 
     fn source_kind(&self) -> ContextSourceKind {
@@ -107,7 +109,7 @@ impl PageContextSource {
     }
 
     pub fn source_id(&self) -> &'static str {
-        "page"
+        PAGE_SOURCE_ID
     }
 
     pub fn source_name(&self) -> &'static str {
@@ -119,6 +121,8 @@ pub struct IngestedContextSource {
     pub id: String,
     pub name: String,
 }
+
+const INGESTED_SOURCE_ID_PREFIX: &str = "ingested:";
 
 #[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl IngestedContextSource {
@@ -185,7 +189,10 @@ impl ContextInfoHelper {
         let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
         let new_content = re.replace_all(content, |caps: &Captures| {
             let source_id = caps.get(1).unwrap().as_str();
-            if source_id == PUBLIC_WEB_INTERNAL_SOURCE_ID {
+            if source_id == PUBLIC_WEB_INTERNAL_SOURCE_ID
+                || source_id == PAGE_SOURCE_ID
+                || source_id.starts_with(INGESTED_SOURCE_ID_PREFIX)
+            {
                 // For public-web source, don't include it in the content.
                 return "".to_owned();
             }
