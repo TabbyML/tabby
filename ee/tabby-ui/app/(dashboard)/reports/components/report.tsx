@@ -41,8 +41,8 @@ export function Report() {
   })
 
   return (
-    <div className="w-[calc(100vw-2rem)] md:w-auto 2xl:mx-auto 2xl:max-w-5xl">
-      <div className="mb-4 flex flex-col items-center justify-between gap-y-2 lg:flex-row lg:items-end lg:gap-y-0">
+    <div className="- w-[calc(100vw-2rem)] md:w-auto 2xl:mx-auto 2xl:max-w-5xl">
+      <div className="sticky top-16 z-10 -mt-4 flex flex-col items-center justify-between gap-y-2 border-b bg-background py-4 lg:flex-row lg:items-end lg:gap-y-0">
         <SubHeader className="mb-0">
           Statistics around Tabby IDE / Extensions
         </SubHeader>
@@ -82,7 +82,7 @@ export function Report() {
         loading={fetchingYearlyStats}
         fallback={<Skeleton className="mb-8 h-48" />}
       >
-        <div className="mb-8">
+        <div className="mb-8 pt-4">
           <h1 className="mb-2 text-center text-xl font-semibold md:text-start">
             Activity
           </h1>

@@ -6,11 +6,7 @@ import useSWR from 'swr'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import {
-  DiskUsage,
-  DiskUsageStats,
-  ModelHealthBackend
-} from '@/lib/gql/generates/graphql'
+import { DiskUsage, DiskUsageStats } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useMutation } from '@/lib/tabby/gql'
@@ -154,16 +150,13 @@ export default function Workers() {
                 })}
               </>
             )}
-            <WorkerCard
-              addr="localhost"
-              name="Embedding"
-              kind={ModelHealthBackend.Embedding}
-              arch=""
-              device={healthInfo.device}
-              cudaDevices={healthInfo.cuda_devices}
-              cpuCount={healthInfo.cpu_count}
-              cpuInfo={healthInfo.cpu_info}
-            />
+            {!!workers?.['EMBEDDING'] && (
+              <>
+                {workers['EMBEDDING'].map((worker, i) => {
+                  return <WorkerCard key={i} {...worker} />
+                })}
+              </>
+            )}
           </div>
         </>
       </LoadingWrapper>

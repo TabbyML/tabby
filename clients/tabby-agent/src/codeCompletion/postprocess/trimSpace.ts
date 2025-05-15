@@ -15,7 +15,7 @@ export function trimSpace(): PostprocessFilter {
       trimmedInput = trimmedInput.trimEnd();
     }
     if (trimmedInput !== item.text) {
-      return new CompletionResultItem(trimmedInput);
+      return item.withText(trimmedInput);
     }
     return item;
   };

@@ -79,6 +79,6 @@ export function normalizeIndentation(): PostprocessFilter {
       }
     }
 
-    return new CompletionResultItem(normalizedLines.join(""));
+    return item.withText(normalizedLines.join(""));
   };
 }

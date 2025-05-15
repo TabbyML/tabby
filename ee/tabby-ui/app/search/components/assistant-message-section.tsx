@@ -377,7 +377,7 @@ export function AssistantMessageSection({
               onCodeCitationClick={onCodeCitationClick}
               contextInfo={contextInfo}
               fetchingContextInfo={fetchingContextInfo}
-              canWrapLongLines={!isLoading}
+              isStreaming={isLoading}
               supportsOnApplyInEditorV2={supportsOnApplyInEditorV2}
               onLinkClick={url => {
                 window.open(url)

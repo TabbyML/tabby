@@ -6,6 +6,7 @@ import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
@@ -41,6 +42,8 @@ class DiffHighlightingPassFactory : TextEditorHighlightingPassFactory {
 
 class DiffHighLightingPass(project: Project, document: Document, val editor: Editor) :
     TextEditorHighlightingPass(project, document, true), DumbAware {
+
+    private val logger = Logger.getInstance(DiffHighLightingPass::class.java)
 
     private var lenses = emptyList<CodeLens>()
     private val file = FileDocumentManager.getInstance().getFile(myDocument)
@@ -109,6 +112,7 @@ class DiffHighLightingPass(project: Project, document: Document, val editor: Edi
     override fun doCollectInformation(progress: ProgressIndicator) {
         val uri = file?.url ?: return
         lenses = getCodeLenses(myProject, uri).get() ?: emptyList()
+        logger.debug("Lens: $lenses")
         for (lens in lenses) {
             if ((lens.data as JsonObject?)?.get("type")?.asString != "previewChanges") continue
             val range = lens.range
