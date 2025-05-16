@@ -1,0 +1,62 @@
+import ConfigurationUrl from "./configuration.png";
+import LDAPSigninUrl from "./ldap-signin.png";
+import LDAPUserUrl from "./ldap-user.png";
+import LDAPWithOAuthUrl from "./ldap-with-oauth.png";
+
+# LDAP Authentication
+
+:::subscription
+This feature is available in the **Enterprise** plans.
+:::
+
+LDAP authentication is a method of authenticating users against an LDAP server.
+It allows users to manage accounts and permissions centrally, making it easier to control access to resources.
+
+## Configuration Guide
+
+<img src={ConfigurationUrl} alt="LDAP Configuration"/>
+
+* `Host`: LDAP server address, formatted as `ldap.example.com`
+* `Port`: The port number for the LDAP server, typically `389` for LDAP and `636` for LDAPS.
+* `Bind DN`: The `LDAP User` is used to manage LDAP authentication and collect LDAP user data;
+  * e.g., `cn=admin,ou=people,dc=example,dc=app`
+* `Bind Password`: Bind DN user password.
+* `Base DN`: The `LDAP Group` which is permitted to login to Tabby;
+  * e.g., `ou=people,dc=ikw,dc=app`
+* `User Filter`: The expr to match ldap username, please use `%s` as a placeholder for the username;
+  * e.g., `(uid=%s)`, `(&(uid=%s)(objectClass=inetOrgPerson))`
+* `Encryption`: one of the following
+  * NONE
+  * StartTLS
+  * LDAPS
+* `User information mapping`: The LDAP attribute used to map to the Tabby User attribute.
+  * `Email`: The attribute used to represent the email address on the LDAP server. e.g., `mail`
+  * `Name`: The attribute used to represent the name on the LDAP server. e.g., `cn`
+
+
+## Login Page
+
+<img src={LDAPSigninUrl} width={500} alt="LDAP Signin"/>
+
+* `Username`: The username on LDAP server, typically the prefix of the email address.
+* `Password`: The user password on LDAP server.
+
+## Others
+
+### LDAP users can not change user attributes
+
+<img src={LDAPUserUrl} alt="LDAP User"/>
+
+LDAP users can not change the following attributes on Tabby:
+
+* Name
+* Email
+* Password
+
+### Only support one LDAP Configuration
+
+Tabby only supports one LDAP configuration at a time.
+
+### LDAP and OAuth can exist simultaneously
+
+<img src={LDAPWithOAuthUrl} alt="LDAP with OAuth"/>
