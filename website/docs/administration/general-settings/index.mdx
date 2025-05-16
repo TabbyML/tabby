@@ -1,0 +1,20 @@
+import SignInUrl from './sign-in.png';
+
+# General Settings
+
+## Network Setting
+
+### External URL
+Specify the external URL where user visits Tabby(must start with http:// or https://). By default, Tabby uses http://localhost:8080.
+
+Tabby uses the configured External URL as the base address to generate navigation links for key features including member invitations, password reset, code browsing, authentication callbacks, etc. Ensure this URL is accurate and accessible, as incorrect values will break all dynamically generated links and system redirections.
+
+## Security Setting
+
+### Authentication Domains
+
+Configure allowed email domains to enable automatic user signups without invitations. This setting governs account creation for:
+- **Direct Signup** (see marker 1 in screenshot): Users with email addresses matching configured domains can self-register through the standard signup form, bypassing invitation requirements.
+- **[SSO Login](../sso/)** (see marker 2 in screenshot): Third-party SSO logins (e.g., LDAP, GitHub, GitLab) automatically provision accounts if the provider-verified email matches allowed domains.
+
+<img src={SignInUrl} width={700} alt="Sign In" />
