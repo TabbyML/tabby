@@ -21,7 +21,7 @@ use tracing::debug;
 
 use super::{helper::Job, index_commits, BackgroundJobEvent};
 
-mod error;
+pub mod error;
 mod issues;
 mod pulls;
 
