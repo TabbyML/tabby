@@ -223,7 +223,7 @@ impl FromTantivyDocument for DocSearchPullDocument {
             schema.field_attributes,
             structured_doc::fields::pull::BODY,
         );
-        let diff = get_json_text_field(
+        let diff = get_json_option_text_field(
             doc,
             schema.field_attributes,
             structured_doc::fields::pull::DIFF,
@@ -238,7 +238,7 @@ impl FromTantivyDocument for DocSearchPullDocument {
             link: link.into(),
             author_email: author_email.map(Into::into),
             body: body.into(),
-            diff: diff.into(),
+            diff: diff.unwrap_or_default().into(),
             merged,
         })
     }
