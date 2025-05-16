@@ -39,6 +39,7 @@ use tabby_schema::{
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
     AsID,
 };
+pub use third_party_integration::error::octocrab_error_message;
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
 use url::Url;
