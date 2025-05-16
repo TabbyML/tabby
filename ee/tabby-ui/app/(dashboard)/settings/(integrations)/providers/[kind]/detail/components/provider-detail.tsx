@@ -84,6 +84,20 @@ const ProviderDetail: React.FC = () => {
     pause: !id || !kind
   })
   const provider = data?.integrations?.edges?.[0]?.node
+  const shouldRefreshProvider = provider?.status === IntegrationStatus.Pending
+
+  useSWR(
+    shouldRefreshProvider ? 'refresh' : null,
+    () => {
+      reexecuteQuery()
+    },
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateOnMount: false,
+      refreshInterval: 5 * 1000
+    }
+  )
 
   const onDeleteProvider = () => {
     router.back()
