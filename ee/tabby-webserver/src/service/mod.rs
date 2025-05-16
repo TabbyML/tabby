@@ -134,16 +134,19 @@ impl ServerContext {
             Some(auth.clone()),
             context.clone(),
         ));
-        let page = chat.as_ref().map(|chat| {
-            Arc::new(page::create(
-                PageConfig::default(),
-                db_conn.clone(),
-                auth.clone(),
-                chat.clone(),
-                thread.clone(),
-                context.clone(),
-                retrieval,
-            )) as Arc<dyn PageService>
+        let page = chat.as_ref().and_then(|chat| {
+            answer.as_ref().map(|answer| {
+                Arc::new(page::create(
+                    PageConfig::default(),
+                    db_conn.clone(),
+                    auth.clone(),
+                    chat.clone(),
+                    thread.clone(),
+                    context.clone(),
+                    retrieval.clone(),
+                    answer.clone(),
+                )) as Arc<dyn PageService>
+            })
         });
 
         let user_group = Arc::new(user_group::create(db_conn.clone()));
