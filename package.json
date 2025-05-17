@@ -1,17 +1,13 @@
 {
   "private": true,
   "scripts": {
-    "build": "turbo build",
-    "vscode:dev": "turbo vscode:dev",
-    "lint": "turbo lint",
-    "lint:fix": "turbo lint:fix",
-    "test": "turbo test"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "engines": {
     "node": ">=18",
     "pnpm": ">=9"
-  },
-  "devDependencies": {
-    "turbo": "^1.13.3"
   }
 }
