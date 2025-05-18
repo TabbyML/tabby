@@ -168,7 +168,9 @@ impl RepositoryConfig {
         url::Url::parse(url)
             .map(|mut url| {
                 let _ = url.set_password(None);
-                let _ = url.set_username("");
+                if url.scheme() != "ssh" {
+                    let _ = url.set_username("");
+                }
                 url.to_string()
             })
             .unwrap_or_else(|_| url.to_string())
@@ -464,9 +466,16 @@ impl AnswerConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SshKeyPair {
+    Paths(Option<PathBuf>, PathBuf),
+    Memory(Option<String>, String),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CodeRepository {
     pub git_url: String,
     pub source_id: String,
+    pub ssh_key: Option<SshKeyPair>,
 }
 
 impl CodeRepository {
@@ -474,6 +483,7 @@ impl CodeRepository {
         Self {
             git_url: git_url.to_owned(),
             source_id: source_id.to_owned(),
+            ssh_key: None,
         }
     }
 
@@ -491,6 +501,11 @@ impl CodeRepository {
 
     pub fn is_local_dir(&self) -> bool {
         RepositoryConfig::resolve_is_local_dir(&self.git_url)
+    }
+
+    pub fn with_ssh_key(&mut self, ssh_key: &SshKeyPair) -> &mut Self {
+        self.ssh_key = Some(ssh_key.clone());
+        self
     }
 }
 
