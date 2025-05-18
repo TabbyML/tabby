@@ -2,14 +2,18 @@ use std::{
     collections::HashSet,
     fs::{self},
     path::Path,
-    process::Command,
 };
 
-use anyhow::bail;
+use anyhow::{bail, Context};
+use git2::{
+    build::{CheckoutBuilder, RepoBuilder},
+    Cred, FetchOptions, RemoteCallbacks, Repository,
+};
 use tabby_common::path::repositories_dir;
 use tracing::warn;
 
 use super::CodeRepository;
+use tabby_common::config::SshKeyPair;
 
 trait RepositoryExt {
     fn sync(&self) -> anyhow::Result<String>;
@@ -20,33 +24,22 @@ impl RepositoryExt for CodeRepository {
     // and returns the git commit sha256.
     fn sync(&self) -> anyhow::Result<String> {
         let dir = self.dir();
-        let mut finished = false;
         if dir.exists() {
-            finished = pull_remote(dir.as_path());
-        }
-
-        if !finished {
-            std::fs::create_dir_all(&dir)
-                .unwrap_or_else(|_| panic!("Failed to create dir {}", dir.display()));
-            let status = Command::new("git")
-                .current_dir(dir.parent().expect("Must not be in root directory"))
-                .arg("clone")
-                .arg(&self.git_url)
-                .arg(&dir)
-                .status()
-                .unwrap_or_else(|_| panic!("Failed to clone into dir {}", dir.display()));
-
-            if let Some(code) = status.code() {
-                if code != 0 {
-                    warn!(
-                        "Failed to clone `{}`. Please check your repository configuration.",
-                        self.canonical_git_url()
-                    );
-                    fs::remove_dir_all(&dir).expect("Failed to remove directory");
-
-                    bail!("Failed to clone `{}`", self.canonical_git_url());
-                }
-            }
+            pull_repo(&self, &dir).with_context(|| {
+                format!(
+                    "failed to pull repo {} at {}",
+                    self.canonical_git_url(),
+                    self.dir().display(),
+                )
+            })?;
+        } else {
+            clone_repo(&self, &dir).with_context(|| {
+                format!(
+                    "failed to clone repo {} into {}",
+                    self.canonical_git_url(),
+                    self.dir().display(),
+                )
+            })?;
         }
 
         get_commit_sha(self)
@@ -60,24 +53,76 @@ fn get_commit_sha(repository: &CodeRepository) -> anyhow::Result<String> {
     Ok(commit.id().to_string())
 }
 
-fn pull_remote(path: &Path) -> bool {
-    let status = Command::new("git")
-        .current_dir(path)
-        .arg("pull")
-        .status()
-        .expect("Failed to read status");
-
-    if let Some(code) = status.code() {
-        if code != 0 {
-            warn!(
-                "Failed to pull remote for `{:?}`, please check your repository configuration...",
-                path
-            );
-            return false;
+fn get_fetch_options<'r>(repo: &'r CodeRepository) -> FetchOptions<'r> {
+    let mut callbacks = RemoteCallbacks::new();
+    if let Some(keypair) = &repo.ssh_key {
+        match keypair {
+            SshKeyPair::Memory(public_key, private_key) => {
+                callbacks.credentials(move |_url, username_from_url, _allowed_types| {
+                    Cred::ssh_key_from_memory(
+                        username_from_url.unwrap(),
+                        public_key.as_deref(),
+                        private_key,
+                        None,
+                    )
+                });
+            }
+            SshKeyPair::Paths(public_key, private_key) => {
+                callbacks.credentials(move |_url, username_from_url, _allowed_types| {
+                    Cred::ssh_key(
+                        username_from_url.unwrap(),
+                        public_key.as_deref(),
+                        private_key,
+                        None,
+                    )
+                });
+            }
         }
-    };
+    }
 
-    true
+    let mut fo = FetchOptions::new();
+    fo.remote_callbacks(callbacks);
+
+    fo
+}
+
+fn pull_repo(code_repo: &CodeRepository, path: &Path) -> anyhow::Result<()> {
+    let repo = Repository::open(path)?;
+
+    let mut remote = repo.find_remote("origin")?;
+
+    let mut fo = get_fetch_options(&code_repo);
+
+    remote.fetch(&["refs/heads/*:refs/heads/*"], Some(&mut fo), None)?;
+
+    repo.checkout_head(Some(CheckoutBuilder::default().force()))?;
+
+    Ok(())
+}
+
+fn do_clone_repo(code_repo: &CodeRepository, path: &Path) -> anyhow::Result<()> {
+    if let Some(_) = &code_repo.ssh_key {
+        let mut builder = RepoBuilder::new();
+
+        let fo = get_fetch_options(&code_repo);
+        builder.fetch_options(fo);
+
+        builder.clone(&code_repo.git_url, path)?;
+    } else {
+        Repository::clone(&code_repo.git_url, path)?;
+    }
+
+    Ok(())
+}
+
+fn clone_repo(code_repo: &CodeRepository, path: &Path) -> anyhow::Result<()> {
+    do_clone_repo(code_repo, path).map_err(|err| {
+        warn!("Failed to clone repository: {}", err);
+        if path.exists() {
+            fs::remove_dir_all(&path).expect("Failed to remove cloned repository");
+        }
+        err
+    })
 }
 
 pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<String> {
@@ -112,5 +157,52 @@ pub fn garbage_collection(repositories: &[CodeRepository]) {
                 panic!("Failed to remove directory {:?}", file.path().display())
             });
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::env;
+
+    use super::CodeRepository;
+    use super::RepositoryExt;
+
+    use tabby_common::config::SshKeyPair;
+
+    #[test]
+    fn test_public_repo_clone() -> anyhow::Result<()> {
+        let repo = CodeRepository::new("https://github.com/TabbyML/tabby/", "1");
+        repo.sync()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_private_repo_clone_keys_from_path() -> anyhow::Result<()> {
+        if let Ok(repo_url) = env::var("TABBY_TEST_PRIVATE_REPO_FOR_PATH_KEYS") {
+            let mut repo = CodeRepository::new(&repo_url, "2");
+            repo.with_ssh_key(&SshKeyPair::Paths(
+                env::var("TABBY_TEST_PUBLIC_KEY_PATH")
+                    .and_then(|s| Ok(s.into()))
+                    .ok(),
+                env::var("TABBY_TEST_PRIVATE_KEY_PATH")?.into(),
+            ));
+            repo.sync()?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_private_repo_clone_keys_from_content() -> anyhow::Result<()> {
+        if let Ok(repo_url) = &env::var("TABBY_TEST_PRIVATE_REPO_FOR_MEM_KEYS") {
+            let mut repo = CodeRepository::new(&repo_url, "3");
+            repo.with_ssh_key(&SshKeyPair::Memory(
+                env::var("TABBY_TEST_PUBLIC_KEY")
+                    .and_then(|s| Ok(s.into()))
+                    .ok(),
+                env::var("TABBY_TEST_PRIVATE_KEY")?.into(),
+            ));
+            repo.sync()?;
+        }
+        Ok(())
     }
 }
