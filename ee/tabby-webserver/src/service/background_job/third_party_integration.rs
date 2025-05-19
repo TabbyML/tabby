@@ -6,7 +6,6 @@ use chrono::{DateTime, Utc};
 use futures::{stream::BoxStream, StreamExt};
 use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
-use pulls::{get_github_pull_doc, list_github_pull_states};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::CodeRepository;
 use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer, StructuredDocState};
@@ -15,7 +14,6 @@ use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::JobService,
     repository::{ProvidedRepository, ThirdPartyRepositoryService},
-    CoreError,
 };
 use tracing::debug;
 
@@ -292,18 +290,14 @@ async fn fetch_all_pull_states(
     integration: &Integration,
     repository: &ProvidedRepository,
 ) -> tabby_schema::Result<BoxStream<'static, (pulls::Pull, StructuredDocState)>> {
-    match &integration.kind {
-        IntegrationKind::Github | IntegrationKind::GithubSelfHosted => Ok(list_github_pull_states(
-            integration.api_base(),
-            &repository.display_name,
-            &integration.access_token,
-        )
-        .await?
-        .boxed()),
-        IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => Err(CoreError::Other(
-            anyhow::anyhow!("Gitlab does not support pull requests yet"),
-        )),
-    }
+    pulls::list_pull_states(
+        &integration.kind,
+        integration.api_base(),
+        &repository.display_name,
+        &integration.access_token,
+    )
+    .await
+    .map_err(From::from)
 }
 
 async fn fetch_pull_structured_doc(
@@ -311,16 +305,13 @@ async fn fetch_pull_structured_doc(
     repository: &ProvidedRepository,
     pull: pulls::Pull,
 ) -> Result<StructuredDoc> {
-    match pull {
-        pulls::Pull::GitHub(pull) => {
-            get_github_pull_doc(
-                &repository.source_id(),
-                pull,
-                integration.api_base(),
-                &repository.display_name,
-                &integration.access_token,
-            )
-            .await
-        }
-    }
+    pulls::get_pull_doc(
+        &repository.source_id(),
+        pull,
+        &integration.kind,
+        integration.api_base(),
+        &repository.display_name,
+        &integration.access_token,
+    )
+    .await
 }
