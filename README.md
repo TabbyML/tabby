@@ -29,6 +29,7 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 </p>
 
 ## 🔥 What's New
+* **05/01/2025** [v0.28](https://github.com/TabbyML/tabby/releases/tag/v0.28.0) transforming Answer Engine messages into persistent, shareable Pages
 * **03/31/2025** [v0.27](https://github.com/TabbyML/tabby/releases/tag/v0.27.0) released with a richer `@` menu in the chat side panel.
 * **02/05/2025** LDAP Authentication and better notification for background jobs coming in Tabby [v0.24.0](https://github.com/TabbyML/tabby/releases/tag/v0.24.0)!✨
 * **02/04/2025** [VSCode 1.20.0](https://marketplace.visualstudio.com/items/TabbyML.vscode-tabby/changelog) upgrade! @-mention files to add them as chat context, and edit inline with a new right-click option are available!
