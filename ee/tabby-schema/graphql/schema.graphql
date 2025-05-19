@@ -40,7 +40,6 @@ enum EventKind {
   SELECT
   VIEW
   DISMISS
-  INGESTION
 }
 
 enum IntegrationKind {
