@@ -79,6 +79,13 @@ git_url = "file:///home/users/repository_a"
 
 ## Adding a Developer Doc through Admin UI
 
+:::info[Note]
+
+1. By default, Tabby uses the **[Katana](https://github.com/projectdiscovery/katana)** to crawl developer documentation. For **Docker deployments**, Katana is pre-installed in the container image. **Non-Docker deployments** require manual Katana installation.
+2. If a developer documentation site implements the **[llms.txt](https://llmstxt.org/)** standard, Tabby directly retrieves and indexes the specified documents, instead of using Katana for automated crawling.
+
+:::
+
 1. Navigate to the **Integrations > Context Providers** page, and then select the `Developer Docs(Beta)`.
 
 <img src={ContextProvidersUrl} alt="Context Providers" />
@@ -97,3 +104,8 @@ Additionally, you can also visit the **Code Browser** page to view the connected
 <img src={CodeBrowserEntryUrl} alt="code browser entry" width="300" />
 
 <img src={CodeBrowserUrl} alt="code browser" width="800" />
+
+
+
+
+
