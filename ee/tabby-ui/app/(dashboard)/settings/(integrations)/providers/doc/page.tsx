@@ -8,7 +8,7 @@ export default function DocumentProviderPage() {
   return (
     <>
       <CardContent className="pl-0">
-        <SubHeader>
+        <SubHeader externalLink="https://tabby.tabbyml.com/docs/administration/context/#adding-a-developer-doc-through-admin-ui">
           <p>
             Documents are a critical source for engineering knowledge. Tabby
             provides an easy way to include these documents when interacting
