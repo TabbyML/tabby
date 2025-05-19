@@ -12,7 +12,6 @@ pub enum EventKind {
     Select,
     View,
     Dismiss,
-    Ingestion,
 }
 
 #[derive(GraphQLObject)]
