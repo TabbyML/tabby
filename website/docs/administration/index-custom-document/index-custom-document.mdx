@@ -1,0 +1,126 @@
+---
+sidebar_label: Index Custom Document
+---
+
+import RegistrationTokenUrl from './registration-token.png';
+import IngestionStatusUrl from './ingestion-status.png';
+
+# Ingest Custom Document for Indexing
+
+## Overview
+
+Tabby provides an HTTP REST API that enables direct data ingestion into Tabby's index.
+
+This API allows you to seamlessly integrate your own data sources,
+ensuring that Tabby's chat experiences are tailored to your specific requirements and context.
+
+Ingested documents are organized hierarchically by `source` and then by `id`.
+Each document you provide must have a `source` string and a unique `id` string within that source.
+
+This structure allows documents to be grouped logically under a common source.
+When you want to retrieve documents, you can specify a particular `source`,
+and Tabby will operate on the documents within that group.
+
+Documents are created individually and can be deleted
+either one by one or in bulk by deleting all documents associated with a particular `source`.
+
+## Data Ingestion HTTP API
+
+The Data Ingestion API enables you to:
+
+- Add custom documents to Tabby's index with a configurable time-to-live (TTL)
+- Delete specific documents or all documents from a particular source
+
+Note that all ingestion and deletion operations are processed asynchronously during scheduled index updates.
+
+### Authentication
+
+To use the Data Ingestion API, you must authenticate your requests.
+Tabby's HTTP API uses Registration API tokens for authentication, which could be retrieve as follow:
+
+<img src={RegistrationTokenUrl} alt="Registration Token" />
+
+Include your API key in the `Authorization` request header as follows:
+
+```
+Authorization: Bearer YOUR_API_KEY
+```
+
+
+### Add Document
+
+```http
+POST /v1beta/ingestion
+```
+
+Request Body:
+
+```json
+{
+  "source": "custom-documentation",
+  "id": "doc-id",
+  "title": "API Documentation",
+  "body": "This is the content of the documentation...",
+  "link": "https://example.com/docs/123",
+  "ttl": "90d"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `source` | string | **Required**. Source identifier for the document. Used for grouping and deletion operations. |
+| `id` | string | **Required**. Unique identifier for the document within the same source. |
+| `title` | string | **Required**. Title of the document. |
+| `body` | string | **Required**. Content of the document to be indexed. |
+| `link` | string | *Optional*. URL or reference to the original document. |
+| `ttl` | string | *Optional*. Time-to-live duration (e.g., "90d" for 90 days). After this period, the document will be automatically removed during garbage collection. |
+
+Response:
+
+- 202 Accepted: The request has been accepted and will be processed later.
+  ```json
+  {
+    "id": "doc123",
+    "status": "pending",
+    "message": "Your request has been accepted and will be processed later."
+  }
+  ```
+- 400 Bad Request: The request was invalid.
+  ```json
+  {
+    "error": "Invalid request body",
+    "message": "The request body is missing required fields or has invalid values."
+  }
+  ```
+- 500 Internal Error: The server encountered an error while processing the request.
+  ```json
+  {
+    "error": "Internal Server Error",
+    "message": "An unexpected error occurred while processing your request."
+  }
+  ```
+
+### Delete Document
+
+```http
+DELETE /v1beta/ingestion/{source}
+DELETE /v1beta/ingestion/{source}/{id}
+```
+
+Deletes either all documents from a specific source (by `source`) or a specific document (by `source` and `id`).
+
+Response:
+
+- 202 Accepted: The request has been accepted and will be processed later.
+- 401 Unauthorized: The request is missing or has an invalid API key.
+- 500 Internal Error: The server encountered an error while processing the request.
+
+## Monitoring Ingestion Status
+
+Since the ingestion process is asynchronous, you can monitor the status of your ingestion requests through the Tabby web UI,
+under the `System` tab in the `Information` section.
+
+The ingestion status page offers a detailed summary of all your ingestion requests,
+including the total count, pending requests, and any failures.
+
+<img src={IngestionStatusUrl} alt="Ingestion Status" />
