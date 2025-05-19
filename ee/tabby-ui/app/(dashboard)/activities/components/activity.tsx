@@ -2,7 +2,6 @@
 
 import React from 'react'
 import dynamic from 'next/dynamic'
-import { capitalize } from 'lodash-es'
 import moment from 'moment'
 import momentTimezone from 'moment-timezone'
 import { DateRange } from 'react-day-picker'
@@ -337,6 +336,10 @@ function ActivityRow({
       tooltip = 'Code completion shown in editor'
       break
     }
+    case EventKind.ChatCompletion: {
+      tooltip = 'Chat completion supplied'
+      break
+    }
   }
 
   let displayUser = activity.userId
@@ -357,7 +360,7 @@ function ActivityRow({
         </TableCell>
         <TableCell className="font-medium">
           <Tooltip>
-            <TooltipTrigger>{capitalize(activity.kind)}</TooltipTrigger>
+            <TooltipTrigger>{activity.kind}</TooltipTrigger>
             <TooltipContent>
               <p>{tooltip}</p>
             </TooltipContent>
