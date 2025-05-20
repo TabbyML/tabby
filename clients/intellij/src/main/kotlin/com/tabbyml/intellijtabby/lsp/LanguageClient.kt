@@ -4,11 +4,13 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.Messages
@@ -38,6 +40,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   private val languageSupportService = project.serviceOrNull<LanguageSupportService>()
   private val configurationSync = ConfigurationSync(project)
   private val textDocumentSync = TextDocumentSync(project)
+  private val documentStopUndoMap = mutableMapOf<String, Boolean>()
 
   override fun buildInitializeParams(): InitializeParams {
     val appInfo = ApplicationInfo.getInstance()
@@ -282,6 +285,54 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     return future
   }
 
+  override fun applyWorkspaceEdit(params: TabbyApplyWorkspaceEditParams): CompletableFuture<Boolean> {
+    val future = CompletableFuture<Boolean>()
+    invokeLater {
+      try {
+        val edit = params.edit
+        edit.changes?.forEach { (uri, edits) ->
+          val virtualFile = project.findVirtualFile(uri) ?: return@forEach
+          val document = project.findDocument(virtualFile) ?: return@forEach
+          val url = FileDocumentManager.getInstance()
+            .getFile(document)?.url ?: return@forEach
+
+          logger.info("url $url")
+          if (params.options?.undoStopBefore == true) {
+              documentStopUndoMap[url] = true
+          }
+
+          if (documentStopUndoMap[url] == true) {
+            // continued command action with same group id will be combined into one undo history
+            WriteCommandAction.writeCommandAction(project).withGroupId("tabby").run<Throwable> {
+              writeDocument(document, edits)
+            }
+          } else {
+            runWriteCommandAction(project) {
+              writeDocument(document, edits)
+            }
+          }
+
+          if (params.options?.undoStopAfter == true) {
+            documentStopUndoMap[url] = false
+          }
+        }
+        future.complete(true)
+      } catch (e: Exception) {
+        logger.warn("Failed to apply workspace edit", e)
+        future.complete(false)
+      }
+    }
+    return future
+  }
+
+  private fun writeDocument(document: Document, edits: List<TextEdit>) {
+    edits.forEach { textEdit ->
+      val startOffset = offsetInDocument(document, textEdit.range.start).coerceIn(0, document.textLength)
+      val endOffset = offsetInDocument(document, textEdit.range.end).coerceIn(0, document.textLength)
+      document.replaceString(startOffset, endOffset, textEdit.newText)
+    }
+  }
+
   override fun showMessageRequest(params: ShowMessageRequestParams): CompletableFuture<MessageActionItem?> {
     return CompletableFuture<MessageActionItem?>().apply {
       invokeLater {
@@ -319,6 +370,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   override fun dispose() {
     configurationSync.dispose()
     textDocumentSync.dispose()
+    documentStopUndoMap.clear()
   }
 
   private fun getWorkspaceFolders(): List<WorkspaceFolder> {
