@@ -3,6 +3,7 @@ package com.tabbyml.intellijtabby.inlineChat
 import com.google.gson.JsonObject
 import com.intellij.codeInsight.codeVision.*
 import com.intellij.codeInsight.codeVision.CodeVisionState.Companion.READY_EMPTY
+import com.intellij.codeInsight.codeVision.settings.CodeVisionGroupSettingProvider
 import com.intellij.codeInsight.codeVision.ui.model.TextCodeVisionEntry
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
@@ -28,6 +29,8 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
     // provider id
     abstract override val id: String
 
+    override val groupId = "Tabby.InlineEdit"
+
     // command name
     abstract val command: String
 
@@ -37,7 +40,6 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
     // execute action id
     abstract val actionId: String?
     abstract val icon: Icon
-    override val name: String = "Inline Chat Code Vision Provider"
 
     override fun precomputeOnUiThread(editor: Editor): Any {
         return Any()
@@ -101,6 +103,7 @@ abstract class InlineChatCodeVisionProvider : CodeVisionProvider<Any>, DumbAware
 
 class InlineChatLoadingCodeVisionProvider : InlineChatCodeVisionProvider() {
     override val id: String = "Tabby.InlineChat.Loading"
+    override val name ="Tabby Inline Edit Loading"
     override val command: String = " "
     override val action: String? = null
     override val actionId: String? = null
@@ -111,6 +114,7 @@ class InlineChatLoadingCodeVisionProvider : InlineChatCodeVisionProvider() {
 
 class InlineChatCancelCodeVisionProvider : InlineChatCodeVisionProvider() {
     override val id: String = "Tabby.InlineChat.Cancel"
+    override val name ="Tabby Inline Edit Cancel"
     override val command: String = "tabby/chat/edit/resolve"
     override val action: String = "cancel"
     override val actionId: String = "Tabby.InlineChat.Resolve.Cancel"
@@ -121,6 +125,7 @@ class InlineChatCancelCodeVisionProvider : InlineChatCodeVisionProvider() {
 
 class InlineChatAcceptCodeVisionProvider : InlineChatCodeVisionProvider() {
     override val id: String = "Tabby.InlineChat.Accept"
+    override val name ="Tabby Inline Edit Accept"
     override val command: String = "tabby/chat/edit/resolve"
     override val action: String? = "accept"
     override val actionId: String = "Tabby.InlineChat.Resolve.Accept"
@@ -131,10 +136,20 @@ class InlineChatAcceptCodeVisionProvider : InlineChatCodeVisionProvider() {
 
 class InlineChatDiscardCodeVisionProvider : InlineChatCodeVisionProvider() {
     override val id: String = "Tabby.InlineChat.Discard"
+    override val name ="Tabby Inline Edit Discard"
     override val command: String = "tabby/chat/edit/resolve"
     override val action: String = "discard"
     override val actionId: String = "Tabby.InlineChat.Resolve.Discard"
     override val icon: Icon = AllIcons.Actions.Close
     override val relativeOrderings: List<CodeVisionRelativeOrdering> =
         emptyList()
+}
+
+class InlineChatCodeVisionSettingProvider: CodeVisionGroupSettingProvider {
+    override val groupId: String
+        get() = "Tabby.InlineEdit"
+    override val groupName: String
+        get() = "Tabby Inline Edit"
+    override val description: String
+        get() = "Tabby Inline Edit"
 }

@@ -67,6 +67,7 @@
         <intentionAction>
             <className>com.tabbyml.intellijtabby.inlineChat.InlineChatIntentionAction</className>
         </intentionAction>
+        <config.codeVisionGroupSettingProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatCodeVisionSettingProvider"/>
         <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatLoadingCodeVisionProvider" />
         <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatCancelCodeVisionProvider" />
         <codeInsight.codeVisionProvider implementation="com.tabbyml.intellijtabby.inlineChat.InlineChatAcceptCodeVisionProvider" />
