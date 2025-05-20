@@ -10,15 +10,18 @@ use async_openai_alt::{
 };
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_common::api::{
-    code::{
-        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
-        CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
+use tabby_common::{
+    api::{
+        code::{
+            CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
+            CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
+        },
+        structured_doc::{
+            DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse,
+            DocSearchWebDocument,
+        },
     },
-    structured_doc::{
-        DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse,
-        DocSearchWebDocument,
-    },
+    config::AnswerConfig,
 };
 use tabby_db::DbConn;
 use tabby_inference::ChatCompletionStream;
@@ -286,6 +289,25 @@ impl ContextService for FakeContextService {
         Ok(ContextInfo { sources: vec![] })
     }
 }
+
+pub fn make_answer_config() -> AnswerConfig {
+    AnswerConfig {
+        code_search_params: make_code_search_params(),
+        presence_penalty: 0.1,
+        system_prompt: AnswerConfig::default_system_prompt(),
+    }
+}
+
+pub fn make_code_search_params() -> CodeSearchParams {
+    CodeSearchParams {
+        min_bm25_score: 0.5,
+        min_embedding_score: 0.7,
+        min_rrf_score: 0.3,
+        num_to_return: 5,
+        num_to_score: 10,
+    }
+}
+
 pub async fn make_repository_service(db: DbConn) -> Result<Arc<dyn RepositoryService>> {
     let job_service: Arc<dyn JobService> = Arc::new(job::create(db.clone()).await);
     let integration_service: Arc<dyn IntegrationService> =
