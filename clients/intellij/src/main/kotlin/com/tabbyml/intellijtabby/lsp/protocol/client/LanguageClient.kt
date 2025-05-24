@@ -147,4 +147,9 @@ abstract class LanguageClient {
   open fun refreshDiagnostics(): CompletableFuture<Void> {
     throw UnsupportedOperationException()
   }
+
+  @JsonRequest("tabby/workspace/applyEdit")
+  open fun applyWorkspaceEdit(edit: TabbyApplyWorkspaceEditParams): CompletableFuture<Boolean> {
+    throw UnsupportedOperationException()
+  }
 }

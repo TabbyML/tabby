@@ -379,3 +379,7 @@ data class ChatEditResolveParams(
 data class ChatEditCommandParams(var location: Location)
 
 data class ChatEditCommand(var label: String, var command: String, var source: String = "preset" )
+
+data class TabbyApplyWorkspaceEditOptions(val undoStopBefore: Boolean = false, val undoStopAfter: Boolean = false)
+
+data class TabbyApplyWorkspaceEditParams(val label: String?, val edit: WorkspaceEdit, val options: TabbyApplyWorkspaceEditOptions? = null)

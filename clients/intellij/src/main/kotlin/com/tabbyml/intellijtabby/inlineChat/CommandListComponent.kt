@@ -79,15 +79,15 @@ class CommandListComponent(
         toolbar.border = JBUI.Borders.empty(3, 5)
         val titleLabel = JBLabel(title)
         titleLabel.font = JBUI.Fonts.label().deriveFont(JBUI.Fonts.label().size + 1.0f)
-        val clearAllButton = IconLabelButton(AllIcons.Actions.GC) {
-            onClearAll()
-        }
-        clearAllButton.toolTipText = "Clear all commands"
-        clearAllButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        clearAllButton.border = BorderFactory.createEmptyBorder(4, 8, 4, 8)
+//        val clearAllButton = IconLabelButton(AllIcons.Actions.GC) {
+//            onClearAll()
+//        }
+//        clearAllButton.toolTipText = "Clear all commands"
+//        clearAllButton.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+//        clearAllButton.border = BorderFactory.createEmptyBorder(4, 8, 4, 8)
 
         toolbar.add(titleLabel, BorderLayout.WEST)
-        toolbar.add(clearAllButton, BorderLayout.EAST)
+//        toolbar.add(clearAllButton, BorderLayout.EAST)
 
         return toolbar
     }
@@ -110,7 +110,7 @@ class CommandListComponent(
         }
     }
 
-    fun setData(newData: List<CommandListItem>) {
+    fun setData(newData: List<CommandListItem>, onUpdated: (() -> Unit)? = null) {
         ApplicationManager.getApplication().invokeLater {
             val selectedValue = list.selectedValue
             model.replaceAll(newData)
@@ -124,11 +124,18 @@ class CommandListComponent(
             } else {
                 list.clearSelection()
             }
+            onUpdated?.invoke()
         }
     }
 
     val component: JComponent
         get() = mainPanel
+
+    fun dispose() {
+        mainPanel.removeAll()
+        scrollPane.viewport.view = null
+        list.model = CollectionListModel()
+    }
 }
 
 
@@ -230,3 +237,4 @@ class CustomListItemRenderer(private val getHoveredIndex: () -> Int) : JPanel(),
         }
     }
 }
+
