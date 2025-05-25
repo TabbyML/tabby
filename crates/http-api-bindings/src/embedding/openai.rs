@@ -58,7 +58,6 @@ impl Embedding for OpenAIEmbeddingEngine {
             .client
             .post(&self.api_endpoint)
             .json(&request)
-            .header("content-type", "application/json")
             .bearer_auth(&self.api_key);
 
         let response = request_builder
