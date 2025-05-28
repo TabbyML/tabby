@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use async_openai_alt::types::ChatCompletionRequestMessage;
 use async_stream::stream;
 use async_trait::async_trait;
+use chrono::Utc;
 use futures::{stream::BoxStream, StreamExt};
 use juniper::ID;
 use prompt_tools::{
@@ -30,18 +31,26 @@ use tabby_schema::{
     },
     policy::AccessPolicy,
     retrieval::{AttachmentCodeFileList, AttachmentDocHit},
-    thread::{CodeQueryInput, DocQueryInput, Message, MessageAttachmentDoc, ThreadService},
+    thread::{
+        CodeQueryInput, DocQueryInput, Message, MessageAttachment, MessageAttachmentCodeFileList,
+        MessageAttachmentDoc, Role, ThreadRunItem, ThreadRunOptionsInput, ThreadService,
+    },
     AsID, AsRowid, ChatCompletionMessage, CoreError, Result,
 };
 use tracing::error;
 
-use super::{graphql_pagination_to_filter, retrieval::RetrievalService, utils::get_source_id};
-use crate::service::{
+use super::{
     retrieval::{attachment_doc_from_search, attachment_docs_from_db},
+    utils::prompt::{request_llm_stream, transform_line_items},
+};
+use crate::service::{
+    answer::AnswerService,
+    graphql_pagination_to_filter,
+    retrieval::RetrievalService,
     utils::{
         convert_messages_to_chat_completion_request,
-        convert_user_message_to_chat_completion_request,
-        prompt::{request_llm_stream, request_llm_with_message, transform_line_items, trim_title},
+        convert_user_message_to_chat_completion_request, get_source_id,
+        prompt::{request_llm_with_message, trim_title},
     },
 };
 
@@ -53,6 +62,7 @@ struct PageServiceImpl {
     thread: Arc<dyn ThreadService>,
     context: Arc<dyn ContextService>,
     retrieval: Arc<RetrievalService>,
+    answer: Arc<AnswerService>,
 }
 
 pub fn create(
@@ -63,6 +73,7 @@ pub fn create(
     thread: Arc<dyn ThreadService>,
     context: Arc<dyn ContextService>,
     retrieval: Arc<RetrievalService>,
+    answer: Arc<AnswerService>,
 ) -> impl PageService {
     PageServiceImpl {
         config,
@@ -72,6 +83,7 @@ pub fn create(
         thread,
         context,
         retrieval,
+        answer,
     }
 }
 
@@ -126,6 +138,88 @@ impl PageService for PageServiceImpl {
         author_id: &ID,
         input: &CreatePageRunInput,
     ) -> Result<PageRunStream> {
+        let user = self.auth.get_user(author_id).await?;
+
+        let now = Utc::now();
+        let mut answer_messages = vec![Message {
+            id: ID::new("page-run-user-msg"),
+            thread_id: ID::new("page-run-temporary-thread"),
+            code_source_id: None,
+            content: input.title_prompt.clone(),
+            role: Role::User,
+            attachment: MessageAttachment::default(),
+            created_at: now,
+            updated_at: now,
+        }];
+
+        let answer_options = ThreadRunOptionsInput {
+            model_name: None,
+            code_query: input.code_query.clone(),
+            doc_query: input.doc_query.clone(),
+            generate_relevant_questions: false,
+            debug_options: None,
+        };
+
+        let answer = self.answer.clone();
+        let mut answer_stream = answer
+            .answer(&user, &answer_messages, &answer_options, None)
+            .await?;
+
+        let mut assistant_content = String::new();
+        let mut assistant_attachment = MessageAttachment::default();
+
+        while let Some(item_result) = answer_stream.next().await {
+            match item_result {
+                Ok(item) => match item {
+                    ThreadRunItem::ThreadAssistantMessageContentDelta(delta) => {
+                        assistant_content.push_str(&delta.delta);
+                    }
+                    ThreadRunItem::ThreadAssistantMessageAttachmentsCode(code_attachments) => {
+                        assistant_attachment.code = code_attachments
+                            .hits
+                            .into_iter()
+                            .map(|hit| hit.code)
+                            .collect();
+                    }
+                    ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(doc_attachments) => {
+                        assistant_attachment.doc = doc_attachments
+                            .hits
+                            .into_iter()
+                            .map(|hit| hit.doc)
+                            .collect();
+                    }
+                    ThreadRunItem::ThreadAssistantMessageAttachmentsCodeFileList(
+                        file_list_attachment,
+                    ) => {
+                        assistant_attachment.code_file_list = Some(MessageAttachmentCodeFileList {
+                            file_list: file_list_attachment.file_list,
+                            truncated: file_list_attachment.truncated,
+                        });
+                    }
+                    // skip all other items
+                    _ => {}
+                },
+                Err(e) => {
+                    error!("Error from AnswerService stream: {:?}", e);
+                    return Err(e);
+                }
+            }
+        }
+
+        let now = Utc::now();
+        let assistant_message = Message {
+            id: ID::new("page-run-assistant-msg"),
+            thread_id: ID::new("page-run-temporary-thread"),
+            code_source_id: None,
+            content: assistant_content,
+            role: Role::Assistant,
+            attachment: assistant_attachment,
+            created_at: now,
+            updated_at: now,
+        };
+
+        answer_messages.push(assistant_message);
+
         let code_source_id = if let Some(code_query) = input.code_query.as_ref() {
             get_source_id(self.context.clone(), policy, code_query).await
         } else {
@@ -138,7 +232,7 @@ impl PageService for PageServiceImpl {
             Some(&input.title_prompt),
             code_source_id.as_deref(),
             input.doc_query.as_ref(),
-            None,
+            Some(&answer_messages),
             input.debug_option.as_ref(),
         )
         .await
@@ -972,7 +1066,7 @@ pub async fn generate_page_section_content(
 
 #[cfg(test)]
 mod tests {
-    use crate::FakeAuthService;
+    use crate::{answer, FakeAuthService};
 
     #[tokio::test]
     async fn test_move_section() {
@@ -983,9 +1077,10 @@ mod tests {
         use super::*;
         use crate::{
             answer::testutils::{
-                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
-                FakeContextService, FakeDocSearch,
+                make_answer_config, make_repository_service, FakeChatCompletionStream,
+                FakeCodeSearch, FakeContextService, FakeDocSearch,
             },
+            event_logger::test_utils::MockEventLogger,
             retrieval,
             service::{setting, thread},
         };
@@ -1023,6 +1118,17 @@ mod tests {
             repo_service.clone(),
             settings,
         ));
+
+        let logger = Arc::new(MockEventLogger);
+        let answer_config = make_answer_config();
+        let answer = Arc::new(answer::create(
+            logger,
+            &answer_config,
+            auth.clone(),
+            chat.clone(),
+            retrieval.clone(),
+            context.clone(),
+        ));
         let service = create(
             PageConfig::default(),
             db,
@@ -1031,6 +1137,7 @@ mod tests {
             thread,
             context,
             retrieval,
+            answer,
         );
 
         // move down

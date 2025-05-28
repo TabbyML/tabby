@@ -333,13 +333,7 @@ mod tests {
     use std::sync::Arc;
 
     use juniper::ID;
-    use tabby_common::{
-        api::{
-            code::{CodeSearch, CodeSearchParams},
-            structured_doc::DocSearch,
-        },
-        config::AnswerConfig,
-    };
+    use tabby_common::api::{code::CodeSearch, structured_doc::DocSearch};
     use tabby_db::{testutils::create_user, DbConn};
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
@@ -351,8 +345,8 @@ mod tests {
 
     use super::{
         testutils::{
-            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
-            FakeDocSearch,
+            make_answer_config, make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+            FakeContextService, FakeDocSearch,
         },
         *,
     };
@@ -369,23 +363,6 @@ mod tests {
     const TEST_LANGUAGE: &str = "rust";
     const TEST_CONTENT: &str = "fn main() {}";
 
-    pub fn make_answer_config() -> AnswerConfig {
-        AnswerConfig {
-            code_search_params: make_code_search_params(),
-            presence_penalty: 0.1,
-            system_prompt: AnswerConfig::default_system_prompt(),
-        }
-    }
-
-    pub fn make_code_search_params() -> CodeSearchParams {
-        CodeSearchParams {
-            min_bm25_score: 0.5,
-            min_embedding_score: 0.7,
-            min_rrf_score: 0.3,
-            num_to_return: 5,
-            num_to_score: 10,
-        }
-    }
     pub fn make_code_query_input(source_id: Option<&str>, git_url: Option<&str>) -> CodeQueryInput {
         CodeQueryInput {
             filepath: Some(TEST_FILEPATH.to_string()),
@@ -662,11 +639,7 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
 
-        let config = AnswerConfig {
-            code_search_params: make_code_search_params(),
-            presence_penalty: 0.1,
-            system_prompt: AnswerConfig::default_system_prompt(),
-        };
+        let config = make_answer_config();
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db.clone()).await.unwrap();
         let logger = Arc::new(MockEventLogger);
