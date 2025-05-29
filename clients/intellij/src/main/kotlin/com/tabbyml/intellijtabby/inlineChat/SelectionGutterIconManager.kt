@@ -17,6 +17,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.vfs.VirtualFile
+import com.tabbyml.intellijtabby.actions.chat.isChatFeatureEnabled
 import javax.swing.Icon
 
 class SelectionGutterIconManager : ProjectActivity {
@@ -94,6 +95,7 @@ class SelectionGutterIconManager : ProjectActivity {
     }
 
     private fun updateSelectionGutterIcon(editor: Editor) {
+        if (!isChatFeatureEnabled(editor.project)) return
         invokeLater {
             removeHighlighter(editor)
 

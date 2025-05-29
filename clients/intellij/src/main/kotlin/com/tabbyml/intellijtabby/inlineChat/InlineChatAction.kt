@@ -4,13 +4,21 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.project.DumbAwareAction
+import com.tabbyml.intellijtabby.actions.chat.isChatFeatureEnabled
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.ChatEditResolveParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class InlineChatAction : DumbAwareAction() {
+abstract class BaseInlineChatAction : DumbAwareAction() {
+    override fun update(e: AnActionEvent) {
+        val project = e.project
+        e.presentation.isEnabled = isChatFeatureEnabled(project)
+    }
+}
+
+class InlineChatAction : BaseInlineChatAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getRequiredData(CommonDataKeys.EDITOR)
         val project = e.project ?: return
@@ -18,7 +26,7 @@ class InlineChatAction : DumbAwareAction() {
     }
 }
 
-class InlineChatAcceptAction : DumbAwareAction() {
+class InlineChatAcceptAction : BaseInlineChatAction() {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -32,7 +40,7 @@ class InlineChatAcceptAction : DumbAwareAction() {
     }
 }
 
-class InlineChatDiscardAction : DumbAwareAction() {
+class InlineChatDiscardAction : BaseInlineChatAction() {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -46,7 +54,7 @@ class InlineChatDiscardAction : DumbAwareAction() {
     }
 }
 
-class InlineChatCancelAction : DumbAwareAction() {
+class InlineChatCancelAction : BaseInlineChatAction() {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun actionPerformed(e: AnActionEvent) {
