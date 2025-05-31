@@ -29,7 +29,7 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 </p>
 
 ## 🔥 What's New
-* **05/25/2025** 💡Interested in joining [Pochi](https://links.tabbyml.com/pochi-github-readme) private preview? DM in [X](https://x.com/getpochi) for early waitlist approval!🎫
+* **05/25/2025** 💡Interested in joining [Agent](https://links.tabbyml.com/pochi-github-readme) private preview? DM in [X](https://x.com/getpochi) for early waitlist approval!🎫
 * **05/20/2025** Enhance Tabby with your own documentation📃 through REST APIs in [v0.29](https://github.com/TabbyML/tabby/releases/tag/v0.29.0)! 🎉 
 * **05/01/2025** [v0.28](https://github.com/TabbyML/tabby/releases/tag/v0.28.0) transforming Answer Engine messages into persistent, shareable Pages
 * **03/31/2025** [v0.27](https://github.com/TabbyML/tabby/releases/tag/v0.27.0) released with a richer `@` menu in the chat side panel.
