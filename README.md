@@ -50,7 +50,7 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 * **10/30/2024** Tabby [v0.19.0](https://github.com/TabbyML/tabby/releases/tag/v0.19.0) featuring recent shared threads on the main page to improve their discoverability. 
 * **07/09/2024** 🎉Announce [Codestral integration in Tabby](https://tabby.tabbyml.com/blog/2024/07/09/tabby-codestral/)!
 * **07/05/2024** Tabby [v0.13.0](https://github.com/TabbyML/tabby/releases/tag/v0.13.0) introduces ***Answer Engine***, a central knowledge engine for internal engineering teams. It seamlessly integrates with dev team's internal data, delivering reliable and precise answers to empower developers.
-* **06/13/2024** [VSCode 1.7](https://marketplace.visualstudio.com/items/TabbyML.vscode-tabby/changelog) marks a significant milestone with a versatile Chat experience throughout your coding experience. Come and they the latest **chat in side-panel** and **editing via chat command**!
+* **06/13/2024** [VSCode 1.7](https://marketplace.visualstudio.com/items/TabbyML.vscode-tabby/changelog) marks a significant milestone with a versatile Chat experience throughout your coding experience. Come and try the latest **chat in side-panel** and **editing via chat command**!
 * **06/10/2024** Latest 📃blogpost drop on [an enhanced code context understanding](https://tabby.tabbyml.com/blog/2024/06/11/rank-fusion-in-tabby-code-completion/) in Tabby!
 * **06/06/2024** Tabby [v0.12.0](https://github.com/TabbyML/tabby/releases/tag/v0.12.0) release brings 🔗**seamless integrations** (Gitlab SSO, Self-hosted GitHub/GitLab, etc.), to ⚙️**flexible configurations** (HTTP API integration) and 🌐**expanded capabilities** (repo-context in Code Browser)! 
 * **05/22/2024** Tabby [VSCode 1.6](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby) comes with **multiple choices** in inline completion, and the **auto-generated commit messages**🐱💻!
@@ -79,7 +79,7 @@ You can find our documentation [here](https://tabby.tabbyml.com/docs/getting-sta
 - 📚 [Installation](https://tabby.tabbyml.com/docs/installation/)
 - 💻 [IDE/Editor Extensions](https://tabby.tabbyml.com/docs/extensions/)
 - ⚙️ [Configuration](https://tabby.tabbyml.com/docs/configuration)
-
+💡 **Want to contribute?** Check out our [Contributing Guide](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md) to get started and make your first contribution to Tabby.
 ### Run Tabby in 1 Minute
 The easiest way to start a Tabby server is by using the following Docker command:
 
@@ -110,7 +110,7 @@ If you have already cloned the repository, you could run the `git submodule upda
 
 2. Install the required dependencies:
 ```bash
-# For MacOS
+# For macOS
 brew install protobuf
 
 # For Ubuntu / Debian
