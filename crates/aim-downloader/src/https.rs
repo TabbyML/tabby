@@ -152,7 +152,9 @@ impl HTTPSHandler {
 
         let mut stream = res.bytes_stream();
         while let Some(item) = stream.next().await {
-            let chunk = item.map_err(|_| "Error while downloading.").unwrap();
+            let chunk = item
+                .map_err(|e| format!("Error while downloading: {:?}", e))
+                .unwrap();
             out.write_all(&chunk)
                 .map_err(|_| "Error while writing to output.")
                 .unwrap();
