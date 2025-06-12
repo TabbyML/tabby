@@ -8,12 +8,8 @@ use tracing::info;
 
 pub async fn load_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
     match config {
-        ModelConfig::Http(http_config) => {
-            http_api_bindings::create_embedding(http_config).await
-        }
-        ModelConfig::Local(_) => {
-            llama_cpp_server::create_embedding(config).await
-        }
+        ModelConfig::Http(http_config) => http_api_bindings::create_embedding(http_config).await,
+        ModelConfig::Local(_) => llama_cpp_server::create_embedding(config).await,
     }
 }
 
