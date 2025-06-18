@@ -19,13 +19,15 @@ const useNetworkSetting = (options?: any) => {
 const useExternalURL = () => {
   const [{ data }] = useNetworkSetting()
   const networkSetting = data?.networkSetting
-  const externalUrl = React.useMemo(() => {
-    return networkSetting?.externalUrl || getOrigin()
+  
+  return React.useMemo(() => {
+    const currentOrigin = getOrigin()
+    // Always prefer current origin if available
+    if (currentOrigin) return currentOrigin
+    // Fallback to network setting only when origin is unavailable
+    return networkSetting?.externalUrl || ''
   }, [networkSetting])
-
-  return externalUrl
 }
-
 function getOrigin() {
   if (isClientSide()) {
     return new URL(window.location.href).origin
