@@ -28,6 +28,7 @@ const useExternalURL = () => {
     return networkSetting?.externalUrl || ''
   }, [networkSetting])
 }
+
 function getOrigin() {
   if (isClientSide()) {
     return new URL(window.location.href).origin
