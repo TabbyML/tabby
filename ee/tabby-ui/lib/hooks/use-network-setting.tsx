@@ -46,4 +46,4 @@ const useExternalURL = (): string | null => {
   return origin || networkSetting?.externalUrl || null
 }
 
-export { useNetworkSetting, useExternalURL }  // Fixed: removed extra }}
+export { useNetworkSetting, useExternalURL } 
