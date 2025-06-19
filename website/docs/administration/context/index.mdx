@@ -15,11 +15,11 @@ import JobLogUrl from "./repository-job-run.png";
 # Context Providers
 
 Tabby Context supports two kinds of context currently:
-1. source code repositories
-2. developer docs
+1. Source code repositories
+2. Developer docs
 
 The source code repositories context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc.
-Tabby fetches the **codebase**, **pull requests / merge requests**, **issues**, and **commits** from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities. View the use case in [Answer Engine - Source Code Repositories](../answer-engine#code-source-repositories)
+Tabby fetches the **codebase**, **pull requests / merge requests**, **issues**, and **commits** from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities. View the use case in [Answer Engine - Source Code Repositories](../answer-engine#source-code-repositories)
 
 The developer docs context is a critical source for engineering knowledge,
 simply press the `@` button in the chat interface and select the document you wish to include,
@@ -104,8 +104,3 @@ Additionally, you can also visit the **Code Browser** page to view the connected
 <img src={CodeBrowserEntryUrl} alt="code browser entry" width="300" />
 
 <img src={CodeBrowserUrl} alt="code browser" width="800" />
-
-
-
-
-
