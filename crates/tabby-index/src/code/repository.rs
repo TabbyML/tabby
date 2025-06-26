@@ -9,11 +9,10 @@ use git2::{
     build::{CheckoutBuilder, RepoBuilder},
     Cred, FetchOptions, RemoteCallbacks, Repository,
 };
-use tabby_common::path::repositories_dir;
+use tabby_common::{config::SshKeyPair, path::repositories_dir};
 use tracing::warn;
 
 use super::CodeRepository;
-use tabby_common::config::SshKeyPair;
 
 trait RepositoryExt {
     fn sync(&self) -> anyhow::Result<String>;
@@ -25,7 +24,7 @@ impl RepositoryExt for CodeRepository {
     fn sync(&self) -> anyhow::Result<String> {
         let dir = self.dir();
         if dir.exists() {
-            pull_repo(&self, &dir).with_context(|| {
+            pull_repo(self, &dir).with_context(|| {
                 format!(
                     "failed to pull repo {} at {}",
                     self.canonical_git_url(),
@@ -33,7 +32,7 @@ impl RepositoryExt for CodeRepository {
                 )
             })?;
         } else {
-            clone_repo(&self, &dir).with_context(|| {
+            clone_repo(self, &dir).with_context(|| {
                 format!(
                     "failed to clone repo {} into {}",
                     self.canonical_git_url(),
@@ -91,7 +90,7 @@ fn pull_repo(code_repo: &CodeRepository, path: &Path) -> anyhow::Result<()> {
 
     let mut remote = repo.find_remote("origin")?;
 
-    let mut fo = get_fetch_options(&code_repo);
+    let mut fo = get_fetch_options(code_repo);
 
     remote.fetch(&["refs/heads/*:refs/heads/*"], Some(&mut fo), None)?;
 
@@ -101,10 +100,10 @@ fn pull_repo(code_repo: &CodeRepository, path: &Path) -> anyhow::Result<()> {
 }
 
 fn do_clone_repo(code_repo: &CodeRepository, path: &Path) -> anyhow::Result<()> {
-    if let Some(_) = &code_repo.ssh_key {
+    if code_repo.ssh_key.is_some() {
         let mut builder = RepoBuilder::new();
 
-        let fo = get_fetch_options(&code_repo);
+        let fo = get_fetch_options(code_repo);
         builder.fetch_options(fo);
 
         builder.clone(&code_repo.git_url, path)?;
@@ -119,7 +118,7 @@ fn clone_repo(code_repo: &CodeRepository, path: &Path) -> anyhow::Result<()> {
     do_clone_repo(code_repo, path).map_err(|err| {
         warn!("Failed to clone repository: {}", err);
         if path.exists() {
-            fs::remove_dir_all(&path).expect("Failed to remove cloned repository");
+            fs::remove_dir_all(path).expect("Failed to remove cloned repository");
         }
         err
     })
@@ -164,10 +163,9 @@ pub fn garbage_collection(repositories: &[CodeRepository]) {
 mod test {
     use std::env;
 
-    use super::CodeRepository;
-    use super::RepositoryExt;
-
     use tabby_common::config::SshKeyPair;
+
+    use super::{CodeRepository, RepositoryExt};
 
     #[test]
     fn test_public_repo_clone() -> anyhow::Result<()> {
@@ -181,8 +179,7 @@ mod test {
         if let Ok(repo_url) = env::var("TABBY_TEST_PRIVATE_REPO_FOR_PATH_KEYS") {
             let mut repo = CodeRepository::new(&repo_url, "2");
             repo.with_ssh_key(&SshKeyPair::Paths(
-                env::var("TABBY_TEST_PUBLIC_KEY_PATH")
-                    .and_then(|s| Ok(s.into()))
+                env::var("TABBY_TEST_PUBLIC_KEY_PATH").map(|s| s.into())
                     .ok(),
                 env::var("TABBY_TEST_PRIVATE_KEY_PATH")?.into(),
             ));
@@ -194,12 +191,11 @@ mod test {
     #[test]
     fn test_private_repo_clone_keys_from_content() -> anyhow::Result<()> {
         if let Ok(repo_url) = &env::var("TABBY_TEST_PRIVATE_REPO_FOR_MEM_KEYS") {
-            let mut repo = CodeRepository::new(&repo_url, "3");
+            let mut repo = CodeRepository::new(repo_url, "3");
             repo.with_ssh_key(&SshKeyPair::Memory(
                 env::var("TABBY_TEST_PUBLIC_KEY")
-                    .and_then(|s| Ok(s.into()))
                     .ok(),
-                env::var("TABBY_TEST_PRIVATE_KEY")?.into(),
+                env::var("TABBY_TEST_PRIVATE_KEY")?,
             ));
             repo.sync()?;
         }
