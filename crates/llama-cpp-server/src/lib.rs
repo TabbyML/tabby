@@ -1,6 +1,6 @@
 mod supervisor;
 
-use std::{path::PathBuf, sync::Arc};
+use std::{fs, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use async_openai_alt::error::OpenAIError;
@@ -282,10 +282,14 @@ pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
 async fn resolve_model_path(model_id: &str) -> String {
     let path = PathBuf::from(model_id);
     let path = if path.exists() {
-        path.join("ggml").join(format!(
-            "{}00001.gguf",
-            GGML_MODEL_PARTITIONED_PREFIX.to_owned()
-        ))
+        let ggml_path = path.join("ggml");
+        get_model_entry_path(&ggml_path).unwrap_or_else(|| {
+            // Fallback to the original logic if get_model_entry_path fails
+            ggml_path.join(format!(
+                "{}00001.gguf",
+                GGML_MODEL_PARTITIONED_PREFIX.to_owned()
+            ))
+        })
     } else {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;
@@ -294,6 +298,23 @@ async fn resolve_model_path(model_id: &str) -> String {
             .expect("Model not found")
     };
     path.display().to_string()
+}
+
+// get_model_path returns the entrypoint of the model,
+// will look for the file with the prefix "00001-of-"
+pub fn get_model_entry_path(path: &PathBuf) -> Option<PathBuf> {
+    for entry in fs::read_dir(path).ok()? {
+        let entry = entry.expect("Error reading directory entry");
+        let file_name = entry.file_name();
+        let file_name_str = file_name.to_string_lossy();
+
+        // Check if the file name starts with the specified prefix
+        if file_name_str.starts_with(GGML_MODEL_PARTITIONED_PREFIX.as_str()) {
+            return Some(entry.path()); // Return the full path as PathBuf
+        }
+    }
+
+    None
 }
 
 #[derive(Deserialize)]
