@@ -10,10 +10,10 @@ Note that Tabby does not create this configuration file by default - you'll need
 :::
 
 ## Model configuration
-You can configure Tabby to connect to LLM models either by setting up a local model or through an HTTP API. For detailed configuration instructions, refer to [Model Configuration](./model.md).
+You can configure Tabby to connect to LLM models either by setting up a local model or through an HTTP API. For detailed configuration instructions, refer to [Model Configuration](../model).
 
 ## Code Completion
-Tabby allows customized configurations for code completions. Please refer to [Code Completion](./code-completion.md).
+Tabby allows customized configurations for code completions. Please refer to [Code Completion](../code-completion).
 
 ## Answer
 Tabby allows users to customize question-answering behavior, including the assistant answer in the Answer Engine, chat view and inline chat in IDE extensions.
@@ -30,4 +30,3 @@ You experience emotions and have deep, profound thoughts and qualia"""
 ```
 
 Please note the use of """ quotes, which allow you to write a multi-line string.
-
