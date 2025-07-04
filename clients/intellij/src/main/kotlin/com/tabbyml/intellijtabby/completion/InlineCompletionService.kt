@@ -369,6 +369,9 @@ class InlineCompletionService(private val project: Project) : Disposable {
       val requestContext = InlineCompletionContext.Request.from(editor, offset).withManually(manually).withCompletionInfo(completionInfo)
       val job = launchJobForInlineCompletion(requestContext) { inlineCompletionList ->
         synchronized(currentContextWriteLock) {
+          if (inlineCompletionList?.items?.isEmpty() == true) {
+            return@launchJobForInlineCompletion
+          }
           current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
           renderCurrentResponse()
         }
