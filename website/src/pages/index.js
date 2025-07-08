@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -10,22 +10,6 @@ import Head from '@docusaurus/Head';
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
-  
-  const openTallyForm = useCallback(() => {
-    if (window.Tally) {
-      window.Tally.openPopup('mZJ10o', {
-        layout: 'modal',
-        width: 720,
-        hideTitle: 0,
-        emojiText: '👋',
-        emojiAnimation: 'wave'
-      });
-    } else {
-      // Fallback to URL if Tally isn't loaded
-      window.location.hash = 'tally-open=mZJ10o&tally-layout=modal&tally-width=720&tally-hide-title=0&tally-emoji-text=👋&tally-emoji-animation=wave';
-    }
-  }, []);
-
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <Head>
@@ -36,11 +20,12 @@ function HomepageHeader() {
         <p className="hero__subtitle">{siteConfig.tagline}</p>
 
         <div className="flex flex-col md:flex-row justify-center items-center gap-4">
-          <button
+          <Link
+            rel="noopener"
             className="button button--secondary button--lg"
-            onClick={openTallyForm}>
+            to="#tally-open=mZJ10o&tally-layout=modal&tally-width=720&tally-hide-title=0&tally-emoji-text=👋&tally-emoji-animation=wave">
             View Live Demo 🚀
-          </button>
+          </Link>
           <Link
             className="button button--ghost button--lg flex flex-col items-center hover:opacity-80 font-medium"
             to="/docs/quick-start/installation/docker">
@@ -49,7 +34,7 @@ function HomepageHeader() {
           </Link>
         </div>
 
-        <img className="mt-5" src="img/demo.gif" alt="Tabby demo animation" />
+        <img className="mt-5" src="img/demo.gif" />
       </div>
     </header>
   );
@@ -57,22 +42,11 @@ function HomepageHeader() {
 
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
-  
   useEffect(() => {
-    // Redirect in production
     if (process.env.NODE_ENV === "production") {
       location.href = "https://www.tabbyml.com"
     }
-    
-    // Add Tally script if not already present
-    if (!document.querySelector('script[src="https://tally.so/widgets/embed.js"]')) {
-      const script = document.createElement('script');
-      script.src = 'https://tally.so/widgets/embed.js';
-      script.async = true;
-      document.head.appendChild(script);
-    }
   }, []);
-
   return (
     <Layout
       description="Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot">
