@@ -19,7 +19,7 @@ concurrency:
 
 env:
   RUST_TOOLCHAIN: 1.82.0
-  CUDA_VERSION: 12.9.0
+  CUDA_VERSION: 12.4.1
 
 jobs:
   release-docker:
