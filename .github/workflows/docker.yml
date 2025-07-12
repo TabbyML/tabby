@@ -132,8 +132,9 @@ jobs:
           # do not generate tags for latest since cuda12 is the latest
           flavor: |
             latest=false
+            suffix=-cuda11
           tags: |
-            type=semver,pattern={{version}}-cuda11
+            type=semver,pattern={{version}}
 
       # Build and push Docker image with Buildx
       # Only built on release tags for compatibility with previous versions
