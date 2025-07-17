@@ -334,6 +334,7 @@ pub enum OAuthProvider {
     Github,
     Google,
     Gitlab,
+    Other,
 }
 
 #[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -341,6 +342,7 @@ pub enum AuthProviderKind {
     OAuthGithub,
     OAuthGoogle,
     OAuthGitlab,
+    OAuthOther,
     Ldap,
 }
 
@@ -355,6 +357,9 @@ impl From<OAuthProvider> for AuthProvider {
             },
             OAuthProvider::Gitlab => AuthProvider {
                 kind: AuthProviderKind::OAuthGitlab,
+            },
+            OAuthProvider::Other => AuthProvider {
+                kind: AuthProviderKind::OAuthOther,
             },
         }
     }
@@ -379,6 +384,8 @@ pub struct OAuthCredential {
 #[derive(GraphQLInputObject, Validate)]
 pub struct UpdateOAuthCredentialInput {
     pub provider: OAuthProvider,
+
+    pub provider_url: Option<String>,
 
     #[validate(length(min = 1, code = "clientId", message = "Client ID cannot be empty"))]
     pub client_id: String,

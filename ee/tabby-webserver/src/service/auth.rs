@@ -601,6 +601,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             OAuthProvider::Github => external_url + "/oauth/callback/github",
             OAuthProvider::Google => external_url + "/oauth/callback/google",
             OAuthProvider::Gitlab => external_url + "/oauth/callback/gitlab",
+            OAuthProvider::Other => external_url + "/oauth/callback/other",
         };
         Ok(url)
     }
@@ -609,6 +610,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         self.db
             .update_oauth_credential(
                 input.provider.as_enum_str(),
+                input.provider_url.as_deref(),
                 &input.client_id,
                 input.client_secret.as_deref(),
             )

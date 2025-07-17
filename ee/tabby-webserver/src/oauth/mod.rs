@@ -28,6 +28,7 @@ pub fn new_oauth_client(
         OAuthProvider::Gitlab => Arc::new(GitlabClient::new(auth)),
         OAuthProvider::Google => Arc::new(GoogleClient::new(auth)),
         OAuthProvider::Github => Arc::new(GithubClient::new(auth)),
+        OAuthProvider::Other => todo!(),
     }
 }
 

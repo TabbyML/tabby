@@ -651,6 +651,7 @@ impl DbEnum for OAuthProvider {
             OAuthProvider::Google => "google",
             OAuthProvider::Github => "github",
             OAuthProvider::Gitlab => "gitlab",
+            OAuthProvider::Other => "other",
         }
     }
 
@@ -659,6 +660,7 @@ impl DbEnum for OAuthProvider {
             "github" => Ok(OAuthProvider::Github),
             "google" => Ok(OAuthProvider::Google),
             "gitlab" => Ok(OAuthProvider::Gitlab),
+            "other" => Ok(OAuthProvider::Other),
             _ => bail!("Invalid OAuth credential type"),
         }
     }
