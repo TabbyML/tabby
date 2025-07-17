@@ -268,12 +268,12 @@ pub enum ModelConfig {
 }
 
 impl ModelConfig {
-    pub fn new_local(model_id: &str, parallelism: u8, num_gpu_layers: u16) -> Self {
+    pub fn new_local(model_id: &str, parallelism: u8, num_gpu_layers: u16, enable_fast_attention: Option<bool>) -> Self {
         Self::Local(LocalModelConfig {
             model_id: model_id.to_owned(),
             parallelism,
             num_gpu_layers,
-            enable_fast_attention: None,
+            enable_fast_attention: enable_fast_attention,
             context_size: default_context_size(),
             additional_stop_words: None,
         })

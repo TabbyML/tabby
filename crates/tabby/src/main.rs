@@ -85,7 +85,7 @@ macro_rules! fatal {
     ($fmt:expr, $($arg:tt)*) => {
         ({
             tracing::error!($fmt, $($arg)*);
-            std::process::exit(1);
+            std: :process::exit(1);
         })
     };
 }
@@ -100,6 +100,7 @@ fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig
     } else {
         0
     };
+    let enable_fast_attention = Some(std::env::var("LLAMA_CPP_FAST_ATTENTION").is_ok());
 
-    ModelConfig::new_local(model, parallelism, num_gpu_layers)
+    ModelConfig::new_local(model, parallelism, num_gpu_layers, enable_fast_attention)
 }
