@@ -80,6 +80,7 @@ CREATE TABLE email_setting(
 CREATE TABLE oauth_credential(
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   provider TEXT NOT NULL,
+  provider_url VARCHAR(256),
   client_id VARCHAR(256) NOT NULL,
   client_secret VARCHAR(64) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
