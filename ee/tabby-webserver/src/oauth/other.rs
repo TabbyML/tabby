@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -29,7 +29,7 @@ struct OtherOAuthResponse {
     error_uri: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[allow(dead_code)]
 struct OtherUserInfo {
     email: String,
@@ -39,6 +39,7 @@ struct OtherUserInfo {
 pub struct OtherClient {
     client: reqwest::Client,
     auth: Arc<dyn AuthenticationService>,
+    user_info: Mutex<Option<OtherUserInfo>>
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -54,7 +55,38 @@ impl OtherClient {
         Self {
             client: reqwest::Client::new(),
             auth,
+            user_info: Mutex::new(None),
         }
+    }
+
+    async fn retrieve_user_info(&self, access_token: &str) -> Result<OtherUserInfo> {
+        {
+            let cache = self.user_info.lock().unwrap();
+            if let Some(ref cached_info) = *cache {
+                return Ok(cached_info.clone());
+        }
+    }
+        let credential = self.read_credential().await?;
+        let config_url = credential.provider_url;
+        let oidc_config = self.retrieve_oidc_config(config_url).await;
+
+        let user_info = self
+            .client
+            .get(oidc_config.userinfo_endpoint)
+            .header(reqwest::header::ACCEPT, "application/json")
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", access_token),
+            )
+            .send()
+            .await?
+            .json::<OtherUserInfo>()
+            .await?;
+
+        let mut cache = self.user_info.lock().unwrap();
+        *cache = Some(user_info.clone());
+
+        Ok(user_info)
     }
 
     async fn read_credential(&self) -> Result<OAuthCredential> {
@@ -69,7 +101,6 @@ impl OtherClient {
     }
 
     async fn retrieve_oidc_config(&self, config_url: Option<String>) -> OAuthConfig {
-        // TODO: Cache the response
         let provider_url = config_url.unwrap_or_else(|| "".to_owned());
         retrieve_oidc_config_cached(provider_url).await
     }
@@ -102,8 +133,6 @@ impl OAuthClient for OtherClient {
             .json::<OtherOAuthResponse>()
             .await?;
 
-        //let token: OtherOAuthResponse = serde_json::from_str(&resp)?;
-
         if token.access_token.is_empty() {
             bail!(
                 "Failed to exchange access token: {}",
@@ -115,23 +144,7 @@ impl OAuthClient for OtherClient {
     }
 
     async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
-       let credential = self.read_credential().await?;
-       let config_url = credential.provider_url;
-       let oidc_config = self.retrieve_oidc_config(config_url).await;
-
-       let user_info = self
-           .client
-           .get(oidc_config.userinfo_endpoint)
-           .header(reqwest::header::ACCEPT, "application/json")
-           .header(
-               reqwest::header::AUTHORIZATION,
-               format!("Bearer {}", access_token),
-           )
-           .send()
-           .await?
-           .json::<OtherUserInfo>()
-           .await?;
-
+        let user_info = self.retrieve_user_info(access_token).await?;
         if user_info.email.is_empty() {
             bail!("No email found in user info");
         }
@@ -140,23 +153,7 @@ impl OAuthClient for OtherClient {
     }
 
     async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
-       let credential = self.read_credential().await?;
-       let config_url = credential.provider_url;
-       let oidc_config = self.retrieve_oidc_config(config_url).await;
-
-       let user_info = self
-           .client
-           .get(oidc_config.userinfo_endpoint)
-           .header(reqwest::header::ACCEPT, "application/json")
-           .header(
-               reqwest::header::AUTHORIZATION,
-               format!("Bearer {}", access_token),
-           )
-           .send()
-           .await?
-           .json::<OtherUserInfo>()
-           .await?;
-
+        let user_info = self.retrieve_user_info(access_token).await?;
         if user_info.name.is_empty() {
             bail!("No name found in user info");
         }
