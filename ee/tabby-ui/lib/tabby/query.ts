@@ -541,6 +541,7 @@ export const oauthCredential = graphql(/* GraphQL */ `
   query OAuthCredential($provider: OAuthProvider!) {
     oauthCredential(provider: $provider) {
       provider
+      providerUrl
       clientId
       createdAt
       updatedAt

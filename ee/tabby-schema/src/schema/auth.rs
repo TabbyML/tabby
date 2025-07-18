@@ -373,6 +373,7 @@ pub struct AuthProvider {
 #[derive(GraphQLObject)]
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
+    pub provider_url: Option<String>,
     pub client_id: String,
 
     #[graphql(skip)]

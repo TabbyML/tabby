@@ -14,6 +14,7 @@ enum AuthProviderKind {
   OAUTH_GITHUB
   OAUTH_GOOGLE
   OAUTH_GITLAB
+  OAUTH_OTHER
   LDAP
 }
 
@@ -105,6 +106,7 @@ enum OAuthProvider {
   GITHUB
   GOOGLE
   GITLAB
+  OTHER
 }
 
 enum RepositoryKind {
@@ -310,6 +312,7 @@ input UpdateMessageInput {
 
 input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
+  providerUrl: String
   clientId: String!
   clientSecret: String
 }
@@ -894,6 +897,7 @@ type Notification {
 
 type OAuthCredential {
   provider: OAuthProvider!
+  providerUrl: String
   clientId: String!
   createdAt: DateTime!
   updatedAt: DateTime!
