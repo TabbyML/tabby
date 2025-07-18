@@ -5,6 +5,9 @@ use async_trait::async_trait;
 use serde::Deserialize;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
+use cached::{Cached, TimedCache};
+use tokio::sync::Mutex;
+
 use super::OAuthClient;
 use crate::bail;
 
@@ -28,16 +31,8 @@ struct OtherOAuthResponse {
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
-struct OtherUserEmail {
+struct OtherUserInfo {
     email: String,
-    primary: bool,
-    verified: bool,
-    visibility: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct OtherUser {
     name: String,
 }
 
@@ -46,11 +41,11 @@ pub struct OtherClient {
     auth: Arc<dyn AuthenticationService>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct OAuthConfig {
-    authorization_endpoint	: String,
+    authorization_endpoint: String,
     token_endpoint: String,
-    userinfo_endpoint	: String,
+    userinfo_endpoint: String,
 }
 
 impl OtherClient {
@@ -73,6 +68,7 @@ impl OtherClient {
     }
 
     async fn retrieve_oidc_config(&self, config_url: Option<String>) -> Result<OAuthConfig> {
+        // TODO: Cache the response
         let provider_url = config_url.unwrap_or_else(|| "".to_owned());
 
         let resp = self
@@ -104,7 +100,7 @@ impl OAuthClient for OtherClient {
         let oidc_config = self.retrieve_oidc_config(config_url).await?;
         let token_endpoint = oidc_config.token_endpoint;
 
-        let token_resp = self
+        let token = self
             .client
             .post(token_endpoint)
             .header(reqwest::header::ACCEPT, "application/json")
@@ -114,22 +110,66 @@ impl OAuthClient for OtherClient {
             .json::<OtherOAuthResponse>()
             .await?;
 
-        if !token_resp.error.is_empty() {
+        //let token: OtherOAuthResponse = serde_json::from_str(&resp)?;
+
+        if token.access_token.is_empty() {
             bail!(
                 "Failed to exchange access token: {}",
-                token_resp.error_description
+                token.error_description
             );
         }
 
-        Ok(token_resp.access_token)
+        Ok(token.access_token)
     }
 
     async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
-        todo!()
+       let credential = self.read_credential().await?;
+       let config_url = credential.provider_url;
+       let oidc_config = self.retrieve_oidc_config(config_url).await?;
+
+       let user_info = self
+           .client
+           .get(oidc_config.userinfo_endpoint)
+           .header(reqwest::header::ACCEPT, "application/json")
+           .header(
+               reqwest::header::AUTHORIZATION,
+               format!("Bearer {}", access_token),
+           )
+           .send()
+           .await?
+           .json::<OtherUserInfo>()
+           .await?;
+
+        if user_info.email.is_empty() {
+            bail!("No email found in user info");
+        }
+
+        Ok(user_info.email)
     }
 
     async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
-        todo!()
+       let credential = self.read_credential().await?;
+       let config_url = credential.provider_url;
+       let oidc_config = self.retrieve_oidc_config(config_url).await?;
+
+       let user_info = self
+           .client
+           .get(oidc_config.userinfo_endpoint)
+           .header(reqwest::header::ACCEPT, "application/json")
+           .header(
+               reqwest::header::AUTHORIZATION,
+               format!("Bearer {}", access_token),
+           )
+           .send()
+           .await?
+           .json::<OtherUserInfo>()
+           .await?;
+
+        if user_info.name.is_empty() {
+            bail!("No name found in user info");
+        }
+
+        Ok(user_info.name)
     }
 
     async fn get_authorization_url(&self) -> Result<String> {
@@ -145,9 +185,9 @@ impl OAuthClient for OtherClient {
         let redirect_uri = &self.auth.oauth_callback_url(OAuthProvider::Other).await?;
 
         let mut url = reqwest::Url::parse(authorization_endpoint)?;
-        let params = vec![
+        let params: [(&str, &str); 4] = [
             ("client_id", &credential.client_id),
-            ("response_type", response_type),
+            ("response_type", "code"),
             ("scope", scope),
             ("redirect_uri", redirect_uri),
         ];
