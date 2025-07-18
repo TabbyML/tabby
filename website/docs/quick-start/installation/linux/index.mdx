@@ -28,6 +28,24 @@ Running Tabby on Linux using Tabby's standalone executable distribution.
   * Check your local CUDA version by running the following command in a terminal: `nvcc --version`
 * For the Vulkan version you'll need the vulkan library. In ubuntu, this would be `sudo apt install libvulkan1`.
 
+## Katana (optional but recommended)
+
+Tabby utilizes [Katana](https://github.com/projectdiscovery/katana) as a crawling backend for the `developer docs` context provider.
+To import and analyze `developer docs` when llms.txt is unavailable at the specified link, Katana is required.
+Please be aware that the minimum Katana version required is `1.1.2`.
+
+The simplest way to install Katana is to download a prebuilt binary from the official releases:
+
+```bash
+curl -L https://github.com/projectdiscovery/katana/releases/download/v1.1.2/katana_1.1.2_linux_amd64.zip -o katana.zip
+unzip katana.zip katana
+sudo mv katana /usr/bin/
+rm katana.zip
+```
+This works well for most Linux environments. If you're using a different environment, please refer to the 
+[official installation instructions](https://github.com/projectdiscovery/katana#installation).
+
+
 ## Find the Linux executable file
 * Unzip the file you downloaded. The `tabby` executable will be in a subdirectory of dist.
 * Change to this subdirectory or relocate `tabby` to a folder of your choice.
