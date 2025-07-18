@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use serde::Deserialize;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
-use cached::{Cached, TimedCache};
-use tokio::sync::Mutex;
+use cached::proc_macro::cached;
+use cached::TimedCache;
 
 use super::OAuthClient;
 use crate::bail;
@@ -68,19 +68,10 @@ impl OtherClient {
         }
     }
 
-    async fn retrieve_oidc_config(&self, config_url: Option<String>) -> Result<OAuthConfig> {
+    async fn retrieve_oidc_config(&self, config_url: Option<String>) -> OAuthConfig {
         // TODO: Cache the response
         let provider_url = config_url.unwrap_or_else(|| "".to_owned());
-
-        let resp = self
-            .client
-            .get(provider_url)
-            .send()
-            .await?
-            .json::<OAuthConfig>()
-            .await?;
-
-        Ok(resp)
+        retrieve_oidc_config_cached(provider_url).await
     }
 }
 
@@ -98,7 +89,7 @@ impl OAuthClient for OtherClient {
         ];
 
         let config_url = credential.provider_url;
-        let oidc_config = self.retrieve_oidc_config(config_url).await?;
+        let oidc_config = self.retrieve_oidc_config(config_url).await;
         let token_endpoint = oidc_config.token_endpoint;
 
         let token = self
@@ -126,7 +117,7 @@ impl OAuthClient for OtherClient {
     async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
        let credential = self.read_credential().await?;
        let config_url = credential.provider_url;
-       let oidc_config = self.retrieve_oidc_config(config_url).await?;
+       let oidc_config = self.retrieve_oidc_config(config_url).await;
 
        let user_info = self
            .client
@@ -151,7 +142,7 @@ impl OAuthClient for OtherClient {
     async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
        let credential = self.read_credential().await?;
        let config_url = credential.provider_url;
-       let oidc_config = self.retrieve_oidc_config(config_url).await?;
+       let oidc_config = self.retrieve_oidc_config(config_url).await;
 
        let user_info = self
            .client
@@ -177,7 +168,7 @@ impl OAuthClient for OtherClient {
         let credential = self.read_credential().await?;
 
         let config_url = credential.provider_url;
-        let oidc_config = self.retrieve_oidc_config(config_url).await?;
+        let oidc_config = self.retrieve_oidc_config(config_url).await;
         let authorization_endpoint = &oidc_config.authorization_endpoint;
 
         let scope = oidc_config.scopes_supported.join(" ");
@@ -185,7 +176,6 @@ impl OAuthClient for OtherClient {
 
         let mut url = reqwest::Url::parse(authorization_endpoint)?;
 
-        // TODO: Add the state param and validate it
         let params: [(&str, &str); 4] = [
             ("client_id", &credential.client_id),
             ("response_type", "code"),
@@ -198,4 +188,21 @@ impl OAuthClient for OtherClient {
 
        Ok(url.to_string())
     }
+}
+
+#[cached(
+    type = "TimedCache<String, OAuthConfig>",
+    create = "{ TimedCache::with_lifespan(3600 * 12) }",
+    convert = r#"{ url.to_string() }"#
+)]
+async fn retrieve_oidc_config_cached(url: String) -> OAuthConfig {
+    let client = reqwest::Client::new();
+    return client
+        .get(&url)
+        .send()
+        .await
+        .unwrap()
+        .json::<OAuthConfig>()
+        .await
+        .unwrap();
 }
