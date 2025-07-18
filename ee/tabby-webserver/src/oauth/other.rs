@@ -46,6 +46,7 @@ pub struct OAuthConfig {
     authorization_endpoint: String,
     token_endpoint: String,
     userinfo_endpoint: String,
+    scopes_supported: Vec<String>,
 }
 
 impl OtherClient {
@@ -179,16 +180,16 @@ impl OAuthClient for OtherClient {
         let oidc_config = self.retrieve_oidc_config(config_url).await?;
         let authorization_endpoint = &oidc_config.authorization_endpoint;
 
-        let response_type = &"code".to_string();
-        // TODO: Use the well known endpoint instead of the hardcoded scopes
-        let scope = &"openid email profile".to_string();
+        let scope = oidc_config.scopes_supported.join(" ");
         let redirect_uri = &self.auth.oauth_callback_url(OAuthProvider::Other).await?;
 
         let mut url = reqwest::Url::parse(authorization_endpoint)?;
+
+        // TODO: Add the state param and validate it
         let params: [(&str, &str); 4] = [
             ("client_id", &credential.client_id),
             ("response_type", "code"),
-            ("scope", scope),
+            ("scope", &scope),
             ("redirect_uri", redirect_uri),
         ];
         for (k, v) in params {
