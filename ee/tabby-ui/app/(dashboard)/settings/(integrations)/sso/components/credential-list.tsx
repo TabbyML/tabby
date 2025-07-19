@@ -46,9 +46,9 @@ export const CredentialList = () => {
     variables: { provider: OAuthProvider.Gitlab }
   })
 
-  const [{ data: genericData, fetching: fetchingOther } = {}] = useQuery({
+  const [{ data: generalData, fetching: fetchingOther } = {}] = useQuery({
     query: oauthCredential,
-    variables: { provider: OAuthProvider.Generic }
+    variables: { provider: OAuthProvider.General }
   })
 
   const [{ data: ldapData, fetching: fetchingLdap }] = useQuery({
@@ -63,10 +63,10 @@ export const CredentialList = () => {
       githubData?.oauthCredential,
       googleData?.oauthCredential,
       gitlabData?.oauthCredential,
-      genericData?.oauthCredential,
+      generalData?.oauthCredential,
       ldapData?.ldapCredential
     ])
-  }, [githubData, googleData, gitlabData, genericData, ldapData])
+  }, [githubData, googleData, gitlabData, generalData, ldapData])
 
   const router = useRouter()
   const createButton = (

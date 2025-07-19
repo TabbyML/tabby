@@ -60,10 +60,10 @@ export default function SigninSection() {
     findIndex(authProviders, x => x.kind === AuthProviderKind.OauthGitlab) > -1
   const enableGoogleOauth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.OauthGoogle) > -1
-  const enableOtherOauth =
-    findIndex(authProviders, x => x.kind === AuthProviderKind.OauthOther) > -1
+  const enableGeneralOauth =
+    findIndex(authProviders, x => x.kind === AuthProviderKind.OauthGeneral) > -1
   const enable3POauth =
-    enableGithubOauth || enableGitlabOauth || enableGoogleOauth || enableOtherOauth
+    enableGithubOauth || enableGitlabOauth || enableGoogleOauth || enableGeneralOauth
   const enableLdapAuth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.Ldap) > -1
   const passwordSigninVisible = passwordForceRender || !isDisablePasswordLogin
@@ -172,9 +172,9 @@ export default function SigninSection() {
             <IconGitLab className="h-8 w-8" />
           </a>
         )}
-        {enableOtherOauth && (
-          <a href={`/oauth/signin?provider=other`}>
-            SSO
+        {enableGeneralOauth && (
+          <a href={`/oauth/signin?provider=general`}>
+            General OAuth (SSO)
           </a>
         )}
       </div>
