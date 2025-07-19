@@ -71,7 +71,7 @@ const oauthCallbackUrl = graphql(/* GraphQL */ `
 const defaultFormSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
-  providerUrl: z.string(),
+  configUrl: z.string(),
   provider: z.nativeEnum(OAuthProvider)
 })
 
@@ -323,10 +323,10 @@ export default function OAuthCredentialForm({
           {providerValue == OAuthProvider.Other &&
             (<FormField
               control={form.control}
-              name="providerUrl"
+              name="configUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel required>Configuration Url</FormLabel>
+                  <FormLabel required>Configuration URL</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="e.g. http://example.com/.well-known/openid-configuration"
