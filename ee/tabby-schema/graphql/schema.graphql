@@ -14,7 +14,7 @@ enum AuthProviderKind {
   OAUTH_GITHUB
   OAUTH_GOOGLE
   OAUTH_GITLAB
-  OAUTH_OTHER
+  OAUTH_GENERAL
   LDAP
 }
 
@@ -106,7 +106,7 @@ enum OAuthProvider {
   GITHUB
   GOOGLE
   GITLAB
-  OTHER
+  GENERAL
 }
 
 enum RepositoryKind {

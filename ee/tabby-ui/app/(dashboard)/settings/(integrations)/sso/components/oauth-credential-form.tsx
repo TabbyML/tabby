@@ -272,12 +272,12 @@ export default function OAuthCredentialForm({
                     <div className="flex items-center">
                       <RadioGroupItem
                         value={OAuthProvider.General}
-                        id="r_other"
+                        id="r_general"
                         disabled={!isNew}
                       />
                       <Label
                         className="flex cursor-pointer items-center gap-2 pl-2"
-                        htmlFor="r_other"
+                        htmlFor="r_general"
                       >
                         General OAuth
                       </Label>
