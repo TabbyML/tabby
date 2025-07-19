@@ -100,6 +100,8 @@ fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig
     } else {
         0
     };
+    // This only works when the the model is included in cli arguments.
+    let enable_fast_attention = Some(std::env::var("LLAMA_CPP_FAST_ATTENTION").is_ok());
 
-    ModelConfig::new_local(model, parallelism, num_gpu_layers)
+    ModelConfig::new_local(model, parallelism, num_gpu_layers, enable_fast_attention)
 }
