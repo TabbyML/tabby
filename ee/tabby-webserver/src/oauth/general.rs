@@ -64,8 +64,9 @@ impl GeneralClient {
             let cache = self.user_info.lock().unwrap();
             if let Some(ref cached_info) = *cache {
                 return Ok(cached_info.clone());
+            }
         }
-    }
+
         let credential = self.read_credential().await?;
         let config_url = credential.config_url;
         let oidc_config = self.retrieve_oidc_config(config_url).await;
