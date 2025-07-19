@@ -33,11 +33,11 @@ export const PROVIDER_METAS: Array<{
     }
   },
   {
-    name: 'other',
-    enum: OAuthProvider.Other,
+    name: 'general',
+    enum: OAuthProvider.General,
     meta: {
-      domain: 'other',
-      displayName: 'Other'
+      domain: 'general',
+      displayName: 'General'
     }
   }
 ]

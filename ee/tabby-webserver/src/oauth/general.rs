@@ -13,7 +13,7 @@ use crate::bail;
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
-struct OtherOAuthResponse {
+struct GeneralOAuthResponse {
     #[serde(default)]
     access_token: String,
     #[serde(default)]
@@ -31,15 +31,15 @@ struct OtherOAuthResponse {
 
 #[derive(Debug, Deserialize, Clone)]
 #[allow(dead_code)]
-struct OtherUserInfo {
+struct GeneralUserInfo {
     email: String,
     name: String,
 }
 
-pub struct OtherClient {
+pub struct GeneralClient {
     client: reqwest::Client,
     auth: Arc<dyn AuthenticationService>,
-    user_info: Mutex<Option<OtherUserInfo>>
+    user_info: Mutex<Option<GeneralUserInfo>>
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -50,7 +50,7 @@ pub struct OAuthConfig {
     scopes_supported: Vec<String>,
 }
 
-impl OtherClient {
+impl GeneralClient {
     pub fn new(auth: Arc<dyn AuthenticationService>) -> Self {
         Self {
             client: reqwest::Client::new(),
@@ -59,7 +59,7 @@ impl OtherClient {
         }
     }
 
-    async fn retrieve_user_info(&self, access_token: &str) -> Result<OtherUserInfo> {
+    async fn retrieve_user_info(&self, access_token: &str) -> Result<GeneralUserInfo> {
         {
             let cache = self.user_info.lock().unwrap();
             if let Some(ref cached_info) = *cache {
@@ -80,7 +80,7 @@ impl OtherClient {
             )
             .send()
             .await?
-            .json::<OtherUserInfo>()
+            .json::<GeneralUserInfo>()
             .await?;
 
         let mut cache = self.user_info.lock().unwrap();
@@ -92,7 +92,7 @@ impl OtherClient {
     async fn read_credential(&self) -> Result<OAuthCredential> {
         match self
             .auth
-            .read_oauth_credential(OAuthProvider::Other)
+            .read_oauth_credential(OAuthProvider::General)
             .await?
         {
             Some(credential) => Ok(credential),
@@ -107,10 +107,10 @@ impl OtherClient {
 }
 
 #[async_trait]
-impl OAuthClient for OtherClient {
+impl OAuthClient for GeneralClient {
     async fn exchange_code_for_token(&self, code: String) -> Result<String> {
         let credential = self.read_credential().await?;
-        let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::Other).await?;
+        let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::General).await?;
         let params: [(&str, &str); 5] = [
             ("client_id", &credential.client_id),
             ("client_secret", &credential.client_secret),
@@ -130,7 +130,7 @@ impl OAuthClient for OtherClient {
             .form(&params)
             .send()
             .await?
-            .json::<OtherOAuthResponse>()
+            .json::<GeneralOAuthResponse>()
             .await?;
 
         if token.access_token.is_empty() {
@@ -169,7 +169,7 @@ impl OAuthClient for OtherClient {
         let authorization_endpoint = &oidc_config.authorization_endpoint;
 
         let scope = oidc_config.scopes_supported.join(" ");
-        let redirect_uri = &self.auth.oauth_callback_url(OAuthProvider::Other).await?;
+        let redirect_uri = &self.auth.oauth_callback_url(OAuthProvider::General).await?;
 
         let mut url = reqwest::Url::parse(authorization_endpoint)?;
 

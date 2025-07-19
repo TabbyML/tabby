@@ -334,7 +334,7 @@ pub enum OAuthProvider {
     Github,
     Google,
     Gitlab,
-    Other,
+    General,
 }
 
 #[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -342,7 +342,7 @@ pub enum AuthProviderKind {
     OAuthGithub,
     OAuthGoogle,
     OAuthGitlab,
-    OAuthOther,
+    OAuthGeneral,
     Ldap,
 }
 
@@ -358,8 +358,8 @@ impl From<OAuthProvider> for AuthProvider {
             OAuthProvider::Gitlab => AuthProvider {
                 kind: AuthProviderKind::OAuthGitlab,
             },
-            OAuthProvider::Other => AuthProvider {
-                kind: AuthProviderKind::OAuthOther,
+            OAuthProvider::General => AuthProvider {
+                kind: AuthProviderKind::OAuthGeneral,
             },
         }
     }

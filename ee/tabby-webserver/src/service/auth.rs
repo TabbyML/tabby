@@ -601,7 +601,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             OAuthProvider::Github => external_url + "/oauth/callback/github",
             OAuthProvider::Google => external_url + "/oauth/callback/google",
             OAuthProvider::Gitlab => external_url + "/oauth/callback/gitlab",
-            OAuthProvider::Other => external_url + "/oauth/callback/other",
+            OAuthProvider::General => external_url + "/oauth/callback/general",
         };
         Ok(url)
     }

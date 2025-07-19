@@ -271,7 +271,7 @@ export default function OAuthCredentialForm({
                     </div>
                     <div className="flex items-center">
                       <RadioGroupItem
-                        value={OAuthProvider.Other}
+                        value={OAuthProvider.General}
                         id="r_other"
                         disabled={!isNew}
                       />
@@ -279,7 +279,7 @@ export default function OAuthCredentialForm({
                         className="flex cursor-pointer items-center gap-2 pl-2"
                         htmlFor="r_other"
                       >
-                        Other (Generic)
+                        General OAuth
                       </Label>
                     </div>
                   </RadioGroup>
@@ -320,7 +320,7 @@ export default function OAuthCredentialForm({
               The information is provided by your identity provider.
             </FormDescription>
           </div>
-          {providerValue == OAuthProvider.Other &&
+          {providerValue == OAuthProvider.General &&
             (<FormField
               control={form.control}
               name="configUrl"
