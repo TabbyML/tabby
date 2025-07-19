@@ -610,7 +610,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         self.db
             .update_oauth_credential(
                 input.provider.as_enum_str(),
-                input.provider_url.as_deref(),
+                input.config_url.as_deref(),
                 &input.client_id,
                 input.client_secret.as_deref(),
             )

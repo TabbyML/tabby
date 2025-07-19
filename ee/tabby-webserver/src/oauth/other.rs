@@ -67,7 +67,7 @@ impl OtherClient {
         }
     }
         let credential = self.read_credential().await?;
-        let config_url = credential.provider_url;
+        let config_url = credential.config_url;
         let oidc_config = self.retrieve_oidc_config(config_url).await;
 
         let user_info = self
@@ -101,8 +101,8 @@ impl OtherClient {
     }
 
     async fn retrieve_oidc_config(&self, config_url: Option<String>) -> OAuthConfig {
-        let provider_url = config_url.unwrap_or_else(|| "".to_owned());
-        retrieve_oidc_config_cached(provider_url).await
+        let config_url = config_url.unwrap_or_else(|| "".to_owned());
+        retrieve_oidc_config_cached(config_url).await
     }
 }
 
@@ -119,7 +119,7 @@ impl OAuthClient for OtherClient {
             ("redirect_uri", &redirect_uri),
         ];
 
-        let config_url = credential.provider_url;
+        let config_url = credential.config_url;
         let oidc_config = self.retrieve_oidc_config(config_url).await;
         let token_endpoint = oidc_config.token_endpoint;
 
@@ -164,7 +164,7 @@ impl OAuthClient for OtherClient {
     async fn get_authorization_url(&self) -> Result<String> {
         let credential = self.read_credential().await?;
 
-        let config_url = credential.provider_url;
+        let config_url = credential.config_url;
         let oidc_config = self.retrieve_oidc_config(config_url).await;
         let authorization_endpoint = &oidc_config.authorization_endpoint;
 

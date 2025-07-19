@@ -312,7 +312,7 @@ input UpdateMessageInput {
 
 input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
-  providerUrl: String
+  configUrl: String
   clientId: String!
   clientSecret: String
 }
@@ -897,7 +897,7 @@ type Notification {
 
 type OAuthCredential {
   provider: OAuthProvider!
-  providerUrl: String
+  configUrl: String
   clientId: String!
   createdAt: DateTime!
   updatedAt: DateTime!

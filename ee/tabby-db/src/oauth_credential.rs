@@ -7,7 +7,7 @@ use crate::DbConn;
 #[derive(FromRow)]
 pub struct OAuthCredentialDAO {
     pub provider: String,
-    pub provider_url: Option<String>,
+    pub config_url: Option<String>,
     pub client_id: String,
     pub client_secret: String,
     pub created_at: DateTime<Utc>,
@@ -18,7 +18,7 @@ impl DbConn {
     pub async fn update_oauth_credential(
         &self,
         provider: &str,
-        provider_url: Option<&str>,
+        config_url: Option<&str>,
         client_id: &str,
         client_secret: Option<&str>,
     ) -> Result<()> {
@@ -36,12 +36,12 @@ impl DbConn {
             }
         };
         query!(
-            r#"INSERT INTO oauth_credential (provider, provider_url, client_id, client_secret)
+            r#"INSERT INTO oauth_credential (provider, config_url, client_id, client_secret)
                                 VALUES ($1, $2, $3, $4) ON CONFLICT(provider) DO UPDATE
-                                SET provider_url = $2, client_id = $3, client_secret = $4, updated_at = datetime('now')
+                                SET config_url = $2, client_id = $3, client_secret = $4, updated_at = datetime('now')
                                 WHERE provider = $1"#,
             provider,
-            provider_url,
+            config_url,
             client_id,
             client_secret,
         )
@@ -64,7 +64,7 @@ impl DbConn {
     ) -> Result<Option<OAuthCredentialDAO>> {
         let token = sqlx::query_as!(
             OAuthCredentialDAO,
-            r#"SELECT provider, provider_url, client_id, client_secret, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>" FROM oauth_credential WHERE provider = ?"#,
+            r#"SELECT provider, config_url, client_id, client_secret, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>" FROM oauth_credential WHERE provider = ?"#,
             provider
         )
             .fetch_optional(&self.pool).await?;

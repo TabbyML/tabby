@@ -65,7 +65,7 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
     fn try_from(val: OAuthCredentialDAO) -> Result<Self, Self::Error> {
         Ok(OAuthCredential {
             provider: OAuthProvider::from_enum_str(&val.provider)?,
-            provider_url: val.provider_url,
+            config_url: val.config_url,
             client_id: val.client_id,
             created_at: val.created_at,
             updated_at: val.updated_at,

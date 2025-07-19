@@ -373,7 +373,7 @@ pub struct AuthProvider {
 #[derive(GraphQLObject)]
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
-    pub provider_url: Option<String>,
+    pub config_url: Option<String>,
     pub client_id: String,
 
     #[graphql(skip)]
@@ -386,7 +386,7 @@ pub struct OAuthCredential {
 pub struct UpdateOAuthCredentialInput {
     pub provider: OAuthProvider,
 
-    pub provider_url: Option<String>,
+    pub config_url: Option<String>,
 
     #[validate(length(min = 1, code = "clientId", message = "Client ID cannot be empty"))]
     pub client_id: String,
