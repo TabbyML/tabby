@@ -84,6 +84,7 @@ CREATE TABLE oauth_credential(
   client_secret VARCHAR(64) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  config_url VARCHAR(256),
   CONSTRAINT `idx_provider` UNIQUE(`provider`)
 );
 CREATE TABLE user_completions(
