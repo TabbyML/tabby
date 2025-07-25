@@ -1,0 +1,37 @@
+---
+sidebar_position: 4
+---
+
+# Windows Subsystem for Linux (WSL2)
+
+Run Tabby on Windows using **Ubuntu via WSL2** for a native Linux experience with full GPU support and advanced developer control.
+
+## 1. Install WSL2 and Ubuntu
+
+You can install either **Ubuntu 22.04** or **Ubuntu 24.04** — both work with Tabby.
+
+> **Which version should I choose?**
+>
+> - Ubuntu **22.04** is the default and used in Tabby’s Docker image  
+> - Ubuntu **24.04** is newer and confirmed to work well with this guide  
+>
+> To install WSL2: https://learn.microsoft.com/en-us/windows/wsl/install
+
+Install your preferred Ubuntu version:
+
+```powershell
+wsl --install -d Ubuntu        # for Ubuntu 22.04
+wsl --install -d Ubuntu-24.04  # for Ubuntu 24.04
+```
+After installation, reboot if required, then launch Ubuntu and set up your UNIX user.
+
+## 2. Follow the Linux installation guide
+
+Once inside your Ubuntu WSL terminal, just follow the [Linux instructions](./linux). No extra steps
+needed — Tabby will run locally and privately, with GPU passthrough handled by WSL2 and Windows.
+
+## 3. Access Tabby from Windows
+
+Once Tabby is running in Ubuntu, it will usually be available at:  
+
+`http://localhost:8080` (or your chosen port)

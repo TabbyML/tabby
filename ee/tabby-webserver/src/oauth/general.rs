@@ -61,6 +61,7 @@ impl GeneralClient {
 
     async fn retrieve_user_info(&self, access_token: &str) -> Result<GeneralUserInfo> {
         {
+            // Return cached user info if available
             let cache = self.user_info.lock().unwrap();
             if let Some(ref cached_info) = *cache {
                 return Ok(cached_info.clone());
@@ -188,6 +189,7 @@ impl OAuthClient for GeneralClient {
     }
 }
 
+// Caches the OIDC well known configuration for 12 hours
 #[cached(
     type = "TimedCache<String, OAuthConfig>",
     create = "{ TimedCache::with_lifespan(3600 * 12) }",
