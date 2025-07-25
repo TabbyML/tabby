@@ -9,7 +9,7 @@ use tracing::debug;
 
 use crate::{
     api::code::CodeSearchParams,
-    config, languages,
+    languages,
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
 };
@@ -107,18 +107,18 @@ impl Config {
 
     fn validate_config(&self) -> Result<()> {
         Self::validate_model_config(&self.model.completion)?;
-        Self::validate_model_config(&self.model.chat)?;
+        Self::validate_model_config_variant(&self.model.chat)?;
 
         Ok(())
     }
 
     fn validate_model_config(model_config: &Option<ModelConfig>) -> Result<()> {
-        if let Some(config::ModelConfig::Http(completion_http_config)) = &model_config {
+        if let Some(ModelConfig::Http(completion_http_config)) = &model_config {
             if let Some(models) = &completion_http_config.supported_models {
                 if let Some(model_name) = &completion_http_config.model_name {
                     if !models.contains(model_name) {
                         return Err(anyhow!(
-                            "Suppported model list does not contain model: {}",
+                            "Supported model list does not contain model: {}",
                             model_name
                         ));
                     }
@@ -126,6 +126,36 @@ impl Config {
             }
         }
 
+        Ok(())
+    }
+
+    fn validate_model_config_variant(
+        model_config_variant: &Option<ModelConfigVariant>,
+    ) -> Result<()> {
+        if let Some(model_config_variant) = model_config_variant {
+            let mut exists = HashSet::new();
+            for model_config in model_config_variant.get_model_configs().iter() {
+                if let ModelConfig::Http(http_model) = model_config {
+                    let (model_title, _) = http_model.model_title_and_name();
+
+                    if !exists.insert(model_title.to_owned()) {
+                        return Err(anyhow!("Duplicate model found: {}", model_title));
+                    }
+
+                    if let (Some(supported_models), Some(model_name)) =
+                        (&http_model.supported_models, &http_model.model_name)
+                    {
+                        for m in supported_models.iter().filter(|m| model_name != *m) {
+                            if !exists.insert(m.to_owned()) {
+                                return Err(anyhow!("Duplicate model found: {}", m));
+                            }
+                        }
+                    }
+                }
+
+                Self::validate_model_config(&Some(model_config.clone()))?;
+            }
+        }
         Ok(())
     }
 }
@@ -245,7 +275,7 @@ fn default_embedding_config() -> ModelConfig {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelConfigGroup {
     pub completion: Option<ModelConfig>,
-    pub chat: Option<ModelConfig>,
+    pub chat: Option<ModelConfigVariant>,
     #[serde(default = "default_embedding_config")]
     pub embedding: ModelConfig,
 }
@@ -257,6 +287,51 @@ impl Default for ModelConfigGroup {
             chat: None,
             embedding: default_embedding_config(),
         }
+    }
+}
+
+/// Accepts single configuration or configuration collection
+/// - Single: Single model configuration
+/// - Multiple: Multiple model configurations (currently only supports HTTP)
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum ModelConfigVariant {
+    Single(ModelConfig),
+    Multiple(MultiModelConfig),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum MultiModelConfig {
+    Http(Vec<HttpModelConfig>),
+}
+
+impl ModelConfigVariant {
+    pub fn get_model_configs(&self) -> Vec<ModelConfig> {
+        match self {
+            ModelConfigVariant::Single(config) => vec![config.clone()],
+            ModelConfigVariant::Multiple(MultiModelConfig::Http(configs)) => {
+                configs.clone().into_iter().map(ModelConfig::Http).collect()
+            }
+        }
+    }
+
+    pub fn get_local_config(&self) -> Option<LocalModelConfig> {
+        if let ModelConfigVariant::Single(ModelConfig::Local(local)) = self {
+            Some(local.clone())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_http_configs(&self) -> Vec<HttpModelConfig> {
+        self.get_model_configs()
+            .into_iter()
+            .filter_map(|config| match config {
+                ModelConfig::Http(http) => Some(http),
+                _ => None,
+            })
+            .collect()
     }
 }
 
@@ -291,6 +366,10 @@ pub struct HttpModelConfig {
     ///   - llama.cpp/embedding: llama.cpp `/embedding` API.
     pub kind: String,
 
+    #[builder(default)]
+    #[serde(default)]
+    pub title: Option<String>,
+
     pub api_endpoint: Option<String>,
 
     #[builder(default)]
@@ -317,6 +396,18 @@ pub struct HttpModelConfig {
 
     #[builder(default)]
     pub additional_stop_words: Option<Vec<String>>,
+}
+
+impl HttpModelConfig {
+    /// Returns a tuple of `(model_title, model_name)`.
+    ///
+    /// - If `self.title` is `Some`, `model_title` will be its value.
+    /// - If `self.title` is `None`, `model_title` will fall back to `model_name`.
+    pub fn model_title_and_name(&self) -> (String, String) {
+        let model_name = self.model_name.as_ref().expect("Model name is required");
+        let model_title = self.title.as_deref().unwrap_or(model_name);
+        (model_title.to_owned(), model_name.to_owned())
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -497,7 +588,7 @@ impl CodeRepository {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use super::{sanitize_name, Config, RepositoryConfig};
+    use super::{sanitize_name, Config, ModelConfig, ModelConfigVariant, RepositoryConfig};
 
     #[test]
     fn it_parses_empty_config() {
@@ -540,7 +631,7 @@ mod tests {
         assert!(
             matches!(Config::validate_model_config(&config.model.completion), Err(ref _e) if true)
         );
-        assert!(Config::validate_model_config(&config.model.chat).is_ok());
+        assert!(Config::validate_model_config_variant(&config.model.chat).is_ok());
     }
     #[test]
     #[cfg(windows)]
@@ -689,5 +780,119 @@ mod tests {
             RepositoryConfig::canonicalize_url("file:///home/TabbyML/tabby"),
             "file:///home/TabbyML/tabby"
         );
+    }
+
+    #[test]
+    fn test_model_title_and_name() {
+        let toml_config = r#"
+            # Completion model
+            [model.completion.http]
+            kind = "ollama/completion"
+            api_endpoint = "http://192.168.1.234:11344"
+            model_name = "qwen2.5-coder:1.5b"
+
+            # Chat model
+            [model.chat.http]
+            title = "chat_model"
+            kind = "openai/chat"
+            api_endpoint = "http://192.168.1.234:11344"
+            model_name = "llama3.1-8b"
+
+            # Embedding model
+            [model.embedding.http]
+            title = "nomic-embed-text"
+            kind = "ollama/embedding"
+            api_endpoint = "http://192.168.1.234:11344"
+            model_name = "nomic-embed-text:latest"
+            "#;
+
+        let config: Config =
+            serdeconv::from_toml_str::<Config>(toml_config).expect("Failed to parse config");
+
+        let model_config_group = config.model;
+
+        assert!(Config::validate_model_config_variant(&model_config_group.chat).is_ok());
+
+        if let ModelConfig::Http(http) = model_config_group.completion.unwrap() {
+            let (model_title, model_name) = http.model_title_and_name();
+            assert_eq!(model_title, "qwen2.5-coder:1.5b");
+            assert_eq!(model_name, "qwen2.5-coder:1.5b");
+        }
+        if let ModelConfigVariant::Single(ModelConfig::Http(http)) =
+            model_config_group.chat.unwrap()
+        {
+            let (model_title, model_name) = http.model_title_and_name();
+            assert_eq!(model_title, "chat_model");
+            assert_eq!(model_name, "llama3.1-8b");
+        }
+        if let ModelConfig::Http(http) = model_config_group.embedding {
+            let (model_title, model_name) = http.model_title_and_name();
+            assert_eq!(model_title, "nomic-embed-text");
+            assert_eq!(model_name, "nomic-embed-text:latest");
+        }
+    }
+
+    #[test]
+    fn test_validate_model_config_variant_duplicate_models() {
+        let toml_config = r#"
+            # Chat model
+            [[model.chat.http]]
+            kind = "openai/chat"
+            api_endpoint = "http://192.168.1.234:11344"
+            model_name = "llama3.1-8b"
+            
+            [[model.chat.http]]
+            kind = "openai/chat"
+            api_endpoint = "http://192.168.1.234:11344"
+            model_name = "llama3.1-8b"
+            "#;
+
+        let config: Config =
+            serdeconv::from_toml_str::<Config>(toml_config).expect("Failed to parse config");
+
+        let result = Config::validate_model_config_variant(&config.model.chat);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Duplicate model found: llama3.1-8b"
+        );
+    }
+
+    #[test]
+    fn test_validate_model_config_variant_single_http_model() {
+        let toml_config = r#"
+            # Chat model
+            [model.chat.http]
+            title = "chat_model"
+            kind = "openai/chat"
+            api_endpoint = "http://192.168.1.234:11344"
+            model_name = "llama3.1-8b"
+            "#;
+
+        let config: Config =
+            serdeconv::from_toml_str::<Config>(toml_config).expect("Failed to parse config");
+
+        assert!(Config::validate_model_config_variant(&config.model.chat).is_ok());
+    }
+
+    #[test]
+    fn test_validate_model_config_variant_multiple_http_model() {
+        let toml_config = r#"
+            # Chat model
+            [[model.chat.http]]
+            kind = "openai/chat"
+            api_endpoint = "http://192.168.1.234:11344"
+            model_name = "llama3.1-8b"
+            
+            [[model.chat.http]]
+            kind = "openai/chat"
+            api_endpoint = "http://192.168.1.234:11344"
+            model_name = "qwen2.5-coder:1.5b"
+            "#;
+
+        let config: Config =
+            serdeconv::from_toml_str::<Config>(toml_config).expect("Failed to parse config");
+
+        assert!(Config::validate_model_config_variant(&config.model.chat).is_ok());
     }
 }
