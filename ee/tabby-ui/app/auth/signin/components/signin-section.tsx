@@ -63,7 +63,10 @@ export default function SigninSection() {
   const enableGeneralOauth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.OauthGeneral) > -1
   const enable3POauth =
-    enableGithubOauth || enableGitlabOauth || enableGoogleOauth || enableGeneralOauth
+    enableGithubOauth ||
+    enableGitlabOauth ||
+    enableGoogleOauth ||
+    enableGeneralOauth
   const enableLdapAuth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.Ldap) > -1
   const passwordSigninVisible = passwordForceRender || !isDisablePasswordLogin
@@ -173,9 +176,7 @@ export default function SigninSection() {
           </a>
         )}
         {enableGeneralOauth && (
-          <a href={`/oauth/signin?provider=general`}>
-            General OAuth (SSO)
-          </a>
+          <a href={`/oauth/signin?provider=general`}>General OAuth (SSO)</a>
         )}
       </div>
       {!!errorMessage && (

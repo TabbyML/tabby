@@ -320,8 +320,8 @@ export default function OAuthCredentialForm({
               The information is provided by your identity provider.
             </FormDescription>
           </div>
-          {providerValue == OAuthProvider.General &&
-            (<FormField
+          {providerValue == OAuthProvider.General && (
+            <FormField
               control={form.control}
               name="configUrl"
               render={({ field }) => (
@@ -339,8 +339,8 @@ export default function OAuthCredentialForm({
                   <FormMessage />
                 </FormItem>
               )}
-            />)
-          }
+            />
+          )}
           <FormField
             control={form.control}
             name="clientId"
