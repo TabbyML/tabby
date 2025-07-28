@@ -81,7 +81,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // test insert
-        conn.update_oauth_credential("github", "client_id", Some("client_secret"))
+        conn.update_oauth_credential("github", None, "client_id", Some("client_secret"))
             .await
             .unwrap();
         let res = conn.read_oauth_credential("github").await.unwrap().unwrap();
@@ -89,14 +89,14 @@ mod tests {
         assert_eq!(res.client_secret, "client_secret");
 
         // test update
-        conn.update_oauth_credential("github", "client_id", Some("client_secret_2"))
+        conn.update_oauth_credential("github", None, "client_id", Some("client_secret_2"))
             .await
             .unwrap();
         let res = conn.read_oauth_credential("github").await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret_2");
 
-        conn.update_oauth_credential("github", "client_id", None)
+        conn.update_oauth_credential("github", None, "client_id", None)
             .await
             .unwrap();
         let res = conn.read_oauth_credential("github").await.unwrap().unwrap();
@@ -112,7 +112,7 @@ mod tests {
             .is_none());
 
         // test update after delete
-        conn.update_oauth_credential("github", "client_id_2", Some("client_secret_2"))
+        conn.update_oauth_credential("github", None, "client_id_2", Some("client_secret_2"))
             .await
             .unwrap();
         let res = conn.read_oauth_credential("github").await.unwrap().unwrap();
@@ -125,7 +125,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // test insert
-        conn.update_oauth_credential("google", "client_id", Some("client_secret"))
+        conn.update_oauth_credential("google", None, "client_id", Some("client_secret"))
             .await
             .unwrap();
         let res = conn.read_oauth_credential("google").await.unwrap().unwrap();
@@ -138,12 +138,12 @@ mod tests {
         assert!(res.is_none());
 
         // test insert with redirect_uri
-        conn.update_oauth_credential("google", "client_id", Some("client_secret"))
+        conn.update_oauth_credential("google", None, "client_id", Some("client_secret"))
             .await
             .unwrap();
         conn.read_oauth_credential("google").await.unwrap().unwrap();
 
-        conn.update_oauth_credential("google", "client_id", None)
+        conn.update_oauth_credential("google", None, "client_id", None)
             .await
             .unwrap();
         let res = conn.read_oauth_credential("google").await.unwrap().unwrap();
@@ -151,7 +151,7 @@ mod tests {
         assert_eq!(res.client_secret, "client_secret");
 
         // test update
-        conn.update_oauth_credential("google", "client_id_2", Some("client_secret_2"))
+        conn.update_oauth_credential("google", None, "client_id_2", Some("client_secret_2"))
             .await
             .unwrap();
         let res = conn.read_oauth_credential("google").await.unwrap().unwrap();
@@ -163,13 +163,13 @@ mod tests {
     async fn test_insert_two_provider() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        conn.update_oauth_credential("google", "client_id", Some("client_secret"))
+        conn.update_oauth_credential("google", None, "client_id", Some("client_secret"))
             .await
             .unwrap();
         let google = conn.read_oauth_credential("google").await.unwrap().unwrap();
         assert_eq!(google.provider, "google");
 
-        conn.update_oauth_credential("github", "client_id", Some("client_secret"))
+        conn.update_oauth_credential("github", None, "client_id", Some("client_secret"))
             .await
             .unwrap();
         let github = conn.read_oauth_credential("github").await.unwrap().unwrap();

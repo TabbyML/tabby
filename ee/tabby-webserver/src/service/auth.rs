@@ -1852,6 +1852,7 @@ mod tests {
         service
             .update_oauth_credential(UpdateOAuthCredentialInput {
                 provider: OAuthProvider::Google,
+                config_url: None,
                 client_id: "id".into(),
                 client_secret: Some("secret".into()),
             })
