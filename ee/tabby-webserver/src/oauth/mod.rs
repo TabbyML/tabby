@@ -1,7 +1,7 @@
+mod general;
 mod github;
 mod gitlab;
 mod google;
-mod general;
 
 use std::sync::Arc;
 

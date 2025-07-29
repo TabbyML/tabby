@@ -76,7 +76,7 @@ impl GeneralClient {
             .header(reqwest::header::ACCEPT, "application/json")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
+                format!("Bearer {access_token}"),
             )
             .send()
             .await?
