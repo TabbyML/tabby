@@ -84,6 +84,9 @@ opentelemetry_sdk = { version = "0.27.0", default-features = false, features = [
     "rt-tokio",
 ] }
 opentelemetry-otlp = { version = "0.27.0" }
+opentelemetry-semantic-conventions = { version = "0.27.0", features = [
+    "semconv_experimental",
+] }
 # https://github.com/launchbadge/sqlx/issues/3241#issuecomment-2260797292
 # https://github.com/wsxiaoys/sqlx/tree/fix-0-7-3-remove-date-time-encoding
 sqlx = { git = "https://github.com/wsxiaoys/sqlx", rev = "77eb94d" }
