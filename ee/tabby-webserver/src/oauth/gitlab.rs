@@ -128,7 +128,7 @@ impl OAuthClient for GitlabClient {
             .header(reqwest::header::ACCEPT, "application/vnd.gitlab+json")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
+                format!("Bearer {access_token}"),
             )
             .send()
             .await?;
@@ -148,7 +148,7 @@ impl OAuthClient for GitlabClient {
             .header(reqwest::header::ACCEPT, "application/vnd.gitlab+json")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
+                format!("Bearer {access_token}"),
             )
             .send()
             .await?;

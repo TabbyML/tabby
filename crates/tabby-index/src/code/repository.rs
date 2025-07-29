@@ -105,7 +105,7 @@ pub fn garbage_collection(repositories: &[CodeRepository]) {
             warn!("An unrelated file {:?} was found in repositories directory, It will now be removed...", filename);
             // There shouldn't be any files under repositories dir.
             fs::remove_file(file.path())
-                .unwrap_or_else(|_| panic!("Failed to remove file {:?}", filename))
+                .unwrap_or_else(|_| panic!("Failed to remove file {filename:?}"))
         } else if metadata.is_dir() && !names.contains(&file.path()) {
             warn!("An unrelated directory {:?} was found in repositories directory, It will now be removed...", file.path().display());
             fs::remove_dir_all(file.path()).unwrap_or_else(|_| {

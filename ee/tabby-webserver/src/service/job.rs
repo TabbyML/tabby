@@ -101,7 +101,7 @@ impl JobService for JobControllerImpl {
         match self.db.get_job_run(id.as_rowid().ok()?).await {
             Some(_) => {
                 let job_dir_path = background_jobs_dir()
-                    .join(format!("{}", id))
+                    .join(format!("{id}"))
                     .join("stdout.log");
                 match tokio::fs::metadata(&job_dir_path).await {
                     Ok(_) => return Some(job_dir_path),

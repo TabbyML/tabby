@@ -81,7 +81,7 @@ async fn wait_for_server(gpu_device: Option<&str>) {
                 }
             }
             Err(e) => {
-                println!("Waiting for server to start: {:?}", e);
+                println!("Waiting for server to start: {e:?}");
             }
         }
         sleep(Duration::from_secs(5)).await;
@@ -113,10 +113,10 @@ async fn golden_test(body: serde_json::Value) -> String {
                     }
                     reqwest_eventsource::Error::InvalidStatusCode(code, resp) => {
                         let resp = resp.text().await.unwrap();
-                        println!("Error: {} {:?}", code, resp);
+                        println!("Error: {code} {resp:?}");
                     }
                     e => {
-                        println!("Error: {:?}", e);
+                        println!("Error: {e:?}");
                     }
                 }
                 break;

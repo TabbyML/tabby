@@ -207,7 +207,7 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool, kind: Optio
             .unwrap();
     }
 
-    let handler = |err| panic!("Failed to fetch model '{}' due to '{}'", model_id, err);
+    let handler = |err| panic!("Failed to fetch model '{model_id}' due to '{err}'");
     download_model_impl(&registry, name, prefer_local_file)
         .await
         .unwrap_or_else(handler)

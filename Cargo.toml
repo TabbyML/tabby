@@ -37,7 +37,7 @@ serde_json = "1"
 serdeconv = "0.4.1"
 tokio = "1.28"
 tokio-retry = "0.3.0"
-tokio-util = { version="0.7.10", features = ["full"] }
+tokio-util = { version = "0.7.10", features = ["full"] }
 tracing = "0.1"
 tokio-cron-scheduler = "0.9.4"
 tracing-subscriber = "0.3"
@@ -79,11 +79,17 @@ clap = "4.3.0"
 ratelimit = "0.10"
 tracing-opentelemetry = "0.28.0"
 opentelemetry = { version = "0.27.0", features = ["trace", "metrics"] }
-opentelemetry_sdk = { version = "0.27.0", default-features = false, features = ["trace", "rt-tokio"] }
+opentelemetry_sdk = { version = "0.27.0", default-features = false, features = [
+    "trace",
+    "rt-tokio",
+] }
 opentelemetry-otlp = { version = "0.27.0" }
-opentelemetry-semantic-conventions = { version = "0.27.0", features = ["semconv_experimental"] }
-# https://github.com/wsxiaoys/sqlx/tree/fix-0-7-4-remove-datetime-utc-encode
-sqlx = { git = "https://github.com/wsxiaoys/sqlx", rev = "8ca573c" }
+opentelemetry-semantic-conventions = { version = "0.27.0", features = [
+    "semconv_experimental",
+] }
+# https://github.com/launchbadge/sqlx/issues/3241#issuecomment-2260797292
+# https://github.com/wsxiaoys/sqlx/tree/fix-0-7-3-remove-date-time-encoding
+sqlx = { git = "https://github.com/wsxiaoys/sqlx", rev = "77eb94d" }
 validator = { version = "0.18.1", features = ["derive"] }
 
 [workspace.dependencies.uuid]

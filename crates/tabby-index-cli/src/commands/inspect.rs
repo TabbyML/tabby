@@ -13,7 +13,7 @@ pub fn run_inspect_cli(directory: &Path) -> tantivy::Result<()> {
     println!("===============================================================================\n");
     println!("1. General infos");
     println!("===============================================================================");
-    println!("Index directory: {:?}", directory);
+    println!("Index directory: {directory:?}");
     println!("Number of segments: {}", segments.len());
     let space_usage = searcher.space_usage()?;
     println!("Total bytes: {}", space_usage.total());
@@ -38,28 +38,28 @@ pub fn run_inspect_cli(directory: &Path) -> tantivy::Result<()> {
             segment_space_usage.store().offsets_usage()
         );
         println!();
-        println!("{}.1 Term dictionnary space usage", section_count);
+        println!("{section_count}.1 Term dictionnary space usage");
         println!("--------------------------------");
         let per_field_space_usage = segment_space_usage.termdict();
         println!("Total bytes: {}", per_field_space_usage.total());
         print_fields_space_usage(&schema, per_field_space_usage);
         println!();
 
-        println!("{}.2 Fast field space usage", section_count);
+        println!("{section_count}.2 Fast field space usage");
         println!("--------------------------------");
         let fast_field_space_usage = segment_space_usage.fast_fields();
         println!("Total bytes: {}", fast_field_space_usage.total());
         print_fields_space_usage(&schema, fast_field_space_usage);
         println!();
 
-        println!("{}.3 Postings space usage", section_count);
+        println!("{section_count}.3 Postings space usage");
         println!("--------------------------------");
         let postings_space_usage = segment_space_usage.postings();
         println!("Total bytes: {}", postings_space_usage.total());
         print_fields_space_usage(&schema, postings_space_usage);
         println!();
 
-        println!("{}.4 Positions space usage", section_count);
+        println!("{section_count}.4 Positions space usage");
         println!("--------------------------------");
         let positions_space_usage = segment_space_usage.positions();
         println!("Total bytes: {}", positions_space_usage.total());

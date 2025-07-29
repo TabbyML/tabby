@@ -47,11 +47,11 @@ where
 fn set_path(path: &mut String, query: Option<&str>, base: &str) {
     if let Some(q) = query {
         if q.contains("_rsc=") {
-            format!("{}.txt", base).clone_into(path);
+            format!("{base}.txt").clone_into(path);
             return;
         }
     }
-    format!("{}.html", base).clone_into(path);
+    format!("{base}.html").clone_into(path);
 }
 
 pub async fn handler(uri: Uri) -> impl IntoResponse {
@@ -65,7 +65,7 @@ pub async fn handler(uri: Uri) -> impl IntoResponse {
         set_path(&mut path, query, "search");
     } else if path.starts_with("pages/") {
         set_path(&mut path, query, "pages");
-    } else if !path.contains('.') && WebAssets::get(&format!("{}.html", path)).is_some() {
+    } else if !path.contains('.') && WebAssets::get(&format!("{path}.html")).is_some() {
         path += ".html"
     }
     WebStaticFile(path)

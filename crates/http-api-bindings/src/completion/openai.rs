@@ -33,7 +33,7 @@ impl OpenAICompletionEngine {
         Box::new(Self {
             client,
             model_name,
-            api_endpoint: format!("{}/completions", api_endpoint),
+            api_endpoint: format!("{api_endpoint}/completions"),
             api_key,
             support_fim,
         })

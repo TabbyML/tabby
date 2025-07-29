@@ -45,10 +45,9 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             model.api_key.clone(),
             false,
         ),
-        unsupported_kind => panic!(
-            "Unsupported model kind for http completion: {}",
-            unsupported_kind
-        ),
+        unsupported_kind => {
+            panic!("Unsupported model kind for http completion: {unsupported_kind}")
+        }
     };
 
     Arc::new(rate_limit::new_completion(

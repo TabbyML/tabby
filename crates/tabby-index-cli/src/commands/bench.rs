@@ -49,19 +49,16 @@ fn read_query_file(query_path: &Path) -> io::Result<Vec<String>> {
 }
 
 fn run_bench(index_path: &Path, query_filepath: &Path, num_repeat: usize) -> Result<(), String> {
-    println!("Index : {:?}", index_path);
-    println!("Query : {:?}", query_filepath);
+    println!("Index : {index_path:?}");
+    println!("Query : {query_filepath:?}");
     println!("-------------------------------\n\n\n");
 
     let index =
-        Index::open_in_dir(index_path).map_err(|e| format!("Failed to open index.\n{:?}", e))?;
-    let searcher = index
-        .reader()
-        .map_err(|err| format!("{:?}", err))?
-        .searcher();
+        Index::open_in_dir(index_path).map_err(|e| format!("Failed to open index.\n{e:?}"))?;
+    let searcher = index.reader().map_err(|err| format!("{err:?}"))?.searcher();
     let default_search_fields: Vec<Field> = extract_search_fields(&index.schema());
     let queries = read_query_file(query_filepath)
-        .map_err(|e| format!("Failed reading the query file:  {}", e))?;
+        .map_err(|e| format!("Failed reading the query file:  {e}"))?;
     let query_parser = QueryParser::new(
         index.schema(),
         default_search_fields,
@@ -74,15 +71,13 @@ fn run_bench(index_path: &Path, query_filepath: &Path, num_repeat: usize) -> Res
         for query_txt in &queries {
             let query = query_parser
                 .parse_query(query_txt)
-                .unwrap_or_else(|x| panic!("Failed to parse query {:?}.\n\n{:?}", query_txt, x));
+                .unwrap_or_else(|x| panic!("Failed to parse query {query_txt:?}.\n\n{x:?}"));
             let mut timing = TimerTree::default();
             let (_top_docs, count) = {
                 let _search = timing.open("search");
                 searcher
                     .search(&query, &(TopDocs::with_limit(10), Count))
-                    .map_err(|e| {
-                        format!("Failed while searching query {:?}.\n\n{:?}", query_txt, e)
-                    })?
+                    .map_err(|e| format!("Failed while searching query {query_txt:?}.\n\n{e:?}"))?
             };
             println!("{}\t{}\t{}", query_txt, count, timing.total_time());
         }
@@ -96,10 +91,7 @@ fn run_bench(index_path: &Path, query_filepath: &Path, num_repeat: usize) -> Res
             let top_docs = searcher
                 .search(&*query, &TopDocs::with_limit(10))
                 .map_err(|e| {
-                    format!(
-                        "Failed while retrieving document for query {:?}.\n{:?}",
-                        query, e
-                    )
+                    format!("Failed while retrieving document for query {query:?}.\n{e:?}")
                 })?;
             let mut timer = TimerTree::default();
             {

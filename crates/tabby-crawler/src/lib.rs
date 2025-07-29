@@ -166,9 +166,9 @@ pub async fn crawler_llms(start_url: &str) -> anyhow::Result<Vec<CrawledDocument
     } else if base_url.ends_with("llms.txt") {
         // If URL ends with llms.txt, try to access llms-full.txt instead
         let base_without_llms = base_url.trim_end_matches("llms.txt");
-        format!("{}llms-full.txt", base_without_llms)
+        format!("{base_without_llms}llms-full.txt")
     } else {
-        format!("{}/llms-full.txt", base_url)
+        format!("{base_url}/llms-full.txt")
     };
 
     let resp = reqwest::get(&llms_full_url).await?;
@@ -227,12 +227,11 @@ mod tests {
     async fn test_crawler_llms_success_developers_cloudflare_with_url() {
         let base_url = "https://developers.cloudflare.com";
         let result = crawler_llms(base_url).await;
-        assert!(result.is_ok(), "Expected success from {}", base_url);
+        assert!(result.is_ok(), "Expected success from {base_url}");
         let docs = result.unwrap();
         assert!(
             !docs.is_empty(),
-            "Expected at least one section from llms-full.txt at {}",
-            base_url
+            "Expected at least one section from llms-full.txt at {base_url}"
         );
         println!("Fetched {} documents from {}", docs.len(), base_url);
     }
@@ -242,12 +241,11 @@ mod tests {
     async fn test_crawler_llms_success_docs_perplexity_with_source() {
         let base_url = "https://docs.perplexity.ai";
         let result = crawler_llms(base_url).await;
-        assert!(result.is_ok(), "Expected success from {}", base_url);
+        assert!(result.is_ok(), "Expected success from {base_url}");
         let docs = result.unwrap();
         assert!(
             !docs.is_empty(),
-            "Expected at least one section from llms-full.txt at {}",
-            base_url
+            "Expected at least one section from llms-full.txt at {base_url}"
         );
         println!("Fetched {} documents from {}", docs.len(), base_url);
     }

@@ -35,7 +35,7 @@ pub fn new_ldap_client(
     };
 
     LdapClientImpl {
-        address: format!("{}://{}:{}", schema, host, port),
+        address: format!("{schema}://{host}:{port}"),
         bind_dn,
         bind_password: bind_password.to_string(),
         base_dn,

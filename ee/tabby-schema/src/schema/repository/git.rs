@@ -33,7 +33,7 @@ pub struct GitRepository {
 
 impl GitRepository {
     pub fn format_source_id(id: &ID) -> String {
-        format!("git:{}", id)
+        format!("git:{id}")
     }
 }
 

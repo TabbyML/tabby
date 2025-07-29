@@ -40,7 +40,7 @@ mod tests {
 
         for (name, expected) in test_cases {
             let result = USERNAME_REGEX.is_match(name);
-            assert_eq!(result, expected, "Failed for name: {}", name);
+            assert_eq!(result, expected, "Failed for name: {name}");
         }
     }
 
@@ -60,7 +60,7 @@ mod tests {
 
         for (name, expected) in test_cases {
             let result = WEB_DOCUMENT_NAME_REGEX.is_match(name);
-            assert_eq!(result, expected, "Failed for name: {}", name);
+            assert_eq!(result, expected, "Failed for name: {name}");
         }
     }
 
@@ -79,7 +79,7 @@ mod tests {
 
         for (name, expected) in test_cases {
             let result = USER_GROUP_NAME_REGEX.is_match(name);
-            assert_eq!(result, expected, "Failed for name: {}", name);
+            assert_eq!(result, expected, "Failed for name: {name}");
         }
     }
 }
