@@ -270,6 +270,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "atomic-write-file"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbf54d4588732bdfc5ebc3eb9f74f20e027112fc31de412fc7ff0cd1c6896dae"
+dependencies = [
+ "nix",
+ "rand 0.8.5",
+]
+
+[[package]]
 name = "auto_enums"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -635,6 +645,12 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "cfg_aliases"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
 name = "chrono"
@@ -3051,6 +3067,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
+name = "nix"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab2156c4fce2f8df6c499cc1c763e4394b7482525bf2a9701c9d79d215f519e4"
+dependencies = [
+ "bitflags 2.6.0",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5024,8 +5052,8 @@ dependencies = [
 
 [[package]]
 name = "sqlx"
-version = "0.7.4"
-source = "git+https://github.com/wsxiaoys/sqlx?rev=8ca573c#8ca573cc0e323a637261a8f2cbc4a7c3c7b4e133"
+version = "0.7.3"
+source = "git+https://github.com/wsxiaoys/sqlx?rev=77eb94d#77eb94dd672531bf1fec190aadf2f742cfb5a8db"
 dependencies = [
  "sqlx-core",
  "sqlx-macros",
@@ -5036,8 +5064,8 @@ dependencies = [
 
 [[package]]
 name = "sqlx-core"
-version = "0.7.4"
-source = "git+https://github.com/wsxiaoys/sqlx?rev=8ca573c#8ca573cc0e323a637261a8f2cbc4a7c3c7b4e133"
+version = "0.7.3"
+source = "git+https://github.com/wsxiaoys/sqlx?rev=77eb94d#77eb94dd672531bf1fec190aadf2f742cfb5a8db"
 dependencies = [
  "ahash",
  "atoi",
@@ -5046,6 +5074,7 @@ dependencies = [
  "chrono",
  "crc",
  "crossbeam-queue",
+ "dotenvy",
  "either",
  "event-listener",
  "futures-channel",
@@ -5075,8 +5104,8 @@ dependencies = [
 
 [[package]]
 name = "sqlx-macros"
-version = "0.7.4"
-source = "git+https://github.com/wsxiaoys/sqlx?rev=8ca573c#8ca573cc0e323a637261a8f2cbc4a7c3c7b4e133"
+version = "0.7.3"
+source = "git+https://github.com/wsxiaoys/sqlx?rev=77eb94d#77eb94dd672531bf1fec190aadf2f742cfb5a8db"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5087,9 +5116,10 @@ dependencies = [
 
 [[package]]
 name = "sqlx-macros-core"
-version = "0.7.4"
-source = "git+https://github.com/wsxiaoys/sqlx?rev=8ca573c#8ca573cc0e323a637261a8f2cbc4a7c3c7b4e133"
+version = "0.7.3"
+source = "git+https://github.com/wsxiaoys/sqlx?rev=77eb94d#77eb94dd672531bf1fec190aadf2f742cfb5a8db"
 dependencies = [
+ "atomic-write-file",
  "dotenvy",
  "either",
  "heck 0.4.1",
@@ -5124,8 +5154,8 @@ dependencies = [
 
 [[package]]
 name = "sqlx-mysql"
-version = "0.7.4"
-source = "git+https://github.com/wsxiaoys/sqlx?rev=8ca573c#8ca573cc0e323a637261a8f2cbc4a7c3c7b4e133"
+version = "0.7.3"
+source = "git+https://github.com/wsxiaoys/sqlx?rev=77eb94d#77eb94dd672531bf1fec190aadf2f742cfb5a8db"
 dependencies = [
  "atoi",
  "base64 0.21.7",
@@ -5166,8 +5196,8 @@ dependencies = [
 
 [[package]]
 name = "sqlx-postgres"
-version = "0.7.4"
-source = "git+https://github.com/wsxiaoys/sqlx?rev=8ca573c#8ca573cc0e323a637261a8f2cbc4a7c3c7b4e133"
+version = "0.7.3"
+source = "git+https://github.com/wsxiaoys/sqlx?rev=77eb94d#77eb94dd672531bf1fec190aadf2f742cfb5a8db"
 dependencies = [
  "atoi",
  "base64 0.21.7",
@@ -5193,6 +5223,7 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_json",
+ "sha1",
  "sha2",
  "smallvec",
  "sqlx-core",
@@ -5215,8 +5246,8 @@ dependencies = [
 
 [[package]]
 name = "sqlx-sqlite"
-version = "0.7.4"
-source = "git+https://github.com/wsxiaoys/sqlx?rev=8ca573c#8ca573cc0e323a637261a8f2cbc4a7c3c7b4e133"
+version = "0.7.3"
+source = "git+https://github.com/wsxiaoys/sqlx?rev=77eb94d#77eb94dd672531bf1fec190aadf2f742cfb5a8db"
 dependencies = [
  "atoi",
  "chrono",
