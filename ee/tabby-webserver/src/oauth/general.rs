@@ -6,7 +6,6 @@ use cached::{proc_macro::cached, TimedCache};
 use serde::Deserialize;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
-
 use super::OAuthClient;
 use crate::bail;
 
