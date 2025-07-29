@@ -99,9 +99,7 @@ impl ModelRegistry {
             name: registry.to_owned(),
             models: load_remote_registry(registry).await.unwrap_or_else(|err| {
                 load_local_registry(registry).unwrap_or_else(|_| {
-                    panic!(
-                        "Failed to fetch model organization <{registry}>: {err:?}"
-                    )
+                    panic!("Failed to fetch model organization <{registry}>: {err:?}")
                 })
             }),
         }
