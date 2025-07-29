@@ -23,7 +23,7 @@ impl OpenAIEmbeddingEngine {
         let client = Client::new();
         Box::new(Self {
             client,
-            api_endpoint: format!("{}/embeddings", api_endpoint),
+            api_endpoint: format!("{api_endpoint}/embeddings"),
             api_key: api_key.unwrap_or_default().to_owned(),
             model_name: model_name.to_owned(),
         })

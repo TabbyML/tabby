@@ -204,7 +204,7 @@ impl DbConn {
 
         let today = Utc::now().date_naive().format("%Y%m%d").to_string();
         let backup_file = db_file.with_file_name(
-            db_file_name.replace(".sqlite", format!(".backup-{}.sqlite", today).as_str()),
+            db_file_name.replace(".sqlite", format!(".backup-{today}.sqlite").as_str()),
         );
 
         tokio::fs::copy(db_file, &backup_file).await?;

@@ -765,9 +765,9 @@ mod tests {
             .create("test-repo".to_string(), TEST_GIT_URL.to_string())
             .await
             .unwrap();
-        let source_id = format!("git:{}", repo_id);
+        let source_id = format!("git:{repo_id}");
 
-        println!("Created test repository with ID: {}", source_id);
+        println!("Created test repository with ID: {source_id}");
 
         // Setup test context with actual repository
         let test_repo = Repository {

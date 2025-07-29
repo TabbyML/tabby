@@ -105,7 +105,7 @@ impl Embedding for LlamaCppEngine {
                 }
             },
             |e: &reqwest::Error| {
-                let message = format!("{:?}", e);
+                let message = format!("{e:?}");
                 e.is_request()
                     && (message.contains("Connection reset by peer")
                         || message.contains("Broken pipe"))

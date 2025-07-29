@@ -66,7 +66,7 @@ where
         match field_name {
             "node" => executor.resolve_with_ctx(info, &self.node),
             "cursor" => executor.resolve_with_ctx(&(), &self.cursor),
-            _ => panic!("Field {} not found on type ConnectionEdge", field_name),
+            _ => panic!("Field {field_name} not found on type ConnectionEdge"),
         }
     }
 
@@ -93,7 +93,7 @@ where
             match field_name {
                 "node" => executor.resolve_with_ctx_async(info, &self.node).await,
                 "cursor" => executor.resolve_with_ctx(&(), &self.cursor),
-                _ => panic!("Field {} not found on type RelayConnectionEdge", field_name),
+                _ => panic!("Field {field_name} not found on type RelayConnectionEdge"),
             }
         };
         use ::juniper::futures::future;

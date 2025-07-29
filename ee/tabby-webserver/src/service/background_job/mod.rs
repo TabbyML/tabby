@@ -118,14 +118,14 @@ async fn background_job_notification_name(
                     repo.display_name
                 )
             } else {
-                format!("Indexing Third Party Repository {}", id)
+                format!("Indexing Third Party Repository {id}")
             }
         }
         BackgroundJobEvent::SyncThirdPartyRepositories(id) => {
             if let Ok(repo) = integration_service.get_integration(id).await {
                 format!("Loading {} Repositories", repo.display_name)
             } else {
-                format!("Loading Third Party Repositories {}", id)
+                format!("Loading Third Party Repositories {id}")
             }
         }
         BackgroundJobEvent::SyncPagesIndex => "Pages Indexing".into(),

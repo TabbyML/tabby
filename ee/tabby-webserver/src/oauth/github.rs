@@ -114,7 +114,7 @@ impl OAuthClient for GithubClient {
             .header(reqwest::header::ACCEPT, "application/vnd.github+json")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
+                format!("Bearer {access_token}"),
             )
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
@@ -132,7 +132,7 @@ impl OAuthClient for GithubClient {
             .header(reqwest::header::ACCEPT, "application/vnd.github+json")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
+                format!("Bearer {access_token}"),
             )
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()

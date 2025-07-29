@@ -53,11 +53,10 @@ impl DbConn {
             .context("User doesn't exist")?;
         let recipient_clause = if user.is_admin {
             format!(
-                "recipient = '{}' OR recipient = '{}'",
-                NOTIFICATION_RECIPIENT_ALL_USER, NOTIFICATION_RECIPIENT_ADMIN
+                "recipient = '{NOTIFICATION_RECIPIENT_ALL_USER}' OR recipient = '{NOTIFICATION_RECIPIENT_ADMIN}'"
             )
         } else {
-            format!("recipient = '{}'", NOTIFICATION_RECIPIENT_ALL_USER)
+            format!("recipient = '{NOTIFICATION_RECIPIENT_ALL_USER}'")
         };
 
         let query = format!(
@@ -74,10 +73,9 @@ ON
     notifications.id = read_notifications.notification_id
     AND read_notifications.user_id = ?
 WHERE
-    ({})
+    ({recipient_clause})
     AND read_notifications.notification_id IS NULL;
-        "#,
-            recipient_clause
+        "#
         );
 
         sqlx::query(&query)
@@ -99,11 +97,10 @@ WHERE
             .context("User doesn't exist")?;
         let recipient_clause = if user.is_admin {
             format!(
-                "recipient = '{}' OR recipient = '{}'",
-                NOTIFICATION_RECIPIENT_ALL_USER, NOTIFICATION_RECIPIENT_ADMIN
+                "recipient = '{NOTIFICATION_RECIPIENT_ALL_USER}' OR recipient = '{NOTIFICATION_RECIPIENT_ADMIN}'"
             )
         } else {
-            format!("recipient = '{}'", NOTIFICATION_RECIPIENT_ALL_USER)
+            format!("recipient = '{NOTIFICATION_RECIPIENT_ALL_USER}'")
         };
         let date_7days_ago = Utc::now() - Duration::days(7);
         let sql = format!(

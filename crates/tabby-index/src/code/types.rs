@@ -49,7 +49,7 @@ impl SourceCode {
             source_id: source_id.to_owned(),
             // Source file id might be duplicated across different source_ids, we prefix it with
             // source_id to make it unique within corpus.
-            id: format!("{}:::{}", source_id, source_file_id),
+            id: format!("{source_id}:::{source_file_id}"),
         }
     }
 }

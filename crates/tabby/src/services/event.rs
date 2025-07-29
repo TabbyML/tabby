@@ -88,7 +88,7 @@ impl EventWriter {
 
         let writer = self.writer.as_mut().unwrap();
         writer
-            .write_all(format!("{}\n", content).as_bytes())
+            .write_all(format!("{content}\n").as_bytes())
             .await
             .unwrap();
     }

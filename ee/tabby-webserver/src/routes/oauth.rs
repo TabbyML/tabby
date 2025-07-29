@@ -157,6 +157,6 @@ fn make_error_redirect(provider: OAuthProvider, message: String) -> Redirect {
             serde_json::to_string(&provider).unwrap().as_str(),
         ),
     ]);
-    let uri = format!("/auth/signin?{}", query);
+    let uri = format!("/auth/signin?{query}");
     Redirect::temporary(&uri)
 }

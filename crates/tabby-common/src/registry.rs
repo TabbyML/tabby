@@ -50,8 +50,7 @@ async fn load_remote_registry(registry: &str) -> Result<Vec<ModelInfo>> {
 
     let model_info = client
         .get(format!(
-            "https://raw.githubusercontent.com/{}/registry-tabby/main/models.json",
-            registry
+            "https://raw.githubusercontent.com/{registry}/registry-tabby/main/models.json"
         ))
         .send()
         .await
@@ -101,8 +100,7 @@ impl ModelRegistry {
             models: load_remote_registry(registry).await.unwrap_or_else(|err| {
                 load_local_registry(registry).unwrap_or_else(|_| {
                     panic!(
-                        "Failed to fetch model organization <{}>: {:?}",
-                        registry, err
+                        "Failed to fetch model organization <{registry}>: {err:?}"
                     )
                 })
             }),
@@ -191,7 +189,7 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     } else if parts.len() == 2 {
         (parts[0], parts[1])
     } else {
-        panic!("Invalid model id {}", model_id);
+        panic!("Invalid model id {model_id}");
     }
 }
 

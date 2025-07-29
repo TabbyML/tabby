@@ -268,12 +268,17 @@ pub enum ModelConfig {
 }
 
 impl ModelConfig {
-    pub fn new_local(model_id: &str, parallelism: u8, num_gpu_layers: u16, enable_fast_attention: Option<bool>) -> Self {
+    pub fn new_local(
+        model_id: &str,
+        parallelism: u8,
+        num_gpu_layers: u16,
+        enable_fast_attention: Option<bool>,
+    ) -> Self {
         Self::Local(LocalModelConfig {
             model_id: model_id.to_owned(),
             parallelism,
             num_gpu_layers,
-            enable_fast_attention: enable_fast_attention,
+            enable_fast_attention,
             context_size: default_context_size(),
             additional_stop_words: None,
         })
@@ -534,7 +539,7 @@ mod tests {
             serdeconv::from_toml_str::<Config>(toml_config).expect("Failed to parse config");
 
         if let Err(e) = Config::validate_model_config(&config.model.completion) {
-            println!("Final result: {}", e);
+            println!("Final result: {e}");
         }
 
         assert!(
@@ -629,10 +634,7 @@ mod tests {
             let result = RepositoryConfig::resolve_dir(input);
             assert!(
                 result.ends_with(&expected_suffix),
-                "Failed for input:\n  {}\nExpected suffix:\n  {:?}\nGot:\n  {:?}",
-                input,
-                expected_suffix,
-                result
+                "Failed for input:\n  {input}\nExpected suffix:\n  {expected_suffix:?}\nGot:\n  {result:?}"
             );
         }
     }

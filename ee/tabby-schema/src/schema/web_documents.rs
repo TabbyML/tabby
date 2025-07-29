@@ -17,7 +17,7 @@ pub struct CustomWebDocument {
 
 impl CustomWebDocument {
     pub fn format_source_id(id: &ID) -> String {
-        format!("custom_web_document:{}", id)
+        format!("custom_web_document:{id}")
     }
 }
 
@@ -71,7 +71,7 @@ pub struct PresetWebDocument {
 
 impl PresetWebDocument {
     pub fn format_source_id(name: &String) -> String {
-        format!("preset_web_document:{}", name)
+        format!("preset_web_document:{name}")
     }
 }
 

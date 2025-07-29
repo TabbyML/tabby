@@ -46,8 +46,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             false,
         ),
         unsupported_kind => panic!(
-            "Unsupported model kind for http completion: {}",
-            unsupported_kind
+            "Unsupported model kind for http completion: {unsupported_kind}"
         ),
     };
 

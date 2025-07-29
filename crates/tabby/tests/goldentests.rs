@@ -66,7 +66,7 @@ async fn wait_for_server(gpu_device: Option<&str>) {
                 }
             }
             Err(e) => {
-                println!("Waiting for server to start: {:?}", e);
+                println!("Waiting for server to start: {e:?}");
             }
         }
         sleep(Duration::from_secs(5)).await;
@@ -90,7 +90,7 @@ async fn golden_test(body: serde_json::Value) -> serde_json::Value {
         .unwrap();
 
     let info = resp.text().await.unwrap();
-    eprintln!("info {}", info);
+    eprintln!("info {info}");
 
     let actual: serde_json::Value = CLIENT
         .post("http://127.0.0.1:9090/v1/completions")

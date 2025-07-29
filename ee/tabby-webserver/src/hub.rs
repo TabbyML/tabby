@@ -18,13 +18,13 @@ fn tracing_context() -> tarpc::context::Context {
 
 fn build_client_request(addr: &str, token: &str, request: ConnectHubRequest) -> Request<()> {
     Request::builder()
-        .uri(format!("ws://{}/hub", addr))
+        .uri(format!("ws://{addr}/hub"))
         .header("Host", addr)
         .header("Connection", "Upgrade")
         .header("Upgrade", "websocket")
         .header("Sec-WebSocket-Version", "13")
         .header("Sec-WebSocket-Key", "unused")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Authorization", format!("Bearer {token}"))
         .header("Content-Type", "application/json")
         .header(
             CLIENT_REQUEST_HEADER.as_str(),
