@@ -141,7 +141,6 @@ async fn general_oauth_handler(
     )
 }
 
-
 fn match_auth_result(
     provider: OAuthProvider,
     result: Result<OAuthResponse, OAuthError>,

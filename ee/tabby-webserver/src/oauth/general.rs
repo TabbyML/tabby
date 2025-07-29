@@ -2,11 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use async_trait::async_trait;
+use cached::{proc_macro::cached, TimedCache};
 use serde::Deserialize;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
-use cached::proc_macro::cached;
-use cached::TimedCache;
 
 use super::OAuthClient;
 use crate::bail;
@@ -39,7 +38,7 @@ struct GeneralUserInfo {
 pub struct GeneralClient {
     client: reqwest::Client,
     auth: Arc<dyn AuthenticationService>,
-    user_info: Mutex<Option<GeneralUserInfo>>
+    user_info: Mutex<Option<GeneralUserInfo>>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -185,7 +184,7 @@ impl OAuthClient for GeneralClient {
             url.query_pairs_mut().append_pair(k, v);
         }
 
-       Ok(url.to_string())
+        Ok(url.to_string())
     }
 }
 
@@ -197,12 +196,12 @@ impl OAuthClient for GeneralClient {
 )]
 async fn retrieve_oidc_config_cached(url: String) -> OAuthConfig {
     let client = reqwest::Client::new();
-    return client
+    client
         .get(&url)
         .send()
         .await
         .unwrap()
         .json::<OAuthConfig>()
         .await
-        .unwrap();
+        .unwrap()
 }
