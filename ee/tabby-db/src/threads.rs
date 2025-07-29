@@ -312,7 +312,7 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<ThreadMessageDAO>> {
-        let condition = format!("thread_id = {}", thread_id);
+        let condition = format!("thread_id = {thread_id}");
         let messages = query_paged_as!(
             ThreadMessageDAO,
             "thread_messages",

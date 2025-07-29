@@ -70,7 +70,7 @@ impl AuthenticationService for FakeAuthService {
     }
 
     async fn generate_reset_password_url(&self, id: &ID) -> Result<String> {
-        Ok(format!("https://example.com/reset-password/{}", id))
+        Ok(format!("https://example.com/reset-password/{id}"))
     }
 
     async fn request_password_reset_email(&self, _email: String) -> Result<Option<JoinHandle<()>>> {

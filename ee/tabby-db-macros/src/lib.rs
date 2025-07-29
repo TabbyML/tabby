@@ -94,7 +94,11 @@ pub fn query_paged_as(input: TokenStream) -> TokenStream {
         .map(|col| {
             let name = col.name.value();
             let rename = col.rename.value();
-            let non_null = col.non_null.then_some("!").unwrap_or_default();
+            let non_null = if col.non_null {
+                "!"
+            } else {
+                Default::default()
+            };
             format!("{name} AS '{rename}{non_null}'")
         })
         .collect::<Vec<_>>()

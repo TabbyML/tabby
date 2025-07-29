@@ -25,7 +25,7 @@ pub struct ProvidedRepository {
 
 impl ProvidedRepository {
     pub fn format_source_id(id: &ID) -> String {
-        format!("provided_repository:{}", id)
+        format!("provided_repository:{id}")
     }
 }
 

@@ -171,7 +171,7 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<PageSectionDAO>> {
-        let condition = format!("page_id = {}", page_id);
+        let condition = format!("page_id = {page_id}");
         let sections = query_paged_as!(
             PageSectionDAO,
             "page_sections",

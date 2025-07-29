@@ -205,7 +205,7 @@ impl StructuredDocGarbageCollector {
                 };
 
                 if kind.as_str() == KIND_INGESTED {
-                    let doc_id = if let Some(doc_id) = id.strip_prefix(&format!("{}/", source_id)) {
+                    let doc_id = if let Some(doc_id) = id.strip_prefix(&format!("{source_id}/")) {
                         doc_id
                     } else {
                         debug!("ingested doc has incorrect id format, deleting, id: {}, source: {}", id, source_id);

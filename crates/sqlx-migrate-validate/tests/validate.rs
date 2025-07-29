@@ -36,7 +36,7 @@ async fn validate_returns_err_with_more_migrations_in_source() {
         .await
     {
         Err(ValidateError::VersionNotApplied(20230312141719)) => (),
-        o => panic!("Expected VersionNotApplied error, got: {:?}", o),
+        o => panic!("Expected VersionNotApplied error, got: {o:?}"),
     };
 }
 
@@ -51,7 +51,7 @@ async fn validate_returns_err_with_less_migrations_in_source() {
         .await
     {
         Err(ValidateError::MigrateError(MigrateError::VersionMissing(20230312133715))) => (),
-        o => panic!("Expected VersionMissing error, got: {:?}", o),
+        o => panic!("Expected VersionMissing error, got: {o:?}"),
     };
 }
 
@@ -66,6 +66,6 @@ async fn validate_returns_err_with_migration_content_mismatch() {
         .await
     {
         Err(ValidateError::MigrateError(MigrateError::VersionMismatch(20230312133715))) => (),
-        o => panic!("Expected VersionMismatch error, got: {:?}", o),
+        o => panic!("Expected VersionMismatch error, got: {o:?}"),
     };
 }

@@ -42,7 +42,7 @@ pub fn run_head_cli(index_path: &Path, args: &HeadArgs) -> anyhow::Result<()> {
 
                 let json_value = to_json_value(doc, &schema.schema);
 
-                println!("{}", json_value);
+                println!("{json_value}");
 
                 count += 1;
                 if count >= args.num_docs {

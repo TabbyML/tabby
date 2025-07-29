@@ -138,8 +138,7 @@ mod tests {
             assert_eq!(
                 normalize_to_unix_path(input),
                 expected.to_string(),
-                "Failed to normalize path: {}",
-                input
+                "Failed to normalize path: {input}"
             );
         }
     }
