@@ -138,12 +138,12 @@ impl DbConn {
             .join(",");
         let languages = languages
             .into_iter()
-            .map(|l| format!("'{}'", l))
+            .map(|l| format!("'{l}'"))
             .collect::<Vec<_>>()
             .join(",");
         let all_languages = all_languages
             .into_iter()
-            .map(|l| format!("'{}'", l))
+            .map(|l| format!("'{l}'"))
             .collect::<Vec<_>>()
             .join(",");
 

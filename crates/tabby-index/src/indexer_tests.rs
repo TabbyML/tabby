@@ -79,7 +79,7 @@ mod structured_doc_tests {
                 })
                 .await
                 && indexer.sync(doc).await;
-            println!("{}", updated);
+            println!("{updated}");
             updated
         });
         assert!(res);
@@ -125,7 +125,7 @@ mod structured_doc_tests {
                 })
                 .await
                 && indexer.sync(doc).await;
-            println!("{}", updated);
+            println!("{updated}");
             updated
         });
         assert!(res);

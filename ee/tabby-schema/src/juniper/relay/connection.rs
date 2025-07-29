@@ -143,7 +143,7 @@ where
         match field_name {
             "edges" => executor.resolve_with_ctx(info, &self.edges),
             "pageInfo" => executor.resolve_with_ctx(&(), &self.page_info),
-            _ => panic!("Field {} not found on type ConnectionEdge", field_name),
+            _ => panic!("Field {field_name} not found on type ConnectionEdge"),
         }
     }
 
@@ -170,7 +170,7 @@ where
             match field_name {
                 "edges" => executor.resolve_with_ctx_async(info, &self.edges).await,
                 "pageInfo" => executor.resolve_with_ctx(&(), &self.page_info),
-                _ => panic!("Field {} not found on type ConnectionEdge", field_name),
+                _ => panic!("Field {field_name} not found on type ConnectionEdge"),
             }
         };
         use ::juniper::futures::future;

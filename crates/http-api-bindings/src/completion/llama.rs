@@ -19,7 +19,7 @@ impl LlamaCppEngine {
 
         Box::new(Self {
             client,
-            api_endpoint: format!("{}/completion", api_endpoint),
+            api_endpoint: format!("{api_endpoint}/completion"),
             api_key,
         })
     }

@@ -300,8 +300,7 @@ impl IndexSchema {
             (
                 Occur::Must,
                 Box::new(ExistsQuery::new_exists_query(format!(
-                    "{}.{}",
-                    FIELD_ATTRIBUTES, field
+                    "{FIELD_ATTRIBUTES}.{field}"
                 ))),
             ),
             // Exclude chunk documents
@@ -346,9 +345,9 @@ pub fn binarize_embedding<'a>(
 ) -> impl Iterator<Item = String> + 'a {
     embedding.enumerate().map(|(i, value)| {
         if *value <= 0.0 {
-            format!("embedding_zero_{}", i)
+            format!("embedding_zero_{i}")
         } else {
-            format!("embedding_one_{}", i)
+            format!("embedding_one_{i}")
         }
     })
 }

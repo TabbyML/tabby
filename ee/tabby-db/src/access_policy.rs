@@ -84,7 +84,7 @@ DELETE FROM source_id_read_access_policies WHERE source_id = ? AND user_group_id
     ) -> anyhow::Result<usize> {
         let in_clause = active_source_ids
             .iter()
-            .map(|s| format!("'{}'", s))
+            .map(|s| format!("'{s}'"))
             .collect::<Vec<_>>()
             .join(",");
 

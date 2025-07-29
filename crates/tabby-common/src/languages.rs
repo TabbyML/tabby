@@ -72,12 +72,12 @@ impl Language {
         }
 
         if let Some(line_comment) = &self.line_comment {
-            out.push(format!("\n{}", line_comment));
+            out.push(format!("\n{line_comment}"));
         };
 
         if let Some(top_level_keywords) = &self.top_level_keywords {
             for word in top_level_keywords {
-                out.push(format!("\n{}", word));
+                out.push(format!("\n{word}"));
             }
         };
 
@@ -103,8 +103,7 @@ lazy_static! {
             for l in &c.languages {
                 assert!(
                     !map.contains_key(l.as_str()),
-                    "Duplicate language found: {}",
-                    l
+                    "Duplicate language found: {l}"
                 );
                 map.insert(l.as_str(), c);
             }
@@ -118,8 +117,7 @@ lazy_static! {
                 let l = c.language();
                 assert!(
                     !map.contains_key(e.as_str()),
-                    "Duplicate extension found: {}",
-                    e
+                    "Duplicate extension found: {e}"
                 );
                 map.insert(e.as_str(), l);
             }

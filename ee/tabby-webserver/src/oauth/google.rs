@@ -117,7 +117,7 @@ impl OAuthClient for GoogleClient {
             .get("https://www.googleapis.com/oauth2/v2/userinfo?alt=json&fields=email")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
+                format!("Bearer {access_token}"),
             )
             .send()
             .await?
@@ -136,7 +136,7 @@ impl OAuthClient for GoogleClient {
             .get("https://www.googleapis.com/oauth2/v2/userinfo?alt=json&fields=name")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
+                format!("Bearer {access_token}"),
             )
             .send()
             .await?

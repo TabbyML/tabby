@@ -8,7 +8,7 @@ pub fn octocrab_error_message(err: octocrab::Error) -> String {
 
         // no need to print the Json error backtrace
         octocrab::Error::Json { source, .. } => {
-            format!("Json error: {}", source)
+            format!("Json error: {source}")
         }
 
         // the other errors have impl Display or Debug

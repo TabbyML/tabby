@@ -446,8 +446,7 @@ mod tests {
         for name in service.preset_web_documents.keys() {
             assert!(
                 WEB_DOCUMENT_NAME_REGEX.is_match(name.as_str()),
-                "name: {}",
-                name
+                "name: {name}"
             );
         }
     }

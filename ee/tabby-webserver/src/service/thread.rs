@@ -746,7 +746,7 @@ mod tests {
         for i in 0..3 {
             let input = CreateThreadInput {
                 user_message: CreateMessageInput {
-                    content: format!("Test message {}", i),
+                    content: format!("Test message {i}"),
                     attachments: None,
                 },
             };

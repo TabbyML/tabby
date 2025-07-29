@@ -30,7 +30,7 @@ Here're some rules you need to follow when creating content:
 
 fn generate_page_prompt(title: &str, sections: &[PageSection]) -> String {
     if sections.is_empty() {
-        format!("You're writing a page named \"{}\".\n", title)
+        format!("You're writing a page named \"{title}\".\n")
     } else {
         let sections = sections
             .iter()
