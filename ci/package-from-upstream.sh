@@ -34,7 +34,7 @@ cp "./${TABBY_BINARY}"/${TABBY_BINARY} ${OUTPUT_NAME}/tabby${TABBY_EXTENSION}
 
 pushd ${OUTPUT_NAME}
 if [[ ${LLAMA_CPP_PLATFORM} == win* ]]; then
-    rm $(ls *.exe | grep -v -e "tabby" -e "llama-server")
+    rm -f $(ls *.exe | grep -v -e "tabby" -e "llama-server")
 
     popd
     zip -r ${OUTPUT_NAME}.zip ${OUTPUT_NAME}
@@ -43,7 +43,7 @@ else
     mv build/bin/* .
     rm -r build
 
-    rm $(ls . | grep -v -e "tabby" -e "llama-server" -e '.so$' -e "LICENSE")
+    rm -f $(ls . | grep -v -e "tabby" -e "llama-server" -e '.so$' -e "LICENSE")
     mv LICENSE LICENSE-llama-server
     chmod +x llama-server tabby
 
