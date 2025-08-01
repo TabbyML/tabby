@@ -231,7 +231,7 @@ jobs:
 
       - name: Package CPU for Windows
         run: >
-          LLAMA_CPP_PLATFORM=win-cpu-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc ./ci/package-from-upstream.sh
+          LLAMA_CPP_PLATFORM=win-cpu-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cpu ./ci/package-from-upstream.sh
 
       - name: Package CUDA 12.4 for Windows
         run: >
