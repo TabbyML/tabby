@@ -9,13 +9,9 @@ LLAMA_CPP_PATH="${PROJECT_ROOT}/crates/llama-cpp-server/llama.cpp"
 # Input variables
 LLAMA_CPP_VERSION=${LLAMA_CPP_VERSION:-$(cd ${LLAMA_CPP_PATH} && git fetch --tags origin >/dev/null && git describe --tags --abbrev=0)}
 echo "LLAMA_CPP_VERSION=${LLAMA_CPP_VERSION}"
-LLAMA_CPP_PLATFORM=${LLAMA_CPP_PLATFORM:-win-cuda-cu12.4-x64}
+LLAMA_CPP_PLATFORM=${LLAMA_CPP_PLATFORM:-win-cuda-12.4-x64}
 
-if [[ $LLAMA_CPP_PLATFORM == *cuda* ]]; then
-    NAME=cudart-llama-bin-${LLAMA_CPP_PLATFORM}
-else
-    NAME=llama-${LLAMA_CPP_VERSION}-bin-${LLAMA_CPP_PLATFORM}
-fi
+NAME=llama-${LLAMA_CPP_VERSION}-bin-${LLAMA_CPP_PLATFORM}
 ZIP_FILE=${NAME}.zip
 
 OUTPUT_NAME=${OUTPUT_NAME:-tabby_x86_64-windows-msvc-cuda124}
