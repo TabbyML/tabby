@@ -39,7 +39,8 @@ impl LicenseInfo {
     }
 
     pub fn seat_limits_for_team_license() -> usize {
-        50
+        // FIXME(meng): temporary workaround for customer, shall be revert back to 50 after 01/10/2026
+        100
     }
 
     pub fn guard_seat_limit(mut self) -> Self {
