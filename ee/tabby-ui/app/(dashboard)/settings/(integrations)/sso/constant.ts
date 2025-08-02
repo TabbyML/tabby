@@ -31,5 +31,13 @@ export const PROVIDER_METAS: Array<{
       domain: 'gitlab.com',
       displayName: 'GitLab'
     }
+  },
+  {
+    name: 'general',
+    enum: OAuthProvider.General,
+    meta: {
+      domain: 'general',
+      displayName: 'General'
+    }
   }
 ]
