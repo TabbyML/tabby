@@ -33,7 +33,6 @@ jobs:
           - aarch64-apple-darwin
           - x86_64-manylinux_2_28
           - x86_64-manylinux_2_28-cuda123
-          - x86_64-windows-msvc
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
@@ -49,11 +48,6 @@ jobs:
             binary: x86_64-manylinux_2_28-cuda123
             container: sameli/manylinux_2_28_x86_64_cuda_12.3@sha256:e12416bf249ab312f9dcfdebd7939b968dd6f1b6f810abbede818df875e86a7c
             build_args: --features binary,cuda
-          - os: windows-2022
-            target: x86_64-pc-windows-msvc
-            binary: x86_64-windows-msvc
-            build_args: --features binary
-            ext: .exe
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -235,13 +229,13 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R
 
-      - name: Package CUDA 11.7 for Windows
+      - name: Package CPU for Windows
         run: >
-          LLAMA_CPP_PLATFORM=win-cuda-cu11.7-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda117 ./ci/package-from-upstream.sh
+          LLAMA_CPP_PLATFORM=win-cpu-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cpu ./ci/package-from-upstream.sh
 
       - name: Package CUDA 12.4 for Windows
         run: >
-          LLAMA_CPP_PLATFORM=win-cuda-cu12.4-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda124 ./ci/package-from-upstream.sh
+          LLAMA_CPP_PLATFORM=win-cuda-12.4-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda124 ./ci/package-from-upstream.sh
 
       - name: Package Vulkan for Windows
         run: >
