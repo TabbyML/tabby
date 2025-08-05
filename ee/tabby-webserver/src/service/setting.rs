@@ -46,6 +46,25 @@ impl SettingService for SettingServiceImpl {
         self.db.update_network_setting(input.external_url).await?;
         Ok(())
     }
+
+    async fn read_branding_setting(&self) -> Result<Option<String>> {
+        Ok(self.db.read_branding_setting().await?.into())
+    }
+
+    async fn read_branding_logo(&self) -> Result<Option<Vec<u8>>> {
+        Ok(self.db.read_branding_logo().await?.into())
+    }
+
+    async fn update_branding_setting(
+        &self,
+        branding_logo: Option<Box<[u8]>>,
+        branding_name: Option<String>,
+    ) -> Result<()> {
+        self.db
+            .update_branding_setting(branding_logo, branding_name)
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

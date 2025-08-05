@@ -422,6 +422,10 @@ impl Query {
         ctx.locator.setting().read_security_setting().await
     }
 
+    async fn branding_setting(ctx: &Context) -> Result<Option<String>> {
+        ctx.locator.setting().read_branding_setting().await
+    }
+
     async fn git_repositories(
         &self,
         ctx: &Context,
@@ -1372,6 +1376,29 @@ impl Mutation {
         check_admin(ctx).await?;
         input.validate()?;
         ctx.locator.setting().update_network_setting(input).await?;
+        Ok(true)
+    }
+
+    async fn update_branding_setting(
+        ctx: &Context,
+        input: setting::BrandingSettingInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+        let branding_logo = input
+            .branding_logo
+            .map(|logo| base64::prelude::BASE64_STANDARD.decode(logo.as_bytes()))
+            .transpose()
+            .context("branding_logo is not valid base64 string")?
+            .map(Vec::into_boxed_slice);
+
+        ctx.locator
+            .setting()
+            .update_branding_setting(branding_logo, input.branding_name)
+            .await?;
         Ok(true)
     }
 

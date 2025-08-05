@@ -13,6 +13,15 @@ pub trait SettingService: Send + Sync {
 
     async fn read_network_setting(&self) -> Result<NetworkSetting>;
     async fn update_network_setting(&self, input: NetworkSettingInput) -> Result<()>;
+
+    async fn read_branding_setting(&self) -> Result<Option<String>>;
+    async fn read_branding_logo(&self) -> Result<Option<Vec<u8>>>;
+    async fn update_branding_setting(
+        &self,
+        branding_logo: Option<Box<[u8]>>,
+        branding_name: Option<String>,
+    ) -> Result<()>;
+
 }
 
 #[derive(GraphQLObject, Debug, PartialEq)]
@@ -43,10 +52,20 @@ pub struct NetworkSetting {
     pub external_url: String,
 }
 
+
+
+
+
 #[derive(GraphQLInputObject, Validate)]
 pub struct NetworkSettingInput {
     #[validate(url(code = "externalUrl", message = "URL is malformed"))]
     pub external_url: String,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct BrandingSettingInput {
+    pub branding_logo: Option<String>,
+    pub branding_name: Option<String>,
 }
 
 fn first_duplicate(strings: &[impl std::hash::Hash + Eq]) -> Option<usize> {

@@ -121,6 +121,11 @@ enum Role {
   ASSISTANT
 }
 
+input BrandingSettingInput {
+  brandingLogo: String
+  brandingName: String
+}
+
 input CodeQueryInput {
   filepath: String
   language: String
@@ -466,6 +471,11 @@ type AttachmentWebDoc {
 
 type AuthProvider {
   kind: AuthProviderKind!
+}
+
+type BrandingSetting {
+  brandingLogo: String
+  brandingName: String
 }
 
 type ChatCompletionMessage {
@@ -845,6 +855,7 @@ type Mutation {
   updateEmailSetting(input: EmailSettingInput!): Boolean!
   updateSecuritySetting(input: SecuritySettingInput!): Boolean!
   updateNetworkSetting(input: NetworkSettingInput!): Boolean!
+  updateBrandingSetting(input: BrandingSettingInput!): Boolean!
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
@@ -1085,6 +1096,7 @@ type Query {
   emailSetting: EmailSetting
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
+  brandingSetting: BrandingSetting!
   gitRepositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   "Search files that matches the pattern in the repository."
   repositorySearch(kind: RepositoryKind!, id: ID!, rev: String, pattern: String!): [FileEntrySearchResult!]!
