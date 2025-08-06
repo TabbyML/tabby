@@ -48,14 +48,12 @@ function Header() {
       <div className="flex items-center">
         <Link href="/">
           <BrandingLogo
-            customLogoUrl="/branding/logo"
             defaultLogoUrl={logoUrl.src}
             alt="logo"
             width={128}
             className="dark:hidden"
           />
           <BrandingLogo
-            customLogoUrl="/branding/logo"
             defaultLogoUrl={logoDarkUrl.src}
             alt="logo"
             width={96}

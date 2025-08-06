@@ -1,18 +1,9 @@
 'use client'
 
 import React from 'react'
-import { mutate } from 'swr'
 import { useQuery } from 'urql'
-
 import { brandingSettingQuery } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
-
-let hasCustomLogo = true
-
-export const mutateBrandingLogo = (url: string) => {
-  hasCustomLogo = true
-  mutate(url)
-}
 
 interface BrandingLogoProps extends React.HTMLAttributes<HTMLImageElement> {
   defaultLogoUrl: string

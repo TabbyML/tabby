@@ -44,7 +44,6 @@ impl DbConn {
                 branding_name
             FROM server_setting
             WHERE id = ?;",
-
         )
         .bind(SERVER_SETTING_ROW_ID)
         .fetch_optional(&mut **transaction)
@@ -155,8 +154,6 @@ impl DbConn {
         .await?;
         Ok(())
     }
-
-
 }
 
 #[cfg(test)]

@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use tabby_db::DbConn;
 use tabby_schema::{
     setting::{
-        BrandingSetting, BrandingSettingInput, NetworkSetting, NetworkSettingInput, SecuritySetting,
-        SecuritySettingInput, SettingService,
+        BrandingSetting, BrandingSettingInput, NetworkSetting, NetworkSettingInput,
+        SecuritySetting, SecuritySettingInput, SettingService,
     },
     Result,
 };
@@ -54,7 +54,11 @@ impl SettingService for SettingServiceImpl {
 
     async fn update_branding_setting(&self, input: BrandingSettingInput) -> Result<()> {
         self.db
-            .update_branding_setting(input.branding_logo, input.branding_icon, input.branding_name)
+            .update_branding_setting(
+                input.branding_logo,
+                input.branding_icon,
+                input.branding_name,
+            )
             .await?;
         Ok(())
     }

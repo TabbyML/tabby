@@ -156,7 +156,6 @@ function MainPanel() {
               }}
             >
               <BrandingLogo
-                customLogoUrl="/branding/logo"
                 width={192}
                 defaultLogoUrl={tabbyUrl.src}
                 className={cn('mt-4 invert dark:invert-0', {

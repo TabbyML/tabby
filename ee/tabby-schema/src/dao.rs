@@ -10,7 +10,15 @@ use tabby_db::{
 };
 
 use crate::{
-    auth::LdapEncryptionKind, ingestion::IngestionStats, integration::{Integration, IntegrationKind, IntegrationStatus}, interface::UserValue, notification::{Notification, NotificationRecipient}, page, repository::RepositoryKind, retrieval, schema::{
+    auth::LdapEncryptionKind,
+    ingestion::IngestionStats,
+    integration::{Integration, IntegrationKind, IntegrationStatus},
+    interface::UserValue,
+    notification::{Notification, NotificationRecipient},
+    page,
+    repository::RepositoryKind,
+    retrieval,
+    schema::{
         auth::{self, LdapCredential, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
         ingestion::{IngestedDocStatus, IngestedDocument},
@@ -21,7 +29,9 @@ use crate::{
         setting::{NetworkSetting, SecuritySetting},
         user_event::{EventKind, UserEvent},
         CoreError,
-    }, setting::BrandingSetting, thread::{self}
+    },
+    setting::BrandingSetting,
+    thread::{self},
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -128,7 +138,7 @@ impl From<ServerSettingDAO> for BrandingSetting {
         Self {
             branding_logo: value.branding_logo,
             branding_icon: value.branding_icon,
-            branding_name: value.branding_name
+            branding_name: value.branding_name,
         }
     }
 }
