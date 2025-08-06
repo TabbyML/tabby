@@ -14,6 +14,7 @@
 		path /repositories/*
 		path /oauth/*
 		path /avatar/*
+		path /branding/*
 		path /integrations/github/*
 		path /background-jobs/*
 

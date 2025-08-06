@@ -1,7 +1,8 @@
 'use client'
 
-import Image from 'next/image'
+
 import Link from 'next/link'
+import { BrandingLogo } from './branding-logo'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 
@@ -47,9 +48,16 @@ function Header() {
     <header className="flex h-16 items-center justify-between border-b px-4 lg:px-10">
       <div className="flex items-center">
         <Link href="/">
-          <Image src={logoUrl} alt="logo" width={128} className="dark:hidden" />
-          <Image
-            src={logoDarkUrl}
+          <BrandingLogo
+            customLogoUrl="/branding/logo"
+            defaultLogoUrl={logoUrl.src}
+            alt="logo"
+            width={128}
+            className="dark:hidden"
+          />
+          <BrandingLogo
+            customLogoUrl="/branding/logo"
+            defaultLogoUrl={logoDarkUrl.src}
             alt="logo"
             width={96}
             className="hidden dark:block"

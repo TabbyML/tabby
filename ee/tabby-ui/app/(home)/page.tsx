@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import { compact } from 'lodash-es'
@@ -42,6 +41,7 @@ import { AnimationWrapper } from './components/animation-wrapper'
 import { RelatedQuestions } from './components/related-questions'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
+import { BrandingLogo } from '@/components/branding-logo'
 
 // const ThreadFeeds = lazy(() => import('./components/thread-feeds').then(module => ({ default: module.ThreadFeeds })))
 
@@ -155,10 +155,10 @@ function MainPanel() {
                 amount: 0.1
               }}
             >
-              <Image
-                src={tabbyUrl}
-                alt="logo"
+              <BrandingLogo
+                customLogoUrl='/branding/logo'
                 width={192}
+                defaultLogoUrl={tabbyUrl.src}
                 className={cn('mt-4 invert dark:invert-0', {
                   'mb-4': isChatEnabled,
                   'mb-2': !isChatEnabled

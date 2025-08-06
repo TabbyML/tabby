@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator'
 
 import { GeneralFormSection } from './form-section'
 import { GeneralNetworkForm } from './network-form'
+import { BrandingForm } from './branding-form'
 import { GeneralSecurityForm } from './security-form'
 
 export default function General() {
@@ -13,6 +14,10 @@ export default function General() {
     <div className="flex flex-col gap-4">
       <GeneralFormSection title="Network">
         <GeneralNetworkForm />
+      </GeneralFormSection>
+      <Separator className="mb-8" />
+      <GeneralFormSection title="Branding">
+        <BrandingForm />
       </GeneralFormSection>
       <Separator className="mb-8" />
       <GeneralFormSection title="Security">

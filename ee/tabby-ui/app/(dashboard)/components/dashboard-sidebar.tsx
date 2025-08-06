@@ -40,6 +40,7 @@ import {
   useSidebar
 } from '@/components/ui/sidebar'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { BrandingLogo } from '@/components/branding-logo'
 
 export interface SidebarProps {
   children?: React.ReactNode
@@ -54,18 +55,18 @@ type SubMenu = {
 
 type Menu =
   | {
-      title: string
-      icon: FunctionComponent
-      allowUser?: boolean
-      items: SubMenu[]
-    }
+    title: string
+    icon: FunctionComponent
+    allowUser?: boolean
+    items: SubMenu[]
+  }
   | {
-      title: string
-      href: string
-      icon: FunctionComponent
-      allowUser?: boolean
-      items?: never
-    }
+    title: string
+    href: string
+    icon: FunctionComponent
+    allowUser?: boolean
+    items?: never
+  }
 
 const menus: Menu[] = [
   {
@@ -156,28 +157,35 @@ export default function AppSidebar() {
           href="/"
           className="flex h-[3.375rem] items-center justify-center py-2"
         >
-          <>
-            <Image
-              src={tabbyLogo}
-              width={32}
+          <Image
+            src={tabbyLogo}
+            width={32}
+            alt="logo"
+            className="hidden group-data-[collapsible=icon]:block"
+          />
+          <div className="w-[128px] group-data-[collapsible=icon]:hidden">
+            {/* todo */}
+            <BrandingLogo
+              customLogoUrl="/branding/logo"
+              defaultLogoUrl={logoUrl.src}
               alt="logo"
-              className="hidden group-data-[collapsible=icon]:block"
+              width={128}
+              className="dark:hidden"
+              classNames={{
+                customLogo: 'invert dark:invert-0'
+              }}
             />
-            <div className="w-[128px] group-data-[collapsible=icon]:hidden">
-              <Image
-                src={logoUrl}
-                alt="logo"
-                className="dark:hidden"
-                width={128}
-              />
-              <Image
-                src={logoDarkUrl}
-                alt="logo"
-                width={96}
-                className="hidden dark:block"
-              />
-            </div>
-          </>
+            <BrandingLogo
+              customLogoUrl="/branding/logo"
+              defaultLogoUrl={logoDarkUrl.src}
+              alt="logo"
+              width={128}
+              className="hidden dark:block"
+              classNames={{
+                customLogo: 'invert dark:invert-0'
+              }}
+            />
+          </div>
         </Link>
       </SidebarHeader>
       <SidebarContent>
