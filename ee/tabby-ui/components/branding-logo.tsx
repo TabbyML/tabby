@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useQuery } from 'urql'
+
 import { brandingSettingQuery } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 
