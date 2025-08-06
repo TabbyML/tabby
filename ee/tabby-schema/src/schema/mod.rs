@@ -87,7 +87,8 @@ use self::{
         RepositoryKind, RepositoryService, UpdateIntegrationInput,
     },
     setting::{
-        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+        BrandingSetting, NetworkSetting, NetworkSettingInput, SecuritySetting,
+        SecuritySettingInput, SettingService,
     },
     user_event::{UserEvent, UserEventService},
     web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
@@ -422,7 +423,7 @@ impl Query {
         ctx.locator.setting().read_security_setting().await
     }
 
-    async fn branding_setting(ctx: &Context) -> Result<Option<String>> {
+    async fn branding_setting(ctx: &Context) -> Result<BrandingSetting> {
         ctx.locator.setting().read_branding_setting().await
     }
 
@@ -1385,20 +1386,7 @@ impl Mutation {
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
-
-        // ast-grep-ignore: use-schema-result
-        use anyhow::Context;
-        let branding_logo = input
-            .branding_logo
-            .map(|logo| base64::prelude::BASE64_STANDARD.decode(logo.as_bytes()))
-            .transpose()
-            .context("branding_logo is not valid base64 string")?
-            .map(Vec::into_boxed_slice);
-
-        ctx.locator
-            .setting()
-            .update_branding_setting(branding_logo, input.branding_name)
-            .await?;
+        ctx.locator.setting().update_branding_setting(input).await?;
         Ok(true)
     }
 

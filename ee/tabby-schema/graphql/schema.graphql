@@ -123,6 +123,7 @@ enum Role {
 
 input BrandingSettingInput {
   brandingLogo: String
+  brandingIcon: String
   brandingName: String
 }
 
@@ -475,6 +476,7 @@ type AuthProvider {
 
 type BrandingSetting {
   brandingLogo: String
+  brandingIcon: String
   brandingName: String
 }
 

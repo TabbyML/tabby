@@ -109,10 +109,6 @@ pub fn create(
             repositories::routes(ctx.repository(), ctx.auth()),
         )
         .route("/avatar/{id}", routing::get(avatar).with_state(ctx.auth()))
-        .route(
-            "/branding/logo",
-            routing::get(branding_logo).with_state(ctx.setting()),
-        )
         .nest("/oauth", oauth::routes(ctx.auth()));
 
     let ui = ui.route(
@@ -123,24 +119,6 @@ pub fn create(
     let ui = ui.fallback(ui::handler);
 
     (api, ui)
-}
-
-async fn branding_logo(
-    State(state): State<Arc<dyn SettingService>>,
-) -> Result<Response<Body>, StatusCode> {
-    let logo = state
-        .read_branding_logo()
-        .await
-        .map_err(|e| {
-            error!("Failed to retrieve branding logo: {e}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .ok_or(StatusCode::NOT_FOUND)?;
-    let mut response = Response::new(Body::from(logo));
-    response
-        .headers_mut()
-        .insert("Content-Type", "image/*".parse().unwrap());
-    Ok(response)
 }
 
 pub(crate) async fn require_login_middleware(

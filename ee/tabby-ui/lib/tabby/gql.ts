@@ -147,7 +147,8 @@ const client = new Client({
         PageSectionAttachmentCode: () => null,
         PageSectionAttachmentDoc: () => null,
         SectionAttachment: () => null,
-        PageSectionCreated: () => null
+        PageSectionCreated: () => null,
+        BrandingSetting: () => 'BrandingSetting'
       },
       resolvers: {
         Query: {
@@ -517,6 +518,13 @@ const client = new Client({
                     }
                   )
                 })
+            }
+          },
+          updateBrandingSetting(result, args, cache) {
+            if (result.updateBrandingSetting) {
+              cache.invalidate({
+                __typename: 'BrandingSetting'
+              })
             }
           }
         }

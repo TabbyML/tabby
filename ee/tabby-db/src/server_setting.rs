@@ -10,7 +10,8 @@ pub struct ServerSettingDAO {
     pub security_disable_client_side_telemetry: bool,
     pub security_disable_password_login: bool,
     pub network_external_url: String,
-    pub branding_logo: Option<Vec<u8>>,
+    pub branding_logo: Option<String>,
+    pub branding_icon: Option<String>,
     pub branding_name: Option<String>,
 }
 
@@ -39,6 +40,7 @@ impl DbConn {
                 billing_enterprise_license,
                 security_disable_password_login,
                 branding_logo,
+                branding_icon,
                 branding_name
             FROM server_setting
             WHERE id = ?;",
@@ -113,24 +115,19 @@ impl DbConn {
 
     pub async fn update_branding_setting(
         &self,
-        branding_logo: Option<Box<[u8]>>,
+        branding_logo: Option<String>,
+        branding_icon: Option<String>,
         branding_name: Option<String>,
     ) -> Result<()> {
-        if let Some(logo) = branding_logo {
-            sqlx::query("UPDATE server_setting SET branding_logo = ? WHERE id = ?")
-                .bind(logo)
-                .bind(SERVER_SETTING_ROW_ID)
-                .execute(&self.pool)
-                .await?;
-        }
-
-        if let Some(name) = branding_name {
-            sqlx::query("UPDATE server_setting SET branding_name = ? WHERE id = ?")
-                .bind(name)
-                .bind(SERVER_SETTING_ROW_ID)
-                .execute(&self.pool)
-                .await?;
-        }
+        sqlx::query!(
+            "UPDATE server_setting SET branding_logo = ?, branding_icon = ?, branding_name = ? WHERE id = ?",
+            branding_logo,
+            branding_icon,
+            branding_name,
+            SERVER_SETTING_ROW_ID
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
     }
@@ -159,21 +156,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn read_branding_setting(&self) -> Result<Option<String>> {
-        let name = sqlx::query_scalar("SELECT branding_name FROM server_setting WHERE id = ?")
-            .bind(SERVER_SETTING_ROW_ID)
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(name)
-    }
 
-    pub async fn read_branding_logo(&self) -> Result<Option<Vec<u8>>> {
-        let logo = sqlx::query_scalar("SELECT branding_logo FROM server_setting WHERE id = ?")
-            .bind(SERVER_SETTING_ROW_ID)
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(logo)
-    }
 }
 
 #[cfg(test)]
@@ -188,6 +171,7 @@ mod tests {
             security_disable_password_login: false,
             network_external_url: "http://localhost:8080".into(),
             branding_logo: None,
+            branding_icon: None,
             branding_name: None,
         }
     }

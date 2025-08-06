@@ -1,66 +1,87 @@
 'use client'
 
-import React, { ChangeEvent, useEffect, useState } from 'react'
+import React, { ChangeEvent } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form'
 import { IconCloudUpload, IconSpinner } from '@/components/ui/icons'
-import { mutateBrandingLogo } from '@/components/branding-logo'
+import { Input } from '@/components/ui/input'
+// import { mutateBranding } from '@/components/branding-logo'
+import LoadingWrapper from '@/components/loading-wrapper'
+import { FormSkeleton } from '@/components/skeleton'
+import { useQuery } from 'urql'
+
+const brandingSettingQuery = graphql(/* GraphQL */ `
+  query GeneralBrandingQuery {
+    brandingSetting {
+      brandingLogo
+      brandingIcon
+      brandingName
+    }
+  }
+`)
 
 const updateBrandingSettingMutation = graphql(/* GraphQL */ `
-  mutation UpdateBrandingForGeneralSettings($input: BrandingSettingInput!) {
+  mutation GeneralBrandingMutation($input: BrandingSettingInput!) {
     updateBrandingSetting(input: $input)
   }
 `)
 
+const formSchema = z.object({
+  brandingName: z.string().optional(),
+  brandingLogo: z.string().optional(),
+  brandingIcon: z.string().optional()
+})
+
 const MAX_UPLOAD_SIZE_KB = 500
 
-export const BrandingForm = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [persistedLogo, setPersistedLogo] = useState<string | null>(null)
-  const [previewLogo, setPreviewLogo] = useState<string | null>(null)
+interface BrandingFormProps {
+  defaultValues?: Partial<BrandingFormValues>
+  onSuccess?: () => void
+}
 
-  useEffect(() => {
-    const fetchLogo = async () => {
-      setIsLoading(true)
-      try {
-        const response = await fetch('/branding/logo')
-        if (response.ok) {
-          const blob = await response.blob()
-          const reader = new FileReader()
-          reader.onloadend = () => {
-            const result = reader.result as string
-            // Ensure it's a valid data URL before setting
-            if (result && result.startsWith('data:')) {
-              setPersistedLogo(result)
-            }
-          }
-          reader.readAsDataURL(blob)
-        } else {
-          setPersistedLogo(null)
-        }
-      } catch (error) {
-        // Silently fail is ok
-      } finally {
-        setIsLoading(false)
-      }
-    }
+type BrandingFormValues = z.infer<typeof formSchema>
 
-    fetchLogo()
-  }, [])
+const BrandingForm: React.FC<BrandingFormProps> = ({
+  defaultValues,
+  onSuccess
+}) => {
+  const form = useForm<BrandingFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues
+  })
+
+  const { brandingLogo, brandingIcon } = form.watch()
 
   const updateBrandingSetting = useMutation(updateBrandingSettingMutation, {
-    onError(err) {
-      toast.error(err.message)
-      setIsSubmitting(false)
+    form,
+    onCompleted(values) {
+      if (values?.updateBrandingSetting) {
+        toast.success('Branding settings saved!')
+        onSuccess?.()
+        form.reset(form.getValues())
+      }
     }
   })
 
-  const onPreviewLogo = (e: ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = (
+    e: ChangeEvent<HTMLInputElement>,
+    field: 'brandingLogo' | 'brandingIcon'
+  ) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -74,107 +95,161 @@ export const BrandingForm = () => {
 
     const reader = new FileReader()
     reader.onloadend = () => {
-      setPreviewLogo(reader.result as string)
+      form.setValue(field, reader.result as string, { shouldDirty: true })
     }
     reader.readAsDataURL(file)
   }
 
-  const handleUpdate = async (logo: string | null) => {
-    setIsSubmitting(true)
-    const response = await updateBrandingSetting({
-      input: { brandingLogo: logo }
+  const onSubmit = async (values: BrandingFormValues) => {
+    await updateBrandingSetting({
+      input: {
+        ...values,
+        brandingLogo: values.brandingLogo?.startsWith('data:')
+          ? values.brandingLogo
+          : undefined,
+        brandingIcon: values.brandingIcon?.startsWith('data:')
+          ? values.brandingIcon
+          : undefined
+      }
     })
-    if (response?.data?.updateBrandingSetting) {
-      toast.success('Successfully updated branding logo!')
-      mutateBrandingLogo('/branding/logo')
-    } else {
-      // Handle case where mutation fails but doesn't throw an error
-      setIsSubmitting(false)
-    }
   }
-
-  const onRemove = () => {
-    if (previewLogo) {
-      setPreviewLogo(null)
-    } else if (persistedLogo) {
-      handleUpdate(null)
-    }
-  }
-
-  const currentLogo = previewLogo || persistedLogo
 
   return (
-    <div className="grid gap-4">
-      <div className="flex flex-col gap-y-2">
-        <div>Logo</div>
-        <p className="text-sm text-muted-foreground">
-          The suggested logo size should be 5:2 aspect ratio, e.g 100 x 40.
-        </p>
-      </div>
-      <div className="relative h-36 w-[26rem]">
-        <label
-          htmlFor="logo-file"
-          className={cn(
-            'absolute left-0 top-0 z-20 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border-2 border-dashed bg-background/90 transition-opacity',
-            {
-              'opacity-0 hover:opacity-100': currentLogo,
-              'hover:bg-background/80': !currentLogo
-            }
+    <Form {...form}>
+      <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name="brandingName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Brand Name</FormLabel>
+              <FormControl>
+                <Input {...field} className="w-[26rem]" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-        >
-          <IconCloudUpload />
-          <p className="text-xs text-muted-foreground mt-2">
-            {`Accepted file types: .png, .jpg, .webp, .svg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
-          </p>
-        </label>
-        <input
-          id="logo-file"
-          type="file"
-          accept="image/png, image/jpeg, image/webp, image/svg+xml"
-          className="hidden"
-          onChange={onPreviewLogo}
         />
-        {currentLogo ? (
-          <img
-            src={currentLogo}
-            className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
-            alt="logo"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center rounded-lg border">
-            {isLoading ? (
-              <IconSpinner className="animate-spin" />
-            ) : null}
-          </div>
-        )}
-      </div>
 
-      <div className="flex justify-end">
-        <div className="flex items-center gap-x-2">
-          {/* {currentLogo && (
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={onRemove}
-              disabled={isSubmitting}
-            >
-              <IconTrash className="mr-2 h-4 w-4" />
-              Remove
-            </Button>
-          )} */}
-          <Button
-            type="submit"
-            disabled={!previewLogo || isSubmitting}
-            onClick={() => handleUpdate(previewLogo!.split(',')[1])}
-          >
-            {isSubmitting && (
-              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Save Changes
-          </Button>
+        <div className="flex flex-col gap-y-2">
+          <div>Logo</div>
+          <p className="text-sm text-muted-foreground">
+            The suggested logo size should be 5:2 aspect ratio, e.g 100 x 40.
+          </p>
         </div>
-      </div>
-    </div>
+        <div className="relative h-36 w-[26rem]">
+          <label
+            htmlFor="logo-file"
+            className={cn(
+              'absolute left-0 top-0 z-20 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border-2 border-dashed bg-background/90 transition-opacity',
+              {
+                'opacity-0 hover:opacity-100': brandingLogo,
+                'hover:bg-background/80': !brandingLogo
+              }
+            )}
+          >
+            <IconCloudUpload />
+            <p className="text-xs text-muted-foreground mt-2">
+              {`Accepted file types: .png, .jpg, .webp, .svg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
+            </p>
+          </label>
+          <input
+            id="logo-file"
+            type="file"
+            accept="image/png, image/jpeg, image/webp, image/svg+xml"
+            className="hidden"
+            onChange={e => onFileChange(e, 'brandingLogo')}
+          />
+          {brandingLogo ? (
+            <img
+              src={brandingLogo}
+              className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
+              alt="logo"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-lg border" />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-y-2">
+          <div>Icon</div>
+          <p className="text-sm text-muted-foreground">
+            The suggested icon size should be square, e.g 40 x 40.
+          </p>
+        </div>
+        <div className="relative h-36 w-36">
+          <label
+            htmlFor="icon-file"
+            className={cn(
+              'absolute left-0 top-0 z-20 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border-2 border-dashed bg-background/90 transition-opacity',
+              {
+                'opacity-0 hover:opacity-100': brandingIcon,
+                'hover:bg-background/80': !brandingIcon
+              }
+            )}
+          >
+            <IconCloudUpload />
+            <p className="text-xs text-muted-foreground mt-2">
+              {`Accepted file types: .png, .jpg, .webp, .svg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
+            </p>
+          </label>
+          <input
+            id="icon-file"
+            type="file"
+            accept="image/png, image/jpeg, image/webp, image/svg+xml"
+            className="hidden"
+            onChange={e => onFileChange(e, 'brandingIcon')}
+          />
+          {brandingIcon ? (
+            <img
+              src={brandingIcon}
+              className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
+              alt="icon"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-lg border" />
+          )}
+        </div>
+
+        <div className="flex justify-end">
+          <div className="flex items-center gap-x-2">
+            <Button
+              type="submit"
+              disabled={!form.formState.isDirty || form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Update
+            </Button>
+          </div>
+        </div>
+      </form>
+    </Form>
   )
 }
 
+export const GeneralBrandingForm = () => {
+  const [{ data, stale }, reexecuteQuery] = useQuery({
+    query: brandingSettingQuery
+  })
+
+  const onSuccess = () => {
+    reexecuteQuery({ requestPolicy: 'network-only' })
+  }
+
+  return (
+    <div className="min-h-[160px]">
+      <LoadingWrapper loading={!data || stale} fallback={<FormSkeleton />}>
+        <BrandingForm
+          defaultValues={{
+            brandingName: data?.brandingSetting?.brandingName ?? undefined,
+            brandingLogo: data?.brandingSetting?.brandingLogo ?? undefined,
+            brandingIcon: data?.brandingSetting?.brandingIcon ?? undefined
+          }}
+          onSuccess={onSuccess}
+        />
+      </LoadingWrapper>
+    </div>
+  )
+}

@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator'
 
 import { GeneralFormSection } from './form-section'
 import { GeneralNetworkForm } from './network-form'
-import { BrandingForm } from './branding-form'
+import { GeneralBrandingForm as BrandingForm } from './branding-form'
 import { GeneralSecurityForm } from './security-form'
 
 export default function General() {

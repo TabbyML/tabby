@@ -1,12 +1,11 @@
 'use client'
 
 import React from 'react'
-import useSWRImmutable from 'swr/immutable'
-import fetcher from '@/lib/tabby/fetcher'
 import { cn } from '@/lib/utils'
 import { mutate } from 'swr'
+import { useQuery } from 'urql'
+import { graphql } from '@/lib/gql/generates'
 
-const NOT_FOUND_ERROR = 'not_found'
 let hasCustomLogo = true
 
 export const mutateBrandingLogo = (url: string) => {
@@ -15,7 +14,6 @@ export const mutateBrandingLogo = (url: string) => {
 }
 
 interface BrandingLogoProps extends React.HTMLAttributes<HTMLImageElement> {
-  customLogoUrl: string
   defaultLogoUrl: string
   alt?: string
   width?: number
@@ -25,8 +23,17 @@ interface BrandingLogoProps extends React.HTMLAttributes<HTMLImageElement> {
   }
 }
 
+const brandingSettingQuery = graphql(/* GraphQL */ `
+  query GeneralBrandingQuery {
+    brandingSetting {
+      brandingLogo
+      brandingIcon
+      brandingName
+    }
+  }
+`)
+
 export const BrandingLogo = ({
-  customLogoUrl,
   defaultLogoUrl,
   alt = 'logo',
   className,
@@ -34,44 +41,55 @@ export const BrandingLogo = ({
   ...props
 }: BrandingLogoProps) => {
 
-  const {
-    data: avatarImageSrc,
-    isLoading,
-    error
-  } = useSWRImmutable(customLogoUrl, (url: string) => {
-    if (!customLogoUrl || !hasCustomLogo) return undefined
+  const [{ data }] = useQuery({ query: brandingSettingQuery })
 
-    return fetcher(url, {
-      responseFormatter: async response => {
-        const blob = await response.blob()
-        const buffer = Buffer.from(await blob.arrayBuffer())
-        hasCustomLogo = true
-        return `data:image/png;base64,${buffer.toString('base64')}`
-      },
-      errorHandler: response => {
-        if (response.status === 404) throw new Error(NOT_FOUND_ERROR)
-        return undefined
-      }
-    })
-  })
+  // todo fix loading skeleton height
+  // if (isLoading) {
+  //   // placeholder
+  //   return <div {...props} className={className} />
+  // }
+  const logoSrc = data?.brandingSetting?.brandingLogo
 
-  if (error?.message === NOT_FOUND_ERROR) {
-    hasCustomLogo = false
-  }
+  return (
+    <img
+      src={logoSrc ?? defaultLogoUrl}
+      alt={alt}
+      className={cn(
+        className,
+        logoSrc ? classNames?.customLogo : classNames?.defaultLogo
+      )}
+      {...props}
+    />
+  )
+}
 
-  // todo fix height mutate
-  if (isLoading) {
-    // placeholder
-    return <div {...props} className={className} />
-  }
 
-  return <img
-    src={avatarImageSrc ?? defaultLogoUrl}
-    alt={alt}
-    className={cn(
-      className,
-      avatarImageSrc ? classNames?.customLogo : classNames?.defaultLogo
-    )}
-    {...props}
-  />
+export const BrandingIcon = ({
+  defaultLogoUrl,
+  alt = 'logo',
+  className,
+  classNames,
+  ...props
+}: BrandingLogoProps) => {
+
+  const [{ data }] = useQuery({ query: brandingSettingQuery })
+
+  // todo fix loading skeleton height
+  // if (isLoading) {
+  //   // placeholder
+  //   return <div {...props} className={className} />
+  // }
+  const logoSrc = data?.brandingSetting?.brandingIcon
+
+  return (
+    <img
+      src={logoSrc ?? defaultLogoUrl}
+      alt={alt}
+      className={cn(
+        className,
+        logoSrc ? classNames?.customLogo : classNames?.defaultLogo
+      )}
+      {...props}
+    />
+  )
 }

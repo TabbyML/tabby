@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use tabby_db::DbConn;
 use tabby_schema::{
     setting::{
-        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+        BrandingSetting, BrandingSettingInput, NetworkSetting, NetworkSettingInput, SecuritySetting,
+        SecuritySettingInput, SettingService,
     },
     Result,
 };
@@ -47,21 +48,13 @@ impl SettingService for SettingServiceImpl {
         Ok(())
     }
 
-    async fn read_branding_setting(&self) -> Result<Option<String>> {
-        Ok(self.db.read_branding_setting().await?.into())
+    async fn read_branding_setting(&self) -> Result<BrandingSetting> {
+        Ok(self.db.read_server_setting().await?.into())
     }
 
-    async fn read_branding_logo(&self) -> Result<Option<Vec<u8>>> {
-        Ok(self.db.read_branding_logo().await?.into())
-    }
-
-    async fn update_branding_setting(
-        &self,
-        branding_logo: Option<Box<[u8]>>,
-        branding_name: Option<String>,
-    ) -> Result<()> {
+    async fn update_branding_setting(&self, input: BrandingSettingInput) -> Result<()> {
         self.db
-            .update_branding_setting(branding_logo, branding_name)
+            .update_branding_setting(input.branding_logo, input.branding_icon, input.branding_name)
             .await?;
         Ok(())
     }
