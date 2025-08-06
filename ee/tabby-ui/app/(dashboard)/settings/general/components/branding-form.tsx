@@ -190,7 +190,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
           >
             <IconCloudUpload />
             <p className="text-xs text-muted-foreground mt-2">
-              {`Accepted file types: .png, .jpg, .webp, .svg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
+              {`Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
             </p>
           </label>
           <input
