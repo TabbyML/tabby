@@ -8,6 +8,7 @@ import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconCloudUpload, IconSpinner } from '@/components/ui/icons'
+import { mutateBrandingLogo } from '@/components/branding-logo'
 
 const updateBrandingSettingMutation = graphql(/* GraphQL */ `
   mutation UpdateBrandingForGeneralSettings($input: BrandingSettingInput!) {
@@ -85,9 +86,7 @@ export const BrandingForm = () => {
     })
     if (response?.data?.updateBrandingSetting) {
       toast.success('Successfully updated branding logo!')
-      // todo refresh logo
-      // await delay(500)
-      // window.location.reload()
+      mutateBrandingLogo('/branding/logo')
     } else {
       // Handle case where mutation fails but doesn't throw an error
       setIsSubmitting(false)
