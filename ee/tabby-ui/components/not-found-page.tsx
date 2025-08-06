@@ -1,13 +1,12 @@
 'use client'
 
-
 import Link from 'next/link'
-import { BrandingLogo } from './branding-logo'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 
 import { cn } from '@/lib/utils'
 
+import { BrandingLogo } from './branding-logo'
 import { ClientOnly } from './client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from './demo-banner'
 import { ThemeToggle } from './theme-toggle'

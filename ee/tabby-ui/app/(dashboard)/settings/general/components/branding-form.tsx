@@ -4,10 +4,12 @@ import React, { ChangeEvent } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { useQuery } from 'urql'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
+import { brandingSettingQuery } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,8 +25,6 @@ import { Input } from '@/components/ui/input'
 // import { mutateBranding } from '@/components/branding-logo'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { FormSkeleton } from '@/components/skeleton'
-import { useQuery } from 'urql'
-import { brandingSettingQuery } from '@/lib/tabby/query'
 
 const updateBrandingSettingMutation = graphql(/* GraphQL */ `
   mutation GeneralBrandingMutation($input: BrandingSettingInput!) {
@@ -140,7 +140,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
             )}
           >
             <IconCloudUpload />
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="mt-2 text-xs text-muted-foreground">
               {`Accepted file types: .png, .jpg, .webp, .svg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
             </p>
           </label>
@@ -180,7 +180,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
             )}
           >
             <IconCloudUpload />
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="mt-2 text-xs text-muted-foreground">
               {`Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
             </p>
           </label>

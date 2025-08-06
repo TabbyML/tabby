@@ -38,8 +38,8 @@ import {
   SidebarMenuSubItem,
   useSidebar
 } from '@/components/ui/sidebar'
-import LoadingWrapper from '@/components/loading-wrapper'
 import { BrandingIcon, BrandingLogo } from '@/components/branding-logo'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 export interface SidebarProps {
   children?: React.ReactNode
@@ -54,18 +54,18 @@ type SubMenu = {
 
 type Menu =
   | {
-    title: string
-    icon: FunctionComponent
-    allowUser?: boolean
-    items: SubMenu[]
-  }
+      title: string
+      icon: FunctionComponent
+      allowUser?: boolean
+      items: SubMenu[]
+    }
   | {
-    title: string
-    href: string
-    icon: FunctionComponent
-    allowUser?: boolean
-    items?: never
-  }
+      title: string
+      href: string
+      icon: FunctionComponent
+      allowUser?: boolean
+      items?: never
+    }
 
 const menus: Menu[] = [
   {

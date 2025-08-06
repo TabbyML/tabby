@@ -4,9 +4,9 @@ import React from 'react'
 
 import { Separator } from '@/components/ui/separator'
 
+import { GeneralBrandingForm as BrandingForm } from './branding-form'
 import { GeneralFormSection } from './form-section'
 import { GeneralNetworkForm } from './network-form'
-import { GeneralBrandingForm as BrandingForm } from './branding-form'
 import { GeneralSecurityForm } from './security-form'
 
 export default function General() {

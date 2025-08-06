@@ -1,11 +1,11 @@
 'use client'
 
 import React from 'react'
-import { cn } from '@/lib/utils'
 import { mutate } from 'swr'
 import { useQuery } from 'urql'
-import { graphql } from '@/lib/gql/generates'
+
 import { brandingSettingQuery } from '@/lib/tabby/query'
+import { cn } from '@/lib/utils'
 
 let hasCustomLogo = true
 
@@ -31,7 +31,6 @@ export const BrandingLogo = ({
   classNames,
   ...props
 }: BrandingLogoProps) => {
-
   const [{ data }] = useQuery({ query: brandingSettingQuery })
 
   // todo fix loading skeleton height
@@ -54,7 +53,6 @@ export const BrandingLogo = ({
   )
 }
 
-
 export const BrandingIcon = ({
   defaultLogoUrl,
   alt = 'logo',
@@ -62,7 +60,6 @@ export const BrandingIcon = ({
   classNames,
   ...props
 }: BrandingLogoProps) => {
-
   const [{ data }] = useQuery({ query: brandingSettingQuery })
 
   // todo fix loading skeleton height

@@ -28,6 +28,7 @@ import { contextInfoQuery } from '@/lib/tabby/query'
 import { ThreadRunContexts } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { BrandingLogo } from '@/components/branding-logo'
 import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { NotificationBox } from '@/components/notification-box'
@@ -41,7 +42,6 @@ import { AnimationWrapper } from './components/animation-wrapper'
 import { RelatedQuestions } from './components/related-questions'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
-import { BrandingLogo } from '@/components/branding-logo'
 
 // const ThreadFeeds = lazy(() => import('./components/thread-feeds').then(module => ({ default: module.ThreadFeeds })))
 
@@ -156,7 +156,7 @@ function MainPanel() {
               }}
             >
               <BrandingLogo
-                customLogoUrl='/branding/logo'
+                customLogoUrl="/branding/logo"
                 width={192}
                 defaultLogoUrl={tabbyUrl.src}
                 className={cn('mt-4 invert dark:invert-0', {
