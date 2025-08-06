@@ -700,3 +700,13 @@ export const listPageSections = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const brandingSettingQuery = graphql(/* GraphQL */ `
+  query GeneralBrandingQuery {
+    brandingSetting {
+      brandingLogo
+      brandingIcon
+      brandingName
+    }
+  }
+`)

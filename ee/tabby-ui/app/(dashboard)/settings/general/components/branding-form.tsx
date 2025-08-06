@@ -24,16 +24,7 @@ import { Input } from '@/components/ui/input'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { FormSkeleton } from '@/components/skeleton'
 import { useQuery } from 'urql'
-
-const brandingSettingQuery = graphql(/* GraphQL */ `
-  query GeneralBrandingQuery {
-    brandingSetting {
-      brandingLogo
-      brandingIcon
-      brandingName
-    }
-  }
-`)
+import { brandingSettingQuery } from '@/lib/tabby/query'
 
 const updateBrandingSettingMutation = graphql(/* GraphQL */ `
   mutation GeneralBrandingMutation($input: BrandingSettingInput!) {

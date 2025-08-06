@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { mutate } from 'swr'
 import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
+import { brandingSettingQuery } from '@/lib/tabby/query'
 
 let hasCustomLogo = true
 
@@ -22,16 +23,6 @@ interface BrandingLogoProps extends React.HTMLAttributes<HTMLImageElement> {
     defaultLogo?: string
   }
 }
-
-const brandingSettingQuery = graphql(/* GraphQL */ `
-  query GeneralBrandingQuery {
-    brandingSetting {
-      brandingLogo
-      brandingIcon
-      brandingName
-    }
-  }
-`)
 
 export const BrandingLogo = ({
   defaultLogoUrl,
