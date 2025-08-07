@@ -920,6 +920,7 @@ mod tests {
                 seats_used: self.seats_used,
                 issued_at: Some(Utc::now()),
                 expires_at: Some(Utc::now()),
+                features: Some(Vec::new()),
             })
         }
 
@@ -1876,6 +1877,7 @@ mod tests {
             seats_used: 0,
             issued_at: None,
             expires_at: None,
+            features: None,
         };
 
         service
@@ -1909,6 +1911,7 @@ mod tests {
             seats_used: 0,
             issued_at: None,
             expires_at: None,
+            features: None,
         };
 
         service
@@ -1941,6 +1944,7 @@ mod tests {
             seats_used: 0,
             issued_at: None,
             expires_at: None,
+            features: None,
         };
 
         let client = Arc::new(TestOAuthClient {

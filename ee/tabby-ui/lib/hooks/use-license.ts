@@ -13,6 +13,7 @@ const getLicenseInfo = graphql(/* GraphQL */ `
       seatsUsed
       issuedAt
       expiresAt
+      features
     }
   }
 `)

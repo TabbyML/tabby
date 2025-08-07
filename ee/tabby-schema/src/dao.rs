@@ -30,6 +30,7 @@ use crate::{
         user_event::{EventKind, UserEvent},
         CoreError,
     },
+    setting::BrandingSetting,
     thread::{self},
 };
 
@@ -128,6 +129,15 @@ impl From<ServerSettingDAO> for NetworkSetting {
     fn from(value: ServerSettingDAO) -> Self {
         Self {
             external_url: value.network_external_url,
+        }
+    }
+}
+
+impl From<ServerSettingDAO> for BrandingSetting {
+    fn from(value: ServerSettingDAO) -> Self {
+        Self {
+            branding_logo: value.branding_logo,
+            branding_icon: value.branding_icon,
         }
     }
 }

@@ -1,12 +1,12 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 
 import { cn } from '@/lib/utils'
 
+import { BrandingLogo } from './branding-logo'
 import { ClientOnly } from './client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from './demo-banner'
 import { ThemeToggle } from './theme-toggle'
@@ -47,9 +47,14 @@ function Header() {
     <header className="flex h-16 items-center justify-between border-b px-4 lg:px-10">
       <div className="flex items-center">
         <Link href="/">
-          <Image src={logoUrl} alt="logo" width={128} className="dark:hidden" />
-          <Image
-            src={logoDarkUrl}
+          <BrandingLogo
+            defaultLogoUrl={logoUrl.src}
+            alt="logo"
+            width={128}
+            className="dark:hidden"
+          />
+          <BrandingLogo
+            defaultLogoUrl={logoDarkUrl.src}
             alt="logo"
             width={96}
             className="hidden dark:block"
