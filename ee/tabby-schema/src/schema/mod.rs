@@ -425,7 +425,7 @@ impl Query {
 
     async fn branding_setting(ctx: &Context) -> Result<BrandingSetting> {
         let license = ctx.locator.license().read().await?;
-        license.ensure_available_features("custom-logo")?;
+        license.ensure_available_features(license::LicenseFeature::CustomLogo)?;
         ctx.locator.setting().read_branding_setting().await
     }
 
@@ -1388,7 +1388,7 @@ impl Mutation {
     ) -> Result<bool> {
         check_admin(ctx).await?;
         let license = ctx.locator.license().read().await?;
-        license.ensure_available_features("custom-logo")?;
+        license.ensure_available_features(license::LicenseFeature::CustomLogo)?;
         input.validate()?;
         ctx.locator.setting().update_branding_setting(input).await?;
         Ok(true)

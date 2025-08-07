@@ -9,6 +9,7 @@ import { GeneralBrandingForm as BrandingForm } from './branding-form'
 import { GeneralFormSection } from './form-section'
 import { GeneralNetworkForm } from './network-form'
 import { GeneralSecurityForm } from './security-form'
+import { LicenseFeature } from '@/lib/gql/generates/graphql'
 
 export default function General() {
   const [{ data }] = useLicense()
@@ -17,7 +18,7 @@ export default function General() {
       <GeneralFormSection title="Network">
         <GeneralNetworkForm />
       </GeneralFormSection>
-      {data?.license.features?.includes('custom-logo') && (
+      {data?.license.features?.includes(LicenseFeature.CustomLogo) && (
         <>
           <Separator className="mb-8" />
           <GeneralFormSection title="Branding">

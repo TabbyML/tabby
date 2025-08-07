@@ -23,6 +23,11 @@ pub enum LicenseStatus {
     SeatsExceeded,
 }
 
+#[derive(GraphQLEnum, PartialEq, Debug, Clone, Deserialize)]
+pub enum LicenseFeature {
+    CustomLogo,
+}
+
 #[derive(GraphQLObject)]
 pub struct LicenseInfo {
     pub r#type: LicenseType,
@@ -31,7 +36,7 @@ pub struct LicenseInfo {
     pub seats_used: i32,
     pub issued_at: Option<DateTime<Utc>>,
     pub expires_at: Option<DateTime<Utc>>,
-    pub features: Option<Vec<String>>,
+    pub features: Option<Vec<LicenseFeature>>,
 }
 
 impl LicenseInfo {
@@ -91,9 +96,9 @@ impl LicenseInfo {
         })
     }
 
-    pub fn ensure_available_features(&self, feature: &str) -> Result<()> {
+    pub fn ensure_available_features(&self, feature: LicenseFeature) -> Result<()> {
         if let Some(features) = &self.features {
-            if features.iter().any(|f| f == feature) {
+            if features.contains(&feature) {
                 return Ok(());
             }
         }

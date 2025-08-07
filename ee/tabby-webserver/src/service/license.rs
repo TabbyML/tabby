@@ -7,7 +7,7 @@ use serde::Deserialize;
 use tabby_db::DbConn;
 use tabby_schema::{
     is_demo_mode,
-    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
+    license::{LicenseFeature, LicenseInfo, LicenseService, LicenseStatus, LicenseType},
     Result,
 };
 
@@ -37,9 +37,8 @@ struct LicenseJWTPayload {
     pub typ: LicenseType,
 
     /// Features
-    /// custom-logo
     #[serde(default)]
-    pub fet: Vec<String>,
+    pub fet: Vec<LicenseFeature>,
 
     /// Number of license (# of seats).
     pub num: usize,
@@ -99,7 +98,7 @@ impl LicenseServiceImpl {
             seats_used,
             issued_at: None,
             expires_at: None,
-            features: Some(vec!["custom-logo".to_string()]),
+            features: Some(vec![LicenseFeature::CustomLogo]),
         })
     }
 }
