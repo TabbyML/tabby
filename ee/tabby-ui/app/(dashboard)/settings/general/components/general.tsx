@@ -2,6 +2,7 @@
 
 import React from 'react'
 
+import { LicenseFeature } from '@/lib/gql/generates/graphql'
 import { useLicense } from '@/lib/hooks/use-license'
 import { Separator } from '@/components/ui/separator'
 
@@ -9,7 +10,6 @@ import { GeneralBrandingForm as BrandingForm } from './branding-form'
 import { GeneralFormSection } from './form-section'
 import { GeneralNetworkForm } from './network-form'
 import { GeneralSecurityForm } from './security-form'
-import { LicenseFeature } from '@/lib/gql/generates/graphql'
 
 export default function General() {
   const [{ data }] = useLicense()
