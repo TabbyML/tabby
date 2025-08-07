@@ -103,14 +103,14 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
           values.brandingLogo === ''
             ? null
             : values.brandingLogo?.startsWith('data:')
-            ? values.brandingLogo
-            : undefined,
+              ? values.brandingLogo
+              : undefined,
         brandingIcon:
           values.brandingIcon === ''
             ? null
             : values.brandingIcon?.startsWith('data:')
-            ? values.brandingIcon
-            : undefined
+              ? values.brandingIcon
+              : undefined
       }
     })
   }
@@ -133,7 +133,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
         />
 
         <div className="flex flex-col gap-y-2">
-          <div>Logo</div>
+          <FormLabel>Logo</FormLabel>
           <p className="text-sm text-muted-foreground">
             The suggested logo size should be 5:2 aspect ratio, e.g 100 x 40.
           </p>
@@ -183,7 +183,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
         </div>
 
         <div className="flex flex-col gap-y-2">
-          <div>Icon</div>
+          <FormLabel>Icon</FormLabel>
           <p className="text-sm text-muted-foreground">
             The suggested icon size should be square, e.g 40 x 40.
           </p>
@@ -233,7 +233,18 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
         </div>
 
         <div className="flex justify-end">
-          <div className="flex items-center gap-x-2">
+          <div className="flex items-center gap-x-3">
+            {form.formState.isDirty && !form.formState.isSubmitting && (
+              <Button
+                type="button"
+                variant='ghost'
+                onClick={() => {
+                  form.reset()
+                }}
+              >
+                Reset
+              </Button>
+            )}
             <Button
               type="submit"
               disabled={!form.formState.isDirty || form.formState.isSubmitting}
