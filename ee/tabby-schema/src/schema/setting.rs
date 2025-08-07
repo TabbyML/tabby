@@ -61,7 +61,9 @@ pub struct BrandingSetting {
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct BrandingSettingInput {
+    #[validate(custom(function = "validate_logo_image"))]
     pub branding_logo: Option<String>,
+    #[validate(custom(function = "validate_icon_image"))]
     pub branding_icon: Option<String>,
     pub branding_name: Option<String>,
 }
@@ -96,6 +98,46 @@ fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {
             };
             return Err(err);
         }
+    }
+    Ok(())
+}
+
+fn validate_logo_image(logo_image: &String) -> Result<(), ValidationError> {
+    validate_image_impl(logo_image, "brandingLogo")
+}
+
+fn validate_icon_image(icon_image: &String) -> Result<(), ValidationError> {
+    validate_image_impl(icon_image, "brandingIcon")
+}
+
+fn validate_image_impl(image: &String, code: &'static str) -> Result<(), ValidationError> {
+    const MAX_IMAGE_SIZE_IN_BYTES: usize = 500 * 1024;
+    // Base64 is about 33% larger than original.
+    const MAX_BASE64_IMAGE_SIZE: usize = MAX_IMAGE_SIZE_IN_BYTES * 4 / 3 + 4;
+
+    if image.is_empty() {
+        return Ok(());
+    }
+
+    if image.len() > MAX_BASE64_IMAGE_SIZE {
+        let mut err = ValidationError::new(code);
+        err.message = Some("Max file size 500KB.".into());
+        return Err(err);
+    }
+
+    let Some(mime_type) = image.split(|c| c == ',' || c == ';').next() else {
+        let mut err = ValidationError::new(code);
+        err.message = Some("Invalid image format".into());
+        return Err(err);
+    };
+
+    if !matches!(
+        mime_type,
+        "data:image/png" | "data:image/jpeg" | "data:image/webp" | "data:image/svg+xml"
+    ) {
+        let mut err = ValidationError::new(code);
+        err.message = Some("Accepted file types: .png, .jpg, .webp, .svg.".into());
+        return Err(err);
     }
     Ok(())
 }

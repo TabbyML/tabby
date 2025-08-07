@@ -704,6 +704,7 @@ type LicenseInfo {
   seatsUsed: Int!
   issuedAt: DateTime
   expiresAt: DateTime
+  features: [String!]
 }
 
 type Message {

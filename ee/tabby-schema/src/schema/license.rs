@@ -31,6 +31,7 @@ pub struct LicenseInfo {
     pub seats_used: i32,
     pub issued_at: Option<DateTime<Utc>>,
     pub expires_at: Option<DateTime<Utc>>,
+    pub features: Option<Vec<String>>,
 }
 
 impl LicenseInfo {
@@ -88,6 +89,18 @@ impl LicenseInfo {
             let duration = expires_at.signed_duration_since(now);
             duration.num_days()
         })
+    }
+
+    pub fn ensure_available_features(&self, feature: &str) -> Result<()> {
+        if let Some(features) = &self.features {
+            if features.iter().any(|f| f == feature) {
+                return Ok(());
+            }
+        }
+
+        Err(CoreError::InvalidLicense(
+            "Your plan doesn't include support for this feature.",
+        ))
     }
 }
 

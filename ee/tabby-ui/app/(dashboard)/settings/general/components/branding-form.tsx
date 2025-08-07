@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -62,7 +63,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
     form,
     onCompleted(values) {
       if (values?.updateBrandingSetting) {
-        toast.success('Branding settings saved!')
+        toast.success('Branding settings updated!')
         onSuccess?.()
         form.reset(form.getValues())
       }
@@ -132,107 +133,127 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
           )}
         />
 
-        <div className="flex flex-col gap-y-2">
-          <FormLabel>Logo</FormLabel>
-          <p className="text-sm text-muted-foreground">
-            The suggested logo size should be 5:2 aspect ratio, e.g 100 x 40.
-          </p>
-        </div>
-        <div className="relative h-36 w-[26rem]">
-          <label
-            htmlFor="logo-file"
-            className={cn(
-              'absolute left-0 top-0 z-20 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border-2 border-dashed bg-background/90 transition-opacity',
-              {
-                'opacity-0 hover:opacity-100': brandingLogo,
-                'hover:bg-background/80': !brandingLogo
-              }
-            )}
-          >
-            <IconCloudUpload />
-            <p className="mt-2 text-xs text-muted-foreground">
-              {`Accepted file types: .png, .jpg, .webp, .svg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
-            </p>
-          </label>
-          <input
-            id="logo-file"
-            type="file"
-            accept="image/png, image/jpeg, image/webp, image/svg+xml"
-            className="hidden"
-            onChange={e => onFileChange(e, 'brandingLogo')}
-          />
-          {brandingLogo ? (
-            <div className="relative h-full w-full">
-              <img
-                src={brandingLogo}
-                className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
-                alt="logo"
-              />
-              <Button
-                type="button"
-                onClick={() => removeImage('brandingLogo')}
-                variant="hover-destructive"
-                className="absolute -right-2 -top-2 z-20 h-auto cursor-pointer rounded-full border bg-background p-0.5"
-              >
-                <IconClose className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-lg border" />
-          )}
-        </div>
+        <FormField
+          name="brandingLogo"
+          render={() => {
+            return (
+              <FormItem>
+                <FormLabel>Logo</FormLabel>
+                <FormDescription>
+                  The suggested logo size should be 5:2 aspect ratio, e.g 100 x
+                  40.
+                </FormDescription>
+                <div className="relative h-36 w-[26rem]">
+                  <label
+                    htmlFor="logo-file"
+                    className={cn(
+                      'absolute left-0 top-0 z-20 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border-2 border-dashed bg-background/90 transition-opacity',
+                      {
+                        'opacity-0 hover:opacity-100': brandingLogo,
+                        'hover:bg-background/80': !brandingLogo
+                      }
+                    )}
+                  >
+                    <IconCloudUpload />
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {`Accepted file types: .png, .jpg, .webp, .svg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
+                    </p>
+                  </label>
+                  <input
+                    id="logo-file"
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                    className="hidden"
+                    onChange={e => onFileChange(e, 'brandingLogo')}
+                  />
+                  {brandingLogo ? (
+                    <div className="relative h-full w-full">
+                      <img
+                        src={brandingLogo}
+                        className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
+                        alt="logo"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => removeImage('brandingLogo')}
+                        variant="hover-destructive"
+                        className="absolute -right-2 -top-2 z-20 h-auto cursor-pointer rounded-full border bg-background p-0.5"
+                      >
+                        <IconClose className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center rounded-lg border" />
+                  )}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )
+          }}
+        ></FormField>
 
-        <div className="flex flex-col gap-y-2">
-          <FormLabel>Icon</FormLabel>
-          <p className="text-sm text-muted-foreground">
-            The suggested icon size should be square, e.g 40 x 40.
-          </p>
-        </div>
-        <div className="relative h-36 w-36">
-          <label
-            htmlFor="icon-file"
-            className={cn(
-              'absolute left-0 top-0 z-20 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border-2 border-dashed bg-background/90 transition-opacity',
-              {
-                'opacity-0 hover:opacity-100': brandingIcon,
-                'hover:bg-background/80': !brandingIcon
-              }
-            )}
-          >
-            <IconCloudUpload />
-            <p className="mt-2 text-xs text-muted-foreground">
-              {`Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
-            </p>
-          </label>
-          <input
-            id="icon-file"
-            type="file"
-            accept="image/png, image/jpeg, image/webp, image/svg+xml"
-            className="hidden"
-            onChange={e => onFileChange(e, 'brandingIcon')}
-          />
-          {brandingIcon ? (
-            <div className="relative h-full w-full">
-              <img
-                src={brandingIcon}
-                className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
-                alt="icon"
-              />
-              <Button
-                type="button"
-                onClick={() => removeImage('brandingIcon')}
-                variant="hover-destructive"
-                className="absolute -right-2 -top-2 z-20 h-auto cursor-pointer rounded-full border bg-background p-0.5"
-              >
-                <IconClose className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-lg border" />
-          )}
-        </div>
+        <FormField
+          name="brandingIcon"
+          render={() => {
+            return (
+              <FormItem>
+                <FormLabel>Icon</FormLabel>
+                <FormDescription>
+                  The suggested icon size should be square, e.g 40 x 40.
+                </FormDescription>
+                <div className="relative h-36 w-36">
+                  <label
+                    htmlFor="icon-file"
+                    className={cn(
+                      'absolute left-0 top-0 z-20 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-y-2 rounded-lg border-2 border-dashed bg-background/90 transition-opacity',
+                      {
+                        'opacity-0 hover:opacity-100': brandingIcon,
+                        'hover:bg-background/80': !brandingIcon
+                      }
+                    )}
+                  >
+                    <IconCloudUpload />
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {`Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
+                    </p>
+                  </label>
+                  <input
+                    id="icon-file"
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                    className="hidden"
+                    onChange={e => onFileChange(e, 'brandingIcon')}
+                  />
+                  {brandingIcon ? (
+                    <div className="relative h-full w-full">
+                      <img
+                        src={brandingIcon}
+                        className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
+                        alt="icon"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => removeImage('brandingIcon')}
+                        variant="hover-destructive"
+                        className="absolute -right-2 -top-2 z-20 h-auto cursor-pointer rounded-full border bg-background p-0.5"
+                      >
+                        <IconClose className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center rounded-lg border" />
+                  )}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )
+          }}
+        />
 
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <div>
+            <FormMessage />
+          </div>
           <div className="flex items-center gap-x-3">
             {form.formState.isDirty && !form.formState.isSubmitting && (
               <Button
@@ -272,7 +293,7 @@ export const GeneralBrandingForm = () => {
 
   return (
     <div className="min-h-[160px]">
-      <LoadingWrapper loading={!data || stale} fallback={<FormSkeleton />}>
+      <LoadingWrapper loading={stale} fallback={<FormSkeleton />}>
         <BrandingForm
           defaultValues={{
             brandingName: data?.brandingSetting?.brandingName ?? undefined,

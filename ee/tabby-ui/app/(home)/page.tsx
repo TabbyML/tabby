@@ -158,10 +158,13 @@ function MainPanel() {
               <BrandingLogo
                 width={192}
                 defaultLogoUrl={tabbyUrl.src}
-                className={cn('mt-4 invert dark:invert-0', {
+                className={cn('mt-4', {
                   'mb-4': isChatEnabled,
                   'mb-2': !isChatEnabled
                 })}
+                classNames={{
+                  defaultLogo: 'invert dark:invert-0'
+                }}
               />
             </AnimationWrapper>
             {isChatEnabled && (

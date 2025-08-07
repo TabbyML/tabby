@@ -36,6 +36,11 @@ struct LicenseJWTPayload {
     /// License Type
     pub typ: LicenseType,
 
+    /// Features
+    /// custom-logo
+    #[serde(default)]
+    pub fet: Vec<String>,
+
     /// Number of license (# of seats).
     pub num: usize,
 }
@@ -80,6 +85,7 @@ impl LicenseServiceImpl {
             seats_used: seats_used as i32,
             issued_at: None,
             expires_at: None,
+            features: None,
         }
         .guard_seat_limit())
     }
@@ -93,6 +99,7 @@ impl LicenseServiceImpl {
             seats_used,
             issued_at: None,
             expires_at: None,
+            features: Some(vec!["custom-logo".to_string()]),
         })
     }
 }
@@ -120,6 +127,7 @@ fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<Li
         seats_used: seats_used as i32,
         issued_at: Some(issued_at),
         expires_at: Some(expires_at),
+        features: Some(raw.fet),
     }
     .guard_seat_limit();
     Ok(license)

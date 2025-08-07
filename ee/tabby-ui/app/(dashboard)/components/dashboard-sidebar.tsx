@@ -163,24 +163,17 @@ export default function AppSidebar() {
             className="hidden group-data-[collapsible=icon]:block"
           />
           <div className="w-[128px] group-data-[collapsible=icon]:hidden">
-            {/* todo */}
             <BrandingLogo
               defaultLogoUrl={logoUrl.src}
               alt="logo"
               width={128}
               className="dark:hidden"
-              classNames={{
-                customLogo: 'invert dark:invert-0'
-              }}
             />
             <BrandingLogo
               defaultLogoUrl={logoDarkUrl.src}
               alt="logo"
               width={128}
               className="hidden dark:block"
-              classNames={{
-                customLogo: 'invert dark:invert-0'
-              }}
             />
           </div>
         </Link>
