@@ -125,4 +125,36 @@ mod tests {
             }
         );
     }
+
+    #[tokio::test]
+    async fn test_branding_setting() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let svc = create(db.clone());
+
+        assert_eq!(
+            svc.read_branding_setting().await.unwrap(),
+            BrandingSetting {
+                branding_logo: None,
+                branding_icon: None,
+                branding_name: None,
+            }
+        );
+
+        svc.update_branding_setting(BrandingSettingInput {
+            branding_name: Some("name".into()),
+            branding_logo: Some("logo".into()),
+            branding_icon: Some("icon".into()),
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(
+            svc.read_branding_setting().await.unwrap(),
+            BrandingSetting {
+                branding_name: Some("name".into()),
+                branding_logo: Some("logo".into()),
+                branding_icon: Some("icon".into()),
+            }
+        );
+    }
 }

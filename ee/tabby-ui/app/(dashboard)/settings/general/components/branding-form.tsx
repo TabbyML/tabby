@@ -20,7 +20,11 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { IconCloudUpload, IconSpinner } from '@/components/ui/icons'
+import {
+  IconCloudUpload,
+  IconClose,
+  IconSpinner
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 // import { mutateBranding } from '@/components/branding-logo'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -91,16 +95,26 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
     reader.readAsDataURL(file)
   }
 
+  const removeImage = (field: 'brandingLogo' | 'brandingIcon') => {
+    form.setValue(field, "", { shouldDirty: true })
+  }
+
   const onSubmit = async (values: BrandingFormValues) => {
     await updateBrandingSetting({
       input: {
         ...values,
-        brandingLogo: values.brandingLogo?.startsWith('data:')
-          ? values.brandingLogo
-          : undefined,
-        brandingIcon: values.brandingIcon?.startsWith('data:')
-          ? values.brandingIcon
-          : undefined
+        brandingLogo:
+          values.brandingLogo === ''
+            ? null
+            : values.brandingLogo?.startsWith('data:')
+            ? values.brandingLogo
+            : undefined,
+        brandingIcon:
+          values.brandingIcon === ''
+            ? null
+            : values.brandingIcon?.startsWith('data:')
+            ? values.brandingIcon
+            : undefined
       }
     })
   }
@@ -152,11 +166,21 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
             onChange={e => onFileChange(e, 'brandingLogo')}
           />
           {brandingLogo ? (
-            <img
-              src={brandingLogo}
-              className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
-              alt="logo"
-            />
+            <div className="relative h-full w-full">
+              <img
+                src={brandingLogo}
+                className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
+                alt="logo"
+              />
+              <Button
+                type="button"
+                onClick={() => removeImage('brandingLogo')}
+                variant='hover-destructive'
+                className="absolute -right-2 -top-2 z-20 cursor-pointer rounded-full p-0.5 h-auto border bg-background"
+              >
+                <IconClose className="h-4 w-4" />
+              </Button>
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-lg border" />
           )}
@@ -192,11 +216,21 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
             onChange={e => onFileChange(e, 'brandingIcon')}
           />
           {brandingIcon ? (
-            <img
-              src={brandingIcon}
-              className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
-              alt="icon"
-            />
+            <div className="relative h-full w-full">
+              <img
+                src={brandingIcon}
+                className="absolute left-0 top-0 z-10 h-full w-full rounded-lg border bg-background object-contain p-2"
+                alt="icon"
+              />
+              <Button
+                type="button"
+                onClick={() => removeImage('brandingIcon')}
+                variant='hover-destructive'
+                className="absolute -right-2 -top-2 z-20 cursor-pointer rounded-full p-0.5 h-auto border bg-background"
+              >
+                <IconClose className="h-4 w-4" />
+              </Button>
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-lg border" />
           )}
