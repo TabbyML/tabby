@@ -20,11 +20,7 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import {
-  IconCloudUpload,
-  IconClose,
-  IconSpinner
-} from '@/components/ui/icons'
+import { IconClose, IconCloudUpload, IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 // import { mutateBranding } from '@/components/branding-logo'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -96,7 +92,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
   }
 
   const removeImage = (field: 'brandingLogo' | 'brandingIcon') => {
-    form.setValue(field, "", { shouldDirty: true })
+    form.setValue(field, '', { shouldDirty: true })
   }
 
   const onSubmit = async (values: BrandingFormValues) => {
@@ -175,8 +171,8 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
               <Button
                 type="button"
                 onClick={() => removeImage('brandingLogo')}
-                variant='hover-destructive'
-                className="absolute -right-2 -top-2 z-20 cursor-pointer rounded-full p-0.5 h-auto border bg-background"
+                variant="hover-destructive"
+                className="absolute -right-2 -top-2 z-20 h-auto cursor-pointer rounded-full border bg-background p-0.5"
               >
                 <IconClose className="h-4 w-4" />
               </Button>
@@ -225,8 +221,8 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
               <Button
                 type="button"
                 onClick={() => removeImage('brandingIcon')}
-                variant='hover-destructive'
-                className="absolute -right-2 -top-2 z-20 cursor-pointer rounded-full p-0.5 h-auto border bg-background"
+                variant="hover-destructive"
+                className="absolute -right-2 -top-2 z-20 h-auto cursor-pointer rounded-full border bg-background p-0.5"
               >
                 <IconClose className="h-4 w-4" />
               </Button>
