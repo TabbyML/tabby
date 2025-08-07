@@ -54,11 +54,7 @@ impl SettingService for SettingServiceImpl {
 
     async fn update_branding_setting(&self, input: BrandingSettingInput) -> Result<()> {
         self.db
-            .update_branding_setting(
-                input.branding_logo,
-                input.branding_icon,
-                input.branding_name,
-            )
+            .update_branding_setting(input.branding_logo, input.branding_icon)
             .await?;
         Ok(())
     }
@@ -136,12 +132,10 @@ mod tests {
             BrandingSetting {
                 branding_logo: None,
                 branding_icon: None,
-                branding_name: None,
             }
         );
 
         svc.update_branding_setting(BrandingSettingInput {
-            branding_name: Some("name".into()),
             branding_logo: Some("logo".into()),
             branding_icon: Some("icon".into()),
         })
@@ -151,7 +145,6 @@ mod tests {
         assert_eq!(
             svc.read_branding_setting().await.unwrap(),
             BrandingSetting {
-                branding_name: Some("name".into()),
                 branding_logo: Some("logo".into()),
                 branding_icon: Some("icon".into()),
             }

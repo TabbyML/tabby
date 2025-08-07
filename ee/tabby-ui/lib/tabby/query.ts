@@ -706,7 +706,6 @@ export const brandingSettingQuery = graphql(/* GraphQL */ `
     brandingSetting {
       brandingLogo
       brandingIcon
-      brandingName
     }
   }
 `)

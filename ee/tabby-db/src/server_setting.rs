@@ -12,7 +12,6 @@ pub struct ServerSettingDAO {
     pub network_external_url: String,
     pub branding_logo: Option<String>,
     pub branding_icon: Option<String>,
-    pub branding_name: Option<String>,
 }
 
 const SERVER_SETTING_ROW_ID: i32 = 1;
@@ -40,8 +39,7 @@ impl DbConn {
                 billing_enterprise_license,
                 security_disable_password_login,
                 branding_logo,
-                branding_icon,
-                branding_name
+                branding_icon
             FROM server_setting
             WHERE id = ?;",
         )
@@ -116,13 +114,11 @@ impl DbConn {
         &self,
         branding_logo: Option<String>,
         branding_icon: Option<String>,
-        branding_name: Option<String>,
     ) -> Result<()> {
         sqlx::query!(
-            "UPDATE server_setting SET branding_logo = ?, branding_icon = ?, branding_name = ? WHERE id = ?",
+            "UPDATE server_setting SET branding_logo = ?, branding_icon = ? WHERE id = ?",
             branding_logo,
             branding_icon,
-            branding_name,
             SERVER_SETTING_ROW_ID
         )
         .execute(&self.pool)
@@ -169,7 +165,6 @@ mod tests {
             network_external_url: "http://localhost:8080".into(),
             branding_logo: None,
             branding_icon: None,
-            branding_name: None,
         }
     }
     #[test]

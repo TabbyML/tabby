@@ -138,7 +138,6 @@ impl From<ServerSettingDAO> for BrandingSetting {
         Self {
             branding_logo: value.branding_logo,
             branding_icon: value.branding_icon,
-            branding_name: value.branding_name,
         }
     }
 }

@@ -56,7 +56,6 @@ pub struct NetworkSettingInput {
 pub struct BrandingSetting {
     pub branding_logo: Option<String>,
     pub branding_icon: Option<String>,
-    pub branding_name: Option<String>,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -65,7 +64,6 @@ pub struct BrandingSettingInput {
     pub branding_logo: Option<String>,
     #[validate(custom(function = "validate_icon_image"))]
     pub branding_icon: Option<String>,
-    pub branding_name: Option<String>,
 }
 
 fn first_duplicate(strings: &[impl std::hash::Hash + Eq]) -> Option<usize> {

@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
-  FormControl,
   FormDescription,
   FormField,
   FormItem,
@@ -22,8 +21,6 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { IconClose, IconCloudUpload, IconSpinner } from '@/components/ui/icons'
-import { Input } from '@/components/ui/input'
-// import { mutateBranding } from '@/components/branding-logo'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { FormSkeleton } from '@/components/skeleton'
 
@@ -34,7 +31,6 @@ const updateBrandingSettingMutation = graphql(/* GraphQL */ `
 `)
 
 const formSchema = z.object({
-  brandingName: z.string().optional(),
   brandingLogo: z.string().optional(),
   brandingIcon: z.string().optional()
 })
@@ -99,7 +95,6 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
   const onSubmit = async (values: BrandingFormValues) => {
     await updateBrandingSetting({
       input: {
-        ...values,
         brandingLogo:
           values.brandingLogo === ''
             ? null
@@ -119,20 +114,6 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
   return (
     <Form {...form}>
       <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          control={form.control}
-          name="brandingName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Brand Name</FormLabel>
-              <FormControl>
-                <Input {...field} className="w-[26rem]" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <FormField
           name="brandingLogo"
           render={() => {
@@ -296,7 +277,6 @@ export const GeneralBrandingForm = () => {
       <LoadingWrapper loading={stale} fallback={<FormSkeleton />}>
         <BrandingForm
           defaultValues={{
-            brandingName: data?.brandingSetting?.brandingName ?? undefined,
             brandingLogo: data?.brandingSetting?.brandingLogo ?? undefined,
             brandingIcon: data?.brandingSetting?.brandingIcon ?? undefined
           }}

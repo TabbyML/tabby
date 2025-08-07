@@ -64,7 +64,9 @@ CREATE TABLE server_setting(
   network_external_url STRING NOT NULL DEFAULT 'http://localhost:8080'
   ,
   billing_enterprise_license STRING,
-  security_disable_password_login BOOLEAN NOT NULL DEFAULT FALSE
+  security_disable_password_login BOOLEAN NOT NULL DEFAULT FALSE,
+  branding_logo TEXT DEFAULT NULL,
+  branding_icon TEXT DEFAULT NULL
 );
 CREATE TABLE email_setting(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
