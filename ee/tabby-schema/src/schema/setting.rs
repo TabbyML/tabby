@@ -125,7 +125,7 @@ fn validate_image_impl(image: &String, code: &'static str) -> Result<(), Validat
         return Err(err);
     }
 
-    let Some(mime_type) = image.split(|c| c == ',' || c == ';').next() else {
+    let Some(mime_type) = image.split([',', ';']).next() else {
         let mut err = ValidationError::new(code);
         err.message = Some("Invalid image format".into());
         return Err(err);
