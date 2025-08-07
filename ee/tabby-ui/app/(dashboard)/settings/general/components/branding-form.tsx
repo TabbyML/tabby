@@ -103,14 +103,14 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
           values.brandingLogo === ''
             ? null
             : values.brandingLogo?.startsWith('data:')
-              ? values.brandingLogo
-              : undefined,
+            ? values.brandingLogo
+            : undefined,
         brandingIcon:
           values.brandingIcon === ''
             ? null
             : values.brandingIcon?.startsWith('data:')
-              ? values.brandingIcon
-              : undefined
+            ? values.brandingIcon
+            : undefined
       }
     })
   }
@@ -237,7 +237,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
             {form.formState.isDirty && !form.formState.isSubmitting && (
               <Button
                 type="button"
-                variant='ghost'
+                variant="ghost"
                 onClick={() => {
                   form.reset()
                 }}
