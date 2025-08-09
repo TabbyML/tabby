@@ -71,6 +71,7 @@ const oauthCallbackUrl = graphql(/* GraphQL */ `
 const defaultFormSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
+  configUrl: z.string(),
   provider: z.nativeEnum(OAuthProvider)
 })
 
@@ -268,6 +269,19 @@ export default function OAuthCredentialForm({
                         GitLab
                       </Label>
                     </div>
+                    <div className="flex items-center">
+                      <RadioGroupItem
+                        value={OAuthProvider.General}
+                        id="r_general"
+                        disabled={!isNew}
+                      />
+                      <Label
+                        className="flex cursor-pointer items-center gap-2 pl-2"
+                        htmlFor="r_general"
+                      >
+                        General OAuth
+                      </Label>
+                    </div>
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />
@@ -306,6 +320,27 @@ export default function OAuthCredentialForm({
               The information is provided by your identity provider.
             </FormDescription>
           </div>
+          {providerValue == OAuthProvider.General && (
+            <FormField
+              control={form.control}
+              name="configUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Configuration URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. http://example.com/.well-known/openid-configuration"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="clientId"

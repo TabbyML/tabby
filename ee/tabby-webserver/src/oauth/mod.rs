@@ -1,3 +1,4 @@
+mod general;
 mod github;
 mod gitlab;
 mod google;
@@ -6,6 +7,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use general::GeneralClient;
 use github::GithubClient;
 use google::GoogleClient;
 use tabby_schema::auth::{AuthenticationService, OAuthProvider};
@@ -28,6 +30,7 @@ pub fn new_oauth_client(
         OAuthProvider::Gitlab => Arc::new(GitlabClient::new(auth)),
         OAuthProvider::Google => Arc::new(GoogleClient::new(auth)),
         OAuthProvider::Github => Arc::new(GithubClient::new(auth)),
+        OAuthProvider::General => Arc::new(GeneralClient::new(auth)),
     }
 }
 
