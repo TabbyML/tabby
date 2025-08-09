@@ -79,6 +79,10 @@ enum LdapEncryptionKind {
   LDAPS
 }
 
+enum LicenseFeature {
+  CUSTOM_LOGO
+}
+
 enum LicenseStatus {
   OK
   EXPIRED
@@ -121,6 +125,11 @@ enum RepositoryKind {
 enum Role {
   USER
   ASSISTANT
+}
+
+input BrandingSettingInput {
+  brandingLogo: String
+  brandingIcon: String
 }
 
 input CodeQueryInput {
@@ -471,6 +480,11 @@ type AuthProvider {
   kind: AuthProviderKind!
 }
 
+type BrandingSetting {
+  brandingLogo: String
+  brandingIcon: String
+}
+
 type ChatCompletionMessage {
   role: String!
   content: String!
@@ -695,6 +709,7 @@ type LicenseInfo {
   seatsUsed: Int!
   issuedAt: DateTime
   expiresAt: DateTime
+  features: [LicenseFeature!]
 }
 
 type Message {
@@ -848,6 +863,7 @@ type Mutation {
   updateEmailSetting(input: EmailSettingInput!): Boolean!
   updateSecuritySetting(input: SecuritySettingInput!): Boolean!
   updateNetworkSetting(input: NetworkSettingInput!): Boolean!
+  updateBrandingSetting(input: BrandingSettingInput!): Boolean!
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
@@ -1089,6 +1105,7 @@ type Query {
   emailSetting: EmailSetting
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
+  brandingSetting: BrandingSetting!
   gitRepositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   "Search files that matches the pattern in the repository."
   repositorySearch(kind: RepositoryKind!, id: ID!, rev: String, pattern: String!): [FileEntrySearchResult!]!

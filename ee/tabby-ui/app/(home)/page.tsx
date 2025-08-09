@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import { compact } from 'lodash-es'
@@ -29,6 +28,7 @@ import { contextInfoQuery } from '@/lib/tabby/query'
 import { ThreadRunContexts } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { BrandingLogo } from '@/components/branding-logo'
 import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { NotificationBox } from '@/components/notification-box'
@@ -155,14 +155,16 @@ function MainPanel() {
                 amount: 0.1
               }}
             >
-              <Image
-                src={tabbyUrl}
-                alt="logo"
+              <BrandingLogo
                 width={192}
-                className={cn('mt-4 invert dark:invert-0', {
+                defaultLogoUrl={tabbyUrl.src}
+                className={cn('mt-4', {
                   'mb-4': isChatEnabled,
                   'mb-2': !isChatEnabled
                 })}
+                classNames={{
+                  defaultLogo: 'invert dark:invert-0'
+                }}
               />
             </AnimationWrapper>
             {isChatEnabled && (

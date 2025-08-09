@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use tabby_db::DbConn;
 use tabby_schema::{
     setting::{
-        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+        BrandingSetting, BrandingSettingInput, NetworkSetting, NetworkSettingInput,
+        SecuritySetting, SecuritySettingInput, SettingService,
     },
     Result,
 };
@@ -44,6 +45,17 @@ impl SettingService for SettingServiceImpl {
 
     async fn update_network_setting(&self, input: NetworkSettingInput) -> Result<()> {
         self.db.update_network_setting(input.external_url).await?;
+        Ok(())
+    }
+
+    async fn read_branding_setting(&self) -> Result<BrandingSetting> {
+        Ok(self.db.read_server_setting().await?.into())
+    }
+
+    async fn update_branding_setting(&self, input: BrandingSettingInput) -> Result<()> {
+        self.db
+            .update_branding_setting(input.branding_logo, input.branding_icon)
+            .await?;
         Ok(())
     }
 }
@@ -106,6 +118,35 @@ mod tests {
             svc.read_network_setting().await.unwrap(),
             NetworkSetting {
                 external_url: "http://localhost:8081".into(),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_branding_setting() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let svc = create(db.clone());
+
+        assert_eq!(
+            svc.read_branding_setting().await.unwrap(),
+            BrandingSetting {
+                branding_logo: None,
+                branding_icon: None,
+            }
+        );
+
+        svc.update_branding_setting(BrandingSettingInput {
+            branding_logo: Some("logo".into()),
+            branding_icon: Some("icon".into()),
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(
+            svc.read_branding_setting().await.unwrap(),
+            BrandingSetting {
+                branding_logo: Some("logo".into()),
+                branding_icon: Some("icon".into()),
             }
         );
     }

@@ -1,7 +1,6 @@
 'use client'
 
 import React, { FunctionComponent } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import logoDarkUrl from '@/assets/logo-dark.png'
@@ -39,6 +38,7 @@ import {
   SidebarMenuSubItem,
   useSidebar
 } from '@/components/ui/sidebar'
+import { BrandingIcon, BrandingLogo } from '@/components/branding-logo'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 export interface SidebarProps {
@@ -156,28 +156,26 @@ export default function AppSidebar() {
           href="/"
           className="flex h-[3.375rem] items-center justify-center py-2"
         >
-          <>
-            <Image
-              src={tabbyLogo}
-              width={32}
+          <BrandingIcon
+            defaultLogoUrl={tabbyLogo.src}
+            width={32}
+            alt="logo"
+            className="hidden group-data-[collapsible=icon]:block"
+          />
+          <div className="w-[128px] group-data-[collapsible=icon]:hidden">
+            <BrandingLogo
+              defaultLogoUrl={logoUrl.src}
               alt="logo"
-              className="hidden group-data-[collapsible=icon]:block"
+              width={128}
+              className="dark:hidden"
             />
-            <div className="w-[128px] group-data-[collapsible=icon]:hidden">
-              <Image
-                src={logoUrl}
-                alt="logo"
-                className="dark:hidden"
-                width={128}
-              />
-              <Image
-                src={logoDarkUrl}
-                alt="logo"
-                width={96}
-                className="hidden dark:block"
-              />
-            </div>
-          </>
+            <BrandingLogo
+              defaultLogoUrl={logoDarkUrl.src}
+              alt="logo"
+              width={128}
+              className="hidden dark:block"
+            />
+          </div>
         </Link>
       </SidebarHeader>
       <SidebarContent>

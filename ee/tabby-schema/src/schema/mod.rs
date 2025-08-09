@@ -87,7 +87,8 @@ use self::{
         RepositoryKind, RepositoryService, UpdateIntegrationInput,
     },
     setting::{
-        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+        BrandingSetting, NetworkSetting, NetworkSettingInput, SecuritySetting,
+        SecuritySettingInput, SettingService,
     },
     user_event::{UserEvent, UserEventService},
     web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
@@ -420,6 +421,12 @@ impl Query {
     async fn security_setting(ctx: &Context) -> Result<SecuritySetting> {
         check_admin(ctx).await?;
         ctx.locator.setting().read_security_setting().await
+    }
+
+    async fn branding_setting(ctx: &Context) -> Result<BrandingSetting> {
+        let license = ctx.locator.license().read().await?;
+        license.ensure_available_features(license::LicenseFeature::CustomLogo)?;
+        ctx.locator.setting().read_branding_setting().await
     }
 
     async fn git_repositories(
@@ -1372,6 +1379,18 @@ impl Mutation {
         check_admin(ctx).await?;
         input.validate()?;
         ctx.locator.setting().update_network_setting(input).await?;
+        Ok(true)
+    }
+
+    async fn update_branding_setting(
+        ctx: &Context,
+        input: setting::BrandingSettingInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        let license = ctx.locator.license().read().await?;
+        license.ensure_available_features(license::LicenseFeature::CustomLogo)?;
+        input.validate()?;
+        ctx.locator.setting().update_branding_setting(input).await?;
         Ok(true)
     }
 
