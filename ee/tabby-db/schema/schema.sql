@@ -271,18 +271,17 @@ CREATE TABLE IF NOT EXISTS "pages"(
   code_source_id VARCHAR(255),
   FOREIGN KEY(author_id) REFERENCES "users"(id) ON DELETE CASCADE
 );
-CREATE TABLE page_sections(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  page_id INTEGER NOT NULL,
-  title TEXT NOT NULL,
-  content TEXT,
-  position INTEGER NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+CREATE TABLE IF NOT EXISTS "page_sections"(
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  page_id integer NOT NULL,
+  title text NOT NULL,
+  content text,
+  "position" integer NOT NULL,
+  created_at timestamp NOT NULL DEFAULT(DATETIME('now')),
+  updated_at timestamp NOT NULL DEFAULT(DATETIME('now')),
   attachment BLOB NOT NULL DEFAULT '{}',
-  --- Ensure that the position is unique for each page
-  CONSTRAINT `unique_page_id_position` UNIQUE(page_id, position),
-  FOREIGN KEY(page_id) REFERENCES pages(id) ON DELETE CASCADE
+  FOREIGN KEY(page_id) REFERENCES "pages"(id) ON DELETE CASCADE,
+  UNIQUE(page_id, "position")
 );
 CREATE TABLE ingested_documents(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
