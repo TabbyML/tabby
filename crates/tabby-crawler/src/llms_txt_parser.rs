@@ -18,7 +18,7 @@ pub fn split_llms_content(content: &str, base_url: &str) -> Vec<CrawledDocument>
                 let base_url_str = current_url.take().unwrap_or_else(|| base_url.to_owned());
                 // URL-encode the title and append it as a fragment
                 let encoded_title = utf8_percent_encode(&title, NON_ALPHANUMERIC).to_string();
-                let url = format!("{}#{}", base_url_str, encoded_title);
+                let url = format!("{base_url_str}#{encoded_title}");
                 let metadata = CrawledMetadata {
                     title: title.into(),
                     description: base_url_str.into(),
@@ -47,7 +47,7 @@ pub fn split_llms_content(content: &str, base_url: &str) -> Vec<CrawledDocument>
         let base_url_str = current_url.unwrap_or_else(|| base_url.to_owned());
         // URL-encode the title and append it as a fragment
         let encoded_title = utf8_percent_encode(&title, NON_ALPHANUMERIC).to_string();
-        let url = format!("{}#{}", base_url_str, encoded_title);
+        let url = format!("{base_url_str}#{encoded_title}");
         let metadata = CrawledMetadata {
             title: title.into(),
             description: base_url_str.into(),
