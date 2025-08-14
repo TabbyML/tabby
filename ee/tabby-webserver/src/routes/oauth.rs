@@ -23,6 +23,7 @@ pub fn routes(state: Arc<dyn AuthenticationService>) -> Router {
         .route("/callback/github", routing::get(github_oauth_handler))
         .route("/callback/google", routing::get(google_oauth_handler))
         .route("/callback/gitlab", routing::get(gitlab_oauth_handler))
+        .route("/callback/general", routing::get(general_oauth_handler))
         .with_state(state)
 }
 
@@ -121,6 +122,22 @@ async fn gitlab_oauth_handler(
     match_auth_result(
         OAuthProvider::Gitlab,
         state.oauth(param.code, OAuthProvider::Gitlab).await,
+    )
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct GeneralOAuthQueryParam {
+    code: String,
+    state: Option<String>,
+}
+async fn general_oauth_handler(
+    State(state): State<OAuthState>,
+    Query(param): Query<GeneralOAuthQueryParam>,
+) -> Redirect {
+    match_auth_result(
+        OAuthProvider::General,
+        state.oauth(param.code, OAuthProvider::General).await,
     )
 }
 
