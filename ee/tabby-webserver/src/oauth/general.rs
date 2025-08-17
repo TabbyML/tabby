@@ -108,8 +108,6 @@ impl OAuthClient for GeneralClient {
             self.auth.oauth_callback_url(OAuthProvider::General).await?
         )?;
 
-        let scopes_supported = oidc_config.scopes_supported().unwrap().clone();
-
         let oidc_client = CoreClient::from_provider_metadata(
             oidc_config,
             ClientId::new(credential.client_id),
@@ -153,13 +151,13 @@ impl OAuthClient for GeneralClient {
         let mut user_info = self.user_info.lock().unwrap();
         *user_info = match user_info_response {
             Ok(user_info) => Some(user_info),
-            Err(err) => None,
+            Err(_err) => None,
         };
 
         Ok(access_token)
     }
 
-    async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
+    async fn fetch_user_email(&self, _access_token: &str) -> Result<String> {
         let user_info = self.user_info.lock().unwrap();
         match &*user_info {
             Some(user_info) =>{
@@ -172,7 +170,7 @@ impl OAuthClient for GeneralClient {
         }
     }
 
-    async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
+    async fn fetch_user_full_name(&self, _access_token: &str) -> Result<String> {
         let user_info = self.user_info.lock().unwrap();
         match &*user_info {
             Some(user_info) => {
