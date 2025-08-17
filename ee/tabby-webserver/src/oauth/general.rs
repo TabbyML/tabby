@@ -1,11 +1,13 @@
 use std::sync::{Arc, Mutex};
 
+use anyhow::anyhow;
 use anyhow::Result;
 use async_trait::async_trait;
 use openidconnect::{
     CsrfToken,
     ClientId,
     ClientSecret,
+    DiscoveryError,
     IssuerUrl,
     Nonce,
     PkceCodeChallenge,
@@ -56,15 +58,20 @@ impl GeneralClient {
 
     // TODO: Ensure that the HTTP client *does not* follow redirects.
     // TODO: Cache the HTTP response so we do not hit the endpoint every time we need the OIDC Discovery Endpoint
-    async fn retrieve_provider_metadata(&self, config_url: Option<String>) -> CoreProviderMetadata {
+    async fn retrieve_provider_metadata(&self, config_url: Option<String>) ->Result<CoreProviderMetadata, anyhow::Error> {
         let config_url = config_url.unwrap_or_else(|| "".to_owned());
 
+        // TODO: Add error handling for the HTTP client and the OIDC Discovery Endpoint (when the endpoint is not reachable)
         let client = reqwest::Client::new();
-        CoreProviderMetadata::discover_async(
+        let provider_metadata = CoreProviderMetadata::discover_async(
             IssuerUrl::new(config_url).ok().unwrap(),
             &client,
-        ).await
-        .ok().unwrap()
+        ).await;
+
+        match provider_metadata {
+            Ok(provider_metadata) => Ok(provider_metadata),
+            Err(e) => Err(anyhow!(e)),
+        }
     }
 }
 
@@ -85,7 +92,11 @@ impl OAuthClient for GeneralClient {
     async fn get_authorization_url(&self) -> Result<String> {
         let credential = self.read_credential().await?;
         let config_url = credential.config_url;
-        let oidc_config = self.retrieve_provider_metadata(config_url).await;
+        let oidc_config = match self.retrieve_provider_metadata(config_url).await
+        {
+            Ok(config) => config,
+            Err(err) => return Err(err),
+        };
 
         let redirect_uri = RedirectUrl::new(
             self.auth.oauth_callback_url(OAuthProvider::General).await?
