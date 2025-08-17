@@ -62,6 +62,7 @@ cached.workspace = true
 humantime = { workspace = true }
 validator = { workspace = true }
 utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
+openidconnect = "4.0.1"
 
 [dev-dependencies]
 assert_matches.workspace = true

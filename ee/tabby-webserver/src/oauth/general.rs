@@ -2,42 +2,29 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use cached::{proc_macro::cached, TimedCache};
+use openidconnect::{
+    CsrfToken,
+    ClientId,
+    ClientSecret,
+    IssuerUrl,
+    Nonce,
+    PkceCodeChallenge,
+    RedirectUrl,
+};
+use openidconnect::core::{
+    CoreAuthenticationFlow,
+    CoreClient,
+    CoreProviderMetadata,
+};
 use serde::Deserialize;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 use super::OAuthClient;
 use crate::bail;
 
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct GeneralOAuthResponse {
-    #[serde(default)]
-    access_token: String,
-    #[serde(default)]
-    scope: String,
-    #[serde(default)]
-    token_type: String,
-
-    #[serde(default)]
-    error: String,
-    #[serde(default)]
-    error_description: String,
-    #[serde(default)]
-    error_uri: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[allow(dead_code)]
-struct GeneralUserInfo {
-    email: String,
-    name: String,
-}
-
 pub struct GeneralClient {
     client: reqwest::Client,
     auth: Arc<dyn AuthenticationService>,
-    user_info: Mutex<Option<GeneralUserInfo>>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -52,41 +39,8 @@ impl GeneralClient {
     pub fn new(auth: Arc<dyn AuthenticationService>) -> Self {
         Self {
             client: reqwest::Client::new(),
-            auth,
-            user_info: Mutex::new(None),
+            auth
         }
-    }
-
-    async fn retrieve_user_info(&self, access_token: &str) -> Result<GeneralUserInfo> {
-        {
-            // Return cached user info if available
-            let cache = self.user_info.lock().unwrap();
-            if let Some(ref cached_info) = *cache {
-                return Ok(cached_info.clone());
-            }
-        }
-
-        let credential = self.read_credential().await?;
-        let config_url = credential.config_url;
-        let oidc_config = self.retrieve_oidc_config(config_url).await;
-
-        let user_info = self
-            .client
-            .get(oidc_config.userinfo_endpoint)
-            .header(reqwest::header::ACCEPT, "application/json")
-            .header(
-                reqwest::header::AUTHORIZATION,
-                format!("Bearer {access_token}"),
-            )
-            .send()
-            .await?
-            .json::<GeneralUserInfo>()
-            .await?;
-
-        let mut cache = self.user_info.lock().unwrap();
-        *cache = Some(user_info.clone());
-
-        Ok(user_info)
     }
 
     async fn read_credential(&self) -> Result<OAuthCredential> {
@@ -100,107 +54,71 @@ impl GeneralClient {
         }
     }
 
-    async fn retrieve_oidc_config(&self, config_url: Option<String>) -> OAuthConfig {
+    // TODO: Ensure that the HTTP client *does not* follow redirects.
+    // TODO: Cache the HTTP response so we do not hit the endpoint every time we need the OIDC Discovery Endpoint
+    async fn retrieve_provider_metadata(&self, config_url: Option<String>) -> CoreProviderMetadata {
         let config_url = config_url.unwrap_or_else(|| "".to_owned());
-        retrieve_oidc_config_cached(config_url).await
+
+        let client = reqwest::Client::new();
+        CoreProviderMetadata::discover_async(
+            IssuerUrl::new(config_url).ok().unwrap(),
+            &client,
+        ).await
+        .ok().unwrap()
     }
 }
 
 #[async_trait]
 impl OAuthClient for GeneralClient {
     async fn exchange_code_for_token(&self, code: String) -> Result<String> {
-        let credential = self.read_credential().await?;
-        let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::General).await?;
-        let params: [(&str, &str); 5] = [
-            ("client_id", &credential.client_id),
-            ("client_secret", &credential.client_secret),
-            ("code", &code),
-            ("grant_type", "authorization_code"),
-            ("redirect_uri", &redirect_uri),
-        ];
-
-        let config_url = credential.config_url;
-        let oidc_config = self.retrieve_oidc_config(config_url).await;
-        let token_endpoint = oidc_config.token_endpoint;
-
-        let token = self
-            .client
-            .post(token_endpoint)
-            .header(reqwest::header::ACCEPT, "application/json")
-            .form(&params)
-            .send()
-            .await?
-            .json::<GeneralOAuthResponse>()
-            .await?;
-
-        if token.access_token.is_empty() {
-            bail!(
-                "Failed to exchange access token: {}",
-                token.error_description
-            );
-        }
-
-        Ok(token.access_token)
+        Ok("".to_owned())
     }
 
     async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
-        let user_info = self.retrieve_user_info(access_token).await?;
-        if user_info.email.is_empty() {
-            bail!("No email found in user info");
-        }
-
-        Ok(user_info.email)
+        Ok("".to_owned())
     }
 
     async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
-        let user_info = self.retrieve_user_info(access_token).await?;
-        if user_info.name.is_empty() {
-            bail!("No name found in user info");
-        }
-
-        Ok(user_info.name)
+        Ok("".to_owned())
     }
 
     async fn get_authorization_url(&self) -> Result<String> {
         let credential = self.read_credential().await?;
-
         let config_url = credential.config_url;
-        let oidc_config = self.retrieve_oidc_config(config_url).await;
-        let authorization_endpoint = &oidc_config.authorization_endpoint;
+        let oidc_config = self.retrieve_provider_metadata(config_url).await;
 
-        let scope = oidc_config.scopes_supported.join(" ");
-        let redirect_uri = &self.auth.oauth_callback_url(OAuthProvider::General).await?;
+        let redirect_uri = RedirectUrl::new(
+            self.auth.oauth_callback_url(OAuthProvider::General).await?
+        )?;
 
-        let mut url = reqwest::Url::parse(authorization_endpoint)?;
+        let scopes_supported = oidc_config.scopes_supported().unwrap().clone();
 
-        let params: [(&str, &str); 4] = [
-            ("client_id", &credential.client_id),
-            ("response_type", "code"),
-            ("scope", &scope),
-            ("redirect_uri", redirect_uri),
-        ];
-        for (k, v) in params {
-            url.query_pairs_mut().append_pair(k, v);
+        let oidc_client = CoreClient::from_provider_metadata(
+            oidc_config,
+            ClientId::new(credential.client_id),
+            Some(ClientSecret::new(credential.client_secret)),
+        ).set_redirect_uri(redirect_uri);
+
+        let (pkce_chanllenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+
+        let mut authorization_request = oidc_client
+            .authorize_url(
+                CoreAuthenticationFlow::AuthorizationCode,
+                CsrfToken::new_random,
+                Nonce::new_random,
+            )
+            .set_pkce_challenge(pkce_chanllenge);
+
+        {
+            authorization_request = authorization_request.add_scopes(
+                scopes_supported
+                    .iter()
+                    .map(|s| openidconnect::Scope::new(s.to_string())),
+            )
         }
 
-        Ok(url.to_string())
+        // TODO: Store the pkce_verifier in the session
+        let (auth_uri, csrf_token, nonce) = authorization_request.url();
+        Ok(auth_uri.to_string())
     }
-}
-
-// Caches the OIDC well known configuration for 12 hours
-#[cached(
-    type = "TimedCache<String, OAuthConfig>",
-    create = "{ TimedCache::with_lifespan(3600 * 12) }",
-    convert = r#"{ url.to_string() }"#
-)]
-async fn retrieve_oidc_config_cached(url: String) -> OAuthConfig {
-    let client = reqwest::Client::new();
-    client
-        .get(&url)
-        .send()
-        .await
-        .unwrap()
-        .json::<OAuthConfig>()
-        .await
-        .unwrap()
 }
