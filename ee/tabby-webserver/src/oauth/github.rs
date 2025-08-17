@@ -93,7 +93,7 @@ impl GithubClient {
 
 #[async_trait]
 impl OAuthClient for GithubClient {
-    async fn exchange_code_for_token(&self, code: String) -> Result<String> {
+    async fn exchange_code_for_token(&self, code: String, state: Option<String>) -> Result<String> {
         let credentials = self.read_credential().await?;
         let token_resp = self.exchange_access_token(code, credentials).await?;
         if !token_resp.error.is_empty() {

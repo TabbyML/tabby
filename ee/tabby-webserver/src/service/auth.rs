@@ -561,6 +561,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     async fn oauth(
         &self,
         code: String,
+        state: Option<String>,
         provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError> {
         let client = oauth::new_oauth_client(provider, Arc::new(self.clone()));
@@ -573,6 +574,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         oauth_login(
             client,
             code,
+            state,
             &self.db,
             &*self.setting,
             &license,
@@ -755,12 +757,13 @@ async fn ldap_login(
 async fn oauth_login(
     client: Arc<dyn OAuthClient>,
     code: String,
+    state: Option<String>,
     db: &DbConn,
     setting: &dyn SettingService,
     license: &LicenseInfo,
     mail: &dyn EmailService,
 ) -> Result<OAuthResponse, OAuthError> {
-    let access_token = client.exchange_code_for_token(code).await?;
+    let access_token = client.exchange_code_for_token(code, state).await?;
     let email = client.fetch_user_email(&access_token).await?;
     let name = client.fetch_user_full_name(&access_token).await?;
     let user_id = get_or_create_sso_user(license, db, setting, mail, &email, &name).await?;

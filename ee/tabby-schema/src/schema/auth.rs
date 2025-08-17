@@ -516,6 +516,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn oauth(
         &self,
         code: String,
+        state: Option<String>,
         provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError>;
 

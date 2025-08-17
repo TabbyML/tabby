@@ -80,7 +80,7 @@ async fn github_oauth_handler(
 ) -> Redirect {
     match_auth_result(
         OAuthProvider::Github,
-        state.oauth(param.code, OAuthProvider::Github).await,
+        state.oauth(param.code, None, OAuthProvider::Github).await,
     )
 }
 
@@ -104,7 +104,7 @@ async fn google_oauth_handler(
     }
     match_auth_result(
         OAuthProvider::Google,
-        state.oauth(param.code, OAuthProvider::Google).await,
+        state.oauth(param.code, None, OAuthProvider::Google).await,
     )
 }
 
@@ -121,7 +121,7 @@ async fn gitlab_oauth_handler(
 ) -> Redirect {
     match_auth_result(
         OAuthProvider::Gitlab,
-        state.oauth(param.code, OAuthProvider::Gitlab).await,
+        state.oauth(param.code, None, OAuthProvider::Gitlab).await,
     )
 }
 
@@ -137,7 +137,7 @@ async fn general_oauth_handler(
 ) -> Redirect {
     match_auth_result(
         OAuthProvider::General,
-        state.oauth(param.code, OAuthProvider::General).await,
+        state.oauth(param.code, param.state, OAuthProvider::General).await,
     )
 }
 
