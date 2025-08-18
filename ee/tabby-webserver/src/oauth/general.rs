@@ -96,26 +96,19 @@ impl OAuthClient for GeneralClient {
             }
         };
 
-        // TODO: Move the credential reading into the retrieve_provider_metadata function.
         let credential = self.read_credential().await?;
         let config_url = credential.config_url;
-        let oidc_config = match self.retrieve_provider_metadata(config_url).await
+        let provider_metadata = match self.retrieve_provider_metadata(config_url).await
         {
             Ok(config) => config,
             Err(err) => return Err(err),
         };
-        let redirect_uri = RedirectUrl::new(
-            self.auth.oauth_callback_url(OAuthProvider::General).await?
-        )?;
-
         let oidc_client = CoreClient::from_provider_metadata(
-            oidc_config,
+            provider_metadata,
             ClientId::new(credential.client_id),
             Some(ClientSecret::new(credential.client_secret)),
-        ).set_redirect_uri(redirect_uri);
+        );
 
-
-        // TODO: Abstract the above
         let client = reqwest::Client::new();
         let pkce_verifier = PkceCodeVerifier::new(auth_req.pkce_verifier.clone());
         let token_response = oidc_client.exchange_code(AuthorizationCode::new(code))?
@@ -186,7 +179,7 @@ impl OAuthClient for GeneralClient {
     async fn get_authorization_url(&self) -> Result<String> {
         let credential = self.read_credential().await?;
         let config_url = credential.config_url;
-        let oidc_config = match self.retrieve_provider_metadata(config_url).await
+        let provider_metadata = match self.retrieve_provider_metadata(config_url).await
         {
             Ok(config) => config,
             Err(err) => return Err(err),
@@ -195,11 +188,10 @@ impl OAuthClient for GeneralClient {
         let redirect_uri = RedirectUrl::new(
             self.auth.oauth_callback_url(OAuthProvider::General).await?
         )?;
-
-        let scopes_supported = oidc_config.scopes_supported().unwrap().clone();
+        let scopes_supported = provider_metadata.scopes_supported().unwrap().clone();
 
         let oidc_client = CoreClient::from_provider_metadata(
-            oidc_config,
+            provider_metadata,
             ClientId::new(credential.client_id),
             Some(ClientSecret::new(credential.client_secret)),
         ).set_redirect_uri(redirect_uri);
