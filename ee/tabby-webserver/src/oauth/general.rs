@@ -3,6 +3,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 use anyhow::anyhow;
 use anyhow::Result;
 use async_trait::async_trait;
+use cached::{proc_macro::cached, TimedCache};
 use openidconnect::{
     AccessTokenHash,
     AuthorizationCode,
@@ -64,21 +65,8 @@ impl GeneralClient {
         }
     }
 
-    // TODO: Ensure that the HTTP client *does not* follow redirects.
-    // TODO: Cache the HTTP response so we do not hit the endpoint every time we need the OIDC Discovery Endpoint
-    async fn retrieve_provider_metadata(&self, config_url: Option<String>) ->Result<CoreProviderMetadata, anyhow::Error> {
-        let config_url = config_url.unwrap_or_else(|| "".to_owned());
-
-        let client = reqwest::Client::new();
-        let provider_metadata = CoreProviderMetadata::discover_async(
-            IssuerUrl::new(config_url).ok().unwrap(),
-            &client,
-        ).await;
-
-        match provider_metadata {
-            Ok(provider_metadata) => Ok(provider_metadata),
-            Err(e) => bail!(e),
-        }
+    async fn retrieve_provider_metadata( &self, config_url: String) -> Option<CoreProviderMetadata> {
+        retrieve_provider_metadata(config_url).await
     }
 }
 
@@ -97,12 +85,11 @@ impl OAuthClient for GeneralClient {
         };
 
         let credential = self.read_credential().await?;
-        let config_url = credential.config_url;
-        let provider_metadata = match self.retrieve_provider_metadata(config_url).await
-        {
-            Ok(config) => config,
-            Err(err) => bail!(err),
+        let config_url = match credential.config_url {
+            Some(config_url) => config_url,
+            None => bail!("No config url found."),
         };
+        let provider_metadata = self.retrieve_provider_metadata(config_url).await.unwrap();
         let oidc_client = CoreClient::from_provider_metadata(
             provider_metadata,
             ClientId::new(credential.client_id),
@@ -178,12 +165,11 @@ impl OAuthClient for GeneralClient {
 
     async fn get_authorization_url(&self) -> Result<String> {
         let credential = self.read_credential().await?;
-        let config_url = credential.config_url;
-        let provider_metadata = match self.retrieve_provider_metadata(config_url).await
-        {
-            Ok(config) => config,
-            Err(err) => bail!(err),
+        let config_url = match credential.config_url {
+            Some(config_url) => config_url,
+            None => bail!("No config url found."),
         };
+        let provider_metadata = self.retrieve_provider_metadata(config_url).await.unwrap();
 
         let redirect_uri = RedirectUrl::new(
             self.auth.oauth_callback_url(OAuthProvider::General).await?
@@ -224,5 +210,23 @@ impl OAuthClient for GeneralClient {
         auth_reqs.insert(csrf_token.into_secret(), auth_req);
 
         Ok(auth_uri.to_string())
+    }
+}
+
+
+#[cached(
+    type = "TimedCache<String, Option<CoreProviderMetadata>>",
+    create = "{ TimedCache::with_lifespan(3600 * 12) }"
+)]
+async fn retrieve_provider_metadata(config_url: String) -> Option<CoreProviderMetadata> {
+    let client = reqwest::Client::new();
+    let provider_metadata = CoreProviderMetadata::discover_async(
+        IssuerUrl::new(config_url).ok().unwrap(),
+        &client,
+    ).await;
+
+    match provider_metadata {
+        Ok(provider_metadata) => Some(provider_metadata),
+        Err(_) => None,
     }
 }
