@@ -97,6 +97,7 @@ impl LicenseInfo {
     }
 
     pub fn ensure_available_features(&self, feature: LicenseFeature) -> Result<()> {
+        self.ensure_valid_license()?;
         if let Some(features) = &self.features {
             if features.contains(&feature) {
                 return Ok(());
