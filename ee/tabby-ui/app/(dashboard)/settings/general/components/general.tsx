@@ -2,7 +2,11 @@
 
 import React from 'react'
 
-import { LicenseFeature } from '@/lib/gql/generates/graphql'
+import {
+  GetLicenseInfoQuery,
+  LicenseFeature,
+  LicenseStatus
+} from '@/lib/gql/generates/graphql'
 import { useLicense } from '@/lib/hooks/use-license'
 import { Separator } from '@/components/ui/separator'
 
@@ -18,7 +22,7 @@ export default function General() {
       <GeneralFormSection title="Network">
         <GeneralNetworkForm />
       </GeneralFormSection>
-      {data?.license.features?.includes(LicenseFeature.CustomLogo) && (
+      {hasValidLicenseFeature(data, LicenseFeature.CustomLogo) && (
         <>
           <Separator className="mb-8" />
           <GeneralFormSection title="Branding">
@@ -31,5 +35,16 @@ export default function General() {
         <GeneralSecurityForm />
       </GeneralFormSection>
     </div>
+  )
+}
+
+const hasValidLicenseFeature = (
+  licenseData: GetLicenseInfoQuery | undefined,
+  feature: LicenseFeature
+): boolean => {
+  return (
+    !!licenseData?.license &&
+    licenseData.license.status === LicenseStatus.Ok &&
+    !!licenseData.license.features?.includes(feature)
   )
 }
