@@ -1,31 +1,17 @@
-use std::sync::{Arc, LazyLock, Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Arc, LazyLock, Mutex},
+};
 
-use anyhow::anyhow;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cached::{proc_macro::cached, TimedCache};
 use openidconnect::{
-    AccessTokenHash,
-    AuthorizationCode,
-    CsrfToken,
-    ClientId,
-    ClientSecret,
-    IssuerUrl,
-    Nonce,
-    OAuth2TokenResponse,
-    PkceCodeChallenge,
-    PkceCodeVerifier,
-    RedirectUrl,
-    TokenResponse,
-};
-use openidconnect::core::{
-    CoreAuthenticationFlow,
-    CoreClient,
-    CoreProviderMetadata,
-    CoreUserInfoClaims,
+    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreUserInfoClaims},
+    AccessTokenHash, AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce,
+    OAuth2TokenResponse, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, TokenResponse,
 };
 use serde::Deserialize;
-use std::collections::HashMap;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 use super::OAuthClient;
@@ -42,9 +28,8 @@ pub struct OAuthRequest {
     pub pkce_verifier: String,
 }
 
-static AUTH_REQS: LazyLock<Mutex<HashMap<String, OAuthRequest>>> = LazyLock::new(|| {
-    Mutex::new(HashMap::new())
-});
+static AUTH_REQS: LazyLock<Mutex<HashMap<String, OAuthRequest>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 impl GeneralClient {
     pub fn new(auth: Arc<dyn AuthenticationService>) -> Self {
@@ -65,7 +50,7 @@ impl GeneralClient {
         }
     }
 
-    async fn retrieve_provider_metadata( &self, config_url: String) -> Option<CoreProviderMetadata> {
+    async fn retrieve_provider_metadata(&self, config_url: String) -> Option<CoreProviderMetadata> {
         retrieve_provider_metadata(config_url).await
     }
 }
@@ -98,14 +83,15 @@ impl OAuthClient for GeneralClient {
 
         let client = reqwest::Client::new();
         let pkce_verifier = PkceCodeVerifier::new(auth_req.pkce_verifier.clone());
-        let token_response = oidc_client.exchange_code(AuthorizationCode::new(code))?
+        let token_response = oidc_client
+            .exchange_code(AuthorizationCode::new(code))?
             .set_pkce_verifier(pkce_verifier)
             .request_async(&client)
             .await?;
 
         let id_token = token_response
-          .id_token()
-          .ok_or_else(|| anyhow!("Invalid authentication token"))?;
+            .id_token()
+            .ok_or_else(|| anyhow!("Invalid authentication token"))?;
 
         let id_token_verifier = oidc_client.id_token_verifier();
         let nonce = Nonce::new(auth_req.nonce.clone());
@@ -118,21 +104,20 @@ impl OAuthClient for GeneralClient {
                 id_token.signing_key(&id_token_verifier)?,
             )?;
             if actual_access_token_hash != *expected_access_token_hash {
-               bail!("Invalid access token");
+                bail!("Invalid access token");
             }
         }
 
         let access_token = token_response.access_token().secret().to_string();
 
         // Get User info
-        let user_info_response = oidc_client.user_info(token_response.access_token().to_owned(), None)?
-            .request_async(&client).await;
+        let user_info_response = oidc_client
+            .user_info(token_response.access_token().to_owned(), None)?
+            .request_async(&client)
+            .await;
 
         let mut user_info = self.user_info.lock().unwrap();
-        *user_info = match user_info_response {
-            Ok(user_info) => Some(user_info),
-            Err(_err) => None,
-        };
+        *user_info = user_info_response.ok();
 
         Ok(access_token)
     }
@@ -140,9 +125,8 @@ impl OAuthClient for GeneralClient {
     async fn fetch_user_email(&self, _access_token: &str) -> Result<String> {
         let user_info = self.user_info.lock().unwrap();
         match &*user_info {
-            Some(user_info) =>{
-                let end_user_email = user_info.email().unwrap()
-                    .to_owned();
+            Some(user_info) => {
+                let end_user_email = user_info.email().unwrap().to_owned();
                 let email = end_user_email.to_string();
                 Ok(email)
             }
@@ -154,8 +138,7 @@ impl OAuthClient for GeneralClient {
         let user_info = self.user_info.lock().unwrap();
         match &*user_info {
             Some(user_info) => {
-                let end_user_full_name = user_info.name().unwrap()
-                    .to_owned();
+                let end_user_full_name = user_info.name().unwrap().to_owned();
                 let full_name = end_user_full_name.get(None).unwrap().to_string();
                 Ok(full_name)
             }
@@ -171,16 +154,16 @@ impl OAuthClient for GeneralClient {
         };
         let provider_metadata = self.retrieve_provider_metadata(config_url).await.unwrap();
 
-        let redirect_uri = RedirectUrl::new(
-            self.auth.oauth_callback_url(OAuthProvider::General).await?
-        )?;
+        let redirect_uri =
+            RedirectUrl::new(self.auth.oauth_callback_url(OAuthProvider::General).await?)?;
         let scopes_supported = provider_metadata.scopes_supported().unwrap().clone();
 
         let oidc_client = CoreClient::from_provider_metadata(
             provider_metadata,
             ClientId::new(credential.client_id),
             Some(ClientSecret::new(credential.client_secret)),
-        ).set_redirect_uri(redirect_uri);
+        )
+        .set_redirect_uri(redirect_uri);
 
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
@@ -203,7 +186,7 @@ impl OAuthClient for GeneralClient {
         let (auth_uri, csrf_token, nonce) = authorization_request.url();
         let auth_req = OAuthRequest {
             nonce: nonce.secret().clone(),
-            pkce_verifier: pkce_verifier.into_secret()
+            pkce_verifier: pkce_verifier.into_secret(),
         };
 
         let mut auth_reqs = AUTH_REQS.lock().unwrap();
@@ -213,20 +196,15 @@ impl OAuthClient for GeneralClient {
     }
 }
 
-
 #[cached(
     type = "TimedCache<String, Option<CoreProviderMetadata>>",
     create = "{ TimedCache::with_lifespan(3600 * 12) }"
 )]
 async fn retrieve_provider_metadata(config_url: String) -> Option<CoreProviderMetadata> {
     let client = reqwest::Client::new();
-    let provider_metadata = CoreProviderMetadata::discover_async(
-        IssuerUrl::new(config_url).ok().unwrap(),
-        &client,
-    ).await;
+    let provider_metadata =
+        CoreProviderMetadata::discover_async(IssuerUrl::new(config_url).ok().unwrap(), &client)
+            .await;
 
-    match provider_metadata {
-        Ok(provider_metadata) => Some(provider_metadata),
-        Err(_) => None,
-    }
+    provider_metadata.ok()
 }
