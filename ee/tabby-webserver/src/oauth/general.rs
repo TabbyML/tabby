@@ -77,7 +77,7 @@ impl GeneralClient {
 
         match provider_metadata {
             Ok(provider_metadata) => Ok(provider_metadata),
-            Err(e) => Err(anyhow!(e)),
+            Err(e) => bail!(e),
         }
     }
 }
@@ -90,9 +90,9 @@ impl OAuthClient for GeneralClient {
             match state {
                 Some(state) => match auth_reqs.remove(&state) {
                     Some(auth_req_raw) => auth_req_raw,
-                    None => return Err(anyhow!("Invalid authentication request.")),
+                    None => bail!("Invalid authentication request."),
                 },
-                None => return Err(anyhow!("Invalid authentication state.")),
+                None => bail!("Invalid authentication state."),
             }
         };
 
@@ -101,7 +101,7 @@ impl OAuthClient for GeneralClient {
         let provider_metadata = match self.retrieve_provider_metadata(config_url).await
         {
             Ok(config) => config,
-            Err(err) => return Err(err),
+            Err(err) => bail!(err),
         };
         let oidc_client = CoreClient::from_provider_metadata(
             provider_metadata,
@@ -131,7 +131,7 @@ impl OAuthClient for GeneralClient {
                 id_token.signing_key(&id_token_verifier)?,
             )?;
             if actual_access_token_hash != *expected_access_token_hash {
-                return Err(anyhow!("Invalid access token"));
+               bail!("Invalid access token");
             }
         }
 
@@ -159,7 +159,7 @@ impl OAuthClient for GeneralClient {
                 let email = end_user_email.to_string();
                 Ok(email)
             }
-            None => Err(anyhow!("User email not available")),
+            None => bail!("User email not available"),
         }
     }
 
@@ -172,7 +172,7 @@ impl OAuthClient for GeneralClient {
                 let full_name = end_user_full_name.get(None).unwrap().to_string();
                 Ok(full_name)
             }
-            None => Err(anyhow!("User full name not available")),
+            None => bail!("User full name not available"),
         }
     }
 
@@ -182,7 +182,7 @@ impl OAuthClient for GeneralClient {
         let provider_metadata = match self.retrieve_provider_metadata(config_url).await
         {
             Ok(config) => config,
-            Err(err) => return Err(err),
+            Err(err) => bail!(err),
         };
 
         let redirect_uri = RedirectUrl::new(
