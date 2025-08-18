@@ -75,11 +75,12 @@ impl OAuthClient for GeneralClient {
             None => bail!("No config url found."),
         };
         let provider_metadata = self.retrieve_provider_metadata(config_url).await.unwrap();
+        let redirect_uri = RedirectUrl::new(self.auth.oauth_callback_url(OAuthProvider::General).await?)?;
         let oidc_client = CoreClient::from_provider_metadata(
             provider_metadata,
             ClientId::new(credential.client_id),
             Some(ClientSecret::new(credential.client_secret)),
-        );
+        ).set_redirect_uri(redirect_uri);
 
         let client = reqwest::Client::new();
         let pkce_verifier = PkceCodeVerifier::new(auth_req.pkce_verifier.clone());
