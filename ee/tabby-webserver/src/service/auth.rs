@@ -1967,6 +1967,7 @@ mod tests {
         let response = oauth_login(
             client,
             "fakecode".into(),
+            None,
             &service.db,
             &*service.setting,
             &license,
@@ -1986,6 +1987,7 @@ mod tests {
         let response = oauth_login(
             client,
             "fakecode".into(),
+            None,
             &service.db,
             &*service.setting,
             &license,
