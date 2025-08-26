@@ -21,7 +21,11 @@ pub use pages::{PageDAO, PageSectionDAO};
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
-use sqlx::{query, query_scalar, sqlite::{SqlitePoolOptions, SqliteQueryResult}, Pool, Sqlite, SqlitePool};
+use sqlx::{
+    query, query_scalar,
+    sqlite::{SqlitePoolOptions, SqliteQueryResult},
+    Pool, Sqlite, SqlitePool,
+};
 pub use threads::{ThreadDAO, ThreadMessageDAO};
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
@@ -175,7 +179,8 @@ impl DbConn {
             .acquire_timeout(Duration::from_secs(6))
             .idle_timeout(Duration::from_secs(300))
             .max_lifetime(Duration::from_secs(3600))
-            .connect_with(options).await?;
+            .connect_with(options)
+            .await?;
         Self::backup_db(db_file, &pool).await?;
         Self::init_db(pool).await
     }
