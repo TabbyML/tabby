@@ -170,7 +170,7 @@ impl DbConn {
             .filename(db_file)
             .create_if_missing(true);
         let pool = SqlitePoolOptions::new()
-            .max_connections(20)
+            .max_connections(64)
             .min_connections(2)
             .acquire_timeout(Duration::from_secs(6))
             .idle_timeout(Duration::from_secs(300))
