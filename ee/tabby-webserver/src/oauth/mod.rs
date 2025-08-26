@@ -46,7 +46,11 @@ pub mod test_client {
 
     #[async_trait]
     impl OAuthClient for TestOAuthClient {
-        async fn exchange_code_for_token(&self, _code: String, _state: Option<String>) -> Result<String> {
+        async fn exchange_code_for_token(
+            &self,
+            _code: String,
+            _state: Option<String>
+        ) -> Result<String> {
             (self.access_token_response)()
         }
 
