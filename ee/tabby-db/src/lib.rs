@@ -115,17 +115,13 @@ fn make_pagination_query_with_condition(
 impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {
-        use std::{str::FromStr, time::Duration};
+        use std::str::FromStr;
 
         use sqlx::sqlite::SqlitePoolOptions;
 
         let options = SqliteConnectOptions::from_str("sqlite::memory:")?;
-        let pool: Pool<Sqlite> = SqlitePoolOptions::new()
-            .max_connections(20)
-            .min_connections(2)
-            .acquire_timeout(Duration::from_secs(6))
-            .idle_timeout(Duration::from_secs(300))
-            .max_lifetime(Duration::from_secs(3600))
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
             .connect_with(options)
             .await?;
         DbConn::init_db(pool).await
