@@ -5902,6 +5902,7 @@ dependencies = [
  "futures",
  "htmd",
  "logkit",
+ "percent-encoding",
  "readable-readability",
  "regex",
  "reqwest",

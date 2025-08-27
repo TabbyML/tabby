@@ -264,7 +264,7 @@ const BrandingForm: React.FC<BrandingFormProps> = ({
 }
 
 export const GeneralBrandingForm = () => {
-  const [{ data, stale }, reexecuteQuery] = useQuery({
+  const [{ data, fetching, stale }, reexecuteQuery] = useQuery({
     query: brandingSettingQuery
   })
 
@@ -274,7 +274,7 @@ export const GeneralBrandingForm = () => {
 
   return (
     <div className="min-h-[160px]">
-      <LoadingWrapper loading={stale} fallback={<FormSkeleton />}>
+      <LoadingWrapper loading={fetching || stale} fallback={<FormSkeleton />}>
         <BrandingForm
           defaultValues={{
             brandingLogo: data?.brandingSetting?.brandingLogo ?? undefined,

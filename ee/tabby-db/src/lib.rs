@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 pub use attachment::{
@@ -21,7 +21,11 @@ pub use pages::{PageDAO, PageSectionDAO};
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
-use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
+use sqlx::{
+    query, query_scalar,
+    sqlite::{SqlitePoolOptions, SqliteQueryResult},
+    Pool, Sqlite, SqlitePool,
+};
 pub use threads::{ThreadDAO, ThreadMessageDAO};
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
@@ -169,7 +173,14 @@ impl DbConn {
             .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
             .filename(db_file)
             .create_if_missing(true);
-        let pool = SqlitePool::connect_with(options).await?;
+        let pool = SqlitePoolOptions::new()
+            .max_connections(64)
+            .min_connections(2)
+            .acquire_timeout(Duration::from_secs(6))
+            .idle_timeout(Duration::from_secs(300))
+            .max_lifetime(Duration::from_secs(3600))
+            .connect_with(options)
+            .await?;
         Self::backup_db(db_file, &pool).await?;
         Self::init_db(pool).await
     }
