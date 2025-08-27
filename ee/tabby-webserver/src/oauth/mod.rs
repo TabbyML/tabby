@@ -49,7 +49,7 @@ pub mod test_client {
         async fn exchange_code_for_token(
             &self,
             _code: String,
-            _state: Option<String>
+            _state: Option<String>,
         ) -> Result<String> {
             (self.access_token_response)()
         }
