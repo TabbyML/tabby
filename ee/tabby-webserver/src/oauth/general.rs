@@ -155,7 +155,10 @@ impl OAuthClient for GeneralClient {
             Some(config_url) => config_url,
             None => bail!("No config url found."),
         };
-        let provider_metadata = self.retrieve_provider_metadata(config_url).await.unwrap();
+        let provider_metadata = match self.retrieve_provider_metadata(config_url).await  {
+            Some(provider_metadata) => provider_metadata,
+            None=> bail!("Error retrieving provider metadata"),
+        };
 
         let redirect_uri =
             RedirectUrl::new(self.auth.oauth_callback_url(OAuthProvider::General).await?)?;
@@ -209,5 +212,11 @@ async fn retrieve_provider_metadata(config_url: String) -> Option<CoreProviderMe
         CoreProviderMetadata::discover_async(IssuerUrl::new(config_url).ok().unwrap(), &client)
             .await;
 
-    provider_metadata.ok()
+    match provider_metadata {
+        Ok(provider_metadata) => Some(provider_metadata),
+        Err(e) => {
+            eprintln!("Failed to retrieve provider metadata: {}", e);
+            None
+        }
+    }
 }
