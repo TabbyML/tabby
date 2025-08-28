@@ -155,9 +155,9 @@ impl OAuthClient for GeneralClient {
             Some(config_url) => config_url,
             None => bail!("No config url found."),
         };
-        let provider_metadata = match self.retrieve_provider_metadata(config_url).await  {
+        let provider_metadata = match self.retrieve_provider_metadata(config_url).await {
             Some(provider_metadata) => provider_metadata,
-            None=> bail!("Error retrieving provider metadata"),
+            None => bail!("Error retrieving provider metadata"),
         };
 
         let redirect_uri =
