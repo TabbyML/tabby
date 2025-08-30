@@ -13,6 +13,7 @@ use openidconnect::{
 };
 use serde::Deserialize;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
+use tracing::error;
 
 use super::OAuthClient;
 use crate::bail;
@@ -215,7 +216,7 @@ async fn retrieve_provider_metadata(config_url: String) -> Option<CoreProviderMe
     match provider_metadata {
         Ok(provider_metadata) => Some(provider_metadata),
         Err(e) => {
-            eprintln!("Failed to retrieve provider metadata: {}", e);
+            error!("Failed to retrieve provider metadata: {}", e);
             None
         }
     }
