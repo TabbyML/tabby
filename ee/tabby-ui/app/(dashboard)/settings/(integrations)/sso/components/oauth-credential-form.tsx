@@ -329,7 +329,7 @@ export default function OAuthCredentialForm({
                   <FormLabel required>Configuration URL</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. http://example.com/.well-known/openid-configuration"
+                      placeholder="e.g. http://example.com/ (URL should not include '.well-known/openid-configuration')"
                       autoCapitalize="none"
                       autoComplete="off"
                       autoCorrect="off"
