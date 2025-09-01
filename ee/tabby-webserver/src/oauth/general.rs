@@ -164,7 +164,10 @@ impl OAuthClient for GeneralClient {
         let redirect_uri =
             RedirectUrl::new(self.auth.oauth_callback_url(OAuthProvider::General).await?)?;
         let scopes_supported = match credential.config_scopes {
-            Some(config_scopes) => config_scopes.split_whitespace().map(|s| s.to_string()).collect(),
+            Some(config_scopes) => config_scopes
+                .split_whitespace()
+                .map(|s| s.to_string())
+                .collect(),
             None => vec!["openid".into(), "profile".into(), "email".into()],
         };
 
