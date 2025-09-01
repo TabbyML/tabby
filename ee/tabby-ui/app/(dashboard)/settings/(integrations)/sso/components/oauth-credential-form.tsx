@@ -72,6 +72,7 @@ const defaultFormSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
   configUrl: z.string(),
+  configScopes: z.string(),
   provider: z.nativeEnum(OAuthProvider)
 })
 
@@ -329,7 +330,29 @@ export default function OAuthCredentialForm({
                   <FormLabel required>Configuration URL</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. http://example.com/ (URL should not include '.well-known/openid-configuration')"
+                      placeholder="e.g. http://example.com/ (')"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      {...field}
+                    />
+                    <span>NOTE: The URL above should include the path but not include '.well-known/openid-configuration</span>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          {providerValue == OAuthProvider.General && (
+            <FormField
+              control={form.control}
+              name="configScopes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Configuration Scopes</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. openid profile email"
                       autoCapitalize="none"
                       autoComplete="off"
                       autoCorrect="off"

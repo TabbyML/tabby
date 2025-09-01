@@ -542,6 +542,7 @@ export const oauthCredential = graphql(/* GraphQL */ `
     oauthCredential(provider: $provider) {
       provider
       configUrl
+      configScopes
       clientId
       createdAt
       updatedAt
