@@ -613,6 +613,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .update_oauth_credential(
                 input.provider.as_enum_str(),
                 input.config_url.as_deref(),
+                input.config_scopes.as_deref(),
                 &input.client_id,
                 input.client_secret.as_deref(),
             )
@@ -1857,6 +1858,7 @@ mod tests {
             .update_oauth_credential(UpdateOAuthCredentialInput {
                 provider: OAuthProvider::Google,
                 config_url: None,
+                config_scopes: None,
                 client_id: "id".into(),
                 client_secret: Some("secret".into()),
             })

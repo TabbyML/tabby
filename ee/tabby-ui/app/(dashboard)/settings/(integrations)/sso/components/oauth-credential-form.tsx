@@ -336,8 +336,8 @@ export default function OAuthCredentialForm({
                       autoCorrect="off"
                       {...field}
                     />
-                    <span>NOTE: The URL above should include the path but not include '.well-known/openid-configuration</span>
                   </FormControl>
+                  <span className="text-xs">NOTE: The URL above should include the path but not include &quot;.well-known/openid-configuration&quot;</span>
                   <FormMessage />
                 </FormItem>
               )}

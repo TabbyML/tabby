@@ -374,6 +374,7 @@ pub struct AuthProvider {
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
     pub config_url: Option<String>,
+    pub config_scopes: Option<String>,
     pub client_id: String,
 
     #[graphql(skip)]
@@ -387,6 +388,8 @@ pub struct UpdateOAuthCredentialInput {
     pub provider: OAuthProvider,
 
     pub config_url: Option<String>,
+
+    pub config_scopes: Option<String>,
 
     #[validate(length(min = 1, code = "clientId", message = "Client ID cannot be empty"))]
     pub client_id: String,
