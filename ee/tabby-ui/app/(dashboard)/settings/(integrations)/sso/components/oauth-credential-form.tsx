@@ -39,6 +39,7 @@ import {
   IconGitHub,
   IconGitLab,
   IconGoogle,
+  IconOidc,
   IconSpinner
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -71,6 +72,8 @@ const oauthCallbackUrl = graphql(/* GraphQL */ `
 const defaultFormSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
+  configUrl: z.string(),
+  configScopes: z.string(),
   provider: z.nativeEnum(OAuthProvider)
 })
 
@@ -268,6 +271,20 @@ export default function OAuthCredentialForm({
                         GitLab
                       </Label>
                     </div>
+                    <div className="flex items-center">
+                      <RadioGroupItem
+                        value={OAuthProvider.Oidc}
+                        id="r_oidc"
+                        disabled={!isNew}
+                      />
+                      <Label
+                        className="flex cursor-pointer items-center gap-2 pl-2"
+                        htmlFor="r_oidc"
+                      >
+                        <IconOidc className="h-5 w-5" />
+                        OpenID Connect Provider
+                      </Label>
+                    </div>
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />
@@ -306,6 +323,52 @@ export default function OAuthCredentialForm({
               The information is provided by your identity provider.
             </FormDescription>
           </div>
+          {providerValue == OAuthProvider.Oidc && (
+            <FormField
+              control={form.control}
+              name="configUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Configuration URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. http://example.com/ (')"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <span className="text-xs">
+                    NOTE: The URL above should include the path but not include
+                    &quot;.well-known/openid-configuration&quot;
+                  </span>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          {providerValue == OAuthProvider.Oidc && (
+            <FormField
+              control={form.control}
+              name="configScopes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Configuration Scopes</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. openid profile email"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="clientId"
