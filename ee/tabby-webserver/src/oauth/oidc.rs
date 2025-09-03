@@ -18,7 +18,7 @@ use tracing::error;
 use super::OAuthClient;
 use crate::bail;
 
-pub struct GeneralClient {
+pub struct OidcClient {
     auth: Arc<dyn AuthenticationService>,
     user_info: Mutex<Option<CoreUserInfoClaims>>,
 }
@@ -32,7 +32,7 @@ pub struct OAuthRequest {
 static AUTH_REQS: LazyLock<Mutex<HashMap<String, OAuthRequest>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-impl GeneralClient {
+impl OidcClient {
     pub fn new(auth: Arc<dyn AuthenticationService>) -> Self {
         Self {
             auth,
@@ -43,7 +43,7 @@ impl GeneralClient {
     async fn read_credential(&self) -> Result<OAuthCredential> {
         match self
             .auth
-            .read_oauth_credential(OAuthProvider::General)
+            .read_oauth_credential(OAuthProvider::Oidc)
             .await?
         {
             Some(credential) => Ok(credential),
@@ -57,7 +57,7 @@ impl GeneralClient {
 }
 
 #[async_trait]
-impl OAuthClient for GeneralClient {
+impl OAuthClient for OidcClient {
     async fn exchange_code_for_token(&self, code: String, state: Option<String>) -> Result<String> {
         let auth_req = {
             let mut auth_reqs = AUTH_REQS.lock().unwrap();
@@ -77,7 +77,7 @@ impl OAuthClient for GeneralClient {
         };
         let provider_metadata = self.retrieve_provider_metadata(config_url).await.unwrap();
         let redirect_uri =
-            RedirectUrl::new(self.auth.oauth_callback_url(OAuthProvider::General).await?)?;
+            RedirectUrl::new(self.auth.oauth_callback_url(OAuthProvider::Oidc).await?)?;
         let oidc_client = CoreClient::from_provider_metadata(
             provider_metadata,
             ClientId::new(credential.client_id),
@@ -162,7 +162,7 @@ impl OAuthClient for GeneralClient {
         };
 
         let redirect_uri =
-            RedirectUrl::new(self.auth.oauth_callback_url(OAuthProvider::General).await?)?;
+            RedirectUrl::new(self.auth.oauth_callback_url(OAuthProvider::Oidc).await?)?;
         let scopes_supported = match credential.config_scopes {
             Some(config_scopes) => config_scopes
                 .split_whitespace()

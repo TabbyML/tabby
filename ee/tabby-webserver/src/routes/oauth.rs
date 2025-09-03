@@ -136,9 +136,9 @@ async fn general_oauth_handler(
     Query(param): Query<GeneralOAuthQueryParam>,
 ) -> Redirect {
     match_auth_result(
-        OAuthProvider::General,
+        OAuthProvider::Oidc,
         state
-            .oauth(param.code, param.state, OAuthProvider::General)
+            .oauth(param.code, param.state, OAuthProvider::Oidc)
             .await,
     )
 }
