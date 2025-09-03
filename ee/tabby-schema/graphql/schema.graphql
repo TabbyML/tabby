@@ -110,7 +110,7 @@ enum OAuthProvider {
   GITHUB
   GOOGLE
   GITLAB
-  GENERAL
+  OIDC
 }
 
 enum RepositoryKind {
