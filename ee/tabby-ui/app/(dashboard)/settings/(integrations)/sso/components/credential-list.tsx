@@ -46,9 +46,9 @@ export const CredentialList = () => {
     variables: { provider: OAuthProvider.Gitlab }
   })
 
-  const [{ data: generalData, fetching: fetchingOther } = {}] = useQuery({
+  const [{ data: oidcData, fetching: fetchingOic } = {}] = useQuery({
     query: oauthCredential,
-    variables: { provider: OAuthProvider.General }
+    variables: { provider: OAuthProvider.Oidc }
   })
 
   const [{ data: ldapData, fetching: fetchingLdap }] = useQuery({
@@ -56,17 +56,17 @@ export const CredentialList = () => {
   })
 
   const isLoading =
-    fetchingGithub || fetchingGoogle || fetchingGitlab || fetchingLdap
+    fetchingGithub || fetchingGoogle || fetchingGitlab || fetchingLdap || fetchingOic
 
   const credentialList = React.useMemo(() => {
     return compact([
       githubData?.oauthCredential,
       googleData?.oauthCredential,
       gitlabData?.oauthCredential,
-      generalData?.oauthCredential,
+      oidcData?.oauthCredential,
       ldapData?.ldapCredential
     ])
-  }, [githubData, googleData, gitlabData, generalData, ldapData])
+  }, [githubData, googleData, gitlabData, oidcData, ldapData])
 
   const router = useRouter()
   const createButton = (

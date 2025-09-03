@@ -272,15 +272,15 @@ export default function OAuthCredentialForm({
                     </div>
                     <div className="flex items-center">
                       <RadioGroupItem
-                        value={OAuthProvider.General}
-                        id="r_general"
+                        value={OAuthProvider.Oidc}
+                        id="r_oidc"
                         disabled={!isNew}
                       />
                       <Label
                         className="flex cursor-pointer items-center gap-2 pl-2"
-                        htmlFor="r_general"
+                        htmlFor="r_oidc"
                       >
-                        General OAuth
+                        OpenID Connect Provider
                       </Label>
                     </div>
                   </RadioGroup>
@@ -321,7 +321,7 @@ export default function OAuthCredentialForm({
               The information is provided by your identity provider.
             </FormDescription>
           </div>
-          {providerValue == OAuthProvider.General && (
+          {providerValue == OAuthProvider.Oidc && (
             <FormField
               control={form.control}
               name="configUrl"
@@ -346,7 +346,7 @@ export default function OAuthCredentialForm({
               )}
             />
           )}
-          {providerValue == OAuthProvider.General && (
+          {providerValue == OAuthProvider.Oidc && (
             <FormField
               control={form.control}
               name="configScopes"
