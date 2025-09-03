@@ -23,7 +23,7 @@ pub fn routes(state: Arc<dyn AuthenticationService>) -> Router {
         .route("/callback/github", routing::get(github_oauth_handler))
         .route("/callback/google", routing::get(google_oauth_handler))
         .route("/callback/gitlab", routing::get(gitlab_oauth_handler))
-        .route("/callback/general", routing::get(general_oauth_handler))
+        .route("/callback/oidc", routing::get(general_oauth_handler))
         .with_state(state)
 }
 
