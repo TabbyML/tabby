@@ -332,7 +332,7 @@ export default function OAuthCredentialForm({
                   <FormLabel required>Configuration URL</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. http://example.com/ (')"
+                      placeholder="e.g. http://example.com/"
                       autoCapitalize="none"
                       autoComplete="off"
                       autoCorrect="off"
