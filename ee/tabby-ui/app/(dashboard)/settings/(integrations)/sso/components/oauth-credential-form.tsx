@@ -39,6 +39,7 @@ import {
   IconGitHub,
   IconGitLab,
   IconGoogle,
+  IconOidc,
   IconSpinner
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -280,6 +281,7 @@ export default function OAuthCredentialForm({
                         className="flex cursor-pointer items-center gap-2 pl-2"
                         htmlFor="r_oidc"
                       >
+                        <IconOidc className="h-5 w-5" />
                         OpenID Connect Provider
                       </Label>
                     </div>
