@@ -56,7 +56,11 @@ export const CredentialList = () => {
   })
 
   const isLoading =
-    fetchingGithub || fetchingGoogle || fetchingGitlab || fetchingLdap || fetchingOic
+    fetchingGithub ||
+    fetchingGoogle ||
+    fetchingGitlab ||
+    fetchingLdap ||
+    fetchingOic
 
   const credentialList = React.useMemo(() => {
     return compact([
