@@ -23,7 +23,7 @@ pub fn routes(state: Arc<dyn AuthenticationService>) -> Router {
         .route("/callback/github", routing::get(github_oauth_handler))
         .route("/callback/google", routing::get(google_oauth_handler))
         .route("/callback/gitlab", routing::get(gitlab_oauth_handler))
-        .route("/callback/oidc", routing::get(general_oauth_handler))
+        .route("/callback/oidc", routing::get(oidc_oauth_handler))
         .with_state(state)
 }
 
@@ -131,7 +131,7 @@ struct GeneralOAuthQueryParam {
     code: String,
     state: Option<String>,
 }
-async fn general_oauth_handler(
+async fn oidc_oauth_handler(
     State(state): State<OAuthState>,
     Query(param): Query<GeneralOAuthQueryParam>,
 ) -> Redirect {
