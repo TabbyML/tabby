@@ -72,8 +72,8 @@ const oauthCallbackUrl = graphql(/* GraphQL */ `
 const defaultFormSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
-  configUrl: z.string(),
-  configScopes: z.string(),
+  configUrl: z.string().optional(),
+  configScopes: z.string().optional(),
   provider: z.nativeEnum(OAuthProvider)
 })
 
