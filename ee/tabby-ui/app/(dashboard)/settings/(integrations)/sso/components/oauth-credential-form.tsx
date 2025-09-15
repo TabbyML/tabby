@@ -84,6 +84,9 @@ const updateFormSchema = defaultFormSchema.extend({
 const providerExistedError =
   'Provider already exists. Please choose another one'
 
+const oidcConfigUrlError = 'Config URL must be set for OpenID Connect'
+const oidcConfigScopesError = 'Config Scopes must be set for OpenID Connect'
+
 interface OAuthCredentialFormProps
   extends React.HTMLAttributes<HTMLDivElement> {
   isNew?: boolean
@@ -170,6 +173,26 @@ export default function OAuthCredentialForm({
   const deleteOAuthCredential = useMutation(deleteOauthCredentialMutation)
 
   const onSubmit = async (values: z.infer<typeof defaultFormSchema>) => {
+    let validationError = false
+    if (provider === OAuthProvider.Oidc) {
+      if (!values.configUrl || values.configUrl === "") {
+        form.setError('configUrl', {
+          message: oidcConfigUrlError
+        })
+
+        validationError = true
+      }
+
+      if (!values.configScopes || values.configScopes === "") {
+        form.setError('configScopes', {
+          message: oidcConfigScopesError
+        })
+
+        validationError = true
+      }
+
+    }
+
     if (isNew) {
       const hasExistingProvider = await client
         .query(oauthCredential, { provider: values.provider })
@@ -178,8 +201,12 @@ export default function OAuthCredentialForm({
         form.setError('provider', {
           message: providerExistedError
         })
-        return
+        validationError = true
       }
+    }
+
+    if (validationError) {
+      return
     }
 
     updateOauthCredential({ input: values })
