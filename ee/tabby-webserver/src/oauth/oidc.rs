@@ -41,11 +41,7 @@ impl OidcClient {
     }
 
     async fn read_credential(&self) -> Result<OAuthCredential> {
-        match self
-            .auth
-            .read_oauth_credential(OAuthProvider::Oidc)
-            .await?
-        {
+        match self.auth.read_oauth_credential(OAuthProvider::Oidc).await? {
             Some(credential) => Ok(credential),
             None => bail!("No OAuth credential found"),
         }

@@ -1,7 +1,7 @@
-mod oidc;
 mod github;
 mod gitlab;
 mod google;
+mod oidc;
 
 use std::sync::Arc;
 
