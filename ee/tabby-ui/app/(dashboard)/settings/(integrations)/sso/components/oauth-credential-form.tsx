@@ -175,7 +175,7 @@ export default function OAuthCredentialForm({
   const onSubmit = async (values: z.infer<typeof defaultFormSchema>) => {
     let validationError = false
     if (provider === OAuthProvider.Oidc) {
-      if (!values.configUrl || values.configUrl === "") {
+      if (!values.configUrl || values.configUrl === '') {
         form.setError('configUrl', {
           message: oidcConfigUrlError
         })
@@ -183,14 +183,13 @@ export default function OAuthCredentialForm({
         validationError = true
       }
 
-      if (!values.configScopes || values.configScopes === "") {
+      if (!values.configScopes || values.configScopes === '') {
         form.setError('configScopes', {
           message: oidcConfigScopesError
         })
 
         validationError = true
       }
-
     }
 
     if (isNew) {
