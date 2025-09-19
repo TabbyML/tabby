@@ -79,7 +79,6 @@ impl SchedulerGitJob {
             .chain(config_repositories.into_iter())
             .collect();
 
-        // Only use sharding if we have more than SHARDING_THRESHOLD repositories
         let number_of_repo = repositories.len();
         let current_shard = calculate_current_shard(number_of_repo, now.timestamp());
 

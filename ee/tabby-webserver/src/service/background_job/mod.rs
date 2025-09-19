@@ -11,7 +11,7 @@ mod license_check;
 mod third_party_integration;
 mod web_crawler;
 
-use std::{str::FromStr, sync::Arc};
+use std::{env, str::FromStr, sync::Arc};
 
 use cron::Schedule;
 use daily::DailyJob;
@@ -54,7 +54,11 @@ pub const SHARDING_THRESHOLD: usize = 20;
 /// Calculate the current shard for repository processing
 /// Returns Some(shard) if sharding should be used, None otherwise
 fn calculate_current_shard(number_of_repo: usize, timestamp_seconds: i64) -> Option<usize> {
-    if number_of_repo <= SHARDING_THRESHOLD {
+    // Only run on TABBY_INDEX_REPO_IN_SHARD is not empty and number_of_repo > SHARDING_THRESHOLD
+    // otherwise return None
+    if !(env::var("TABBY_INDEX_REPO_IN_SHARD").map_or(false, |v| !v.is_empty())
+        && number_of_repo > SHARDING_THRESHOLD)
+    {
         return None;
     }
 
