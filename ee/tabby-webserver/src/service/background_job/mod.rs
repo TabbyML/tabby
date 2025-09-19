@@ -56,7 +56,7 @@ pub const SHARDING_THRESHOLD: usize = 20;
 fn calculate_current_shard(number_of_repo: usize, timestamp_seconds: i64) -> Option<usize> {
     // Only run on TABBY_INDEX_REPO_IN_SHARD is not empty and number_of_repo > SHARDING_THRESHOLD
     // otherwise return None
-    if !(env::var("TABBY_INDEX_REPO_IN_SHARD").map_or(false, |v| !v.is_empty())
+    if !(env::var("TABBY_INDEX_REPO_IN_SHARD").is_ok_and(|v| !v.is_empty())
         && number_of_repo > SHARDING_THRESHOLD)
     {
         return None;
