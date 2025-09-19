@@ -53,7 +53,7 @@ pub const SHARDING_THRESHOLD: usize = 20;
 
 /// Calculate the current shard for repository processing
 /// Returns Some(shard) if sharding should be used, None otherwise
-pub(self) fn calculate_current_shard(
+ fn calculate_current_shard(
     number_of_repo: usize,
     timestamp_seconds: i64,
 ) -> Option<usize> {
@@ -62,13 +62,13 @@ pub(self) fn calculate_current_shard(
     }
 
     // `number_of_repo + REPOSITORIES_PER_SHARD - 1` because we should ceil number_of_repo
-    let number_of_shard = (number_of_repo + REPOSITORIES_PER_SHARD - 1) / REPOSITORIES_PER_SHARD;
+    let number_of_shard = number_of_repo.div_ceil(REPOSITORIES_PER_SHARD);
     let timestamp = timestamp_seconds as usize;
     Some((timestamp / 3600) % number_of_shard)
 }
 
 /// Check if a repository should be processed based on sharding
-pub(self) fn should_process_repository(
+ fn should_process_repository(
     repo_index: usize,
     current_shard: Option<usize>,
     number_of_repo: usize,
@@ -77,7 +77,7 @@ pub(self) fn should_process_repository(
         return true; // No sharding, process all repositories
     };
 
-    let number_of_shard = (number_of_repo + REPOSITORIES_PER_SHARD - 1) / REPOSITORIES_PER_SHARD; // Math.ceil
+    let number_of_shard = number_of_repo.div_ceil(REPOSITORIES_PER_SHARD); // Math.ceil
     repo_index % number_of_shard == current_shard
 }
 
