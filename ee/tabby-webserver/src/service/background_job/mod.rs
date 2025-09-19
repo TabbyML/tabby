@@ -53,10 +53,7 @@ pub const SHARDING_THRESHOLD: usize = 20;
 
 /// Calculate the current shard for repository processing
 /// Returns Some(shard) if sharding should be used, None otherwise
- fn calculate_current_shard(
-    number_of_repo: usize,
-    timestamp_seconds: i64,
-) -> Option<usize> {
+fn calculate_current_shard(number_of_repo: usize, timestamp_seconds: i64) -> Option<usize> {
     if number_of_repo <= SHARDING_THRESHOLD {
         return None;
     }
@@ -68,7 +65,7 @@ pub const SHARDING_THRESHOLD: usize = 20;
 }
 
 /// Check if a repository should be processed based on sharding
- fn should_process_repository(
+fn should_process_repository(
     repo_index: usize,
     current_shard: Option<usize>,
     number_of_repo: usize,
