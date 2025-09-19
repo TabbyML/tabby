@@ -47,6 +47,40 @@ pub use web_crawler::WebCrawlerJob;
 
 use self::third_party_integration::SyncIntegrationJob;
 
+// Sharding configuration constants
+pub const REPOSITORIES_PER_SHARD: usize = 7;
+pub const SHARDING_THRESHOLD: usize = 20;
+
+/// Calculate the current shard for repository processing
+/// Returns Some(shard) if sharding should be used, None otherwise
+pub(self) fn calculate_current_shard(
+    number_of_repo: usize,
+    timestamp_seconds: i64,
+) -> Option<usize> {
+    if number_of_repo <= SHARDING_THRESHOLD {
+        return None;
+    }
+
+    // `number_of_repo + REPOSITORIES_PER_SHARD - 1` because we should ceil number_of_repo
+    let number_of_shard = (number_of_repo + REPOSITORIES_PER_SHARD - 1) / REPOSITORIES_PER_SHARD;
+    let timestamp = timestamp_seconds as usize;
+    Some((timestamp / 3600) % number_of_shard)
+}
+
+/// Check if a repository should be processed based on sharding
+pub(self) fn should_process_repository(
+    repo_index: usize,
+    current_shard: Option<usize>,
+    number_of_repo: usize,
+) -> bool {
+    let Some(current_shard) = current_shard else {
+        return true; // No sharding, process all repositories
+    };
+
+    let number_of_shard = (number_of_repo + REPOSITORIES_PER_SHARD - 1) / REPOSITORIES_PER_SHARD; // Math.ceil
+    repo_index % number_of_shard == current_shard
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BackgroundJobEvent {
     SchedulerGitRepository(CodeRepository),

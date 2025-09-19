@@ -17,7 +17,10 @@ use tabby_schema::{
 };
 use tracing::debug;
 
-use super::{helper::Job, index_commits, BackgroundJobEvent};
+use super::{
+    calculate_current_shard, helper::Job, index_commits, should_process_repository,
+    BackgroundJobEvent,
+};
 
 pub mod error;
 mod issues;
@@ -242,17 +245,26 @@ impl SchedulerGithubGitlabJob {
     }
 
     pub async fn cron(
-        _now: DateTime<Utc>,
+        now: DateTime<Utc>,
         repository: Arc<dyn ThirdPartyRepositoryService>,
         job: Arc<dyn JobService>,
     ) -> tabby_schema::Result<()> {
-        for repository in repository
+        let repositories = repository
             .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
-            .await?
-        {
+            .await?;
+
+        let number_of_repo = repositories.len();
+        let current_shard = calculate_current_shard(number_of_repo, now.timestamp());
+
+        for (i, repository) in repositories.iter().enumerate() {
+            if !should_process_repository(i, current_shard, number_of_repo) {
+                continue;
+            }
+
             let _ = job
                 .trigger(
-                    BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id).to_command(),
+                    BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id.clone())
+                        .to_command(),
                 )
                 .await;
         }
