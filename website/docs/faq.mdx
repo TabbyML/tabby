@@ -49,3 +49,15 @@ Please follow the [Tabby Model Specification](https://github.com/TabbyML/tabby/b
 Tabby also supports loading models from a local directory that follow our specifications as outlined in [MODEL_SPEC.md](https://github.com/TabbyML/tabby/blob/main/MODEL_SPEC.md).
 
 </Collapse>
+
+<Collapse title="Is it safe to put Tabby root directory on NFS filesystem?">
+
+**No, it is not recommended to put Tabby's root directory on an NFS filesystem.**
+
+Tabby depends on SQLite for its database operations, and SQLite requires proper file locking mechanisms to ensure data integrity.
+Many networked filesystems, especially NFS, have broken or missing lock implementations that can lead to database corruption and unexpected behaviors.
+
+For more technical details about this limitation, please refer to the SQLite documentation:
+[Filesystems with broken or missing lock implementations](https://sqlite.org/howtocorrupt.html#_filesystems_with_broken_or_missing_lock_implementations).
+
+</Collapse>
