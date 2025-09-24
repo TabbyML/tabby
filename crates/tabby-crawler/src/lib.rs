@@ -225,7 +225,7 @@ mod tests {
     #[tokio::test]
     #[traced_test]
     async fn test_crawler_llms_success_developers_cloudflare_with_url() {
-        let base_url = "https://developers.cloudflare.com";
+        let base_url = "https://developers.cloudflare.com/workers-ai";
         let result = crawler_llms(base_url).await;
         assert!(result.is_ok(), "Expected success from {base_url}");
         let docs = result.unwrap();
