@@ -9,7 +9,10 @@ use tabby_inference::Embedding;
 use tabby_schema::{job::JobService, repository::GitRepositoryService};
 use tracing::debug;
 
-use super::{helper::Job, index_commits, BackgroundJobEvent};
+use super::{
+    calculate_current_shard, helper::Job, index_commits, should_process_repository,
+    BackgroundJobEvent,
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SchedulerGitJob {
@@ -50,7 +53,7 @@ impl SchedulerGitJob {
     }
 
     pub async fn cron(
-        _now: DateTime<Utc>,
+        now: DateTime<Utc>,
         git_repository: Arc<dyn GitRepositoryService>,
         job: Arc<dyn JobService>,
     ) -> tabby_schema::Result<()> {
@@ -76,10 +79,19 @@ impl SchedulerGitJob {
             .chain(config_repositories.into_iter())
             .collect();
 
-        for repository in repositories {
+        let number_of_repo = repositories.len();
+        let current_shard = calculate_current_shard(number_of_repo, now.timestamp());
+
+        for (i, repository) in repositories.iter().enumerate() {
+            if !should_process_repository(i, current_shard, number_of_repo) {
+                continue;
+            }
+
             debug!("Scheduling git repository sync for {:?}", repository);
             let _ = job
-                .trigger(BackgroundJobEvent::SchedulerGitRepository(repository).to_command())
+                .trigger(
+                    BackgroundJobEvent::SchedulerGitRepository(repository.clone()).to_command(),
+                )
                 .await;
         }
         Ok(())
