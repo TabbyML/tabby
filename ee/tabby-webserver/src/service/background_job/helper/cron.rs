@@ -1,7 +1,6 @@
 use chrono::{DateTime, TimeZone, Utc};
 pub use cron::Schedule;
 use futures::Stream;
-use tracing::warn;
 
 /// Represents a stream from a cron schedule with a timezone
 #[derive(Clone, Debug)]
