@@ -27,10 +27,22 @@ impl From<tabby_common::config::Config> for ModelInfo {
             }
         }
 
-        if let Some(tabby_common::config::ModelConfig::Http(chat_http_config)) = models.chat {
-            if let Some(models) = chat_http_config.supported_models {
-                http_model_configs.chat = Some(models.clone());
+        if let Some(chat) = models.chat {
+            let mut chat_models = vec![];
+            for model in chat.get_http_configs().iter() {
+                chat_models.push(model.model_title_and_name().0);
+                if let (Some(supported_models), Some(model_name)) =
+                    (&model.supported_models, &model.model_name)
+                {
+                    chat_models.extend(
+                        supported_models
+                            .iter()
+                            .filter(|m| model_name != *m)
+                            .cloned(),
+                    );
+                }
             }
+            http_model_configs.chat = Some(chat_models);
         }
 
         http_model_configs
