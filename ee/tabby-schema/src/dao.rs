@@ -66,6 +66,8 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
     fn try_from(val: OAuthCredentialDAO) -> Result<Self, Self::Error> {
         Ok(OAuthCredential {
             provider: OAuthProvider::from_enum_str(&val.provider)?,
+            config_url: val.config_url,
+            config_scopes: val.config_scopes,
             client_id: val.client_id,
             created_at: val.created_at,
             updated_at: val.updated_at,
@@ -661,6 +663,7 @@ impl DbEnum for OAuthProvider {
             OAuthProvider::Google => "google",
             OAuthProvider::Github => "github",
             OAuthProvider::Gitlab => "gitlab",
+            OAuthProvider::Oidc => "oidc",
         }
     }
 
@@ -669,6 +672,7 @@ impl DbEnum for OAuthProvider {
             "github" => Ok(OAuthProvider::Github),
             "google" => Ok(OAuthProvider::Google),
             "gitlab" => Ok(OAuthProvider::Gitlab),
+            "oidc" => Ok(OAuthProvider::Oidc),
             _ => bail!("Invalid OAuth credential type"),
         }
     }
