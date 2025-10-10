@@ -1,0 +1,84 @@
+# -------------------------
+# Tabby - CPU-only build
+# -------------------------
+
+ARG UBUNTU_VERSION=22.04
+ARG BASE_CPU_DEV_CONTAINER=ubuntu:${UBUNTU_VERSION}
+ARG BASE_CPU_RUN_CONTAINER=ubuntu:${UBUNTU_VERSION}
+
+FROM ${BASE_CPU_DEV_CONTAINER} AS build
+
+# Rust toolchain version
+ARG RUST_TOOLCHAIN=stable
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies for building Tabby
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    pkg-config \
+    libssl-dev \
+    protobuf-compiler \
+    git \
+    cmake \
+    build-essential \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Setup Rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+WORKDIR /root/workspace
+
+RUN mkdir -p /opt/tabby/bin
+RUN mkdir -p /opt/tabby/lib
+RUN mkdir -p target
+
+# Copy project files
+COPY . .
+
+# Build Tabby (CPU only)
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/root/workspace/target \
+    cargo build --no-default-features --features cpu,prod --release --package tabby && \
+    cp target/release/llama-server /opt/tabby/bin/ && \
+    cp target/release/tabby /opt/tabby/bin/
+
+# For compatibility with the legacy GPU builds
+RUN cp /opt/tabby/bin/tabby /opt/tabby/bin/tabby-cpu
+
+# -------------------------
+# Runtime Image
+# -------------------------
+FROM ${BASE_CPU_RUN_CONTAINER} AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    openssh-client \
+    ca-certificates \
+    libssl3 \
+    libgomp1 \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Disable safe directory in docker
+RUN git config --system --add safe.directory "*"
+
+# Copy built binaries
+COPY --from=build /opt/tabby /opt/tabby
+
+# Set environment variables
+ENV PATH="$PATH:/opt/tabby/bin"
+ENV TABBY_ROOT=/data
+
+# Default entrypoint
+ENTRYPOINT ["/opt/tabby/bin/tabby"]
