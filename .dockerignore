@@ -12,12 +12,12 @@ Thumbs.db
 *.swp
 *.swo
 
-# Git metadata (not needed in build context)
+# Git metadata
 .git
 .gitmodules
 .gitignore
 
-# Rust/Node caches (you already have the important ones)
+# Rust/Node caches
 **/target
 **/node_modules
 

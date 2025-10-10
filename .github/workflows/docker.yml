@@ -9,7 +9,7 @@ on:
       - "v*"
       - "!*-dev.*"
       - "!vscode@*"
-      - '!vim@*'
+      - "!vim@*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -32,11 +32,16 @@ jobs:
       id-token: write
 
     strategy:
+      # Added CPU and ROCm to the device-type matrix
       matrix:
-        device-type: [cuda]
+        device-type: [cuda, cpu, rocm]
         include:
           - device-type: cuda
             image-suffix: ""
+          - device-type: cpu
+            image-suffix: "-cpu"
+          - device-type: rocm
+            image-suffix: "-rocm"
 
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -106,7 +111,7 @@ jobs:
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
+      - name: Build and push Docker image (${{ matrix.device-type }})
         id: build-and-push
         uses: docker/build-push-action@v5
         with:
@@ -139,7 +144,7 @@ jobs:
       # Build and push Docker image with Buildx
       # Only built on release tags for compatibility with previous versions
       - name: Build and push Docker image for CUDA 11
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.device-type == 'cuda'
         id: build-and-push-cuda11
         uses: docker/build-push-action@v5
         with:
@@ -153,7 +158,6 @@ jobs:
           build-args: |
             RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
             CUDA_VERSION=11.7.1
-
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
