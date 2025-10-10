@@ -157,7 +157,7 @@ fn retain_at_most_two_hits_per_file(scored_hits: &mut Vec<CodeSearchHit>) {
 fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(f32, f32, TantivyDocument)> {
     resp.into_iter()
         .enumerate()
-        .map(|(_rank, (score, doc))| (1.0 / (RANK_CONSTANT + (score + 1) as f32), score, doc))
+        .map(|(_rank, (score, doc))| (1.0 / (RANK_CONSTANT + (score + 1.0) as f32), score, doc))
         .collect()
 }
 
