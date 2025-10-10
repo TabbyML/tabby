@@ -1,8 +1,33 @@
+# Local runtime/state
+data/
+models/
+logs/
+tmp/
+*.tmp
+*.log
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Git metadata (not needed in build context)
+.git
+.gitmodules
+.gitignore
+
+# Rust/Node caches (you already have the important ones)
+**/target
+**/node_modules
+
+# Tooling/IDE
 .idea
+.vscode
+
+# Project areas not needed for the image
 ci
 clients
 .github
 python
-**/target
-**/node_modules
 website
