@@ -1,4 +1,5 @@
 mod azure;
+mod codestral;
 mod llama;
 mod openai;
 
@@ -6,6 +7,7 @@ use core::panic;
 use std::sync::Arc;
 
 use azure::AzureEmbeddingEngine;
+use codestral::CodestralEmbeddingEngine;
 use llama::LlamaCppEngine;
 use openai::OpenAIEmbeddingEngine;
 use tabby_common::config::HttpModelConfig;
@@ -59,6 +61,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             config.model_name.as_deref().unwrap_or_default(), // Provide a default if model_name is optional
             config.api_key.as_deref(),
         ),
+        "codestral/embedding" => CodestralEmbeddingEngine::create(config.api_key.as_deref()),
         unsupported_kind => panic!(
             "Unsupported kind for http embedding model: {}",
             unsupported_kind
