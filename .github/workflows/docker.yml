@@ -2,8 +2,8 @@ name: Create and publish docker image
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 20 */1 * *"
+  # schedule:
+  #   - cron: "0 20 */1 * *"
   push:
     tags:
       - "v*"
@@ -23,7 +23,7 @@ env:
 
 jobs:
   release-docker:
-    runs-on: buildjet-2vcpu-ubuntu-2204
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -39,20 +39,20 @@ jobs:
             image-suffix: ""
 
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: true
+      # - name: Free Disk Space (Ubuntu)
+      #   uses: jlumbroso/free-disk-space@main
+      #   with:
+      #     # this might remove tools that are actually needed,
+      #     # if set to "true" but frees about 6 GB
+      #     tool-cache: true
 
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-          swap-storage: true
+      #     # all of these default to true, but feel free to set to
+      #     # "false" if necessary for your workflow
+      #     android: true
+      #     dotnet: true
+      #     haskell: true
+      #     large-packages: false
+      #     swap-storage: true
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -72,11 +72,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log into Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Log into Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Generate image name
         env:
@@ -96,7 +96,6 @@ jobs:
           # list of Docker images to use as base name for tags
           images: |
             ghcr.io/${{ env.IMAGE_NAME }}
-            ${{ env.IMAGE_NAME }}
           # generate Docker tags based on the following events/attributes
           tags: |
             type=raw,value={{branch}}-{{sha}},enable=${{ startsWith(github.ref, 'refs/heads') }}
@@ -120,44 +119,9 @@ jobs:
           build-args: |
             RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
             CUDA_VERSION=${{ env.CUDA_VERSION }}
-
-      - name: Docker meta for CUDA 11
-        if: startsWith(github.ref, 'refs/tags/v')
-        id: meta-cuda11
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ env.IMAGE_NAME }}
-            ${{ env.IMAGE_NAME }}
-          # do not generate tags for latest since cuda12 is the latest
-          flavor: |
-            latest=false
-            suffix=-cuda11
-          tags: |
-            type=semver,pattern={{version}}
-
-      # Build and push Docker image with Buildx
-      # Only built on release tags for compatibility with previous versions
-      - name: Build and push Docker image for CUDA 11
-        if: startsWith(github.ref, 'refs/tags/v')
-        id: build-and-push-cuda11
-        uses: docker/build-push-action@v5
-        with:
-          file: docker/Dockerfile.${{ matrix.device-type }}
-          push: true
-          context: .
-          tags: ${{ steps.meta-cuda11.outputs.tags }}
-          labels: ${{ steps.meta-cuda11.outputs.labels }}
-          cache-from: ${{ steps.cache.outputs.cache-from }}
-          cache-to: ${{ steps.cache.outputs.cache-to }}
-          build-args: |
-            RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
-            CUDA_VERSION=11.7.1
-
-
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: tabbyml/tabby
+      # - name: Docker Hub Description
+      #   uses: peter-evans/dockerhub-description@v4
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #     repository: tabbyml/tabby
