@@ -6,12 +6,12 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
 
-/// `AzureEmbeddingEngine` is responsible for interacting with Azure's Embedding API.
-///
-/// **Note**: Currently, this implementation only supports the OpenAI API and specific API versions.
+/// `MistralEmbeddingEngine` is responsible for interacting with Mistral's Embedding API.
 #[derive(Clone)]
-pub struct CodestralEmbeddingEngine {
+pub struct MistralEmbeddingEngine {
     client: Arc<Client>,
+    api_endpoint: String,
+    model_name: String,
     api_key: String,
 }
 
@@ -36,32 +36,39 @@ struct Data {
     embedding: Vec<f32>,
 }
 
-impl CodestralEmbeddingEngine {
-    pub fn create(api_key: Option<&str>) -> Box<dyn Embedding> {
+impl MistralEmbeddingEngine {
+    pub fn create(
+        api_endpoint: Option<&str>,
+        model_name: Option<&str>,
+        api_key: Option<&str>,
+    ) -> Box<dyn Embedding> {
         Box::new(Self {
             client: Arc::new(Client::new()),
+            api_endpoint: api_endpoint
+                .unwrap_or("https://api.mistral.ai/v1/embeddings")
+                .to_owned(),
+            model_name: model_name.unwrap_or("codestral-embed").to_owned(),
             api_key: api_key.unwrap_or_default().to_owned(),
         })
     }
 }
 
 #[async_trait]
-impl Embedding for CodestralEmbeddingEngine {
+impl Embedding for MistralEmbeddingEngine {
     async fn embed(&self, prompt: &str) -> Result<Vec<f32>> {
         // Clone all necessary fields to ensure thread safety across await points
-        let api_endpoint = "https://api.mistral.ai/v1/embeddings".to_string();
         let request = EmbeddingRequest {
-            model: "codestral-embed".to_string(),
+            model: self.model_name.clone(),
             output_dtype: "float".to_string(),
             // default as per https://docs.mistral.ai/capabilities/embeddings/code_embeddings/, max 3072
             output_dimension: 1536,
             input: vec![prompt.to_owned()],
         };
 
-        // Send a POST request to the Azure Embedding API
+        // Send a POST request to the Mistral Embedding API
         let response = self
             .client
-            .post(&api_endpoint)
+            .post(&self.api_endpoint)
             .bearer_auth(&self.api_key)
             .header("Content-Type", "application/json")
             .json(&request)
@@ -71,7 +78,7 @@ impl Embedding for CodestralEmbeddingEngine {
         // Check if the response status indicates success
         if !response.status().is_success() {
             let error_text = response.text().await?;
-            anyhow::bail!("Codestral API error: {}", error_text);
+            anyhow::bail!("Mistral API error: {}", error_text);
         }
 
         // Deserialize the response body into `EmbeddingResponse`
