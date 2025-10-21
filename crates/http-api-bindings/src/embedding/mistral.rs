@@ -44,9 +44,10 @@ impl MistralEmbeddingEngine {
     ) -> Box<dyn Embedding> {
         Box::new(Self {
             client: Arc::new(Client::new()),
-            api_endpoint: api_endpoint
-                .unwrap_or("https://api.mistral.ai/v1/embeddings")
-                .to_owned(),
+            api_endpoint: format!(
+                "{}/embeddings",
+                api_endpoint.unwrap_or("https://api.mistral.ai/v1")
+            ),
             model_name: model_name.unwrap_or("codestral-embed").to_owned(),
             api_key: api_key.unwrap_or_default().to_owned(),
         })
