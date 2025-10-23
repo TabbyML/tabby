@@ -1,5 +1,6 @@
 mod azure;
 mod llama;
+mod mistral;
 mod openai;
 
 use core::panic;
@@ -7,6 +8,7 @@ use std::sync::Arc;
 
 use azure::AzureEmbeddingEngine;
 use llama::LlamaCppEngine;
+use mistral::MistralEmbeddingEngine;
 use openai::OpenAIEmbeddingEngine;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
@@ -57,6 +59,11 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
                 .as_deref()
                 .expect("api_endpoint is required for azure/embedding"),
             config.model_name.as_deref().unwrap_or_default(), // Provide a default if model_name is optional
+            config.api_key.as_deref(),
+        ),
+        "mistral/embedding" => MistralEmbeddingEngine::create(
+            config.api_endpoint.as_deref(),
+            config.model_name.as_deref(),
             config.api_key.as_deref(),
         ),
         unsupported_kind => panic!(
