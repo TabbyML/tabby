@@ -1,6 +1,6 @@
-# Hugging Face
+# Hugging Face Inference Providers
 
-[Hugging Face Inference Providers](https://huggingface.co/inference-providers) offers access to frontier open models from multiple providers through a unified API.
+[Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers) offers access to frontier open models from multiple providers through a unified API.
 
 ## Chat model
 
