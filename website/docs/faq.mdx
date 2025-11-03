@@ -61,3 +61,22 @@ For more technical details about this limitation, please refer to the SQLite doc
 [Filesystems with broken or missing lock implementations](https://sqlite.org/howtocorrupt.html#_filesystems_with_broken_or_missing_lock_implementations).
 
 </Collapse>
+
+<Collapse title="How do I enable debug logging in the Tabby server?">
+
+The Tabby server utilizes the `RUST_LOG` environment variable to control logging levels.
+To enable debug logging, you can set this variable when you start the server.
+
+For example, if you are running Tabby from the command line, you can do so like this:
+
+```bash
+RUST_LOG=debug tabby serve
+```
+
+If you are using Docker, you can pass the environment variable using the `-e` flag:
+
+```bash
+docker run -e RUST_LOG=debug ...
+```
+
+</Collapse>
