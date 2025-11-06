@@ -1,6 +1,8 @@
 # Hugging Face Inference Providers
 
-[Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers) offers access to frontier open models from multiple providers through a unified API.
+[Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers) offers access to frontier open models from multiple providers through a unified API. 
+
+You'll need a [Hugging Face account](https://huggingface.co/join) and an [access token](https://huggingface.co/settings/tokens/new?ownUserPermissions=inference.serverless.write&tokenType=fineGrained).
 
 ## Chat model
 
