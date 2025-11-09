@@ -20,6 +20,7 @@ import {
   IconGithub,
   IconGitLab,
   IconGoogle,
+  IconOidc,
   IconSpinner
 } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -60,8 +61,13 @@ export default function SigninSection() {
     findIndex(authProviders, x => x.kind === AuthProviderKind.OauthGitlab) > -1
   const enableGoogleOauth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.OauthGoogle) > -1
+  const enableOidcOauth =
+    findIndex(authProviders, x => x.kind === AuthProviderKind.OauthOidc) > -1
   const enable3POauth =
-    enableGithubOauth || enableGitlabOauth || enableGoogleOauth
+    enableGithubOauth ||
+    enableGitlabOauth ||
+    enableGoogleOauth ||
+    enableOidcOauth
   const enableLdapAuth =
     findIndex(authProviders, x => x.kind === AuthProviderKind.Ldap) > -1
   const passwordSigninVisible = passwordForceRender || !isDisablePasswordLogin
@@ -168,6 +174,11 @@ export default function SigninSection() {
         {enableGitlabOauth && (
           <a href={`/oauth/signin?provider=gitlab`}>
             <IconGitLab className="h-8 w-8" />
+          </a>
+        )}
+        {enableOidcOauth && (
+          <a href={`/oauth/signin?provider=oidc`}>
+            <IconOidc className="h-8 w-8" />
           </a>
         )}
       </div>
