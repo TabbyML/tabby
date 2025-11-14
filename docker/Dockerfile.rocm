@@ -12,17 +12,16 @@ FROM ${BASE_ROCM_DEV_CONTAINER} AS build
 ARG RUST_TOOLCHAIN=stable
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
-    curl \
-    pkg-config \
-    libssl-dev \
-    protobuf-compiler \
-    git \
-    cmake \
-    && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        curl \
+        pkg-config \
+        libssl-dev \
+        protobuf-compiler \
+        git \
+        cmake
 
 # setup rust.
 RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
@@ -47,19 +46,18 @@ RUN cp /opt/tabby/bin/tabby /opt/tabby/bin/tabby-cpu
 
 FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
 
-RUN apt-get update && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
-    git \
-    curl \
-    openssh-client \
-    ca-certificates \
-    libssl3 \
-    rocblas \
-    hipblas \
-    libgomp1 \
-    && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        git \
+        curl \
+        openssh-client \
+        ca-certificates \
+        libssl3 \
+        rocblas \
+        hipblas \
+        libgomp1
 
 # Disable safe directory in docker
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
