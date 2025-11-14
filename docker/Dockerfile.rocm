@@ -1,6 +1,6 @@
 ARG UBUNTU_VERSION=22.04
 # This needs to generally match the container host's environment.
-ARG ROCM_VERSION=5.7.1
+ARG ROCM_VERSION=6.1.2
 # Target the ROCM build image
 ARG BASE_ROCM_DEV_CONTAINER=rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete
 # Target the ROCM runtime image
@@ -37,6 +37,7 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
+    find target/release/build -maxdepth 1 -type d -name 'llama-cpp-server-*' -prune -exec rm -rf {} + || true && \
     cargo build --no-default-features --features rocm,prod --release --package tabby && \
     cp target/release/llama-server /opt/tabby/bin/ && \
     cp target/release/tabby /opt/tabby/bin/
