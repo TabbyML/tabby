@@ -34,7 +34,7 @@ impl BuildStructuredDoc for WebDocument {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
+    ) -> BoxStream<'life0, JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         let chunks: Vec<_> = TextSplitter::new(2048)
             .chunks(&self.body)
             .map(|x| x.to_owned())

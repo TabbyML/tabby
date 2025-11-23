@@ -38,7 +38,7 @@ impl BuildStructuredDoc for CommitDocument {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
+    ) -> BoxStream<'life0, JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         let s = stream! {
                 let embedding = embedding.clone();
                 let body = self.message.clone();
