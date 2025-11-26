@@ -67,7 +67,11 @@ struct FIMResponseDelta {
 
 #[async_trait]
 impl CompletionStream for MistralFIMEngine {
-    async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
+    async fn generate(
+        &self,
+        prompt: &str,
+        options: CompletionOptions,
+    ) -> BoxStream<'life0, String> {
         let (prompt, suffix) = split_fim_prompt(prompt);
         let request = FIMRequest {
             prompt: prompt.to_owned(),

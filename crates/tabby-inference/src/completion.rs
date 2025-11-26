@@ -17,7 +17,8 @@ pub struct CompletionOptions {
 #[async_trait]
 pub trait CompletionStream: Sync + Send {
     /// Generate a completion in streaming mode
-    async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String>;
+    async fn generate(&self, prompt: &str, options: CompletionOptions)
+        -> BoxStream<'life0, String>;
 
     /// Generate a completion in non-streaming mode
     /// Returns the full completion as a single string

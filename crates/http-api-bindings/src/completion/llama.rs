@@ -44,7 +44,11 @@ struct CompletionResponseChunk {
 
 #[async_trait]
 impl CompletionStream for LlamaCppEngine {
-    async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
+    async fn generate(
+        &self,
+        prompt: &str,
+        options: CompletionOptions,
+    ) -> BoxStream<'life0, String> {
         // Always use streaming mode in generate method
         let request_body = CompletionRequest {
             seed: options.seed,

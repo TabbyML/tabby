@@ -60,7 +60,11 @@ pub fn new_completion(
 
 #[async_trait]
 impl CompletionStream for RateLimitedCompletion {
-    async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
+    async fn generate(
+        &self,
+        prompt: &str,
+        options: CompletionOptions,
+    ) -> BoxStream<'life0, String> {
         self.rate_limiter.acquire(1).await;
         self.completion.generate(prompt, options).await
     }
