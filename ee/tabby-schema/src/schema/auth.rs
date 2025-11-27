@@ -89,7 +89,7 @@ pub struct RegisterInput {
         code = "email",
         message = "Email must be at most 128 characters"
     ))]
-    pub email: String,
+    pub email: Option<String>,
     #[validate(length(
         min = 8,
         max = 20,
@@ -454,7 +454,7 @@ pub struct LdapCredential {
 pub trait AuthenticationService: Send + Sync {
     async fn register(
         &self,
-        email: String,
+        email: Option<String>,
         password1: String,
         invitation_code: Option<String>,
         name: Option<String>,
@@ -574,4 +574,35 @@ fn validate_password_impl(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use validator::Validate;
+
+    use super::*;
+
+    #[test]
+    fn test_register_input_validation() {
+        let input = RegisterInput {
+            email: None,
+            password1: "Password123!".to_string(),
+            password2: "Password123!".to_string(),
+        };
+        assert!(input.validate().is_ok());
+
+        let input = RegisterInput {
+            email: Some("test@example.com".to_string()),
+            password1: "Password123!".to_string(),
+            password2: "Password123!".to_string(),
+        };
+        assert!(input.validate().is_ok());
+
+        let input = RegisterInput {
+            email: Some("invalid-email".to_string()),
+            password1: "Password123!".to_string(),
+            password2: "Password123!".to_string(),
+        };
+        assert!(input.validate().is_err());
+    }
 }
