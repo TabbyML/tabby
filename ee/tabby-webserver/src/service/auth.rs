@@ -94,7 +94,7 @@ fn create_impl(
 impl AuthenticationService for AuthenticationServiceImpl {
     async fn register(
         &self,
-        email: String,
+        email: Option<String>,
         password: String,
         invitation_code: Option<String>,
         name: Option<String>,
@@ -103,8 +103,18 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if is_admin_initialized && is_demo_mode() {
             bail!("Registering new users is disabled in demo mode");
         }
-        let invitation =
-            check_invitation(&self.db, is_admin_initialized, invitation_code, &email).await?;
+        let invitation = check_invitation(&self.db, is_admin_initialized, invitation_code).await?;
+
+        let email = match email {
+            Some(email) => email,
+            None => {
+                if let Some(invitation) = &invitation {
+                    invitation.email.clone()
+                } else {
+                    bail!("Email is required");
+                }
+            }
+        };
 
         // check if email exists
         if self.db.get_user_by_email(&email).await?.is_some() {
@@ -832,7 +842,6 @@ async fn check_invitation(
     db: &DbConn,
     is_admin_initialized: bool,
     invitation_code: Option<String>,
-    email: &str,
 ) -> Result<Option<InvitationDAO>> {
     if !is_admin_initialized {
         // Creating the admin user, no invitation required
@@ -847,10 +856,6 @@ async fn check_invitation(
     let Some(invitation) = db.get_invitation_by_code(&invitation_code).await? else {
         return err;
     };
-
-    if invitation.email != email {
-        bail!("Invitation code is not for this email address");
-    }
 
     Ok(Some(invitation))
 }
