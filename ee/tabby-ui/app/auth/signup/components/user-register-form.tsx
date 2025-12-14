@@ -58,7 +58,7 @@ const formSchema = z
     invitationCode: z.string().optional()
   })
   .refine(
-    (data) => {
+    data => {
       if (data.invitationCode) return true
       return z.string().email().safeParse(data.email).success
     },

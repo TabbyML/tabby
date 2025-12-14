@@ -1009,7 +1009,7 @@ mod tests {
     async fn register_admin_user(service: &impl AuthenticationService) -> RegisterResponse {
         service
             .register(
-                ADMIN_EMAIL.to_owned(),
+                Some(ADMIN_EMAIL.to_owned()),
                 ADMIN_PASSWORD.to_owned(),
                 None,
                 None,
@@ -1068,7 +1068,7 @@ mod tests {
         // Admin initialized, registeration requires a invitation code;
         assert_matches!(
             service
-                .register(email.to_owned(), password.to_owned(), None, None)
+                .register(Some(email.to_owned()), password.to_owned(), None, None)
                 .await,
             Err(_)
         );
@@ -1077,7 +1077,7 @@ mod tests {
         assert_matches!(
             service
                 .register(
-                    email.to_owned(),
+                    Some(email.to_owned()),
                     password.to_owned(),
                     Some("abc".to_owned()),
                     None
@@ -1089,7 +1089,7 @@ mod tests {
         // Register success.
         assert!(service
             .register(
-                email.to_owned(),
+                Some(email.to_owned()),
                 password.to_owned(),
                 Some(invitation.code.clone()),
                 None
@@ -1101,7 +1101,7 @@ mod tests {
         assert_matches!(
             service
                 .register(
-                    email.to_owned(),
+                    Some(email.to_owned()),
                     password.to_owned(),
                     Some(invitation.code.clone()),
                     None
@@ -1300,7 +1300,12 @@ mod tests {
             .unwrap();
 
         service
-            .register("test@example.com".into(), "".into(), Some(code.code), None)
+            .register(
+                Some("test@example.com".into()),
+                "".into(),
+                Some(code.code),
+                None,
+            )
             .await
             .unwrap();
 
@@ -1586,7 +1591,7 @@ mod tests {
 
         // Create owner user.
         service
-            .register("a@example.com".into(), "pass".into(), None, None)
+            .register(Some("a@example.com".into()), "pass".into(), None, None)
             .await
             .unwrap();
 
