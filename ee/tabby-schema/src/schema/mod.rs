@@ -1210,7 +1210,7 @@ impl Mutation {
 
     async fn register(
         ctx: &Context,
-        email: String,
+        email: Option<String>,
         password1: String,
         password2: String,
         invitation_code: Option<String>,

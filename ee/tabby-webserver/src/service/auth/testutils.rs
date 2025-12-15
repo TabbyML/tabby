@@ -54,7 +54,7 @@ impl FakeAuthService {
 impl AuthenticationService for FakeAuthService {
     async fn register(
         &self,
-        _email: String,
+        _email: Option<String>,
         _password: String,
         _invitation_code: Option<String>,
         _name: Option<String>,

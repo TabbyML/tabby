@@ -94,7 +94,7 @@ fn create_impl(
 impl AuthenticationService for AuthenticationServiceImpl {
     async fn register(
         &self,
-        email: String,
+        email: Option<String>,
         password: String,
         invitation_code: Option<String>,
         name: Option<String>,
@@ -103,8 +103,18 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if is_admin_initialized && is_demo_mode() {
             bail!("Registering new users is disabled in demo mode");
         }
-        let invitation =
-            check_invitation(&self.db, is_admin_initialized, invitation_code, &email).await?;
+        let invitation = check_invitation(&self.db, is_admin_initialized, invitation_code).await?;
+
+        let email = match email {
+            Some(email) => email,
+            None => {
+                if let Some(invitation) = &invitation {
+                    invitation.email.clone()
+                } else {
+                    bail!("Email is required");
+                }
+            }
+        };
 
         // check if email exists
         if self.db.get_user_by_email(&email).await?.is_some() {
@@ -832,7 +842,6 @@ async fn check_invitation(
     db: &DbConn,
     is_admin_initialized: bool,
     invitation_code: Option<String>,
-    email: &str,
 ) -> Result<Option<InvitationDAO>> {
     if !is_admin_initialized {
         // Creating the admin user, no invitation required
@@ -847,10 +856,6 @@ async fn check_invitation(
     let Some(invitation) = db.get_invitation_by_code(&invitation_code).await? else {
         return err;
     };
-
-    if invitation.email != email {
-        bail!("Invitation code is not for this email address");
-    }
 
     Ok(Some(invitation))
 }
@@ -1004,7 +1009,7 @@ mod tests {
     async fn register_admin_user(service: &impl AuthenticationService) -> RegisterResponse {
         service
             .register(
-                ADMIN_EMAIL.to_owned(),
+                Some(ADMIN_EMAIL.to_owned()),
                 ADMIN_PASSWORD.to_owned(),
                 None,
                 None,
@@ -1063,7 +1068,7 @@ mod tests {
         // Admin initialized, registeration requires a invitation code;
         assert_matches!(
             service
-                .register(email.to_owned(), password.to_owned(), None, None)
+                .register(Some(email.to_owned()), password.to_owned(), None, None)
                 .await,
             Err(_)
         );
@@ -1072,7 +1077,7 @@ mod tests {
         assert_matches!(
             service
                 .register(
-                    email.to_owned(),
+                    Some(email.to_owned()),
                     password.to_owned(),
                     Some("abc".to_owned()),
                     None
@@ -1084,7 +1089,7 @@ mod tests {
         // Register success.
         assert!(service
             .register(
-                email.to_owned(),
+                Some(email.to_owned()),
                 password.to_owned(),
                 Some(invitation.code.clone()),
                 None
@@ -1096,7 +1101,7 @@ mod tests {
         assert_matches!(
             service
                 .register(
-                    email.to_owned(),
+                    Some(email.to_owned()),
                     password.to_owned(),
                     Some(invitation.code.clone()),
                     None
@@ -1295,7 +1300,12 @@ mod tests {
             .unwrap();
 
         service
-            .register("test@example.com".into(), "".into(), Some(code.code), None)
+            .register(
+                Some("test@example.com".into()),
+                "".into(),
+                Some(code.code),
+                None,
+            )
             .await
             .unwrap();
 
@@ -1581,7 +1591,7 @@ mod tests {
 
         // Create owner user.
         service
-            .register("a@example.com".into(), "pass".into(), None, None)
+            .register(Some("a@example.com".into()), "pass".into(), None, None)
             .await
             .unwrap();
 
