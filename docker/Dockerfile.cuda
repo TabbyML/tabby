@@ -12,17 +12,16 @@ FROM ${BASE_CUDA_DEV_CONTAINER} AS build
 ARG RUST_TOOLCHAIN=stable
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
         pkg-config \
         libssl-dev \
         protobuf-compiler \
         git \
-        cmake \
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        cmake
 
 # setup rust.
 RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
@@ -48,17 +47,16 @@ RUN cp /opt/tabby/bin/tabby /opt/tabby/bin/tabby-cpu
 
 FROM ${BASE_CUDA_RUN_CONTAINER} AS runtime
 
-RUN apt-get update && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
         git   \
         curl  \
         unzip \
         openssh-client \
         ca-certificates \
-        libgomp1 \
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        libgomp1
 
 # Install katana
 RUN curl -L https://github.com/projectdiscovery/katana/releases/download/v1.1.2/katana_1.1.2_linux_amd64.zip -o katana.zip \
