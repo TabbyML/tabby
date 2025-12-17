@@ -76,7 +76,7 @@ class InlineCompletionRenderer {
 
       val inlays = mutableListOf<Inlay<*>>()
       val markups = mutableListOf<RangeHighlighter>()
-      if (suffixReplaceLength == 0) {
+      if (suffixReplaceLength == 0 || currentLineSuffix.isEmpty()) {
         // No replace range to handle
         createInlayText(editor, textLines[0], offset, 0)?.let { inlays.add(it) }
         if (textLines.size > 1) {
