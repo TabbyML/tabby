@@ -31,7 +31,7 @@ import {
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(
     $name: String!
-    $email: String
+    $email: String!
     $password1: String!
     $password2: String!
     $invitationCode: String
@@ -49,24 +49,13 @@ export const registerUser = graphql(/* GraphQL */ `
   }
 `)
 
-const formSchema = z
-  .object({
-    name: z.string(),
-    email: z.string().optional(),
-    password1: z.string(),
-    password2: z.string(),
-    invitationCode: z.string().optional()
-  })
-  .refine(
-    data => {
-      if (data.invitationCode) return true
-      return z.string().email().safeParse(data.email).success
-    },
-    {
-      message: 'Invalid email address',
-      path: ['email']
-    }
-  )
+const formSchema = z.object({
+  name: z.string(),
+  email: z.string().email('Invalid email address'),
+  password1: z.string(),
+  password2: z.string(),
+  invitationCode: z.string().optional()
+})
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   invitationCode?: string
@@ -131,29 +120,27 @@ export function UserAuthForm({
               </FormItem>
             )}
           />
-          {!invitationCode && (
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
-                      type="email"
-                      autoCapitalize="none"
-                      autoComplete="email"
-                      autoCorrect="off"
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
+                    type="email"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    autoCorrect="off"
+                    {...field}
+                    value={field.value ?? ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div>
             <FormField
               control={form.control}
