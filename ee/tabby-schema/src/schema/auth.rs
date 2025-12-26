@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 use thiserror::Error;
 use tokio::task::JoinHandle;
-use tracing::error;
 use validator::Validate;
 
 use super::interface::UserValue;
