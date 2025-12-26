@@ -63,7 +63,7 @@ use tabby_inference::{
     ChatCompletionStream, CompletionOptionsBuilder, CompletionStream, Embedding as EmbeddingService,
 };
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
-use tracing::{error, warn};
+use tracing::warn;
 use user_group::{
     CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
 };

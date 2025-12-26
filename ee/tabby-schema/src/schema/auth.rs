@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 use thiserror::Error;
 use tokio::task::JoinHandle;
-use tracing::error;
 use validator::Validate;
 
 use super::interface::UserValue;
@@ -334,6 +333,7 @@ pub enum OAuthProvider {
     Github,
     Google,
     Gitlab,
+    Oidc,
 }
 
 #[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -341,6 +341,7 @@ pub enum AuthProviderKind {
     OAuthGithub,
     OAuthGoogle,
     OAuthGitlab,
+    OAuthOidc,
     Ldap,
 }
 
@@ -356,6 +357,9 @@ impl From<OAuthProvider> for AuthProvider {
             OAuthProvider::Gitlab => AuthProvider {
                 kind: AuthProviderKind::OAuthGitlab,
             },
+            OAuthProvider::Oidc => AuthProvider {
+                kind: AuthProviderKind::OAuthOidc,
+            },
         }
     }
 }
@@ -368,6 +372,8 @@ pub struct AuthProvider {
 #[derive(GraphQLObject)]
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
+    pub config_url: Option<String>,
+    pub config_scopes: Option<String>,
     pub client_id: String,
 
     #[graphql(skip)]
@@ -379,6 +385,10 @@ pub struct OAuthCredential {
 #[derive(GraphQLInputObject, Validate)]
 pub struct UpdateOAuthCredentialInput {
     pub provider: OAuthProvider,
+
+    pub config_url: Option<String>,
+
+    pub config_scopes: Option<String>,
 
     #[validate(length(min = 1, code = "clientId", message = "Client ID cannot be empty"))]
     pub client_id: String,
@@ -508,6 +518,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn oauth(
         &self,
         code: String,
+        state: Option<String>,
         provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError>;
 
