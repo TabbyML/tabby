@@ -59,6 +59,7 @@ const formSchema = z.object({
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   invitationCode?: string
+  email?: string
   onSuccess?: () => void
   buttonClass?: string
 }
@@ -66,6 +67,7 @@ interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
 export function UserAuthForm({
   className,
   invitationCode,
+  email,
   onSuccess,
   buttonClass,
   ...props
@@ -75,7 +77,8 @@ export function UserAuthForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      invitationCode
+      invitationCode,
+      email
     }
   })
 
@@ -135,6 +138,7 @@ export function UserAuthForm({
                     autoCorrect="off"
                     {...field}
                     value={field.value ?? ''}
+                    disabled={!!email}
                   />
                 </FormControl>
                 <FormMessage />

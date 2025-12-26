@@ -39,6 +39,7 @@ function Content({
 }) {
   const searchParams = useSearchParams()
   const invitationCode = searchParams.get('invitationCode') || undefined
+  const email = searchParams.get('email') || undefined
 
   return (
     <div className="w-[350px] space-y-6">
@@ -46,7 +47,7 @@ function Content({
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      {show && <UserAuthForm invitationCode={invitationCode} />}
+      {show && <UserAuthForm invitationCode={invitationCode} email={email} />}
     </div>
   )
 }

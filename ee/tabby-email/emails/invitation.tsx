@@ -13,7 +13,7 @@ interface Invitation {
 
 export const Invitation = ({
   email = "{{EMAIL}}",
-  inviteLink = "{{EXTERNAL_URL}}/auth/signup?invitationCode={{CODE}}",
+  inviteLink = "{{EXTERNAL_URL}}/auth/signup?invitationCode={{CODE}}&email={{EMAIL}}",
 }: Invitation) => {
   const title = `You've been invited to join a Tabby server!`;
 
@@ -54,7 +54,7 @@ export const Invitation = ({
 
 Invitation.PreviewProps = {
   email: "user@tabbyml.com",
-  inviteLink: "http://localhost:8080/auth/signup?invitationCode={{CODE}}",
+  inviteLink: "http://localhost:8080/auth/signup?invitationCode={{CODE}}&email={{EMAIL}}",
 } as Invitation;
 
 export default Invitation;
