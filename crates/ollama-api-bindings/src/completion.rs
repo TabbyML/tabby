@@ -20,7 +20,11 @@ pub struct OllamaCompletion {
 
 #[async_trait]
 impl CompletionStream for OllamaCompletion {
-    async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
+    async fn generate(
+        &self,
+        prompt: &str,
+        options: CompletionOptions,
+    ) -> BoxStream<'life0, String> {
         // FIXME: options.presence_penalty is not used
         let ollama_options = GenerationOptions::default()
             .num_predict(options.max_decoding_tokens)

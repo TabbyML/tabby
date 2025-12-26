@@ -322,7 +322,7 @@ impl IndexSchema {
         BooleanQuery::new(
             source_ids
                 .iter()
-                .map(|source_id| -> (Occur, Box<(dyn Query)>) {
+                .map(|source_id| -> (Occur, Box<dyn Query>) {
                     (
                         Occur::Should,
                         Box::new(TermQuery::new(

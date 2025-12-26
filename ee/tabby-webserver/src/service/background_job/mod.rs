@@ -11,7 +11,7 @@ mod license_check;
 mod third_party_integration;
 mod web_crawler;
 
-use std::{str::FromStr, sync::Arc};
+use std::{env, str::FromStr, sync::Arc};
 
 use cron::Schedule;
 use daily::DailyJob;
@@ -46,6 +46,41 @@ use url::Url;
 pub use web_crawler::WebCrawlerJob;
 
 use self::third_party_integration::SyncIntegrationJob;
+
+// Sharding configuration constants
+pub const REPOSITORIES_PER_SHARD: usize = 7;
+pub const SHARDING_THRESHOLD: usize = 20;
+
+/// Calculate the current shard for repository processing
+/// Returns Some(shard) if sharding should be used, None otherwise
+fn calculate_current_shard(number_of_repo: usize, timestamp_seconds: i64) -> Option<usize> {
+    // Only run on TABBY_INDEX_REPO_IN_SHARD is not empty and number_of_repo > SHARDING_THRESHOLD
+    // otherwise return None
+    if !(env::var("TABBY_INDEX_REPO_IN_SHARD").is_ok_and(|v| !v.is_empty())
+        && number_of_repo > SHARDING_THRESHOLD)
+    {
+        return None;
+    }
+
+    // `number_of_repo + REPOSITORIES_PER_SHARD - 1` because we should ceil number_of_repo
+    let number_of_shard = number_of_repo.div_ceil(REPOSITORIES_PER_SHARD);
+    let timestamp = timestamp_seconds as usize;
+    Some((timestamp / 3600) % number_of_shard)
+}
+
+/// Check if a repository should be processed based on sharding
+fn should_process_repository(
+    repo_index: usize,
+    current_shard: Option<usize>,
+    number_of_repo: usize,
+) -> bool {
+    let Some(current_shard) = current_shard else {
+        return true; // No sharding, process all repositories
+    };
+
+    let number_of_shard = number_of_repo.div_ceil(REPOSITORIES_PER_SHARD); // Math.ceil
+    repo_index % number_of_shard == current_shard
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BackgroundJobEvent {

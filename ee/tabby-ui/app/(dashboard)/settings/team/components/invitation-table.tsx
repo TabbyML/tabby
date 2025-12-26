@@ -163,7 +163,7 @@ export default function InvitationTable() {
             )}
             <TableBody>
               {currentPageInvits?.map(x => {
-                const link = `${externalUrl}/auth/signup?invitationCode=${x.node.code}`
+                const link = `${externalUrl}/auth/signup?invitationCode=${x.node.code}&email=${x.node.email}`
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell>{x.node.email}</TableCell>

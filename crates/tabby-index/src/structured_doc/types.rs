@@ -69,7 +69,7 @@ pub trait BuildStructuredDoc {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>>;
+    ) -> BoxStream<'life0, JoinHandle<Result<(Vec<String>, serde_json::Value)>>>;
 }
 
 pub enum StructuredDocFields {
@@ -108,7 +108,7 @@ impl BuildStructuredDoc for StructuredDoc {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
+    ) -> BoxStream<'life0, JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         match &self.fields {
             StructuredDocFields::Web(doc) => doc.build_chunk_attributes(embedding).await,
             StructuredDocFields::Issue(doc) => doc.build_chunk_attributes(embedding).await,

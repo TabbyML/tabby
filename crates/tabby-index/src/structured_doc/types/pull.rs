@@ -47,7 +47,7 @@ impl BuildStructuredDoc for PullDocument {
     async fn build_chunk_attributes(
         &self,
         embedding: Arc<dyn Embedding>,
-    ) -> BoxStream<JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
+    ) -> BoxStream<'life0, JoinHandle<Result<(Vec<String>, serde_json::Value)>>> {
         // currently not indexing the diff
         let text = format!("{}\n\n{}", self.title, self.body);
         let s = stream! {
