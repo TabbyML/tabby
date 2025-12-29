@@ -471,3 +471,28 @@ top_level_keywords = [
     "class_name",
     "extends",
 ]
+
+[[config]]
+languages = ["perl"]
+exts = ["pl", "pm", "pod", "perl", "t"]
+line_comment = "#"
+top_level_keywords = [
+    "package",
+    "use",
+    "require",
+    "no",
+    "sub",
+    "my",
+    "our",
+    "local",
+    "BEGIN",
+    "END",
+    "given",
+    "when",
+    "foreach",
+    "for",
+    "while",
+    "if",
+    "elsif",
+    "else",
+]
