@@ -561,6 +561,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     async fn oauth(
         &self,
         code: String,
+        state: Option<String>,
         provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError> {
         let client = oauth::new_oauth_client(provider, Arc::new(self.clone()));
@@ -573,6 +574,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         oauth_login(
             client,
             code,
+            state,
             &self.db,
             &*self.setting,
             &license,
@@ -601,6 +603,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             OAuthProvider::Github => external_url + "/oauth/callback/github",
             OAuthProvider::Google => external_url + "/oauth/callback/google",
             OAuthProvider::Gitlab => external_url + "/oauth/callback/gitlab",
+            OAuthProvider::Oidc => external_url + "/oauth/callback/oidc",
         };
         Ok(url)
     }
@@ -609,6 +612,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
         self.db
             .update_oauth_credential(
                 input.provider.as_enum_str(),
+                input.config_url.as_deref(),
+                input.config_scopes.as_deref(),
                 &input.client_id,
                 input.client_secret.as_deref(),
             )
@@ -753,12 +758,13 @@ async fn ldap_login(
 async fn oauth_login(
     client: Arc<dyn OAuthClient>,
     code: String,
+    state: Option<String>,
     db: &DbConn,
     setting: &dyn SettingService,
     license: &LicenseInfo,
     mail: &dyn EmailService,
 ) -> Result<OAuthResponse, OAuthError> {
-    let access_token = client.exchange_code_for_token(code).await?;
+    let access_token = client.exchange_code_for_token(code, state).await?;
     let email = client.fetch_user_email(&access_token).await?;
     let name = client.fetch_user_full_name(&access_token).await?;
     let user_id = get_or_create_sso_user(license, db, setting, mail, &email, &name).await?;
@@ -1851,6 +1857,8 @@ mod tests {
         service
             .update_oauth_credential(UpdateOAuthCredentialInput {
                 provider: OAuthProvider::Google,
+                config_url: None,
+                config_scopes: None,
                 client_id: "id".into(),
                 client_secret: Some("secret".into()),
             })
@@ -1961,6 +1969,7 @@ mod tests {
         let response = oauth_login(
             client,
             "fakecode".into(),
+            None,
             &service.db,
             &*service.setting,
             &license,
@@ -1980,6 +1989,7 @@ mod tests {
         let response = oauth_login(
             client,
             "fakecode".into(),
+            None,
             &service.db,
             &*service.setting,
             &license,

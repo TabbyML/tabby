@@ -98,7 +98,11 @@ impl GoogleClient {
 
 #[async_trait]
 impl OAuthClient for GoogleClient {
-    async fn exchange_code_for_token(&self, code: String) -> Result<String> {
+    async fn exchange_code_for_token(
+        &self,
+        code: String,
+        _state: Option<String>,
+    ) -> Result<String> {
         let credential = self.read_credential().await?;
         let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::Google).await?;
         let token_resp = self

@@ -31,5 +31,13 @@ export const PROVIDER_METAS: Array<{
       domain: 'gitlab.com',
       displayName: 'GitLab'
     }
+  },
+  {
+    name: 'oidc',
+    enum: OAuthProvider.Oidc,
+    meta: {
+      domain: 'oidc',
+      displayName: 'OIDC'
+    }
   }
 ]

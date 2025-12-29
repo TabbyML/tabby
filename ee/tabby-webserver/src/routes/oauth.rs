@@ -23,6 +23,7 @@ pub fn routes(state: Arc<dyn AuthenticationService>) -> Router {
         .route("/callback/github", routing::get(github_oauth_handler))
         .route("/callback/google", routing::get(google_oauth_handler))
         .route("/callback/gitlab", routing::get(gitlab_oauth_handler))
+        .route("/callback/oidc", routing::get(oidc_oauth_handler))
         .with_state(state)
 }
 
@@ -79,7 +80,7 @@ async fn github_oauth_handler(
 ) -> Redirect {
     match_auth_result(
         OAuthProvider::Github,
-        state.oauth(param.code, OAuthProvider::Github).await,
+        state.oauth(param.code, None, OAuthProvider::Github).await,
     )
 }
 
@@ -103,7 +104,7 @@ async fn google_oauth_handler(
     }
     match_auth_result(
         OAuthProvider::Google,
-        state.oauth(param.code, OAuthProvider::Google).await,
+        state.oauth(param.code, None, OAuthProvider::Google).await,
     )
 }
 
@@ -120,7 +121,25 @@ async fn gitlab_oauth_handler(
 ) -> Redirect {
     match_auth_result(
         OAuthProvider::Gitlab,
-        state.oauth(param.code, OAuthProvider::Gitlab).await,
+        state.oauth(param.code, None, OAuthProvider::Gitlab).await,
+    )
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct GeneralOAuthQueryParam {
+    code: String,
+    state: Option<String>,
+}
+async fn oidc_oauth_handler(
+    State(state): State<OAuthState>,
+    Query(param): Query<GeneralOAuthQueryParam>,
+) -> Redirect {
+    match_auth_result(
+        OAuthProvider::Oidc,
+        state
+            .oauth(param.code, param.state, OAuthProvider::Oidc)
+            .await,
     )
 }
 

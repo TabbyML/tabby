@@ -229,6 +229,7 @@ impl AuthenticationService for FakeAuthService {
     async fn oauth(
         &self,
         _code: String,
+        _state: Option<String>,
         _provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError> {
         Ok(OAuthResponse {
