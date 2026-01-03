@@ -1289,14 +1289,24 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn create_git_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
+    async fn create_git_repository(
+        ctx: &Context,
+        name: String,
+        git_url: String,
+        refs: Option<Vec<String>>,
+    ) -> Result<ID> {
         check_admin(ctx).await?;
-        let input = repository::CreateGitRepositoryInput { name, git_url };
+        let input = repository::CreateGitRepositoryInput {
+            name,
+            git_url,
+            refs,
+        };
         input.validate()?;
+        let refs = input.refs.unwrap_or_else(|| vec!["main".to_string()]);
         ctx.locator
             .repository()
             .git()
-            .create(input.name, input.git_url)
+            .create(input.name, input.git_url, refs)
             .await
     }
 
@@ -1310,12 +1320,14 @@ impl Mutation {
         id: ID,
         name: String,
         git_url: String,
+        refs: Option<Vec<String>>,
     ) -> Result<bool> {
         check_admin(ctx).await?;
+        let refs = refs.unwrap_or_else(|| vec!["main".to_string()]);
         ctx.locator
             .repository()
             .git()
-            .update(&id, name, git_url)
+            .update(&id, name, git_url, refs)
             .await
     }
 
@@ -1469,6 +1481,20 @@ impl Mutation {
             .repository()
             .third_party()
             .update_repository_active(id, active)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_integrated_repository_refs(
+        ctx: &Context,
+        id: ID,
+        refs: Vec<String>,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .repository()
+            .third_party()
+            .update_repository_refs(id, refs)
             .await?;
         Ok(true)
     }

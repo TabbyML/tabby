@@ -38,9 +38,9 @@ impl CodeIndexer {
             "Building source code index: {}",
             repository.canonical_git_url()
         );
-        let commit = repository::sync_repository(repository)?;
+        repository::sync_repository(repository)?;
 
-        index::index_repository(embedding, repository, &commit).await;
+        index::index_repository(embedding, repository).await;
         index::garbage_collection().await;
 
         Ok(())

@@ -21,14 +21,15 @@ import {
 import { Input } from '@/components/ui/input'
 
 const createRepositoryMutation = graphql(/* GraphQL */ `
-  mutation createGitRepository($name: String!, $gitUrl: String!) {
-    createGitRepository(name: $name, gitUrl: $gitUrl)
+  mutation createGitRepository($name: String!, $gitUrl: String!, $refs: [String!]) {
+    createGitRepository(name: $name, gitUrl: $gitUrl, refs: $refs)
   }
 `)
 
 const formSchema = z.object({
   name: z.string(),
-  gitUrl: z.string()
+  gitUrl: z.string(),
+  refs: z.string().optional()
 })
 
 export default function CreateRepositoryForm({
@@ -43,10 +44,22 @@ export default function CreateRepositoryForm({
   const { isSubmitting } = form.formState
   const createRepository = useMutation(createRepositoryMutation, {
     onCompleted() {
-      form.reset({ name: undefined, gitUrl: undefined })
+      form.reset({ name: undefined, gitUrl: undefined, refs: undefined })
       onCreated()
     },
-    form
+    form,
+    onSubmit: values => {
+      // Parse comma-separated refs into array
+      const refs = values.refs
+        ?.split(',')
+        .map(r => r.trim())
+        .filter(r => r.length > 0)
+      return {
+        name: values.name,
+        gitUrl: values.gitUrl,
+        refs: refs && refs.length > 0 ? refs : undefined
+      }
+    }
   })
 
   const router = useRouter()
@@ -86,6 +99,27 @@ export default function CreateRepositoryForm({
                 <FormControl>
                   <Input
                     placeholder="e.g. https://github.com/TabbyML/tabby"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="refs"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Branches</FormLabel>
+                <FormDescription>
+                  Comma-separated list of branches to index (default: main)
+                </FormDescription>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. main, dev"
                     autoCapitalize="none"
                     autoCorrect="off"
                     {...field}

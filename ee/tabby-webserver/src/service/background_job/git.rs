@@ -63,7 +63,9 @@ impl SchedulerGitJob {
             .unwrap_or_default()
             .into_iter()
             .enumerate()
-            .map(|(index, x)| CodeRepository::new(x.git_url(), &config_index_to_id(index)))
+            .map(|(index, x)| {
+                CodeRepository::new(x.git_url(), &config_index_to_id(index), x.git_refs())
+            })
             .collect::<Vec<_>>();
 
         // Read git repositories from database.
@@ -75,7 +77,13 @@ impl SchedulerGitJob {
         // Combine git repositories from config file and database.
         let repositories: Vec<_> = repositories
             .into_iter()
-            .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id))
+            .map(|repo| {
+                CodeRepository::new(
+                    &repo.git_url,
+                    &repo.source_id,
+                    repo.refs.iter().map(|x| x.name.clone()).collect(),
+                )
+            })
             .chain(config_repositories.into_iter())
             .collect();
 

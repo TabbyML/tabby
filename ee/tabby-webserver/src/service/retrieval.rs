@@ -698,7 +698,7 @@ mod tests {
         let git_url = "https://github.com/test/repo.git".to_string();
         let _id = repo_service
             .git()
-            .create("repo".to_string(), git_url.clone())
+            .create("repo".to_string(), git_url.clone(), vec![])
             .await
             .unwrap();
 
@@ -762,7 +762,7 @@ mod tests {
         // Create test repository via git service
         let repo_id = repo_service
             .git()
-            .create("test-repo".to_string(), TEST_GIT_URL.to_string())
+            .create("test-repo".to_string(), TEST_GIT_URL.to_string(), vec![])
             .await
             .unwrap();
         let source_id = format!("git:{repo_id}");

@@ -41,9 +41,16 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         let mut converted_repositories = vec![];
 
         for repository in repositories {
+            let refs = repository
+                .refs
+                .as_ref()
+                .map(|r| serde_json::from_str(r).unwrap_or_default())
+                .unwrap_or_default();
+
             let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
                 &repository.git_url,
                 &GitRepository::format_source_id(&repository.id.as_id()),
+                refs,
             ));
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
 
@@ -52,18 +59,20 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         Ok(converted_repositories)
     }
 
-    async fn create(&self, name: String, git_url: String) -> Result<ID> {
+    async fn create(&self, name: String, git_url: String, refs: Vec<String>) -> Result<ID> {
         let id = self
             .db
-            .create_repository(name, git_url.clone())
+            .create_repository(name, git_url.clone(), refs.clone())
             .await?
             .as_id();
+
         let _ = self
             .job_service
             .trigger(
                 BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
                     &git_url,
                     &GitRepository::format_source_id(&id),
+                    refs,
                 ))
                 .to_command(),
             )
@@ -81,6 +90,7 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
                     BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
                         &repository.git_url,
                         &GitRepository::format_source_id(id),
+                        vec![],
                     ))
                     .to_command(),
                 )
@@ -92,9 +102,15 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         Ok(success)
     }
 
-    async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
+    async fn update(
+        &self,
+        id: &ID,
+        name: String,
+        git_url: String,
+        refs: Vec<String>,
+    ) -> Result<bool> {
         self.db
-            .update_repository(id.as_rowid()?, name, git_url.clone())
+            .update_repository(id.as_rowid()?, name, git_url.clone(), refs.clone())
             .await?;
         let _ = self
             .job_service
@@ -102,6 +118,7 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
                 BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
                     &git_url,
                     &GitRepository::format_source_id(id),
+                    refs,
                 ))
                 .to_command(),
             )
@@ -127,6 +144,7 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
         let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
             &dao.git_url,
             &GitRepository::format_source_id(&dao.id.as_id()),
+            vec![],
         ));
 
         let job_info = self.job_service.get_job_info(event.to_command()).await?;
@@ -136,17 +154,36 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
 }
 
 fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
-    GitRepository {
-        id: repo.id.as_id(),
-        name: repo.name,
-        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(&repo.git_url))
-            .unwrap_or_default()
+    let all_refs =
+        tabby_git::list_refs(&RepositoryConfig::resolve_dir(&repo.git_url)).unwrap_or_default();
+
+    let refs = if let Some(refs) = &repo.refs {
+        let config_refs: Vec<String> = serde_json::from_str(refs).unwrap_or_default();
+        all_refs
+            .into_iter()
+            .filter(|r| {
+                let ref_name = r.name.rsplit('/').next().unwrap_or(&r.name);
+                config_refs.iter().any(|cr| cr == ref_name)
+            })
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect()
+    } else {
+        all_refs
             .into_iter()
             .map(|r| GitReference {
                 name: r.name,
                 commit: r.commit,
             })
-            .collect(),
+            .collect()
+    };
+
+    GitRepository {
+        id: repo.id.as_id(),
+        name: repo.name,
+        refs,
         git_url: repo.git_url,
         job_info,
     }
@@ -170,6 +207,7 @@ mod tests {
             &svc,
             "example".into(),
             "https://github.com/example/example".into(),
+            vec![],
         )
         .await
         .unwrap();
@@ -178,6 +216,7 @@ mod tests {
             &svc,
             "example".into(),
             "https://github.com/example/example".into(),
+            vec![],
         )
         .await
         .unwrap_err();
@@ -198,6 +237,7 @@ mod tests {
             .create(
                 "example".into(),
                 "https://github.com/example/example".into(),
+                vec![],
             )
             .await
             .unwrap();
@@ -206,6 +246,7 @@ mod tests {
             .create(
                 "example2".into(),
                 "https://github.com/example/example2".into(),
+                vec![],
             )
             .await
             .unwrap();
@@ -214,6 +255,7 @@ mod tests {
             .create(
                 "example3".into(),
                 "https://github.com/example/example3".into(),
+                vec![],
             )
             .await
             .unwrap();
@@ -229,6 +271,7 @@ mod tests {
                 &id_2,
                 "Example2".to_string(),
                 "https://github.com/example/Example2".to_string(),
+                vec![],
             )
             .await
             .unwrap();

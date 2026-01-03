@@ -19,6 +19,18 @@ pub struct SourceFileId {
 }
 
 impl SourceFileId {
+    pub fn new(path: &Path, blob_id: &str) -> Result<Self> {
+        let ext = path.extension().context("Failed to get extension")?;
+        let Some(lang) = get_language_by_ext(ext) else {
+            bail!("Unknown language for extension {:?}", ext);
+        };
+        Ok(Self {
+            path: path.to_owned(),
+            language: lang.language().to_string(),
+            git_hash: blob_id.to_string(),
+        })
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -41,15 +53,7 @@ impl TryFrom<&Path> for SourceFileId {
         }
 
         let git_hash = get_git_hash(path)?;
-        let ext = path.extension().context("Failed to get extension")?;
-        let Some(lang) = get_language_by_ext(ext) else {
-            bail!("Unknown language for extension {:?}", ext);
-        };
-        Ok(Self {
-            path: path.to_owned(),
-            language: lang.language().to_string(),
-            git_hash: git_hash.to_string(),
-        })
+        Self::new(path, &git_hash)
     }
 }
 

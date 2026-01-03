@@ -56,6 +56,7 @@ pub fn serve_file(
     serve_git::serve(&repository, commit, path)
 }
 
+#[derive(Debug)]
 pub struct GitReference {
     pub name: String,
     pub commit: String,

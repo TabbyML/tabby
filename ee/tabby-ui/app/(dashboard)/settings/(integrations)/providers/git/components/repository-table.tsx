@@ -1,16 +1,36 @@
 'use client'
 
 import React from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { useQuery } from 'urql'
+import * as z from 'zod'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories, userGroupsQuery } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
-import { IconTrash } from '@/components/ui/icons'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form'
+import { IconPencil, IconTrash } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 import {
   Pagination,
   PaginationContent,
@@ -38,6 +58,25 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
     deleteGitRepository(id: $id)
   }
 `)
+
+const updateRepositoryMutation = graphql(/* GraphQL */ `
+  mutation updateGitRepository(
+    $id: ID!
+    $name: String!
+    $gitUrl: String!
+    $refs: [String!]
+  ) {
+    updateGitRepository(id: $id, name: $name, gitUrl: $gitUrl, refs: $refs)
+  }
+`)
+
+const formSchema = z.object({
+  name: z.string(),
+  gitUrl: z.string(),
+  refs: z.string().optional()
+})
+
+type FormValues = z.infer<typeof formSchema>
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
@@ -93,7 +132,14 @@ export default function RepositoryTable() {
     !!currentPageRepos?.length && (hasNextPage || hasPrevPage)
 
   const deleteRepository = useMutation(deleteRepositoryMutation)
+  const updateRepository = useMutation(updateRepositoryMutation)
   const triggerJobRun = useMutation(triggerJobRunMutation)
+  const [editingRepo, setEditingRepo] = React.useState<{
+    id: string
+    name: string
+    gitUrl: string
+    refs: string[]
+  } | null>(null)
 
   const handleNavToPrevPage = () => {
     if (currentPage <= 1) return
@@ -136,6 +182,52 @@ export default function RepositoryTable() {
     })
   }
 
+  const handleEditRepository = (repo: {
+    id: string
+    name: string
+    gitUrl: string
+    refs: Array<{ name: string }>
+  }) => {
+    setEditingRepo({
+      id: repo.id,
+      name: repo.name,
+      gitUrl: repo.gitUrl,
+      refs: repo.refs.map(r => {
+        // Extract branch name from refs/heads/xxx or refs/tags/xxx
+        if (r.name.startsWith('refs/heads/')) {
+          return r.name.substring('refs/heads/'.length)
+        } else if (r.name.startsWith('refs/tags/')) {
+          return r.name.substring('refs/tags/'.length)
+        }
+        return r.name
+      })
+    })
+  }
+
+  const handleUpdateRepository = (values: FormValues) => {
+    if (!editingRepo) return
+
+    const refs = values.refs
+      ?.split(',')
+      .map(r => r.trim())
+      .filter(r => r.length > 0)
+
+    updateRepository({
+      id: editingRepo.id,
+      name: values.name,
+      gitUrl: values.gitUrl,
+      refs: refs && refs.length > 0 ? refs : undefined
+    }).then(res => {
+      if (res?.data?.updateGitRepository) {
+        toast.success('Repository updated successfully')
+        setEditingRepo(null)
+        reexecuteQuery()
+      } else {
+        toast.error(res?.error?.message || 'Failed to update repository')
+      }
+    })
+  }
+
   React.useEffect(() => {
     if (fetching) return
     if (pageNum < currentPage && currentPage > 1) {
@@ -150,13 +242,12 @@ export default function RepositoryTable() {
           <Table className="min-w-[400px] border-t">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[25%]">Name</TableHead>
-                <TableHead className="w-[45%]">Git URL</TableHead>
-                <TableHead className="w-[140px]">Access</TableHead>
+                <TableHead className=\"w-[25%]\">Name</TableHead>
+                <TableHead className=\"w-[45%]\">Git URL</TableHead>
+                <TableHead className=\"w-[140px]\">Access</TableHead>
                 <TableHead>Job</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
-              </TableRow>
-            </TableHeader>
+                <TableHead className=\"w-[100px]\"></TableHead>
+              </TableRow>            </TableHeader>
             <TableBody>
               {!currentPageRepos?.length && currentPage === 1 ? (
                 <TableRow>
@@ -198,21 +289,36 @@ export default function RepositoryTable() {
                             }
                           />
                         </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="icon"
-                            variant="hover-destructive"
-                            onClick={() =>
-                              handleDeleteRepository(
-                                x.node.id,
-                                currentPageRepos.length === 1
-                              )
-                            }
-                          >
-                            <IconTrash />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        <TableCell className=\"text-right\">
+                          <div className=\"flex justify-end gap-2\">
+                            <Button
+                              size=\"icon\"
+                              variant=\"ghost\"
+                              onClick={() =>
+                                handleEditRepository({
+                                  id: x.node.id,
+                                  name: x.node.name,
+                                  gitUrl: x.node.gitUrl,
+                                  refs: x.node.refs
+                                })
+                              }
+                            >
+                              <IconPencil />
+                            </Button>
+                            <Button
+                              size=\"icon\"
+                              variant=\"hover-destructive\"
+                              onClick={() =>
+                                handleDeleteRepository(
+                                  x.node.id,
+                                  currentPageRepos.length === 1
+                                )
+                              }
+                            >
+                              <IconTrash />
+                            </Button>
+                          </div>
+                        </TableCell>                      </TableRow>
                     )
                   })}
                 </>
@@ -240,6 +346,130 @@ export default function RepositoryTable() {
           </Pagination>
         )}
       </LoadingWrapper>
+      <EditRepositoryDialog
+        repo={editingRepo}
+        open={!!editingRepo}
+        onOpenChange={open => {
+          if (!open) setEditingRepo(null)
+        }}
+        onSubmit={handleUpdateRepository}
+      />
     </>
+  )
+}
+
+function EditRepositoryDialog({
+  repo,
+  open,
+  onOpenChange,
+  onSubmit
+}: {
+  repo: { id: string; name: string; gitUrl: string; refs: string[] } | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSubmit: (values: FormValues) => void
+}) {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema)
+  })
+
+  React.useEffect(() => {
+    if (repo) {
+      form.reset({
+        name: repo.name,
+        gitUrl: repo.gitUrl,
+        refs: repo.refs.join(', ')
+      })
+    }
+  }, [repo, form])
+
+  const { isSubmitting } = form.formState
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className=\"top-[20vh] max-w-xl\">
+        <DialogHeader>
+          <DialogTitle>Edit Repository</DialogTitle>
+          <DialogDescription>
+            Update the repository name, URL, or branches to index
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className=\"space-y-4\">
+            <FormField
+              control={form.control}
+              name=\"name\"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder=\"e.g. tabby\"
+                      autoCapitalize=\"none\"
+                      autoCorrect=\"off\"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name=\"gitUrl\"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Git URL</FormLabel>
+                  <FormDescription>Remote or local Git URL</FormDescription>
+                  <FormControl>
+                    <Input
+                      placeholder=\"e.g. https://github.com/TabbyML/tabby\"
+                      autoCapitalize=\"none\"
+                      autoCorrect=\"off\"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name=\"refs\"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Branches</FormLabel>
+                  <FormDescription>
+                    Comma-separated list of branches to index (default: main)
+                  </FormDescription>
+                  <FormControl>
+                    <Input
+                      placeholder=\"e.g. main, dev\"
+                      autoCapitalize=\"none\"
+                      autoCorrect=\"off\"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className=\"flex justify-end gap-4\">
+              <Button
+                type=\"button\"
+                variant=\"ghost\"
+                disabled={isSubmitting}
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type=\"submit\" disabled={isSubmitting}>
+                Update
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -12,6 +12,7 @@ pub struct ProvidedRepositoryDAO {
     pub integration_id: i64,
     pub name: String,
     pub git_url: String,
+    pub refs: Option<String>,
     pub active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -24,14 +25,25 @@ impl DbConn {
         vendor_id: String,
         name: String,
         git_url: String,
+        refs: Option<Vec<String>>,
     ) -> Result<i64> {
+        let refs = refs
+            .map(|mut r| {
+                if r.is_empty() {
+                    r.push("main".to_string());
+                }
+                r
+            })
+            .map(|r| serde_json::to_string(&r))
+            .transpose()?;
         let res = query!(
-            "INSERT INTO provided_repositories (integration_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
-                ON CONFLICT(integration_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = DATETIME('now')",
+            "INSERT INTO provided_repositories (integration_id, vendor_id, name, git_url, refs) VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT(integration_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, refs = COALESCE($5, refs), updated_at = DATETIME('now')",
             integration_id,
             vendor_id,
             name,
-            git_url
+            git_url,
+            refs
         ).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
@@ -55,7 +67,7 @@ impl DbConn {
     pub async fn get_provided_repository(&self, id: i64) -> Result<ProvidedRepositoryDAO> {
         let repo = query_as!(
             ProvidedRepositoryDAO,
-            r#"SELECT id, vendor_id, name, git_url, active, integration_id, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>" FROM provided_repositories WHERE id = ?"#,
+            r#"SELECT id, vendor_id, name, git_url, refs, active, integration_id, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>" FROM provided_repositories WHERE id = ?"#,
             id
         )
         .fetch_one(&self.pool)
@@ -99,6 +111,7 @@ impl DbConn {
                 "vendor_id",
                 "name",
                 "git_url",
+                "refs",
                 "active",
                 "integration_id",
                 "created_at" as "created_at!: DateTime<Utc>",
@@ -127,6 +140,30 @@ impl DbConn {
 
         if res.rows_affected() != 1 {
             return Err(anyhow!("Repository active status was not changed"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn update_provided_repository_refs(
+        &self,
+        id: i64,
+        mut refs: Vec<String>,
+    ) -> Result<()> {
+        if refs.is_empty() {
+            refs.push("main".into());
+        }
+        let refs = serde_json::to_string(&refs)?;
+        let res = query!(
+            "UPDATE provided_repositories SET refs = ? WHERE id = ?",
+            refs,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Repository not found"));
         }
 
         Ok(())

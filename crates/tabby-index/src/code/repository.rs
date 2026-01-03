@@ -1,7 +1,6 @@
 use std::{
     collections::HashSet,
     fs::{self},
-    path::Path,
     process::Command,
 };
 
@@ -12,20 +11,14 @@ use tracing::warn;
 use super::CodeRepository;
 
 trait RepositoryExt {
-    fn sync(&self) -> anyhow::Result<String>;
+    fn sync(&self) -> anyhow::Result<()>;
 }
 
 impl RepositoryExt for CodeRepository {
     // sync clones the repository if it doesn't exist, otherwise it pulls the remote.
-    // and returns the git commit sha256.
-    fn sync(&self) -> anyhow::Result<String> {
+    fn sync(&self) -> anyhow::Result<()> {
         let dir = self.dir();
-        let mut finished = false;
-        if dir.exists() {
-            finished = pull_remote(dir.as_path());
-        }
-
-        if !finished {
+        if !dir.exists() {
             std::fs::create_dir_all(&dir)
                 .unwrap_or_else(|_| panic!("Failed to create dir {}", dir.display()));
             let status = Command::new("git")
@@ -49,46 +42,137 @@ impl RepositoryExt for CodeRepository {
             }
         }
 
-        get_commit_sha(self)
+        for ref_name in &self.git_refs {
+            // get the current branch name without refs/ prefix
+            let output = Command::new("git")
+                .current_dir(&dir)
+                .arg("symbolic-ref")
+                .arg("--short")
+                .arg("HEAD")
+                .output()
+                .ok();
+
+            let current_branch = output
+                .filter(|o| o.status.success())
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string());
+
+            if current_branch.as_deref() == Some(ref_name) {
+                let status = Command::new("git")
+                    .current_dir(&dir)
+                    .arg("pull")
+                    .arg("origin")
+                    .arg(ref_name)
+                    .status()
+                    .unwrap_or_else(|_| panic!("Failed to pull remote branch {}", ref_name));
+
+                if let Some(code) = status.code() {
+                    if code != 0 {
+                        warn!("Failed to pull remote branch {}", ref_name);
+                    }
+                }
+            } else {
+                // Use `git fetch origin +ref:ref` to create or update the local branch from the remote.
+                // The + ensures that the local branch is updated (forced) even if it's not a fast-forward,
+                //   and it creates the branch if it doesn't exist locally.
+                let status = Command::new("git")
+                    .current_dir(&dir)
+                    .arg("fetch")
+                    .arg("origin")
+                    .arg(format!("+{}:{}", ref_name, ref_name))
+                    .status()
+                    .unwrap_or_else(|_| panic!("Failed to fetch remote branch {}", ref_name));
+
+                if let Some(code) = status.code() {
+                    if code != 0 {
+                        warn!("Failed to fetch remote branch {}", ref_name);
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
-fn get_commit_sha(repository: &CodeRepository) -> anyhow::Result<String> {
-    let repo = git2::Repository::open(repository.dir())?;
-    let head = repo.head()?;
-    let commit = head.peel_to_commit()?;
-    Ok(commit.id().to_string())
-}
-
-fn pull_remote(path: &Path) -> bool {
-    let status = Command::new("git")
-        .current_dir(path)
-        .arg("pull")
-        .status()
-        .expect("Failed to read status");
-
-    if let Some(code) = status.code() {
-        if code != 0 {
-            warn!(
-                "Failed to pull remote for `{:?}`, please check your repository configuration...",
-                path
-            );
-            return false;
-        }
-    };
-
-    true
-}
-
-pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<String> {
+pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<()> {
     if repository.is_local_dir() {
         if !repository.dir().exists() {
             bail!("Directory {} does not exist", repository.dir().display());
         }
-        get_commit_sha(repository)
     } else {
-        repository.sync()
+        repository.sync()?;
     }
+
+    Ok(())
+}
+
+pub fn resolve_commits(repository: &CodeRepository) -> Vec<(String, String)> {
+    let repo = match git2::Repository::open(repository.dir()) {
+        Ok(repo) => repo,
+        Err(e) => {
+            logkit::error!(
+                "failed to open repo {}: {}",
+                repository.canonical_git_url(),
+                e
+            );
+            return vec![];
+        }
+    };
+
+    let mut commits = Vec::new();
+
+    // if no refs specified, use the default branch and commits directly
+    if repository.git_refs.is_empty() {
+        if let Ok(head) = repo.head() {
+            if let Some(commit) = head.peel_to_commit().ok() {
+                commits.push((
+                    head.name().unwrap_or("HEAD").to_string(),
+                    commit.id().to_string(),
+                ));
+            }
+        }
+        return commits;
+    }
+
+    for ref_name in &repository.git_refs {
+        let reference = match repo
+            .find_reference(&format!("refs/heads/{}", ref_name))
+            .or_else(|_| repo.find_reference(&format!("refs/tags/{}", ref_name)))
+            .or_else(|_| repo.find_reference(ref_name))
+        {
+            Ok(reference) => reference,
+            Err(e) => {
+                logkit::error!("failed to find ref {}: {}", ref_name, e);
+                continue;
+            }
+        };
+
+        let commit = match reference.peel_to_commit() {
+            Ok(commit) => commit,
+            Err(e) => {
+                logkit::error!("failed to get commit for ref {}: {}", ref_name, e);
+                continue;
+            }
+        };
+        commits.push((ref_name.clone(), commit.id().to_string()));
+    }
+    commits
+}
+
+pub fn checkout(repository: &CodeRepository, branch: &str) -> anyhow::Result<()> {
+    let repo = git2::Repository::open(repository.dir())?;
+    let reference = repo
+        .find_reference(&format!("refs/heads/{}", branch))
+        .or_else(|_| repo.find_reference(&format!("refs/tags/{}", branch)))
+        .or_else(|_| repo.find_reference(branch))?;
+
+    let mut checkout_builder = git2::build::CheckoutBuilder::new();
+    checkout_builder.force();
+
+    repo.set_head(reference.name().unwrap())?;
+    repo.checkout_head(Some(&mut checkout_builder))?;
+    Ok(())
 }
 
 pub fn garbage_collection(repositories: &[CodeRepository]) {
