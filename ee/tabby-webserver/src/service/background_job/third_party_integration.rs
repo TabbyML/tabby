@@ -108,7 +108,11 @@ impl SchedulerGithubGitlabJob {
             repository.display_name
         );
 
-        let code_repository = CodeRepository::new(&authenticated_url, &repository.source_id());
+        let code_repository = CodeRepository::new(
+            &authenticated_url,
+            &repository.source_id(),
+            repository.refs.iter().map(|r| r.name.clone()).collect(),
+        );
         let mut code = CodeIndexer::default();
         code.refresh(embedding.clone(), &code_repository).await?;
 

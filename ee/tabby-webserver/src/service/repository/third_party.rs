@@ -153,6 +153,19 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(())
     }
 
+    async fn update_repository_refs(&self, id: ID, refs: Vec<String>) -> Result<()> {
+        self.db
+            .update_provided_repository_refs(id.as_rowid()?, refs)
+            .await?;
+
+        let _ = self
+            .job
+            .trigger(BackgroundJobEvent::SchedulerGithubGitlabRepository(id).to_command())
+            .await;
+
+        Ok(())
+    }
+
     async fn sync_repositories(&self, integration_id: ID) -> Result<()> {
         let provider = self.integration.get_integration(&integration_id).await?;
         debug!(
@@ -198,6 +211,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 vendor_id,
                 display_name,
                 git_url,
+                None,
             )
             .await?;
         Ok(id.as_id())
@@ -245,7 +259,11 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 let url = integration
                     .kind
                     .format_authenticated_url(&repository.git_url, &integration.access_token)?;
-                urls.push(CodeRepository::new(&url, &repository.source_id()));
+                urls.push(CodeRepository::new(
+                    &url,
+                    &repository.source_id(),
+                    repository.refs.iter().map(|r| r.name.clone()).collect(),
+                ));
             }
         }
 
@@ -269,7 +287,6 @@ async fn refresh_repositories_for_provider(
             .upsert_repository(provider.id.clone(), id, repo.name, repo.git_url)
             .await?;
     }
-
     integration
         .update_integration_sync_status(&provider.id, None)
         .await?;
@@ -282,6 +299,32 @@ async fn refresh_repositories_for_provider(
 
 fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> ProvidedRepository {
     let id = value.id.as_id();
+    let all_refs =
+        tabby_git::list_refs(&RepositoryConfig::resolve_dir(&value.git_url)).unwrap_or_default();
+
+    let refs = if let Some(refs) = &value.refs {
+        let config_refs: Vec<String> = serde_json::from_str(refs).unwrap_or_default();
+        all_refs
+            .into_iter()
+            .filter(|r| {
+                let ref_name = r.name.rsplit('/').next().unwrap_or(&r.name);
+                config_refs.iter().any(|cr| cr == ref_name)
+            })
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect()
+    } else {
+        all_refs
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect()
+    };
+
     ProvidedRepository {
         id: id.clone(),
         integration_id: value.integration_id.as_id(),
@@ -290,14 +333,7 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         vendor_id: value.vendor_id,
         created_at: value.created_at,
         updated_at: value.updated_at,
-        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(&value.git_url))
-            .unwrap_or_default()
-            .into_iter()
-            .map(|r| GitReference {
-                name: r.name,
-                commit: r.commit,
-            })
-            .collect(),
+        refs,
         git_url: value.git_url,
         job_info,
     }

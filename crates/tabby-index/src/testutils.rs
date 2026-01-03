@@ -9,7 +9,11 @@ pub fn get_tabby_root() -> PathBuf {
 }
 
 pub fn get_repository_config() -> CodeRepository {
-    CodeRepository::new("https://github.com/TabbyML/tabby", &config_index_to_id(0))
+    CodeRepository::new(
+        "https://github.com/TabbyML/tabby",
+        &config_index_to_id(0),
+        vec![],
+    )
 }
 
 pub fn get_rust_source_file() -> PathBuf {

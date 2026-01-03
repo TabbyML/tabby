@@ -47,7 +47,11 @@ impl AllowedCodeRepository {
                     .into_iter()
                     .enumerate()
                     .map(|(i, repo)| {
-                        CodeRepository::new(repo.git_url(), &crate::config::config_index_to_id(i))
+                        CodeRepository::new(
+                            repo.git_url(),
+                            &crate::config::config_index_to_id(i),
+                            repo.git_refs(),
+                        )
                     })
                     .collect()
             })
@@ -85,7 +89,9 @@ mod tests {
             let candidates: Vec<_> = $candidates
                 .into_iter()
                 .enumerate()
-                .map(|(i, x)| CodeRepository::new(&x, &crate::config::config_index_to_id(i)))
+                .map(|(i, x)| {
+                    CodeRepository::new(&x, &crate::config::config_index_to_id(i), vec![])
+                })
                 .collect();
             let expect = &candidates[0];
             assert_eq!(
@@ -100,7 +106,9 @@ mod tests {
             let candidates: Vec<_> = $candidates
                 .into_iter()
                 .enumerate()
-                .map(|(i, x)| CodeRepository::new(&x, &crate::config::config_index_to_id(i)))
+                .map(|(i, x)| {
+                    CodeRepository::new(&x, &crate::config::config_index_to_id(i), vec![])
+                })
                 .collect();
             assert_eq!(closest_match($query, &candidates), None);
         };
