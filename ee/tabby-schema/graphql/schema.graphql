@@ -573,7 +573,6 @@ type GitRepository implements ContextSourceId {
   name: String!
   gitUrl: String!
   refs: [GitReference!]!
-  configRefs: [String!]!
   jobInfo: JobInfo!
 }
 
@@ -1084,7 +1083,6 @@ type ProvidedRepository implements ContextSourceId {
   createdAt: DateTime!
   updatedAt: DateTime!
   refs: [GitReference!]!
-  configRefs: [String!]!
   jobInfo: JobInfo!
   sourceId: String!
 }

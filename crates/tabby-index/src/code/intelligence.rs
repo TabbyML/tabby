@@ -3,7 +3,7 @@ mod id;
 use std::{fs::read_to_string, path::Path};
 
 use async_stream::stream;
-use futures::{future::join, Stream};
+use futures::Stream;
 use id::SourceFileId;
 use tabby_common::languages::get_language_by_ext;
 use text_splitter::{CodeSplitter, TextSplitter};

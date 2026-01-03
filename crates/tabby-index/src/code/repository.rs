@@ -125,7 +125,7 @@ pub fn resolve_commits(repository: &CodeRepository) -> Vec<(String, String)> {
     // if no refs specified, use the default branch and commits directly
     if repository.git_refs.is_empty() {
         if let Ok(head) = repo.head() {
-            if let Some(commit) = head.peel_to_commit().ok() {
+            if let Ok(commit) = head.peel_to_commit() {
                 commits.push((
                     head.name().unwrap_or("HEAD").to_string(),
                     commit.id().to_string(),
