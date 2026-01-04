@@ -107,6 +107,11 @@ pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Resolve commits for the given repository.
+///
+/// This function inspects the git repository and returns a list of (ref_name, commit_sha)
+/// pairs that should be indexed.
+/// If no specific refs are configured, it defaults to HEAD.
 pub fn resolve_commits(repository: &CodeRepository) -> Vec<(String, String)> {
     let repo = match git2::Repository::open(repository.dir()) {
         Ok(repo) => repo,

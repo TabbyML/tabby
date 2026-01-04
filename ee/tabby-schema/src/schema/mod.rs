@@ -1302,7 +1302,7 @@ impl Mutation {
             refs,
         };
         input.validate()?;
-        let refs = input.refs.unwrap_or_else(|| vec!["main".to_string()]);
+        let refs = input.refs.unwrap_or_default();
         ctx.locator
             .repository()
             .git()
@@ -1323,7 +1323,7 @@ impl Mutation {
         refs: Option<Vec<String>>,
     ) -> Result<bool> {
         check_admin(ctx).await?;
-        let refs = refs.unwrap_or_else(|| vec!["main".to_string()]);
+        let refs = refs.unwrap_or_default();
         ctx.locator
             .repository()
             .git()

@@ -27,7 +27,13 @@ static MAX_NUMBER_FRACTION: f32 = 0.5f32;
 
 pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
     let refs = resolve_commits(repository);
+    // resolve_commits would return the current default branch,
+    // so it should never be empty here.
     if refs.is_empty() {
+        logkit::error!(
+            "no branches found for repository {}",
+            repository.canonical_git_url()
+        );
         return;
     }
 

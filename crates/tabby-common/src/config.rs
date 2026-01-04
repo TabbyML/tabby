@@ -166,11 +166,7 @@ impl RepositoryConfig {
     }
 
     pub fn git_refs(&self) -> Vec<String> {
-        if self.refs.is_empty() {
-            vec!["main".to_string()]
-        } else {
-            self.refs.clone()
-        }
+        self.refs.clone()
     }
 
     pub fn canonicalize_url(url: &str) -> String {
