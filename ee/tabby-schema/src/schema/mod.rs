@@ -1318,17 +1318,11 @@ impl Mutation {
     async fn update_git_repository(
         ctx: &Context,
         id: ID,
-        name: String,
-        git_url: String,
         refs: Option<Vec<String>>,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         let refs = refs.unwrap_or_default();
-        ctx.locator
-            .repository()
-            .git()
-            .update(&id, name, git_url, refs)
-            .await
+        ctx.locator.repository().git().update(&id, refs).await
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {

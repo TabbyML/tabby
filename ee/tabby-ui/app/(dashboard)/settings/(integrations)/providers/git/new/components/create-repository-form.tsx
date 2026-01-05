@@ -19,6 +19,7 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { TagInput } from '@/components/ui/tag-input'
 
 const createRepositoryMutation = graphql(/* GraphQL */ `
   mutation createGitRepository($name: String!, $gitUrl: String!, $refs: [String!]) {
@@ -29,7 +30,7 @@ const createRepositoryMutation = graphql(/* GraphQL */ `
 const formSchema = z.object({
   name: z.string(),
   gitUrl: z.string(),
-  refs: z.string().optional()
+  refs: z.array(z.string()).optional()
 })
 
 export default function CreateRepositoryForm({
@@ -47,20 +48,16 @@ export default function CreateRepositoryForm({
       form.reset({ name: undefined, gitUrl: undefined, refs: undefined })
       onCreated()
     },
-    form,
-    onSubmit: values => {
-      // Parse comma-separated refs into array
-      const refs = values.refs
-        ?.split(',')
-        .map(r => r.trim())
-        .filter(r => r.length > 0)
-      return {
-        name: values.name,
-        gitUrl: values.gitUrl,
-        refs: refs && refs.length > 0 ? refs : undefined
-      }
-    }
+    form
   })
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    createRepository({
+      name: values.name,
+      gitUrl: values.gitUrl,
+      refs: values.refs && values.refs.length > 0 ? values.refs : undefined
+    })
+  }
 
   const router = useRouter()
   return (
@@ -68,9 +65,9 @@ export default function CreateRepositoryForm({
       <div className="grid gap-2">
         <form
           className="grid gap-6"
-          onSubmit={form.handleSubmit(createRepository)}
+          onSubmit={form.handleSubmit(onSubmit)}
         >
-          <FormField
+        <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
@@ -115,11 +112,11 @@ export default function CreateRepositoryForm({
               <FormItem>
                 <FormLabel>Branches</FormLabel>
                 <FormDescription>
-                  Comma-separated list of branches to index (default: main)
+                  Branches to index (press Enter to select, leave empty for default branch)
                 </FormDescription>
                 <FormControl>
-                  <Input
-                    placeholder="e.g. main, dev"
+                  <TagInput
+                    placeholder="e.g. main"
                     autoCapitalize="none"
                     autoCorrect="off"
                     {...field}

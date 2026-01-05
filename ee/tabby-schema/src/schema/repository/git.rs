@@ -93,11 +93,5 @@ pub trait GitRepositoryService: Send + Sync + RepositoryProvider {
 
     async fn create(&self, name: String, git_url: String, refs: Vec<String>) -> Result<ID>;
     async fn delete(&self, id: &ID) -> Result<bool>;
-    async fn update(
-        &self,
-        id: &ID,
-        name: String,
-        git_url: String,
-        refs: Vec<String>,
-    ) -> Result<bool>;
+    async fn update(&self, id: &ID, refs: Vec<String>) -> Result<bool>;
 }

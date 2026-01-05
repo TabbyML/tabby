@@ -328,11 +328,6 @@ fn to_sub_match(m: tabby_git::GrepSubMatch) -> tabby_schema::repository::GrepSub
     }
 }
 
-fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
-    let dir = RepositoryConfig::resolve_dir(git_url);
-    tabby_git::list_refs(&dir).unwrap_or_default()
-}
-
 fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
     Repository {
         source_id: repo.source_id(),

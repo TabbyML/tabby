@@ -102,21 +102,17 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         Ok(success)
     }
 
-    async fn update(
-        &self,
-        id: &ID,
-        name: String,
-        git_url: String,
-        refs: Vec<String>,
-    ) -> Result<bool> {
+    async fn update(&self, id: &ID, refs: Vec<String>) -> Result<bool> {
+        let rowid = id.as_rowid()?;
+        let repo = self.db.get_repository(rowid).await?;
         self.db
-            .update_repository(id.as_rowid()?, name, git_url.clone(), refs.clone())
+            .update_repository(rowid, repo.name, repo.git_url.clone(), refs.clone())
             .await?;
         let _ = self
             .job_service
             .trigger(
                 BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
-                    &git_url,
+                    &repo.git_url,
                     &GitRepository::format_source_id(id),
                     refs,
                 ))
@@ -267,24 +263,8 @@ mod tests {
         assert_eq!(service.list(None, None, None, None).await.unwrap().len(), 2);
 
         service
-            .update(
-                &id_2,
-                "Example2".to_string(),
-                "https://github.com/example/Example2".to_string(),
-                vec![],
-            )
+            .update(&id_2, vec!["main".to_string()])
             .await
             .unwrap();
-
-        assert_eq!(
-            service
-                .list(None, None, None, None)
-                .await
-                .unwrap()
-                .first()
-                .unwrap()
-                .name,
-            "Example2"
-        );
     }
 }

@@ -854,7 +854,7 @@ type Mutation {
   markNotificationsRead(notificationId: ID): Boolean!
   createGitRepository(name: String!, gitUrl: String!, refs: [String!]): ID!
   deleteGitRepository(id: ID!): Boolean!
-  updateGitRepository(id: ID!, name: String!, gitUrl: String!, refs: [String!]): Boolean!
+  updateGitRepository(id: ID!, refs: [String!]): Boolean!
   deleteInvitation(id: ID!): ID!
   updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!

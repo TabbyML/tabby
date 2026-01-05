@@ -48,6 +48,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { TagInput } from '@/components/ui/tag-input'
 
 import { AccessPolicyView } from '../../components/access-policy-view'
 import { JobInfoView } from '../../components/job-trigger'
@@ -62,18 +63,16 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 const updateRepositoryMutation = graphql(/* GraphQL */ `
   mutation updateGitRepository(
     $id: ID!
-    $name: String!
-    $gitUrl: String!
     $refs: [String!]
   ) {
-    updateGitRepository(id: $id, name: $name, gitUrl: $gitUrl, refs: $refs)
+    updateGitRepository(id: $id, refs: $refs)
   }
 `)
 
 const formSchema = z.object({
   name: z.string(),
   gitUrl: z.string(),
-  refs: z.string().optional()
+  refs: z.array(z.string()).optional()
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -207,16 +206,9 @@ export default function RepositoryTable() {
   const handleUpdateRepository = (values: FormValues) => {
     if (!editingRepo) return
 
-    const refs = values.refs
-      ?.split(',')
-      .map(r => r.trim())
-      .filter(r => r.length > 0)
-
     updateRepository({
       id: editingRepo.id,
-      name: values.name,
-      gitUrl: values.gitUrl,
-      refs: refs && refs.length > 0 ? refs : undefined
+      refs: values.refs && values.refs.length > 0 ? values.refs : undefined
     }).then(res => {
       if (res?.data?.updateGitRepository) {
         toast.success('Repository updated successfully')
@@ -242,12 +234,13 @@ export default function RepositoryTable() {
           <Table className="min-w-[400px] border-t">
             <TableHeader>
               <TableRow>
-                <TableHead className=\"w-[25%]\">Name</TableHead>
-                <TableHead className=\"w-[45%]\">Git URL</TableHead>
-                <TableHead className=\"w-[140px]\">Access</TableHead>
+                <TableHead className="w-[25%]">Name</TableHead>
+                <TableHead className="w-[45%]">Git URL</TableHead>
+                <TableHead className="w-[140px]">Access</TableHead>
                 <TableHead>Job</TableHead>
-                <TableHead className=\"w-[100px]\"></TableHead>
-              </TableRow>            </TableHeader>
+                <TableHead className="w-[100px]"></TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {!currentPageRepos?.length && currentPage === 1 ? (
                 <TableRow>
@@ -289,11 +282,11 @@ export default function RepositoryTable() {
                             }
                           />
                         </TableCell>
-                        <TableCell className=\"text-right\">
-                          <div className=\"flex justify-end gap-2\">
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
                             <Button
-                              size=\"icon\"
-                              variant=\"ghost\"
+                              size="icon"
+                              variant="ghost"
                               onClick={() =>
                                 handleEditRepository({
                                   id: x.node.id,
@@ -306,8 +299,8 @@ export default function RepositoryTable() {
                               <IconPencil />
                             </Button>
                             <Button
-                              size=\"icon\"
-                              variant=\"hover-destructive\"
+                              size="icon"
+                              variant="hover-destructive"
                               onClick={() =>
                                 handleDeleteRepository(
                                   x.node.id,
@@ -378,7 +371,7 @@ function EditRepositoryDialog({
       form.reset({
         name: repo.name,
         gitUrl: repo.gitUrl,
-        refs: repo.refs.join(', ')
+        refs: repo.refs
       })
     }
   }, [repo, form])
@@ -387,27 +380,28 @@ function EditRepositoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className=\"top-[20vh] max-w-xl\">
+      <DialogContent className="top-[20vh] max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit Repository</DialogTitle>
           <DialogDescription>
-            Update the repository name, URL, or branches to index
+            Update the repository branches to index
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className=\"space-y-4\">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name=\"name\"
+              name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel required>Name</FormLabel>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder=\"e.g. tabby\"
-                      autoCapitalize=\"none\"
-                      autoCorrect=\"off\"
+                      placeholder="e.g. tabby"
+                      autoCapitalize="none"
+                      autoCorrect="off"
                       {...field}
+                      disabled={true}
                     />
                   </FormControl>
                   <FormMessage />
@@ -416,17 +410,18 @@ function EditRepositoryDialog({
             />
             <FormField
               control={form.control}
-              name=\"gitUrl\"
+              name="gitUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel required>Git URL</FormLabel>
+                  <FormLabel>Git URL</FormLabel>
                   <FormDescription>Remote or local Git URL</FormDescription>
                   <FormControl>
                     <Input
-                      placeholder=\"e.g. https://github.com/TabbyML/tabby\"
-                      autoCapitalize=\"none\"
-                      autoCorrect=\"off\"
+                      placeholder="e.g. https://github.com/TabbyML/tabby"
+                      autoCapitalize="none"
+                      autoCorrect="off"
                       {...field}
+                      disabled={true}
                     />
                   </FormControl>
                   <FormMessage />
@@ -435,18 +430,18 @@ function EditRepositoryDialog({
             />
             <FormField
               control={form.control}
-              name=\"refs\"
+              name="refs"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Branches</FormLabel>
                   <FormDescription>
-                    Comma-separated list of branches to index (default: main)
+                    Branches to index (press Enter to select, leave empty for default branch)
                   </FormDescription>
                   <FormControl>
-                    <Input
-                      placeholder=\"e.g. main, dev\"
-                      autoCapitalize=\"none\"
-                      autoCorrect=\"off\"
+                    <TagInput
+                      placeholder="e.g. main"
+                      autoCapitalize="none"
+                      autoCorrect="off"
                       {...field}
                     />
                   </FormControl>
@@ -454,16 +449,16 @@ function EditRepositoryDialog({
                 </FormItem>
               )}
             />
-            <div className=\"flex justify-end gap-4\">
+            <div className="flex justify-end gap-4">
               <Button
-                type=\"button\"
-                variant=\"ghost\"
+                type="button"
+                variant="ghost"
                 disabled={isSubmitting}
                 onClick={() => onOpenChange(false)}
               >
                 Cancel
               </Button>
-              <Button type=\"submit\" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting}>
                 Update
               </Button>
             </div>
