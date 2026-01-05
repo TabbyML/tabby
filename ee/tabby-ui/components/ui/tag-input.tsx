@@ -1,10 +1,10 @@
 import * as React from 'react'
 import { X } from 'lucide-react'
 
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { InputProps } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 
 interface TagInputProps extends Omit<InputProps, 'value' | 'onChange'> {
   value?: string[]

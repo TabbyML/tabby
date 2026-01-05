@@ -22,7 +22,11 @@ import { Input } from '@/components/ui/input'
 import { TagInput } from '@/components/ui/tag-input'
 
 const createRepositoryMutation = graphql(/* GraphQL */ `
-  mutation createGitRepository($name: String!, $gitUrl: String!, $refs: [String!]) {
+  mutation createGitRepository(
+    $name: String!
+    $gitUrl: String!
+    $refs: [String!]
+  ) {
     createGitRepository(name: $name, gitUrl: $gitUrl, refs: $refs)
   }
 `)
@@ -63,11 +67,8 @@ export default function CreateRepositoryForm({
   return (
     <Form {...form}>
       <div className="grid gap-2">
-        <form
-          className="grid gap-6"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
-        <FormField
+        <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
@@ -112,7 +113,8 @@ export default function CreateRepositoryForm({
               <FormItem>
                 <FormLabel>Branches</FormLabel>
                 <FormDescription>
-                  Branches to index (press Enter to select, leave empty for default branch)
+                  Branches to index (press Enter to select, leave empty for
+                  default branch)
                 </FormDescription>
                 <FormControl>
                   <TagInput

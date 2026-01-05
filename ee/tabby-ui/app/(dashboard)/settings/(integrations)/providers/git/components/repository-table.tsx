@@ -47,8 +47,8 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import LoadingWrapper from '@/components/loading-wrapper'
 import { TagInput } from '@/components/ui/tag-input'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 import { AccessPolicyView } from '../../components/access-policy-view'
 import { JobInfoView } from '../../components/job-trigger'
@@ -61,10 +61,7 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 `)
 
 const updateRepositoryMutation = graphql(/* GraphQL */ `
-  mutation updateGitRepository(
-    $id: ID!
-    $refs: [String!]
-  ) {
+  mutation updateGitRepository($id: ID!, $refs: [String!]) {
     updateGitRepository(id: $id, refs: $refs)
   }
 `)
@@ -311,7 +308,8 @@ export default function RepositoryTable() {
                               <IconTrash />
                             </Button>
                           </div>
-                        </TableCell>                      </TableRow>
+                        </TableCell>{' '}
+                      </TableRow>
                     )
                   })}
                 </>
@@ -435,7 +433,8 @@ function EditRepositoryDialog({
                 <FormItem>
                   <FormLabel>Branches</FormLabel>
                   <FormDescription>
-                    Branches to index (press Enter to select, leave empty for default branch)
+                    Branches to index (press Enter to select, leave empty for
+                    default branch)
                   </FormDescription>
                   <FormControl>
                     <TagInput

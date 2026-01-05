@@ -227,8 +227,8 @@ export default function AddRepositoryForm({
               <FormItem>
                 <FormLabel>Branches</FormLabel>
                 <FormDescription>
-                  Branches to index (press Enter to select, leave empty for default
-                  branch)
+                  Branches to index (press Enter to select, leave empty for
+                  default branch)
                 </FormDescription>
                 <FormControl>
                   <TagInput

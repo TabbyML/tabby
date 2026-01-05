@@ -2,9 +2,12 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { useQuery } from 'urql'
+import * as z from 'zod'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import {
@@ -36,6 +39,15 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form'
+import {
   IconChevronLeft,
   IconChevronRight,
   IconPencil,
@@ -43,6 +55,7 @@ import {
   IconSpinner,
   IconTrash
 } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
   Table,
@@ -52,6 +65,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { TagInput } from '@/components/ui/tag-input'
 import {
   Tooltip,
   TooltipContent,
@@ -70,20 +84,6 @@ import {
 } from '../query'
 import AddRepositoryForm from './add-repository-form'
 import { UpdateProviderForm } from './update-provider-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import * as z from 'zod'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { TagInput } from '@/components/ui/tag-input'
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
