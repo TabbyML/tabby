@@ -8,6 +8,7 @@ homepage.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 tabby-common = { path = "../tabby-common" }
+tabby-git ={ path = "../tabby-git" }
 tantivy = { workspace = true }
 tracing = { workspace = true }
 tree-sitter-tags = "0.22.6"

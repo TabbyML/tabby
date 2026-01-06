@@ -5994,6 +5994,7 @@ dependencies = [
  "serde_json",
  "serial_test 3.1.1",
  "tabby-common",
+ "tabby-git",
  "tabby-inference",
  "tantivy",
  "temp_testdir",

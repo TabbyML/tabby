@@ -1,11 +1,11 @@
 use std::{
     collections::HashSet,
     fs::{self},
-    process::Command,
 };
 
 use anyhow::bail;
 use tabby_common::path::repositories_dir;
+use tabby_git::sync_refs;
 use tracing::warn;
 
 use super::CodeRepository;
@@ -17,91 +17,13 @@ trait RepositoryExt {
 impl RepositoryExt for CodeRepository {
     // sync clones the repository if it doesn't exist, otherwise it pulls the remote.
     fn sync(&self) -> anyhow::Result<()> {
-        let dir = self.dir();
-        if !dir.exists() {
-            logkit::info!("Cloning repository {}", self.canonical_git_url());
-            std::fs::create_dir_all(&dir)?;
-            let status = Command::new("git")
-                .current_dir(dir.parent().expect("Must not be in root directory"))
-                .arg("clone")
-                .arg(&self.git_url)
-                .arg(&dir)
-                .status()?;
-
-            if let Some(code) = status.code() {
-                if code != 0 {
-                    warn!(
-                        "Failed to clone `{}`. Please check your repository configuration.",
-                        self.canonical_git_url()
-                    );
-                    fs::remove_dir_all(&dir).expect("Failed to remove directory");
-
-                    bail!("Failed to clone `{}`", self.canonical_git_url());
-                }
-            }
-        }
-
-        let mut failed = vec![];
-        for ref_name in &self.git_refs {
-            logkit::info!("Fetching reference: {}", ref_name);
-
-            // get the current branch name without refs/ prefix
-            let output = Command::new("git")
-                .current_dir(&dir)
-                .arg("symbolic-ref")
-                .arg("--short")
-                .arg("HEAD")
-                .output()
-                .ok();
-
-            let current_branch = output
-                .filter(|o| o.status.success())
-                .and_then(|o| String::from_utf8(o.stdout).ok())
-                .map(|s| s.trim().to_string());
-
-            let status = if current_branch.as_deref() == Some(ref_name) {
-                Command::new("git")
-                    .current_dir(&dir)
-                    .arg("pull")
-                    .arg("origin")
-                    .arg(ref_name)
-                    .status()
-            } else {
-                // Use `git fetch origin +ref:ref` to create or update the local branch from the remote.
-                // The + ensures that the local branch is updated (forced) even if it's not a fast-forward,
-                //   and it creates the branch if it doesn't exist locally.
-                Command::new("git")
-                    .current_dir(&dir)
-                    .arg("fetch")
-                    .arg("origin")
-                    .arg(format!("+{}:{}", ref_name, ref_name))
-                    .status()
-            };
-            match status {
-                Ok(exit_status) => {
-                    if !exit_status.success() {
-                        failed.push(ref_name.to_owned());
-                        logkit::error!("Failed to fetch remote branch {}", ref_name);
-                    }
-                }
-                Err(e) => {
-                    failed.push(ref_name.to_owned());
-                    logkit::error!("Failed to fetch remote branch {}: {}", ref_name, e);
-                }
-            }
-        }
-
-        if !failed.is_empty() {
-            if failed.len() == self.git_refs.len() {
-                logkit::error!("Failed to fetch all branches.");
-                bail!("Failed to fetched all branches.");
-            }
-
-            logkit::warn!(
-                "Failed to fetch {} out of {} branches, the others were indexed successfully.",
-                failed.len(),
-                self.git_refs.len()
-            );
+        if let Err(e) = sync_refs(
+            self.dir().as_path(),
+            &self.canonical_git_url(),
+            &self.git_refs,
+        ) {
+            logkit::error!("Failed to clone repository: {}", e);
+            return Err(e);
         }
         Ok(())
     }

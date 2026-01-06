@@ -303,17 +303,36 @@ async fn refresh_repositories_for_provider(
 
 fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> ProvidedRepository {
     let id = value.id.as_id();
-    let refs = if let Some(refs) = value.refs {
-        serde_json::from_str::<Vec<String>>(&refs)
-            .unwrap_or_default()
+    let all_refs =
+        tabby_git::list_refs(&RepositoryConfig::resolve_dir(&value.git_url)).unwrap_or_default();
+
+    let refs = if let Some(refs) = &value.refs {
+        let config_refs: Vec<String> = serde_json::from_str(refs).unwrap_or_default();
+
+        config_refs
             .into_iter()
-            .map(|r| GitReference {
-                name: r,
-                commit: "".into(),
+            .map(|name| {
+                let commit = all_refs
+                    .iter()
+                    .find(|r| r.name.rsplit('/').next().unwrap_or(&r.name) == name.as_str())
+                    .map(|r| r.commit.clone())
+                    .unwrap_or_default();
+
+                GitReference {
+                    name: format!("refs/heads/{}", name).into(),
+                    commit,
+                }
             })
             .collect()
     } else {
-        vec![]
+        all_refs
+            .into_iter()
+            .map(|r| GitReference {
+                // must use the ref name without `ref/heads` prefix
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect()
     };
 
     ProvidedRepository {
@@ -324,7 +343,7 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         vendor_id: value.vendor_id,
         created_at: value.created_at,
         updated_at: value.updated_at,
-        refs,
+        refs: refs,
         git_url: value.git_url,
         job_info,
     }
