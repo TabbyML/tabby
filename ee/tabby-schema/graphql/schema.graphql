@@ -871,7 +871,7 @@ type Mutation {
   createIntegration(input: CreateIntegrationInput!): ID!
   updateIntegration(input: UpdateIntegrationInput!): Boolean!
   deleteIntegration(id: ID!, kind: IntegrationKind!): Boolean!
-  updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  updateIntegratedRepositoryActive(id: ID!, active: Boolean!, refs: [String!]): Boolean!
   updateIntegratedRepositoryRefs(id: ID!, refs: [String!]!): Boolean!
   "Trigger a job run given its param string."
   triggerJobRun(command: String!): ID!

@@ -19,15 +19,14 @@ impl RepositoryExt for CodeRepository {
     fn sync(&self) -> anyhow::Result<()> {
         let dir = self.dir();
         if !dir.exists() {
-            std::fs::create_dir_all(&dir)
-                .unwrap_or_else(|_| panic!("Failed to create dir {}", dir.display()));
+            logkit::info!("Cloning repository {}", self.canonical_git_url());
+            std::fs::create_dir_all(&dir)?;
             let status = Command::new("git")
                 .current_dir(dir.parent().expect("Must not be in root directory"))
                 .arg("clone")
                 .arg(&self.git_url)
                 .arg(&dir)
-                .status()
-                .unwrap_or_else(|_| panic!("Failed to clone into dir {}", dir.display()));
+                .status()?;
 
             if let Some(code) = status.code() {
                 if code != 0 {
@@ -42,7 +41,10 @@ impl RepositoryExt for CodeRepository {
             }
         }
 
+        let mut failed = vec![];
         for ref_name in &self.git_refs {
+            logkit::info!("Fetching reference: {}", ref_name);
+
             // get the current branch name without refs/ prefix
             let output = Command::new("git")
                 .current_dir(&dir)
@@ -57,40 +59,50 @@ impl RepositoryExt for CodeRepository {
                 .and_then(|o| String::from_utf8(o.stdout).ok())
                 .map(|s| s.trim().to_string());
 
-            if current_branch.as_deref() == Some(ref_name) {
-                let status = Command::new("git")
+            let status = if current_branch.as_deref() == Some(ref_name) {
+                Command::new("git")
                     .current_dir(&dir)
                     .arg("pull")
                     .arg("origin")
                     .arg(ref_name)
                     .status()
-                    .unwrap_or_else(|_| panic!("Failed to pull remote branch {}", ref_name));
-
-                if let Some(code) = status.code() {
-                    if code != 0 {
-                        warn!("Failed to pull remote branch {}", ref_name);
-                    }
-                }
             } else {
                 // Use `git fetch origin +ref:ref` to create or update the local branch from the remote.
                 // The + ensures that the local branch is updated (forced) even if it's not a fast-forward,
                 //   and it creates the branch if it doesn't exist locally.
-                let status = Command::new("git")
+                Command::new("git")
                     .current_dir(&dir)
                     .arg("fetch")
                     .arg("origin")
                     .arg(format!("+{}:{}", ref_name, ref_name))
                     .status()
-                    .unwrap_or_else(|_| panic!("Failed to fetch remote branch {}", ref_name));
-
-                if let Some(code) = status.code() {
-                    if code != 0 {
-                        warn!("Failed to fetch remote branch {}", ref_name);
+            };
+            match status {
+                Ok(exit_status) => {
+                    if !exit_status.success() {
+                        failed.push(ref_name.to_owned());
+                        logkit::error!("Failed to fetch remote branch {}", ref_name);
                     }
+                }
+                Err(e) => {
+                    failed.push(ref_name.to_owned());
+                    logkit::error!("Failed to fetch remote branch {}: {}", ref_name, e);
                 }
             }
         }
 
+        if !failed.is_empty() {
+            if failed.len() == self.git_refs.len() {
+                logkit::error!("Failed to fetch all branches.");
+                bail!("Failed to fetched all branches.");
+            }
+
+            logkit::warn!(
+                "Failed to fetch {} out of {} branches, the others were indexed successfully.",
+                failed.len(),
+                self.git_refs.len()
+            );
+        }
         Ok(())
     }
 }

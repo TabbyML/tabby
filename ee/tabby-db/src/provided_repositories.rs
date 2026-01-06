@@ -25,25 +25,14 @@ impl DbConn {
         vendor_id: String,
         name: String,
         git_url: String,
-        refs: Option<Vec<String>>,
     ) -> Result<i64> {
-        let refs = refs
-            .map(|mut r| {
-                if r.is_empty() {
-                    r.push("main".to_string());
-                }
-                r
-            })
-            .map(|r| serde_json::to_string(&r))
-            .transpose()?;
         let res = query!(
-            "INSERT INTO provided_repositories (integration_id, vendor_id, name, git_url, refs) VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT(integration_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, refs = COALESCE($5, refs), updated_at = DATETIME('now')",
+            "INSERT INTO provided_repositories (integration_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
+                ON CONFLICT(integration_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = DATETIME('now')",
             integration_id,
             vendor_id,
             name,
             git_url,
-            refs
         ).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
@@ -127,33 +116,56 @@ impl DbConn {
         Ok(repos)
     }
 
-    pub async fn update_provided_repository_active(&self, id: i64, active: bool) -> Result<()> {
+    pub async fn update_provided_repository_active(
+        &self,
+        id: i64,
+        active: bool,
+        refs: Option<Vec<String>>,
+    ) -> Result<()> {
         let not_active = !active;
-        let res = query!(
-            "UPDATE provided_repositories SET active = ? WHERE id = ? AND active = ?",
-            active,
-            id,
-            not_active
-        )
-        .execute(&self.pool)
-        .await?;
+        if let Some(refs) = refs {
+            let refs = if refs.is_empty() {
+                None
+            } else {
+                serde_json::to_string(&refs).ok()
+            };
+            let res = query!(
+                "UPDATE provided_repositories SET active = ?, refs = ? WHERE id = ? AND active = ?",
+                active,
+                refs,
+                id,
+                not_active
+            )
+            .execute(&self.pool)
+            .await?;
 
-        if res.rows_affected() != 1 {
-            return Err(anyhow!("Repository active status was not changed"));
+            if res.rows_affected() != 1 {
+                return Err(anyhow!("Repository active status was not changed"));
+            }
+        } else {
+            let res = query!(
+                "UPDATE provided_repositories SET active = ? WHERE id = ? AND active = ?",
+                active,
+                id,
+                not_active
+            )
+            .execute(&self.pool)
+            .await?;
+
+            if res.rows_affected() != 1 {
+                return Err(anyhow!("Repository active status was not changed"));
+            }
         }
 
         Ok(())
     }
 
-    pub async fn update_provided_repository_refs(
-        &self,
-        id: i64,
-        mut refs: Vec<String>,
-    ) -> Result<()> {
-        if refs.is_empty() {
-            refs.push("main".into());
-        }
-        let refs = serde_json::to_string(&refs)?;
+    pub async fn update_provided_repository_refs(&self, id: i64, refs: Vec<String>) -> Result<()> {
+        let refs = if refs.is_empty() {
+            None
+        } else {
+            serde_json::to_string(&refs).ok()
+        };
         let res = query!(
             "UPDATE provided_repositories SET refs = ? WHERE id = ?",
             refs,

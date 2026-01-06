@@ -42,10 +42,7 @@ import {
 } from '@/components/ui/popover'
 import { TagInput } from '@/components/ui/tag-input'
 
-import {
-  updateIntegratedRepositoryActiveMutation,
-  updateIntegratedRepositoryRefsMutation
-} from '../query'
+import { updateIntegratedRepositoryActiveMutation } from '../query'
 
 const formSchema = z.object({
   id: z.string(),
@@ -98,29 +95,17 @@ export default function AddRepositoryForm({
     }
   )
 
-  const updateProvidedRepositoryRefs = useMutation(
-    updateIntegratedRepositoryRefsMutation,
-    {
-      form
-    }
-  )
-
   const onSubmit = async (values: ActivateRepositoryFormValues) => {
     const id = values.id
     const refs = values.refs?.length ? values.refs : []
 
     const activeRes = await updateProvidedRepositoryActive({
       id,
-      active: true
+      active: true,
+      refs
     })
 
     if (activeRes?.data?.updateIntegratedRepositoryActive) {
-      if (refs.length > 0) {
-        await updateProvidedRepositoryRefs({
-          id,
-          refs
-        })
-      }
       form.reset({ id: undefined, refs: [] })
       onCreated?.(id)
     }

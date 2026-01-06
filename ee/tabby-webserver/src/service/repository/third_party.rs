@@ -129,9 +129,14 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(to_provided_repository(repo, last_job_run))
     }
 
-    async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
+    async fn update_repository_active(
+        &self,
+        id: ID,
+        active: bool,
+        refs: Option<Vec<String>>,
+    ) -> Result<()> {
         self.db
-            .update_provided_repository_active(id.as_rowid()?, active)
+            .update_provided_repository_active(id.as_rowid()?, active, refs)
             .await?;
 
         if active {
@@ -211,7 +216,6 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 vendor_id,
                 display_name,
                 git_url,
-                None,
             )
             .await?;
         Ok(id.as_id())
@@ -299,30 +303,17 @@ async fn refresh_repositories_for_provider(
 
 fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> ProvidedRepository {
     let id = value.id.as_id();
-    let all_refs =
-        tabby_git::list_refs(&RepositoryConfig::resolve_dir(&value.git_url)).unwrap_or_default();
-
-    let refs = if let Some(refs) = &value.refs {
-        let config_refs: Vec<String> = serde_json::from_str(refs).unwrap_or_default();
-        all_refs
+    let refs = if let Some(refs) = value.refs {
+        serde_json::from_str::<Vec<String>>(&refs)
+            .unwrap_or_default()
             .into_iter()
-            .filter(|r| {
-                let ref_name = r.name.rsplit('/').next().unwrap_or(&r.name);
-                config_refs.iter().any(|cr| cr == ref_name)
-            })
             .map(|r| GitReference {
-                name: r.name,
-                commit: r.commit,
+                name: r,
+                commit: "".into(),
             })
             .collect()
     } else {
-        all_refs
-            .into_iter()
-            .map(|r| GitReference {
-                name: r.name,
-                commit: r.commit,
-            })
-            .collect()
+        vec![]
     };
 
     ProvidedRepository {
@@ -449,7 +440,7 @@ mod tests {
 
         // Test toggling active status
         repository
-            .update_repository_active(repo_id, true)
+            .update_repository_active(repo_id, true, None)
             .await
             .unwrap();
 
@@ -494,7 +485,7 @@ mod tests {
             .clone();
 
         repository
-            .update_repository_active(repo_id.clone(), true)
+            .update_repository_active(repo_id.clone(), true, None)
             .await
             .unwrap();
 
@@ -513,7 +504,7 @@ mod tests {
         );
 
         repository
-            .update_repository_active(repo_id, false)
+            .update_repository_active(repo_id, false, None)
             .await
             .unwrap();
 
@@ -554,7 +545,7 @@ mod tests {
             .clone();
 
         repository
-            .update_repository_active(repo_id, true)
+            .update_repository_active(repo_id, true, None)
             .await
             .unwrap();
 
@@ -667,7 +658,7 @@ mod tests {
             .unwrap();
 
         repository
-            .update_repository_active(repo_id1, true)
+            .update_repository_active(repo_id1, true, None)
             .await
             .unwrap();
 
@@ -682,7 +673,7 @@ mod tests {
             .unwrap();
 
         repository
-            .update_repository_active(repo_id2, true)
+            .update_repository_active(repo_id2, true, None)
             .await
             .unwrap();
 

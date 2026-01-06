@@ -1469,12 +1469,13 @@ impl Mutation {
         ctx: &Context,
         id: ID,
         active: bool,
+        refs: Option<Vec<String>>,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
             .repository()
             .third_party()
-            .update_repository_active(id, active)
+            .update_repository_active(id, active, refs)
             .await?;
         Ok(true)
     }
