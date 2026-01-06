@@ -81,7 +81,7 @@ pub fn list_refs(root: &Path) -> anyhow::Result<Vec<GitReference>> {
 
 pub fn sync_refs(root: &Path, url: &str, refs: &Vec<String>) -> anyhow::Result<()> {
     if !root.exists() {
-        fs::create_dir_all(&root)?;
+        fs::create_dir_all(root)?;
         let status = Command::new("git")
             .current_dir(root.parent().expect("Must not be in root directory"))
             .arg("clone")
@@ -103,7 +103,7 @@ pub fn sync_refs(root: &Path, url: &str, refs: &Vec<String>) -> anyhow::Result<(
     }
 
     for ref_name in refs {
-        let branch = ref_name.rsplit('/').next().unwrap_or(&ref_name);
+        let branch = ref_name.rsplit('/').next().unwrap_or(ref_name);
         // get the current branch name without refs/ prefix
         let output = Command::new("git")
             .current_dir(root)
@@ -133,7 +133,7 @@ pub fn sync_refs(root: &Path, url: &str, refs: &Vec<String>) -> anyhow::Result<(
                 .current_dir(root)
                 .arg("fetch")
                 .arg("origin")
-                .arg(format!("+{}:{}", branch, branch))
+                .arg(format!("+{branch}:{branch}"))
                 .status()?
         };
         if !status.success() {

@@ -319,7 +319,7 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
                     .unwrap_or_default();
 
                 GitReference {
-                    name: format!("refs/heads/{}", name).into(),
+                    name: format!("refs/heads/{name}"),
                     commit,
                 }
             })
@@ -343,7 +343,7 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         vendor_id: value.vendor_id,
         created_at: value.created_at,
         updated_at: value.updated_at,
-        refs: refs,
+        refs,
         git_url: value.git_url,
         job_info,
     }

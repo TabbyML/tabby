@@ -76,8 +76,8 @@ pub fn resolve_commits(repository: &CodeRepository) -> Vec<(String, String)> {
 
     for ref_name in &repository.git_refs {
         let reference = match repo
-            .find_reference(&format!("refs/heads/{}", ref_name))
-            .or_else(|_| repo.find_reference(&format!("refs/tags/{}", ref_name)))
+            .find_reference(&format!("refs/heads/{ref_name}"))
+            .or_else(|_| repo.find_reference(&format!("refs/tags/{ref_name}")))
             .or_else(|_| repo.find_reference(ref_name))
         {
             Ok(reference) => reference,
@@ -102,8 +102,8 @@ pub fn resolve_commits(repository: &CodeRepository) -> Vec<(String, String)> {
 pub fn checkout(repository: &CodeRepository, branch: &str) -> anyhow::Result<()> {
     let repo = git2::Repository::open(repository.dir())?;
     let reference = repo
-        .find_reference(&format!("refs/heads/{}", branch))
-        .or_else(|_| repo.find_reference(&format!("refs/tags/{}", branch)))
+        .find_reference(&format!("refs/heads/{branch}"))
+        .or_else(|_| repo.find_reference(&format!("refs/tags/{branch}")))
         .or_else(|_| repo.find_reference(branch))?;
 
     let mut checkout_builder = git2::build::CheckoutBuilder::new();
