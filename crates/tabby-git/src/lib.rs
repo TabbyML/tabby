@@ -3,8 +3,9 @@ mod file_search;
 mod grep;
 mod serve_git;
 
-use std::path::Path;
+use std::{fs, path::Path, process::Command};
 
+use anyhow::bail;
 use axum::{
     body::Body,
     http::{Response, StatusCode},
@@ -13,6 +14,7 @@ pub use commit::{stream_commits, Commit};
 use file_search::GitFileSearch;
 use futures::Stream;
 pub use grep::{GrepFile, GrepLine, GrepSubMatch, GrepTextOrBase64};
+use tracing::warn;
 
 pub async fn search_files(
     root: &Path,
@@ -56,6 +58,7 @@ pub fn serve_file(
     serve_git::serve(&repository, commit, path)
 }
 
+#[derive(Debug)]
 pub struct GitReference {
     pub name: String,
     pub commit: String,
@@ -74,6 +77,78 @@ pub fn list_refs(root: &Path) -> anyhow::Result<Vec<GitReference>> {
         // Filter out remote refs
         .filter(|r| !r.name.starts_with("refs/remotes/"))
         .collect())
+}
+
+pub fn get_head_name(root: &Path) -> anyhow::Result<String> {
+    let repository = git2::Repository::open(root)?;
+    let head = repository.head()?;
+    let name = head.name().ok_or(anyhow::anyhow!("HEAD has no name"))?;
+    Ok(name.to_string())
+}
+
+pub fn sync_refs(root: &Path, url: &str, refs: &Vec<String>) -> anyhow::Result<()> {
+    if !root.exists() {
+        fs::create_dir_all(root)?;
+        let status = Command::new("git")
+            .current_dir(root.parent().expect("Must not be in root directory"))
+            .arg("clone")
+            .arg(url)
+            .arg(root)
+            .status()?;
+
+        if let Some(code) = status.code() {
+            if code != 0 {
+                warn!(
+                    "Failed to clone `{}`. Please check your repository configuration.",
+                    url
+                );
+                fs::remove_dir_all(root).expect("Failed to remove directory");
+
+                bail!("Failed to clone `{}`", url);
+            }
+        }
+    }
+
+    for ref_name in refs {
+        let branch = ref_name.rsplit('/').next().unwrap_or(ref_name);
+        // get the current branch name without refs/ prefix
+        let output = Command::new("git")
+            .current_dir(root)
+            .arg("symbolic-ref")
+            .arg("--short")
+            .arg("HEAD")
+            .output()
+            .ok();
+
+        let current_branch = output
+            .filter(|o| o.status.success())
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_string());
+
+        let status = if current_branch.as_deref() == Some(branch) {
+            Command::new("git")
+                .current_dir(root)
+                .arg("pull")
+                .arg("origin")
+                .arg(branch)
+                .status()?
+        } else {
+            // Use `git fetch origin +ref:ref` to create or update the local branch from the remote.
+            // The + ensures that the local branch is updated (forced) even if it's not a fast-forward,
+            //   and it creates the branch if it doesn't exist locally.
+            Command::new("git")
+                .current_dir(root)
+                .arg("fetch")
+                .arg("origin")
+                .arg(format!("+{branch}:{branch}"))
+                .status()?
+        };
+        if !status.success() {
+            return Err(anyhow::anyhow!("Failed to fetch origin {}", branch));
+        }
+    }
+
+    Ok(())
 }
 
 fn rev_to_commit<'a>(

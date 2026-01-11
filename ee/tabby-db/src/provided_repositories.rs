@@ -12,6 +12,7 @@ pub struct ProvidedRepositoryDAO {
     pub integration_id: i64,
     pub name: String,
     pub git_url: String,
+    pub refs: Option<String>,
     pub active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -31,7 +32,7 @@ impl DbConn {
             integration_id,
             vendor_id,
             name,
-            git_url
+            git_url,
         ).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
@@ -55,7 +56,7 @@ impl DbConn {
     pub async fn get_provided_repository(&self, id: i64) -> Result<ProvidedRepositoryDAO> {
         let repo = query_as!(
             ProvidedRepositoryDAO,
-            r#"SELECT id, vendor_id, name, git_url, active, integration_id, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>" FROM provided_repositories WHERE id = ?"#,
+            r#"SELECT id, vendor_id, name, git_url, refs, active, integration_id, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>" FROM provided_repositories WHERE id = ?"#,
             id
         )
         .fetch_one(&self.pool)
@@ -99,6 +100,7 @@ impl DbConn {
                 "vendor_id",
                 "name",
                 "git_url",
+                "refs",
                 "active",
                 "integration_id",
                 "created_at" as "created_at!: DateTime<Utc>",
@@ -114,19 +116,66 @@ impl DbConn {
         Ok(repos)
     }
 
-    pub async fn update_provided_repository_active(&self, id: i64, active: bool) -> Result<()> {
+    pub async fn update_provided_repository_active(
+        &self,
+        id: i64,
+        active: bool,
+        refs: Option<Vec<String>>,
+    ) -> Result<()> {
         let not_active = !active;
+        if let Some(refs) = refs {
+            let refs = if refs.is_empty() {
+                None
+            } else {
+                serde_json::to_string(&refs).ok()
+            };
+            let res = query!(
+                "UPDATE provided_repositories SET active = ?, refs = ? WHERE id = ? AND active = ?",
+                active,
+                refs,
+                id,
+                not_active
+            )
+            .execute(&self.pool)
+            .await?;
+
+            if res.rows_affected() != 1 {
+                return Err(anyhow!("Repository active status was not changed"));
+            }
+        } else {
+            let res = query!(
+                "UPDATE provided_repositories SET active = ? WHERE id = ? AND active = ?",
+                active,
+                id,
+                not_active
+            )
+            .execute(&self.pool)
+            .await?;
+
+            if res.rows_affected() != 1 {
+                return Err(anyhow!("Repository active status was not changed"));
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn update_provided_repository_refs(&self, id: i64, refs: Vec<String>) -> Result<()> {
+        let refs = if refs.is_empty() {
+            None
+        } else {
+            serde_json::to_string(&refs).ok()
+        };
         let res = query!(
-            "UPDATE provided_repositories SET active = ? WHERE id = ? AND active = ?",
-            active,
-            id,
-            not_active
+            "UPDATE provided_repositories SET refs = ? WHERE id = ?",
+            refs,
+            id
         )
         .execute(&self.pool)
         .await?;
 
         if res.rows_affected() != 1 {
-            return Err(anyhow!("Repository active status was not changed"));
+            return Err(anyhow!("Repository not found"));
         }
 
         Ok(())

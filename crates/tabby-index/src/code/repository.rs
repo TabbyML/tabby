@@ -1,94 +1,117 @@
 use std::{
     collections::HashSet,
     fs::{self},
-    path::Path,
-    process::Command,
 };
 
 use anyhow::bail;
 use tabby_common::path::repositories_dir;
+use tabby_git::sync_refs;
 use tracing::warn;
 
 use super::CodeRepository;
 
 trait RepositoryExt {
-    fn sync(&self) -> anyhow::Result<String>;
+    fn sync(&self) -> anyhow::Result<()>;
 }
 
 impl RepositoryExt for CodeRepository {
     // sync clones the repository if it doesn't exist, otherwise it pulls the remote.
-    // and returns the git commit sha256.
-    fn sync(&self) -> anyhow::Result<String> {
-        let dir = self.dir();
-        let mut finished = false;
-        if dir.exists() {
-            finished = pull_remote(dir.as_path());
+    fn sync(&self) -> anyhow::Result<()> {
+        if let Err(e) = sync_refs(
+            self.dir().as_path(),
+            &self.canonical_git_url(),
+            &self.git_refs,
+        ) {
+            logkit::error!("Failed to clone repository: {}", e);
+            return Err(e);
         }
-
-        if !finished {
-            std::fs::create_dir_all(&dir)
-                .unwrap_or_else(|_| panic!("Failed to create dir {}", dir.display()));
-            let status = Command::new("git")
-                .current_dir(dir.parent().expect("Must not be in root directory"))
-                .arg("clone")
-                .arg(&self.git_url)
-                .arg(&dir)
-                .status()
-                .unwrap_or_else(|_| panic!("Failed to clone into dir {}", dir.display()));
-
-            if let Some(code) = status.code() {
-                if code != 0 {
-                    warn!(
-                        "Failed to clone `{}`. Please check your repository configuration.",
-                        self.canonical_git_url()
-                    );
-                    fs::remove_dir_all(&dir).expect("Failed to remove directory");
-
-                    bail!("Failed to clone `{}`", self.canonical_git_url());
-                }
-            }
-        }
-
-        get_commit_sha(self)
+        Ok(())
     }
 }
 
-fn get_commit_sha(repository: &CodeRepository) -> anyhow::Result<String> {
-    let repo = git2::Repository::open(repository.dir())?;
-    let head = repo.head()?;
-    let commit = head.peel_to_commit()?;
-    Ok(commit.id().to_string())
-}
-
-fn pull_remote(path: &Path) -> bool {
-    let status = Command::new("git")
-        .current_dir(path)
-        .arg("pull")
-        .status()
-        .expect("Failed to read status");
-
-    if let Some(code) = status.code() {
-        if code != 0 {
-            warn!(
-                "Failed to pull remote for `{:?}`, please check your repository configuration...",
-                path
-            );
-            return false;
-        }
-    };
-
-    true
-}
-
-pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<String> {
+pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<()> {
     if repository.is_local_dir() {
         if !repository.dir().exists() {
             bail!("Directory {} does not exist", repository.dir().display());
         }
-        get_commit_sha(repository)
     } else {
-        repository.sync()
+        repository.sync()?;
     }
+
+    Ok(())
+}
+
+/// Resolve commits for the given repository.
+///
+/// This function inspects the git repository and returns a list of (ref_name, commit_sha)
+/// pairs that should be indexed.
+/// If no specific refs are configured, it defaults to HEAD.
+pub fn resolve_commits(repository: &CodeRepository) -> Vec<(String, String)> {
+    let repo = match git2::Repository::open(repository.dir()) {
+        Ok(repo) => repo,
+        Err(e) => {
+            logkit::error!(
+                "failed to open repo {}: {}",
+                repository.canonical_git_url(),
+                e
+            );
+            return vec![];
+        }
+    };
+
+    let mut commits = Vec::new();
+
+    // if no refs specified, use the default branch and commits directly
+    if repository.git_refs.is_empty() {
+        if let Ok(head) = repo.head() {
+            if let Ok(commit) = head.peel_to_commit() {
+                commits.push((
+                    head.name().unwrap_or("HEAD").to_string(),
+                    commit.id().to_string(),
+                ));
+            }
+        }
+        return commits;
+    }
+
+    for ref_name in &repository.git_refs {
+        let reference = match repo
+            .find_reference(&format!("refs/heads/{ref_name}"))
+            .or_else(|_| repo.find_reference(&format!("refs/tags/{ref_name}")))
+            .or_else(|_| repo.find_reference(ref_name))
+        {
+            Ok(reference) => reference,
+            Err(e) => {
+                logkit::error!("failed to find ref {}: {}", ref_name, e);
+                continue;
+            }
+        };
+
+        let commit = match reference.peel_to_commit() {
+            Ok(commit) => commit,
+            Err(e) => {
+                logkit::error!("failed to get commit for ref {}: {}", ref_name, e);
+                continue;
+            }
+        };
+        commits.push((ref_name.clone(), commit.id().to_string()));
+    }
+    commits
+}
+
+pub fn checkout(repository: &CodeRepository, branch: &str) -> anyhow::Result<()> {
+    let repo = git2::Repository::open(repository.dir())?;
+    let reference = repo
+        .find_reference(&format!("refs/heads/{branch}"))
+        .or_else(|_| repo.find_reference(&format!("refs/tags/{branch}")))
+        .or_else(|_| repo.find_reference(branch))?;
+
+    let mut checkout_builder = git2::build::CheckoutBuilder::new();
+    checkout_builder.force();
+
+    repo.set_head(reference.name().unwrap())?;
+    repo.checkout_head(Some(&mut checkout_builder))?;
+    Ok(())
 }
 
 pub fn garbage_collection(repositories: &[CodeRepository]) {

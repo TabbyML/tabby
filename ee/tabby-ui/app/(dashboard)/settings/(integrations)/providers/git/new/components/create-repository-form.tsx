@@ -19,16 +19,22 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { TagInput } from '@/components/ui/tag-input'
 
 const createRepositoryMutation = graphql(/* GraphQL */ `
-  mutation createGitRepository($name: String!, $gitUrl: String!) {
-    createGitRepository(name: $name, gitUrl: $gitUrl)
+  mutation createGitRepository(
+    $name: String!
+    $gitUrl: String!
+    $refs: [String!]
+  ) {
+    createGitRepository(name: $name, gitUrl: $gitUrl, refs: $refs)
   }
 `)
 
 const formSchema = z.object({
   name: z.string(),
-  gitUrl: z.string()
+  gitUrl: z.string(),
+  refs: z.array(z.string()).optional()
 })
 
 export default function CreateRepositoryForm({
@@ -43,20 +49,25 @@ export default function CreateRepositoryForm({
   const { isSubmitting } = form.formState
   const createRepository = useMutation(createRepositoryMutation, {
     onCompleted() {
-      form.reset({ name: undefined, gitUrl: undefined })
+      form.reset({ name: undefined, gitUrl: undefined, refs: undefined })
       onCreated()
     },
     form
   })
 
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    createRepository({
+      name: values.name,
+      gitUrl: values.gitUrl,
+      refs: values.refs && values.refs.length > 0 ? values.refs : undefined
+    })
+  }
+
   const router = useRouter()
   return (
     <Form {...form}>
       <div className="grid gap-2">
-        <form
-          className="grid gap-6"
-          onSubmit={form.handleSubmit(createRepository)}
-        >
+        <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
             name="name"
@@ -86,6 +97,28 @@ export default function CreateRepositoryForm({
                 <FormControl>
                   <Input
                     placeholder="e.g. https://github.com/TabbyML/tabby"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="refs"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Branches</FormLabel>
+                <FormDescription>
+                  Branches to index (press Enter to select, leave empty for
+                  default branch)
+                </FormDescription>
+                <FormControl>
+                  <TagInput
+                    placeholder="e.g. main"
                     autoCapitalize="none"
                     autoCorrect="off"
                     {...field}

@@ -1289,14 +1289,24 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn create_git_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
+    async fn create_git_repository(
+        ctx: &Context,
+        name: String,
+        git_url: String,
+        refs: Option<Vec<String>>,
+    ) -> Result<ID> {
         check_admin(ctx).await?;
-        let input = repository::CreateGitRepositoryInput { name, git_url };
+        let input = repository::CreateGitRepositoryInput {
+            name,
+            git_url,
+            refs,
+        };
         input.validate()?;
+        let refs = input.refs.unwrap_or_default();
         ctx.locator
             .repository()
             .git()
-            .create(input.name, input.git_url)
+            .create(input.name, input.git_url, refs)
             .await
     }
 
@@ -1308,15 +1318,11 @@ impl Mutation {
     async fn update_git_repository(
         ctx: &Context,
         id: ID,
-        name: String,
-        git_url: String,
+        refs: Option<Vec<String>>,
     ) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator
-            .repository()
-            .git()
-            .update(&id, name, git_url)
-            .await
+        let refs = refs.unwrap_or_default();
+        ctx.locator.repository().git().update(&id, refs).await
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
@@ -1463,12 +1469,27 @@ impl Mutation {
         ctx: &Context,
         id: ID,
         active: bool,
+        refs: Option<Vec<String>>,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
             .repository()
             .third_party()
-            .update_repository_active(id, active)
+            .update_repository_active(id, active, refs)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_integrated_repository_refs(
+        ctx: &Context,
+        id: ID,
+        refs: Vec<String>,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .repository()
+            .third_party()
+            .update_repository_refs(id, refs)
             .await?;
         Ok(true)
     }

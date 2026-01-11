@@ -54,6 +54,7 @@ CREATE TABLE repositories(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name VARCHAR(255) NOT NULL,
   git_url VARCHAR(255) NOT NULL,
+  refs TEXT,
   CONSTRAINT `idx_name` UNIQUE(`name`)
   CONSTRAINT `idx_git_url` UNIQUE(`git_url`)
 );
@@ -158,6 +159,7 @@ CREATE TABLE provided_repositories(
   active BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  refs TEXT,
   FOREIGN KEY(integration_id) REFERENCES integrations(id) ON DELETE CASCADE,
   CONSTRAINT idx_unique_integration_id_vendor_id UNIQUE(integration_id, vendor_id)
 );

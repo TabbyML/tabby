@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::indexer::{IndexId, ToIndexId};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SourceCode {
     pub source_file_id: String,
     pub source_id: String,

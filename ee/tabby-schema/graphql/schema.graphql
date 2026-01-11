@@ -852,9 +852,9 @@ type Mutation {
   createInvitation(email: String!): ID!
   sendTestEmail(to: String!): Boolean!
   markNotificationsRead(notificationId: ID): Boolean!
-  createGitRepository(name: String!, gitUrl: String!): ID!
+  createGitRepository(name: String!, gitUrl: String!, refs: [String!]): ID!
   deleteGitRepository(id: ID!): Boolean!
-  updateGitRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
+  updateGitRepository(id: ID!, refs: [String!]): Boolean!
   deleteInvitation(id: ID!): ID!
   updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!
@@ -871,7 +871,8 @@ type Mutation {
   createIntegration(input: CreateIntegrationInput!): ID!
   updateIntegration(input: UpdateIntegrationInput!): Boolean!
   deleteIntegration(id: ID!, kind: IntegrationKind!): Boolean!
-  updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  updateIntegratedRepositoryActive(id: ID!, active: Boolean!, refs: [String!]): Boolean!
+  updateIntegratedRepositoryRefs(id: ID!, refs: [String!]!): Boolean!
   "Trigger a job run given its param string."
   triggerJobRun(command: String!): ID!
   "Delete pair of user message and bot response in a thread."

@@ -2,9 +2,12 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { useQuery } from 'urql'
+import * as z from 'zod'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import {
@@ -36,12 +39,23 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form'
+import {
   IconChevronLeft,
   IconChevronRight,
+  IconPencil,
   IconPlus,
   IconSpinner,
   IconTrash
 } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
   Table,
@@ -51,6 +65,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { TagInput } from '@/components/ui/tag-input'
 import {
   Tooltip,
   TooltipContent,
@@ -63,7 +78,10 @@ import { AccessPolicyView } from '../../../components/access-policy-view'
 import { JobInfoView } from '../../../components/job-trigger'
 import { triggerJobRunMutation } from '../../../query'
 import { useIntegrationKind } from '../../hooks/use-repository-kind'
-import { updateIntegratedRepositoryActiveMutation } from '../query'
+import {
+  updateIntegratedRepositoryActiveMutation,
+  updateIntegratedRepositoryRefsMutation
+} from '../query'
 import AddRepositoryForm from './add-repository-form'
 import { UpdateProviderForm } from './update-provider-form'
 
@@ -221,6 +239,12 @@ const ActiveRepoTable: React.FC<{
     React.useState<IntegratedRepositories>([])
   const activeRepos = activeRepositoriesResult?.integratedRepositories?.edges
   const pageInfo = activeRepositoriesResult?.integratedRepositories?.pageInfo
+  const [editingRepo, setEditingRepo] = React.useState<{
+    id: string
+    displayName: string
+    gitUrl: string
+    refs: string[]
+  } | null>(null)
 
   const updateProvidedRepositoryActive = useMutation(
     updateIntegratedRepositoryActiveMutation,
@@ -230,6 +254,52 @@ const ActiveRepoTable: React.FC<{
       }
     }
   )
+
+  const updateProvidedRepositoryRefs = useMutation(
+    updateIntegratedRepositoryRefsMutation,
+    {
+      onError(error) {
+        toast.error(error.message || 'Failed to update')
+      }
+    }
+  )
+
+  const handleUpdateRepository = (values: { refs?: string[] }) => {
+    if (!editingRepo) return
+
+    updateProvidedRepositoryRefs({
+      id: editingRepo.id,
+      refs: values.refs && values.refs.length > 0 ? values.refs : []
+    }).then(res => {
+      if (res?.data?.updateIntegratedRepositoryRefs) {
+        toast.success('Repository updated successfully')
+        setEditingRepo(null)
+        loadPage(page)
+      }
+    })
+  }
+
+  const handleEditRepository = (repo: {
+    id: string
+    displayName: string
+    gitUrl: string
+    refs: Array<{ name: string }>
+  }) => {
+    setEditingRepo({
+      id: repo.id,
+      displayName: repo.displayName,
+      gitUrl: repo.gitUrl,
+      refs: repo.refs.map(r => {
+        // Extract branch name from refs/heads/xxx or refs/tags/xxx
+        if (r.name.startsWith('refs/heads/')) {
+          return r.name.substring('refs/heads/'.length)
+        } else if (r.name.startsWith('refs/tags/')) {
+          return r.name.substring('refs/tags/'.length)
+        }
+        return r.name
+      })
+    })
+  }
 
   const triggerJobRun = useMutation(triggerJobRunMutation)
 
@@ -392,15 +462,31 @@ const ActiveRepoTable: React.FC<{
                           />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="icon"
-                            variant="hover-destructive"
-                            onClick={e =>
-                              handleDelete(x, activeRepos?.length === 1)
-                            }
-                          >
-                            <IconTrash />
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() =>
+                                handleEditRepository({
+                                  id: x.node.id,
+                                  displayName: x.node.displayName,
+                                  gitUrl: x.node.gitUrl,
+                                  refs: x.node.refs
+                                })
+                              }
+                            >
+                              <IconPencil />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="hover-destructive"
+                              onClick={e =>
+                                handleDelete(x, activeRepos?.length === 1)
+                              }
+                            >
+                              <IconTrash />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
@@ -458,7 +544,7 @@ const ActiveRepoTable: React.FC<{
         )}
       </LoadingWrapper>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="top-[20vh]">
+        <DialogContent>
           <DialogHeader className="gap-3">
             <DialogTitle>Add new repository</DialogTitle>
             <DialogDescription>
@@ -475,7 +561,129 @@ const ActiveRepoTable: React.FC<{
           />
         </DialogContent>
       </Dialog>
+      <EditRepositoryDialog
+        repo={editingRepo}
+        open={!!editingRepo}
+        onOpenChange={open => {
+          if (!open) setEditingRepo(null)
+        }}
+        onSubmit={handleUpdateRepository}
+      />
     </>
+  )
+}
+
+const editFormSchema = z.object({
+  refs: z.array(z.string()).optional()
+})
+
+type EditFormValues = z.infer<typeof editFormSchema>
+
+function EditRepositoryDialog({
+  repo,
+  open,
+  onOpenChange,
+  onSubmit
+}: {
+  repo: {
+    id: string
+    displayName: string
+    gitUrl: string
+    refs: string[]
+  } | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSubmit: (values: EditFormValues) => void
+}) {
+  const form = useForm<EditFormValues>({
+    resolver: zodResolver(editFormSchema)
+  })
+
+  React.useEffect(() => {
+    if (repo) {
+      form.reset({
+        refs: repo.refs
+      })
+    }
+  }, [repo, form])
+
+  const { isSubmitting } = form.formState
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Edit Repository</DialogTitle>
+          <DialogDescription>
+            Update the repository branches to index
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input
+                  value={repo?.displayName}
+                  disabled={true}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+            <FormItem>
+              <FormLabel>Git URL</FormLabel>
+              <FormDescription>Remote or local Git URL</FormDescription>
+              <FormControl>
+                <Input
+                  value={repo?.gitUrl}
+                  disabled={true}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+            <FormField
+              control={form.control}
+              name="refs"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Branches</FormLabel>
+                  <FormDescription>
+                    Branches to index (press Enter to select, leave empty for
+                    default branch)
+                  </FormDescription>
+                  <FormControl>
+                    <TagInput
+                      placeholder="e.g. main"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isSubmitting}
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                Update
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
