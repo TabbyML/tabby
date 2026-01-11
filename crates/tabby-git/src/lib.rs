@@ -79,6 +79,13 @@ pub fn list_refs(root: &Path) -> anyhow::Result<Vec<GitReference>> {
         .collect())
 }
 
+pub fn get_head_name(root: &Path) -> anyhow::Result<String> {
+    let repository = git2::Repository::open(root)?;
+    let head = repository.head()?;
+    let name = head.name().ok_or(anyhow::anyhow!("HEAD has no name"))?;
+    Ok(name.to_string())
+}
+
 pub fn sync_refs(root: &Path, url: &str, refs: &Vec<String>) -> anyhow::Result<()> {
     if !root.exists() {
         fs::create_dir_all(root)?;

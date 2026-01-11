@@ -544,7 +544,7 @@ const ActiveRepoTable: React.FC<{
         )}
       </LoadingWrapper>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="top-[20vh]">
+        <DialogContent>
           <DialogHeader className="gap-3">
             <DialogTitle>Add new repository</DialogTitle>
             <DialogDescription>
@@ -611,7 +611,7 @@ function EditRepositoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-[20vh] max-w-xl">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit Repository</DialogTitle>
           <DialogDescription>

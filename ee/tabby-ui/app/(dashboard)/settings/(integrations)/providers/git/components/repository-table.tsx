@@ -378,7 +378,7 @@ function EditRepositoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-[20vh] max-w-xl">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit Repository</DialogTitle>
           <DialogDescription>

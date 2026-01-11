@@ -150,8 +150,8 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
 }
 
 fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
-    let all_refs =
-        tabby_git::list_refs(&RepositoryConfig::resolve_dir(&repo.git_url)).unwrap_or_default();
+    let root = RepositoryConfig::resolve_dir(&repo.git_url);
+    let all_refs = tabby_git::list_refs(&root).unwrap_or_default();
 
     let refs = if let Some(refs) = &repo.refs {
         let config_refs: Vec<String> = serde_json::from_str(refs).unwrap_or_default();
@@ -167,8 +167,10 @@ fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
             })
             .collect()
     } else {
+        let head_name = tabby_git::get_head_name(&root).ok();
         all_refs
             .into_iter()
+            .filter(|r| Some(r.name.as_str()) == head_name.as_deref())
             .map(|r| GitReference {
                 name: r.name,
                 commit: r.commit,
