@@ -24,8 +24,10 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage
 } from '@/components/ui/form'
 import {
@@ -38,11 +40,13 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover'
+import { TagInput } from '@/components/ui/tag-input'
 
 import { updateIntegratedRepositoryActiveMutation } from '../query'
 
 const formSchema = z.object({
-  id: z.string()
+  id: z.string(),
+  refs: z.array(z.string()).optional()
 })
 
 type ActivateRepositoryFormValues = z.infer<typeof formSchema>
@@ -91,18 +95,20 @@ export default function AddRepositoryForm({
     }
   )
 
-  const onSubmit = (values: ActivateRepositoryFormValues) => {
+  const onSubmit = async (values: ActivateRepositoryFormValues) => {
     const id = values.id
+    const refs = values.refs?.length ? values.refs : []
 
-    return updateProvidedRepositoryActive({
-      id: values.id,
-      active: true
-    }).then(res => {
-      if (res?.data?.updateIntegratedRepositoryActive) {
-        form.reset({ id: undefined })
-        onCreated?.(id)
-      }
+    const activeRes = await updateProvidedRepositoryActive({
+      id,
+      active: true,
+      refs
     })
+
+    if (activeRes?.data?.updateIntegratedRepositoryActive) {
+      form.reset({ id: undefined, refs: [] })
+      onCreated?.(id)
+    }
   }
 
   const scrollCommandListToTop = () => {
@@ -195,6 +201,28 @@ export default function AddRepositoryForm({
                     </Command>
                   </PopoverContent>
                 </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="refs"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Branches</FormLabel>
+                <FormDescription>
+                  Branches to index (press Enter to select, leave empty for
+                  default branch)
+                </FormDescription>
+                <FormControl>
+                  <TagInput
+                    placeholder="e.g. main"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { LetterCaseCapitalizeIcon } from '@radix-ui/react-icons'
+import { LetterCaseCapitalizeIcon, Pencil1Icon } from '@radix-ui/react-icons'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import {
   AlignJustify,
@@ -1690,6 +1690,13 @@ function IconLetterCaseCapitalize({
   )
 }
 
+function IconPencil({
+  className,
+  ...props
+}: React.ComponentProps<typeof Pencil1Icon>) {
+  return <Pencil1Icon className={cn('h-4 w-4', className)} {...props} />
+}
+
 function IconCaseSensitive({
   className,
   ...props
@@ -1930,6 +1937,7 @@ export {
   IconHash,
   IconFiles,
   IconLetterCaseCapitalize,
+  IconPencil,
   IconCaseSensitive,
   IconRegex,
   IconSquareActivity,

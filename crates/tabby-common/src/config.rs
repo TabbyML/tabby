@@ -156,11 +156,17 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
     git_url: String,
+    #[serde(default)]
+    pub refs: Vec<String>,
 }
 
 impl RepositoryConfig {
     pub fn git_url(&self) -> &str {
         &self.git_url
+    }
+
+    pub fn git_refs(&self) -> Vec<String> {
+        self.refs.clone()
     }
 
     pub fn canonicalize_url(url: &str) -> String {
@@ -472,13 +478,15 @@ impl AnswerConfig {
 pub struct CodeRepository {
     pub git_url: String,
     pub source_id: String,
+    pub git_refs: Vec<String>,
 }
 
 impl CodeRepository {
-    pub fn new(git_url: &str, source_id: &str) -> Self {
+    pub fn new(git_url: &str, source_id: &str, git_refs: Vec<String>) -> Self {
         Self {
             git_url: git_url.to_owned(),
             source_id: source_id.to_owned(),
+            git_refs,
         }
     }
 
@@ -643,6 +651,7 @@ mod tests {
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
+            refs: vec![],
         };
         let _ = repo.dir();
     }
@@ -651,6 +660,7 @@ mod tests {
     fn test_repository_config_name() {
         let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
+            refs: vec![],
         };
         assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby"));
     }

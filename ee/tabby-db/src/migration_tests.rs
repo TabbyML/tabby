@@ -54,19 +54,21 @@ async fn test_repository_migration_0029() {
     let migration = migrations(&migrator, 29..=29).next().unwrap();
     sqlx::query(&migration.sql).execute(&db.pool).await.unwrap();
 
-    let repos = db
-        .list_provided_repositories(vec![], None, None, None, None, false)
-        .await
-        .unwrap();
+    let repos: Vec<(String, i64, String, bool)> = sqlx::query_as(
+        "SELECT name, integration_id, git_url, active FROM provided_repositories ORDER BY id",
+    )
+    .fetch_all(&db.pool)
+    .await
+    .unwrap();
 
     assert_eq!(2, repos.len());
-    assert_eq!(repos[0].name, "tabby-gh");
-    assert_eq!(repos[0].integration_id, 1);
-    assert_eq!(repos[0].git_url, "https://github.com/TabbyML/tabby");
-    assert!(repos[0].active);
+    assert_eq!(repos[0].0, "tabby-gh");
+    assert_eq!(repos[0].1, 1);
+    assert_eq!(repos[0].2, "https://github.com/TabbyML/tabby");
+    assert!(repos[0].3);
 
-    assert_eq!(repos[1].name, "tabby-gl");
-    assert_eq!(repos[1].integration_id, 2);
-    assert_eq!(repos[1].git_url, "https://gitlab.com/TabbyML/tabby");
-    assert!(!repos[1].active);
+    assert_eq!(repos[1].0, "tabby-gl");
+    assert_eq!(repos[1].1, 2);
+    assert_eq!(repos[1].2, "https://gitlab.com/TabbyML/tabby");
+    assert!(!repos[1].3);
 }

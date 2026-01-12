@@ -34,13 +34,13 @@ impl CodeIndexer {
         embedding: Arc<dyn Embedding>,
         repository: &CodeRepository,
     ) -> anyhow::Result<()> {
+        repository::sync_repository(repository)?;
+
         logkit::info!(
             "Building source code index: {}",
             repository.canonical_git_url()
         );
-        let commit = repository::sync_repository(repository)?;
-
-        index::index_repository(embedding, repository, &commit).await;
+        index::index_repository(embedding, repository).await;
         index::garbage_collection().await;
 
         Ok(())

@@ -25,6 +25,7 @@ use tracing::{debug, warn};
 
 use crate::tantivy_utils::open_or_create_index;
 
+#[derive(Debug)]
 pub struct IndexId {
     pub source_id: String,
     pub id: String,

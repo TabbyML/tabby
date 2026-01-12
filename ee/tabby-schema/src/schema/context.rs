@@ -159,7 +159,11 @@ impl ContextInfo {
         repositories.reserve(self.sources.len());
         for x in &self.sources {
             if let ContextSourceValueEnum::Repository(x) = x {
-                repositories.push(CodeRepository::new(&x.git_url, &x.source_id));
+                repositories.push(CodeRepository::new(
+                    &x.git_url,
+                    &x.source_id,
+                    x.refs.iter().map(|r| r.name.clone()).collect(),
+                ));
             }
         }
 

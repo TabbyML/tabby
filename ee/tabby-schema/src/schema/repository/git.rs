@@ -20,6 +20,7 @@ pub struct CreateGitRepositoryInput {
     pub name: String,
     #[validate(url(code = "gitUrl", message = "Invalid Git URL"))]
     pub git_url: String,
+    pub refs: Option<Vec<String>>,
 }
 
 pub struct GitRepository {
@@ -90,7 +91,7 @@ pub trait GitRepositoryService: Send + Sync + RepositoryProvider {
         last: Option<usize>,
     ) -> Result<Vec<GitRepository>>;
 
-    async fn create(&self, name: String, git_url: String) -> Result<ID>;
+    async fn create(&self, name: String, git_url: String, refs: Vec<String>) -> Result<ID>;
     async fn delete(&self, id: &ID) -> Result<bool>;
-    async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
+    async fn update(&self, id: &ID, refs: Vec<String>) -> Result<bool>;
 }

@@ -117,7 +117,13 @@ impl RepositoryService for RepositoryServiceImpl {
             .list(None, None, None, None)
             .await?
             .into_iter()
-            .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id()))
+            .map(|repo| {
+                CodeRepository::new(
+                    &repo.git_url,
+                    &repo.source_id(),
+                    repo.refs.iter().map(|r| r.name.clone()).collect(),
+                )
+            })
             .collect();
 
         // Read repositories configured as third party integration (e.g Github, Gitlab)
@@ -134,7 +140,7 @@ impl RepositoryService for RepositoryServiceImpl {
                 .iter()
                 .enumerate()
                 .map(|(index, repo)| {
-                    CodeRepository::new(repo.git_url(), &config_index_to_id(index))
+                    CodeRepository::new(repo.git_url(), &config_index_to_id(index), repo.git_refs())
                 })
                 .collect::<Vec<CodeRepository>>(),
         );
@@ -322,11 +328,6 @@ fn to_sub_match(m: tabby_git::GrepSubMatch) -> tabby_schema::repository::GrepSub
     }
 }
 
-fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
-    let dir = RepositoryConfig::resolve_dir(git_url);
-    tabby_git::list_refs(&dir).unwrap_or_default()
-}
-
 fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
     Repository {
         source_id: repo.source_id(),
@@ -335,32 +336,39 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
         kind,
         dir: RepositoryConfig::resolve_dir(&repo.git_url),
         git_url: RepositoryConfig::canonicalize_url(&repo.git_url),
-        refs: list_refs(&repo.git_url)
-            .into_iter()
-            .map(|r| GitReference {
-                name: r.name,
-                commit: r.commit,
-            })
-            .collect(),
+        refs: repo.refs,
     }
 }
 
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Repository {
     let source_id = config_index_to_id(index);
+    let all_refs = tabby_git::list_refs(&config.dir()).unwrap_or_default();
+    let refs = if config.refs.is_empty() {
+        all_refs
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect()
+    } else {
+        all_refs
+            .into_iter()
+            .filter(|r| config.refs.contains(&r.name))
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect()
+    };
+
     Repository {
         id: ID::new(source_id.clone()),
         source_id,
         name: config.display_name(),
         kind: RepositoryKind::GitConfig,
         dir: config.dir(),
-        refs: tabby_git::list_refs(&config.dir())
-            .unwrap_or_default()
-            .into_iter()
-            .map(|r| GitReference {
-                name: r.name,
-                commit: r.commit,
-            })
-            .collect(),
+        refs,
         git_url: config.git_url().to_owned(),
     }
 }
@@ -381,7 +389,11 @@ mod tests {
         let service = create(db.clone(), integration, job);
         service
             .git()
-            .create("test_git_repo".into(), "http://test_git_repo".into())
+            .create(
+                "test_git_repo".into(),
+                "http://test_git_repo".into(),
+                vec![],
+            )
             .await
             .unwrap();
 
