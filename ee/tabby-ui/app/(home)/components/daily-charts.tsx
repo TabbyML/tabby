@@ -121,15 +121,6 @@ export function DailyCharts({
     }
   )
 
-  // const { chatChartData, totalCount: totalChats } = useChatDailyStats({
-  //   dateRange: {
-  //     from,
-  //     to
-  //   },
-  //   sample,
-  //   selectedMember: userId
-  // })
-
   const totalViews = sum(completionChartData?.map(stats => stats.views))
   const totalAccepts = sum(completionDailyStats?.map(stats => stats.selects))
 
@@ -177,13 +168,6 @@ export function DailyCharts({
       selectPlaceholder: selects === 0 ? 0.5 : 0
     }
   })
-
-  // const chatData = chatChartData?.map(x => {
-  //   return {
-  //     ...x,
-  //     chatsPlaceholder: x.chats === 0 ? 0.5 : 0
-  //   }
-  // })
 
   return (
     <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
