@@ -21,7 +21,6 @@ import {
 } from '@/lib/stores/chat-store'
 import {
   clearHomeScrollPosition,
-  setHomeScrollPosition,
   useScrollStore
 } from '@/lib/stores/scroll-store'
 import { contextInfoQuery } from '@/lib/tabby/query'
@@ -41,9 +40,6 @@ import UserPanel from '@/components/user-panel'
 import { AnimationWrapper } from './components/animation-wrapper'
 import { RelatedQuestions } from './components/related-questions'
 import Stats from './components/stats'
-import { ThreadFeeds } from './components/thread-feeds'
-
-// const ThreadFeeds = lazy(() => import('./components/thread-feeds').then(module => ({ default: module.ThreadFeeds })))
 
 function MainPanel() {
   const resettingScroller = useRef(false)
@@ -200,13 +196,13 @@ function MainPanel() {
               </AnimationWrapper>
             )}
             <Stats />
-            <ThreadFeeds
+            {/* <ThreadFeeds
               className="lg:mt-6"
               onNavigateToThread={() => {
                 if (!scroller.current) return
                 setHomeScrollPosition(scroller.current.scrollTop)
               }}
-            />
+            /> */}
           </div>
         </main>
       )}

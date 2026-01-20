@@ -14,10 +14,7 @@ import {
 } from 'recharts'
 
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
-import {
-  useChatDailyStats,
-  useCompletionDailyStats
-} from '@/lib/hooks/use-statistics'
+import { useCompletionDailyStats } from '@/lib/hooks/use-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { AnimationWrapper } from './animation-wrapper'
@@ -100,38 +97,6 @@ function BarTooltip({
   return null
 }
 
-function ChatBarTooltip({
-  active,
-  payload
-}: {
-  active?: boolean
-  payload?: {
-    name: string
-    payload: {
-      name: string
-      chats: number
-    }
-  }[]
-}) {
-  if (active && payload && payload.length) {
-    const { chats, name } = payload[0].payload
-    if (!chats) return null
-    return (
-      <Card>
-        <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
-          <p className="flex items-center">
-            <span className="mr-3 inline-block w-20">Chats:</span>
-            <b>{chats}</b>
-          </p>
-          <p className="text-muted-foreground">{name}</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return null
-}
-
 export function DailyCharts({
   from,
   to,
@@ -156,14 +121,14 @@ export function DailyCharts({
     }
   )
 
-  const { chatChartData, totalCount: totalChats } = useChatDailyStats({
-    dateRange: {
-      from,
-      to
-    },
-    sample,
-    selectedMember: userId
-  })
+  // const { chatChartData, totalCount: totalChats } = useChatDailyStats({
+  //   dateRange: {
+  //     from,
+  //     to
+  //   },
+  //   sample,
+  //   selectedMember: userId
+  // })
 
   const totalViews = sum(completionChartData?.map(stats => stats.views))
   const totalAccepts = sum(completionDailyStats?.map(stats => stats.selects))
@@ -213,12 +178,12 @@ export function DailyCharts({
     }
   })
 
-  const chatData = chatChartData?.map(x => {
-    return {
-      ...x,
-      chatsPlaceholder: x.chats === 0 ? 0.5 : 0
-    }
-  })
+  // const chatData = chatChartData?.map(x => {
+  //   return {
+  //     ...x,
+  //     chatsPlaceholder: x.chats === 0 ? 0.5 : 0
+  //   }
+  // })
 
   return (
     <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
@@ -243,7 +208,7 @@ export function DailyCharts({
               {averageAcceptance}%
             </div>
           </CardContent>
-          <ResponsiveContainer width="100%" height={68}>
+          <ResponsiveContainer width="100%" height={120}>
             <LineChart
               data={acceptRateData}
               margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
@@ -284,7 +249,7 @@ export function DailyCharts({
               {numeral(totalViews).format('0,0')}
             </div>
           </CardContent>
-          <ResponsiveContainer width="100%" height={68}>
+          <ResponsiveContainer width="100%" height={120}>
             <BarChart
               data={completionViewData}
               margin={{
@@ -309,57 +274,6 @@ export function DailyCharts({
               <Tooltip
                 cursor={{ fill: 'transparent' }}
                 content={<BarTooltip type="view" />}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      </AnimationWrapper>
-      <AnimationWrapper
-        viewport={{
-          amount: 0.1
-        }}
-        delay={0.25}
-        className="flex-1 self-stretch"
-      >
-        <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
-            <CardTitle className="text-base font-medium tracking-normal">
-              Chats
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="mb-1 px-4 py-0">
-            <div
-              className="text-xl font-semibold"
-              style={{ fontFamily: 'var(--font-montserrat)' }}
-            >
-              {numeral(totalChats).format('0,0')}
-            </div>
-          </CardContent>
-          <ResponsiveContainer width="100%" height={68}>
-            <BarChart
-              data={chatData}
-              margin={{
-                top: totalViews === 0 ? 30 : 5,
-                right: 15,
-                left: 15,
-                bottom: 0
-              }}
-            >
-              <Bar
-                dataKey="chats"
-                stackId="stats"
-                fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
-                radius={3}
-              />
-              <Bar
-                dataKey="chatsPlaceholder"
-                stackId="stats"
-                fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
-                radius={3}
-              />
-              <Tooltip
-                cursor={{ fill: 'transparent' }}
-                content={<ChatBarTooltip />}
               />
             </BarChart>
           </ResponsiveContainer>

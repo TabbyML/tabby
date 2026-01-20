@@ -26,7 +26,7 @@ const useIsFetchingServerInfo = () => {
 }
 
 const useIsChatEnabled = () => {
-  return useServerInfo()?.isChatEnabled
+  return false
 }
 
 const useIsAdminInitialized = () => {
