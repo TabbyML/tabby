@@ -312,14 +312,23 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         config_refs
             .into_iter()
             .map(|name| {
+                let ref_name = all_refs
+                    .iter()
+                    .find(|r| {
+                        r.name == format!("refs/heads/{}", name)
+                            || r.name == format!("refs/tags/{}", name)
+                    })
+                    .map(|r| r.name.clone())
+                    .unwrap_or(format!("refs/heads/{}", name));
+
                 let commit = all_refs
                     .iter()
-                    .find(|r| r.name.rsplit('/').next().unwrap_or(&r.name) == name.as_str())
+                    .find(|r| r.name == ref_name)
                     .map(|r| r.commit.clone())
                     .unwrap_or_default();
 
                 GitReference {
-                    name: format!("refs/heads/{name}"),
+                    name: ref_name,
                     commit,
                 }
             })

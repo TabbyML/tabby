@@ -155,15 +155,28 @@ fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
 
     let refs = if let Some(refs) = &repo.refs {
         let config_refs: Vec<String> = serde_json::from_str(refs).unwrap_or_default();
-        all_refs
+        config_refs
             .into_iter()
-            .filter(|r| {
-                let ref_name = r.name.rsplit('/').next().unwrap_or(&r.name);
-                config_refs.iter().any(|cr| cr == ref_name)
-            })
-            .map(|r| GitReference {
-                name: r.name,
-                commit: r.commit,
+            .map(|name| {
+                let ref_name = all_refs
+                    .iter()
+                    .find(|r| {
+                        r.name == format!("refs/heads/{}", name)
+                            || r.name == format!("refs/tags/{}", name)
+                    })
+                    .map(|r| r.name.clone())
+                    .unwrap_or(format!("refs/heads/{}", name));
+
+                let commit = all_refs
+                    .iter()
+                    .find(|r| r.name == ref_name)
+                    .map(|r| r.commit.clone())
+                    .unwrap_or_default();
+
+                GitReference {
+                    name: ref_name,
+                    commit,
+                }
             })
             .collect()
     } else {

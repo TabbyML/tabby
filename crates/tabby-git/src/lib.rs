@@ -110,8 +110,16 @@ pub fn sync_refs(root: &Path, url: &str, refs: &Vec<String>) -> anyhow::Result<(
     }
 
     for ref_name in refs {
-        let branch = ref_name.rsplit('/').next().unwrap_or(ref_name);
+        let branch = if let Some(branch) = ref_name.strip_prefix("refs/heads/") {
+            branch
+        } else if let Some(tag) = ref_name.strip_prefix("refs/tags/") {
+            tag
+        } else {
+            ref_name
+        };
+
         // get the current branch name without refs/ prefix
+
         let output = Command::new("git")
             .current_dir(root)
             .arg("symbolic-ref")
