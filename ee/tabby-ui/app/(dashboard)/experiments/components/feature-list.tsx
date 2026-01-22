@@ -1,10 +1,17 @@
 'use client'
 
-import { useEnableDeveloperMode } from '@/lib/experiment-flags'
+import { ENABLE_CHAT } from '@/lib/constants'
+import {
+  useEnableDeveloperMode,
+  useEnablePage,
+  useEnableSearchPages
+} from '@/lib/experiment-flags'
 import { Switch } from '@/components/ui/switch'
 
 export default function FeatureList() {
   const [developerMode, toggleDeveloperMode] = useEnableDeveloperMode()
+  const [enablePage, toggleEnablePage] = useEnablePage()
+  const [enableSearchPages, toggleEnableSearchPages] = useEnableSearchPages()
   return (
     <>
       {!developerMode.loading && (
@@ -20,6 +27,38 @@ export default function FeatureList() {
           <Switch
             checked={developerMode.value}
             onCheckedChange={toggleDeveloperMode}
+          />
+        </div>
+      )}
+      {ENABLE_CHAT && !enablePage.loading && (
+        <div className="flex items-center space-x-4 rounded-md border p-4">
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {enablePage.title}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {enablePage.description}
+            </p>
+          </div>
+          <Switch
+            checked={enablePage.value}
+            onCheckedChange={toggleEnablePage}
+          />
+        </div>
+      )}
+      {ENABLE_CHAT && !enableSearchPages.loading && (
+        <div className="flex items-center space-x-4 rounded-md border p-4">
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {enableSearchPages.title}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {enableSearchPages.description}
+            </p>
+          </div>
+          <Switch
+            checked={enableSearchPages.value}
+            onCheckedChange={toggleEnableSearchPages}
           />
         </div>
       )}

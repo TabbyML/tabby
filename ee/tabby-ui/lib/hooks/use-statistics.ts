@@ -73,11 +73,13 @@ const dailyStatsQuery = graphql(/* GraphQL */ `
 export function useChatDailyStats({
   dateRange,
   selectedMember,
-  sample
+  sample,
+  pause
 }: {
   dateRange: DateRange
   selectedMember: string | undefined
   sample?: boolean
+  pause?: boolean
 }) {
   const from = dateRange.from || new Date()
   const to = dateRange.to || from
@@ -93,7 +95,7 @@ export function useChatDailyStats({
             ? undefined
             : compact([selectedMember])
       },
-      pause: !selectedMember
+      pause: pause || !selectedMember
     })
 
   const chatDailyStats: ChatDailyStatsQuery['chatDailyStats'] | undefined =

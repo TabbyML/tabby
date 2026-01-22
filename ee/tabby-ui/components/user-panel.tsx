@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { noop } from 'lodash-es'
 import { UseQueryExecute } from 'urql'
 
+import { ENABLE_CHAT } from '@/lib/constants'
+import { useEnablePage } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import { MeQueryQuery } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
@@ -21,7 +23,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { IconJetBrains, IconRotate, IconVSCode } from '@/components/ui/icons'
+import {
+  IconBookOpen,
+  IconJetBrains,
+  IconRotate,
+  IconVSCode
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -31,6 +38,7 @@ import {
 } from '@/components/ui/tooltip'
 import { CopyButton } from '@/components/copy-button'
 
+import { Badge } from './ui/badge'
 import {
   IconBackpack,
   IconCode,
@@ -70,6 +78,7 @@ export default function UserPanel({
     await signOut()
     setSignOutLoading(false)
   }
+  const [enablePage] = useEnablePage()
 
   const onNavigate = (pathname: string, replace?: boolean) => {
     beforeRouteChange?.(pathname)
@@ -133,6 +142,21 @@ export default function UserPanel({
             >
               <IconHome />
               <span className="ml-2">Home</span>
+            </DropdownMenuItem>
+          )}
+          {ENABLE_CHAT && !!enablePage.value && (
+            <DropdownMenuItem
+              onClick={() => onNavigate('/pages/new')}
+              className="cursor-pointer py-2 pl-3"
+            >
+              <IconBookOpen />
+              <span className="ml-2">New Page</span>
+              <Badge
+                variant="outline"
+                className="ml-2 h-3.5 border-secondary-foreground/60 px-1.5 text-[10px] text-muted-foreground"
+              >
+                Beta
+              </Badge>
             </DropdownMenuItem>
           )}
           <DropdownMenuItem

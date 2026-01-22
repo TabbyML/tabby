@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
+import { ENABLE_CHAT } from '@/lib/constants'
 import { useAllMembers } from '@/lib/hooks/use-all-members'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { useYearlyStats } from '@/lib/hooks/use-statistics'
@@ -97,7 +98,9 @@ export function Report() {
       />
 
       {/* chats */}
-      <ChatDailyActivity sample={sample} selectedMember={selectedMember} />
+      {ENABLE_CHAT && (
+        <ChatDailyActivity sample={sample} selectedMember={selectedMember} />
+      )}
     </div>
   )
 }
