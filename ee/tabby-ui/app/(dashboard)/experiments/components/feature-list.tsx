@@ -1,5 +1,6 @@
 'use client'
 
+import { ENABLE_CHAT } from '@/lib/constants'
 import {
   useEnableDeveloperMode,
   useEnablePage,
@@ -29,7 +30,7 @@ export default function FeatureList() {
           />
         </div>
       )}
-      {!enablePage.loading && (
+      {ENABLE_CHAT && !enablePage.loading && (
         <div className="flex items-center space-x-4 rounded-md border p-4">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium leading-none">
@@ -45,7 +46,7 @@ export default function FeatureList() {
           />
         </div>
       )}
-      {!enableSearchPages.loading && (
+      {ENABLE_CHAT && !enableSearchPages.loading && (
         <div className="flex items-center space-x-4 rounded-md border p-4">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium leading-none">

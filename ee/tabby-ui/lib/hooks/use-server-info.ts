@@ -2,6 +2,8 @@ import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 
+import { ENABLE_CHAT } from '../constants'
+
 export const getServerInfo = graphql(/* GraphQL */ `
   query GetServerInfo {
     serverInfo {
@@ -26,7 +28,7 @@ const useIsFetchingServerInfo = () => {
 }
 
 const useIsChatEnabled = () => {
-  return useServerInfo()?.isChatEnabled
+  return useServerInfo()?.isChatEnabled && ENABLE_CHAT
 }
 
 const useIsAdminInitialized = () => {

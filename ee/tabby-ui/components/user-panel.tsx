@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { noop } from 'lodash-es'
 import { UseQueryExecute } from 'urql'
 
+import { ENABLE_CHAT } from '@/lib/constants'
 import { useEnablePage } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import { MeQueryQuery } from '@/lib/gql/generates/graphql'
@@ -143,7 +144,7 @@ export default function UserPanel({
               <span className="ml-2">Home</span>
             </DropdownMenuItem>
           )}
-          {!!enablePage.value && (
+          {ENABLE_CHAT && !!enablePage.value && (
             <DropdownMenuItem
               onClick={() => onNavigate('/pages/new')}
               className="cursor-pointer py-2 pl-3"

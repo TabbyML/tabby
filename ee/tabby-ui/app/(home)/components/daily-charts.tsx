@@ -13,6 +13,7 @@ import {
   Tooltip
 } from 'recharts'
 
+import { ENABLE_CHAT } from '@/lib/constants'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import {
   useChatDailyStats,
@@ -162,6 +163,7 @@ export function DailyCharts({
       to
     },
     sample,
+    pause: !ENABLE_CHAT,
     selectedMember: userId
   })
 
@@ -243,7 +245,7 @@ export function DailyCharts({
               {averageAcceptance}%
             </div>
           </CardContent>
-          <ResponsiveContainer width="100%" height={68}>
+          <ResponsiveContainer width="100%" height={120}>
             <LineChart
               data={acceptRateData}
               margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
@@ -284,7 +286,7 @@ export function DailyCharts({
               {numeral(totalViews).format('0,0')}
             </div>
           </CardContent>
-          <ResponsiveContainer width="100%" height={68}>
+          <ResponsiveContainer width="100%" height={120}>
             <BarChart
               data={completionViewData}
               margin={{
@@ -314,57 +316,60 @@ export function DailyCharts({
           </ResponsiveContainer>
         </Card>
       </AnimationWrapper>
-      <AnimationWrapper
-        viewport={{
-          amount: 0.1
-        }}
-        delay={0.25}
-        className="flex-1 self-stretch"
-      >
-        <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
-            <CardTitle className="text-base font-medium tracking-normal">
-              Chats
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="mb-1 px-4 py-0">
-            <div
-              className="text-xl font-semibold"
-              style={{ fontFamily: 'var(--font-montserrat)' }}
-            >
-              {numeral(totalChats).format('0,0')}
-            </div>
-          </CardContent>
-          <ResponsiveContainer width="100%" height={68}>
-            <BarChart
-              data={chatData}
-              margin={{
-                top: totalViews === 0 ? 30 : 5,
-                right: 15,
-                left: 15,
-                bottom: 0
-              }}
-            >
-              <Bar
-                dataKey="chats"
-                stackId="stats"
-                fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
-                radius={3}
-              />
-              <Bar
-                dataKey="chatsPlaceholder"
-                stackId="stats"
-                fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
-                radius={3}
-              />
-              <Tooltip
-                cursor={{ fill: 'transparent' }}
-                content={<ChatBarTooltip />}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      </AnimationWrapper>
+
+      {ENABLE_CHAT && (
+        <AnimationWrapper
+          viewport={{
+            amount: 0.1
+          }}
+          delay={0.25}
+          className="flex-1 self-stretch"
+        >
+          <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
+              <CardTitle className="text-base font-medium tracking-normal">
+                Chats
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="mb-1 px-4 py-0">
+              <div
+                className="text-xl font-semibold"
+                style={{ fontFamily: 'var(--font-montserrat)' }}
+              >
+                {numeral(totalChats).format('0,0')}
+              </div>
+            </CardContent>
+            <ResponsiveContainer width="100%" height={120}>
+              <BarChart
+                data={chatData}
+                margin={{
+                  top: totalViews === 0 ? 30 : 5,
+                  right: 15,
+                  left: 15,
+                  bottom: 0
+                }}
+              >
+                <Bar
+                  dataKey="chats"
+                  stackId="stats"
+                  fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
+                  radius={3}
+                />
+                <Bar
+                  dataKey="chatsPlaceholder"
+                  stackId="stats"
+                  fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
+                  radius={3}
+                />
+                <Tooltip
+                  cursor={{ fill: 'transparent' }}
+                  content={<ChatBarTooltip />}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </AnimationWrapper>
+      )}
     </div>
   )
 }

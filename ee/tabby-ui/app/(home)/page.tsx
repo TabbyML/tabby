@@ -200,13 +200,15 @@ function MainPanel() {
               </AnimationWrapper>
             )}
             <Stats />
-            <ThreadFeeds
-              className="lg:mt-6"
-              onNavigateToThread={() => {
-                if (!scroller.current) return
-                setHomeScrollPosition(scroller.current.scrollTop)
-              }}
-            />
+            {isChatEnabled && (
+              <ThreadFeeds
+                className="lg:mt-6"
+                onNavigateToThread={() => {
+                  if (!scroller.current) return
+                  setHomeScrollPosition(scroller.current.scrollTop)
+                }}
+              />
+            )}
           </div>
         </main>
       )}
