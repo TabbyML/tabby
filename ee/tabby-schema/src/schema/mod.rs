@@ -102,10 +102,10 @@ use crate::{
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
     fn worker(&self) -> Arc<dyn WorkerService>;
-    fn code(&self) -> Arc<dyn CodeSearch>;
+    fn code(&self) -> Option<Arc<dyn CodeSearch>>;
     fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>>;
     fn completion(&self) -> Option<Arc<dyn CompletionStream>>;
-    fn embedding(&self) -> Arc<dyn EmbeddingService>;
+    fn embedding(&self) -> Option<Arc<dyn EmbeddingService>>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn ingestion(&self) -> Arc<dyn IngestionService>;
     fn job(&self) -> Arc<dyn JobService>;
@@ -1003,13 +1003,14 @@ impl Query {
                         });
                     }
 
-                    Err(TestModelConnectionError::FailedToConnect(
+                    return Err(TestModelConnectionError::FailedToConnect(
                         "Failed to connect to the completion model".into(),
-                    ))
+                    ));
                 } else {
-                    Err(TestModelConnectionError::NotEnabled)
+                    return Err(TestModelConnectionError::NotEnabled);
                 }
             }
+
             ModelHealthBackend::Chat => {
                 if let Some(chat) = ctx.locator.chat() {
                     let request = CreateChatCompletionRequestArgs::default()
@@ -1022,22 +1023,29 @@ impl Query {
                         .build()
                         .expect("Failed to build chat completion request");
                     match chat.chat(request).await {
-                        Ok(_) => Ok(ModelBackendHealthInfo {
-                            latency_ms: start.elapsed().as_millis() as i32,
-                        }),
-                        Err(e) => Err(e.into()),
+                        Ok(_) => {
+                            return Ok(ModelBackendHealthInfo {
+                                latency_ms: start.elapsed().as_millis() as i32,
+                            })
+                        }
+                        Err(e) => return Err(e.into()),
                     }
                 } else {
-                    Err(TestModelConnectionError::NotEnabled)
+                    return Err(TestModelConnectionError::NotEnabled);
                 }
             }
             ModelHealthBackend::Embedding => {
-                let embedding = ctx.locator.embedding();
-                match embedding.embed("hello Tabby").await {
-                    Ok(_) => Ok(ModelBackendHealthInfo {
-                        latency_ms: start.elapsed().as_millis() as i32,
-                    }),
-                    Err(e) => Err(TestModelConnectionError::FailedToConnect(e.to_string())),
+                if let Some(embedding) = ctx.locator.embedding() {
+                    match embedding.embed("hello Tabby").await {
+                        Ok(_) => {
+                            return Ok(ModelBackendHealthInfo {
+                                latency_ms: start.elapsed().as_millis() as i32,
+                            })
+                        }
+                        Err(err) => return Err(CoreError::Other(err).into()),
+                    }
+                } else {
+                    return Err(TestModelConnectionError::NotEnabled);
                 }
             }
         }

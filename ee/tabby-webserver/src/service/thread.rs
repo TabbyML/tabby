@@ -701,8 +701,8 @@ mod tests {
         let repo = make_repository_service(db.clone()).await.unwrap();
         let settings = Arc::new(setting::create(db.clone()));
         let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
+            Some(code.clone()),
+            Some(doc.clone()),
             serper,
             repo,
             settings,

@@ -6,7 +6,7 @@ use tabby_download::{download_model, ModelKind};
 use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream, Embedding};
 use tracing::info;
 
-pub async fn load_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
+pub async fn load_embedding(config: &ModelConfig) -> Option<Arc<dyn Embedding>> {
     llama_cpp_server::create_embedding(config).await
 }
 

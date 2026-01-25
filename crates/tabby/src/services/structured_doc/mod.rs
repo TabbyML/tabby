@@ -3,7 +3,7 @@ mod tantivy;
 
 use std::sync::Arc;
 
-use tabby_common::api::structured_doc::DocSearch;
+pub use tabby_common::api::structured_doc::DocSearch;
 use tabby_inference::Embedding;
 
 use super::tantivy::IndexReaderProvider;

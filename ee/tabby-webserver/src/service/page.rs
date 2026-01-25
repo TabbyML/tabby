@@ -1112,8 +1112,8 @@ mod tests {
         let settings = Arc::new(setting::create(db.clone()));
 
         let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
+            Some(code.clone()),
+            Some(doc.clone()),
             serper,
             repo_service.clone(),
             settings,

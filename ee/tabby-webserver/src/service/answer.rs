@@ -519,12 +519,13 @@ mod tests {
         let settings = Arc::new(setting::create(db));
 
         let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
+            Some(code.clone()),
+            Some(doc.clone()),
             serper,
             repo,
             settings,
         ));
+
         let service = AnswerService::new(logger, &config, auth, chat, retrieval, context);
 
         let attachment = MessageAttachment {
@@ -582,12 +583,13 @@ mod tests {
         let settings = Arc::new(setting::create(db));
 
         let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
+            Some(code.clone()),
+            Some(doc.clone()),
             serper,
             repo,
             settings,
         ));
+
         let service = AnswerService::new(logger, &config, auth, chat, retrieval, context);
 
         let attachment = MessageAttachment {
@@ -645,12 +647,13 @@ mod tests {
         let logger = Arc::new(MockEventLogger);
         let settings = Arc::new(setting::create(db.clone()));
         let retrieval = Arc::new(retrieval::create(
-            code.clone(),
-            doc.clone(),
+            Some(code.clone()),
+            Some(doc.clone()),
             serper,
             repo,
             settings,
         ));
+
         let service = Arc::new(AnswerService::new(
             logger, &config, auth, chat, retrieval, context,
         ));

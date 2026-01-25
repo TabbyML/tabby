@@ -43,7 +43,12 @@ use juniper::ID;
 pub use license::new_license_service;
 pub use setting::create as new_setting_service;
 use tabby_common::{
-    api::{code::CodeSearch, event::EventLogger},
+    api::{
+        code::{
+            CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery, CodeSearchResponse,
+        },
+        event::EventLogger,
+    },
     config::PageConfig,
     constants::USER_HEADER_FIELD_NAME,
 };
@@ -80,9 +85,10 @@ use crate::{rate_limit::UserRateLimiter, service::retrieval::RetrievalService};
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
-    embedding: Arc<dyn EmbeddingService>,
+    embedding: Option<Arc<dyn EmbeddingService>>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
     completion: Option<Arc<dyn CompletionStream>>,
+
     auth: Arc<dyn AuthenticationService>,
     notification: Arc<dyn NotificationService>,
     license: Arc<dyn LicenseService>,
@@ -99,7 +105,7 @@ struct ServerContext {
     access_policy: Arc<dyn AccessPolicyService>,
 
     logger: Arc<dyn EventLogger>,
-    code: Arc<dyn CodeSearch>,
+    code: Option<Arc<dyn CodeSearch>>,
 
     setting: Arc<dyn SettingService>,
 
@@ -112,7 +118,7 @@ impl ServerContext {
         auth: Arc<dyn AuthenticationService>,
         chat: Option<Arc<dyn ChatCompletionStream>>,
         completion: Option<Arc<dyn CompletionStream>>,
-        code: Arc<dyn CodeSearch>,
+        code: Option<Arc<dyn CodeSearch>>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
         ingestion: Arc<dyn IngestionService>,
@@ -125,9 +131,10 @@ impl ServerContext {
         license: Arc<dyn LicenseService>,
         setting: Arc<dyn SettingService>,
         db_conn: DbConn,
-        embedding: Arc<dyn EmbeddingService>,
+        embedding: Option<Arc<dyn EmbeddingService>>,
     ) -> Self {
         let user_event = Arc::new(user_event::create(db_conn.clone()));
+
         let thread = Arc::new(thread::create(
             db_conn.clone(),
             answer.clone(),
@@ -323,7 +330,7 @@ impl ServiceLocator for ArcServerContext {
         self.0.clone()
     }
 
-    fn code(&self) -> Arc<dyn CodeSearch> {
+    fn code(&self) -> Option<Arc<dyn CodeSearch>> {
         self.0.code.clone()
     }
 
@@ -355,7 +362,7 @@ impl ServiceLocator for ArcServerContext {
         self.0.mail.clone()
     }
 
-    fn embedding(&self) -> Arc<dyn EmbeddingService> {
+    fn embedding(&self) -> Option<Arc<dyn EmbeddingService>> {
         self.0.embedding.clone()
     }
 
@@ -409,7 +416,7 @@ pub async fn create_service_locator(
     auth: Arc<dyn AuthenticationService>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
     completion: Option<Arc<dyn CompletionStream>>,
-    code: Arc<dyn CodeSearch>,
+    code: Option<Arc<dyn CodeSearch>>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     ingestion: Arc<dyn IngestionService>,
@@ -422,7 +429,7 @@ pub async fn create_service_locator(
     license: Arc<dyn LicenseService>,
     setting: Arc<dyn SettingService>,
     db: DbConn,
-    embedding: Arc<dyn EmbeddingService>,
+    embedding: Option<Arc<dyn EmbeddingService>>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(

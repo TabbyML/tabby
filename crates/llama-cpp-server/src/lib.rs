@@ -264,12 +264,16 @@ pub async fn create_completion_and_chat(
     (Arc::new(completion), prompt_info, Arc::new(chat))
 }
 
-pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
+pub async fn create_embedding(config: &ModelConfig) -> Option<Arc<dyn Embedding>> {
+    if !tabby_common::config::is_embedding_service_enabled() {
+        return None;
+    }
+
     match config {
-        ModelConfig::Http(http) => http_api_bindings::create_embedding(http).await,
+        ModelConfig::Http(http) => Some(http_api_bindings::create_embedding(http).await),
         ModelConfig::Local(llama) => {
             let model_path = resolve_model_path(&llama.model_id).await;
-            Arc::new(
+            Some(Arc::new(
                 EmbeddingServer::new(
                     llama.num_gpu_layers,
                     &model_path,
@@ -278,7 +282,7 @@ pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
                     llama.context_size,
                 )
                 .await,
-            )
+            ))
         }
     }
 }

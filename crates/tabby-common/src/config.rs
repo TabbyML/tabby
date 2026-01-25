@@ -153,6 +153,13 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
         .ok_or_else(|| anyhow!("Invalid config ID"))
 }
 
+pub fn is_embedding_service_enabled() -> bool {
+    std::env::var("TABBY_EMBEDDING_ENABLED")
+        .ok()
+        .filter(|x| x == "yes")
+        .is_some()
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
     git_url: String,
