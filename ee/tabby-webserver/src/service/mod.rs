@@ -43,10 +43,7 @@ use juniper::ID;
 pub use license::new_license_service;
 pub use setting::create as new_setting_service;
 use tabby_common::{
-    api::{
-        code::CodeSearch,
-        event::EventLogger,
-    },
+    api::{code::CodeSearch, event::EventLogger},
     config::PageConfig,
     constants::USER_HEADER_FIELD_NAME,
 };

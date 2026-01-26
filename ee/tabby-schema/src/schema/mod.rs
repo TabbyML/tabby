@@ -1023,11 +1023,9 @@ impl Query {
                         .build()
                         .expect("Failed to build chat completion request");
                     match chat.chat(request).await {
-                        Ok(_) => {
-                            Ok(ModelBackendHealthInfo {
-                                latency_ms: start.elapsed().as_millis() as i32,
-                            })
-                        }
+                        Ok(_) => Ok(ModelBackendHealthInfo {
+                            latency_ms: start.elapsed().as_millis() as i32,
+                        }),
                         Err(e) => Err(e.into()),
                     }
                 } else {
@@ -1037,11 +1035,9 @@ impl Query {
             ModelHealthBackend::Embedding => {
                 if let Some(embedding) = ctx.locator.embedding() {
                     match embedding.embed("hello Tabby").await {
-                        Ok(_) => {
-                            Ok(ModelBackendHealthInfo {
-                                latency_ms: start.elapsed().as_millis() as i32,
-                            })
-                        }
+                        Ok(_) => Ok(ModelBackendHealthInfo {
+                            latency_ms: start.elapsed().as_millis() as i32,
+                        }),
                         Err(err) => Err(CoreError::Other(err).into()),
                     }
                 } else {
