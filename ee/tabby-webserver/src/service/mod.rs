@@ -44,9 +44,7 @@ pub use license::new_license_service;
 pub use setting::create as new_setting_service;
 use tabby_common::{
     api::{
-        code::{
-            CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery, CodeSearchResponse,
-        },
+        code::CodeSearch,
         event::EventLogger,
     },
     config::PageConfig,

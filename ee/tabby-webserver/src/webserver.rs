@@ -111,8 +111,7 @@ impl Webserver {
 
         let embedding = self
             .embedding
-            .clone()
-            .and_then(|embedding| Some(embedding::create(&config.embedding, embedding)));
+            .clone().map(|embedding| embedding::create(&config.embedding, embedding));
 
         let retrieval = Arc::new(crate::service::retrieval::create(
             code.clone(),

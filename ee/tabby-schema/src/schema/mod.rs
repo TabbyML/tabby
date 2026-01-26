@@ -1003,11 +1003,11 @@ impl Query {
                         });
                     }
 
-                    return Err(TestModelConnectionError::FailedToConnect(
+                    Err(TestModelConnectionError::FailedToConnect(
                         "Failed to connect to the completion model".into(),
-                    ));
+                    ))
                 } else {
-                    return Err(TestModelConnectionError::NotEnabled);
+                    Err(TestModelConnectionError::NotEnabled)
                 }
             }
 
@@ -1024,28 +1024,28 @@ impl Query {
                         .expect("Failed to build chat completion request");
                     match chat.chat(request).await {
                         Ok(_) => {
-                            return Ok(ModelBackendHealthInfo {
+                            Ok(ModelBackendHealthInfo {
                                 latency_ms: start.elapsed().as_millis() as i32,
                             })
                         }
-                        Err(e) => return Err(e.into()),
+                        Err(e) => Err(e.into()),
                     }
                 } else {
-                    return Err(TestModelConnectionError::NotEnabled);
+                    Err(TestModelConnectionError::NotEnabled)
                 }
             }
             ModelHealthBackend::Embedding => {
                 if let Some(embedding) = ctx.locator.embedding() {
                     match embedding.embed("hello Tabby").await {
                         Ok(_) => {
-                            return Ok(ModelBackendHealthInfo {
+                            Ok(ModelBackendHealthInfo {
                                 latency_ms: start.elapsed().as_millis() as i32,
                             })
                         }
-                        Err(err) => return Err(CoreError::Other(err).into()),
+                        Err(err) => Err(CoreError::Other(err).into()),
                     }
                 } else {
-                    return Err(TestModelConnectionError::NotEnabled);
+                    Err(TestModelConnectionError::NotEnabled)
                 }
             }
         }
