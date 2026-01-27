@@ -161,11 +161,11 @@ fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
                 let ref_name = all_refs
                     .iter()
                     .find(|r| {
-                        r.name == format!("refs/heads/{}", name)
-                            || r.name == format!("refs/tags/{}", name)
+                        r.name == format!("refs/heads/{name}")
+                            || r.name == format!("refs/tags/{name}")
                     })
                     .map(|r| r.name.clone())
-                    .unwrap_or(format!("refs/heads/{}", name));
+                    .unwrap_or(format!("refs/heads/{name}"));
 
                 let commit = all_refs
                     .iter()

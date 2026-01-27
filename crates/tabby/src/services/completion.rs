@@ -295,7 +295,7 @@ impl CompletionService {
     fn new(
         config: CompletionConfig,
         engine: Arc<CodeGeneration>,
-        code: Arc<dyn CodeSearch>,
+        code: Option<Arc<dyn CodeSearch>>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
     ) -> Self {
@@ -304,7 +304,7 @@ impl CompletionService {
             prompt_builder: completion_prompt::PromptBuilder::new(
                 &config.code_search_params,
                 prompt_template,
-                Some(code),
+                code,
             ),
             next_edit_prompt_builder: next_edit_prompt::NextEditPromptBuilder::new(),
             config,
@@ -537,7 +537,7 @@ fn override_generated_text(generated: String, use_crlf: bool) -> String {
 
 pub async fn create_completion_service_and_chat(
     config: &CompletionConfig,
-    code: Arc<dyn CodeSearch>,
+    code: Option<Arc<dyn CodeSearch>>,
     logger: Arc<dyn EventLogger>,
     completion: Option<ModelConfig>,
     chat: Option<ModelConfig>,
@@ -612,7 +612,7 @@ mod tests {
         CompletionService::new(
             CompletionConfig::default(),
             Arc::new(generation),
-            Arc::new(MockCodeSearch),
+            Some(Arc::new(MockCodeSearch)),
             Arc::new(MockEventLogger),
             Some("<pre>{prefix}<mid>{suffix}<end>".into()),
         )

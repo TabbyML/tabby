@@ -129,7 +129,11 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         webserver = Some(!args.no_webserver)
     }
 
-    let embedding = embedding::create(&config.model.embedding).await;
+    let embedding = if tabby_common::config::is_embedding_service_enabled() {
+        embedding::create(&config.model.embedding).await
+    } else {
+        None
+    };
 
     #[cfg(feature = "ee")]
     let ws = if !args.no_webserver {
@@ -148,15 +152,19 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
 
     let index_reader_provider = Arc::new(IndexReaderProvider::default());
-    let docsearch = Arc::new(services::structured_doc::create(
-        embedding.clone(),
-        index_reader_provider.clone(),
-    ));
+    let docsearch = embedding.clone().map(|embedding| {
+        Arc::new(services::structured_doc::create(
+            embedding.clone(),
+            index_reader_provider.clone(),
+        )) as Arc<dyn services::structured_doc::DocSearch>
+    });
 
-    let code = Arc::new(create_code_search(
-        embedding.clone(),
-        index_reader_provider.clone(),
-    ));
+    let code = embedding.map(|embedding| {
+        Arc::new(create_code_search(
+            embedding.clone(),
+            index_reader_provider.clone(),
+        )) as Arc<dyn CodeSearch>
+    });
 
     let model = &config.model;
     let (completion, completion_stream, chat) = create_completion_service_and_chat(
@@ -226,8 +234,10 @@ async fn load_model(config: &Config) {
         download_model_if_needed(&model.model_id, ModelKind::Chat).await;
     }
 
-    if let ModelConfig::Local(ref model) = config.model.embedding {
-        download_model_if_needed(&model.model_id, ModelKind::Embedding).await;
+    if tabby_common::config::is_embedding_service_enabled() {
+        if let ModelConfig::Local(ref model) = config.model.embedding {
+            download_model_if_needed(&model.model_id, ModelKind::Embedding).await;
+        }
     }
 }
 
@@ -235,7 +245,7 @@ async fn api_router(
     args: &ServeArgs,
     config: &Config,
     logger: Arc<dyn EventLogger>,
-    _code: Arc<dyn CodeSearch>,
+    _code: Option<Arc<dyn CodeSearch>>,
     completion_state: Option<CompletionService>,
     chat_state: Option<Arc<ChatState>>,
     webserver: Option<bool>,

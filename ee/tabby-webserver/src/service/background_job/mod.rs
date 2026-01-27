@@ -226,7 +226,7 @@ pub async fn start(
     context_service: Arc<dyn ContextService>,
     license_service: Arc<dyn LicenseService>,
     notification_service: Arc<dyn NotificationService>,
-    embedding: Arc<dyn Embedding>,
+    embedding: Option<Arc<dyn Embedding>>,
 ) {
     let mut hourly =
         CronStream::new(Schedule::from_str("@hourly").expect("Invalid cron expression"))
@@ -269,42 +269,82 @@ pub async fn start(
                     let cloned_event = event.clone();
                     if let Err(err) = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
-                            let job = SchedulerGitJob::new(repository_config);
-                            job.run(embedding.clone()).await
+                            match embedding.clone() {
+                                Some(embedding) => {
+                                    let job = SchedulerGitJob::new(repository_config);
+                                    job.run(embedding).await
+                                }
+                                None => {
+                                    logkit::info!(exit_code = -1; "Embedding is disabled, please enable it to enable the job");
+                                    Ok(())
+                                }
+                            }
                         },
                         BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
                             let job = SyncIntegrationJob::new(integration_id);
                             job.run(third_party_repository_service.clone()).await
                         }
                         BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
-                            let job = SchedulerGithubGitlabJob::new(integration_id);
-                            job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
+                            match embedding.clone() {
+                                Some(embedding) => {
+                                    let job = SchedulerGithubGitlabJob::new(integration_id);
+                                    job.run(embedding, third_party_repository_service.clone(), integration_service.clone()).await
+                                }
+                                None => {
+                                    logkit::info!(exit_code = -1; "Embedding is disabled, please enable it to enable the job");
+                                    Ok(())
+                                }
+                            }
                         }
                         BackgroundJobEvent::SyncPagesIndex => {
-                            if let Some(page_service) = page_service.clone() {
-                                let job = SyncPageIndexJob;
-                                job.run(
-                                    page_service.clone(),
-                                    embedding.clone(),
-                                ).await
-                            } else {
-                                logkit::info!(exit_code = -1; "No page service available, skipping SyncPagesIndex job");
-                                Ok(())
+                            match embedding.clone() {
+                                Some(embedding) => {
+                                    if let Some(page_service) = page_service.clone() {
+                                        let job = SyncPageIndexJob;
+                                        job.run(
+                                            page_service.clone(),
+                                            embedding,
+                                        ).await
+                                    } else {
+                                        logkit::info!(exit_code = -1; "No page service available, skipping SyncPagesIndex job");
+                                        Ok(())
+                                    }
+                                }
+                                None => {
+                                    logkit::info!(exit_code = -1; "Embedding is disabled, please enable it to enable the job");
+                                    Ok(())
+                                }
                             }
                         }
                         BackgroundJobEvent::WebCrawler(job) => {
-                            job.run(embedding.clone()).await
+                            match embedding.clone() {
+                                Some(embedding) => {
+                                    job.run(embedding).await
+                                }
+                                None => {
+                                    logkit::info!(exit_code = -1; "Embedding is disabled, please enable it to enable the job");
+                                    Ok(())
+                                }
+                            }
                         }
                         BackgroundJobEvent::IndexGarbageCollection => {
                             let job = IndexGarbageCollection;
                             job.run(repository_service.clone(), context_service.clone(), ingestion_service.clone()).await
                         }
                         BackgroundJobEvent::SyncIngestionIndex => {
-                            let job = SyncIngestionIndexJob;
-                            job.run(
-                                ingestion_service.clone(),
-                                embedding.clone(),
-                            ).await
+                            match embedding.clone() {
+                                Some(embedding) => {
+                                    let job = SyncIngestionIndexJob;
+                                    job.run(
+                                        ingestion_service.clone(),
+                                        embedding,
+                                    ).await
+                                }
+                                None => {
+                                    logkit::info!(exit_code = -1; "Embedding is disabled, please enable it to enable the job");
+                                    Ok(())
+                                }
+                            }
                         }
                         BackgroundJobEvent::Hourly => {
                             let job = HourlyJob;

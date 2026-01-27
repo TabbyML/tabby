@@ -27,13 +27,13 @@ use crate::{
 pub struct Webserver {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
-    embedding: Arc<dyn Embedding>,
+    embedding: Option<Arc<dyn Embedding>>,
 }
 
 impl Webserver {
     pub async fn new(
         logger1: impl EventLogger + 'static,
-        embedding: Arc<dyn Embedding>,
+        embedding: Option<Arc<dyn Embedding>>,
     ) -> Arc<Self> {
         let db = DbConn::new(db_file().as_path())
             .await
@@ -61,10 +61,10 @@ impl Webserver {
         config: &Config,
         api: Router,
         ui: Router,
-        code: Arc<dyn CodeSearch>,
+        code: Option<Arc<dyn CodeSearch>>,
         chat: Option<Arc<dyn ChatCompletionStream>>,
         completion: Option<Arc<dyn CompletionStream>>,
-        docsearch: Arc<dyn DocSearch>,
+        docsearch: Option<Arc<dyn DocSearch>>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> (Router, Router) {
         let serper: Option<Box<dyn DocSearch>> =
@@ -109,6 +109,11 @@ impl Webserver {
             setting.clone(),
         ));
 
+        let embedding = self
+            .embedding
+            .clone()
+            .map(|embedding| embedding::create(&config.embedding, embedding));
+
         let retrieval = Arc::new(crate::service::retrieval::create(
             code.clone(),
             docsearch.clone(),
@@ -127,8 +132,6 @@ impl Webserver {
                 context.clone(),
             ))
         });
-
-        let embedding = embedding::create(&config.embedding, self.embedding.clone());
 
         let ctx = create_service_locator(
             self.logger(),

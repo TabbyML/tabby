@@ -30,8 +30,8 @@ use tabby_schema::{
 use tracing::{debug, error, warn};
 
 pub struct RetrievalService {
-    code: Arc<dyn CodeSearch>,
-    doc: Arc<dyn DocSearch>,
+    code: Option<Arc<dyn CodeSearch>>,
+    doc: Option<Arc<dyn DocSearch>>,
     serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
     settings: Arc<dyn SettingService>,
@@ -39,8 +39,8 @@ pub struct RetrievalService {
 
 impl RetrievalService {
     fn new(
-        code: Arc<dyn CodeSearch>,
-        doc: Arc<dyn DocSearch>,
+        code: Option<Arc<dyn CodeSearch>>,
+        doc: Option<Arc<dyn DocSearch>>,
         serper: Option<Box<dyn DocSearch>>,
         repository: Arc<dyn RepositoryService>,
         settings: Arc<dyn SettingService>,
@@ -107,6 +107,10 @@ impl RetrievalService {
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Result<Vec<CodeSearchHit>> {
+        if self.code.is_none() {
+            return Ok(vec![]);
+        }
+
         let repo = self
             .repository
             .repository_list(Some(policy))
@@ -128,6 +132,10 @@ impl RetrievalService {
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Vec<CodeSearchHit> {
+        let Some(code) = self.code.as_ref() else {
+            return vec![];
+        };
+
         let query = CodeSearchQuery::new(
             input.filepath.clone(),
             input.language.clone(),
@@ -140,7 +148,7 @@ impl RetrievalService {
             override_params.override_params(&mut params);
         }
 
-        match self.code.search_in_language(query, params).await {
+        match code.search_in_language(query, params).await {
             Ok(docs) => merge_code_snippets(repository, docs.hits).await,
             Err(err) => {
                 if let CodeSearchError::NotReady = err {
@@ -170,27 +178,29 @@ impl RetrievalService {
 
         // 1. Collect relevant docs from the tantivy doc search.
         if !source_ids.is_empty() {
-            match self.doc.search(&source_ids, &content, 5).await {
-                Ok(mut docs) => {
-                    // If the network settings are retrievable, we can prepend the external_url to the page link,
-                    // enabling it to be opened from our VSCode extension.
-                    if let Ok(settings) = self.settings.read_network_setting().await {
-                        for hit in docs.hits.iter_mut() {
-                            if let DocSearchDocument::Page(page) = &mut hit.doc {
-                                page.link = format!("{}{}", settings.external_url, page.link);
+            if let Some(doc) = self.doc.as_ref() {
+                match doc.search(&source_ids, &content, 5).await {
+                    Ok(mut docs) => {
+                        // If the network settings are retrievable, we can prepend the external_url to the page link,
+                        // enabling it to be opened from our VSCode extension.
+                        if let Ok(settings) = self.settings.read_network_setting().await {
+                            for hit in docs.hits.iter_mut() {
+                                if let DocSearchDocument::Page(page) = &mut hit.doc {
+                                    page.link = format!("{}{}", settings.external_url, page.link);
+                                }
                             }
                         }
+                        hits.extend(docs.hits)
                     }
-                    hits.extend(docs.hits)
-                }
-                Err(err) => {
-                    if let DocSearchError::NotReady = err {
-                        debug!("Doc search is not ready yet");
-                    } else {
-                        warn!("Failed to search doc: {:?}", err);
+                    Err(err) => {
+                        if let DocSearchError::NotReady = err {
+                            debug!("Doc search is not ready yet");
+                        } else {
+                            warn!("Failed to search doc: {:?}", err);
+                        }
                     }
-                }
-            };
+                };
+            }
         }
 
         // 2. If serper is available, we also collect from serper
@@ -236,8 +246,8 @@ impl RetrievalService {
 }
 
 pub fn create(
-    code: Arc<dyn CodeSearch>,
-    doc: Arc<dyn DocSearch>,
+    code: Option<Arc<dyn CodeSearch>>,
+    doc: Option<Arc<dyn DocSearch>>,
     serper: Option<Box<dyn DocSearch>>,
     repository: Arc<dyn RepositoryService>,
     settings: Arc<dyn SettingService>,
@@ -580,7 +590,7 @@ mod tests {
         let repo_service = make_repository_service(db.clone()).await.unwrap();
         let settings = Arc::new(setting::create(db));
 
-        let service = RetrievalService::new(code, doc, None, repo_service, settings);
+        let service = RetrievalService::new(Some(code), Some(doc), None, repo_service, settings);
 
         // Test Case 1: Basic code collection
         let input = make_code_query_input(Some(&test_repo.source_id), Some(&test_repo.git_url));
@@ -632,7 +642,13 @@ mod tests {
         let repo = make_repository_service(db.clone()).await.unwrap();
         let settings = Arc::new(setting::create(db));
 
-        let service = RetrievalService::new(code.clone(), doc.clone(), serper, repo, settings);
+        let service = RetrievalService::new(
+            Some(code.clone()),
+            Some(doc.clone()),
+            serper,
+            repo,
+            settings,
+        );
 
         let context_info_helper = make_context_info_helper();
 
@@ -796,8 +812,8 @@ mod tests {
         let settings = Arc::new(setting::create(db));
 
         let retrieval = Arc::new(create(
-            code.clone(),
-            doc.clone(),
+            Some(code.clone()),
+            Some(doc.clone()),
             serper,
             repo_service.clone(),
             settings,
