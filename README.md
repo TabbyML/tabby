@@ -1,8 +1,8 @@
 <div align="center">
-  
+
 # 🐾 Tabby
 
-[📚 Docs](https://tabby.tabbyml.com/docs/welcome/) • [💬 Slack](https://links.tabbyml.com/join-slack) • [🗺️ Roadmap](https://tabby.tabbyml.com/docs/roadmap/)
+[📚 Tabby Docs](https://tabby.tabbyml.com/docs/welcome/) • [📚 Pochi Docs](https://docs.getpochi.com/) • [💬 Slack](https://links.tabbyml.com/join-slack) • [🗺️ Roadmap](https://tabby.tabbyml.com/docs/roadmap/)
 
 [![latest release](https://shields.io/github/v/release/TabbyML/tabby)](https://github.com/TabbyML/tabby/releases/latest)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
@@ -15,10 +15,15 @@
 
 </div>
 
-Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot. It boasts several key features:
+Tabby is LLM-aware API gateway for self-hosted AI coding assistant,
+designed to cowork with the [Pochi](https://github.com/TabbyML/pochi) VSCode extension.
+
+Together, Tabby and Pochi offer an open-source and on-premises Agentic AI coding experience.
+
+Tabby boast several key features:
+
 * Self-contained, with no need for a DBMS or cloud service.
-* OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
-* Supports consumer-grade GPUs.
+* OpenAI compatible REST API, allowing you to use it with any OpenAI compatible client.
 
 <p align="center">
   <a target="_blank" href="https://tabby.tabbyml.com"><img alt="Open Live Demo" src="https://img.shields.io/badge/OPEN_LIVE_DEMO-blue?logo=xcode&style=for-the-badge&logoColor=green"></a>
@@ -29,8 +34,9 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 </p>
 
 ## 🔥 What's New
+
 * **12/12/2025** Get your GitHub issues implemented by connecting them to [Pochi](https://github.com/TabbyML/pochi) tasks and create PRs directly from the sidebar with a breakdown of CI/Lint/Test results [vscode@0.20.0](https://github.com/TabbyML/pochi/releases/tag/vscode%400.20.0).
-* **07/02/2025** [v0.30](https://github.com/TabbyML/tabby/releases/tag/v0.30.0) supports indexing GitLab Merge Request as Context! 
+* **07/02/2025** [v0.30](https://github.com/TabbyML/tabby/releases/tag/v0.30.0) supports indexing GitLab Merge Request as Context!
 * **05/25/2025** 💡Interested in joining [Agent](https://links.tabbyml.com/pochi-github-readme) private preview? DM in [X](https://x.com/getpochi) for early waitlist approval!🎫
 * **05/20/2025** Enhance Tabby with your own documentation📃 through REST APIs in [v0.29](https://github.com/TabbyML/tabby/releases/tag/v0.29.0)! 🎉
 * **05/01/2025** [v0.28](https://github.com/TabbyML/tabby/releases/tag/v0.28.0) transforming Answer Engine messages into persistent, shareable Pages
@@ -46,12 +52,12 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 * **12/24/2024** Introduce **Notification Box** in Tabby [v0.22.0](https://github.com/TabbyML/tabby/releases/tag/v0.22.0)!
 * **12/06/2024** Llamafile deployment integration and enhanced Answer Engine user experience are coming in Tabby [v0.21.0](https://github.com/TabbyML/tabby/releases/tag/v0.21.0)!🚀
 * **11/10/2024** Switching between different backend chat models is supported in Answer Engine with Tabby [v0.20.0](https://github.com/TabbyML/tabby/releases/tag/v0.20.0)!
-* **10/30/2024** Tabby [v0.19.0](https://github.com/TabbyML/tabby/releases/tag/v0.19.0) featuring recent shared threads on the main page to improve their discoverability. 
+* **10/30/2024** Tabby [v0.19.0](https://github.com/TabbyML/tabby/releases/tag/v0.19.0) featuring recent shared threads on the main page to improve their discoverability.
 * **07/09/2024** 🎉Announce [Codestral integration in Tabby](https://tabby.tabbyml.com/blog/2024/07/09/tabby-codestral/)!
 * **07/05/2024** Tabby [v0.13.0](https://github.com/TabbyML/tabby/releases/tag/v0.13.0) introduces ***Answer Engine***, a central knowledge engine for internal engineering teams. It seamlessly integrates with dev team's internal data, delivering reliable and precise answers to empower developers.
 * **06/13/2024** [VSCode 1.7](https://marketplace.visualstudio.com/items/TabbyML.vscode-tabby/changelog) marks a significant milestone with a versatile Chat experience throughout your coding experience. Come and they the latest **chat in side-panel** and **editing via chat command**!
 * **06/10/2024** Latest 📃blogpost drop on [an enhanced code context understanding](https://tabby.tabbyml.com/blog/2024/06/11/rank-fusion-in-tabby-code-completion/) in Tabby!
-* **06/06/2024** Tabby [v0.12.0](https://github.com/TabbyML/tabby/releases/tag/v0.12.0) release brings 🔗**seamless integrations** (Gitlab SSO, Self-hosted GitHub/GitLab, etc.), to ⚙️**flexible configurations** (HTTP API integration) and 🌐**expanded capabilities** (repo-context in Code Browser)! 
+* **06/06/2024** Tabby [v0.12.0](https://github.com/TabbyML/tabby/releases/tag/v0.12.0) release brings 🔗**seamless integrations** (Gitlab SSO, Self-hosted GitHub/GitLab, etc.), to ⚙️**flexible configurations** (HTTP API integration) and 🌐**expanded capabilities** (repo-context in Code Browser)!
 * **05/22/2024** Tabby [VSCode 1.6](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby) comes with **multiple choices** in inline completion, and the **auto-generated commit messages**🐱💻!
 * **05/11/2024** [v0.11.0](https://github.com/TabbyML/tabby/releases/tag/v0.11.0) brings significant enterprise upgrades, including 📊**storage usage** stats, 🔗**GitHub & GitLab** integration, 📋**Activities** page, and the long-awaited 🤖**Ask Tabby** feature!
 * **04/22/2024** [v0.10.0](https://github.com/TabbyML/tabby/releases/tag/v0.10.0) released, featuring the latest **Reports** tab with team-wise analytics for Tabby usage.
@@ -128,8 +134,8 @@ apt install make sqlite3 graphviz
 ... and don't forget to submit a [Pull Request](https://github.com/TabbyML/tabby/compare)
 
 ## 🌍 Community
-- 🎤 [Twitter / X](https://twitter.com/Tabby_ML) - engage with TabbyML for all things possible 
-- 📚 [LinkedIn](https://www.linkedin.com/company/tabbyml/) - follow for the latest from the community 
+- 🎤 [Twitter / X](https://twitter.com/Tabby_ML) - engage with TabbyML for all things possible
+- 📚 [LinkedIn](https://www.linkedin.com/company/tabbyml/) - follow for the latest from the community
 - 💌 [Newsletter](https://newsletter.tabbyml.com/archive) - subscribe to unlock Tabby insights and secrets
 
 ### 🔆 Activity
