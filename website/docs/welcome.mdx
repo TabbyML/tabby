@@ -4,7 +4,10 @@ sidebar_position: 0
 
 # 👋 What's Tabby
 
-Tabby is an open-source, self-hosted AI coding assistant. With Tabby, every team can set up its own LLM-powered code completion server with ease.
+Tabby is LLM-aware API gateway for self-hosted AI coding assistant,
+designed to cowork with the [Pochi](https://github.com/TabbyML/pochi) VSCode extension.
+
+Together, Tabby and Pochi offer an open-source and on-premises Agentic AI coding experience.
 
 [![Join Slack](https://shields.io/badge/Join%20Slack-e29351?logo=slack)](https://links.tabbyml.com/join-slack)
 [![Follow on Linkedin](https://shields.io/badge/Follow%20on%20Linkedin-e29351?logo=linkedin)](https://www.linkedin.com/company/tabbyml/)
@@ -14,7 +17,7 @@ Tabby is an open-source, self-hosted AI coding assistant. With Tabby, every team
   <div className="flex w-full lg:w-8/12 aspect-[16/10]">
     <iframe className="flex-1"
       allow="fullscreen"
-      src="https://www.loom.com/embed/a137618d68fd4629805dbfeb93471035?sid=78d1e91a-984e-4e06-b682-e1ab10ca380a?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true" 
+      src="https://www.loom.com/embed/a137618d68fd4629805dbfeb93471035?sid=78d1e91a-984e-4e06-b682-e1ab10ca380a?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true"
     >
     </iframe>
   </div>
@@ -27,7 +30,6 @@ Tabby is an open-source, self-hosted AI coding assistant. With Tabby, every team
 | Section                                                             | Goal                                                                        |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | [📚 Installation](/docs/quick-start/installation/docker)           | Everything deployment: Docker, Homebrew, Hugging Face Space and many others |
-| [💻 IDE / Editor Extensions](/docs/extensions/installation/vscode) | IDE/Editor extensions that can be seamlessly integrated with Tabby          |
 | [🧑‍🔬 Models Directory](/docs/models)                                | A curated list of models that we recommend using with Tabby                 |
 | [🏷️ API References](/api)                                          | Checkout Tabby API Documentation                                            |
 | [🏘️ Community](#%EF%B8%8F-community)                               | Everything about for developers and contributing                            |
@@ -36,11 +38,6 @@ Tabby is an open-source, self-hosted AI coding assistant. With Tabby, every team
 ## 📏 Principles
 
 * **Open**: Tabby is free, open-source, and compatible with major Coding LLMs (CodeLlama, StarCoder, CodeGen). In fact, you can use and combine your preferred models without implementing anything by yourself.
-
-* **End-to-End**: While most coding tools consider code completion merely as a thin wrapper atop Coding LLMs, in real-world scenarios, optimizations in IDE extensions can be just as crucial as the capabilities of Coding LLMs.
-Tabby optimizes the entire stack:
-  + <u>IDE extensions</u>: Tabby achieves accurate streaming and cancellation with an adaptive caching strategy to ensure rapid completion (in less than a second).
-  + <u>Model serving</u>: Tabby parses relevant code into Tree Sitter tags to provide effective prompts.
 
 * **User and Developer Experience**: The key to sustainable open-source solutions is to make it easier for everyone to contribute to projects.
 AI experts should feel comfortable understanding and improving the suggestion quality.
