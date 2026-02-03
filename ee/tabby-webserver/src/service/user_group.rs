@@ -15,9 +15,10 @@ struct UserGroupServiceImpl {
 
 #[async_trait::async_trait]
 impl UserGroupService for UserGroupServiceImpl {
-    async fn list(&self) -> Result<Vec<UserGroup>> {
+    async fn list(&self, user_id: Option<ID>) -> Result<Vec<UserGroup>> {
+        let user_id = user_id.map(|x| x.as_rowid()).transpose()?;
         let mut user_groups = Vec::new();
-        for x in self.db.list_user_groups(None).await? {
+        for x in self.db.list_user_groups(user_id).await? {
             user_groups.push(UserGroup::new(self.db.clone(), x).await?);
         }
         Ok(user_groups)
@@ -114,13 +115,13 @@ mod tests {
         .unwrap();
 
         // Test listing user groups as user3
-        let result = svc.list().await.unwrap();
+        let result = svc.list(None).await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);
 
         // Test listing user groups as user1
-        let result = svc.list().await.unwrap();
+        let result = svc.list(None).await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[0].members.len(), 2);
@@ -132,7 +133,7 @@ mod tests {
         });
 
         // Test listing user groups as user2
-        let result = svc.list().await.unwrap();
+        let result = svc.list(None).await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);

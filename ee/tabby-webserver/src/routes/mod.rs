@@ -83,6 +83,7 @@ pub fn create(
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
         // 1. /v1/*
         // 2. /v1beta/*
+        // 3. /v2alpha/*
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
         .merge(protected_api)
         .merge(registration_api)

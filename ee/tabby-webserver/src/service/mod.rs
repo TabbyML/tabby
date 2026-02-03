@@ -44,6 +44,7 @@ pub use license::new_license_service;
 pub use setting::create as new_setting_service;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
+    axum::{MaybeUserExt, UserExt},
     config::PageConfig,
     constants::USER_HEADER_FIELD_NAME,
 };
@@ -201,7 +202,10 @@ impl ServerContext {
     /// Returns whether a request is authorized to access the content, and the user ID if authentication was used.
     async fn authorize_request(&self, uri: &Uri, headers: &HeaderMap) -> (bool, Option<ID>) {
         let path = uri.path();
-        if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
+        if !(path.starts_with("/v1/")
+            || path.starts_with("/v1beta/")
+            || path.starts_with("/v2alpha/"))
+        {
             return (true, None);
         }
         let authorization = headers
@@ -290,6 +294,17 @@ impl WorkerService for ServerContext {
             let Ok(context_info) = self.context.read(Some(&user.policy)).await else {
                 return unauthorized;
             };
+
+            let Ok(groups) = self.user_group.list(Some(user.id.clone())).await else {
+                return unauthorized;
+            };
+            request.extensions_mut().insert(MaybeUserExt(Some(UserExt {
+                id: user.id.to_string(),
+                groups: groups.into_iter().map(|g| g.name).collect(),
+                is_admin: user.is_admin,
+                is_owner: user.is_owner,
+                active: user.active,
+            })));
 
             request
                 .extensions_mut()
