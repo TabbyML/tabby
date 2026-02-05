@@ -66,16 +66,13 @@ async fn load_remote_registry(registry: &str) -> Result<Vec<ModelInfo>> {
     if !dir.exists() {
         fs::create_dir_all(&dir).context(format!("Failed to create dir {dir:?}"))?;
     }
-    let file = fs::File::create(models_json_file(registry))
-        .context("Failed to create file")?;
-    serde_json::to_writer_pretty(file, &model_info)
-        .context("Failed to convert JSON to file")?;
+    let file = fs::File::create(models_json_file(registry)).context("Failed to create file")?;
+    serde_json::to_writer_pretty(file, &model_info).context("Failed to convert JSON to file")?;
     Ok(model_info)
 }
 
 fn load_local_registry(registry: &str) -> Result<Vec<ModelInfo>> {
-    let file = fs::File::open(models_json_file(registry))
-        .context("Failed to open file")?;
+    let file = fs::File::open(models_json_file(registry)).context("Failed to open file")?;
     Ok(serde_json::from_reader(file)?)
 }
 
