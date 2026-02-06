@@ -202,10 +202,7 @@ impl ServerContext {
     /// Returns whether a request is authorized to access the content, and the user ID if authentication was used.
     async fn authorize_request(&self, uri: &Uri, headers: &HeaderMap) -> (bool, Option<ID>) {
         let path = uri.path();
-        if !(path.starts_with("/v1/")
-            || path.starts_with("/v1beta/")
-            || path.starts_with("/v2alpha/"))
-        {
+        if !(path.starts_with("/v1/") || path.starts_with("/v1beta/") || path.starts_with("/v2/")) {
             return (true, None);
         }
         let authorization = headers

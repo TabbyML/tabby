@@ -286,12 +286,16 @@ async fn api_router(
             .with_state(Arc::new(config.clone().into()))
     });
 
-    if let Some(agent_state) = config.agent.clone() {
-        let agent_state = Arc::new(agent_state);
+    if !config.endpoints.is_empty() {
+        let agent_state = Arc::new(tabby_common::config::AgentConfig {
+            endpoints: config.endpoints.clone(),
+        });
         routers.push(
             Router::new()
-                .route("/v2alpha/agent/https/{*path}", routing::any(routes::agent))
-                .route("/v2alpha/agent/http/{*path}", routing::any(routes::agent))
+                .route(
+                    "/v2/endpoints/{:name}/{*path}",
+                    routing::any(routes::endpoint),
+                )
                 .layer(axum::middleware::from_fn_with_state(
                     agent_state.clone(),
                     routes::agent_policy,

@@ -40,7 +40,7 @@ pub struct Config {
     pub answer: AnswerConfig,
 
     #[serde(default)]
-    pub agent: Option<AgentConfig>,
+    pub endpoints: Vec<AgentEndpointConfig>,
 
     #[serde(default)]
     pub additional_languages: Vec<languages::Language>,
@@ -494,19 +494,26 @@ impl AnswerConfig {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AgentConfig {
-    pub kind: String,
-    pub api_endpoint: String,
-    #[serde(default)]
-    pub headers: HashMap<String, String>,
-    #[serde(default)]
-    pub tools: Vec<AgentTool>,
+    pub endpoints: Vec<AgentEndpointConfig>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AgentTool {
+pub struct AgentEndpointConfig {
     pub name: String,
-    pub description: String,
-    pub available_groups: Option<Vec<String>>,
+    pub api_route: String,
+    #[serde(default)]
+    pub timeout: Option<u64>,
+    #[serde(default)]
+    pub user_quota: Option<EndpointUserQuota>,
+    #[serde(default)]
+    pub headers: HashMap<String, String>,
+    #[serde(default)]
+    pub metadata: Option<HashMap<String, HashMap<String, String>>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EndpointUserQuota {
+    pub requests_per_minute: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -735,5 +742,23 @@ mod tests {
             RepositoryConfig::canonicalize_url("file:///home/TabbyML/tabby"),
             "file:///home/TabbyML/tabby"
         );
+    }
+
+    #[test]
+    fn it_parses_agent_endpoint_config() {
+        let toml_config = r#"
+            [[endpoints]]
+            name = "pochi"
+            api_route = "https://api.openai.com"
+            timeout = 5000
+            user_quota = { requests_per_minute = 30 }
+            headers = { Authorization = "Bearer xxx" }
+        "#;
+
+        let config: Config = toml::from_str::<Config>(toml_config).expect("Failed to parse config");
+        let endpoint = &config.endpoints[0];
+        assert_eq!(endpoint.name, "pochi");
+        assert_eq!(endpoint.timeout, Some(5000));
+        assert!(endpoint.headers.contains_key("Authorization"));
     }
 }
