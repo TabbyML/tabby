@@ -151,20 +151,27 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         logger = ws.logger();
     }
 
-    let index_reader_provider = Arc::new(IndexReaderProvider::default());
-    let docsearch = embedding.clone().map(|embedding| {
-        Arc::new(services::structured_doc::create(
-            embedding.clone(),
-            index_reader_provider.clone(),
-        )) as Arc<dyn services::structured_doc::DocSearch>
-    });
+    let index_reader_provider = embedding
+        .is_some()
+        .then(|| Arc::new(IndexReaderProvider::default()));
 
-    let code = embedding.map(|embedding| {
-        Arc::new(create_code_search(
-            embedding.clone(),
-            index_reader_provider.clone(),
-        )) as Arc<dyn CodeSearch>
-    });
+    let docsearch = embedding.clone().zip(index_reader_provider.clone()).map(
+        |(embedding, index_reader_provider)| {
+            Arc::new(services::structured_doc::create(
+                embedding.clone(),
+                index_reader_provider.clone(),
+            )) as Arc<dyn services::structured_doc::DocSearch>
+        },
+    );
+
+    let code = embedding
+        .zip(index_reader_provider)
+        .map(|(embedding, index_reader_provider)| {
+            Arc::new(create_code_search(
+                embedding.clone(),
+                index_reader_provider.clone(),
+            )) as Arc<dyn CodeSearch>
+        });
 
     let model = &config.model;
     let (completion, completion_stream, chat) = create_completion_service_and_chat(
