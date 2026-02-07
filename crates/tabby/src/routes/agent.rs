@@ -1,13 +1,14 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, Method, Request, Uri},
     middleware::Next,
     response::{IntoResponse, Response},
-    Extension,
+    Extension, Json,
 };
 use hyper::StatusCode;
+use serde::Serialize;
 use tabby_common::{axum::MaybeUserExt, config::AgentConfig};
 
 pub async fn agent_policy(
@@ -17,6 +18,26 @@ pub async fn agent_policy(
     next: Next,
 ) -> Response {
     next.run(request).await
+}
+
+#[derive(Serialize)]
+pub struct AgentEndpointInfo {
+    pub name: String,
+    pub metadata: Option<HashMap<String, HashMap<String, String>>>,
+}
+
+pub async fn list_endpoints(
+    State(config): State<Arc<AgentConfig>>,
+) -> Json<Vec<AgentEndpointInfo>> {
+    let endpoints = config
+        .endpoints
+        .iter()
+        .map(|e| AgentEndpointInfo {
+            name: e.name.clone(),
+            metadata: e.metadata.clone(),
+        })
+        .collect();
+    Json(endpoints)
 }
 
 pub async fn endpoint(

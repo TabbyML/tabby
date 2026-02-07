@@ -296,6 +296,7 @@ async fn api_router(
                     "/v2/endpoints/{:name}/{*path}",
                     routing::any(routes::endpoint),
                 )
+                .route("/v2/endpoints", routing::get(routes::list_endpoints))
                 .layer(axum::middleware::from_fn_with_state(
                     agent_state.clone(),
                     routes::agent_policy,
