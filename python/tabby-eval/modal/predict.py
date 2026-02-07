@@ -160,7 +160,7 @@ def read_dataframe_from_file(language: str, file: str) -> pd.DataFrame:
 
 @stub.local_entrypoint()
 async def main(language: str, files: str):
-    #Multiple files seperated by ','
+    #Multiple files separated by ','
     
     model = Model()
 
