@@ -286,6 +286,20 @@ async fn api_router(
             .with_state(Arc::new(config.clone().into()))
     });
 
+    if let Some(agent_state) = config.agent.clone() {
+        let agent_state = Arc::new(agent_state);
+        routers.push(
+            Router::new()
+                .route("/v2alpha/agent/https/{*path}", routing::any(routes::agent))
+                .route("/v2alpha/agent/http/{*path}", routing::any(routes::agent))
+                .layer(axum::middleware::from_fn_with_state(
+                    agent_state.clone(),
+                    routes::agent_policy,
+                ))
+                .with_state(agent_state),
+        );
+    };
+
     if let Some(completion_state) = completion_state {
         let mut router = Router::new()
             .route(

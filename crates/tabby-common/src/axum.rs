@@ -30,6 +30,18 @@ impl Header for MaybeUser {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct UserExt {
+    pub id: String,
+    pub groups: Vec<String>,
+    pub is_admin: bool,
+    pub is_owner: bool,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct MaybeUserExt(pub Option<UserExt>);
+
 #[derive(Debug, Default, Clone)]
 pub struct AllowedCodeRepository {
     list: Vec<CodeRepository>,

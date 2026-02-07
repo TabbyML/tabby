@@ -954,7 +954,7 @@ impl Query {
     /// List user groups.
     async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
         check_user(ctx).await?;
-        ctx.locator.user_group().list().await
+        ctx.locator.user_group().list(None).await
     }
 
     async fn source_id_access_policies(
