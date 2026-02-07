@@ -29,7 +29,6 @@ tokio = { workspace = true }
 utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
 serde = { workspace = true }
-serdeconv = { workspace = true }
 serde_json = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "timeout"] }
 clap = { workspace = true, features = ["derive"] }

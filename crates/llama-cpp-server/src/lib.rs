@@ -333,7 +333,9 @@ pub struct PromptInfo {
 
 impl PromptInfo {
     fn read(filepath: PathBuf) -> PromptInfo {
-        serdeconv::from_json_file(&filepath)
+        let file = fs::File::open(&filepath)
+            .unwrap_or_else(|_| panic!("Invalid metadata file: {}", filepath.display()));
+        serde_json::from_reader(file)
             .unwrap_or_else(|_| panic!("Invalid metadata file: {}", filepath.display()))
     }
 }

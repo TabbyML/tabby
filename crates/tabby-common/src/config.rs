@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf, process};
+use std::{collections::HashSet, fs, path::PathBuf, process};
 
 use anyhow::{anyhow, Context, Result};
 use derive_builder::Builder;
@@ -48,7 +48,9 @@ impl Config {
             );
             return Ok(Default::default());
         }
-        let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())
+        let content = fs::read_to_string(cfg_path.as_path())
+            .context(format!("Config file '{}' is not valid", cfg_path.display()))?;
+        let mut cfg: Self = toml::from_str(&content)
             .context(format!("Config file '{}' is not valid", cfg_path.display()))?;
 
         if let Err(e) = cfg.validate_dirs() {
@@ -90,7 +92,8 @@ impl Config {
 
     #[cfg(feature = "testutils")]
     pub fn save(&self) {
-        serdeconv::to_toml_file(self, crate::path::config_file().as_path())
+        let content = toml::to_string_pretty(self).expect("Failed to serialize config");
+        fs::write(crate::path::config_file().as_path(), content)
             .expect("Failed to write config file");
     }
 
@@ -521,7 +524,7 @@ mod tests {
 
     #[test]
     fn it_parses_empty_config() {
-        let config = serdeconv::from_toml_str::<Config>("");
+        let config = toml::from_str::<Config>("");
         debug_assert!(config.is_ok(), "{}", config.err().unwrap());
     }
 
@@ -550,8 +553,7 @@ mod tests {
             model_name = "Qwen2-1.5B-Instruct"
             "#;
 
-        let config: Config =
-            serdeconv::from_toml_str::<Config>(toml_config).expect("Failed to parse config");
+        let config: Config = toml::from_str::<Config>(toml_config).expect("Failed to parse config");
 
         if let Err(e) = Config::validate_model_config(&config.model.completion) {
             println!("Final result: {e}");
