@@ -92,7 +92,7 @@ impl Language {
 lazy_static! {
     static ref CONFIG: ConfigList = {
         let mut config_list: ConfigList =
-            serdeconv::from_toml_str(include_str!("../assets/languages.toml")).unwrap();
+            toml::from_str(include_str!("../assets/languages.toml")).unwrap();
         let mut config = config::Config::load().unwrap();
         config_list.config.append(&mut config.additional_languages);
         config_list

@@ -23,7 +23,7 @@ tokio = { workspace = true, features = ["process"] }
 anyhow.workspace = true
 which = "6"
 serde.workspace = true
-serdeconv.workspace = true
+serde_json.workspace = true
 async-openai-alt.workspace = true
 
 [build-dependencies]
