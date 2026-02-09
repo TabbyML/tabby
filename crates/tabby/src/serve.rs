@@ -286,6 +286,25 @@ async fn api_router(
             .with_state(Arc::new(config.clone().into()))
     });
 
+    if !config.endpoints.is_empty() {
+        let agent_state = Arc::new(tabby_common::config::EndpointConfig {
+            endpoints: config.endpoints.clone(),
+        });
+        routers.push(
+            Router::new()
+                .route(
+                    "/v2/endpoints/{:name}/{*path}",
+                    routing::any(routes::endpoint),
+                )
+                .route("/v2/endpoints", routing::get(routes::list_endpoints))
+                .layer(axum::middleware::from_fn_with_state(
+                    agent_state.clone(),
+                    routes::agent_policy,
+                ))
+                .with_state(agent_state),
+        );
+    };
+
     if let Some(completion_state) = completion_state {
         let mut router = Router::new()
             .route(

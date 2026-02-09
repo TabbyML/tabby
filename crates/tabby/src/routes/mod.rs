@@ -52,6 +52,7 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
     .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
+mod agent;
 mod chat;
 mod completions;
 mod events;
@@ -59,6 +60,7 @@ mod health;
 mod models;
 mod server_setting;
 
+pub use agent::*;
 pub use chat::*;
 pub use completions::*;
 pub use events::*;

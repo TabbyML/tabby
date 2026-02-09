@@ -54,7 +54,7 @@ pub struct UpsertUserGroupMembershipInput {
 #[async_trait]
 pub trait UserGroupService: Send + Sync {
     // List user groups.
-    async fn list(&self) -> Result<Vec<UserGroup>>;
+    async fn list(&self, user_id: Option<ID>) -> Result<Vec<UserGroup>>;
 
     async fn create(&self, input: &CreateUserGroupInput) -> Result<ID>;
     async fn delete(&self, user_group_id: &ID) -> Result<()>;
