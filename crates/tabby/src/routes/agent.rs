@@ -60,9 +60,9 @@ pub async fn endpoint(
     let path = if path.starts_with('/') {
         path
     } else {
-        format!("/{}", path)
+        format!("/{path}")
     };
-    let query = uri.query().map(|q| format!("?{}", q)).unwrap_or_default();
+    let query = uri.query().map(|q| format!("?{q}")).unwrap_or_default();
     let target_url = format!(
         "{}{}{}",
         endpoint.api_route.trim_end_matches('/'),
