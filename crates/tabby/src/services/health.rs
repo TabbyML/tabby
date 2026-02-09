@@ -87,7 +87,12 @@ impl From<&ModelConfig> for ModelHealth {
 impl From<&ModelConfigGroup> for ModelsHealth {
     fn from(model_config: &ModelConfigGroup) -> Self {
         let completion = model_config.completion.as_ref().map(ModelHealth::from);
-        let chat = model_config.chat.as_ref().map(ModelHealth::from);
+        let chat = model_config
+            .chat
+            .as_ref()
+            .map(|m| m.get_model_configs()[0].clone())
+            .as_ref()
+            .map(ModelHealth::from);
 
         let embedding = ModelHealth::from(&model_config.embedding);
 
@@ -127,9 +132,13 @@ impl HealthState {
             local.cuda_devices = cuda_devices.clone();
         }
 
+        let chat_model = &model_config.chat
+            .as_ref()
+            .and_then(|t| Some(t.get_model_configs()[0].clone()));
+        
         Self {
             model: to_model_name(&model_config.completion),
-            chat_model: to_model_name(&model_config.chat),
+            chat_model: to_model_name(chat_model),
             chat_device: chat_device.map(|x| x.to_string()),
             device: device.to_string(),
             models,
