@@ -52,18 +52,20 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
     .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-mod agent;
 mod chat;
 mod completions;
+mod endpoint;
 mod events;
 mod health;
 mod models;
+mod rate_limit;
 mod server_setting;
 
-pub use agent::*;
 pub use chat::*;
 pub use completions::*;
+pub use endpoint::*;
 pub use events::*;
 pub use health::*;
 pub use models::*;
+pub use rate_limit::*;
 pub use server_setting::*;

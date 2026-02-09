@@ -61,6 +61,7 @@ reqwest.workspace = true
 async-openai-alt.workspace = true
 spinners = "4.1.1"
 regex.workspace = true
+leaky-bucket = "1.1.2"
 
 [dependencies.openssl]
 optional = true
