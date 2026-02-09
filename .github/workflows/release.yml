@@ -6,6 +6,7 @@ on:
     tags:
       - 'v*'
       - 'nightly'
+      - 'next-*'
       - "!*-dev.*"
       - '!vscode@*'
       - '!vim@*'
