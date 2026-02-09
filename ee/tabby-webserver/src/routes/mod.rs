@@ -18,8 +18,7 @@ use juniper::ID;
 use juniper_axum::{graphiql, playground};
 use tabby_common::api::server_setting::ServerSetting;
 use tabby_schema::{
-    auth::AuthenticationService, create_schema, job::JobService, setting::SettingService, Schema,
-    ServiceLocator,
+    auth::AuthenticationService, create_schema, job::JobService, Schema, ServiceLocator,
 };
 use tower::util::ServiceExt;
 use tower_http::services::ServeFile;

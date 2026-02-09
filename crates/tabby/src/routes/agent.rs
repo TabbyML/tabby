@@ -9,10 +9,10 @@ use axum::{
 };
 use hyper::StatusCode;
 use serde::Serialize;
-use tabby_common::{axum::MaybeUserExt, config::AgentConfig};
+use tabby_common::{axum::MaybeUserExt, config::EndpointConfig};
 
 pub async fn agent_policy(
-    State(_config): State<Arc<AgentConfig>>,
+    State(_config): State<Arc<EndpointConfig>>,
     Extension(MaybeUserExt(_user)): Extension<MaybeUserExt>,
     request: Request<axum::body::Body>,
     next: Next,
@@ -27,7 +27,7 @@ pub struct AgentEndpointInfo {
 }
 
 pub async fn list_endpoints(
-    State(config): State<Arc<AgentConfig>>,
+    State(config): State<Arc<EndpointConfig>>,
 ) -> Json<Vec<AgentEndpointInfo>> {
     let endpoints = config
         .endpoints
@@ -41,7 +41,7 @@ pub async fn list_endpoints(
 }
 
 pub async fn endpoint(
-    State(config): State<Arc<AgentConfig>>,
+    State(config): State<Arc<EndpointConfig>>,
     Path((name, path)): Path<(String, String)>,
     method: Method,
     uri: Uri,

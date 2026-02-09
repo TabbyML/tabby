@@ -40,7 +40,7 @@ pub struct Config {
     pub answer: AnswerConfig,
 
     #[serde(default)]
-    pub endpoints: Vec<AgentEndpointConfig>,
+    pub endpoints: Vec<Endpoint>,
 
     #[serde(default)]
     pub additional_languages: Vec<languages::Language>,
@@ -493,12 +493,12 @@ impl AnswerConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AgentConfig {
-    pub endpoints: Vec<AgentEndpointConfig>,
+pub struct EndpointConfig {
+    pub endpoints: Vec<Endpoint>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AgentEndpointConfig {
+pub struct Endpoint {
     pub name: String,
     pub api_route: String,
     #[serde(default)]

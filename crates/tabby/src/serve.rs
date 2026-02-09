@@ -287,7 +287,7 @@ async fn api_router(
     });
 
     if !config.endpoints.is_empty() {
-        let agent_state = Arc::new(tabby_common::config::AgentConfig {
+        let agent_state = Arc::new(tabby_common::config::EndpointConfig {
             endpoints: config.endpoints.clone(),
         });
         routers.push(
