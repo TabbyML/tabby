@@ -287,21 +287,25 @@ async fn api_router(
     });
 
     if !config.endpoints.is_empty() {
-        let agent_state = Arc::new(tabby_common::config::EndpointConfig {
+        let endpoint_config = Arc::new(tabby_common::config::EndpointConfig {
             endpoints: config.endpoints.clone(),
         });
+        let endpoint_rate_limiters = Arc::new(routes::EndpointRateLimiters::new());
         routers.push(
             Router::new()
                 .route(
                     "/v2/endpoints/{:name}/{*path}",
-                    routing::any(routes::endpoint),
+                    routing::any(routes::endpoint)
+                        .with_state((endpoint_config.clone(), endpoint_rate_limiters)),
                 )
-                .route("/v2/endpoints", routing::get(routes::list_endpoints))
+                .route(
+                    "/v2/endpoints",
+                    routing::get(routes::list_endpoints).with_state(endpoint_config.clone()),
+                )
                 .layer(axum::middleware::from_fn_with_state(
-                    agent_state.clone(),
-                    routes::agent_policy,
-                ))
-                .with_state(agent_state),
+                    endpoint_config.clone(),
+                    routes::endpoint_policy,
+                )),
         );
     };
 
