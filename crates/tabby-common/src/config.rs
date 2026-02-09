@@ -508,7 +508,7 @@ pub struct Endpoint {
     #[serde(default)]
     pub headers: HashMap<String, String>,
     #[serde(default)]
-    pub metadata: Option<HashMap<String, HashMap<String, String>>>,
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -21,18 +21,16 @@ pub async fn agent_policy(
 }
 
 #[derive(Serialize)]
-pub struct AgentEndpointInfo {
+pub struct EndpointInfo {
     pub name: String,
-    pub metadata: Option<HashMap<String, HashMap<String, String>>>,
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
-pub async fn list_endpoints(
-    State(config): State<Arc<EndpointConfig>>,
-) -> Json<Vec<AgentEndpointInfo>> {
+pub async fn list_endpoints(State(config): State<Arc<EndpointConfig>>) -> Json<Vec<EndpointInfo>> {
     let endpoints = config
         .endpoints
         .iter()
-        .map(|e| AgentEndpointInfo {
+        .map(|e| EndpointInfo {
             name: e.name.clone(),
             metadata: e.metadata.clone(),
         })
