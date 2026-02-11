@@ -8,7 +8,6 @@ import GitHubGitLabUrl from "./github-gitlab.png";
 import SelectRepoUrl from "./select-repo.png";
 import CodeBrowserEntryUrl from "./code-browser-entry.png";
 import CodeBrowserUrl from "./code-browser.png";
-import DocumentUrl from "./document.png";
 import JobLinkUrl from "./repository-job.png";
 import JobLogUrl from "./repository-job-run.png";
 
@@ -69,32 +68,3 @@ git_url = "git@github.com:OpenNMT/CTranslate2.git"
 name = "repository_a"
 git_url = "file:///home/users/repository_a"
 ```
-
-
-## Adding a Developer Doc through Admin UI
-
-:::info[Note]
-
-1. By default, Tabby uses the **[Katana](https://github.com/projectdiscovery/katana)** to crawl developer documentation. For **Docker deployments**, Katana is pre-installed in the container image. **Non-Docker deployments** require manual Katana installation.
-2. If a developer documentation site implements the **[llms.txt](https://llmstxt.org/)** standard, Tabby directly retrieves and indexes the specified documents, instead of using Katana for automated crawling.
-
-:::
-
-1. Navigate to the **Integrations > Context Providers** page, and then select the `Developer Docs(Beta)`.
-
-<img src={ContextProvidersUrl} alt="Context Providers" />
-
-2. Turn on the switch to enable the integrated sites, or click the `+` button to add your own URLs
-
-<img src={DocumentUrl} alt="Document" />
-
-
-## Verifying the Repository Provider
-
-Once connected, the indexing job will start automatically. You can check the status of the indexing job on the **Information > Jobs** page.
-
-Additionally, you can also visit the **Code Browser** page to view the connected repository.
-
-<img src={CodeBrowserEntryUrl} alt="code browser entry" width="300" />
-
-<img src={CodeBrowserUrl} alt="code browser" width="800" />
