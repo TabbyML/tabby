@@ -15,15 +15,10 @@
 
 </div>
 
-Tabby is LLM-aware API gateway for self-hosted AI coding assistant,
-designed to cowork with the [Pochi](https://github.com/TabbyML/pochi) VSCode extension.
-
-Together, Tabby and Pochi offer an open-source and on-premises Agentic AI coding experience.
-
-Tabby boast several key features:
+Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot. It boasts several key features:
 
 * Self-contained, with no need for a DBMS or cloud service.
-* OpenAI compatible REST API, allowing you to use it with any OpenAI compatible client.
+* Endpoints forwarding with enterprise-grade security.
 
 <p align="center">
   <a target="_blank" href="https://tabby.tabbyml.com"><img alt="Open Live Demo" src="https://img.shields.io/badge/OPEN_LIVE_DEMO-blue?logo=xcode&style=for-the-badge&logoColor=green"></a>
