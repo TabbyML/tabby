@@ -293,7 +293,7 @@ async fn api_router(
         let endpoint_rate_limiters = Arc::new(routes::EndpointRateLimiters::new());
         let endpoint_state = Arc::new(routes::EndpointState {
             config: endpoint_config.clone(),
-            logger: logger,
+            logger,
         });
 
         routers.push(
