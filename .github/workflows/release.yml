@@ -25,104 +25,6 @@ env:
   RUST_TOOLCHAIN: 1.82.0
 
 jobs:
-  release-llama-server-binary:
-    runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
-    strategy:
-      matrix:
-        binary:
-          - aarch64-apple-darwin
-          - x86_64-manylinux_2_28
-          - x86_64-manylinux_2_28-cuda123
-        include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            binary: aarch64-apple-darwin
-            build_args: --features binary
-          - os: buildjet-2vcpu-ubuntu-2204
-            target: x86_64-unknown-linux-gnu
-            binary: x86_64-manylinux_2_28
-            container: quay.io/pypa/manylinux_2_28_x86_64
-            build_args: --features binary
-          - os: buildjet-2vcpu-ubuntu-2204
-            target: x86_64-unknown-linux-gnu
-            binary: x86_64-manylinux_2_28-cuda123
-            container: sameli/manylinux_2_28_x86_64_cuda_12.3@sha256:e12416bf249ab312f9dcfdebd7939b968dd6f1b6f810abbede818df875e86a7c
-            build_args: --features binary,cuda
-
-    env:
-      SCCACHE_GHA_ENABLED: true
-      RUSTC_WRAPPER: sccache
-      CARGO_INCREMENTAL: 0
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Install Rust
-        if: runner.os != 'Windows'
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          target: ${{ matrix.target }}
-          components: clippy
-
-      - name: Install Rust for Windows
-        if: runner.os == 'Windows'
-        run: |
-          rustup update --no-self-update ${{ env.RUST_TOOLCHAIN }}
-          rustup target add ${{ matrix.target }}
-          rustup component add clippy --toolchain ${{ env.RUST_TOOLCHAIN }}
-
-      - name: Set default rust version
-        run: rustup default ${{ env.RUST_TOOLCHAIN }}
-
-      - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-
-      - name: Cargo registry cache
-        uses: actions/cache@v4
-        with:
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
-          restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-
-            cargo-${{ runner.os }}-
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-
-      - name: Prepare build environment for macOS & Linux
-        run: bash ./ci/prepare_build_environment.sh
-        if: runner.os != 'Windows'
-
-      - name: Prepare build environment for Windows
-        run: ./ci/prepare_build_environment.ps1
-        if: runner.os == 'Windows'
-
-      - name: Install CUDA toolkit for Windows
-        uses: Jimver/cuda-toolkit@v0.2.11
-        with:
-          cuda: ${{ matrix.windows_cuda }}
-          method: 'network'
-          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
-        if: runner.os == 'Windows' && matrix.windows_cuda != ''
-
-      - name: Bulid release binary
-        run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package llama-cpp-server
-
-      - name: Rename release binary
-        run: mv target/${{ matrix.target }}/release/llama-server${{ matrix.ext }} llama-server_${{ matrix.binary }}${{ matrix.ext }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          retention-days: 3
-          name: llama-server_${{ matrix.binary }}${{ matrix.ext }}
-          path: llama-server_${{ matrix.binary }}${{ matrix.ext }}
-
   release-binary:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
@@ -137,7 +39,7 @@ jobs:
             target: aarch64-apple-darwin
             binary: aarch64-apple-darwin
             build_args: --no-default-features --features prod
-          - os: buildjet-2vcpu-ubuntu-2204
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux_2_28
             container: quay.io/pypa/manylinux_2_28_x86_64
@@ -213,49 +115,8 @@ jobs:
           name: tabby_${{ matrix.binary }}${{ matrix.ext }}
           path: tabby_${{ matrix.binary }}${{ matrix.ext }}
 
-  package-from-upstream:
-    runs-on: ubuntu-latest
-    needs: [release-binary]
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Display structure of downloaded files
-        run: ls -R
-
-      - name: Package CPU for Windows
-        run: >
-          LLAMA_CPP_PLATFORM=win-cpu-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cpu ./ci/package-from-upstream.sh
-
-      - name: Package CUDA 12.4 for Windows
-        run: >
-          LLAMA_CPP_PLATFORM=win-cuda-12.4-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda124 ./ci/package-from-upstream.sh
-
-      - name: Package Vulkan for Windows
-        run: >
-          LLAMA_CPP_PLATFORM=win-vulkan-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-vulkan ./ci/package-from-upstream.sh
-
-      - name: Package Vulkan for Linux
-        run: >
-          LLAMA_CPP_PLATFORM=ubuntu-vulkan-x64 OUTPUT_NAME=tabby_x86_64-manylinux_2_28-vulkan ./ci/package-from-upstream.sh
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          retention-days: 3
-          name: dist
-          path: dist/
-
-
   pre-release:
-    needs: [release-llama-server-binary, release-binary, package-from-upstream]
+    needs: [release-binary]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -281,45 +142,32 @@ jobs:
           dist_dir=$(pwd)/dist
           mkdir -p $dist_dir
 
-          for llama_server in llama-server_*/llama-server_*; do
-            for tabby in tabby_*/tabby_*; do
-              llamab=$(basename $llama_server)
-              tabbyb=$(basename $tabby)
-              extname=$(get_file_extension $tabbyb)
+          for tabby in tabby_*/tabby_*; do
+            tabbyb=$(basename $tabby)
+            extname=$(get_file_extension $tabbyb)
+            tabbyn=${tabbyb%.*}
 
-              llaman=${llamab%.*}
-              tabbyn=${tabbyb%.*}
+            echo "Creating bundle for $tabbyn"
 
-              llamav=${llaman#llama-server_}
-              tabbyv=${tabbyn#tabby_}
+            build_dir=build
+            release_name=$tabbyn
+            release_dir=$build_dir/$release_name
+            mkdir -p $release_dir
+            cp $tabby $release_dir/tabby${extname}
 
-              if [[ $llamav == *"$tabbyv"* ]]; then
-                echo "Creating bundle for $llamav"
-
-                # the downloaded files may have the same folder name with release_dir
-                # put the release files in a new folder
-                build_dir=build
-                release_name=tabby_${llamav}
-                release_dir=$build_dir/$release_name
-                mkdir -p $release_dir
-                cp $llama_server $release_dir/llama-server${extname}
-                cp $tabby $release_dir/tabby${extname}
-
-                pushd $build_dir
-                # Release zip for Windows, tar.gz for macOS and Linux
-                # use `extname` to determine the platform
-                if [[ "$extname" == ".exe" ]]; then
-                  zip -r $release_name.zip $release_name
-                  mv $release_name.zip $dist_dir/
-                else
-                  chmod +x $release_name/llama-server${extname} $release_name/tabby${extname}
-                  tar zcvf $release_name.tar.gz $release_name
-                  mv $release_name.tar.gz $dist_dir/
-                fi
-                rm -rf "$release_name"
-                popd
-              fi
-            done
+            pushd $build_dir
+            # Release zip for Windows, tar.gz for macOS and Linux
+            # use `extname` to determine the platform
+            if [[ "$extname" == ".exe" ]]; then
+              zip -r $release_name.zip $release_name
+              mv $release_name.zip $dist_dir/
+            else
+              chmod +x $release_name/tabby${extname}
+              tar zcvf $release_name.tar.gz $release_name
+              mv $release_name.tar.gz $dist_dir/
+            fi
+            rm -rf "$release_name"
+            popd
           done
 
       - name: Display structure of created files
