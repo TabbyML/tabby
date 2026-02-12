@@ -319,10 +319,6 @@ function ActivityRow({
 
   let tooltip = ''
   switch (activity.kind) {
-    case EventKind.Endpoint: {
-      tooltip = 'Forwarded to endpoint'
-      break
-    }
     case EventKind.Completion: {
       tooltip = 'Code completion supplied'
       break

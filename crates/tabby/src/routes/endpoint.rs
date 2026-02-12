@@ -80,10 +80,29 @@ pub async fn endpoint(
         None => return StatusCode::UNAUTHORIZED.into_response(),
     };
 
-    state.logger.log(
-        Some(user.id.clone()),
-        LoggerEvent::Endpoint { name: name.clone() },
-    );
+    if let Some(metadata) = &endpoint.metadata {
+        if let Some(pochi) = metadata.get("pochi") {
+            if let Some(use_case) = pochi.get("use_case").and_then(|x| x.as_str()) {
+                if use_case == "completion" {
+                    state.logger.log(
+                        Some(user.id.clone()),
+                        LoggerEvent::Completion {
+                            completion_id: format!("cmpl-{}", uuid::Uuid::new_v4()),
+                            language: "unknown".to_string(),
+                            prompt: "passthrough".to_string(),
+                            segments: None,
+                            choices: vec![],
+                            user_agent: None,
+                        },
+                    );
+                } else if use_case == "chat" {
+                    state
+                        .logger
+                        .log(Some(user.id.clone()), LoggerEvent::ChatCompletion {});
+                }
+            }
+        }
+    }
 
     // Apply rate limiting if user_quota is configured
     if let Some(user_quota) = &endpoint.user_quota {
