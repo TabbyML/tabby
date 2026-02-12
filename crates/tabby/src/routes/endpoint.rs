@@ -9,13 +9,22 @@ use axum::{
 };
 use hyper::StatusCode;
 use serde::Serialize;
-use tabby_common::{axum::MaybeUserExt, config::EndpointConfig};
-use tracing::error;
+use tabby_common::{
+    api::event::{Event as LoggerEvent, EventLogger},
+    axum::MaybeUserExt,
+    config::EndpointConfig,
+};
+use tracing::{error, instrument};
 
 use super::rate_limit::EndpointRateLimiters;
 
+pub struct EndpointState {
+    pub config: Arc<EndpointConfig>,
+    pub logger: Arc<dyn EventLogger>,
+}
+
 pub async fn endpoint_policy(
-    State(_config): State<Arc<EndpointConfig>>,
+    State(_state): State<Arc<EndpointState>>,
     Extension(MaybeUserExt(_user)): Extension<MaybeUserExt>,
     request: Request<axum::body::Body>,
     next: Next,
@@ -29,8 +38,13 @@ pub struct EndpointInfo {
     pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
-pub async fn list_endpoints(State(config): State<Arc<EndpointConfig>>) -> Json<Vec<EndpointInfo>> {
-    let endpoints = config
+#[instrument(skip(state))]
+pub async fn list_endpoints(
+    State(state): State<Arc<EndpointState>>,
+    Extension(MaybeUserExt(user)): Extension<MaybeUserExt>,
+) -> Json<Vec<EndpointInfo>> {
+    let endpoints = state
+        .config
         .endpoints
         .iter()
         .map(|e| EndpointInfo {
@@ -41,8 +55,9 @@ pub async fn list_endpoints(State(config): State<Arc<EndpointConfig>>) -> Json<V
     Json(endpoints)
 }
 
+#[instrument(skip(state, rate_limiters))]
 pub async fn endpoint(
-    State((config, rate_limiters)): State<(Arc<EndpointConfig>, Arc<EndpointRateLimiters>)>,
+    State((state, rate_limiters)): State<(Arc<EndpointState>, Arc<EndpointRateLimiters>)>,
     Extension(MaybeUserExt(user)): Extension<MaybeUserExt>,
     Path((name, path)): Path<(String, String)>,
     method: Method,
@@ -50,6 +65,7 @@ pub async fn endpoint(
     headers: HeaderMap,
     body: axum::body::Body,
 ) -> Response {
+    let config = &state.config;
     let endpoint = config.endpoints.iter().find(|e| e.name == name);
 
     let endpoint = if let Some(endpoint) = endpoint {
@@ -63,6 +79,11 @@ pub async fn endpoint(
         Some(u) => u,
         None => return StatusCode::UNAUTHORIZED.into_response(),
     };
+
+    state.logger.log(
+        Some(user.id.clone()),
+        LoggerEvent::Endpoint { name: name.clone() },
+    );
 
     // Apply rate limiting if user_quota is configured
     if let Some(user_quota) = &endpoint.user_quota {

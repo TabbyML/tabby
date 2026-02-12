@@ -36,6 +36,7 @@ enum Encryption {
 }
 
 enum EventKind {
+  ENDPOINT
   COMPLETION
   CHAT_COMPLETION
   SELECT

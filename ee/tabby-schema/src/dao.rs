@@ -597,6 +597,7 @@ pub trait DbEnum: Sized {
 impl DbEnum for EventKind {
     fn as_enum_str(&self) -> &'static str {
         match self {
+            EventKind::Endpoint => "endpoint",
             EventKind::Completion => "completion",
             EventKind::ChatCompletion => "chat_completion",
             EventKind::Select => "select",
@@ -607,6 +608,7 @@ impl DbEnum for EventKind {
 
     fn from_enum_str(s: &str) -> anyhow::Result<Self> {
         match s {
+            "endpoint" => Ok(EventKind::Endpoint),
             "completion" => Ok(EventKind::Completion),
             "chat_completion" => Ok(EventKind::ChatCompletion),
             "select" => Ok(EventKind::Select),

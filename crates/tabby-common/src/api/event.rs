@@ -70,6 +70,9 @@ pub enum Event {
         user_agent: Option<String>,
     },
     ChatCompletion {},
+    Endpoint {
+        name: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
