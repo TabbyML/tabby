@@ -9,7 +9,7 @@ You can configure how Tabby connects with LLM models by editing the `~/.tabby/co
 - **Embedding Model**: The embedding model generates semantic representations of text data to power Tabby's context-aware features. It indexes the resource code repositories and documentation, then retrieves relevant snippets during chat interactions by embedding user queries. By default, Tabby uses the `Nomic-Embed-Text` model.
 
 Each model type supports two connection modes:
-- **Local Model Connections**: Tabby will initiate a subprocess (powered by [llama.cpp](https://github.com/ggml-org/llama.cpp)) and connect to the model via an HTTP API. Supported local models can be found in the [Model Registry](../../models). 
+- **Local Model Connections**: Tabby will initiate a subprocess (powered by [llama.cpp](https://github.com/ggml-org/llama.cpp)) and connect to the model via an HTTP API. Supported local models can be found in the [Model Registry](../../models).
 
 - **Remote Model Connections**: Tabby utilizes an HTTP Model Connector to establish a direct connection with the API of model providers like Claude, OpenAI, Ollama, or custom endpoints. More For configuring models through HTTP API, check [References / Models HTTP API](../../references/models-http-api/llama.cpp).
 
@@ -34,7 +34,7 @@ Remote Models
 [model.chat.http]
 kind = "openai/chat"
 # Please make sure to use a chat model, such as gpt-4o
-model_name = "gpt-4o
+model_name = "gpt-4o"
 # For multi-model support
 supported_models = ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini"]
 api_endpoint = "https://api.openai.com/v1"

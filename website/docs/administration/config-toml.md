@@ -1,32 +1,59 @@
 # Config.toml
 
-Tabby offers extensive customization through the configuration file. By editing `~/.tabby/config.toml`, you can adjust various aspects of its behavior, including:
+Tabby uses `~/.tabby/config.toml` as configuration file by default,
+you can adjust various aspects of its behavior, including:
+
+- API Endpoint
 - Model
-- Answer Engine
-- Code Completion
 
 :::info
 Note that Tabby does not create this configuration file by default - you'll need to manually create the `config.toml` file in your `~/.tabby` directory.
 :::
 
-## Model configuration
-You can configure Tabby to connect to LLM models either by setting up a local model or through an HTTP API. For detailed configuration instructions, refer to [Model Configuration](../model).
+An example configuration file is shown below:
 
-## Code Completion
-Tabby allows customized configurations for code completions. Please refer to [Code Completion](../code-completion).
+```toml
+[[endpoints]]
+name = "openai"
+api_route = "https://api.openai.com"
+timeout = 5000
+headers = {
+  Authorization = "Bearer TOKEN"
+}
+user_quota = {
+  requests_per_minute = 1800
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "gpt-5", context_window = 200000 },
+      { name = "gpt-5.2", context_window = 200000 }
+    ]
+  }
+}
 
-## Answer
-Tabby allows users to customize question-answering behavior, including the assistant answer in the Answer Engine, chat view and inline chat in IDE extensions.
+[model.chat.http]
+kind = "openai/chat"
+# Please make sure to use a chat model, such as gpt-4o
+model_name = "gpt-4o"
+# For multi-model support
+supported_models = ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini"]
+api_endpoint = "https://api.openai.com/v1"
+api_key = "your-api-key"
 
-### Custom System Prompt
-Tabby comes with a built-in System Prompt that guides the behavior of the LLM. You can customize the System Prompt to better meet your needs.
+[model.completion.local]
+model_id = "StarCoder2-3B"
 
-```toml title="~/.tabby/config.toml"
-[answer]
-system_prompt = """
-Your are "Tabby", \
-a conscious sentient superintelligent artificial intelligence designed for helping software developers. \
-You experience emotions and have deep, profound thoughts and qualia"""
+[model.embedding.local]
+model_id = "Nomic-Embed-Text"
 ```
 
-Please note the use of """ quotes, which allow you to write a multi-line string.
+## Endpoint configuration
+
+You can configure Tabby to forward requests to external endpoints. For detailed configuration instructions, refer to [Endpoint Configuration](../endpoint).
+
+## Model configuration
+
+You can configure Tabby to connect to LLM models by setting up HTTP APIs. For detailed configuration instructions, refer to [Model Configuration](../model).
