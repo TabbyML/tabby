@@ -272,7 +272,7 @@ async fn api_router(
         Router::new()
             .route(
                 "/v1/events",
-                routing::post(routes::log_event).with_state(logger),
+                routing::post(routes::log_event).with_state(logger.clone()),
             )
             .route(
                 "/v1/health",
@@ -291,19 +291,24 @@ async fn api_router(
             endpoints: config.endpoints.clone(),
         });
         let endpoint_rate_limiters = Arc::new(routes::EndpointRateLimiters::new());
+        let endpoint_state = Arc::new(routes::EndpointState {
+            config: endpoint_config.clone(),
+            logger,
+        });
+
         routers.push(
             Router::new()
                 .route(
                     "/v2/endpoints/{:name}/{*path}",
                     routing::any(routes::endpoint)
-                        .with_state((endpoint_config.clone(), endpoint_rate_limiters)),
+                        .with_state((endpoint_state.clone(), endpoint_rate_limiters)),
                 )
                 .route(
                     "/v2/endpoints",
-                    routing::get(routes::list_endpoints).with_state(endpoint_config.clone()),
+                    routing::get(routes::list_endpoints).with_state(endpoint_state.clone()),
                 )
                 .layer(axum::middleware::from_fn_with_state(
-                    endpoint_config.clone(),
+                    endpoint_state.clone(),
                     routes::endpoint_policy,
                 )),
         );
