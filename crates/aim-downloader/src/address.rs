@@ -93,7 +93,9 @@ impl ParsedAddress {
                 }
                 if server == name {
                     user.clone_from(&machine.login);
-                    pass = machine.password.clone().unwrap();
+                    if let Some(password) = &machine.password {
+                        pass = password.clone();
+                    }
                     break;
                 }
             }
