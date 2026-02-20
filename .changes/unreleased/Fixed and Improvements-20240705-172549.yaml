@@ -1,0 +1,4 @@
+kind: Fixed and Improvements
+body: when possible, fill the whole document (from doc index) for Q&A, instead of
+  just the highlighted chunk to improve quality
+time: 2024-07-05T17:25:49.425379+09:00
