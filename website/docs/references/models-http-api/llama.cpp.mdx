@@ -9,43 +9,36 @@ import Collapse from '@site/src/components/Collapse';
 llama.cpp provides an OpenAI-compatible chat API interface.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "openai/chat"
-api_endpoint = "http://localhost:8888"
+[[endpoints]]
+name = "llamacpp_chat"
+api_route = "http://localhost:8888"
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "your_model", context_window = 4096 }
+    ]
+  }
+}
 ```
 
+{/* FIXME(wei) update Completion config */}
 ## Completion model
 
 llama.cpp offers a specialized completion API interface for code completion tasks.
 
 ```toml title="~/.tabby/config.toml"
-[model.completion.http]
-kind = "llama.cpp/completion"
-api_endpoint = "http://localhost:8888"
-prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for the CodeLlama model series.
+[[endpoints]]
+name = "llamacpp_completion"
+api_route = "http://localhost:8888"
+metadata = {
+  pochi = {
+    use_case = "completion",
+    provider = "openai",
+    models = [
+      { name = "your_model", context_window = 4096 }
+    ]
+  }
+}
 ```
-
-## Embeddings model
-
-llama.cpp provides embedding functionality through its HTTP API.
-
-The llama.cpp embedding API interface and response format underwent some changes in version `b4356`.
-Therefore, we have provided two different kinds to accommodate the various versions of the llama.cpp embedding interface.
-
-You can refer to the configuration as follows:
-
-```toml title="~/.tabby/config.toml"
-[model.embedding.http]
-kind = "llama.cpp/embedding"
-api_endpoint = "http://localhost:8888"
-```
-
-<Collapse title="For the versions prior to b4356">
-
-```toml title="~/.tabby/config.toml"
-[model.embedding.http]
-kind = "llama.cpp/before_b4356_embedding"
-api_endpoint = "http://localhost:8888"
-```
-
-</Collapse>

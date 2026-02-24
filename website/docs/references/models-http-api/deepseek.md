@@ -7,25 +7,42 @@
 DeepSeek provides an OpenAI-compatible chat API interface.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "openai/chat"
-model_name = "your_model"
-api_endpoint = "https://api.deepseek.com/v1"
-api_key = "your-api-key"
+[[endpoints]]
+name = "deepseek_chat"
+api_route = "https://api.deepseek.com"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "deepseek-chat", context_window = 128000 }
+    ]
+  }
+}
 ```
 
+<!-- FIXME(wei) update Completion config-->
 ## Completion model
 
 DeepSeek offers a specialized completion API interface for code completion tasks.
 
 ```toml title="~/.tabby/config.toml"
-[model.completion.http]
-kind = "deepseek/completion"
-model_name = "your_model"
-api_endpoint = "https://api.deepseek.com/beta"
-api_key = "your-api-key"
+[[endpoints]]
+name = "deepseek_completion"
+api_route = "https://api.deepseek.com/beta"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "completion",
+    provider = "openai",
+    models = [
+      { name = "deepseek-coder", context_window = 128000 }
+    ]
+  }
+}
 ```
-
-## Embeddings model
-
-DeepSeek currently does not provide embedding model APIs.

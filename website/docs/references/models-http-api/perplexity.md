@@ -7,17 +7,23 @@
 Perplexity provides an OpenAI-compatible chat API interface. The Sonar Large (70B) and Huge (405B) models are recommended for better performance.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "openai/chat"
-model_name = "llama-3.1-sonar-large-128k-online"  # Also supports sonar-small-128k-online or sonar-huge-128k-online
-api_endpoint = "https://api.perplexity.ai"
-api_key = "your-api-key"
+[[endpoints]]
+name = "perplexity_chat"
+api_route = "https://api.perplexity.ai"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "llama-3.1-sonar-large-128k-online", context_window = 128000 }
+    ]
+  }
+}
 ```
 
 ## Completion model
 
 Perplexity currently does not offer completion-specific API endpoints.
-
-## Embeddings model
-
-Perplexity currently does not offer embeddings models through their API.

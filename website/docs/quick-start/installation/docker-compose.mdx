@@ -3,57 +3,36 @@ sidebar_position: 1
 ---
 
 # Docker Compose
+
 This guide explains how to launch Tabby using docker-compose.
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
+1. First create the `docker-compose.yml` file in your project directory:
 
-<Tabs>
-  <TabItem value="cuda" label="CUDA">
+    ```yaml title="docker-compose.yml"
+    version: '3.5'
 
+    services:
+      tabby:
+        restart: always
+        image: registry.tabbyml.com/tabbyml/tabby
+        entrypoint: /opt/tabby/bin/tabby
+        command: serve
+        volumes:
+          - "$HOME/.tabby:/data"
+        ports:
+          - 8080:8080
+    ```
 
-  For CUDA support in Tabby, install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
-  After installation, you can start Tabby with the following `docker-compose.yml`:
+2. Run the following command to launch Tabby:
 
-```yaml title="docker-compose.yml"
-version: '3.5'
+    ```bash
+    docker compose up -d
+    ```
 
-services:
-  tabby:
-    restart: always
-    image: registry.tabbyml.com/tabbyml/tabby
-    command: serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct --device cuda
-    volumes:
-      - "$HOME/.tabby:/data"
-    ports:
-      - 8080:8080
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+After Tabby is running, you can access it at [http://localhost:8080](http://localhost:8080).
+
+To view the logs, you can use the following command:
+
+```bash
+docker compose logs
 ```
-
-  </TabItem>
-  {false && <TabItem value="cpu" label="CPU">
-
-```yaml title="docker-compose.yml"
-version: '3.5'
-
-services:
-  tabby:
-    restart: always
-    image: registry.tabbyml.com/tabbyml/tabby
-    entrypoint: /opt/tabby/bin/tabby-cpu
-    command: serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
-    volumes:
-      - "$HOME/.tabby:/data"
-    ports:
-      - 8080:8080
-```
-
-  </TabItem>}
-</Tabs>
-

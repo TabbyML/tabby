@@ -1,0 +1,35 @@
+---
+sidebar_label: Step 1 - Configuration
+sidebar_position: 1
+---
+
+# Configuration
+
+To run Tabby, will need a configuration file to specify the endpoints and models.
+
+Create the `config.toml` in `$HOME/.tabby` folder with the following content as example:
+
+```toml title="$HOME/.tabby/config.toml"
+[[endpoints]]
+name = "openai"
+api_route = "https://api.openai.com"
+timeout = 5000
+headers = {
+  Authorization = "Bearer TOKEN"
+}
+user_quota = {
+  requests_per_minute = 1800
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "gpt-5", context_window = 200000 },
+      { name = "gpt-5.2", context_window = 200000 }
+    ]
+  }
+}
+```
+
+For more detail, refer to the [configuration guide](../../administration/config-toml.mdx).

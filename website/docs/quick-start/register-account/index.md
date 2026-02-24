@@ -1,6 +1,6 @@
 ---
-sidebar_label: Step 2 - Register Account
-sidebar_position: 2
+sidebar_label: Step 3 - Register Account
+sidebar_position: 3
 ---
 
 import SetupAdmin from './setup-admin.png';

@@ -1,0 +1,31 @@
+---
+sidebar_label: Step 4 - VSCode Extension Integration
+sidebar_position: 4
+---
+
+import TabbyModelsUrl from "./tabby-models.png";
+import TabbyUrlToken from "./tabby-url-token.png";
+import LoginWithTabby from "./login-with-tabby.png";
+import LoginTabbyUrl from "./login-tabby-url.png";
+import LoginTabbyToken from "./login-tabby-token.png";
+
+# VSCode Extension Integration
+
+After configuring the [Endpoint API](../../administration/endpoints),
+you can use it to serve as models api endpoint and experience the agentic coding assistant.
+
+We have already integrated Tabby endpoints API as one of the VSCode extension model providers,
+So all you need to do is to login to Tabby in VSCode extension.
+
+1. Get the Tabby Server URL and TOKEN from the Tabby UI.
+   <img src={TabbyUrlToken} alt="Tabby Url And Token" width="300" style={{ borderRadius: "12px" }}/>
+
+2. Bring up the command palette in VSCode and select `Pochi: Login with Tabby` to login to Tabby.
+   <img src={LoginWithTabby} alt="Login with Tabby" width="600" style={{ borderRadius: "12px" }}/>
+
+3. Input the Tabby Server URL(default: http://localhost:8080, press enter to use default) and TOKEN.
+   <img src={LoginTabbyUrl} alt="Login Tabby Url" width="600" style={{ borderRadius: "12px" }}/>
+   <img src={LoginTabbyToken} alt="Login Tabby Token" width="600" style={{ borderRadius: "12px" }}/>
+
+4. After login, you can see the Tabby models in the model list, and you can use them to experience the agentic coding assistant.
+   <img src={TabbyModelsUrl} alt="Tabby Models" width="500" style={{ borderRadius: "12px" }}/>

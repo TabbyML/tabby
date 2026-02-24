@@ -11,17 +11,23 @@ including [Llama 2](https://fireworks.ai/models/fireworks/llama-v2-70b-chat),
 Fireworks provides an OpenAI-compatible chat API interface.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "openai/chat"
-model_name = "accounts/fireworks/models/deepseek-v3"
-api_endpoint = "https://api.fireworks.ai/inference/v1"
-api_key = "your-api-key"
+[[endpoints]]
+name = "fireworks_chat"
+api_route = "https://api.fireworks.ai/inference"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "accounts/fireworks/models/deepseek-v3", context_window = 128000 }
+    ]
+  }
+}
 ```
 
 ## Completion model
 
 Fireworks does not offer completion models (FIM) through their API.
-
-## Embeddings model
-
-While Fireworks provides embedding model APIs, Tabby has not yet implemented a compatible client to interface with these APIs. Therefore, embedding functionality is currently not available through Tabby's integration with Fireworks.

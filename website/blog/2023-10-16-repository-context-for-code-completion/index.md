@@ -144,7 +144,7 @@ type payload struct {
 ...
 ```
 
-These snippets are then compiled into an efficient token reverse index for use during querying. For each request, we tokenize the text segments and perform a BM25 search in the repository to find relevant snippets. We format these snippets in the line comment style, as illustrated in the example above. This format ensures it doesn't disrupt the existing semantics of the code, making it easy for LLM to understand. 
+These snippets are then compiled into an efficient token reverse index for use during querying. For each request, we tokenize the text segments and perform a BM25 search in the repository to find relevant snippets. We format these snippets in the line comment style, as illustrated in the example above. This format ensures it doesn't disrupt the existing semantics of the code, making it easy for LLM to understand.
 
 ## Roadmap
 
@@ -160,4 +160,3 @@ We are incredibly enthusiastic about the potential for enhancing the quality and
 To use this repository context feature:
 
 1. Installing [tabby](/docs/quick-start/installation/docker).
-2. Navigate to the [Repository Context](/docs/administration/context) page and follow the instructions to set it up.
