@@ -1,0 +1,44 @@
+---
+sidebar_label: Step 3 - Pochi Integration
+sidebar_position: 3
+---
+
+import TabbyModelsUrl from "./tabby-models.png";
+
+# Pochi Integration
+
+After configuring the [Endpoint API](../../administration/endpoint),
+you can use it to serve as [Pochi](https://github.com/TabbyML/pochi) models and experience the agentic coding assistant.
+
+We have already integrated Tabby endpoints API as one of the pochi model providers,
+So all you need to do is to login to Tabby in Pochi through the pochi CLI.
+
+1. Install [Pochi CLI](https://docs.getpochi.com/cli/) if you haven't done so.
+2. Login to Tabby in Pochi through the pochi CLI, run `pochi auth login` and select tabby.
+
+   ```console
+   root@tabby-server:~# pochi auth login
+   ? Select a vendor to authenticate with:
+   ❯ tabby - Not logged in
+     pochi - Not logged in
+     gemini-cli - Not logged in
+     codex - Not logged in
+     github-copilot - Not logged in
+     qwen-code - Not logged in
+
+   Current selection: Not logged in
+   Use arrow keys to navigate, enter to select
+   ```
+
+3. Input your Tabby Server URL(default: http://localhost:8080, press enter to use default) and TOKEN.
+
+   ```console
+   root@tabby-server:~# pochi auth login
+   ✔ Select a vendor to authenticate with: tabby - Not logged in
+   Enter Tabby Server URL (default: http://localhost:8080):
+   Enter Tabby Token: TABBY_TOKEN
+   Logged in as Admin (admin@example.com)
+   ```
+
+4. The tabby models would be listed in the model list.
+   <img src={TabbyModelsUrl} alt="Tabby Models" width="500" style={{ borderRadius: "12px" }}/>

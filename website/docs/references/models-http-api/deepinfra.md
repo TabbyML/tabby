@@ -7,33 +7,42 @@
 DeepInfra provides an OpenAI-compatible chat API interface.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "openai/chat"
-model_name = "meta-llama/Llama-3.3-70B-Instruct"
-api_endpoint = "https://api.deepinfra.com/v1/openai"
-api_key = "your-api-key"
+[[endpoints]]
+name = "deepinfra_chat"
+api_route = "https://api.deepinfra.com/v1/openai"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "meta-llama/Llama-3.3-70B-Instruct", context_window = 128000 }
+    ]
+  }
+}
 ```
 
+<!-- FIXME(wei) update Completion config-->
 ## Completion model
 
 DeepInfra provides an OpenAI-compatible completion API interface.
 
 ```toml title="~/.tabby/config.toml"
-[model.completion.http]
-kind = "openai/completion"
-model_name = "Qwen/Qwen2.5-Coder-32B-Instruct"
-api_endpoint = "https://api.deepinfra.com/v1/openai"
-api_key = "your-api-key"
-```
-
-## Embeddings model
-
-DeepInfra also provides an OpenAI-compatible embeddings API interface.
-
-```toml title="~/.tabby/config.toml"
-[model.embedding.http]
-kind = "openai/embedding"
-model_name = "BAAI/bge-base-en-v1.5"
-api_endpoint = "https://api.deepinfra.com/v1/openai"
-api_key = "your-api-key"
+[[endpoints]]
+name = "deepinfra_completion"
+api_route = "https://api.deepinfra.com/v1/openai"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "completion",
+    provider = "openai",
+    models = [
+      { name = "Qwen/Qwen2.5-Coder-32B-Instruct", context_window = 32000 }
+    ]
+  }
+}
 ```

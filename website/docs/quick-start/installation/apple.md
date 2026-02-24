@@ -2,18 +2,23 @@
 sidebar_position: 3
 ---
 
-# Homebrew (Apple M1/M2)
+# Homebrew (Apple Silicon M-Series)
+
 This guide explains how to install Tabby using homebrew.
 
-Thanks to Apple's Accelerate and CoreML frameworks, we can now run Tabby on edge devices with reasonable inference speed. Follow the steps below to set it up using homebrew:
+1. Install by homebrew
 
-```bash
-brew install tabbyml/tabby/tabby
+    ```bash
+    brew install tabbyml/tabby/tabby
+    ```
 
-# Start server with StarCoder-1B
-tabby serve --device metal --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
-```
+2. Start Tabby
 
-The compute power of M1/M2 is limited and is likely to be sufficient only for individual usage. If you require a shared instance for a team, we recommend considering Docker hosting with CUDA or ROCm. You can find more information about Docker [here](../docker).
+    ```bash
+    tabby serve
+    ```
 
-If you want to host your server on a different port than the default 8080, supply the `--port` option. Run `tabby serve --help` to learn about all possible options.
+After Tabby is running, you can access it at [http://localhost:8080](http://localhost:8080).
+
+If you want to host your server on a different port than the default `8080`,
+supply the `--port` option. Run `tabby serve --help` to learn about all possible options.

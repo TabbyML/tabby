@@ -1,6 +1,6 @@
 ---
-sidebar_label: Step 3 - Connect IDE / Editor Extensions
-sidebar_position: 3
+sidebar_label: Step 4(Legacy) - Connect IDE / Editor Extensions
+sidebar_position: 4
 ---
 
 # Connect IDE / Editor Extensions

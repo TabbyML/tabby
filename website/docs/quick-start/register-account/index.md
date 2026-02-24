@@ -1,6 +1,6 @@
 ---
-sidebar_label: Step 2 - Register Account
-sidebar_position: 2
+sidebar_label: Step 3 - Register Account
+sidebar_position: 3
 ---
 
 import SetupAdmin from './setup-admin.png';
@@ -19,7 +19,7 @@ The first registered account after deployment will be the admin account and will
 
 ## Entering Homepage
 
-Once logged in, you will be redirected to the homepage. It contains basic information about your account. More importantly, you will find the credentials you need to connect your IDE/Editor extensions to Tabby.
+Once logged in, you will be redirected to the homepage. It contains basic information about your account. More importantly, you will find the credentials you need to connect Pochi to Tabby.
 
 ![Homepage](homepage.png)
 

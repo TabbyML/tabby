@@ -9,17 +9,23 @@ Follow the Amazon Bedrock Access Gateway setup guide to deploy your own OpenAI-c
 Amazon Bedrock Access Gateway provides an OpenAI-compatible chat API interface for Claude models. Here we use the `us.anthropic.claude-3-5-sonnet-20241022-v2:0` model as an example.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "openai/chat"
-model_name = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-api_endpoint = "http://Bedrock-Proxy-xxxxx.{Region}.elb.amazonaws.com/api/v1"
-api_key = "your-api-key"
+[[endpoints]]
+name = "bedrock_chat"
+api_route = "http://Bedrock-Proxy-xxxxx.{Region}.elb.amazonaws.com/api"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "us.anthropic.claude-3-5-sonnet-20241022-v2:0", context_window = 200000 }
+    ]
+  }
+}
 ```
 
 ## Completion model
 
 Amazon Bedrock does not provide completion models.
-
-## Embeddings model
-
-While Amazon Bedrock supports embeddings models, Tabby does not currently support the embeddings API interface for Amazon models.

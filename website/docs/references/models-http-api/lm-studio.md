@@ -7,36 +7,38 @@
 LM Studio provides an OpenAI-compatible chat API interface that can be used with Tabby.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "openai/chat"
-model_name = "deepseek-r1-distill-qwen-7b"  # Example model
-api_endpoint = "http://localhost:1234/v1"    # LM Studio server endpoint with /v1 path
-api_key = ""                                 # No API key required for local deployment
+[[endpoints]]
+name = "lmstudio_chat"
+api_route = "http://localhost:1234"
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "deepseek-r1-distill-qwen-7b", context_window = 32000 }
+    ]
+  }
+}
 ```
 
+<!-- FIXME(wei) update Completion config-->
 ## Completion model
 
 LM Studio can be used for code completion tasks through its OpenAI-compatible completion API.
 
 ```toml title="~/.tabby/config.toml"
-[model.completion.http]
-kind = "openai/completion"
-model_name = "starcoder2-7b"                 # Example code completion model
-api_endpoint = "http://localhost:1234/v1"
-api_key = ""
-prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for CodeLlama models
-```
-
-## Embeddings model
-
-LM Studio supports embedding functionality through its OpenAI-compatible API.
-
-```toml title="~/.tabby/config.toml"
-[model.embedding.http]
-kind = "openai/embedding"
-model_name = "text-embedding-nomic-embed-text-v1.5"
-api_endpoint = "http://localhost:1234/v1"
-api_key = ""
+[[endpoints]]
+name = "lmstudio_completion"
+api_route = "http://localhost:1234/v1"
+metadata = {
+  pochi = {
+    use_case = "completion",
+    provider = "openai",
+    models = [
+      { name = "starcoder2-7b", context_window = 16000 }
+    ]
+  }
+}
 ```
 
 ## Usage Notes
@@ -46,6 +48,5 @@ api_key = ""
 3. Start the local server by clicking the "Start Server" button in LM Studio.
 4. Configure Tabby to use LM Studio's API endpoint as shown in the examples above.
 5. The default server port is 1234, but you can change it in LM Studio's settings if needed.
-6. Make sure to append `/v1` to the API endpoint as LM Studio follows OpenAI's API structure.
 
 LM Studio is particularly useful for running models locally without requiring complex setup or command-line knowledge. It supports a wide range of models and provides a user-friendly interface for model management and server operations.

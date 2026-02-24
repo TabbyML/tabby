@@ -7,18 +7,23 @@
 After deploying the claude2openai middleware, you can access all Claude family models through an OpenAI-compatible chat API interface.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "openai/chat"
-model_name = "claude-3-sonnet-20240229"
-# Middleware endpoint (adjust host and port according to your deployment)
-api_endpoint = "http://127.0.0.1:6600/v1"
-api_key = "your-api-key"
+[[endpoints]]
+name = "claude_chat"
+api_route = "http://127.0.0.1:6600"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "claude-3-sonnet-20240229", context_window = 200000 }
+    ]
+  }
+}
 ```
 
 ## Completion model
 
 Anthropic currently does not offer completion-specific API endpoints.
-
-## Embeddings model
-
-Anthropic currently does not provide embedding model APIs.

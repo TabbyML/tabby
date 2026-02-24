@@ -1,0 +1,48 @@
+# Config.toml
+
+Tabby uses `~/.tabby/config.toml` as configuration file by default,
+you can adjust various aspects of its behavior, including:
+
+- API Endpoint
+- Repositories
+
+:::info
+Note that Tabby does not create this configuration file by default - you'll need to manually create the `config.toml` file in your `~/.tabby` directory.
+:::
+
+An example configuration file is shown below:
+
+```toml title="~/.tabby/config.toml"
+[[endpoints]]
+name = "openai"
+api_route = "https://api.openai.com"
+timeout = 5000
+headers = {
+  Authorization = "Bearer TOKEN"
+}
+user_quota = {
+  requests_per_minute = 1800
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "gpt-5", context_window = 200000 },
+      { name = "gpt-5.2", context_window = 200000 }
+    ]
+  }
+}
+
+[[repositories]]
+name = "CTranslate2"
+git_url = "git@github.com:OpenNMT/CTranslate2.git"
+```
+
+## Endpoint configuration
+
+You can configure Tabby to forward requests to external endpoints. For detailed configuration instructions, refer to [Endpoint Configuration](../endpoints).
+
+## Repositories configuration
+
+You can configure Tabby to use local or download repositories. For detailed configuration instructions, refer to [Repositories Configuration](../repositories).

@@ -1,0 +1,171 @@
+# Endpoints
+
+Tabby now supports forwarding requests to other API endpoints with enterprise features like SSO and RBAC.
+This allows you to use Tabby as a proxy for other services or to integrate Tabby with existing systems.
+
+With the endpoint API, you can use the authentication and authorization features of Tabby to control access to external APIs.
+
+This is primarily designed to work with our [Agentic Coding Assistant Pochi](https://github.com/TabbyML/pochi),
+but it can be used with any other services.
+
+### Endpoints Configuration
+
+An example configuration file is shown below:
+
+```toml  title="~/.tabby/config.toml"
+[[endpoints]]
+name = "openai"
+api_route = "https://api.openai.com"
+timeout = 5000
+headers = {
+  Authorization = "Bearer TOKEN"
+}
+user_quota = {
+  requests_per_minute = 1800
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "gpt-5", context_window = 400_000 },
+      { name = "gpt-5.2", context_window = 400_000 }
+    ]
+  }
+}
+```
+
+:::info
+Note the `_` in context window number is a valid separator for large numbers, improving readability.
+:::
+
+Explanation:
+- **name**: The name of the endpoint, this would be used in uri to route requests to this endpoint.
+- **api_route**: The base URL of the upstream API endpoint, with or without uri path. The uri path is appended to this base URL to form the full upstream endpoint URL.
+- **timeout**: The timeout duration for requests to the upstream endpoint, specified in milliseconds.
+- **headers**: This section defines HTTP headers to be sent with requests to the upstream endpoint. In this example, an `Authorization` header with a bearer token is provided.
+- **user_quota**: This section defines the user quota for this endpoint.
+  - **requests_per_minute**: A limit of 1800 requests per minute for each user.
+- **metadata**: This section contains metadata specific to the downstream usage.
+  - **pochi**: This is a custom metadata key, for integration with Pochi.
+    - **use_case**: Specifies the intended use case of the models (e.g., "chat").
+    - **provider**: Indicates the provider of the models (e.g., "openai", this is the only provider supported currently in pochi).
+    - **models**: An array of models activated and their configurations.
+      - **name**: The name of the model.
+      - **context_window**: The maximum number of tokens the model can process at once. since this is not provided in the openai api, we need to manually specify it here.
+
+## Endpoints API
+
+Tabby Endpoint provides the following APIs:
+1. **Get `/v2/endpoints`**: Fetches the endpoint list and its metadata.
+2. **All `/v2/endpoints/NAME/<...>`**: Proxies requests to the upstream endpoint.
+
+All of the API is guarded by the Tabby Endpoint's authentication middleware, which requires a valid bearer token.
+To pass the token, you can use the `Authorization` header with the `Bearer` scheme.
+
+### Get `/v2/endpoints`
+
+This API is used to fetch the endpoint list and its metadata.
+Downstream clients can use this information to determine available models, their configurations, and any specific metadata associated with them.
+
+For example:
+
+```console
+root@tabby-server:~# curl -s -H "Authorization: Bearer TABBY_TOKEN" http://localhost:8080/v2/endpoints | jq .
+[
+  {
+    "name": "openai",
+    "metadata": {
+      "pochi": {
+        "models": [
+          {
+            "context_window": 400000,
+            "name": "gpt-5"
+          },
+          {
+            "context_window": 400000,
+            "name": "gpt-5.2"
+          }
+        ],
+        "provider": "openai",
+        "use_case": "chat"
+      }
+    }
+  },
+  {
+    "name": "google",
+    "metadata": {
+      "pochi": {
+        "models": [
+          {
+            "context_window": 1000000,
+            "name": "gemini-3-pro"
+          }
+        ],
+        "provider": "openai",
+        "use_case": "chat"
+      }
+    }
+  }
+]
+```
+
+### All `/v2/endpoints/NAME/<...>`
+
+This API is used to proxy requests to the upstream endpoint.
+This allows Tabby to serve requests to downstream clients without exposing the upstream endpoint directly,
+with the ability to add additional features such as authentication, rate limiting, and logging.
+
+```console
+root@tabby-server:~# curl http://localhost:8080/v2/endpoints/openai/v1/chat/completions \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer TABBY_TOKEN" \
+    -d '{
+      "model": "gpt-5.2",
+      "messages": [
+        {
+          "role": "developer",
+          "content": "You are a helpful assistant."
+        },
+        {
+          "role": "user",
+          "content": "Hello!"
+        }
+      ]
+    }'
+{
+  "id": "chatcmpl-D817VtKoMCIScQztavm7iyvVuCRMg",
+  "object": "chat.completion",
+  "created": 1770803301,
+  "model": "gpt-5.2-2025-12-11",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 18,
+    "completion_tokens": 12,
+    "total_tokens": 30,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
+```

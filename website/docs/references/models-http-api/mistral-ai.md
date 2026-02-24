@@ -7,25 +7,42 @@
 Mistral provides a specialized chat API interface.
 
 ```toml title="~/.tabby/config.toml"
-[model.chat.http]
-kind = "mistral/chat"
-model_name = "codestral-latest"
-api_endpoint = "https://api.mistral.ai/v1"
-api_key = "your-api-key"
+[[endpoints]]
+name = "mistral_chat"
+api_route = "https://api.mistral.ai"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "chat",
+    provider = "openai",
+    models = [
+      { name = "codestral-latest", context_window = 32000 }
+    ]
+  }
+}
 ```
 
+<!-- FIXME(wei) update Completion config-->
 ## Completion model
 
 Mistral offers a dedicated completion API interface for code completion tasks.
 
 ```toml title="~/.tabby/config.toml"
-[model.completion.http]
-kind = "mistral/completion"
-model_name = "codestral-latest"
-api_endpoint = "https://api.mistral.ai"
-api_key = "your-api-key"
+[[endpoints]]
+name = "mistral_completion"
+api_route = "https://api.mistral.ai/v1"
+headers = {
+  Authorization = "Bearer your-api-key"
+}
+metadata = {
+  pochi = {
+    use_case = "completion",
+    provider = "mistral",
+    models = [
+      { name = "codestral-latest", context_window = 32000 }
+    ]
+  }
+}
 ```
-
-## Embeddings model
-
-Mistral currently does not provide embedding model APIs.

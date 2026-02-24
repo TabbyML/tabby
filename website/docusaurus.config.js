@@ -206,24 +206,8 @@ export default {
             from: '/docs/self-hosting/docker'
           },
           {
-            to: '/docs/extensions/installation/vscode',
-            from: '/docs/extensions/vscode'
-          },
-          {
-            to: '/docs/administration/context',
-            from: '/docs/configuration'
-          },
-          {
             to: '/docs/welcome',
             from: '/docs/getting-started'
-          },
-          {
-            to: '/docs/extensions/installation/vscode',
-            from: '/docs/extensions'
-          },
-          {
-            to: '/docs/extensions/installation/vscode',
-            from: '/docs/extensions/installation'
           },
           {
             to: '/docs/quick-start/installation/docker',
@@ -240,10 +224,6 @@ export default {
           {
             to: '/docs/quick-start/installation/docker',
             from: '/docs/quick-start/installation'
-          },
-          {
-            to: '/docs/references/programming-languages',
-            from: '/docs/programming-languages'
           },
         ],
         createRedirects(existingPath) {
