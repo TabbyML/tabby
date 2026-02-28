@@ -8,7 +8,7 @@ Avian provides an OpenAI-compatible chat API interface.
 
 ```toml title="~/.tabby/config.toml"
 [model.chat.http]
-kind = "avian/chat"
+kind = "openai/chat"
 model_name = "deepseek/deepseek-v3.2"
 api_endpoint = "https://api.avian.io/v1"
 api_key = "your-api-key"
@@ -18,7 +18,7 @@ You can also configure multi-model support to switch between available models:
 
 ```toml title="~/.tabby/config.toml"
 [model.chat.http]
-kind = "avian/chat"
+kind = "openai/chat"
 model_name = "deepseek/deepseek-v3.2"
 supported_models = [
   "deepseek/deepseek-v3.2",
