@@ -6,3 +6,4 @@ pub mod health;
 pub mod model;
 pub mod structured_doc;
 pub mod tantivy;
+pub mod warpgrep;
