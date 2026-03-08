@@ -115,6 +115,15 @@ pub trait CodeSearch: Send + Sync {
     ) -> Result<CodeSearchResponse, CodeSearchError>;
 }
 
+#[async_trait]
+pub trait WarpGrepSearch: Send + Sync {
+    async fn search(
+        &self,
+        repo_dir: &std::path::Path,
+        query: &str,
+    ) -> Result<CodeSearchResponse, CodeSearchError>;
+}
+
 /// Normalize the path form different platform to unix style path
 pub fn normalize_to_unix_path(filepath: &str) -> String {
     filepath.replace('\\', "/")

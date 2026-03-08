@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::Router;
 use tabby_common::{
     api::{
-        code::CodeSearch,
+        code::{CodeSearch, WarpGrepSearch},
         event::{ComposedLogger, EventLogger},
         structured_doc::DocSearch,
     },
@@ -66,11 +66,20 @@ impl Webserver {
         completion: Option<Arc<dyn CompletionStream>>,
         docsearch: Option<Arc<dyn DocSearch>>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
+        warpgrep_factory_fn: impl Fn(&str) -> Box<dyn WarpGrepSearch>,
     ) -> (Router, Router) {
         let serper: Option<Box<dyn DocSearch>> =
             if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
                 debug!("Serper API key found, enabling serper...");
                 Some(serper_factory_fn(&api_key))
+            } else {
+                None
+            };
+
+        let warpgrep: Option<Box<dyn WarpGrepSearch>> =
+            if let Ok(api_key) = std::env::var("MORPH_API_KEY") {
+                debug!("Morph API key found, enabling WarpGrep code search...");
+                Some(warpgrep_factory_fn(&api_key))
             } else {
                 None
             };
@@ -118,6 +127,7 @@ impl Webserver {
             code.clone(),
             docsearch.clone(),
             serper,
+            warpgrep,
             repository.clone(),
             setting.clone(),
         ));

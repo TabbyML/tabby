@@ -1115,6 +1115,7 @@ mod tests {
             Some(code.clone()),
             Some(doc.clone()),
             serper,
+            None,
             repo_service.clone(),
             settings,
         ));
