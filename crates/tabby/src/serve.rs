@@ -7,7 +7,7 @@ use spinners::{Spinner, Spinners, Stream};
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
     axum::AllowedCodeRepository,
-    config::{Config, ModelConfig},
+    config::{Config, ModelConfig, ModelConfigVariant},
     usage,
 };
 use tabby_download::ModelKind;
@@ -237,7 +237,12 @@ async fn load_model(config: &Config) {
         download_model_if_needed(&model.model_id, ModelKind::Completion).await;
     }
 
-    if let Some(ModelConfig::Local(ref model)) = config.model.chat {
+    if let Some(model) = config
+        .model
+        .chat
+        .as_ref()
+        .and_then(|m| m.get_local_config())
+    {
         download_model_if_needed(&model.model_id, ModelKind::Chat).await;
     }
 
@@ -407,11 +412,12 @@ fn merge_args(config: &Config, args: &ServeArgs) -> Config {
         if config.model.chat.is_some() {
             warn!("Overriding chat model from config.toml. The overriding behavior might surprise you. Consider setting the model in config.toml directly.");
         }
-        config.model.chat = Some(to_local_config(
+        let local_model = ModelConfigVariant::Single(to_local_config(
             chat_model,
             args.parallelism,
             args.chat_device.as_ref().unwrap_or(&args.device),
         ));
+        config.model.chat = Some(local_model)
     }
 
     config

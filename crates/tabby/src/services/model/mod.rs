@@ -1,7 +1,7 @@
 use std::{fs, sync::Arc};
 
 pub use llama_cpp_server::PromptInfo;
-use tabby_common::config::ModelConfig;
+use tabby_common::config::{ModelConfig, ModelConfigVariant};
 use tabby_download::{download_model, ModelKind};
 use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream, Embedding};
 use tracing::info;
@@ -12,7 +12,7 @@ pub async fn load_embedding(config: &ModelConfig) -> Option<Arc<dyn Embedding>> 
 
 pub async fn load_code_generation_and_chat(
     completion_model: Option<ModelConfig>,
-    chat_model: Option<ModelConfig>,
+    chat_model: Option<ModelConfigVariant>,
 ) -> (
     Option<Arc<CodeGeneration>>,
     Option<Arc<dyn CompletionStream>>,
@@ -29,15 +29,16 @@ pub async fn load_code_generation_and_chat(
 
 async fn load_completion_and_chat(
     completion_model: Option<ModelConfig>,
-    chat_model: Option<ModelConfig>,
+    chat_model: Option<ModelConfigVariant>,
 ) -> (
     Option<Arc<dyn CompletionStream>>,
     Option<PromptInfo>,
     Option<Arc<dyn ChatCompletionStream>>,
 ) {
-    if let (Some(ModelConfig::Local(completion)), Some(ModelConfig::Local(chat))) =
-        (&completion_model, &chat_model)
-    {
+    if let (Some(ModelConfig::Local(completion)), Some(ref chat)) = (
+        &completion_model,
+        chat_model.as_ref().and_then(|m| m.get_local_config()),
+    ) {
         let (completion, prompt, chat) =
             llama_cpp_server::create_completion_and_chat(completion, chat).await;
         return (Some(completion), Some(prompt), Some(chat));
@@ -67,11 +68,12 @@ async fn load_completion_and_chat(
     };
 
     let chat = if let Some(chat_model) = chat_model {
-        match chat_model {
-            ModelConfig::Http(http) => Some(http_api_bindings::create_chat(&http).await),
-            ModelConfig::Local(llama) => {
-                Some(llama_cpp_server::create_chat_completion(&llama).await)
-            }
+        match chat_model.get_local_config() {
+            Some(local) => Some(llama_cpp_server::create_chat_completion(&local).await),
+            None => match chat_model.get_http_configs().as_slice() {
+                [] => None,
+                models => Some(http_api_bindings::create_multiple_chat(models).await),
+            },
         }
     } else {
         None
