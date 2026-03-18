@@ -28,7 +28,10 @@ impl OpenAICompletionEngine {
         support_fim: bool,
     ) -> Box<dyn CompletionStream> {
         let model_name = model_name.expect("model_name is required for openai/completion");
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .expect("Failed to build HTTP client");
 
         Box::new(Self {
             client,

@@ -56,7 +56,10 @@ impl AzureEmbeddingEngine {
         model_name: &str,
         api_key: Option<&str>,
     ) -> Box<dyn Embedding> {
-        let client = Client::new();
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .expect("Failed to build HTTP client");
         let deployment_id = model_name;
         // Construct the full endpoint URL for the Azure Embedding API
         let azure_endpoint = format!(

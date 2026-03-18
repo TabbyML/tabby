@@ -22,7 +22,10 @@ impl MistralFIMEngine {
         api_key: Option<String>,
         model_name: Option<String>,
     ) -> Box<dyn CompletionStream> {
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .expect("Failed to build HTTP client");
         let model_name = model_name.unwrap_or("codestral-latest".into());
         let api_key = api_key.expect("API key is required for mistral/completion");
 
