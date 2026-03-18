@@ -42,8 +42,12 @@ impl MistralEmbeddingEngine {
         model_name: Option<&str>,
         api_key: Option<&str>,
     ) -> Box<dyn Embedding> {
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .expect("Failed to build HTTP client");
         Box::new(Self {
-            client: Arc::new(Client::new()),
+            client: Arc::new(client),
             api_endpoint: format!(
                 "{}/embeddings",
                 api_endpoint.unwrap_or("https://api.mistral.ai/v1")
