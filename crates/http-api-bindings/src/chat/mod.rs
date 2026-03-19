@@ -25,7 +25,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
                     .with_http_client(create_reqwest_client(api_endpoint)),
             )
         }
-        "openai/chat" | "mistral/chat" => {
+        "openai/chat" | "mistral/chat" | "minimax/chat" => {
             let config = OpenAIConfig::default()
                 .with_api_base(api_endpoint)
                 .with_api_key(model.api_key.clone().unwrap_or_default());
