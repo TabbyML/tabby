@@ -437,7 +437,6 @@ export function ErrorMessageBlock({
 function ThinkBlock({ children }: { children: ReactNode }): JSX.Element {
   return (
     <details
-      open
       className={`
         my-4 w-full rounded-md border border-gray-300 bg-white 
         p-3 text-sm text-gray-800
