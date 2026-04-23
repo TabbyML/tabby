@@ -19,7 +19,7 @@ impl RepositoryExt for CodeRepository {
     fn sync(&self) -> anyhow::Result<()> {
         if let Err(e) = sync_refs(
             self.dir().as_path(),
-            &self.canonical_git_url(),
+            &self.git_url,
             &self.git_refs,
         ) {
             logkit::error!("Failed to clone repository: {}", e);
