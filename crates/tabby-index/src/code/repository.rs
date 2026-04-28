@@ -50,11 +50,21 @@ pub fn resolve_commits(repository: &CodeRepository) -> Vec<(String, String)> {
     let repo = match git2::Repository::open(repository.dir()) {
         Ok(repo) => repo,
         Err(e) => {
-            logkit::error!(
-                "failed to open repo {}: {}",
-                repository.canonical_git_url(),
-                e
-            );
+            let message = e.message();
+            if message.contains("unknown object format") {
+                logkit::error!(
+                    "failed to open repo {}: SHA-256 object format is not supported by Tabby's \
+                     git library (libgit2). Please use a SHA-1 repository instead. Error: {}",
+                    repository.canonical_git_url(),
+                    e
+                );
+            } else {
+                logkit::error!(
+                    "failed to open repo {}: {}",
+                    repository.canonical_git_url(),
+                    e
+                );
+            }
             return vec![];
         }
     };

@@ -97,6 +97,21 @@ fn mask_url_credentials(url: &str) -> String {
         .unwrap_or_else(|_| url.to_string())
 }
 
+/// Returns true if the git repository at `root` uses SHA-256 object format.
+/// SHA-256 repositories are not supported by libgit2 (the git2 crate used internally).
+fn is_sha256_repo(root: &Path) -> bool {
+    let output = Command::new("git")
+        .current_dir(root)
+        .args(["config", "--local", "extensions.objectformat"])
+        .output();
+    match output {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim() == "sha256"
+        }
+        _ => false,
+    }
+}
+
 pub fn sync_refs(root: &Path, url: &str, refs: &Vec<String>) -> anyhow::Result<()> {
     let display_url = mask_url_credentials(url);
 
@@ -120,7 +135,32 @@ pub fn sync_refs(root: &Path, url: &str, refs: &Vec<String>) -> anyhow::Result<(
                 bail!("Failed to clone `{}`", display_url);
             }
         }
+
+        // Verify that the cloned repository uses a supported object format.
+        // SHA-256 repositories cannot be read by libgit2 and are not supported.
+        if is_sha256_repo(root) {
+            warn!(
+                "Repository `{}` uses SHA-256 object format which is not supported. \
+                 Only SHA-1 repositories are supported. Removing cloned directory.",
+                display_url
+            );
+            fs::remove_dir_all(root).expect("Failed to remove directory");
+            bail!(
+                "Repository `{}` uses SHA-256 object format which is not supported by Tabby. \
+                 Please use a SHA-1 repository instead.",
+                display_url
+            );
+        }
     } else {
+        // For existing repositories, verify the object format is still supported.
+        if is_sha256_repo(root) {
+            bail!(
+                "Repository `{}` uses SHA-256 object format which is not supported by Tabby. \
+                 Please use a SHA-1 repository instead.",
+                display_url
+            );
+        }
+
         // Update the remote URL so that credential changes in config take effect
         // without requiring a full re-clone.
         let status = Command::new("git")
