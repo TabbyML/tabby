@@ -5974,6 +5974,7 @@ dependencies = [
  "temp_testdir",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]
