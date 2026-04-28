@@ -4,6 +4,7 @@ import type { ServerCapabilities } from "../protocol";
 import type { Feature } from "../feature";
 import type { TabbyApiClient } from "../http/tabbyApiClient";
 import { ChatFeatures } from "../protocol";
+import { getClientType } from "../utils/clientType";
 
 export class ChatFeature extends EventEmitter implements Feature {
   private isApiAvailable = false;
@@ -41,7 +42,7 @@ export class ChatFeature extends EventEmitter implements Feature {
   }
 
   private async syncFeatureRegistration(connection: Connection) {
-    if (this.isApiAvailable) {
+    if (this.isApiAvailable && getClientType(this.tabbyApiClient.getClientInfo()) === "vscode") {
       if (!this.featureRegistration) {
         try {
           this.featureRegistration = await connection.client.register(ChatFeatures.type);

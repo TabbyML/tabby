@@ -37,6 +37,7 @@ export class TabbyApiClient extends EventEmitter {
   private readonly logger = getLogger("TabbyApiClient");
 
   private userAgentString: string | undefined = undefined;
+  private clientInfo: ClientInfo | undefined = undefined;
   private api: ReturnType<typeof createClient<TabbyApi>> | undefined;
   private endpoint: string | undefined = undefined;
 
@@ -60,6 +61,7 @@ export class TabbyApiClient extends EventEmitter {
 
   async initialize(clientInfo: ClientInfo | undefined) {
     this.userAgentString = this.buildUserAgentString(clientInfo);
+    this.clientInfo = clientInfo;
     this.connect(); // no await
 
     this.configurations.on("updated", (config: ConfigData, oldConfig: ConfigData) => {
@@ -153,6 +155,10 @@ export class TabbyApiClient extends EventEmitter {
 
   getServerHealth(): TabbyApiComponents["schemas"]["HealthState"] | undefined {
     return this.serverHealth;
+  }
+
+  getClientInfo(): ClientInfo | undefined {
+    return this.clientInfo;
   }
 
   async connect(options: { skipReset?: boolean } = {}): Promise<void> {

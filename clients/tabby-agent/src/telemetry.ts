@@ -13,6 +13,7 @@ import { isBrowser } from "./env";
 import { ProxyConfig, createProxyForUrl } from "./http/proxy";
 import { getLogger } from "./logger";
 import { isBlank } from "./utils/string";
+import { getClientType } from "./utils/clientType";
 
 export class AnonymousUsageLogger {
   private readonly logger = getLogger("Telemetry");
@@ -121,7 +122,7 @@ export class AnonymousUsageLogger {
   }
 
   private updateUserProperties(clientInfo: ClientInfo | undefined, clientProvidedConfig: ClientProvidedConfig) {
-    const clientType = this.getClientType(clientInfo);
+    const clientType = getClientType(clientInfo);
     const properties = {
       [clientType]: {
         triggerMode: clientProvidedConfig?.inlineCompletion?.triggerMode,
@@ -149,19 +150,5 @@ export class AnonymousUsageLogger {
     if (!deepEqual(properties, this.clientInfoProperties)) {
       this.clientInfoProperties = properties;
     }
-  }
-
-  private getClientType(clientInfo: ClientInfo | undefined): string {
-    if (!clientInfo) {
-      return "unknown";
-    }
-    if (clientInfo.tabbyPlugin?.name.includes("vscode")) {
-      return "vscode";
-    } else if (clientInfo.tabbyPlugin?.name.includes("intellij")) {
-      return "intellij";
-    } else if (clientInfo.tabbyPlugin?.name.includes("vim")) {
-      return "vim";
-    }
-    return clientInfo.name;
   }
 }
