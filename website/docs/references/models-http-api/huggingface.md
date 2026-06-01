@@ -6,12 +6,12 @@ You'll need a [Hugging Face account](https://huggingface.co/join) and an [access
 
 ## Chat model
 
-Hugging Face Inference Providers provides an OpenAI-compatible chat API interface. Here we use the `MiniMaxAI/MiniMax-M2` model as an example.
+Hugging Face Inference Providers provides an OpenAI-compatible chat API interface. Here we use the `MiniMaxAI/MiniMax-M3` model as an example.
 
 ```toml title="~/.tabby/config.toml"
 [model.chat.http]
 kind = "openai/chat"
-model_name = "MiniMaxAI/MiniMax-M2" # specify the model you want to use
+model_name = "MiniMaxAI/MiniMax-M3" # specify the model you want to use
 api_endpoint = "https://router.huggingface.co/v1"
 api_key = "your-hf-token"
 ```
