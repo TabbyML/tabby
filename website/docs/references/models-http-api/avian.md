@@ -1,6 +1,6 @@
 # Avian
 
-[Avian](https://avian.io/) is an inference API provider offering access to frontier open-source models through an OpenAI-compatible endpoint. Available models include DeepSeek V3.2, Kimi K2.5, GLM-5, and MiniMax M2.5.
+[Avian](https://avian.io/) is an inference API provider offering access to frontier open-source models through an OpenAI-compatible endpoint. Available models include DeepSeek V3.2, Kimi K2.5, GLM-5, and MiniMax M3.
 
 ## Chat Model
 
@@ -24,7 +24,7 @@ supported_models = [
   "deepseek/deepseek-v3.2",
   "moonshotai/kimi-k2.5",
   "z-ai/glm-5",
-  "minimax/minimax-m2.5"
+  "minimax/minimax-m3"
 ]
 api_endpoint = "https://api.avian.io/v1"
 api_key = "your-api-key"
@@ -45,6 +45,6 @@ Avian does not currently offer embedding model APIs.
 | `deepseek/deepseek-v3.2` | 164K | 65K |
 | `moonshotai/kimi-k2.5` | 131K | 8K |
 | `z-ai/glm-5` | 131K | 16K |
-| `minimax/minimax-m2.5` | 1M | 1M |
+| `minimax/minimax-m3` | 200K | 200K |
 
 For the latest model list and pricing, visit [Avian](https://avian.io/).
