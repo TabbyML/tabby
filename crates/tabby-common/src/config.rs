@@ -201,7 +201,7 @@ impl RepositoryConfig {
                 .ok()
                 .and_then(|url| url.to_file_path().ok())
                 .unwrap_or_else(|| {
-                    let path = git_url.strip_prefix("file://").unwrap_or(git_url);
+                    let path = git_url.strip_prefix("file:///").unwrap_or_else(|| { git_url.strip_prefix("file://").unwrap_or(git_url) });
                     PathBuf::from(path)
                 })
         } else {
