@@ -9,7 +9,7 @@
   },
   "engines": {
     "node": ">=18",
-    "pnpm": ">=9"
+    "pnpm": ">=8 <9"
   },
   "devDependencies": {
     "turbo": "^1.13.3"
