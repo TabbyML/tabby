@@ -66,6 +66,15 @@ impl ExtendedOpenAIConfig {
             "openai/chat" => {
                 request = process_request_openai(request);
             }
+            "minimax/chat" => {
+                // MiniMax temperature must be in (0.0, 1.0]; default to 1.0 if unset or zero
+                request.temperature = Some(
+                    request
+                        .temperature
+                        .map(|t| if t <= 0.0 { 1.0 } else { t.min(1.0) })
+                        .unwrap_or(1.0),
+                );
+            }
             _ => {}
         }
 
@@ -142,5 +151,75 @@ impl ChatCompletionStream for async_openai_alt::Client<async_openai_alt::config:
     ) -> Result<ChatCompletionResponseStream, OpenAIError> {
         let request = process_request_openai(request);
         self.chat().create_stream(request).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_config(kind: &str) -> ExtendedOpenAIConfig {
+        ExtendedOpenAIConfig::builder()
+            .base(OpenAIConfig::default())
+            .kind(kind.to_string())
+            .model_name("test-model")
+            .supported_models(None)
+            .build()
+            .unwrap()
+    }
+
+    fn make_request(model: &str, temperature: Option<f32>) -> CreateChatCompletionRequest {
+        let mut req = CreateChatCompletionRequest::default();
+        req.model = model.to_string();
+        req.temperature = temperature;
+        req
+    }
+
+    #[test]
+    fn test_minimax_temperature_clamped_to_default_when_zero() {
+        let config = make_config("minimax/chat");
+        let req = make_request("MiniMax-M2.7", Some(0.0));
+        let processed = config.process_request(req);
+        assert_eq!(processed.temperature, Some(1.0));
+    }
+
+    #[test]
+    fn test_minimax_temperature_clamped_to_default_when_negative() {
+        let config = make_config("minimax/chat");
+        let req = make_request("MiniMax-M2.7", Some(-0.5));
+        let processed = config.process_request(req);
+        assert_eq!(processed.temperature, Some(1.0));
+    }
+
+    #[test]
+    fn test_minimax_temperature_clamped_to_max_when_above_one() {
+        let config = make_config("minimax/chat");
+        let req = make_request("MiniMax-M2.7", Some(1.5));
+        let processed = config.process_request(req);
+        assert_eq!(processed.temperature, Some(1.0));
+    }
+
+    #[test]
+    fn test_minimax_temperature_preserved_when_valid() {
+        let config = make_config("minimax/chat");
+        let req = make_request("MiniMax-M2.7", Some(0.7));
+        let processed = config.process_request(req);
+        assert_eq!(processed.temperature, Some(0.7));
+    }
+
+    #[test]
+    fn test_minimax_temperature_defaults_when_none() {
+        let config = make_config("minimax/chat");
+        let req = make_request("MiniMax-M2.7", None);
+        let processed = config.process_request(req);
+        assert_eq!(processed.temperature, Some(1.0));
+    }
+
+    #[test]
+    fn test_minimax_model_fallback_when_empty() {
+        let config = make_config("minimax/chat");
+        let req = make_request("", Some(0.5));
+        let processed = config.process_request(req);
+        assert_eq!(processed.model, "test-model");
     }
 }
