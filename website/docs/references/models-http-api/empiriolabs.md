@@ -1,6 +1,6 @@
-# EmpirioLabs
+# EmpirioLabs AI
 
-[EmpirioLabs](https://empiriolabs.ai/) is a multi-model API platform offering open and proprietary models (Qwen, DeepSeek, GLM, Kimi, MiniMax, Gemma, and more) through an OpenAI-compatible endpoint with pay-as-you-go pricing. The full model catalog with per-model context windows and pricing is at [empiriolabs.ai/models](https://empiriolabs.ai/models).
+[EmpirioLabs AI](https://empiriolabs.ai/) is a multi-model API platform offering open and proprietary models (Qwen, DeepSeek, GLM, Kimi, MiniMax, Gemma, and more) through an OpenAI-compatible endpoint with pay-as-you-go pricing. The full model catalog with per-model context windows and pricing is at [empiriolabs.ai/models](https://empiriolabs.ai/models).
 
 ## Chat Model
 
