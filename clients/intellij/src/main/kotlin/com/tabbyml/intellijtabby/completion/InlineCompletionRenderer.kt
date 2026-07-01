@@ -90,7 +90,7 @@ class InlineCompletionRenderer {
             }
           }
         }
-      } else if (suffixReplaceLength == 1) {
+      } else if (suffixReplaceLength == 1 && currentLineSuffix.isNotEmpty()) {
         // Replace range contains one char
         val replaceChar = currentLineSuffix[0]
         // Insert part is substring of first line that before the char

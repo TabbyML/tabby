@@ -100,6 +100,12 @@ export class StatusBarItem {
             this.setTooltip(statusInfo.tooltip);
             break;
           }
+          case "codeCompletionNotAvailable": {
+            this.setColorWarning();
+            this.setIcon(iconWarning);
+            this.setTooltip(statusInfo.tooltip);
+            break;
+          }
           case "completionResponseSlow":
           case "rateLimitExceeded": {
             this.setColorWarning();
