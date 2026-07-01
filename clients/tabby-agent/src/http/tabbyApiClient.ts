@@ -107,7 +107,10 @@ export class TabbyApiClient extends EventEmitter {
     const tabbyPluginName = clientInfo?.tabbyPlugin?.name;
     const tabbyPluginVersion = clientInfo?.tabbyPlugin?.version;
     const tabbyPluginInfo = tabbyPluginName ? `${tabbyPluginName}/${tabbyPluginVersion}` : "";
-    return `${envInfo} ${tabbyAgentInfo} ${ideInfo} ${tabbyPluginInfo}`.trim();
+    const raw = `${envInfo} ${tabbyAgentInfo} ${ideInfo} ${tabbyPluginInfo}`.trim();
+    // Sanitize newlines from the user-agent string, as some editors (e.g. Emacs)
+    // include newlines in their version info which are invalid in HTTP headers.
+    return raw.replace(/[\r\n]+/g, " ").replace(/\s{2,}/g, " ");
   }
 
   private createTimeOutAbortSignal(): AbortSignal {
