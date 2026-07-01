@@ -522,6 +522,7 @@ mod tests {
             Some(code.clone()),
             Some(doc.clone()),
             serper,
+            None,
             repo,
             settings,
         ));
@@ -586,6 +587,7 @@ mod tests {
             Some(code.clone()),
             Some(doc.clone()),
             serper,
+            None,
             repo,
             settings,
         ));
@@ -650,6 +652,7 @@ mod tests {
             Some(code.clone()),
             Some(doc.clone()),
             serper,
+            None,
             repo,
             settings,
         ));

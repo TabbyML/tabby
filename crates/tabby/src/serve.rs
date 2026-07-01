@@ -218,6 +218,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
                 completion_stream,
                 docsearch,
                 |x| Box::new(services::structured_doc::create_serper(x)),
+                |x| Box::new(services::warpgrep::create(x)),
             )
             .await;
         api = new_api;

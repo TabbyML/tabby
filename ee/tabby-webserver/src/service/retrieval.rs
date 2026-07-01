@@ -9,7 +9,7 @@ use std::{
 use tabby_common::api::{
     code::{
         CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
-        CodeSearchScores,
+        CodeSearchScores, WarpGrepSearch,
     },
     structured_doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit},
 };
@@ -33,6 +33,7 @@ pub struct RetrievalService {
     code: Option<Arc<dyn CodeSearch>>,
     doc: Option<Arc<dyn DocSearch>>,
     serper: Option<Box<dyn DocSearch>>,
+    warpgrep: Option<Box<dyn WarpGrepSearch>>,
     repository: Arc<dyn RepositoryService>,
     settings: Arc<dyn SettingService>,
 }
@@ -42,6 +43,7 @@ impl RetrievalService {
         code: Option<Arc<dyn CodeSearch>>,
         doc: Option<Arc<dyn DocSearch>>,
         serper: Option<Box<dyn DocSearch>>,
+        warpgrep: Option<Box<dyn WarpGrepSearch>>,
         repository: Arc<dyn RepositoryService>,
         settings: Arc<dyn SettingService>,
     ) -> Self {
@@ -49,6 +51,7 @@ impl RetrievalService {
             code,
             doc,
             serper,
+            warpgrep,
             repository,
             settings,
         }
@@ -132,33 +135,63 @@ impl RetrievalService {
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Vec<CodeSearchHit> {
-        let Some(code) = self.code.as_ref() else {
-            return vec![];
-        };
+        let content = helper.rewrite_tag(&input.content);
+        let mut all_hits = Vec::new();
 
-        let query = CodeSearchQuery::new(
-            input.filepath.clone(),
-            input.language.clone(),
-            helper.rewrite_tag(&input.content),
-            repository.source_id.clone(),
-        );
+        // 1. Tantivy code search
+        if let Some(code) = self.code.as_ref() {
+            let query = CodeSearchQuery::new(
+                input.filepath.clone(),
+                input.language.clone(),
+                content.clone(),
+                repository.source_id.clone(),
+            );
 
-        let mut params = params.clone();
-        if let Some(override_params) = override_params {
-            override_params.override_params(&mut params);
-        }
+            let mut params = params.clone();
+            if let Some(override_params) = override_params {
+                override_params.override_params(&mut params);
+            }
 
-        match code.search_in_language(query, params).await {
-            Ok(docs) => merge_code_snippets(repository, docs.hits).await,
-            Err(err) => {
-                if let CodeSearchError::NotReady = err {
-                    debug!("Code search is not ready yet");
-                } else {
-                    warn!("Failed to search code: {:?}", err);
+            match code.search_in_language(query, params).await {
+                Ok(docs) => {
+                    let merged = merge_code_snippets(repository, docs.hits).await;
+                    all_hits.extend(merged);
                 }
-                vec![]
+                Err(err) => {
+                    if let CodeSearchError::NotReady = err {
+                        debug!("Code search is not ready yet");
+                    } else {
+                        warn!("Failed to search code: {:?}", err);
+                    }
+                }
             }
         }
+
+        // 2. WarpGrep supplemental search
+        if let Some(warpgrep) = self.warpgrep.as_ref() {
+            match warpgrep.search(&repository.dir, &content).await {
+                Ok(resp) => {
+                    debug!("WarpGrep returned {} hits", resp.hits.len());
+                    // Deduplicate: skip WarpGrep hits that overlap with existing
+                    for mut hit in resp.hits {
+                        hit.doc.git_url.clone_from(&repository.git_url);
+                        let dominated = all_hits.iter().any(|existing| {
+                            existing.doc.filepath == hit.doc.filepath
+                                && existing.doc.start_line == hit.doc.start_line
+                        });
+                        if !dominated {
+                            all_hits.push(hit);
+                        }
+                    }
+                }
+                Err(err) => {
+                    warn!("WarpGrep search failed (non-fatal): {:?}", err);
+                }
+            }
+        }
+
+        all_hits.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
+        all_hits
     }
 
     pub async fn collect_relevant_docs(
@@ -249,10 +282,11 @@ pub fn create(
     code: Option<Arc<dyn CodeSearch>>,
     doc: Option<Arc<dyn DocSearch>>,
     serper: Option<Box<dyn DocSearch>>,
+    warpgrep: Option<Box<dyn WarpGrepSearch>>,
     repository: Arc<dyn RepositoryService>,
     settings: Arc<dyn SettingService>,
 ) -> RetrievalService {
-    RetrievalService::new(code, doc, serper, repository, settings)
+    RetrievalService::new(code, doc, serper, warpgrep, repository, settings)
 }
 
 /// Combine code snippets from search results rather than utilizing multiple hits:
@@ -590,7 +624,8 @@ mod tests {
         let repo_service = make_repository_service(db.clone()).await.unwrap();
         let settings = Arc::new(setting::create(db));
 
-        let service = RetrievalService::new(Some(code), Some(doc), None, repo_service, settings);
+        let service =
+            RetrievalService::new(Some(code), Some(doc), None, None, repo_service, settings);
 
         // Test Case 1: Basic code collection
         let input = make_code_query_input(Some(&test_repo.source_id), Some(&test_repo.git_url));
@@ -646,6 +681,7 @@ mod tests {
             Some(code.clone()),
             Some(doc.clone()),
             serper,
+            None,
             repo,
             settings,
         );
@@ -815,6 +851,7 @@ mod tests {
             Some(code.clone()),
             Some(doc.clone()),
             serper,
+            None,
             repo_service.clone(),
             settings,
         ));
