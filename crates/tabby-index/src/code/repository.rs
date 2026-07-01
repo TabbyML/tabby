@@ -109,7 +109,10 @@ pub fn checkout(repository: &CodeRepository, branch: &str) -> anyhow::Result<()>
     let mut checkout_builder = git2::build::CheckoutBuilder::new();
     checkout_builder.force();
 
-    repo.set_head(reference.name().unwrap())?;
+    let ref_name = reference
+        .name()
+        .ok_or_else(|| anyhow::anyhow!("Reference name is not valid UTF-8"))?;
+    repo.set_head(ref_name)?;
     repo.checkout_head(Some(&mut checkout_builder))?;
     Ok(())
 }
