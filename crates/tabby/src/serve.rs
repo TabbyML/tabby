@@ -97,7 +97,11 @@ pub struct ServeArgs {
     port: u16,
 
     /// Device to run model inference.
-    #[clap(long, default_value_t=Device::Cpu)]
+    #[cfg_attr(feature = "vulkan", clap(long, default_value_t = Device::Vulkan))]
+    #[cfg_attr(feature = "metal", clap(long, default_value_t = Device::Metal))]
+    #[cfg_attr(feature = "cuda", clap(long, default_value_t = Device::Cuda))]
+    #[cfg_attr(feature = "rocm", clap(long, default_value_t = Device::Rocm))]
+    #[cfg_attr(not(any(feature = "vulkan", feature = "metal", feature = "cuda", feature = "rocm")), clap(long, default_value_t = Device::Cpu))]
     device: Device,
 
     /// Device to run chat model [default equals --device arg]
