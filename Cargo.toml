@@ -102,3 +102,8 @@ features = [
 
 [profile.dev.package]
 insta.opt-level = 3
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
