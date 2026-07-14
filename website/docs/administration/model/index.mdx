@@ -53,6 +53,17 @@ api_endpoint = "https://api.openai.com/v1"
 api_key = "your-api-key"
 ```
 
+OpenAI-compatible gateways (example: [DaoXE](https://daoxe.com)) use the same `openai/chat` connector. Use an exact model ID from your account catalog (`GET /v1/models`):
+
+```toml title="~/.tabby/config.toml"
+[model.chat.http]
+kind = "openai/chat"
+model_name = "YOUR_DAOXE_MODEL_ID"
+api_endpoint = "https://daoxe.com/v1"
+api_key = "your-daoxe-api-key"
+```
+
+
 ## Verifying Model Connection Status
 To check whether your configured models are properly connected, navigate to the **Information > System** page and check individual model cards.
 
