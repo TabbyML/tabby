@@ -59,7 +59,7 @@ jobs:
       - run: sudo bash ./ci/prepare_build_environment.sh
 
       - name: Run cargo bloat
-        uses: wsxiaoys/cargo-bloat-action@master
+        uses: wsxiaoys/cargo-bloat-action@8be354bd62ad6d986bae0bee4f3a6db31dfa3033 # master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           include_packages: tabby
