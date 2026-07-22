@@ -12,7 +12,7 @@ use tabby_common::{
         event::{Event, EventLogger},
     },
     axum::AllowedCodeRepository,
-    config::{CompletionConfig, ModelConfig},
+    config::{CompletionConfig, ModelConfig, ModelConfigVariant},
     languages::get_language,
 };
 use tabby_inference::{
@@ -540,7 +540,7 @@ pub async fn create_completion_service_and_chat(
     code: Option<Arc<dyn CodeSearch>>,
     logger: Arc<dyn EventLogger>,
     completion: Option<ModelConfig>,
-    chat: Option<ModelConfig>,
+    chat: Option<ModelConfigVariant>,
 ) -> (
     Option<CompletionService>,
     Option<Arc<dyn CompletionStream>>,

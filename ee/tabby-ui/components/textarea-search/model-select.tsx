@@ -43,7 +43,7 @@ export function ModelSelect({
         </div>
       }
     >
-      {!!models?.length && (
+      {models && models.length > 1 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
