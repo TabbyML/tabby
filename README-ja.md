@@ -131,4 +131,4 @@ apt install make sqlite3 graphviz
 
 ### 🌟 スター履歴
 
-[![スター履歴チャート](https://api.star-history.com/svg?repos=tabbyml/tabby&type=Date)](https://star-history.com/#tabbyml/tabby&Date)
+[![スター履歴チャート](https://star-history.dera.page/svg?repos=tabbyml/tabby&type=Date)](https://star-history.dera.page/#tabbyml/tabby&Date)

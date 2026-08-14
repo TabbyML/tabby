@@ -138,4 +138,4 @@ apt install make sqlite3 graphviz
 
 ### 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=tabbyml/tabby&type=Date)](https://star-history.com/#tabbyml/tabby&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=tabbyml/tabby&type=Date)](https://star-history.dera.page/#tabbyml/tabby&Date)
