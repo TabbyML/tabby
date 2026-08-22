@@ -48,20 +48,20 @@ function M.cancel_request(id)
 end
 
 function M.request_inline_completion(params)
-    local inline_completion_params = vim.lsp.util.make_position_params()
+    local client = get_client()
+    if client == nil then
+        return 0
+    end
+
+    local inline_completion_params = vim.lsp.util.make_position_params(0, client.offset_encoding)
     inline_completion_params.context = {}
     inline_completion_params.context.triggerKind = params.trigger_kind
 
-    local client = get_client()
-    if client ~= nil then
-        local request_id
-        _, request_id = client.request("textDocument/inlineCompletion", inline_completion_params, function(_, result)
-            vim.fn["tabby#lsp#nvim_lsp#CallInlineCompletionCallback"](request_id, result)
-        end)
-        return request_id
-    else
-        return 0
-    end
+    local request_id
+    _, request_id = client.request("textDocument/inlineCompletion", inline_completion_params, function(_, result)
+        vim.fn["tabby#lsp#nvim_lsp#CallInlineCompletionCallback"](request_id, result)
+    end)
+    return request_id
 end
 
 function M.notify_event(params)
