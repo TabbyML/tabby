@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
 use ollama_rs::{
     generation::{completion::request::GenerationRequest, options::GenerationOptions},
+    headers::{HeaderMap, HeaderValue, AUTHORIZATION},
     Ollama,
 };
 use tabby_common::config::HttpModelConfig;
@@ -10,6 +11,22 @@ use tabby_inference::{CompletionOptions, CompletionStream};
 use tracing::error;
 
 use crate::model::OllamaModelExt;
+
+fn create_connection(config: &HttpModelConfig) -> Ollama {
+    let mut headers = HeaderMap::new();
+
+    if let Some(api_key) = config.api_key.as_deref() {
+        let mut value = HeaderValue::from_str(&format!("Bearer {api_key}"))
+            .expect("Ollama API key must be a valid HTTP header value");
+        value.set_sensitive(true);
+        headers.insert(AUTHORIZATION, value);
+    }
+
+    let mut connection = Ollama::try_new(config.api_endpoint.as_deref().unwrap().to_owned())
+        .expect("Failed to create connection to Ollama, URL invalid");
+    connection.set_headers(Some(headers));
+    connection
+}
 
 pub struct OllamaCompletion {
     /// Connection to Ollama API
@@ -60,10 +77,55 @@ impl CompletionStream for OllamaCompletion {
 }
 
 pub async fn create(config: &HttpModelConfig) -> Box<dyn CompletionStream> {
-    let connection = Ollama::try_new(config.api_endpoint.as_deref().unwrap().to_owned())
-        .expect("Failed to create connection to Ollama, URL invalid");
+    let connection = create_connection(config);
 
     let model = connection.select_model_or_default(config).await.unwrap();
 
     Box::new(OllamaCompletion { connection, model })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    #[tokio::test]
+    async fn forwards_api_key_to_ollama_requests() {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let address = listener.local_addr().unwrap();
+
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = vec![0; 4096];
+            let length = socket.read(&mut request).await.unwrap();
+            let request = String::from_utf8_lossy(&request[..length]);
+            assert!(request
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("authorization: Bearer test-key")));
+
+            socket
+                .write_all(
+                    b"HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                )
+                .await
+                .unwrap();
+        });
+
+        let config = HttpModelConfig {
+            kind: "ollama/completion".to_owned(),
+            api_endpoint: Some(format!("http://{address}")),
+            api_key: Some("test-key".to_owned()),
+            rate_limit: Default::default(),
+            model_name: Some("test-model".to_owned()),
+            prompt_template: None,
+            chat_template: None,
+            supported_models: None,
+            additional_stop_words: None,
+        };
+
+        let connection = create_connection(&config);
+        assert!(connection.list_local_models().await.is_err());
+        server.await.unwrap();
+    }
 }
