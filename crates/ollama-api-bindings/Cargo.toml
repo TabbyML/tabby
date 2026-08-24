@@ -20,5 +20,8 @@ tracing.workspace = true
 # Use git version for now: https://github.com/pepperoni21/ollama-rs/issues/44 is required to correct work with normal URLs
 [dependencies.ollama-rs]
 git = "https://github.com/pepperoni21/ollama-rs.git"
-rev = "56e8157d98d4185bc171fe9468d3d09bc56e9dd3"
-features = ["stream"]
+rev = "a40ea0c3980b85aeba28b077e1673dfba1a4be36"
+features = ["headers", "stream"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["io-util", "macros", "net", "rt-multi-thread"] }
