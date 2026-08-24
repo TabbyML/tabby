@@ -5,12 +5,36 @@
 use anyhow::{anyhow, bail, Result};
 use async_trait::async_trait;
 use futures::StreamExt;
-use ollama_rs::Ollama;
+use ollama_rs::{
+    headers::{HeaderMap, HeaderValue, AUTHORIZATION},
+    Ollama,
+};
 use tabby_common::config::HttpModelConfig;
 use tracing::{info, warn};
 
 /// Env variable for allowing pulling models with Ollama
 static ALLOW_PULL_ENV: &str = "TABBY_OLLAMA_ALLOW_PULL";
+
+pub(crate) fn create_connection(config: &HttpModelConfig) -> Ollama {
+    let mut headers = HeaderMap::new();
+
+    if let Some(api_key) = config.api_key.as_deref() {
+        match HeaderValue::from_str(&format!("Bearer {api_key}")) {
+            Ok(mut value) => {
+                value.set_sensitive(true);
+                headers.insert(AUTHORIZATION, value);
+            }
+            Err(err) => {
+                warn!("Ignoring invalid Ollama API key: {err}");
+            }
+        }
+    }
+
+    let mut connection = Ollama::try_new(config.api_endpoint.as_deref().unwrap().to_owned())
+        .expect("Failed to create connection to Ollama, URL invalid");
+    connection.set_headers(Some(headers));
+    connection
+}
 
 #[async_trait]
 pub trait OllamaModelExt {

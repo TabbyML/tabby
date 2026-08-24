@@ -3,30 +3,13 @@ use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
 use ollama_rs::{
     generation::{completion::request::GenerationRequest, options::GenerationOptions},
-    headers::{HeaderMap, HeaderValue, AUTHORIZATION},
     Ollama,
 };
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::{CompletionOptions, CompletionStream};
 use tracing::error;
 
-use crate::model::OllamaModelExt;
-
-fn create_connection(config: &HttpModelConfig) -> Ollama {
-    let mut headers = HeaderMap::new();
-
-    if let Some(api_key) = config.api_key.as_deref() {
-        let mut value = HeaderValue::from_str(&format!("Bearer {api_key}"))
-            .expect("Ollama API key must be a valid HTTP header value");
-        value.set_sensitive(true);
-        headers.insert(AUTHORIZATION, value);
-    }
-
-    let mut connection = Ollama::try_new(config.api_endpoint.as_deref().unwrap().to_owned())
-        .expect("Failed to create connection to Ollama, URL invalid");
-    connection.set_headers(Some(headers));
-    connection
-}
+use crate::model::{create_connection, OllamaModelExt};
 
 pub struct OllamaCompletion {
     /// Connection to Ollama API
@@ -127,5 +110,22 @@ mod tests {
         let connection = create_connection(&config);
         assert!(connection.list_local_models().await.is_err());
         server.await.unwrap();
+    }
+
+    #[test]
+    fn ignores_invalid_api_key() {
+        let config = HttpModelConfig {
+            kind: "ollama/completion".to_owned(),
+            api_endpoint: Some("http://127.0.0.1:11434".to_owned()),
+            api_key: Some("invalid\n-key".to_owned()),
+            rate_limit: Default::default(),
+            model_name: Some("test-model".to_owned()),
+            prompt_template: None,
+            chat_template: None,
+            supported_models: None,
+            additional_stop_words: None,
+        };
+
+        let _connection = create_connection(&config);
     }
 }
