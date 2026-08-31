@@ -41,7 +41,10 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             config.model_name.as_deref().unwrap_or_default(),
             config.api_key.as_deref(),
         ),
-        "ollama/embedding" => ollama_api_bindings::create_embedding(config).await,
+        // llmman serves the Ollama API, so it uses the same bindings.
+        "ollama/embedding" | "llmman/embedding" => {
+            ollama_api_bindings::create_embedding(config).await
+        }
         "voyage/embedding" => OpenAIEmbeddingEngine::create(
             config
                 .api_endpoint

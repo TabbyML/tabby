@@ -21,7 +21,12 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
                 .expect("api_endpoint is required"),
             model.api_key.clone(),
         ),
-        "ollama/completion" => ollama_api_bindings::create_completion(model).await,
+        // llmman serves the Ollama API, so it uses the same bindings; the
+        // distinct kind lets it be named in config without implying the
+        // endpoint default.
+        "ollama/completion" | "llmman/completion" => {
+            ollama_api_bindings::create_completion(model).await
+        }
         "mistral/completion" => MistralFIMEngine::create(
             model.api_endpoint.as_deref(),
             model.api_key.clone(),
