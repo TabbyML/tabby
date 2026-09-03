@@ -11,11 +11,11 @@ jobs:
     name: Update nightly tag
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ssh-key: "${{ secrets.COMMIT_KEY }}"
           
       - name: Run latest-tag
-        uses: EndBug/latest-tag@latest
+        uses: EndBug/latest-tag@15ea15c9086d0381585ddafa4717618120a6035f
         with:
           ref: nightly
