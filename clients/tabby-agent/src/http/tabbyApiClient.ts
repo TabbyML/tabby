@@ -99,13 +99,18 @@ export class TabbyApiClient extends EventEmitter {
   }
 
   private buildUserAgentString(clientInfo: ClientInfo | undefined): string {
-    const envInfo = isBrowser ? navigator?.userAgent : `Node.js/${process.version}`;
-    const tabbyAgentInfo = `${agentName}/${agentVersion}`;
-    const ideName = clientInfo?.name.replace(/ /g, "-");
-    const ideVersion = clientInfo?.version;
+    const sanitize = (s: string | undefined): string => {
+      if (!s) return "";
+      // Replace newlines, carriage returns, and other control characters with spaces
+      return s.replace(/[\r\n\t\0-\x1F\x7F]/g, " ").replace(/\s+/g, " ").trim();
+    };
+    const envInfo = sanitize(isBrowser ? navigator?.userAgent : `Node.js/${process.version}`);
+    const tabbyAgentInfo = sanitize(`${agentName}/${agentVersion}`);
+    const ideName = sanitize(clientInfo?.name?.replace(/ /g, "-"));
+    const ideVersion = sanitize(clientInfo?.version);
     const ideInfo = ideName ? `${ideName}/${ideVersion}` : "";
-    const tabbyPluginName = clientInfo?.tabbyPlugin?.name;
-    const tabbyPluginVersion = clientInfo?.tabbyPlugin?.version;
+    const tabbyPluginName = sanitize(clientInfo?.tabbyPlugin?.name);
+    const tabbyPluginVersion = sanitize(clientInfo?.tabbyPlugin?.version);
     const tabbyPluginInfo = tabbyPluginName ? `${tabbyPluginName}/${tabbyPluginVersion}` : "";
     return `${envInfo} ${tabbyAgentInfo} ${ideInfo} ${tabbyPluginInfo}`.trim();
   }

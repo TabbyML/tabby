@@ -1,0 +1,3 @@
+kind: fixes
+body: Fixed Windows scheduled jobs failing for local file:// URLs with two slashes (issue 4104), and fixed user agent strings containing newlines causing failed healthchecks (issue 3648)
+time: 2026-09-25T21:00:00.000000+08:00
