@@ -197,11 +197,39 @@ impl RepositoryConfig {
 
     pub fn resolve_dir(git_url: &str) -> PathBuf {
         if Self::resolve_is_local_dir(git_url) {
-            url::Url::parse(git_url)
+            // Normalize file://C:/... to file:///C:/... on Windows for proper URL parsing
+            #[cfg(windows)]
+            let normalized_url = {
+                let mut url = git_url.to_string();
+                // Replace backslashes with forward slashes for URL parsing
+                url = url.replace('\\', "/");
+                if url.starts_with("file://") && !url.starts_with("file:///") {
+                    // Check if it's a drive letter path (file://C:/...)
+                    let after_prefix = &url[7..];
+                    if after_prefix.len() >= 2 && after_prefix.as_bytes()[1] == b':' {
+                        format!("file:///{}", after_prefix)
+                    } else {
+                        url
+                    }
+                } else {
+                    url
+                }
+            };
+            #[cfg(not(windows))]
+            let normalized_url = git_url.to_string();
+            
+            url::Url::parse(&normalized_url)
                 .ok()
                 .and_then(|url| url.to_file_path().ok())
                 .unwrap_or_else(|| {
-                    let path = git_url.strip_prefix("file://").unwrap_or(git_url);
+                    let mut path = normalized_url.strip_prefix("file://").unwrap_or(&normalized_url);
+                    // On Windows, handle any remaining /C:/... paths
+                    #[cfg(windows)]
+                    {
+                        if path.len() >= 3 && path.starts_with('/') && path.as_bytes()[2] == b':' {
+                            path = &path[1..];
+                        }
+                    }
                     PathBuf::from(path)
                 })
         } else {
@@ -573,9 +601,19 @@ mod tests {
                 "file:///C:/Users/test/project",
                 PathBuf::from(r"C:\Users\test\project"),
             ),
+            // Two slashes (file://C:/...) as reported in issue 4104
+            (
+                "file://C:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
             // Lowercase drive letter
             (
                 "file:///c:/Users/test/project",
+                PathBuf::from(r"C:\Users\test\project"),
+            ),
+            // Lowercase drive letter with two slashes
+            (
+                "file://c:/Users/test/project",
                 PathBuf::from(r"C:\Users\test\project"),
             ),
             // Trailing slash
@@ -601,6 +639,11 @@ mod tests {
             // original issue case
             (
                 "file://C:\\repos\\myproject",
+                PathBuf::from(r"C:\repos\myproject"),
+            ),
+            // original issue case with forward slashes
+            (
+                "file://C:/repos/myproject",
                 PathBuf::from(r"C:\repos\myproject"),
             ),
         ];
