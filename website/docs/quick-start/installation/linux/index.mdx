@@ -65,3 +65,35 @@ You should see a success message similar to the one in the screenshot below. Aft
 <div align="left">
   <img src={successImage} alt="Linux running success" style={{ width: 800 }} />
 </div>
+
+## Run Tabby as a systemd service (optional)
+
+If you want Tabby to start automatically on boot and restart after a crash, run it as a systemd service. After placing the `tabby` executable somewhere stable (for example `/opt/tabby/tabby`), create a unit file:
+
+```bash
+sudo tee /etc/systemd/system/tabby.service > /dev/null <<'EOF'
+[Unit]
+Description=Tabby AI coding assistant server
+After=network.target
+
+[Service]
+Type=simple
+User=tabby
+WorkingDirectory=/opt/tabby
+ExecStart=/opt/tabby/tabby serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+Then reload systemd and enable the service so it starts on boot:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now tabby
+```
+
+Check its status any time with `sudo systemctl status tabby`. Adjust `ExecStart` (model, chat model, `--device`) to match your environment.
