@@ -21,7 +21,7 @@ pub const PRESET_WEB_DOCUMENTS_DATA: &str = r#"[{ "name": "CodeMirror", "crawler
 { "name": "Hugging-Face-Transformers", "crawlerStart": "https://huggingface.co/docs/transformers/", "crawlerPrefix": "https://huggingface.co/docs/transformers/" },
 { "name": "Langchain", "crawlerStart": "https://python.langchain.com/docs/", "crawlerPrefix": "https://python.langchain.com/docs/" },
 { "name": "Vue", "crawlerStart": "https://vuejs.org/guide/", "crawlerPrefix": "https://vuejs.org/guide/" },
-{ "name": "Angular", "crawlerStart": "https://angular.io/docs", "crawlerPrefix": "https://angular.io/docs" },
+{ "name": "Angular", "crawlerStart": "https://angular.dev/overview", "crawlerPrefix": "https://angular.dev/" },
 { "name": "Astro", "crawlerStart": "https://docs.astro.build/en/", "crawlerPrefix": "https://docs.astro.build/en/" },
 { "name": "Elixir", "crawlerStart": "https://elixir-lang.org/docs.html", "crawlerPrefix": "https://elixir-lang.org/docs.html" },
 { "name": "Svelte", "crawlerStart": "https://svelte.dev/docs", "crawlerPrefix": "https://svelte.dev/docs" },
