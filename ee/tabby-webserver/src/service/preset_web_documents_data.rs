@@ -25,7 +25,7 @@ pub const PRESET_WEB_DOCUMENTS_DATA: &str = r#"[{ "name": "CodeMirror", "crawler
 { "name": "Astro", "crawlerStart": "https://docs.astro.build/en/", "crawlerPrefix": "https://docs.astro.build/en/" },
 { "name": "Elixir", "crawlerStart": "https://elixir-lang.org/docs.html", "crawlerPrefix": "https://elixir-lang.org/docs.html" },
 { "name": "Svelte", "crawlerStart": "https://svelte.dev/docs", "crawlerPrefix": "https://svelte.dev/docs" },
-{ "name": "SvelteKit", "crawlerStart": "https://kit.svelte.dev/docs/introduction", "crawlerPrefix": "https://kit.svelte.dev/docs" },
+{ "name": "SvelteKit", "crawlerStart": "https://svelte.dev/docs/kit/introduction", "crawlerPrefix": "https://svelte.dev/docs/kit" },
 { "name": "PineconeDB", "crawlerStart": "https://docs.pinecone.io/docs/", "crawlerPrefix": "https://docs.pinecone.io/docs/" },
 { "name": "Redis", "crawlerStart": "https://redis.io/docs/", "crawlerPrefix": "https://redis.io/docs/" },
 { "name": "KeyDB", "crawlerStart": "https://docs.keydb.dev/docs/", "crawlerPrefix": "https://docs.keydb.dev/docs/" },
