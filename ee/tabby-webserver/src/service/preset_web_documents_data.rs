@@ -371,7 +371,7 @@ pub const PRESET_WEB_DOCUMENTS_DATA: &str = r#"[{ "name": "CodeMirror", "crawler
 { "name": "Mantis", "crawlerStart": "https://www.mantisbt.org/documentation.php", "crawlerPrefix": "https://www.mantisbt.org/docs/master/en-US/Developers_Guide/" },
 { "name": "React Admin", "crawlerStart": "https://marmelab.com/react-admin/documentation.html", "crawlerPrefix": "https://marmelab.com/react-admin/" },
 { "name": "SQLFluff", "crawlerStart": "https://docs.sqlfluff.com/en/stable/", "crawlerPrefix": "https://docs.sqlfluff.com/en/stable/" },
-{ "name": "Ruff", "crawlerStart": "https://beta.ruff.rs/docs/", "crawlerPrefix": "https://beta.ruff.rs/docs/" },
+{ "name": "Ruff", "crawlerStart": "https://docs.astral.sh/ruff/", "crawlerPrefix": "https://docs.astral.sh/ruff/" },
 { "name": "FusionAuth API", "crawlerStart": "https://fusionauth.io/docs/v1/tech/apis/", "crawlerPrefix": "https://fusionauth.io/docs/v1/tech/apis/" },
 { "name": "Serp Google Scholar API", "crawlerStart": "https://serpapi.com/google-scholar-api", "crawlerPrefix": "https://serpapi.com/google-scholar-api" },
 { "name": "Novu", "crawlerStart": "https://docs.novu.co/", "crawlerPrefix": "https://docs.novu.co/" },
