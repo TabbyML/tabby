@@ -114,7 +114,7 @@ pub const PRESET_WEB_DOCUMENTS_DATA: &str = r#"[{ "name": "CodeMirror", "crawler
 { "name": "PrimeReact", "crawlerStart": "https://primereact.org/", "crawlerPrefix": "https://primereact.org/" },
 { "name": "Grommet", "crawlerStart": "https://v2.grommet.io/docs", "crawlerPrefix": "https://v2.grommet.io/" },
 { "name": "Onsen UI", "crawlerStart": "https://onsen.io/v2/api/css.html", "crawlerPrefix": "https://onsen.io/v2/api/" },
-{ "name": "Quasar", "crawlerStart": "hhttps://quasar.dev/docs", "crawlerPrefix": "https://quasar.dev/" },
+{ "name": "Quasar", "crawlerStart": "https://quasar.dev/docs", "crawlerPrefix": "https://quasar.dev/" },
 { "name": "Vuetify", "crawlerStart": "https://vuetifyjs.com/en/getting-started/installation/", "crawlerPrefix": "https://vuetifyjs.com/en/" },
 { "name": "Bootstrap Vue", "crawlerStart": "https://bootstrap-vue.org/docs", "crawlerPrefix": "https://bootstrap-vue.org/docs" },
 { "name": "Element Plus", "crawlerStart": "https://element-plus.org/#/en-US", "crawlerPrefix": "https://element-plus.org/#/en-US" },
