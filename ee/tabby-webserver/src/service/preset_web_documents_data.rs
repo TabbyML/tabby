@@ -1,7 +1,7 @@
 pub const PRESET_WEB_DOCUMENTS_DATA: &str = r#"[{ "name": "CodeMirror", "crawlerStart": "https://codemirror.net/docs/", "crawlerPrefix": "https://codemirror.net/docs/" },
 { "name": "React", "crawlerStart": "https://react.dev/reference/", "crawlerPrefix": "https://react.dev/reference/" },
 { "name": "Tailwind CSS", "crawlerStart": "https://tailwindcss.com/docs/", "crawlerPrefix": "https://tailwindcss.com/docs/" },
-{ "name": "Qwik", "crawlerStart": "https://qwik.builder.io/docs/", "crawlerPrefix": "https://qwik.builder.io/docs/" },
+{ "name": "Qwik", "crawlerStart": "https://qwik.dev/docs/", "crawlerPrefix": "https://qwik.dev/docs/" },
 { "name": "Stripe", "crawlerStart": "https://stripe.com/docs/api", "crawlerPrefix": "https://stripe.com/docs/api" },
 { "name": "PostHog", "crawlerStart": "https://posthog.com/docs", "crawlerPrefix": "https://posthog.com/docs" },
 { "name": "Express", "crawlerStart": "https://expressjs.com/en/5x/api.html", "crawlerPrefix": "https://expressjs.com/en/5x/" },
