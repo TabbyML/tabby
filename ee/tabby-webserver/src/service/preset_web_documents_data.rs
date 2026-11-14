@@ -223,7 +223,7 @@ pub const PRESET_WEB_DOCUMENTS_DATA: &str = r#"[{ "name": "CodeMirror", "crawler
 { "name": "Bandwidth", "crawlerStart": "https://dev.bandwidth.com/docs/", "crawlerPrefix": "https://dev.bandwidth.com/docs/" },
 { "name": "HubSpot Operations Hub", "crawlerStart": "https://developers.hubspot.com/docs/api/overview", "crawlerPrefix": "https://developers.hubspot.com/docs/api/" },
 { "name": "Podium", "crawlerStart": "https://docs.podium.com/docs", "crawlerPrefix": "https://docs.podium.com/" },
-{ "name": "Whereby", "crawlerStart": "https://docs.whereby.com//", "crawlerPrefix": "https://docs.whereby.com/" },
+{ "name": "Whereby", "crawlerStart": "https://docs.whereby.com/", "crawlerPrefix": "https://docs.whereby.com/" },
 { "name": "Plivo", "crawlerStart": "https://www.plivo.com/docs/", "crawlerPrefix": "https://www.plivo.com/docs/" },
 { "name": "Dotdigital", "crawlerStart": "https://developer.dotdigital.com/docs", "crawlerPrefix": "https://developer.dotdigital.com/docs" },
 { "name": "Vonage Communications APIs", "crawlerStart": "https://developer.vonage.com/en/documentation", "crawlerPrefix": "https://developer.vonage.com/en/" },
