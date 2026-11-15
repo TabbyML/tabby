@@ -376,7 +376,7 @@ pub const PRESET_WEB_DOCUMENTS_DATA: &str = r#"[{ "name": "CodeMirror", "crawler
 { "name": "Serp Google Scholar API", "crawlerStart": "https://serpapi.com/google-scholar-api", "crawlerPrefix": "https://serpapi.com/google-scholar-api" },
 { "name": "Novu", "crawlerStart": "https://docs.novu.co/", "crawlerPrefix": "https://docs.novu.co/" },
 { "name": "Drizzle", "crawlerStart": "https://orm.drizzle.team/docs/overview", "crawlerPrefix": "https://orm.drizzle.team/docs/overview" },
-{ "name": "Autogen", "crawlerStart": "https://microsoft.github.io/autogen/docs/", "crawlerPrefix": "https://microsoft.github.io/autogen/docs/" },
+{ "name": "Autogen", "crawlerStart": "https://microsoft.github.io/autogen/stable/", "crawlerPrefix": "https://microsoft.github.io/autogen/stable/" },
 { "name": "Domo", "crawlerStart": "https://developer.domo.com/", "crawlerPrefix": "https://developer.domo.com/" },
 { "name": "Crystal", "crawlerStart": "https://crystal-lang.org/api", "crawlerPrefix": "https://crystal-lang.org/api" },
 { "name": "Amber", "crawlerStart": "https://docs.amberframework.org/amber", "crawlerPrefix": "https://docs.amberframework.org/amber" },
