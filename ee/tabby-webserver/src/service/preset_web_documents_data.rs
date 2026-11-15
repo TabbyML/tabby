@@ -245,7 +245,7 @@ pub const PRESET_WEB_DOCUMENTS_DATA: &str = r#"[{ "name": "CodeMirror", "crawler
 { "name": "Dygraphs", "crawlerStart": "https://dygraphs.com/", "crawlerPrefix": "https://dygraphs.com/" },
 { "name": "Victory", "crawlerStart": "https://formidable.com/open-source/victory/docs/", "crawlerPrefix": "https://formidable.com/open-source/victory/" },
 { "name": "Chartist.js", "crawlerStart": "https://gionkunz.github.io/chartist-js/api-documentation.html", "crawlerPrefix": "https://gionkunz.github.io/chartist-js/api-documentation.html" },
-{ "name": "Recharts", "crawlerStart": "http://recharts.org/en-US/guide/", "crawlerPrefix": "http://recharts.org/en-US/" },
+{ "name": "Recharts", "crawlerStart": "https://recharts.github.io/en-US/guide/", "crawlerPrefix": "https://recharts.github.io/en-US/" },
 { "name": "AmCharts", "crawlerStart": "https://www.amcharts.com/docs/v5/", "crawlerPrefix": "https://www.amcharts.com/docs/v5/" },
 { "name": "Google Charts", "crawlerStart": "https://developers.google.com/chart", "crawlerPrefix": "https://developers.google.com/chart" },
 { "name": "AnyChart", "crawlerStart": "https://docs.anychart.com/Quick_Start/Quick_Start", "crawlerPrefix": "https://docs.anychart.com/" },
