@@ -2161,6 +2161,7 @@ dependencies = [
  "async-trait",
  "futures",
  "leaky-bucket",
+ "llm-resilience",
  "ollama-api-bindings",
  "reqwest",
  "reqwest-eventsource",
@@ -2914,6 +2915,17 @@ dependencies = [
  "tokio",
  "tracing",
  "which",
+]
+
+[[package]]
+name = "llm-resilience"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4fafca5201b2933a00b87b97c03a73d0e577e504cd53a50781b05be9d119b3c"
+dependencies = [
+ "parking_lot",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
