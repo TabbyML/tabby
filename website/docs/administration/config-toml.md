@@ -15,6 +15,17 @@ You can configure Tabby to connect to LLM models either by setting up a local mo
 ## Code Completion
 Tabby allows customized configurations for code completions. Please refer to [Code Completion](../code-completion).
 
+### Server-side completion timeout
+
+Tabby allows up to 30 seconds by default for a code completion request to `POST /v1/completions`. If a slow completion model needs more time, set `completion_timeout` in the `[server]` section of the Tabby server's configuration file. The value is an integer in seconds.
+
+```toml title="~/.tabby/config.toml"
+[server]
+completion_timeout = 60
+```
+
+If there is already a `[server]` section, add the setting there. Restart the Tabby server to apply the change. Any timeout imposed by your client or reverse proxy still applies.
+
 ## Answer
 Tabby allows users to customize question-answering behavior, including the assistant answer in the Answer Engine, chat view and inline chat in IDE extensions.
 
