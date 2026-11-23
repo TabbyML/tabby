@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use async_stream::stream;
 use futures::{Stream, StreamExt};
 use readable_readability::Readability;
-use tokio::io::AsyncBufReadExt;
+use tokio::io::{AsyncBufRead, AsyncBufReadExt};
 use tracing::{debug, warn};
 use url::Url;
 
@@ -51,7 +51,6 @@ async fn crawl_url(
         .map_err(|e| anyhow!("Failed to run katana: {}", e))?;
 
     let stdout = child.stdout.take().expect("Failed to acquire stdout");
-    let mut stdout = tokio::io::BufReader::new(stdout).lines();
 
     let stderr = child.stderr.take().expect("Failed to acquire stderr");
     let mut stderr = tokio::io::BufReader::new(stderr).lines();
@@ -70,7 +69,14 @@ async fn crawl_url(
         }
     });
 
-    Ok(stream! {
+    Ok(read_katana_responses(tokio::io::BufReader::new(stdout)))
+}
+
+fn read_katana_responses(
+    stdout: impl AsyncBufRead + Unpin,
+) -> impl Stream<Item = KatanaRequestResponse> {
+    let mut stdout = stdout.lines();
+    stream! {
         while let Ok(Some(line)) = stdout.next_line().await {
             let data = match serde_json::from_str::<KatanaRequestResponse>(&line) {
                 Ok(data) => data,
@@ -90,12 +96,9 @@ async fn crawl_url(
             }
 
             // Skip if the content type is not text/html
-            if !data
-                .response
-                .headers
-                .get("content-type")
-                .is_some_and(|ct| ct.starts_with("text/html"))
-            {
+            if !data.response.headers.iter().any(|(name, value)| {
+                name.eq_ignore_ascii_case("content-type") && value.starts_with("text/html")
+            }) {
                 continue;
             }
 
@@ -107,7 +110,7 @@ async fn crawl_url(
 
             yield data;
         }
-    })
+    }
 }
 
 fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
@@ -193,6 +196,31 @@ mod tests {
     use tracing_test::traced_test;
 
     use super::*;
+
+    #[tokio::test]
+    async fn test_crawl_accepts_html_with_either_header_casing() {
+        let output = r#"{"timestamp":"2026-01-01T00:00:00Z","request":{"method":"GET","endpoint":"https://example.com/old","raw":""},"response":{"status_code":200,"headers":{"content-type":"text/html; charset=utf-8"},"body":"<p>Old format</p>"}}
+{"timestamp":"2026-01-01T00:00:00Z","request":{"method":"GET","endpoint":"https://example.com/new","raw":""},"response":{"status_code":200,"headers":{"Content-Type":"text/html; charset=utf-8"},"body":"<p>New format</p>"}}
+{"timestamp":"2026-01-01T00:00:00Z","request":{"method":"GET","endpoint":"https://example.com/plain","raw":""},"response":{"status_code":200,"headers":{"Content-Type":"text/plain"},"body":"<p>Plain text</p>"}}
+"#;
+        let markdown: Vec<_> = read_katana_responses(output.as_bytes())
+            .filter_map(|response| async move { to_document(response).map(|doc| doc.markdown) })
+            .collect()
+            .await;
+
+        assert_eq!(markdown, ["Old format", "New format"]);
+    }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_crawl_skips_katana_records_without_a_response() {
+        let output = r#"{"timestamp":"2026-01-01T00:00:00Z","request":{"method":"GET","endpoint":"https://example.com/","raw":"","tag":"a","attribute":"href","source":"https://example.com/"}}
+"#;
+        let responses: Vec<_> = read_katana_responses(output.as_bytes()).collect().await;
+
+        assert!(responses.is_empty());
+        assert!(!logs_contain("Failed to parse katana output"));
+    }
 
     #[tokio::test]
     #[traced_test]
