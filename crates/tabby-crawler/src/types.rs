@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 pub struct KatanaRequestResponse {
     pub timestamp: String,
     pub request: KatanaRequest,
+    // Katana 1.5 can omit the response from crawl results.
+    #[serde(default)]
     pub response: KatanaResponse,
 }
 
@@ -16,7 +18,7 @@ pub struct KatanaRequest {
     pub raw: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct KatanaResponse {
     pub status_code: Option<u16>,
     pub headers: HashMap<String, String>,
